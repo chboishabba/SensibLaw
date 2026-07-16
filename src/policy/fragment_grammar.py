@@ -8,7 +8,9 @@ from typing import Any, Iterable
 
 from src.policy.fragment_pnf import (
     FragmentPNF,
+    GRAMMAR_TO_PREDICATE_FRAME,
     GrammarMatchStrength,
+    PredicateFrame,
     SourceSpanRef,
     TimeAnchor,
     TypedRole,
@@ -106,6 +108,7 @@ class FragmentMatch:
     modifiers: tuple[TypedRole, ...] = ()
     pnf_basis: tuple[str, ...] = ()
     fallback_used: bool = False
+    predicate_frame: PredicateFrame | None = None
 
     def to_fragment_pnf(
         self,
@@ -130,6 +133,7 @@ class FragmentMatch:
             source_span=source_span,
             pnf_basis=self.pnf_basis,
             fallback_used=self.fallback_used,
+            predicate_frame=self.predicate_frame,
         )
 
 
@@ -203,6 +207,7 @@ class OfficeRangeGrammar(FragmentGrammar):
             fragment_surface_class=classify_fragment_surface(text),
             fragment_subclass=self.fragment_subclass,
             grammar_match_strength=GrammarMatchStrength.exact_pattern,
+            predicate_frame=GRAMMAR_TO_PREDICATE_FRAME.get(self.grammar_id),
             subject_role=subject_role,
             predicate_spine="served_as",
             object_role=object_role,
@@ -296,6 +301,7 @@ class ProclamationGrammar(FragmentGrammar):
             fragment_surface_class=classify_fragment_surface(text),
             fragment_subclass=self.fragment_subclass,
             grammar_match_strength=GrammarMatchStrength.exact_pattern,
+            predicate_frame=GRAMMAR_TO_PREDICATE_FRAME.get(self.grammar_id),
             subject_role=subject_role,
             predicate_spine="proclaimed",
             object_role=object_role,
@@ -347,6 +353,7 @@ class OwnershipGrammar(FragmentGrammar):
             fragment_surface_class=classify_fragment_surface(text),
             fragment_subclass=self.fragment_subclass,
             grammar_match_strength=GrammarMatchStrength.exact_pattern,
+            predicate_frame=GRAMMAR_TO_PREDICATE_FRAME.get(self.grammar_id),
             subject_role=TypedRole(
                 canonical_key=subject["canonical_key"],
                 canonical_label=subject["canonical_label"],
@@ -409,6 +416,7 @@ class EducationGrammar(FragmentGrammar):
             fragment_surface_class=classify_fragment_surface(text),
             fragment_subclass=self.fragment_subclass,
             grammar_match_strength=GrammarMatchStrength.exact_pattern,
+            predicate_frame=GRAMMAR_TO_PREDICATE_FRAME.get(self.grammar_id),
             subject_role=TypedRole(
                 canonical_key=subject["canonical_key"],
                 canonical_label=subject["canonical_label"],
@@ -478,6 +486,7 @@ class MarriageGrammar(FragmentGrammar):
             fragment_surface_class=classify_fragment_surface(text),
             fragment_subclass=self.fragment_subclass,
             grammar_match_strength=GrammarMatchStrength.exact_pattern,
+            predicate_frame=GRAMMAR_TO_PREDICATE_FRAME.get(self.grammar_id),
             subject_role=TypedRole(
                 canonical_key=subject["canonical_key"],
                 canonical_label=subject["canonical_label"],
@@ -516,6 +525,7 @@ class BirthGrammar(FragmentGrammar):
             fragment_surface_class=classify_fragment_surface(text),
             fragment_subclass=self.fragment_subclass,
             grammar_match_strength=GrammarMatchStrength.exact_pattern,
+            predicate_frame=GRAMMAR_TO_PREDICATE_FRAME.get(self.grammar_id),
             subject_role=TypedRole(
                 canonical_key=subject["canonical_key"],
                 canonical_label=subject["canonical_label"],
@@ -606,6 +616,7 @@ class FallbackGrammar(FragmentGrammar):
                 fragment_surface_class=classify_fragment_surface(text),
                 fragment_subclass=self.fragment_subclass,
                 grammar_match_strength=GrammarMatchStrength.fallback_bundle,
+                predicate_frame=GRAMMAR_TO_PREDICATE_FRAME.get(self.grammar_id),
                 subject_role=subject_role,
                 predicate_spine=predicate_spine,
                 object_role=object_role,

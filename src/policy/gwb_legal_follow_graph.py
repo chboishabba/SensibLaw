@@ -398,6 +398,15 @@ def build_gwb_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, 
                 ],
                 "event_lineage_depth": str(source_metadata.get("event_lineage_depth") or "").strip(),
                 "cross_source_braid_depth": str(source_metadata.get("cross_source_braid_depth") or "").strip(),
+                "event_quality_status": str(source_metadata.get("event_quality_status") or "").strip(),
+                "event_quality_score": source_metadata.get("event_quality_score") if source_metadata.get("event_quality_score") is not None else None,
+                "event_quality_reasons": [
+                    str(value)
+                    for value in source_metadata.get("event_quality_reasons", [])
+                    if isinstance(value, str) and str(value).strip()
+                ] if isinstance(source_metadata.get("event_quality_reasons"), list) else None,
+                "event_time_anchor_status": str(source_metadata.get("event_time_anchor_status") or "").strip() or None,
+                "resolved_historical_date": str(source_metadata.get("resolved_historical_date") or "").strip() or None,
             }
         )
     sample_edges = [
@@ -724,6 +733,15 @@ def build_gwb_legal_follow_graph(
                     or ""
                 ).strip()
                 or None,
+                "event_quality_status": str(row.get("event_quality_status") or "").strip() or None,
+                "event_quality_score": row.get("event_quality_score") if row.get("event_quality_score") is not None else None,
+                "event_quality_reasons": [
+                    str(value)
+                    for value in row.get("event_quality_reasons", [])
+                    if isinstance(value, str) and str(value).strip()
+                ] if isinstance(row.get("event_quality_reasons"), list) else None,
+                "event_time_anchor_status": str(row.get("event_time_anchor_status") or "").strip() or None,
+                "resolved_historical_date": str(row.get("resolved_historical_date") or "").strip() or None,
                 "candidate_vs_promoted_visibility": (
                     True
                     if (

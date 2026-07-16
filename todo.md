@@ -1,5 +1,104 @@
 # SensibLaw TODO
 
+- [P0] Implement the first generic external-graph bridge tranche.
+  - contract: `docs/external_graph_bridge.md`
+  - roadmap: `../docs/planning/itir_wd_zelph_sensiblaw_flatness_optimisation_roadmap_20260702.md`
+  - DONE: define provider-neutral graph-view, bridge-candidate/decision, and
+    pressure-result carrier semantics before implementation
+  - DONE: consume ITIR-MCP's revision-bound remote manifest/slice view;
+    bounded graph-slice planning fetches manifest metadata only and records
+    selected sections/chunks/bytes without a full-graph read
+  - DONE: expose `itir.shard.bounded_graph_slice_plan` before any payload fetch;
+    it reports selected sections, logical chunks, and declared payload bytes.
+    Current coarse chunks make this cost disclosure, not a promise of a small
+    transfer
+  - DONE: distinguish incomplete from completeness-certified views and fail
+    closed when complete coverage lacks policy, closure, or receipt evidence
+  - DONE: project coverage, bridge, pressure, and provenance on the shared
+    world-model/review/linkage/receipt surfaces
+  - DONE: keep legacy AU raw-bundle receipt compatibility in the thin wrapper;
+    it materializes the shared report/linkage projection before the strict
+    generic receipt boundary
+  - DONE: pin one entity and one event attachment fixture plus one bounded
+    expected-shape pressure diagnostic
+  - DONE: replay existing Nat Cohort D `Q1785637@2443793937` packet evidence
+    through a generic local entity linkage case, graph revision, review
+    decision, source anchors, direct-`P31` pressure diagnostic, review/linkage
+    projections, and receipt
+  - DONE: make incomplete coverage return `abstain` plus a
+    `coverage_limited_absence` residual when a required property is observed
+    absent; the generic evaluator is also tested with organisation and city
+    expectation profiles
+  - DONE: add the generic revision-pinned Wikibase entity-export adapter. It
+    validates requested QID/revision against the supplied entity document and
+    emits observed labels, aliases, properties, and statement references, not
+    a lane-specific resolver. `Q1785637@2443793937` now produces direct-`P31`
+    presence evidence and a compatible diagnostic, while the pre-existing
+    incomplete-coverage absence fixture still abstains.
+  - DONE: attach the same bounded observation to a local entity and a local
+    event through generic bridge candidates. The entity decision is explicit;
+    the event relation remains review-required and neither inherits authority.
+  - DONE: add a bounded direct-`P31`/`P279` closure profile with named
+    entity-export coverage. `Q1785637@2443793937` directly types as
+    `Q4830453`/`Q61676930`; revision-pinned `P279` observations include
+    `Q4830453 -> Q43229`. The profile reports that positive compatible path
+    only and abstains for missing closure evidence in incomplete coverage. A
+    selected Zelph payload later becomes an alternate provider of the same
+    generic observations.
+  - NEXT: isolate the completed Apoteket implementation in a narrow WD-only
+    commit/worktree without committing, stashing, or rewriting unrelated user
+    changes; record fixture revisions, commands, focused test counts, and
+    lint/format results
+  - NEXT: add one shared external-context application operation and replay the
+    same observation through GWB, AU, Brexit, and Affidavit fixtures. Wrappers
+    may supply only local candidate refs, anchors, workflow metadata, and
+    outward receipt context; add normalized parity and no-role/no-authority
+    inheritance tests.
+  - NEXT: normalize supplied revision-pinned observation inputs across local
+    exports, captured API responses, checked fixtures, and later routed Zelph
+    views. The semantic adapter validates supplied evidence and never refetches.
+  - NEXT: replace the one-hop proof profile with a bounded,
+    frontier-explicit `TypeClosureRequest`/`ObservedTypeClosure` contract.
+    Use `compatible_within_observed_closure`,
+    `contradictory_within_observed_closure`, `closure_incomplete`,
+    `profile_not_applicable`, and `invalid_observation`; never turn a path
+    beyond the frontier into a global negative claim.
+  - NEXT: make existing Nat climate-model comparison explicit as the first
+    policy-anchored DSP source. Preserve distinct subject-type, target-model,
+    qualifier/reference, temporal/split, and peer-cohort pressure grounds when
+    mapping `P5991 -> P14143` rows to Family A/B/C/D/E; peer frequency never
+    overrides the documented model or reviewer policy.
+  - NEXT: induce `ComparisonCohort` and `DomainStructuralSignature` from
+    comparable, revision/coverage-qualified members as a second DSP source.
+    Implement typed field observation states, reciprocal cohort/member pressure,
+    and diagnostic-only `DomainPressureResult`; begin generic cohort induction
+    with the city/capital proving set, not a hand-authored pharmacy-chain
+    definition or the policy-anchored climate pilot.
+  - NEXT: emit comparable residual receipts and a runtime spectral-pressure
+    projection only for admitted exact/partial/no-typed-meet residuals. Keep
+    `scope_exceeded`/`unresolved` as typed abstentions; align output with
+    DASHI's `WikidataSpectralPressureBridge` and
+    `ExternalContextSafetyBoundary`, including incomplete/uninspected/invalid
+    observation abstention and no role, truth, authority, edit, repair, or
+    promotion consequence without explicit policy.
+  - NEXT: add multi-view pressure adapters from article/simplification,
+    Abstract Wikipedia, translation alignment, and domain cohorts. They must
+    predict expected shape rather than copy peer values or collapse views into
+    a truth oracle.
+  - later federation seam: bind graph/bridge/pressure receipts into a
+    versioned basis manifest with fork lineage and attestations, then project
+    channels from selected bases under local trust policy
+  - no-go list:
+    - no external graph identity replaces local candidates;
+    - no partial slice supports exhaustive or promotion claims;
+    - no external identity grants local role, legal, or evidentiary authority;
+    - no diagnostic mutates local PNF/source state;
+    - no lane-specific public bridge API.
+  - deferred after this tranche: asynchronous join planning, route indexes,
+    smaller query-oriented shards, and workload-based shard-size optimisation.
+  - governing programme:
+    `../docs/planning/generic_world_model_compiler_convergence_20260716.md`
+
 - [P0] Keep the affidavit/Wikidata typed reconciliation slice aligned with the
   DASHI formal object grammar.
   - DONE: add the first operational contract at

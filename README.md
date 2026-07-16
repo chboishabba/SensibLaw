@@ -24,6 +24,11 @@ This is the data-in/world-model-out boundary. Downstream callers should not
 need to know NAT, GWB, AU, Brexit, affidavit, or other historical lane names
 to use it.
 
+`attach_receipt(...)` consumes a linkage-case projection (or a report that
+contains one). Historical lane wrappers may preserve raw-artifact compatibility
+only by first using this same shared world-model and report path; raw bundles do
+not widen the generic receipt contract.
+
 The public boundary must not require lane selectors, scenario selectors, or
 adapter overrides such as `profile=...`, `kind=...`, or `adapter_hint=...`.
 Historical lane wrappers may still carry internal compatibility metadata, but
@@ -31,6 +36,36 @@ that routing is not part of the product API.
 
 The older lane modules remain as demonstrations and compatibility shims. They
 must call the same generic product API rather than owning separate semantics.
+
+### External graph bridge boundary
+
+An external graph is a reviewable input to the generic world model, not an
+authority or a replacement for local candidates. The first current adapter
+consumes bounded Zelph/Wikidata slice views produced by ITIR transport, but the
+carrier is provider-neutral. It preserves graph-view coverage, external
+identity/event proposals and decisions, and structural-pressure diagnostics.
+
+The required posture is:
+
+```text
+local source candidate -> external bridge proposal -> review decision
+```
+
+The current Wikibase adapter accepts a caller-supplied, revision-pinned entity
+export and verifies its entity identifier/revision before emitting bounded
+label, alias, property, and statement observations. It does not resolve the
+local candidate or decide the bridge: those remain generic proposal and review
+records. Direct `P31` presence is usable diagnostic evidence; absence from an
+incomplete entity export remains an abstention, not a global missing-type claim.
+
+An incomplete graph view is candidate-only and cannot support an exhaustive
+claim. A completeness-certified view must name its coverage policy, revision,
+selected graph coverage, and receipt. External identity neither replaces a
+local entity/event nor grants legal, evidentiary, or promotion authority.
+
+See `docs/external_graph_bridge.md` for the carrier contract and
+`../docs/planning/itir_wd_zelph_sensiblaw_flatness_optimisation_roadmap_20260702.md`
+for the implementation sequence.
 
 The supported downstream import boundary for the older evidence/extraction
 surface remains `sensiblaw.interfaces`.

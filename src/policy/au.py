@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from src.fact_intake.au_review_bundle import build_au_fact_review_bundle as _build_bundle
+from src.fact_intake.au_review_bundle import (
+    build_au_fact_review_bundle as _build_bundle,
+)
 from src.policy.world_model_runtime import (
     attach_receipt as _attach_receipt,
     build_world_model as _build_world_model_from_input,
@@ -11,6 +13,14 @@ from src.policy.world_model_runtime import (
 
 
 def attach_receipt(artifact: Mapping[str, Any]) -> dict[str, Any]:
+    """Attach an AU compatibility receipt without widening the shared boundary.
+
+    Older AU callers still hand this wrapper a fact-review bundle.  Convert
+    that legacy input through the generic carrier and report projection first;
+    the shared receipt helper itself remains linkage-projection-only.
+    """
+    if str(artifact.get("version") or "").strip() == "fact.review.bundle.v1":
+        return _attach_receipt(_project_report(_build_world_model_from_input(artifact)))
     return _attach_receipt(artifact)
 
 

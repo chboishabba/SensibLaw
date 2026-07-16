@@ -18,6 +18,7 @@ if str(_SENSIBLAW_ROOT) not in sys.path:
 from cli_runtime import build_progress_callback, configure_cli_logging
 from src.storage.repo_roots import repo_root, sensiblaw_root
 from src.policy.cross_source_event_braid import build_cross_source_event_braid
+from src.policy.fragment_pnf import serialize_fragment_pnfs_in_rows
 
 REPO_ROOT = repo_root()
 SENSIBLAW_ROOT = sensiblaw_root()
@@ -126,6 +127,7 @@ def _braid_key(source_family: str, event_id: str) -> str:
 def _annotate_merged_relations_with_braid(
     merged_relations: dict[tuple[str, str, str], dict[str, Any]],
     braid_payload: dict[str, Any],
+    audit_registry: dict[str, Any] | None = None,
 ) -> None:
     merged_event_rows = [
         row for row in braid_payload.get("merged_events", []) if isinstance(row, dict)
@@ -136,6 +138,23 @@ def _annotate_merged_relations_with_braid(
     candidate_link_rows = [
         row for row in braid_payload.get("candidate_links", []) if isinstance(row, dict)
     ]
+    source_event_rows = [
+        row for row in braid_payload.get("source_event_rows", []) if isinstance(row, dict)
+    ]
+    quality_by_event = {
+        f"{str(row.get('source_family') or '').strip()}:{str(row.get('event_id') or '').strip()}": {
+            "status": row.get("event_quality_status"),
+            "score": row.get("event_quality_score"),
+            "reasons": row.get("event_quality_reasons"),
+            "time_status": row.get("event_time_anchor_status"),
+            "time_precision": row.get("event_time_anchor_precision"),
+            "time_confidence": row.get("event_time_anchor_confidence"),
+            "time_source": row.get("event_time_anchor_source"),
+            "resolved_date": row.get("resolved_historical_date"),
+        }
+        for row in source_event_rows
+        if row.get("source_family") and row.get("event_id")
+    }
     merged_event_ids_by_event = {
         event_id: str(row.get("merged_event_id") or "").strip()
         for row in merged_event_rows
@@ -144,6 +163,8 @@ def _annotate_merged_relations_with_braid(
     }
     ordering_edges_by_event: dict[str, set[str]] = {}
     ordering_basis_by_event: dict[str, set[str]] = {}
+    time_basis_by_event: dict[str, set[str]] = {}
+    
     for row in ordering_edge_rows:
         edge_id = str(row.get("ordering_edge_id") or "").strip()
         support_basis = {
@@ -151,11 +172,19 @@ def _annotate_merged_relations_with_braid(
             for value in row.get("support_basis", [])
             if isinstance(value, str) and value.strip()
         }
+        ordering_basis = str(row.get("ordering_basis") or "").strip()
+        time_basis = str(row.get("time_basis") or "").strip()
+        
         for event_id in row.get("source_event_ids", []):
             if not isinstance(event_id, str) or not event_id.strip():
                 continue
             ordering_edges_by_event.setdefault(event_id, set()).add(edge_id)
             ordering_basis_by_event.setdefault(event_id, set()).update(support_basis)
+            if ordering_basis:
+                ordering_basis_by_event[event_id].add(ordering_basis)
+            if time_basis:
+                time_basis_by_event.setdefault(event_id, set()).add(time_basis)
+
     candidate_links_by_event: dict[str, set[str]] = {}
     for row in candidate_link_rows:
         link_id = str(row.get("link_id") or "").strip()
@@ -164,11 +193,18 @@ def _annotate_merged_relations_with_braid(
                 continue
             candidate_links_by_event.setdefault(event_id, set()).add(link_id)
 
-    for relation in merged_relations.values():
+    status_hierarchy = ["rejected_noise", "weak_candidate", "usable_candidate", "promotable_event"]
+    time_status_hierarchy = ["resolved_historical_date", "explicit_span_date", "source_metadata_date", "candidate_span_year", "ingest_only", "none"]
+
+    for relation in list(merged_relations.values()):
         merged_event_ids: set[str] = set()
         ordering_edge_ids: set[str] = set()
         braid_support_basis: set[str] = set()
         braid_candidate_link_ids: set[str] = set()
+        ordering_basis_types: set[str] = set()
+        time_basis_types: set[str] = set()
+
+        filtered_lineage = []
         for lineage in relation.get("lineage_records", []):
             if not isinstance(lineage, dict):
                 continue
@@ -178,18 +214,42 @@ def _annotate_merged_relations_with_braid(
             )
             if not event_key:
                 continue
+            if audit_registry and audit_registry.get("events", {}).get(event_key, {}).get("recommended_status") == "block":
+                continue
+            filtered_lineage.append(lineage)
+            
             merged_event_id = merged_event_ids_by_event.get(event_key)
             if merged_event_id:
                 merged_event_ids.add(merged_event_id)
             ordering_edge_ids.update(ordering_edges_by_event.get(event_key, set()))
             braid_support_basis.update(ordering_basis_by_event.get(event_key, set()))
             braid_candidate_link_ids.update(candidate_links_by_event.get(event_key, set()))
+            ordering_basis_types.update(ordering_basis_by_event.get(event_key, set()))
+            time_basis_types.update(time_basis_by_event.get(event_key, set()))
+            
+            # Map quality and temporal info into the lineage entry
+            quality = quality_by_event.get(event_key)
+            if quality:
+                lineage["event_quality_status"] = quality["status"]
+                lineage["event_quality_score"] = quality["score"]
+                lineage["event_quality_reasons"] = quality["reasons"]
+                lineage["event_time_anchor_status"] = quality["time_status"]
+                lineage["event_time_anchor_precision"] = quality["time_precision"]
+                lineage["event_time_anchor_confidence"] = quality["time_confidence"]
+                lineage["event_time_anchor_source"] = quality["time_source"]
+                lineage["resolved_historical_date"] = quality["resolved_date"]
+
+        relation["lineage_records"] = filtered_lineage
+
         if merged_event_ids:
             braid_support_basis.add("promoted_same_event_as")
         relation["merged_event_ids"] = sorted(merged_event_ids)
         relation["ordering_edge_ids"] = sorted(ordering_edge_ids)
         relation["braid_support_basis"] = sorted(braid_support_basis)
         relation["braid_candidate_link_ids"] = sorted(braid_candidate_link_ids)
+        relation["ordering_basis_types"] = sorted(ordering_basis_types)
+        relation["time_basis_types"] = sorted(time_basis_types)
+
         if merged_event_ids and ordering_edge_ids:
             relation["cross_source_braid_depth"] = "complete"
         elif merged_event_ids or ordering_edge_ids:
@@ -199,8 +259,58 @@ def _annotate_merged_relations_with_braid(
         else:
             relation["cross_source_braid_depth"] = "missing"
 
+        # Map aggregate relation quality & temporal info
+        relation_lineage = relation.get("lineage_records", [])
+        relation_scores = [
+            l.get("event_quality_score")
+            for l in relation_lineage
+            if isinstance(l, dict) and l.get("event_quality_score") is not None
+        ]
+        avg_relation_score = round(sum(relation_scores) / (len(relation_scores) or 1), 2)
+        relation_statuses = {
+            l.get("event_quality_status")
+            for l in relation_lineage
+            if isinstance(l, dict) and l.get("event_quality_status")
+        }
+        worst_rel_status = "promotable_event"
+        for status in status_hierarchy:
+            if status in relation_statuses:
+                worst_rel_status = status
+                break
+        relation_reasons = sorted({
+            r
+            for l in relation_lineage
+            if isinstance(l, dict)
+            for r in l.get("event_quality_reasons", [])
+        })
 
-def _merge_families(families: list[dict[str, Any]], *, braid_payload: dict[str, Any]) -> dict[str, Any]:
+        # Temporal status aggregate: pick the strongest status present
+        relation_time_statuses = {
+            l.get("event_time_anchor_status")
+            for l in relation_lineage
+            if isinstance(l, dict) and l.get("event_time_anchor_status")
+        }
+        best_time_status = "none"
+        for status in time_status_hierarchy:
+            if status in relation_time_statuses:
+                best_time_status = status
+                break
+
+        # Best resolution date
+        best_resolved_date = None
+        for l in relation_lineage:
+            if isinstance(l, dict) and l.get("resolved_historical_date"):
+                best_resolved_date = l.get("resolved_historical_date")
+                break
+
+        relation["event_quality_status"] = worst_rel_status
+        relation["event_quality_score"] = avg_relation_score
+        relation["event_quality_reasons"] = relation_reasons
+        relation["event_time_anchor_status"] = best_time_status
+        relation["resolved_historical_date"] = best_resolved_date
+
+
+def _merge_families(families: list[dict[str, Any]], *, braid_payload: dict[str, Any], audit_registry: dict[str, Any] | None = None) -> dict[str, Any]:
     merged_relations: dict[tuple[str, str, str], dict[str, Any]] = {}
     checked_handoff_relation_keys: set[tuple[str, str, str]] = set()
     merged_seed_lanes: dict[str, dict[str, Any]] = {}
@@ -277,8 +387,16 @@ def _merge_families(families: list[dict[str, Any]], *, braid_payload: dict[str, 
             if review_status == "matched" and source_family not in merged["matched_source_families"]:
                 merged["matched_source_families"].append(source_family)
 
+    _annotate_merged_relations_with_braid(merged_relations, braid_payload, audit_registry=audit_registry)
+    
+    active_relations = {
+        key: rel
+        for key, rel in merged_relations.items()
+        if rel.get("lineage_records")
+    }
+
     merged_relation_rows = sorted(
-        merged_relations.values(),
+        active_relations.values(),
         key=lambda row: (
             str(((row.get("subject") or {}).get("canonical_label")) or ""),
             str(row.get("predicate_key") or ""),
@@ -286,7 +404,7 @@ def _merge_families(families: list[dict[str, Any]], *, braid_payload: dict[str, 
         ),
     )
     new_relation_rows = [
-        row for key, row in sorted(merged_relations.items(), key=lambda item: item[0]) if key not in checked_handoff_relation_keys
+        row for key, row in sorted(active_relations.items(), key=lambda item: item[0]) if key not in checked_handoff_relation_keys
     ]
     merged_seed_rows = sorted(merged_seed_lanes.values(), key=lambda row: row["seed_id"])
 
@@ -295,7 +413,7 @@ def _merge_families(families: list[dict[str, Any]], *, braid_payload: dict[str, 
         family_summaries.append(
             {
                 "source_family": family["source_family"],
-                "timeline_path": family["timeline_path"],
+                "timeline_path": family.get("timeline_path", ""),
                 "promoted_relation_count": len(family.get("selected_promoted_relations", [])),
                 "matched_seed_lane_count": sum(
                     1 for row in family.get("selected_seed_lanes", []) if str(row.get("review_status") or "") == "matched"
@@ -305,7 +423,40 @@ def _merge_families(families: list[dict[str, Any]], *, braid_payload: dict[str, 
             }
         )
 
-    _annotate_merged_relations_with_braid(merged_relations, braid_payload)
+    qc_meta = braid_payload.get("qc_meta") or {}
+    source_event_count = qc_meta.get("source_event_count", 0)
+    blocked_event_count = qc_meta.get("blocked_event_count", 0)
+    active_event_count = qc_meta.get("active_event_count", 0)
+    historical_timeline = qc_meta.get("historical_timeline") or {}
+    
+    relations_dropped_by_audit_block = len(merged_relations) - len(active_relations)
+    
+    qc_report = {
+        "source_event_count": source_event_count,
+        "blocked_event_count": blocked_event_count,
+        "active_event_count": active_event_count,
+        "candidate_link_count": len(braid_payload.get("candidate_links", [])),
+        "merged_event_count": len(braid_payload.get("merged_events", [])),
+        "ordering_edge_count": len(braid_payload.get("ordering_edges", [])),
+        "historical_time_order_edge_count": sum(
+            1 for e in braid_payload.get("ordering_edges", []) if e.get("ordering_basis") == "historical_time_order"
+        ),
+        "document_order_edge_count": sum(
+            1 for e in braid_payload.get("ordering_edges", []) if e.get("ordering_basis") == "document_order"
+        ),
+        "ingest_order_only_edge_count": sum(
+            1 for e in braid_payload.get("ordering_edges", []) if e.get("time_basis") == "ingest_order_only"
+        ),
+        "historical_conflict_residual_count": sum(
+            1 for e in braid_payload.get("ordering_edges", []) if e.get("time_basis") == "historical_conflict_residual"
+        ),
+        "relations_dropped_by_audit_block": relations_dropped_by_audit_block,
+        "relations_preserved_after_audit": len(active_relations),
+        "quality_by_source_family": braid_payload.get("summary", {}).get("event_quality_audit_by_family", {}),
+        "timeline_export_event_count": len(historical_timeline.get("source_event_rows", [])),
+        "timeline_export_edge_count": len(historical_timeline.get("ordering_edges", [])),
+    }
+
     return {
         "version": ARTIFACT_VERSION,
         "fixture_kind": "broader_gwb_corpus_checkpoint",
@@ -323,17 +474,37 @@ def _merge_families(families: list[dict[str, Any]], *, braid_payload: dict[str, 
         "new_relations_vs_checked_handoff": new_relation_rows,
         "merged_seed_lanes": merged_seed_rows,
         "cross_source_event_braid": braid_payload,
+        "qc_report": qc_report,
     }
 
 
 def _build_summary_text(payload: dict[str, Any]) -> str:
     summary = payload["summary"]
+    qc = payload.get("qc_report") or {}
     lines = [
         "# GWB Broader Corpus Checkpoint Summary",
         "",
         "This artifact is the first broader GWB extraction checkpoint beyond the",
         "bounded checked handoff. It combines the checked handoff lane with fresh",
         "deterministic extraction over the public-bios and corpus/book timelines.",
+        "",
+        "## GWB Timeline QC Report",
+        "",
+        f"- **Source Event Count**: {qc.get('source_event_count', 0)}",
+        f"- **Blocked Event Count**: {qc.get('blocked_event_count', 0)}",
+        f"- **Active Event Count**: {qc.get('active_event_count', 0)}",
+        f"- **Candidate Link Count**: {qc.get('candidate_link_count', 0)}",
+        f"- **Merged Event Count**: {qc.get('merged_event_count', 0)}",
+        f"- **Ordering Edge Count**: {qc.get('ordering_edge_count', 0)}",
+        f"  - *Historical Time Order*: {qc.get('historical_time_order_edge_count', 0)}",
+        f"  - *Document Order*: {qc.get('document_order_edge_count', 0)}",
+        f"  - *Ingest Order Only*: {qc.get('ingest_order_only_edge_count', 0)}",
+        f"  - *Historical Conflict Residual*: {qc.get('historical_conflict_residual_count', 0)}",
+        f"- **Relations Dropped by Audit Block**: {qc.get('relations_dropped_by_audit_block', 0)}",
+        f"- **Relations Preserved After Audit**: {qc.get('relations_preserved_after_audit', 0)}",
+        f"- **Timeline Export (Chronology Only)**:",
+        f"  - *Events*: {qc.get('timeline_export_event_count', 0)}",
+        f"  - *Edges*: {qc.get('timeline_export_edge_count', 0)}",
         "",
         "## Merged coverage summary",
         "",
@@ -410,22 +581,66 @@ def build_broader_checkpoint(output_dir: Path, *, progress_callback: ProgressCal
     ]
     raw_source_runs = [family for family in families if family["source_family"] != "checked_handoff"]
     braid_payload = build_cross_source_event_braid(raw_source_runs)
+
+    from src.policy.gwb_spot_audit import load_spot_audit_registry, apply_spot_audit_blocks, export_historical_timeline
+    audit_registry = load_spot_audit_registry()
+    audited_braid = apply_spot_audit_blocks(braid_payload, audit_registry)
+    historical_timeline = export_historical_timeline(braid_payload, audit_registry)
+
+    source_event_count = len(braid_payload.get("source_event_rows", []))
+    active_event_count = len(audited_braid.get("source_event_rows", []))
+    blocked_event_count = source_event_count - active_event_count
+
+    audited_braid["qc_meta"] = {
+        "source_event_count": source_event_count,
+        "blocked_event_count": blocked_event_count,
+        "active_event_count": active_event_count,
+        "historical_timeline": historical_timeline,
+    }
+
     _emit_progress(progress_callback, "family_merge_started", section="checkpoint_merge", completed=0, total=len(families), message="Merging source families.")
-    payload = _merge_families(families, braid_payload=braid_payload)
+    payload = _merge_families(families, braid_payload=audited_braid, audit_registry=audit_registry)
     summary_text = _build_summary_text(payload)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     paths = {
         "slice_path": output_dir / f"{ARTIFACT_VERSION}.json",
         "summary_path": output_dir / f"{ARTIFACT_VERSION}.summary.md",
+        "candidate_event_braid_path": output_dir / "candidate_event_braid.json",
+        "historical_timeline_candidate_path": output_dir / "historical_timeline_candidate.json",
+        "qc_report_path": output_dir / "gwb_timeline_qc_report.json",
     }
+    # Convert FragmentPNF objects to dicts before JSON serialization
+    serialize_fragment_pnfs_in_rows(payload.get("cross_source_event_braid", {}).get("source_event_rows") or [])
+    serialize_fragment_pnfs_in_rows(audited_braid.get("source_event_rows") or [])
+    serialize_fragment_pnfs_in_rows(historical_timeline.get("source_event_rows") or [])
+
     paths["slice_path"].write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     paths["summary_path"].write_text(summary_text, encoding="utf-8")
+    paths["candidate_event_braid_path"].write_text(json.dumps(audited_braid, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    paths["historical_timeline_candidate_path"].write_text(json.dumps(historical_timeline, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    paths["qc_report_path"].write_text(json.dumps(payload.get("qc_report"), indent=2, sort_keys=True) + "\n", encoding="utf-8")
     LOGGER.info("Wrote broader GWB checkpoint to %s", paths["slice_path"])
+    
+    from scripts.build_gwb_timeline_content_review import build_timeline_content_review
+    review_res = build_timeline_content_review(paths["slice_path"], output_dir)
+    
+    from scripts.build_gwb_human_review_timeline import build_human_review_timeline_packet
+    packet_res = build_human_review_timeline_packet(
+        paths["slice_path"],
+        Path(review_res["json_path"]),
+        paths["historical_timeline_candidate_path"],
+        output_dir
+    )
+    
     _emit_progress(progress_callback, "family_merge_finished", section="checkpoint_merge", completed=len(families), total=len(families), message="Broader checkpoint written.")
     return {
         "summary": payload["summary"],
         **{k: str(v) for k, v in paths.items()},
+        "content_review_json_path": review_res["json_path"],
+        "content_review_md_path": review_res["md_path"],
+        "human_review_json_path": packet_res["json_path"],
+        "human_review_md_path": packet_res["md_path"],
     }
 
 

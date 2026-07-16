@@ -723,6 +723,15 @@ def build_review_claim_records_from_review_rows(
                     for value in row.get("ordering_edge_ids", [])
                     if isinstance(value, str) and str(value).strip()
                 ],
+                "event_quality_status": str(row.get("event_quality_status") or "").strip() or None,
+                "event_quality_score": row.get("event_quality_score") if row.get("event_quality_score") is not None else None,
+                "event_quality_reasons": [
+                    str(value)
+                    for value in row.get("event_quality_reasons", [])
+                    if isinstance(value, str) and str(value).strip()
+                ] if isinstance(row.get("event_quality_reasons"), list) else None,
+                "event_time_anchor_status": str(row.get("event_time_anchor_status") or "").strip() or None,
+                "resolved_historical_date": str(row.get("resolved_historical_date") or "").strip() or None,
             },
         )
         records.append(
@@ -785,6 +794,15 @@ def build_review_claim_records_from_review_rows(
                         for value in row.get("ordering_edge_ids", [])
                         if isinstance(value, str) and str(value).strip()
                     ],
+                    "event_quality_status": str(row.get("event_quality_status") or "").strip() or None,
+                    "event_quality_score": row.get("event_quality_score") if row.get("event_quality_score") is not None else None,
+                    "event_quality_reasons": [
+                        str(value)
+                        for value in row.get("event_quality_reasons", [])
+                        if isinstance(value, str) and str(value).strip()
+                    ] if isinstance(row.get("event_quality_reasons"), list) else None,
+                    "event_time_anchor_status": str(row.get("event_time_anchor_status") or "").strip() or None,
+                    "resolved_historical_date": str(row.get("resolved_historical_date") or "").strip() or None,
                     "upstream_artifact_ids": [
                         value
                         for value in (root_artifact_id, cohort_id)
@@ -834,6 +852,15 @@ def build_review_claim_records_from_review_rows(
                             for value in row.get("ordering_edge_ids", [])
                             if isinstance(value, str) and str(value).strip()
                         ],
+                        "event_quality_status": str(row.get("event_quality_status") or "").strip() or None,
+                        "event_quality_score": row.get("event_quality_score") if row.get("event_quality_score") is not None else None,
+                        "event_quality_reasons": [
+                            str(value)
+                            for value in row.get("event_quality_reasons", [])
+                            if isinstance(value, str) and str(value).strip()
+                        ] if isinstance(row.get("event_quality_reasons"), list) else None,
+                        "event_time_anchor_status": str(row.get("event_time_anchor_status") or "").strip() or None,
+                        "resolved_historical_date": str(row.get("resolved_historical_date") or "").strip() or None,
                     },
                     text_ref=_build_text_ref(row),
                 ),

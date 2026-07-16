@@ -1460,7 +1460,7 @@ def _compute_component_relevance(
         roles_filled = sum(1 for r in [fpnf.subject_role, fpnf.predicate_spine, fpnf.object_role] if r)
         pb_level = projection_basis_from_fallback(fallback, roles_filled)
 
-        rc_level = ResidualCompatibilityLevel.no_typed_meet
+        rc_level = ResidualCompatibilityLevel.not_evaluated
 
         fpnf_depth = fpnf.fragment_subclass
         fragment_scored = fpnf_depth in ("office_range", "proclamation", "ownership", "education", "marriage", "birth")

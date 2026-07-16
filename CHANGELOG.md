@@ -17,6 +17,33 @@
 # Changelog
 
 ## Unreleased
+
+- Added a revision-pinned Wikibase entity-export adapter that validates the
+  requested entity/revision and emits bounded generic label, alias, property,
+  and statement observations. The first `Q1785637@2443793937` slice drives
+  generic local entity/event bridge candidates and direct-`P31` pressure,
+  without turning the export into local authority or an exhaustive graph view.
+- Added a generic bounded direct-type/superclass pressure evaluator. It reports
+  only supplied `P31`/`P279` paths, retains incomplete-coverage abstention for
+  missing closure evidence, and validates the first observed
+  `Q4830453 -> Q43229` organisation path without asserting global closure.
+- Added a generic expected-property pressure evaluator for bounded external
+  graph views. Incomplete coverage now turns observed absence of a required
+  property into an explicit abstention/residual rather than a global missing
+  type claim. The first deterministic adopter is Nat Cohort D `Q1785637`.
+- fix the AU compatibility receipt wrapper so legacy fact-review bundles are
+  first converted through the shared world-model/report projection before
+  receipt attachment. The generic `attach_receipt(...)` contract remains
+  linkage-projection-only, preventing raw lane bundles from widening it.
+- add the first provider-neutral external graph bridge carrier. Shared world
+  models now retain revision-bound graph views, external bridge proposals and
+  decisions, and pressure diagnostics; generic review, linkage, and receipt
+  projections preserve them without granting external identity, graph coverage,
+  or pressure results local authority or promotion.
+- add graph-view coverage validation: incomplete views remain candidate-only;
+  completeness-certified views require a policy, no unresolved coverage, and a
+  receipt reference. The first fixture covers a bounded transport view, local
+  entity/event attachments, a reviewed decision, and an expected-shape warning.
 - add the missing generic artifact-to-world-model adapter layer in
   `src/policy/world_model_adapters.py`. The shared adapter kit now owns
   reusable claim/event/timeline/review-input normalization instead of leaving

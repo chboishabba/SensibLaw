@@ -201,6 +201,11 @@ def _build_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
         source_refs = qualifiers.get("source_refs")
         event_lineage_depth = _source_ref_event_lineage_depth(source_refs)
         cross_source_braid_depth = _source_ref_cross_source_braid_depth(source_refs)
+        event_quality_status = _text(qualifiers.get("event_quality_status")) or _text(claim.get("event_quality_status")) or None
+        event_quality_score = qualifiers.get("event_quality_score") if qualifiers.get("event_quality_score") is not None else (claim.get("event_quality_score") if claim.get("event_quality_score") is not None else None)
+        event_time_anchor_status = _text(qualifiers.get("event_time_anchor_status")) or _text(claim.get("event_time_anchor_status")) or None
+        resolved_historical_date = _text(qualifiers.get("resolved_historical_date")) or _text(claim.get("resolved_historical_date")) or None
+        
         nodes.extend(
             [
                 {
@@ -213,6 +218,10 @@ def _build_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
                         "route_target": _text(qualifiers.get("route_target")),
                         "event_lineage_depth": event_lineage_depth,
                         "cross_source_braid_depth": cross_source_braid_depth,
+                        "event_quality_status": event_quality_status,
+                        "event_quality_score": event_quality_score,
+                        "event_time_anchor_status": event_time_anchor_status,
+                        "resolved_historical_date": resolved_historical_date,
                     },
                 },
                 {
@@ -227,6 +236,10 @@ def _build_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
                         "queue_review_depth": "complete",
                         "event_lineage_depth": event_lineage_depth,
                         "cross_source_braid_depth": cross_source_braid_depth,
+                        "event_quality_status": event_quality_status,
+                        "event_quality_score": event_quality_score,
+                        "event_time_anchor_status": event_time_anchor_status,
+                        "resolved_historical_date": resolved_historical_date,
                     },
                 },
                 {
@@ -241,6 +254,10 @@ def _build_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
                         "candidate_vs_promoted_visibility": True,
                         "event_lineage_depth": event_lineage_depth,
                         "cross_source_braid_depth": cross_source_braid_depth,
+                        "event_quality_status": event_quality_status,
+                        "event_quality_score": event_quality_score,
+                        "event_time_anchor_status": event_time_anchor_status,
+                        "resolved_historical_date": resolved_historical_date,
                     },
                 },
             ]
@@ -258,6 +275,10 @@ def _build_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
                         "queue_review_depth": "complete",
                         "event_lineage_depth": event_lineage_depth,
                         "cross_source_braid_depth": cross_source_braid_depth,
+                        "event_quality_status": event_quality_status,
+                        "event_quality_score": event_quality_score,
+                        "event_time_anchor_status": event_time_anchor_status,
+                        "resolved_historical_date": resolved_historical_date,
                     },
                 },
                 {
@@ -271,6 +292,10 @@ def _build_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
                         "queue_review_depth": "complete",
                         "event_lineage_depth": event_lineage_depth,
                         "cross_source_braid_depth": cross_source_braid_depth,
+                        "event_quality_status": event_quality_status,
+                        "event_quality_score": event_quality_score,
+                        "event_time_anchor_status": event_time_anchor_status,
+                        "resolved_historical_date": resolved_historical_date,
                     },
                 },
                 {
@@ -285,6 +310,10 @@ def _build_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
                         "candidate_vs_promoted_visibility": True,
                         "event_lineage_depth": event_lineage_depth,
                         "cross_source_braid_depth": cross_source_braid_depth,
+                        "event_quality_status": event_quality_status,
+                        "event_quality_score": event_quality_score,
+                        "event_time_anchor_status": event_time_anchor_status,
+                        "resolved_historical_date": resolved_historical_date,
                     },
                 },
             ]

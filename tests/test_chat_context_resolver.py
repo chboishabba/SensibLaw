@@ -15,6 +15,7 @@ _SPEC.loader.exec_module(_MODULE)
 _query_db_match = _MODULE._query_db_match
 _build_stitched_transcript = _MODULE._build_stitched_transcript
 _thread_analysis_payload = _MODULE._thread_analysis_payload
+_db_payload = _MODULE._db_payload
 _cross_thread_analysis_payload = _MODULE._cross_thread_analysis_payload
 
 
@@ -112,6 +113,16 @@ def test_query_db_match_prefers_online_thread_id_exact(tmp_path: Path) -> None:
     assert match.online_thread_id == "699dd5af-d65c-83a0-80ae-fda8e4d66f5b"
     assert match.canonical_thread_id == "canon-123"
     assert match.title == "Wikidata Ontology Issues"
+
+    payload = _db_payload(
+        match,
+        max_text_chars=0,
+        truncate_text=lambda text, _limit: text,
+        split_paragraphs=lambda text: [text],
+        iso_utc=lambda value: value.isoformat() if value else None,
+    )
+    assert payload["provider_thread_id"] == match.online_thread_id
+    assert payload["archive_thread_id"] == match.canonical_thread_id
 
 
 def test_build_stitched_transcript_assigns_thread_and_message_line_numbers() -> None:

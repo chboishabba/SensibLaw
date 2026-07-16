@@ -91,6 +91,13 @@ World-model rule:
 - `project_linkage_case(world_model)` stays receipt-free
 - `attach_receipt(...)` happens only at the lane boundary
 
+The generic `attach_receipt(...)` boundary accepts a linkage-case projection
+or report that contains one; it does not accept a raw legacy artifact. A thin
+lane compatibility wrapper may still accept its historical raw artifact, but
+must first run the shared `build_world_model(...) -> project_report(...)` path
+and only then call the generic receipt helper. This preserves one receipt
+contract without making lane-local bundles a second shared input shape.
+
 Do not put lane-specific control-plane logic into the shared helpers unless the
 same audit concept is genuinely needed by multiple lanes.
 

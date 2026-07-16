@@ -39,16 +39,52 @@ class PNFClosureLevel(str, Enum):
     span_receipt_closed = "span_receipt_closed"
 
 
+class PredicateFrame(str, Enum):
+    """Abstract structural PNF shape for fragment-level extractions.
+
+    This is the user-facing / review-surface category.  Grammar IDs are
+    recognizer provenance; fragment_subclass is a domain-specific hint;
+    predicate_frame is the abstract role-bearing shape that appears in
+    triage and human-review surfaces.
+    """
+
+    role_occupancy_range = "role_occupancy_range"
+    affiliation_or_membership_range = "affiliation_or_membership_range"
+    ownership_or_control_range = "ownership_or_control_range"
+    declarative_act = "declarative_act"
+    credential_or_training_event = "credential_or_training_event"
+    life_event = "life_event"
+    legal_or_legislative_act = "legal_or_legislative_act"
+    generic_relation = "generic_relation"
+
+
+# Stable mapping from grammar ID → PredicateFrame
+GRAMMAR_TO_PREDICATE_FRAME: dict[str, PredicateFrame] = {
+    "office_range_grammar_v0": PredicateFrame.role_occupancy_range,
+    "proclamation_grammar_v0": PredicateFrame.declarative_act,
+    "ownership_grammar_v0": PredicateFrame.ownership_or_control_range,
+    "education_grammar_v0": PredicateFrame.credential_or_training_event,
+    "marriage_grammar_v0": PredicateFrame.life_event,
+    "birth_grammar_v0": PredicateFrame.life_event,
+    "fallback_grammar_v0": PredicateFrame.generic_relation,
+}
+
+
 class ResidualCompatibilityLevel(str, Enum):
     """Residual comparison outcome, aligned with residual_lattice.ResidualLevel.
 
     This is a string enum mirror of the IntEnum in residual_lattice, kept
     separate to avoid shadowing the formal type and to live cleanly in
     pipeline-level dicts/receipts.
+
+    ``not_evaluated`` means residual comparison has not been run (pending).
+    It is not a blocking outcome — the row may still be blocked by other
+    gates, but residual cannot be the reason.
     """
 
     exact = "exact"
     partial = "partial"
+    not_evaluated = "not_evaluated"
     no_typed_meet = "no_typed_meet"
     contradiction = "contradiction"
 
@@ -125,6 +161,7 @@ PNF_CLOSURE_RANK: dict[PNFClosureLevel, int] = {
 }
 
 RESIDUAL_COMPATIBILITY_RANK: dict[ResidualCompatibilityLevel, int] = {
+    ResidualCompatibilityLevel.not_evaluated: -1,
     ResidualCompatibilityLevel.exact: 0,
     ResidualCompatibilityLevel.partial: 1,
     ResidualCompatibilityLevel.no_typed_meet: 2,
@@ -285,6 +322,7 @@ class FragmentPNF:
     authority_status: str = "candidate_only"
     semantic_authority: bool = False
     export_authority: bool = False
+    predicate_frame: PredicateFrame | None = None
 
     def to_dict(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
@@ -300,6 +338,8 @@ class FragmentPNF:
             "export_authority": self.export_authority,
             "fallback_used": self.fallback_used,
         }
+        if self.predicate_frame is not None:
+            payload["predicate_frame"] = self.predicate_frame.value
         if self.subject_role is not None:
             payload["subject_role"] = self.subject_role.to_dict()
         if self.predicate_spine is not None:
@@ -429,8 +469,10 @@ BLOCKED_REASON_TIME_NOT_BOUND = "time_not_bound"
 BLOCKED_REASON_PNF_NOT_CLOSED = "pnf_closure_insufficient"
 BLOCKED_REASON_LINKAGE_DEPTH_INSUFFICIENT = "linkage_depth_insufficient"
 BLOCKED_REASON_RESIDUAL_BLOCKED = "residual_compatibility_blocked"
+BLOCKED_REASON_RESIDUAL_NOT_EVALUATED = "residual_evaluation_missing"
 BLOCKED_REASON_PROJECTION_MISSING = "formal_projection_missing"
 BLOCKED_REASON_REFERENTIALITY_INSUFFICIENT = "referentiality_insufficient"
+BLOCKED_REASON_REQUIRED_BRAID_DEPTH_MISSING = "required_braid_depth_missing"
 
 BLOCKED_REASONS_STABLE = frozenset({
     BLOCKED_REASON_SOURCE_SPAN_MISSING,
@@ -441,8 +483,10 @@ BLOCKED_REASONS_STABLE = frozenset({
     BLOCKED_REASON_PNF_NOT_CLOSED,
     BLOCKED_REASON_LINKAGE_DEPTH_INSUFFICIENT,
     BLOCKED_REASON_RESIDUAL_BLOCKED,
+    BLOCKED_REASON_RESIDUAL_NOT_EVALUATED,
     BLOCKED_REASON_PROJECTION_MISSING,
     BLOCKED_REASON_REFERENTIALITY_INSUFFICIENT,
+    BLOCKED_REASON_REQUIRED_BRAID_DEPTH_MISSING,
 })
 
 
@@ -738,9 +782,11 @@ def classify_export_class(
     if linkage_depth_level == LinkageDepthLevel.flat_shortcut:
         reasons.append(BLOCKED_REASON_FLAT_SHORTCUT)
     elif LINKAGE_DEPTH_RANK[linkage_depth_level] < LINKAGE_DEPTH_RANK[policy.min_linkage_depth_level]:
-        reasons.append(BLOCKED_REASON_LINKAGE_DEPTH_INSUFFICIENT)
+        reasons.append(BLOCKED_REASON_REQUIRED_BRAID_DEPTH_MISSING)
 
-    if residual_compatibility_level in (
+    if residual_compatibility_level == ResidualCompatibilityLevel.not_evaluated:
+        reasons.append(BLOCKED_REASON_RESIDUAL_NOT_EVALUATED)
+    elif residual_compatibility_level in (
         ResidualCompatibilityLevel.no_typed_meet,
         ResidualCompatibilityLevel.contradiction,
     ):
@@ -838,6 +884,21 @@ def build_braid_relevance_receipt(
     )
 
 
+def serialize_fragment_pnfs_in_rows(rows: list[dict[str, Any]]) -> None:
+    """Convert FragmentPNF objects to dicts in-place on a list of source event rows.
+
+    Mutates each row in-place so that ``row["fragment_pnfs"]`` becomes
+    ``list[dict]`` (via ``FragmentPNF.to_dict()``).  Idempotent — rows that
+    already hold dicts are left untouched.
+    """
+    for row in rows:
+        fpnfs = row.get("fragment_pnfs")
+        if not fpnfs or not isinstance(fpnfs, list):
+            continue
+        if fpnfs and not isinstance(fpnfs[0], dict):
+            row["fragment_pnfs"] = [f.to_dict() for f in fpnfs]
+
+
 __all__ = [
     "BLOCKED_REASON_FRAGMENT_PNF_MISSING",
     "BLOCKED_REASON_FLAT_SHORTCUT",
@@ -846,7 +907,9 @@ __all__ = [
     "BLOCKED_REASON_PROJECTION_MISSING",
     "BLOCKED_REASON_RECEIPT_MISSING",
     "BLOCKED_REASON_REFERENTIALITY_INSUFFICIENT",
+    "BLOCKED_REASON_REQUIRED_BRAID_DEPTH_MISSING",
     "BLOCKED_REASON_RESIDUAL_BLOCKED",
+    "BLOCKED_REASON_RESIDUAL_NOT_EVALUATED",
     "BLOCKED_REASON_SOURCE_SPAN_MISSING",
     "BLOCKED_REASON_TIME_NOT_BOUND",
     "BLOCKED_REASONS_STABLE",
@@ -863,6 +926,7 @@ __all__ = [
     "FRAGMENT_SUBCLASSES",
     "FRAGMENT_SURFACE_CLASSES",
     "FragmentPNF",
+    "GRAMMAR_TO_PREDICATE_FRAME",
     "FragmentPNFDepthReceipt",
     "FragmentPNFProjectionReceipt",
     "GrammarMatchStrength",
@@ -872,11 +936,13 @@ __all__ = [
     "PNF_CLOSURE_RANK",
     "PNFClosureLevel",
     "PROJECTION_BASIS_RANK",
+    "PredicateFrame",
     "ProjectionBasisLevel",
     "REFERENTIALITY_RANK",
     "RESIDUAL_COMPATIBILITY_RANK",
     "ReferentialityLevel",
     "ResidualCompatibilityLevel",
+    "serialize_fragment_pnfs_in_rows",
     "SOURCE_SPAN_RANK",
     "SourceSpanLevel",
     "SourceSpanRef",

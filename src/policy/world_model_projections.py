@@ -75,7 +75,10 @@ def project_report(
     projection_metadata: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     model = normalize_world_model(world_model)
-    claim_rows = [deepcopy(dict(row)) for row in (claims if claims is not None else model.get("claims", []))]
+    claim_rows = [
+        deepcopy(dict(row))
+        for row in (claims if claims is not None else model.get("claims", []))
+    ]
     summary_payload = deepcopy(dict(summary or model.get("summary") or {}))
     projection = _projection_payload(
         projection_id=f"report:{_text(artifact_id) or model['model_id']}",
@@ -120,7 +123,10 @@ def project_claim_table(
     metadata: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     model = normalize_world_model(world_model)
-    rows = [deepcopy(dict(row)) for row in (claim_rows if claim_rows is not None else model.get("claims", []))]
+    rows = [
+        deepcopy(dict(row))
+        for row in (claim_rows if claim_rows is not None else model.get("claims", []))
+    ]
     return _projection_payload(
         projection_id=_text(projection_id) or f"claim_table:{model['model_id']}",
         projection_kind="claim_table",
@@ -146,7 +152,9 @@ def project_timeline(
     model = normalize_world_model(world_model)
     timelines = [
         deepcopy(dict(row))
-        for row in (timeline_rows if timeline_rows is not None else model.get("timelines", []))
+        for row in (
+            timeline_rows if timeline_rows is not None else model.get("timelines", [])
+        )
         if isinstance(row, Mapping)
     ]
     events = [
@@ -164,7 +172,9 @@ def project_timeline(
             "timelines": timelines,
             "events": events,
         },
-        summary=summary if isinstance(summary, Mapping) else {"timeline_count": len(timelines), "event_count": len(events)},
+        summary=summary
+        if isinstance(summary, Mapping)
+        else {"timeline_count": len(timelines), "event_count": len(events)},
         metadata=metadata,
     )
 
@@ -180,7 +190,10 @@ def project_review_surface(
     metadata: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     model = normalize_world_model(world_model)
-    rows = [deepcopy(dict(row)) for row in (review_rows if review_rows is not None else model.get("claims", []))]
+    rows = [
+        deepcopy(dict(row))
+        for row in (review_rows if review_rows is not None else model.get("claims", []))
+    ]
     return _projection_payload(
         projection_id=_text(projection_id) or f"review_surface:{model['model_id']}",
         projection_kind="review_surface",
@@ -188,10 +201,36 @@ def project_review_surface(
         payload={
             "review_row_count": len(rows),
             "review_rows": rows,
+            "external_graph_views": deepcopy(model.get("external_graph_views", [])),
+            "external_bridge_candidates": deepcopy(
+                model.get("external_bridge_candidates", [])
+            ),
+            "external_bridge_decisions": deepcopy(
+                model.get("external_bridge_decisions", [])
+            ),
+            "external_pressure_results": deepcopy(
+                model.get("external_pressure_results", [])
+            ),
             "workflow_summary": deepcopy(dict(workflow_summary or {})),
-            "operator_workflow_surface": deepcopy(dict(operator_workflow_surface or {})),
+            "operator_workflow_surface": deepcopy(
+                dict(operator_workflow_surface or {})
+            ),
         },
-        summary=summary if isinstance(summary, Mapping) else {"review_row_count": len(rows)},
+        summary=summary
+        if isinstance(summary, Mapping)
+        else {
+            "review_row_count": len(rows),
+            "external_graph_view_count": len(model.get("external_graph_views", [])),
+            "external_bridge_candidate_count": len(
+                model.get("external_bridge_candidates", [])
+            ),
+            "external_bridge_decision_count": len(
+                model.get("external_bridge_decisions", [])
+            ),
+            "external_pressure_result_count": len(
+                model.get("external_pressure_results", [])
+            ),
+        },
         metadata=metadata,
     )
 
@@ -218,12 +257,17 @@ def project_linkage_case(
         "edge_count": len([row for row in edges if isinstance(row, Mapping)]),
         "nodes": [deepcopy(dict(row)) for row in nodes if isinstance(row, Mapping)],
         "edges": [deepcopy(dict(row)) for row in edges if isinstance(row, Mapping)],
-        "expected_anchor_ids": [_text(value) for value in expected_anchor_ids if _text(value)],
-        "expected_terminal_ids": [_text(value) for value in expected_terminal_ids if _text(value)],
+        "expected_anchor_ids": [
+            _text(value) for value in expected_anchor_ids if _text(value)
+        ],
+        "expected_terminal_ids": [
+            _text(value) for value in expected_terminal_ids if _text(value)
+        ],
         "notes": [_text(value) for value in notes if _text(value)],
     }
     return _projection_payload(
-        projection_id=_text(projection_id) or f"linkage_case:{_text(case_id) or model['model_id']}",
+        projection_id=_text(projection_id)
+        or f"linkage_case:{_text(case_id) or model['model_id']}",
         projection_kind="linkage_case",
         world_model=model,
         payload=payload,

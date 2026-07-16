@@ -39,6 +39,31 @@ def test_build_gwb_broader_corpus_checkpoint(tmp_path: Path) -> None:
     assert "GWB Broader Corpus Checkpoint Summary" in summary_text
     assert "public_bios_timeline" in summary_text
     assert "corpus_book_timeline" in summary_text
+    assert "GWB Timeline QC Report" in summary_text
+    assert "Source Event Count" in summary_text
+
+    qc_report_path = tmp_path / "gwb_timeline_qc_report.json"
+    assert qc_report_path.exists()
+    qc_report = json.loads(qc_report_path.read_text(encoding="utf-8"))
+    assert qc_report["source_event_count"] >= 0
+    assert qc_report["blocked_event_count"] >= 0
+    assert qc_report["active_event_count"] >= 0
+    assert qc_report["candidate_link_count"] >= 0
+    assert qc_report["merged_event_count"] >= 0
+    assert qc_report["ordering_edge_count"] >= 0
+    assert qc_report["historical_time_order_edge_count"] >= 0
+    assert qc_report["timeline_export_event_count"] >= 0
+
+    human_json_path = tmp_path / "gwb_human_review_timeline.json"
+    human_md_path = tmp_path / "gwb_human_review_timeline.md"
+    assert human_json_path.exists()
+    assert human_md_path.exists()
+
+    human_md_text = human_md_path.read_text(encoding="utf-8")
+    assert "# GWB Human Review Timeline Packet" in human_md_text
+    assert "Historical Timeline Candidate" in human_md_text
+    assert "Excluded / Non-Timeline Items" in human_md_text
+    assert "Recommended Next Human Review Queue" in human_md_text
 
     merged_relations = slice_payload["merged_promoted_relations"]
     assert any(row["predicate_key"] == "nominated" for row in merged_relations)

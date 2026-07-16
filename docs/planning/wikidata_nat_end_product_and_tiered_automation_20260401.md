@@ -94,6 +94,42 @@ The property boundary is conservative:
 This means broad automation readiness is measured by stable Family A evidence,
 not by Nat Cohort A population size.
 
+## Climate-Domain Structural Pressure
+
+Nat's `P5991 -> P14143` comparison is already a domain-specific pressure
+(DSP) operation. It compares an observed statement with the admissible climate
+/ GHG statement shape defined by the documented target model and migration
+policy:
+
+```text
+subject typing + value + unit + qualifiers + references + time/scope structure
+-> climate-domain expected statement shape
+-> residual pressure -> Family A/B/C/D/E disposition
+```
+
+This is not merely a frequency model over company items. The five-item pilot
+(Handelsbanken, Swedish Inspectorate of Auditors, Swedish Agency for Government
+Employers, Akademiska Hus, and Atrium Ljungberg) was selected as a
+policy-anchored migration pack: it tests whether existing `P5991` statements
+already conform to the `P14143` model, require splitting/repair, or must remain
+held. It is not a generic organisation-cohort definition.
+
+Comparable revision-pinned statements add a second, distinct pressure source:
+
+```text
+authoritative/model pressure
+  documented climate model and migration policy
+
+peer-cohort pressure
+  recurring structure among comparable observed statements
+```
+
+Receipts must retain these grounds separately. A useful result therefore names
+`subject_type_pressure`, `target_model_pressure`,
+`qualifier_reference_pressure`, `temporal_split_pressure`, and any
+`peer_cohort_pressure`; peer frequency cannot override the target model or
+reviewer policy.
+
 ### Tier 1: Fully Automated
 
 Use for rows that repeatedly prove safe under the same checks:

@@ -56,7 +56,9 @@ def build_state_node(
         "node_kind": _text(node_kind),
         "label": _text(label),
         "status": _text(status) or "candidate",
-        "source_anchor_ids": [_text(value) for value in source_anchor_ids if _text(value)],
+        "source_anchor_ids": [
+            _text(value) for value in source_anchor_ids if _text(value)
+        ],
         "conflict_ids": [_text(value) for value in conflict_ids if _text(value)],
         "metadata": deepcopy(dict(metadata or {})),
     }
@@ -89,7 +91,9 @@ def build_relation_edge(
         "target_id": _text(target_id),
         "relation_kind": _text(relation_kind),
         "status": _text(status) or "candidate",
-        "source_anchor_ids": [_text(value) for value in source_anchor_ids if _text(value)],
+        "source_anchor_ids": [
+            _text(value) for value in source_anchor_ids if _text(value)
+        ],
         "metadata": deepcopy(dict(metadata or {})),
     }
     if _text(authority_surface):
@@ -120,6 +124,10 @@ def build_world_model(
     residuals: Sequence[Mapping[str, Any]] = (),
     update_rules: Sequence[Mapping[str, Any]] = (),
     projections: Sequence[Mapping[str, Any]] = (),
+    external_graph_views: Sequence[Mapping[str, Any]] = (),
+    external_bridge_candidates: Sequence[Mapping[str, Any]] = (),
+    external_bridge_decisions: Sequence[Mapping[str, Any]] = (),
+    external_pressure_results: Sequence[Mapping[str, Any]] = (),
     summary: Mapping[str, Any] | None = None,
     metadata: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -134,6 +142,10 @@ def build_world_model(
     residual_rows = _mapping_rows(residuals)
     update_rows = _mapping_rows(update_rules)
     projection_rows = _mapping_rows(projections)
+    graph_view_rows = _mapping_rows(external_graph_views)
+    bridge_candidate_rows = _mapping_rows(external_bridge_candidates)
+    bridge_decision_rows = _mapping_rows(external_bridge_decisions)
+    pressure_rows = _mapping_rows(external_pressure_results)
 
     return {
         "schema_version": CANDIDATE_WORLD_MODEL_SCHEMA_VERSION,
@@ -152,9 +164,15 @@ def build_world_model(
         "residuals": residual_rows,
         "update_rules": update_rows,
         "projections": projection_rows,
+        "external_graph_views": graph_view_rows,
+        "external_bridge_candidates": bridge_candidate_rows,
+        "external_bridge_decisions": bridge_decision_rows,
+        "external_pressure_results": pressure_rows,
         "summary": deepcopy(dict(summary or {})),
         "metadata": deepcopy(dict(metadata or {})),
-        "status_counts": _status_counts(entity_rows, claim_rows, relation_rows, event_rows, timeline_rows),
+        "status_counts": _status_counts(
+            entity_rows, claim_rows, relation_rows, event_rows, timeline_rows
+        ),
     }
 
 
@@ -162,7 +180,9 @@ def normalize_world_model(world_model: Mapping[str, Any] | None) -> dict[str, An
     payload = world_model if isinstance(world_model, Mapping) else {}
     return build_world_model(
         model_id=_text(payload.get("model_id")) or _text(payload.get("artifact_id")),
-        lane_family=_text(payload.get("lane_family")) or _text(payload.get("family_id")) or _text(payload.get("lane_id")),
+        lane_family=_text(payload.get("lane_family"))
+        or _text(payload.get("family_id"))
+        or _text(payload.get("lane_id")),
         model_status=_text(payload.get("model_status")) or "candidate",
         source_mode=_text(payload.get("source_mode")) or None,
         entities=payload.get("entities", []),
@@ -176,8 +196,16 @@ def normalize_world_model(world_model: Mapping[str, Any] | None) -> dict[str, An
         residuals=payload.get("residuals", []),
         update_rules=payload.get("update_rules", []),
         projections=payload.get("projections", []),
-        summary=payload.get("summary") if isinstance(payload.get("summary"), Mapping) else None,
-        metadata=payload.get("metadata") if isinstance(payload.get("metadata"), Mapping) else None,
+        external_graph_views=payload.get("external_graph_views", []),
+        external_bridge_candidates=payload.get("external_bridge_candidates", []),
+        external_bridge_decisions=payload.get("external_bridge_decisions", []),
+        external_pressure_results=payload.get("external_pressure_results", []),
+        summary=payload.get("summary")
+        if isinstance(payload.get("summary"), Mapping)
+        else None,
+        metadata=payload.get("metadata")
+        if isinstance(payload.get("metadata"), Mapping)
+        else None,
     )
 
 

@@ -1,0 +1,30 @@
+{
+  "active_event_count": 887,
+  "blocked_event_count": 0,
+  "candidate_link_count": 37638,
+  "document_order_edge_count": 789,
+  "historical_conflict_residual_count": 141,
+  "historical_time_order_edge_count": 222,
+  "ingest_order_only_edge_count": 915,
+  "merged_event_count": 6,
+  "ordering_edge_count": 1401,
+  "quality_by_source_family": {
+    "corpus_book_timeline": {
+      "promotable_event": 602,
+      "rejected_noise": 13,
+      "usable_candidate": 0,
+      "weak_candidate": 132
+    },
+    "public_bios_timeline": {
+      "promotable_event": 109,
+      "rejected_noise": 0,
+      "usable_candidate": 0,
+      "weak_candidate": 31
+    }
+  },
+  "relations_dropped_by_audit_block": 0,
+  "relations_preserved_after_audit": 17,
+  "source_event_count": 887,
+  "timeline_export_edge_count": 222,
+  "timeline_export_event_count": 820
+}

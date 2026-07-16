@@ -1,5 +1,32 @@
 # COMPACTIFIED_CONTEXT
 
+## 2026-07-15 — WD bridge architecture context refresh
+
+- Resolved archived thread:
+  - title: `WD Bridge Architecture`
+  - online UUID: `6a54b21f-ba30-83ec-b08e-0e62cb9d0933`
+  - canonical thread ID: `71e63a13e10f7370ace24a676750577ca63e3317`
+  - source: `db`, snapshot `pull_20260714T035959Z` (141 archived rows; the
+    resolver's latest six-row snapshot was incomplete)
+  - live refresh attempted on 2026-07-15 but ingested zero messages; do not
+    describe the archive as freshly web-verified
+- Main decisions retained:
+  - every mature lane needs the shared external-authority bridge *capability*,
+    but external traversal remains conditional on the candidate and never
+    substitutes for local evidence, role, authority, or promotion;
+  - external identity attachment and structural pressure are separate,
+    revision-bound products;
+  - pressure is multi-view and domain-bounded: WD class/property structure is
+    the first substrate, with Wikipedia/Simple/Abstract Wiki, translation, and
+    domain cohorts later contributing reviewable expected-shape pressure;
+  - a checked external graph slice is one input to a forkable basis revision;
+    public channels project basis revisions and attestations but do not turn
+    subscriber counts into truth.
+- Archive hygiene:
+  - the first pages contain hidden Project/NotebookLM source dumps, including
+    the unexpected Agda text. These are tool/file-context records, not
+    user-visible thread authorship and not architecture evidence.
+
 ## Purpose
 Compact snapshot of the current architecture and next seam.
 

@@ -943,3 +943,95 @@ def test_assess_rows_linkage_depth() -> None:
     assert rows[0]["linkage_depth_level"] == "source_span"
     assert rows[1]["flat_shortcut_detected"] is False
     assert rows[1]["linkage_depth_level"] == "fragment_pnf"
+
+
+# ── gwb_spot_audit: build_export_gate_receipt ───────────────────────────
+
+def test_export_gate_receipt_blocked_empty_row() -> None:
+    from src.policy.gwb_spot_audit import build_export_gate_receipt
+
+    receipt = build_export_gate_receipt({})
+    assert receipt.exportable is False
+    assert receipt.export_class == ExportClass.blocked
+    assert "pnf_not_closed" in receipt.blocked_reasons
+    assert "time_not_bound" in receipt.blocked_reasons
+    assert "source_span_missing" in receipt.blocked_reasons
+
+
+def test_export_gate_receipt_exportable_full_row() -> None:
+    from src.policy.gwb_spot_audit import build_export_gate_receipt
+
+    row = {
+        "pnf_status": "canonicalized",
+        "pnf": {"subject": "actor:gwb", "predicate": "predicate:served_as", "object": "office:gov"},
+        "resolved_historical_date": "2001-01-20",
+        "text": "Governor of Texas 1995-2000",
+        "fragment_pnfs": [{"fragment_id": "test:frag:0000"}],
+        "fragment_projection_receipts": [{"fragment_id": "test:frag:0000", "projection_status": "grammar_projected"}],
+        "fragment_pnf_receipts": [{"export_class": "exportable"}],
+        "braid_metrics": {"referentiality": 3},
+        "linkage_depth_level": "braid_node",
+    }
+    receipt = build_export_gate_receipt(row)
+    assert receipt.exportable is True
+    assert receipt.export_class == ExportClass.high_confidence_exportable
+    assert receipt.blocked_reasons == ()
+
+
+def test_export_gate_receipt_exportable_without_projection() -> None:
+    from src.policy.gwb_spot_audit import build_export_gate_receipt
+
+    row = {
+        "pnf_status": "canonicalized",
+        "pnf": {"subject": "actor:gwb", "predicate": "predicate:served_as", "object": "office:gov"},
+        "anchor": {"year": 2001},
+        "text": "Governor 1995-2000",
+        "fragment_pnfs": [{"fragment_id": "test:frag:0000"}],
+    }
+    receipt = build_export_gate_receipt(row)
+    assert receipt.export_class == ExportClass.exportable
+    assert receipt.has_fragment_pnf_path is True
+    assert receipt.has_formal_projection is False
+
+
+def test_export_gate_receipt_residual_blocked() -> None:
+    from src.policy.gwb_spot_audit import build_export_gate_receipt
+
+    row = {
+        "pnf_status": "canonicalized",
+        "pnf": {"subject": "actor:gwb", "predicate": "predicate:served_as", "object": "office:gov"},
+        "anchor": {"year": 2001},
+        "text": "Governor 1995-2000",
+        "fragment_pnfs": [{"fragment_id": "test:frag:0000"}],
+        "fragment_pnf_receipts": [{"export_class": "blocked"}],
+    }
+    receipt = build_export_gate_receipt(row)
+    assert receipt.exportable is False
+    assert "residual_compatibility_blocked" in receipt.blocked_reasons
+
+
+def test_export_gate_receipt_reviewable() -> None:
+    from src.policy.gwb_spot_audit import build_export_gate_receipt
+
+    row = {
+        "pnf_status": "canonicalized",
+        "pnf": {"subject": "actor:gwb", "predicate": "predicate:served_as", "object": "office:gov"},
+        "text": "Governor 1995-2000",
+    }
+    receipt = build_export_gate_receipt(row)
+    assert receipt.export_class == ExportClass.reviewable
+    assert receipt.pnf_closed is True
+    assert receipt.time_bound is False
+
+
+def test_export_gate_receipt_candidate_only() -> None:
+    from src.policy.gwb_spot_audit import build_export_gate_receipt
+
+    row = {
+        "anchor": {"year": 2001},
+        "text": "Some text without PNF",
+    }
+    receipt = build_export_gate_receipt(row)
+    assert receipt.export_class == ExportClass.candidate_only
+    assert receipt.pnf_closed is False
+    assert receipt.time_bound is True
