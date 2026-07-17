@@ -197,3 +197,153 @@ def test_profile_emits_one_family_geometry_assessment_for_all_members() -> None:
         "F1_coherent_atomic_total_component_family"
     )
     assert inventory[0]["candidate_count"] == 2
+
+
+def test_fiscal_year_p580_p582_resolves_canonical_year() -> None:
+    from src.policy.climate_ghg_transformation_profile import GHGStatementSlot
+    cand = _candidate()
+    cand["claim_bundle_before"]["qualifiers"] = {
+        "P580": ["2021-04-01"],
+        "P582": ["2022-03-31"],
+    }
+    slot = GHGStatementSlot.from_candidate(cand)
+    assert slot.year == "2022"
+    assert slot.slot_identity_state == "fiscal_canonical"
+
+
+def test_h4b_when_slot_identity_state_is_unresolved() -> None:
+    first = _candidate()
+    first["claim_bundle_before"]["value"] = "100"
+    first["claim_bundle_before"]["qualifiers"] = {}
+    first["model_validation"]["resolved_year"] = None
+    first["statement_family_context"]["member_statement_ids"] = ["Q1$statement-1", "Q1$statement-2"]
+
+    second = deepcopy(first)
+    second["candidate_id"] = "Q1|P5991|2"
+    second["source_statement_id"] = "Q1$statement-2"
+
+    report = build_coverage_report(
+        {"candidates": [first]},
+        source_snapshot_ref="wdqs:page-1",
+        target_collision_state="absent",
+        family_member_candidates=[first, second],
+    )
+
+    inv = report["coverage"]["dependency_group_inventory"]
+    assert len(inv) == 1
+    assert inv[0]["primary_obstruction"] == "H4b_provisional_duplicate_unresolved_coordinate"
+    assert inv[0]["candidate_action"] == "hold_provisional_collision"
+
+
+def test_h4a_confirmed_when_year_exact() -> None:
+    first = _candidate()
+    first["claim_bundle_before"]["value"] = "100"
+    first["claim_bundle_before"]["qualifiers"] = {
+        "P585": ["2021-01-01"]
+    }
+    first["model_validation"]["resolved_year"] = "2021"
+    first["statement_family_context"]["member_statement_ids"] = ["Q1$statement-1", "Q1$statement-2"]
+
+    second = deepcopy(first)
+    second["candidate_id"] = "Q1|P5991|2"
+    second["source_statement_id"] = "Q1$statement-2"
+
+    report = build_coverage_report(
+        {"candidates": [first]},
+        source_snapshot_ref="wdqs:page-1",
+        target_collision_state="absent",
+        family_member_candidates=[first, second],
+    )
+
+    inv = report["coverage"]["dependency_group_inventory"]
+    assert len(inv) == 1
+    assert inv[0]["primary_obstruction"] == "H4a_confirmed_duplicate_semantic_slot"
+    assert inv[0]["candidate_action"] == "review_duplicate_slot"
+
+
+def test_h4c_conflicting_value() -> None:
+    first = _candidate()
+    first["claim_bundle_before"]["value"] = "100"
+    first["claim_bundle_before"]["qualifiers"] = {
+        "P585": ["2021-01-01"]
+    }
+    first["model_validation"]["resolved_year"] = "2021"
+    first["statement_family_context"]["member_statement_ids"] = ["Q1$statement-1", "Q1$statement-2"]
+
+    second = deepcopy(first)
+    second["candidate_id"] = "Q1|P5991|2"
+    second["source_statement_id"] = "Q1$statement-2"
+    second["claim_bundle_before"]["value"] = "200"
+
+    report = build_coverage_report(
+        {"candidates": [first]},
+        source_snapshot_ref="wdqs:page-1",
+        target_collision_state="absent",
+        family_member_candidates=[first, second],
+    )
+
+    inv = report["coverage"]["dependency_group_inventory"]
+    assert len(inv) == 1
+    assert inv[0]["primary_obstruction"] == "H4c_conflicting_value_semantic_slot"
+    assert inv[0]["candidate_action"] == "review_conflicting_values"
+
+
+def test_h4d_rank_variant() -> None:
+    first = _candidate()
+    first["claim_bundle_before"]["value"] = "100"
+    first["claim_bundle_before"]["rank"] = "normal"
+    first["claim_bundle_before"]["qualifiers"] = {
+        "P585": ["2021-01-01"]
+    }
+    first["model_validation"]["resolved_year"] = "2021"
+    first["statement_family_context"]["member_statement_ids"] = ["Q1$statement-1", "Q1$statement-2"]
+
+    second = deepcopy(first)
+    second["candidate_id"] = "Q1|P5991|2"
+    second["source_statement_id"] = "Q1$statement-2"
+    second["claim_bundle_before"]["rank"] = "preferred"
+
+    report = build_coverage_report(
+        {"candidates": [first]},
+        source_snapshot_ref="wdqs:page-1",
+        target_collision_state="absent",
+        family_member_candidates=[first, second],
+    )
+
+    inv = report["coverage"]["dependency_group_inventory"]
+    assert len(inv) == 1
+    assert inv[0]["primary_obstruction"] == "H4d_rank_variant_semantic_slot"
+    assert inv[0]["candidate_action"] == "review_rank_supersession"
+
+
+def test_fiscal_fiscal_collision_dissolves_to_f1() -> None:
+    first = _candidate()
+    first["claim_bundle_before"]["value"] = "100"
+    first["claim_bundle_before"]["qualifiers"] = {
+        "P580": ["2021-04-01"],
+        "P582": ["2022-03-31"],
+    }
+    first["model_validation"]["resolved_year"] = None
+    first["statement_family_context"]["member_statement_ids"] = ["Q1$statement-1", "Q1$statement-2"]
+
+    second = _candidate()
+    second["candidate_id"] = "Q1|P5991|2"
+    second["source_statement_id"] = "Q1$statement-2"
+    second["claim_bundle_before"]["value"] = "200"
+    second["claim_bundle_before"]["qualifiers"] = {
+        "P580": ["2022-04-01"],
+        "P582": ["2023-03-31"],
+    }
+    second["model_validation"]["resolved_year"] = None
+    second["statement_family_context"]["member_statement_ids"] = ["Q1$statement-1", "Q1$statement-2"]
+
+    report = build_coverage_report(
+        {"candidates": [first, second]},
+        source_snapshot_ref="wdqs:page-1",
+        target_collision_state="absent",
+        family_member_candidates=[first, second],
+    )
+
+    inv = report["coverage"]["dependency_group_inventory"]
+    assert len(inv) == 1
+    assert inv[0]["primary_obstruction"] == "F1_coherent_atomic_total_component_family"

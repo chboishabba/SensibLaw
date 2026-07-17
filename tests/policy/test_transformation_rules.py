@@ -266,7 +266,10 @@ def test_coverage_collapses_profile_group_assessment_to_one_inventory_row() -> N
     )
 
     assert report["dependency_group_primary_obstruction_counts"] == {
-        "F4_scope_overlap": 1
+        "family_counts": {"F4_scope_overlap": 1},
+        "statement_counts": {"F4_scope_overlap": 2},
+        "f4_family_subtype_counts": {"valid_multi_scope_multi_year_matrix": 1},
+        "f4_statement_counts_by_subtype": {"valid_multi_scope_multi_year_matrix": 2},
     }
     assert report["dependency_group_inventory"] == [
         {

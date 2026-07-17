@@ -31,6 +31,7 @@ from src.policy.residual_profiles import build_typed_residual_profile  # noqa: E
 from src.policy.residual_graph import build_typed_residual_graph  # noqa: E402
 from src.policy.climate_ghg_transformation_profile import (  # noqa: E402
     build_coverage_report,
+    build_h4_collision_report,
 )
 from src.policy.review_packet_projection import (  # noqa: E402
     build_review_packet_projection,
@@ -157,9 +158,14 @@ def _parse_args() -> argparse.Namespace:
         "--rule-coverage-output",
         type=Path,
         help=(
-            "Optional candidate-only A1/A2/A3 detector and dry-run coverage "
+            "Optional candidate-only A1/A2/A3/A5/H4 detector and dry-run coverage "
             "report. This never creates an edit or execution manifest."
         ),
+    )
+    parser.add_argument(
+        "--h4-collision-output",
+        type=Path,
+        help="Optional path to write the structured H4 collision report.",
     )
     return parser.parse_args()
 
@@ -791,7 +797,7 @@ def main() -> None:
     )
 
     family_member_pack = None
-    if args.discover_company_direct and args.rule_coverage_output:
+    if args.discover_company_direct and (args.rule_coverage_output or args.h4_collision_output):
         # Keep the selected discovery population narrow while supplying every
         # sibling GUID from each pinned entity to the generic family-evidence
         # carrier. This is diagnostic hydration only, never an edit population.
@@ -831,6 +837,18 @@ def main() -> None:
             ),
         )
         _write_json(args.rule_coverage_output, rule_coverage)
+
+    h4_collision_report = None
+    if args.h4_collision_output:
+        h4_collision_report = build_h4_collision_report(
+            migration_pack,
+            family_member_candidates=(
+                family_member_pack.get("candidates", [])
+                if family_member_pack is not None
+                else None
+            ),
+        )
+        _write_json(args.h4_collision_output, h4_collision_report)
 
     review_packet_set = None
     residual_graph = None
@@ -916,6 +934,9 @@ def main() -> None:
             "rule_coverage": str(args.rule_coverage_output)
             if args.rule_coverage_output
             else None,
+            "h4_collision_report": str(args.h4_collision_output)
+            if args.h4_collision_output
+            else None,
             "climate_text_source": str(args.climate_text_source)
             if args.climate_text_source
             else None,
@@ -953,6 +974,9 @@ def main() -> None:
         output["rule_coverage_outcome_counts"] = rule_coverage["coverage"][
             "outcome_counts"
         ]
+    if h4_collision_report is not None:
+        output["h4_collision_report"] = str(args.h4_collision_output)
+        output["h4_collision_counts"] = h4_collision_report["counts_by_sub_disposition"]
     if observation_claim_report_path is not None:
         output["climate_observation_claim"] = str(observation_claim_report_path)
     print(json.dumps(output, ensure_ascii=False, indent=2))

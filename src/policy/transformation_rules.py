@@ -81,7 +81,7 @@ def _dependency_group_assessment(value: Any) -> dict[str, Any] | None:
     geometry = value.get("geometry") or {}
     if not isinstance(geometry, Mapping):
         raise ValueError("dependency group assessment geometry must be a mapping")
-    return {
+    payload: dict[str, Any] = {
         "primary_obstruction": primary,
         "secondary_obstructions": _strings(value.get("secondary_obstructions") or ()),
         "candidate_action": action,
@@ -92,6 +92,11 @@ def _dependency_group_assessment(value: Any) -> dict[str, Any] | None:
             if _text(key)
         },
     }
+    for extra_key in ("transition_receipt",):
+        extra = value.get(extra_key)
+        if extra is not None:
+            payload[extra_key] = extra
+    return payload
 
 
 def _dependency_group_inventory(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
@@ -135,10 +140,113 @@ def _dependency_group_inventory(rows: Sequence[Mapping[str, Any]]) -> list[dict[
 
 def _dependency_group_assessment_counts(
     inventory: Sequence[Mapping[str, Any]],
-) -> dict[str, int]:
-    return dict(
-        sorted(Counter(_text(row.get("primary_obstruction")) for row in inventory).items())
-    )
+) -> dict[str, Any]:
+    family_counts: Counter[str] = Counter()
+    family_statement_counts: Counter[str] = Counter()
+    f4_family_subtypes: Counter[str] = Counter()
+    f4_statement_subtypes: Counter[str] = Counter()
+    f5_family_subtypes: Counter[str] = Counter()
+    f5_statement_subtypes: Counter[str] = Counter()
+    for row in inventory:
+        obstruction = _text(row.get("primary_obstruction"))
+        statement_count = row.get("candidate_count") or 0
+        family_counts[obstruction] += 1
+        family_statement_counts[obstruction] += statement_count
+        secondary = row.get("secondary_obstructions") or ()
+        geometry = row.get("geometry") or {}
+        partition = _text(geometry.get("scope_partition_state"))
+        total_rel = _text(geometry.get("total_component_relation"))
+        period_geo = _text(geometry.get("period_geometry"))
+        member_count = geometry.get("member_count") or 0
+
+        if obstruction.startswith("F4"):
+            subtype = _classify_f4_subtype(
+                partition=partition,
+                secondary=secondary,
+                total_rel=total_rel,
+                period_geo=period_geo,
+                member_count=member_count,
+            )
+            f4_family_subtypes[subtype] += 1
+            f4_statement_subtypes[subtype] += statement_count
+        elif obstruction.startswith("F5"):
+            subtype = _classify_f5_subtype(
+                total_rel=total_rel,
+                secondary=secondary,
+                period_geo=period_geo,
+                member_count=member_count,
+            )
+            f5_family_subtypes[subtype] += 1
+            f5_statement_subtypes[subtype] += statement_count
+
+    result: dict[str, Any] = {
+        "family_counts": dict(sorted(family_counts.items())),
+        "statement_counts": dict(sorted(family_statement_counts.items())),
+    }
+    if f4_family_subtypes:
+        result["f4_family_subtype_counts"] = dict(sorted(f4_family_subtypes.items()))
+        result["f4_statement_counts_by_subtype"] = dict(
+            sorted(f4_statement_subtypes.items())
+        )
+    if f5_family_subtypes:
+        result["f5_family_subtype_counts"] = dict(sorted(f5_family_subtypes.items()))
+        result["f5_statement_counts_by_subtype"] = dict(
+            sorted(f5_statement_subtypes.items())
+        )
+    return result
+
+
+def _classify_f4_subtype(
+    *,
+    partition: str,
+    secondary: Sequence[str],
+    total_rel: str,
+    period_geo: str,
+    member_count: int,
+) -> str:
+    secondary_set = set(secondary)
+    if "genuinely_overloaded_guid" in secondary_set:
+        return "genuinely_overloaded_single_guid"
+    if "duplicate_semantic_slot" in secondary_set:
+        return "duplicate_semantic_slot"
+    if "scope_not_partitioned" in secondary_set:
+        return "overlapping_scope_definitions"
+    if "scope_overlap" in secondary_set:
+        if total_rel in {"exact_reconciliation", "incomplete_reconciliation"}:
+            return "valid_multi_scope_multi_year_matrix"
+        if total_rel == "contradiction":
+            return "total_plus_components"
+        if any("period_geometry" in s for s in secondary):
+            return "valid_multi_scope_multi_year_matrix"
+        return "overlapping_scope_definitions"
+    if partition == "unknown":
+        return "overlapping_scope_definitions"
+    return "valid_multi_scope_multi_year_matrix"
+
+
+def _classify_f5_subtype(
+    *,
+    total_rel: str,
+    secondary: Sequence[str],
+    period_geo: str,
+    member_count: int,
+) -> str:
+    secondary_set = set(secondary)
+    if "component_total_mismatch" in secondary_set:
+        if member_count == 2:
+            return "exact_contradiction"
+        return "components_not_exhaustive"
+    if "scope_overlap" in secondary_set:
+        return "incomparable_scope_basis"
+    if "duplicate_semantic_slot" in secondary_set:
+        return "mixed_year_method_unit"
+    if any("period_geometry" in s for s in secondary):
+        return "mixed_year_method_unit"
+    if total_rel == "no_total":
+        return "total_absent"
+    if member_count > 2:
+        return "multiple_candidate_totals"
+    return "exact_contradiction"
 
 
 def build_transformation_rule(

@@ -7,6 +7,9 @@ classifier label as an applicability decision.
 
 from __future__ import annotations
 
+from collections import defaultdict
+from dataclasses import dataclass, field
+from decimal import Decimal, InvalidOperation
 from typing import Any, Mapping, Sequence
 
 from .statement_family_context import build_statement_family_member_evidence
@@ -21,8 +24,261 @@ DOMAIN_CONTRACT_REF = "wikidata:climate_ghg_p5991_to_p14143:v0_1"
 TRANSFORMATION_CONTRACT_REF = "transform:P5991-to-P14143:preserve-statement-bundle"
 
 
+GHG_SCOPE_PROPERTIES = frozenset({"P3831", "P518"})
+GHG_DETERMINATION_METHOD_PROPERTY = "P459"
+GHG_TEMPORAL_PROPERTIES = frozenset({"P580", "P582", "P585"})
+
+
+def _extract_year_from_date_str(val: str) -> str | None:
+    val = val.strip().lstrip("+").lstrip("-")
+    if len(val) >= 4 and val[:4].isdigit():
+        return val[:4]
+    for i in range(len(val) - 3):
+        chunk = val[i:i+4]
+        if chunk.isdigit() and (chunk.startswith("19") or chunk.startswith("20")):
+            return chunk
+    return None
+
+
+def _resolve_fiscal_canonical_year(qualifiers: Mapping[str, Any]) -> tuple[str, str]:
+    p585_vals = _text_list(qualifiers.get("P585"))
+    p580_vals = _text_list(qualifiers.get("P580"))
+    p582_vals = _text_list(qualifiers.get("P582"))
+
+    point_years = sorted(list(set(
+        year for v in p585_vals for year in [_extract_year_from_date_str(v)] if year
+    )))
+    if len(point_years) == 1:
+        return point_years[0], "exact"
+    if len(point_years) > 1:
+        return "", "unresolved"
+
+    start_years = sorted(list(set(
+        year for v in p580_vals for year in [_extract_year_from_date_str(v)] if year
+    )))
+    end_years = sorted(list(set(
+        year for v in p582_vals for year in [_extract_year_from_date_str(v)] if year
+    )))
+
+    if start_years and end_years:
+        if len(start_years) == 1 and len(end_years) == 1:
+            sy = int(start_years[0])
+            ey = int(end_years[0])
+            if sy == ey:
+                return start_years[0], "exact"
+            if ey == sy + 1:
+                return end_years[0], "fiscal_canonical"
+        return "", "unresolved"
+
+    if start_years or end_years:
+        return "", "partial"
+
+    return "", "unresolved"
+
+
+@dataclass(frozen=True)
+class GHGStatementSlot:
+    """Normalized semantic identity for one GHG statement within a family.
+
+    ``semantic_slot`` is the core identity: two statements with the same
+    ``(year, scope, applies_to_part, method, unit)`` contend for the same
+    cell.  ``rank`` and ``reference_group`` sit outside the semantic core and
+    identify revision or duplicate assertions rather than different cells.
+    """
+
+    year: str
+    scope: str
+    applies_to_part: str
+    method: str
+    unit: str
+    slot_identity_state: str
+
+    semantic_slot: tuple[str, str, str, str, str] = field(init=False)
+
+    rank: str = "normal"
+    reference_group: str = ""
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "semantic_slot",
+            (self.year, self.scope, self.applies_to_part, self.method, self.unit),
+        )
+
+    @classmethod
+    def from_candidate(cls, candidate: Mapping[str, Any]) -> GHGStatementSlot:
+        bundle = candidate.get("claim_bundle_before") or {}
+        qualifiers = bundle.get("qualifiers") or {}
+        validation = candidate.get("model_validation") or {}
+        classifier = candidate.get("family_classifier") or {}
+
+        year = _text(validation.get("resolved_year"))
+        if not year:
+            year, slot_identity_state = _resolve_fiscal_canonical_year(qualifiers)
+        else:
+            slot_identity_state = "exact"
+
+        scope_values = _text_list(qualifiers.get("P3831"))
+        applies_to_part_values = _text_list(qualifiers.get("P518"))
+        method_values = _text_list(qualifiers.get("P459"))
+        unit = _text(validation.get("resolved_unit_qid"))
+
+        rank = _text(bundle.get("rank")) or "normal"
+
+        reference_group = _ref_group(bundle.get("references") or ())
+
+        scope = scope_values[0] if scope_values else ""
+        applies_to_part = applies_to_part_values[0] if applies_to_part_values else ""
+
+        method = method_values[0] if method_values else ""
+
+        return cls(
+            year=year,
+            scope=scope,
+            applies_to_part=applies_to_part,
+            method=method,
+            unit=unit,
+            slot_identity_state=slot_identity_state,
+            rank=rank,
+            reference_group=reference_group,
+        )
+
+    @property
+    def comparable_basis(self) -> tuple[str, str, str, str]:
+        """Basis on which total/component reconciliation is meaningful."""
+        return (self.year, self.method, self.unit, self.reference_group)
+
+    def is_total(self) -> bool:
+        return not self.scope and not self.applies_to_part
+
+
+def _ref_group(references: Any) -> str:
+    if not isinstance(references, (list, tuple)):
+        return ""
+    urls: list[str] = []
+    for ref in references:
+        if not isinstance(ref, Mapping):
+            continue
+        for values in ref.values():
+            if not isinstance(values, (list, tuple)):
+                continue
+            for value in values:
+                text = _text(value)
+                if text:
+                    urls.append(text)
+    return "|".join(sorted(urls)) if urls else ""
+
+
 def _text(value: Any) -> str:
     return str(value or "").strip()
+
+
+def _normalize_slot(member_evidence: Mapping[str, Any]) -> tuple[str, str, str, str, str]:
+    """Extract the normalized semantic slot from member evidence."""
+    slot = member_evidence.get("ghg_slot") or {}
+    return (
+        slot.get("year") or "",
+        slot.get("scope") or "",
+        slot.get("applies_to_part") or "",
+        slot.get("method") or "",
+        slot.get("unit") or "",
+    )
+
+
+def _slot_collisions(
+    member_evidence: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Detect slot-level collisions within a family and classify H4 sub-dispositions.
+
+    Returns a mapping from collision reason/type to details.
+    """
+    slot_map: dict[tuple[str, str, str, str, str], list[Mapping[str, Any]]] = {}
+    guidance_map: dict[str, list[str]] = {}
+
+    for evidence in member_evidence:
+        statement_id = _text(evidence.get("statement_id"))
+        if not statement_id:
+            continue
+        slot = _normalize_slot(evidence)
+        slot_map.setdefault(slot, []).append(evidence)
+
+        guidance_id = _text((evidence.get("ghg_slot") or {}).get("reference_group"))
+        if guidance_id:
+            guidance_map.setdefault(guidance_id, []).append(statement_id)
+
+    collisions: dict[str, Any] = {}
+
+    duplicate_slots: list[list[str]] = []
+    h4_details: list[dict[str, Any]] = []
+
+    for slot, ev_list in slot_map.items():
+        if len(ev_list) > 1:
+            statement_ids = [
+                _text(ev.get("statement_id")) for ev in ev_list if _text(ev.get("statement_id"))
+            ]
+            duplicate_slots.append(statement_ids)
+
+            values = set()
+            ranks = set()
+            has_unresolved_coordinate = False
+            for ev in ev_list:
+                ghg_slot = ev.get("ghg_slot") or {}
+                val = _text(ghg_slot.get("value"))
+                rank = _text(ghg_slot.get("rank")) or "normal"
+                state = _text(ghg_slot.get("slot_identity_state")) or "unresolved"
+
+                values.add(val)
+                ranks.add(rank)
+                if state in ("fiscal_canonical", "unresolved"):
+                    has_unresolved_coordinate = True
+
+            if len(values) > 1:
+                collision_type = "conflicting_value"
+                sub_disposition = "H4c"
+            elif len(ranks) > 1:
+                collision_type = "rank_variant"
+                sub_disposition = "H4d"
+            else:
+                collision_type = "duplicate_assertion"
+                if has_unresolved_coordinate:
+                    sub_disposition = "H4b"
+                else:
+                    sub_disposition = "H4a"
+
+            h4_details.append({
+                "slot": list(slot),
+                "member_guids": statement_ids,
+                "collision_type": collision_type,
+                "has_unresolved_coordinate": has_unresolved_coordinate,
+                "sub_disposition": sub_disposition,
+            })
+
+    if duplicate_slots:
+        collisions["duplicate_semantic_slot"] = duplicate_slots
+        collisions["h4_details"] = h4_details
+
+    overloaded_guids: list[str] = []
+    guid_slots: dict[str, list[tuple[str, str, str, str, str]]] = {}
+    for evidence in member_evidence:
+        statement_id = _text(evidence.get("statement_id"))
+        if not statement_id:
+            continue
+        slot = _normalize_slot(evidence)
+        guid_slots.setdefault(statement_id, []).append(slot)
+    for guid, slots in guid_slots.items():
+        if len(set(slots)) > 1:
+            overloaded_guids.append(guid)
+    if overloaded_guids:
+        collisions["genuinely_overloaded_guid"] = [overloaded_guids]
+
+    return collisions
+
+
+def _text_list(raw: Any) -> list[str]:
+    if isinstance(raw, (list, tuple)):
+        return [_text(v) for v in raw if _text(v)]
+    value = _text(raw)
+    return [value] if value else []
 
 
 def _predicate(
@@ -48,7 +304,7 @@ def _predicate(
 
 
 def build_rules() -> list[dict[str, Any]]:
-    """Return the initial candidate-only A1/A2/A3 rule catalogue."""
+    """Return the candidate-only A1/A2/A3/A5/H4 rule catalogue."""
 
     common = {
         "domain_contract_ref": DOMAIN_CONTRACT_REF,
@@ -79,6 +335,16 @@ def build_rules() -> list[dict[str, Any]]:
             structural_family_ref="climate-ghg:A3:already-separated-annual-series:v0_1",
             detector_ref="detector:already-separated-annual-series:v0_1",
             near_miss_refs=["residual:period-overlap", "residual:multi-year-range"],
+        ),
+        build_transformation_rule(
+            **common,
+            structural_family_ref="climate-ghg:A5:nonexhaustive-partial-family:v0_1",
+            detector_ref="detector:nonexhaustive-partial-family:v0_1",
+        ),
+        build_transformation_rule(
+            **common,
+            structural_family_ref="climate-ghg:H4:duplicate-semantic-slot-hold:v0_1",
+            detector_ref="detector:duplicate-semantic-slot-hold:v0_1",
         ),
     ]
 
@@ -301,6 +567,9 @@ def _member_evidence(candidate: Mapping[str, Any]) -> dict[str, Any]:
         and not isinstance(references, (str, bytes))
         and bool(references)
     )
+    slot = GHGStatementSlot.from_candidate(candidate)
+    bundle = candidate.get("claim_bundle_before") or {}
+    qualifiers = bundle.get("qualifiers") or {}
     return {
         "family_id": _text(family.get("family_id")),
         "statement_id": _text(candidate.get("source_statement_id")),
@@ -314,6 +583,24 @@ def _member_evidence(candidate: Mapping[str, Any]) -> dict[str, Any]:
             if direct_conformant
             else "nonconformant"
         ),
+        "ghg_slot": {
+            "year": slot.year,
+            "scope": slot.scope,
+            "applies_to_part": slot.applies_to_part,
+            "method": slot.method,
+            "unit": slot.unit,
+            "slot_identity_state": slot.slot_identity_state,
+            "rank": slot.rank,
+            "value": _text(bundle.get("value")),
+            "reference_group": slot.reference_group,
+            "semantic_slot": list(slot.semantic_slot),
+            "is_total": slot.is_total(),
+        },
+        "qualifier_values": {
+            "scope_values": _text_list(qualifiers.get("P3831")),
+            "applies_to_part_values": _text_list(qualifiers.get("P518")),
+            "method_values": _text_list(qualifiers.get("P459")),
+        },
     }
 
 
@@ -323,6 +610,11 @@ def _dependency_group_assessment(candidate: Mapping[str, Any]) -> dict[str, Any]
     This is a diagnostic action proposal, not a transformation decision. It
     names the strongest observed obstruction while retaining overlapping
     secondary geometry for later rule discovery and review.
+
+    When member_slot_data is available, F4/F5 classification uses slot-level
+    collisions rather than coarse family-level geometry.  Families whose
+    members all occupy unique semantic slots are recognised as valid matrices
+    even when the family-level scope check reports overlap.
     """
 
     family = candidate.get("statement_family_context") or {}
@@ -347,9 +639,45 @@ def _dependency_group_assessment(candidate: Mapping[str, Any]) -> dict[str, Any]
         for statement_id, state in member_states.items()
         if _text(state) == "conformant"
     )
+    member_slot_data: list[dict[str, Any]] = family.get("member_slot_data") or []
+    slot_collisions: dict[str, list[list[str]]] = (
+        family.get("slot_collisions") or {}
+    )
+
+    has_duplicate_slot = bool(slot_collisions.get("duplicate_semantic_slot"))
+    has_overloaded_guid = bool(slot_collisions.get("genuinely_overloaded_guid"))
+    slot_data_available = bool(member_slot_data)
+    all_slots_unique = (
+        slot_data_available
+        and not has_duplicate_slot
+        and not has_overloaded_guid
+    )
+
+    component_coverage = _family_component_coverage_state(
+        member_slot_data, family
+    )
+
+    has_total = _text(family.get("total_value")) or _text(
+        family.get("component_sum")
+    )
+    has_total_and_components = bool(has_total) and any(
+        not (ev.get("ghg_slot") or {}).get("is_total")
+        for ev in member_slot_data
+    )
+    coverage_exhaustive = component_coverage == "exhaustive"
+    coverage_partial = component_coverage in {
+        "explicitly_partial",
+        "inferred_partial",
+        "components_exceed_total",
+    }
+
     secondary: list[str] = []
     if total_relation == "contradiction":
         secondary.append("component_total_mismatch")
+    if has_duplicate_slot:
+        secondary.append("duplicate_semantic_slot")
+    if has_overloaded_guid:
+        secondary.append("genuinely_overloaded_guid")
     if partition == "overlapping":
         secondary.append("scope_overlap")
     elif partition == "overloaded":
@@ -368,29 +696,103 @@ def _dependency_group_assessment(candidate: Mapping[str, Any]) -> dict[str, Any]
         secondary.append("mixed_member_conformance")
     elif member_conformance in {"unresolved", "incomplete"}:
         secondary.append("sibling_semantics_unresolved")
+    if component_coverage:
+        secondary.append("component_coverage:" + component_coverage)
 
-    if partition == "already_partitioned" and total_relation == "exact_reconciliation":
+    transition_receipt: dict[str, Any] | None = None
+
+    h4_sub_dispositions = []
+    if slot_data_available and has_duplicate_slot:
+        h4_details = slot_collisions.get("h4_details") or []
+        for detail in h4_details:
+            h4_sub_dispositions.append({
+                "sub_disposition": detail.get("sub_disposition"),
+                "collision_type": detail.get("collision_type"),
+                "member_guids": detail.get("member_guids"),
+                "slot": detail.get("slot"),
+                "has_unresolved_coordinate": detail.get("has_unresolved_coordinate"),
+            })
+        sub_disp_types = {d.get("sub_disposition") for d in h4_details}
+        if "H4c" in sub_disp_types:
+            primary, action, affected = (
+                "H4c_conflicting_value_semantic_slot",
+                "review_conflicting_values",
+                member_ids,
+            )
+        elif "H4a" in sub_disp_types:
+            primary, action, affected = (
+                "H4a_confirmed_duplicate_semantic_slot",
+                "review_duplicate_slot",
+                member_ids,
+            )
+        elif "H4b" in sub_disp_types:
+            primary, action, affected = (
+                "H4b_provisional_duplicate_unresolved_coordinate",
+                "hold_provisional_collision",
+                member_ids,
+            )
+        elif "H4d" in sub_disp_types:
+            primary, action, affected = (
+                "H4d_rank_variant_semantic_slot",
+                "review_rank_supersession",
+                member_ids,
+            )
+        else:
+            primary, action, affected = (
+                "H4_duplicate_semantic_slot",
+                "review_duplicate_slot",
+                member_ids,
+            )
+    elif slot_data_available and has_overloaded_guid:
+        primary, action, affected = (
+            "H5_genuinely_overloaded_guid",
+            "review_overloaded_statement",
+            member_ids,
+        )
+    elif (
+        slot_data_available
+        and all_slots_unique
+        and has_total_and_components
+        and coverage_exhaustive
+    ):
         primary, action, affected = (
             "F1_coherent_atomic_total_component_family",
             "preserve_existing_partition",
             member_ids,
         )
-    elif total_relation == "contradiction":
+    elif (
+        slot_data_available
+        and all_slots_unique
+        and has_total_and_components
+        and coverage_partial
+    ):
+        primary, action, affected = (
+            "A5_nonexhaustive_partial_family",
+            "hold_partial_component_coverage",
+            member_ids,
+        )
+    elif slot_data_available and all_slots_unique:
+        primary, action, affected = (
+            "F1_coherent_atomic_total_component_family",
+            "preserve_existing_partition",
+            member_ids,
+        )
+    elif not slot_data_available and partition == "already_partitioned" and total_relation == "exact_reconciliation":
+        primary, action, affected = (
+            "F1_coherent_atomic_total_component_family",
+            "preserve_existing_partition",
+            member_ids,
+        )
+    elif not slot_data_available and total_relation == "contradiction":
         primary, action, affected = (
             "F5_contradictory_or_nonreconciling_total",
             "hold_total_reconciliation",
             member_ids,
         )
-    elif partition == "overlapping":
+    elif partition in {"overlapping", "overloaded"}:
         primary, action, affected = (
             "F4_overlapping_or_nonpartitioned_scopes",
             "hold_scope_partition",
-            member_ids,
-        )
-    elif partition == "overloaded":
-        primary, action, affected = (
-            "F4_overlapping_or_nonpartitioned_scopes",
-            "review_overloaded_source_statement",
             member_ids,
         )
     elif period_geometry in {
@@ -431,7 +833,7 @@ def _dependency_group_assessment(candidate: Mapping[str, Any]) -> dict[str, Any]
             "review_family_reconstruction",
             member_ids,
         )
-    return {
+    payload = {
         "primary_obstruction": primary,
         "secondary_obstructions": secondary,
         "candidate_action": action,
@@ -445,6 +847,147 @@ def _dependency_group_assessment(candidate: Mapping[str, Any]) -> dict[str, Any]
             "member_count": len(member_ids),
         },
     }
+    if h4_sub_dispositions:
+        payload["h4_sub_dispositions"] = h4_sub_dispositions
+    if slot_data_available and family.get("scope_partition_state") in {
+        "overlapping",
+        "overloaded",
+        "already_partitioned",
+    }:
+        transition_receipt = _transition_receipt(
+            old_assessment={
+                "scope_partition_state": partition,
+                "total_component_relation": total_relation,
+                "slot_collisions": slot_collisions,
+                "component_coverage": component_coverage,
+            },
+            new_primary=primary,
+            member_ids=member_ids,
+            member_slot_data=member_slot_data,
+        )
+        if transition_receipt:
+            payload["transition_receipt"] = transition_receipt
+    return payload
+
+
+def _transition_receipt(
+    *,
+    old_assessment: Mapping[str, Any],
+    new_primary: str,
+    member_ids: Sequence[str],
+    member_slot_data: Sequence[Mapping[str, Any]],
+) -> dict[str, Any] | None:
+    """Record classification transition with evidence when slot normalization changes the result.
+
+    Returns None if no meaningful transition occurred (e.g. the new code
+    reached the same conclusion as the equivalent old path).
+    """
+    old_partition = _text(old_assessment.get("scope_partition_state"))
+    old_total_rel = _text(old_assessment.get("total_component_relation"))
+    collisions = old_assessment.get("slot_collisions") or {}
+    coverage = _text(old_assessment.get("component_coverage"))
+    unique_slots = set()
+    for ev in member_slot_data:
+        slot_tuple = tuple(
+            (ev.get("ghg_slot") or {}).get(k, "")
+            for k in ("year", "scope", "applies_to_part", "method", "unit")
+        )
+        unique_slots.add(slot_tuple)
+
+    member_node_ids = [
+        {"statement_id": _text(ev.get("statement_id"))}
+        for ev in member_slot_data
+        if _text(ev.get("statement_id"))
+    ]
+
+    reasons: list[str] = []
+
+    if new_primary in {
+        "F1_coherent_atomic_total_component_family",
+        "A5_nonexhaustive_partial_family",
+    } and old_partition in {"overlapping", "overloaded"}:
+        reasons.append(
+            "apparent scope overlap dissolved by semantic-slot uniqueness"
+        )
+    if new_primary == "A5_nonexhaustive_partial_family" and old_total_rel == "contradiction":
+        reasons.append(
+            "component set not proven exhaustive; "
+            "components below total are compatible with partial coverage"
+        )
+    if new_primary == "H4_duplicate_semantic_slot" and old_partition in {
+        "overlapping",
+        "overloaded",
+    }:
+        reasons.append(
+            "same-slot collision confirmed by normalized slot identity"
+        )
+    if coverage and new_primary != "F1_coherent_atomic_total_component_family":
+        reasons.append(
+            f"component coverage state is {coverage}; "
+            "no exhaustive-partition assertion in source evidence"
+        )
+
+    if not reasons:
+        return None
+
+    return {
+        "old_scope_partition_state": old_partition,
+        "old_total_component_relation": old_total_rel,
+        "new_primary_obstruction": new_primary,
+        "transition_reasons": reasons,
+        "evidence": {
+            "unique_semantic_slot_count": len(unique_slots),
+            "slot_collisions": dict(collisions),
+            "component_coverage_state": coverage,
+            "member_count": len(member_ids),
+            "affected_members": member_node_ids,
+        },
+        "authority": "diagnostic_transition_only",
+        "promotion_effect": "not_evaluated",
+    }
+
+
+def _family_component_coverage_state(
+    member_slot_data: Sequence[Mapping[str, Any]],
+    family_context: Mapping[str, Any],
+) -> str:
+    """Derive component-coverage state from slot data and family context.
+
+    Returns one of: exhaustive, explicitly_partial, components_exceed_total,
+    unknown, or empty string.
+    """
+    if not member_slot_data:
+        return ""
+
+    total_relation = _text(family_context.get("total_component_relation"))
+    if total_relation == "exact_reconciliation":
+        return "exhaustive"
+    if total_relation != "contradiction":
+        return ""
+
+    total_value = _text(family_context.get("total_value"))
+    component_sum = _text(family_context.get("component_sum"))
+    if not total_value or not component_sum:
+        return "unknown"
+
+    comp_dec = _safe_decimal(component_sum)
+    total_dec = _safe_decimal(total_value)
+    if comp_dec is None or total_dec is None:
+        return "unknown"
+
+    if comp_dec < total_dec:
+        return "explicitly_partial"
+    if comp_dec > total_dec:
+        return "components_exceed_total"
+
+    return "unknown"
+
+
+def _safe_decimal(value: str) -> Decimal | None:
+    try:
+        return Decimal(value)
+    except InvalidOperation:
+        return None
 
 
 def _hydrate_family_evidence(
@@ -464,12 +1007,39 @@ def _hydrate_family_evidence(
         in contexts
     ]
     hydrated = build_statement_family_member_evidence(contexts, evidence)
+    member_slots: dict[str, list[dict[str, Any]]] = {}
+    for member_ev in evidence:
+        family_id = _text(member_ev.get("family_id"))
+        statement_id = _text(member_ev.get("statement_id"))
+        if not family_id or not statement_id:
+            continue
+        member_slots.setdefault(family_id, []).append(
+            {
+                "statement_id": statement_id,
+                "ghg_slot": member_ev.get("ghg_slot") or {},
+                "qualifier_values": member_ev.get("qualifier_values") or {},
+            }
+        )
+    slot_collisions: dict[str, dict[str, list[list[str]]]] = {}
+    for family_id, members in member_slots.items():
+        collisions = _slot_collisions(members)
+        if collisions:
+            slot_collisions[family_id] = collisions
+
     enriched: list[dict[str, Any]] = []
     for candidate in candidates:
         copied = dict(candidate)
         family = candidate.get("statement_family_context") or {}
+        family_id = _text(family.get("family_id"))
         copied["statement_family_context"] = dict(
-            hydrated[_text(family.get("family_id"))]
+            hydrated[family_id]
+        )
+        if family_id in slot_collisions:
+            copied["statement_family_context"]["slot_collisions"] = slot_collisions[
+                family_id
+            ]
+        copied["statement_family_context"]["member_slot_data"] = member_slots.get(
+            family_id, []
         )
         enriched.append(copied)
     return enriched
@@ -619,6 +1189,63 @@ def evaluate_candidate(
                     _family_conflict_predicate(candidate),
                 ]
             )
+        elif ":A5:" in family_ref:
+            member_slot_data = family.get("member_slot_data") or []
+            component_coverage = _family_component_coverage_state(member_slot_data, family)
+            total_relation = _text(family.get("total_component_relation"))
+            slot_collisions = family.get("slot_collisions") or {}
+            has_duplicate_slot = bool(slot_collisions.get("duplicate_semantic_slot"))
+            has_overloaded_guid = bool(slot_collisions.get("genuinely_overloaded_guid"))
+            all_slots_unique = not has_duplicate_slot and not has_overloaded_guid
+            predicates.extend(
+                [
+                    _predicate(
+                        "statement.unique-exact-slot",
+                        all_slots_unique,
+                        reason_code="slots_unique" if all_slots_unique else "slot_collision_detected",
+                        observed=all_slots_unique,
+                    ),
+                    _predicate(
+                        "family.partial-coverage-compatible",
+                        component_coverage in ("explicitly_partial", "inferred_partial", "components_exceed_total"),
+                        reason_code="partial_coverage_compatible"
+                        if component_coverage in ("explicitly_partial", "inferred_partial", "components_exceed_total")
+                        else "not_partial_coverage",
+                        observed=component_coverage or "unknown",
+                    ),
+                    _predicate(
+                        "family.no-exhaustive-partition-claim",
+                        total_relation != "exact_reconciliation",
+                        reason_code="no_exhaustive_claim"
+                        if total_relation != "exact_reconciliation"
+                        else "exhaustive_claim_requires_F1",
+                        observed=total_relation or "unknown",
+                    ),
+                ]
+            )
+        elif ":H4:" in family_ref:
+            slot_collisions = family.get("slot_collisions") or {}
+            has_duplicate_slot = bool(slot_collisions.get("duplicate_semantic_slot"))
+            sub_disp = "none"
+            h4_details = slot_collisions.get("h4_details") or []
+            if h4_details:
+                sub_disp = "|".join(sorted(list(set(d.get("sub_disposition") for d in h4_details))))
+            predicates.extend(
+                [
+                    _predicate(
+                        "family.duplicate-slot-detected",
+                        has_duplicate_slot,
+                        reason_code="duplicate_slot_found" if has_duplicate_slot else "no_duplicate_slots",
+                        observed=has_duplicate_slot,
+                    ),
+                    _predicate(
+                        "family.slot-collision-sub-disposition",
+                        has_duplicate_slot,
+                        reason_code="sub_disposition_" + sub_disp if has_duplicate_slot else "no_sub_disposition",
+                        observed=sub_disp,
+                    ),
+                ]
+            )
         else:
             raise ValueError("unsupported climate transformation rule")
         results.append(
@@ -694,4 +1321,134 @@ def build_coverage_report(
     return {"rules": rules, "coverage": report}
 
 
-__all__ = ["build_coverage_report", "build_rules", "evaluate_candidate"]
+def build_h4_collision_report(
+    migration_pack: Mapping[str, Any],
+    family_member_candidates: Sequence[Mapping[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Inspect and classify all H4 families in the pack."""
+    candidates = [
+        dict(candidate) for candidate in migration_pack.get("candidates") or ()
+    ]
+    if family_member_candidates is not None:
+        candidates = _hydrate_family_evidence(candidates, family_member_candidates)
+
+    member_map = {}
+    if family_member_candidates is not None:
+        for c in family_member_candidates:
+            stmt_id = _text(c.get("source_statement_id"))
+            if stmt_id:
+                member_map[stmt_id] = c
+    for c in migration_pack.get("candidates") or ():
+        stmt_id = _text(c.get("source_statement_id"))
+        if stmt_id:
+            member_map[stmt_id] = c
+
+    collision_groups = []
+    counts = {"H4a": 0, "H4b": 0, "H4c": 0, "H4d": 0}
+    seen_group_refs = set()
+
+    for candidate in candidates:
+        family = candidate.get("statement_family_context") or {}
+        family_id = _text(family.get("family_id"))
+        if not family_id:
+            continue
+
+        slot_collisions = family.get("slot_collisions") or {}
+        h4_details = slot_collisions.get("h4_details") or []
+        for detail in h4_details:
+            slot_tuple = tuple(detail.get("slot") or [])
+            group_ref = f"{family_id}|slot:{slot_tuple}"
+            if group_ref in seen_group_refs:
+                continue
+            seen_group_refs.add(group_ref)
+
+            sub_disp = detail.get("sub_disposition") or "H4a"
+            if sub_disp in counts:
+                counts[sub_disp] += 1
+
+            member_guids = detail.get("member_guids") or []
+            values = {}
+            ranks = {}
+            temporal_evidence = {}
+            slot_identity_states = {}
+            unresolved_coordinates = []
+
+            for guid in member_guids:
+                member_cand = member_map.get(guid) or {}
+                bundle = member_cand.get("claim_bundle_before") or {}
+                qualifiers = bundle.get("qualifiers") or {}
+
+                val = _text(bundle.get("value"))
+                rank = _text(bundle.get("rank")) or "normal"
+
+                ghg_slot = {}
+                member_slot_list = family.get("member_slot_data") or []
+                for msd in member_slot_list:
+                    if _text(msd.get("statement_id")) == guid:
+                        ghg_slot = msd.get("ghg_slot") or {}
+                        break
+
+                state = ghg_slot.get("slot_identity_state") or "unresolved"
+
+                values[guid] = val
+                ranks[guid] = rank
+                slot_identity_states[guid] = state
+
+                p580 = _text_list(qualifiers.get("P580"))
+                p582 = _text_list(qualifiers.get("P582"))
+                p585 = _text_list(qualifiers.get("P585"))
+                temporal_evidence[guid] = {
+                    "P580": p580,
+                    "P582": p582,
+                    "P585": p585,
+                }
+
+                if state in ("fiscal_canonical", "unresolved"):
+                    unresolved_coordinates.append(guid)
+
+            disposition_map = {
+                "H4a": "confirmed_duplicate",
+                "H4b": "provisional_temporal_collision",
+                "H4c": "conflicting_value",
+                "H4d": "rank_variant",
+            }
+            disposition = disposition_map.get(sub_disp, "confirmed_duplicate")
+
+            slot_dict = {}
+            if len(slot_tuple) == 5:
+                slot_dict = {
+                    "year": slot_tuple[0],
+                    "scope": slot_tuple[1],
+                    "applies_to_part": slot_tuple[2],
+                    "method": slot_tuple[3],
+                    "unit": slot_tuple[4],
+                }
+
+            collision_groups.append({
+                "collision_group_ref": group_ref,
+                "family_id": family_id,
+                "slot": slot_dict,
+                "sub_disposition": sub_disp,
+                "member_guids": member_guids,
+                "values": values,
+                "ranks": ranks,
+                "temporal_evidence": temporal_evidence,
+                "slot_identity_states": slot_identity_states,
+                "unresolved_coordinates": sorted(list(set(unresolved_coordinates))),
+                "collision_disposition": disposition,
+            })
+
+    collision_groups.sort(key=lambda x: x["collision_group_ref"])
+
+    return {
+        "collision_groups": collision_groups,
+        "counts_by_sub_disposition": counts,
+    }
+
+
+__all__ = [
+    "build_coverage_report",
+    "build_h4_collision_report",
+    "build_rules",
+    "evaluate_candidate",
+]
