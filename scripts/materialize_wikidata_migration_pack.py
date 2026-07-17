@@ -6,8 +6,12 @@ from copy import deepcopy
 from datetime import UTC, datetime
 import hashlib
 import json
+import os
+import random
+import shlex
 import sys
 import time
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import requests
@@ -36,11 +40,150 @@ from src.policy.climate_ghg_transformation_profile import (  # noqa: E402
 from src.policy.review_packet_projection import (  # noqa: E402
     build_review_packet_projection,
 )
+from scripts.cli_runtime import build_progress_callback  # noqa: E402
 
 
-_REQUEST_DELAY_SECONDS = 0.0
+_REQUEST_DELAY_SECONDS = 0.5
 _REQUEST_RETRY_ATTEMPTS = 4
-_LAST_REQUEST_AT = 0.0
+
+
+@dataclass
+class _ServiceGovernor:
+    baseline_seconds: float
+    effective_seconds: float
+    last_request_at: float = 0.0
+    clean_since: float = field(default_factory=time.monotonic)
+    request_count: int = 0
+    response_counts: dict[str, int] = field(default_factory=dict)
+    retry_count: int = 0
+    retry_after_seconds_total: float = 0.0
+    minimum_effective_seconds: float = 0.0
+    maximum_effective_seconds: float = 0.0
+
+    def __post_init__(self) -> None:
+        self.minimum_effective_seconds = self.effective_seconds
+        self.maximum_effective_seconds = self.effective_seconds
+
+
+class _WikidataTransport:
+    """Polite shared session with independent pressure histories per service."""
+
+    def __init__(self, *, baseline_seconds: float, retries: int) -> None:
+        self.session = requests.Session()
+        self.retries = retries
+        self.governors = {
+            name: _ServiceGovernor(baseline_seconds, baseline_seconds)
+            for name in ("wdqs", "action_api", "entity_export")
+        }
+        self.contact_identity_present = bool(
+            os.getenv("SENSIBLAW_WIKIDATA_CONTACT_NAME", "").strip()
+            or os.getenv("SENSIBLAW_WIKIDATA_CONTACT_EMAIL", "").strip()
+        )
+        contact = " ".join(
+            value
+            for value in (
+                os.getenv("SENSIBLAW_WIKIDATA_CONTACT_NAME", "").strip(),
+                os.getenv("SENSIBLAW_WIKIDATA_CONTACT_EMAIL", "").strip(),
+            )
+            if value
+        )
+        agent = "SensibLaw-Wikidata-QualifierDrift/0.1 (https://github.com/chboishabba/SensibLaw"
+        self.headers = {
+            **REQUEST_HEADERS,
+            "User-Agent": agent + (f"; {contact})" if contact else ")"),
+        }
+        token = os.getenv("SENSIBLAW_WIKIDATA_OAUTH_ACCESS_TOKEN", "").strip()
+        self.authentication_mode = "oauth2" if token else "anonymous"
+        if token:
+            self.headers["Authorization"] = f"Bearer {token}"
+        self.session.headers.update(self.headers)
+        self.resumed_export_count = 0
+        self.downloaded_export_count = 0
+
+    def fetch_json(
+        self,
+        url: str,
+        *,
+        params: dict[str, object] | None,
+        timeout_seconds: int,
+        service: str,
+    ) -> dict:
+        governor = self.governors[service]
+        for attempt in range(max(1, self.retries)):
+            elapsed = time.monotonic() - governor.last_request_at
+            if elapsed < governor.effective_seconds:
+                time.sleep(governor.effective_seconds - elapsed)
+            response = self.session.get(url, params=params, timeout=timeout_seconds)
+            governor.last_request_at = time.monotonic()
+            governor.request_count += 1
+            governor.response_counts[str(response.status_code)] = (
+                governor.response_counts.get(str(response.status_code), 0) + 1
+            )
+            if response.status_code not in {429, 502, 503, 504}:
+                response.raise_for_status()
+                if time.monotonic() - governor.clean_since >= 600:
+                    governor.effective_seconds = max(
+                        governor.baseline_seconds, governor.effective_seconds * 0.9
+                    )
+                    governor.clean_since = time.monotonic()
+                payload = response.json()
+                if not isinstance(payload, dict):
+                    raise ValueError(f"expected JSON object from {url}")
+                return payload
+            governor.retry_count += 1
+            governor.clean_since = time.monotonic()
+            raw_retry_after = str(response.headers.get("Retry-After") or "").strip()
+            retry_after = (
+                float(raw_retry_after)
+                if raw_retry_after.replace(".", "", 1).isdigit()
+                else 0.0
+            )
+            wait_seconds = (
+                retry_after
+                if retry_after > 0
+                else max(5.0, governor.effective_seconds * (2 ** (attempt + 1)))
+            )
+            governor.retry_after_seconds_total += wait_seconds
+            governor.effective_seconds = min(
+                60.0, max(governor.effective_seconds * 2, wait_seconds)
+            )
+            governor.minimum_effective_seconds = min(
+                governor.minimum_effective_seconds, governor.effective_seconds
+            )
+            governor.maximum_effective_seconds = max(
+                governor.maximum_effective_seconds, governor.effective_seconds
+            )
+            if attempt + 1 >= max(1, self.retries):
+                response.raise_for_status()
+            time.sleep(wait_seconds * random.uniform(0.9, 1.1))
+        raise RuntimeError(f"bounded request retries exhausted for {url}")
+
+    def receipt(self) -> dict[str, object]:
+        return {
+            "authentication_mode": self.authentication_mode,
+            "contact_identity_present": self.contact_identity_present,
+            "resumed_export_count": self.resumed_export_count,
+            "downloaded_export_count": self.downloaded_export_count,
+            "services": {
+                name: {
+                    "request_count": item.request_count,
+                    "response_counts": item.response_counts,
+                    "retry_count": item.retry_count,
+                    "retry_after_seconds_total": item.retry_after_seconds_total,
+                    "baseline_interval_ms": int(item.baseline_seconds * 1000),
+                    "minimum_effective_interval_ms": int(
+                        item.minimum_effective_seconds * 1000
+                    ),
+                    "maximum_effective_interval_ms": int(
+                        item.maximum_effective_seconds * 1000
+                    ),
+                }
+                for name, item in self.governors.items()
+            },
+        }
+
+
+_TRANSPORT: _WikidataTransport | None = None
 
 
 def _parse_args() -> argparse.Namespace:
@@ -108,8 +251,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--request-delay-ms",
         type=int,
-        default=100,
-        help="Minimum delay between live HTTP requests (default: 100 ms).",
+        default=500,
+        help="Minimum delay per live service request (default: 500 ms).",
     )
     parser.add_argument(
         "--request-retries",
@@ -167,47 +310,62 @@ def _parse_args() -> argparse.Namespace:
         type=Path,
         help="Optional path to write the structured H4 collision report.",
     )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume a matching pinned run-state in --out-dir.",
+    )
+    parser.add_argument(
+        "--progress-output",
+        type=Path,
+        help="Optional live progress JSON path (default: --out-dir/progress.json).",
+    )
+    parser.add_argument(
+        "--progress-format",
+        choices=("human", "json", "bar"),
+        default="bar",
+        help="Terminal progress format (default: bar; falls back to human outside a TTY).",
+    )
+    parser.add_argument(
+        "--no-progress",
+        action="store_false",
+        dest="progress_enabled",
+        help="Disable terminal progress output; progress.json is still written.",
+    )
+    parser.set_defaults(progress_enabled=True)
     return parser.parse_args()
 
 
 def _write_json(path: Path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    with temporary.open("w", encoding="utf-8") as handle:
+        handle.write(
+            json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        )
+        handle.flush()
+        os.fsync(handle.fileno())
+    temporary.replace(path)
 
 
 def _fetch_json(
     url: str, *, params: dict[str, object] | None = None, timeout_seconds: int
 ) -> dict:
-    global _LAST_REQUEST_AT
-
-    attempts = max(1, int(_REQUEST_RETRY_ATTEMPTS))
-    for attempt in range(attempts):
-        elapsed = time.monotonic() - _LAST_REQUEST_AT
-        if elapsed < _REQUEST_DELAY_SECONDS:
-            time.sleep(_REQUEST_DELAY_SECONDS - elapsed)
-        response = requests.get(
-            url, params=params, headers=REQUEST_HEADERS, timeout=timeout_seconds
-        )
-        _LAST_REQUEST_AT = time.monotonic()
-        if response.status_code not in {429, 502, 503, 504}:
-            response.raise_for_status()
-            payload = response.json()
-            if not isinstance(payload, dict):
-                raise ValueError(f"expected JSON object from {url}")
-            return payload
-        if attempt + 1 >= attempts:
-            response.raise_for_status()
-        retry_after = str(response.headers.get("Retry-After") or "").strip()
-        wait_seconds = (
-            min(30.0, float(retry_after))
-            if retry_after.replace(".", "", 1).isdigit()
-            else min(30.0, float(2 ** (attempt + 1)))
-        )
-        time.sleep(wait_seconds)
-    raise RuntimeError(f"bounded request retries exhausted for {url}")
+    if _TRANSPORT is None:
+        raise RuntimeError("Wikidata transport is not configured")
+    service = (
+        "wdqs"
+        if url == SPARQL_ENDPOINT
+        else "action_api"
+        if url == MEDIAWIKI_API_ENDPOINT
+        else "entity_export"
+    )
+    request_params = dict(params or {})
+    if service == "action_api":
+        request_params.setdefault("maxlag", 5)
+    return _TRANSPORT.fetch_json(
+        url, params=request_params, timeout_seconds=timeout_seconds, service=service
+    )
 
 
 def _extract_qid(value: str) -> str:
@@ -653,6 +811,128 @@ def _fetch_recent_revisions(
     ]
 
 
+def _fetch_recent_revision_map(
+    qids: tuple[str, ...],
+    *,
+    revision_limit: int,
+    timeout_seconds: int,
+    progress_callback=None,
+) -> dict[str, list[dict[str, object]]]:
+    """Pin exact recent revisions; the API forbids multi-title rvlimit calls."""
+
+    revision_map: dict[str, list[dict[str, object]]] = {}
+    started_at = time.monotonic()
+    for index, qid in enumerate(qids, start=1):
+        revision_map[qid] = _fetch_recent_revisions(
+            qid, revision_limit=revision_limit, timeout_seconds=timeout_seconds
+        )
+        if progress_callback:
+            elapsed_seconds = max(0.001, time.monotonic() - started_at)
+            rate = index / elapsed_seconds
+            progress_callback(
+                "revision_pinning",
+                {
+                    "section": "revision_pinning",
+                    "completed": index,
+                    "total": len(qids),
+                    "elapsed_seconds": round(elapsed_seconds, 3),
+                    "items_per_second": round(rate, 4),
+                    "eta_seconds_remaining": round((len(qids) - index) / rate, 3),
+                    "message": f"Pinned {qid}.",
+                },
+            )
+    return revision_map
+
+
+def _read_valid_export(
+    path: Path, *, qid: str, revid: int, receipt_path: Path | None = None
+) -> dict | None:
+    if not path.is_file():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    if payload.get("_source_qid") != qid or payload.get("_source_revision") != revid:
+        return None
+    if receipt_path is not None:
+        try:
+            receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return None
+        if not isinstance(receipt, dict) or (
+            receipt.get("qid") != qid
+            or receipt.get("revision") != revid
+            or receipt.get("content_sha256") != _canonical_json_digest(payload)
+        ):
+            return None
+    payload["_source_path"] = str(path)
+    return payload
+
+
+def _write_export_receipt(path: Path, *, qid: str, revid: int, payload: dict) -> None:
+    _write_json(
+        path,
+        {
+            "schema_version": "sl.wikidata_entity_export_receipt.v1",
+            "qid": qid,
+            "revision": revid,
+            "content_sha256": _canonical_json_digest(payload),
+        },
+    )
+
+
+def _write_progress(
+    path: Path,
+    *,
+    phase: str,
+    total_exports: int,
+    completed_exports: int,
+    current_qid: str | None,
+    current_revision: int | None,
+    started_at: float,
+    resume_command: str,
+    terminal: bool = False,
+) -> None:
+    elapsed_seconds = max(0.0, time.monotonic() - started_at)
+    throughput = completed_exports / elapsed_seconds if elapsed_seconds else 0.0
+    remaining = max(0, total_exports - completed_exports)
+    _write_json(
+        path,
+        {
+            "schema_version": "sl.wikidata_migration_pack.progress.v1",
+            "phase": phase,
+            "terminal": terminal,
+            "total_export_count": total_exports,
+            "completed_export_count": completed_exports,
+            "remaining_export_count": remaining,
+            "current_qid": current_qid,
+            "current_revision": current_revision,
+            "elapsed_seconds": round(elapsed_seconds, 3),
+            "exports_per_second": round(throughput, 6),
+            "estimated_remaining_seconds": (
+                round(remaining / throughput, 3) if throughput else None
+            ),
+            "safe_resume_command": resume_command,
+        },
+    )
+
+
+def _run_contract(args: argparse.Namespace) -> dict[str, object]:
+    return {
+        "source_property": args.source_property,
+        "target_property": args.target_property,
+        "discover_company_direct": bool(args.discover_company_direct),
+        "discover_qids": bool(args.discover_qids),
+        "candidate_limit": args.candidate_limit,
+        "revision_limit": args.revision_limit,
+        "explicit_qids": list(args.qid or []),
+        "qid_file": str(args.qid_file) if args.qid_file else None,
+    }
+
+
 def _fetch_entity_export(qid: str, revid: int, *, timeout_seconds: int) -> dict:
     payload = _fetch_json(
         ENTITY_EXPORT_TEMPLATE.format(qid=qid, revid=revid),
@@ -664,14 +944,36 @@ def _fetch_entity_export(qid: str, revid: int, *, timeout_seconds: int) -> dict:
 
 
 def main() -> None:
-    global _REQUEST_DELAY_SECONDS, _REQUEST_RETRY_ATTEMPTS
+    global _REQUEST_DELAY_SECONDS, _REQUEST_RETRY_ATTEMPTS, _TRANSPORT
 
     args = _parse_args()
-    _REQUEST_DELAY_SECONDS = max(0, int(args.request_delay_ms)) / 1000.0
+    _REQUEST_DELAY_SECONDS = max(500, int(args.request_delay_ms)) / 1000.0
     _REQUEST_RETRY_ATTEMPTS = max(1, int(args.request_retries))
+    _TRANSPORT = _WikidataTransport(
+        baseline_seconds=_REQUEST_DELAY_SECONDS, retries=_REQUEST_RETRY_ATTEMPTS
+    )
+    terminal_progress = build_progress_callback(
+        enabled=bool(args.progress_enabled), fmt=args.progress_format
+    )
+    out_dir = args.out_dir
+    state_path = out_dir / "run-state.json"
+    contract = _run_contract(args)
     discovery_rows: list[dict[str, object]] = []
     discovery_metadata: dict[str, object] | None = None
-    if args.discover_company_direct:
+    revision_map: dict[str, list[dict[str, object]]]
+    if args.resume:
+        if not state_path.is_file():
+            raise SystemExit(f"--resume requires pinned state: {state_path}")
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        if state.get("contract") != contract:
+            raise SystemExit("--resume contract differs from pinned run-state")
+        qid_rows = state.get("qid_rows")
+        revision_map = state.get("revision_map")
+        discovery_rows = state.get("discovery_rows") or []
+        discovery_metadata = state.get("discovery_metadata")
+        if not isinstance(qid_rows, list) or not isinstance(revision_map, dict):
+            raise SystemExit("run-state is incomplete or corrupt")
+    elif args.discover_company_direct:
         discovery_rows, discovery_metadata = _discover_company_direct_statement_rows(
             source_property=args.source_property,
             target_property=args.target_property,
@@ -703,9 +1005,75 @@ def main() -> None:
             "provide --qid, --qid-file, --discover-qids, and/or --discover-company-direct"
         )
     qids = tuple(str(row["qid"]) for row in qid_rows)
-    out_dir = args.out_dir
     raw_dir = out_dir / "entity_exports"
+    receipt_dir = out_dir / "export-receipts"
+    progress_path = args.progress_output or out_dir / "progress.json"
+    resume_args = list(sys.argv)
+    if "--resume" not in resume_args:
+        resume_args.append("--resume")
+    resume_command = shlex.join([sys.executable, *resume_args])
+    phase_started_at = time.monotonic()
+    total_exports = len(qids) * (1 if args.discover_company_direct else 2)
+    completed_exports = 0
     raw_dir.mkdir(parents=True, exist_ok=True)
+    if not args.resume:
+        revision_map = _fetch_recent_revision_map(
+            qids,
+            revision_limit=args.revision_limit,
+            timeout_seconds=args.query_timeout,
+            progress_callback=terminal_progress,
+        )
+        missing = [
+            qid
+            for qid in qids
+            if len(revision_map.get(qid, []))
+            < (1 if args.discover_company_direct else 2)
+        ]
+        if missing:
+            raise SystemExit(
+                f"unable to pin required revisions: {', '.join(missing[:5])}"
+            )
+        _write_json(
+            state_path,
+            {
+                "run_state_schema": "sl.wikidata_migration_pack.run_state.v1",
+                "contract": contract,
+                "query_contract_hash": _canonical_json_digest(contract),
+                "population_cursor_start": args.discovery_cursor_qid or None,
+                "population_cursor_end": (discovery_metadata or {}).get("next_cursor"),
+                "population_exhausted": (
+                    not args.discover_company_direct
+                    or len(discovery_rows) < max(1, int(args.candidate_limit))
+                ),
+                "ordered_qids": list(qids),
+                "qid_rows": qid_rows,
+                "discovery_rows": discovery_rows,
+                "discovery_metadata": discovery_metadata,
+                "revision_map": revision_map,
+                "transport_policy_version": "service_governors.v1",
+                "created_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+            },
+        )
+    _write_progress(
+        progress_path,
+        phase="exporting",
+        total_exports=total_exports,
+        completed_exports=completed_exports,
+        current_qid=None,
+        current_revision=None,
+        started_at=phase_started_at,
+        resume_command=resume_command,
+    )
+    if terminal_progress:
+        terminal_progress(
+            "exports_started",
+            {
+                "section": "entity_exports",
+                "completed": completed_exports,
+                "total": total_exports,
+                "message": "Revision pinning complete; acquiring exports.",
+            },
+        )
 
     older_payloads: list[dict] = []
     newer_payloads: list[dict] = []
@@ -714,32 +1082,128 @@ def main() -> None:
 
     row_by_qid = {str(row["qid"]): row for row in qid_rows}
     for qid in qids:
-        revisions = _fetch_recent_revisions(
-            qid,
-            revision_limit=args.revision_limit,
-            timeout_seconds=args.query_timeout,
-        )
+        revisions = revision_map.get(qid, [])
         if len(revisions) < (1 if args.discover_company_direct else 2):
             raise SystemExit(f"{qid} returned fewer than two revisions")
         newer = revisions[0]
-        newer_payload = _fetch_entity_export(
-            qid, int(newer["revid"]), timeout_seconds=args.query_timeout
-        )
         newer_path = raw_dir / f"{qid.lower()}_t2_{newer['revid']}.json"
-        newer_payload["_source_path"] = str(newer_path)
-        _write_json(newer_path, newer_payload)
+        newer_receipt_path = (
+            receipt_dir / f"{qid.lower()}__revid-{newer['revid']}.receipt.json"
+        )
+        newer_payload = _read_valid_export(
+            newer_path,
+            qid=qid,
+            revid=int(newer["revid"]),
+            receipt_path=newer_receipt_path,
+        )
+        if newer_payload is None:
+            newer_payload = _fetch_entity_export(
+                qid, int(newer["revid"]), timeout_seconds=args.query_timeout
+            )
+            newer_payload["_source_path"] = str(newer_path)
+            _write_json(newer_path, newer_payload)
+            if _TRANSPORT is not None:
+                _TRANSPORT.downloaded_export_count += 1
+        elif _TRANSPORT is not None:
+            _TRANSPORT.resumed_export_count += 1
+        _write_export_receipt(
+            newer_receipt_path,
+            qid=qid,
+            revid=int(newer["revid"]),
+            payload=newer_payload,
+        )
+        completed_exports += 1
+        _write_progress(
+            progress_path,
+            phase="exporting",
+            total_exports=total_exports,
+            completed_exports=completed_exports,
+            current_qid=qid,
+            current_revision=int(newer["revid"]),
+            started_at=phase_started_at,
+            resume_command=resume_command,
+        )
+        if terminal_progress:
+            elapsed_seconds = max(0.001, time.monotonic() - phase_started_at)
+            terminal_progress(
+                "entity_export",
+                {
+                    "section": "entity_exports",
+                    "completed": completed_exports,
+                    "total": total_exports,
+                    "elapsed_seconds": round(elapsed_seconds, 3),
+                    "items_per_second": round(completed_exports / elapsed_seconds, 4),
+                    "eta_seconds_remaining": round(
+                        (total_exports - completed_exports)
+                        / (completed_exports / elapsed_seconds),
+                        3,
+                    ),
+                    "message": f"Validated {qid}@{newer['revid']}.",
+                },
+            )
         newer_payloads.append(newer_payload)
         current_exports_by_qid[qid] = newer_payload
         older = revisions[1] if len(revisions) >= 2 else None
         older_payload = None
         older_path = None
         if older is not None and not args.discover_company_direct:
-            older_payload = _fetch_entity_export(
-                qid, int(older["revid"]), timeout_seconds=args.query_timeout
-            )
             older_path = raw_dir / f"{qid.lower()}_t1_{older['revid']}.json"
-            older_payload["_source_path"] = str(older_path)
-            _write_json(older_path, older_payload)
+            older_receipt_path = (
+                receipt_dir / f"{qid.lower()}__revid-{older['revid']}.receipt.json"
+            )
+            older_payload = _read_valid_export(
+                older_path,
+                qid=qid,
+                revid=int(older["revid"]),
+                receipt_path=older_receipt_path,
+            )
+            if older_payload is None:
+                older_payload = _fetch_entity_export(
+                    qid, int(older["revid"]), timeout_seconds=args.query_timeout
+                )
+                older_payload["_source_path"] = str(older_path)
+                _write_json(older_path, older_payload)
+                if _TRANSPORT is not None:
+                    _TRANSPORT.downloaded_export_count += 1
+            elif _TRANSPORT is not None:
+                _TRANSPORT.resumed_export_count += 1
+            _write_export_receipt(
+                older_receipt_path,
+                qid=qid,
+                revid=int(older["revid"]),
+                payload=older_payload,
+            )
+            completed_exports += 1
+            _write_progress(
+                progress_path,
+                phase="exporting",
+                total_exports=total_exports,
+                completed_exports=completed_exports,
+                current_qid=qid,
+                current_revision=int(older["revid"]),
+                started_at=phase_started_at,
+                resume_command=resume_command,
+            )
+            if terminal_progress:
+                elapsed_seconds = max(0.001, time.monotonic() - phase_started_at)
+                terminal_progress(
+                    "entity_export",
+                    {
+                        "section": "entity_exports",
+                        "completed": completed_exports,
+                        "total": total_exports,
+                        "elapsed_seconds": round(elapsed_seconds, 3),
+                        "items_per_second": round(
+                            completed_exports / elapsed_seconds, 4
+                        ),
+                        "eta_seconds_remaining": round(
+                            (total_exports - completed_exports)
+                            / (completed_exports / elapsed_seconds),
+                            3,
+                        ),
+                        "message": f"Validated {qid}@{older['revid']}.",
+                    },
+                )
             older_payloads.append(older_payload)
         revision_manifest.append(
             {
@@ -945,7 +1409,20 @@ def main() -> None:
             "climate_observation_claim": str(observation_claim_report_path)
             if observation_claim_report_path
             else None,
+            "run_state": str(state_path),
+            "transport": _TRANSPORT.receipt() if _TRANSPORT is not None else None,
         },
+    )
+    _write_progress(
+        progress_path,
+        phase="completed",
+        total_exports=total_exports,
+        completed_exports=completed_exports,
+        current_qid=None,
+        current_revision=None,
+        started_at=phase_started_at,
+        resume_command=resume_command,
+        terminal=True,
     )
 
     output = {

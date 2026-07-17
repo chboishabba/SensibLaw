@@ -6,9 +6,11 @@ from pathlib import Path
 
 from scripts.materialize_wikidata_migration_pack import (
     _discover_company_direct_statement_rows,
+    _fetch_recent_revision_map,
     _filter_export_to_discovery_rows,
     _discover_qid_rows,
     _load_qids_from_file,
+    _read_valid_export,
     _reconcile_discovery_row,
     _resolve_qid_rows,
 )
@@ -33,6 +35,36 @@ def test_load_qids_from_file_supports_json_array(tmp_path: Path) -> None:
     path.write_text(json.dumps(["Q1", "Q2"]), encoding="utf-8")
 
     assert _load_qids_from_file(path) == ["Q1", "Q2"]
+
+
+def test_fetch_recent_revision_map_pins_each_title_independently(monkeypatch) -> None:
+    calls: list[str] = []
+
+    def fake_recent(qid, **kwargs):
+        calls.append(qid)
+        return [{"revid": 10, "timestamp": "2026-07-17T00:00:00Z"}]
+
+    monkeypatch.setattr(
+        "scripts.materialize_wikidata_migration_pack._fetch_recent_revisions",
+        fake_recent,
+    )
+    result = _fetch_recent_revision_map(
+        ("Q1", "Q2"), revision_limit=2, timeout_seconds=30
+    )
+
+    assert calls == ["Q1", "Q2"]
+    assert result["Q1"][0]["revid"] == 10
+
+
+def test_read_valid_export_rejects_wrong_revision_and_corrupt_json(
+    tmp_path: Path,
+) -> None:
+    export = tmp_path / "q1_t2_10.json"
+    export.write_text('{"_source_qid": "Q1", "_source_revision": 10}', encoding="utf-8")
+    assert _read_valid_export(export, qid="Q1", revid=10) is not None
+    assert _read_valid_export(export, qid="Q1", revid=11) is None
+    export.write_text("not json", encoding="utf-8")
+    assert _read_valid_export(export, qid="Q1", revid=10) is None
 
 
 def test_resolve_qid_rows_merges_explicit_file_and_discovered(

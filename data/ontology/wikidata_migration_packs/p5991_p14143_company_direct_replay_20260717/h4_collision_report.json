@@ -1,0 +1,1328 @@
+{
+  "collision_groups": [
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q188326|P5991|slot:('2022', 'Q124883309', '', 'Q56296245', 'Q57084755')",
+      "family_id": "Q188326|P5991",
+      "member_guids": [
+        "Q188326$09AD6DAF-E173-4CE1-90E7-86CE2919559F",
+        "Q188326$05EEDBBC-812A-463B-AFA8-1E22BC17A324"
+      ],
+      "ranks": {
+        "Q188326$05EEDBBC-812A-463B-AFA8-1E22BC17A324": "normal",
+        "Q188326$09AD6DAF-E173-4CE1-90E7-86CE2919559F": "normal"
+      },
+      "slot": {
+        "applies_to_part": "",
+        "method": "Q56296245",
+        "scope": "Q124883309",
+        "unit": "Q57084755",
+        "year": "2022"
+      },
+      "slot_identity_states": {
+        "Q188326$05EEDBBC-812A-463B-AFA8-1E22BC17A324": "fiscal_canonical",
+        "Q188326$09AD6DAF-E173-4CE1-90E7-86CE2919559F": "exact"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q188326$05EEDBBC-812A-463B-AFA8-1E22BC17A324": {
+          "P580": [
+            "+2021-12-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2022-11-30T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q188326$09AD6DAF-E173-4CE1-90E7-86CE2919559F": {
+          "P580": [
+            "+2022-01-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2022-12-31T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q188326$05EEDBBC-812A-463B-AFA8-1E22BC17A324"
+      ],
+      "values": {
+        "Q188326$05EEDBBC-812A-463B-AFA8-1E22BC17A324": "+177000",
+        "Q188326$09AD6DAF-E173-4CE1-90E7-86CE2919559F": "+177000"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q188326|P5991|slot:('2023', 'Q124883309', '', 'Q56296245', 'Q57084755')",
+      "family_id": "Q188326|P5991",
+      "member_guids": [
+        "Q188326$55F6B2DF-4571-477F-9DE1-E24432D72F5C",
+        "Q188326$F9293119-BF9D-4614-AB76-A921D4B55F38"
+      ],
+      "ranks": {
+        "Q188326$55F6B2DF-4571-477F-9DE1-E24432D72F5C": "normal",
+        "Q188326$F9293119-BF9D-4614-AB76-A921D4B55F38": "normal"
+      },
+      "slot": {
+        "applies_to_part": "",
+        "method": "Q56296245",
+        "scope": "Q124883309",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q188326$55F6B2DF-4571-477F-9DE1-E24432D72F5C": "exact",
+        "Q188326$F9293119-BF9D-4614-AB76-A921D4B55F38": "fiscal_canonical"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q188326$55F6B2DF-4571-477F-9DE1-E24432D72F5C": {
+          "P580": [
+            "+2023-01-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-12-31T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q188326$F9293119-BF9D-4614-AB76-A921D4B55F38": {
+          "P580": [
+            "+2022-12-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-11-30T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q188326$F9293119-BF9D-4614-AB76-A921D4B55F38"
+      ],
+      "values": {
+        "Q188326$55F6B2DF-4571-477F-9DE1-E24432D72F5C": "+166000",
+        "Q188326$F9293119-BF9D-4614-AB76-A921D4B55F38": "+166000"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q3356220|P5991|slot:('2023', '', '', 'Q56296245', 'Q57084755')",
+      "family_id": "Q3356220|P5991",
+      "member_guids": [
+        "Q3356220$58967FFF-C317-45B7-AE6B-DDF90E54B872",
+        "Q3356220$2ADE4322-D210-4F8A-80CB-E67572C44645"
+      ],
+      "ranks": {
+        "Q3356220$2ADE4322-D210-4F8A-80CB-E67572C44645": "normal",
+        "Q3356220$58967FFF-C317-45B7-AE6B-DDF90E54B872": "normal"
+      },
+      "slot": {
+        "applies_to_part": "",
+        "method": "Q56296245",
+        "scope": "",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q3356220$2ADE4322-D210-4F8A-80CB-E67572C44645": "fiscal_canonical",
+        "Q3356220$58967FFF-C317-45B7-AE6B-DDF90E54B872": "exact"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q3356220$2ADE4322-D210-4F8A-80CB-E67572C44645": {
+          "P580": [
+            "+2022-05-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-04-30T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q3356220$58967FFF-C317-45B7-AE6B-DDF90E54B872": {
+          "P580": [
+            "+2023-01-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-12-31T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q3356220$2ADE4322-D210-4F8A-80CB-E67572C44645"
+      ],
+      "values": {
+        "Q3356220$2ADE4322-D210-4F8A-80CB-E67572C44645": "+304453",
+        "Q3356220$58967FFF-C317-45B7-AE6B-DDF90E54B872": "+1825096"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q3356220|P5991|slot:('2023', 'Q124883327', '', 'Q56296245', 'Q57084755')",
+      "family_id": "Q3356220|P5991",
+      "member_guids": [
+        "Q3356220$4FA3ECA6-1114-46EF-B92D-4A7B67CC8810",
+        "Q3356220$4EB811AD-AC3A-4F30-B666-E71FC2473508"
+      ],
+      "ranks": {
+        "Q3356220$4EB811AD-AC3A-4F30-B666-E71FC2473508": "normal",
+        "Q3356220$4FA3ECA6-1114-46EF-B92D-4A7B67CC8810": "normal"
+      },
+      "slot": {
+        "applies_to_part": "",
+        "method": "Q56296245",
+        "scope": "Q124883327",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q3356220$4EB811AD-AC3A-4F30-B666-E71FC2473508": "fiscal_canonical",
+        "Q3356220$4FA3ECA6-1114-46EF-B92D-4A7B67CC8810": "exact"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q3356220$4EB811AD-AC3A-4F30-B666-E71FC2473508": {
+          "P580": [
+            "+2022-05-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-04-30T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q3356220$4FA3ECA6-1114-46EF-B92D-4A7B67CC8810": {
+          "P580": [
+            "+2023-01-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-12-31T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q3356220$4EB811AD-AC3A-4F30-B666-E71FC2473508"
+      ],
+      "values": {
+        "Q3356220$4EB811AD-AC3A-4F30-B666-E71FC2473508": "+543",
+        "Q3356220$4FA3ECA6-1114-46EF-B92D-4A7B67CC8810": "+4872"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q3356220|P5991|slot:('2023', 'Q124883330', '', 'Q56296245', 'Q57084755')",
+      "family_id": "Q3356220|P5991",
+      "member_guids": [
+        "Q3356220$9A5F1BE8-811D-424C-AD04-9A1135D8CEB5",
+        "Q3356220$CE1E6D17-35E0-43DB-8C08-B3D25ECBE335"
+      ],
+      "ranks": {
+        "Q3356220$9A5F1BE8-811D-424C-AD04-9A1135D8CEB5": "normal",
+        "Q3356220$CE1E6D17-35E0-43DB-8C08-B3D25ECBE335": "normal"
+      },
+      "slot": {
+        "applies_to_part": "",
+        "method": "Q56296245",
+        "scope": "Q124883330",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q3356220$9A5F1BE8-811D-424C-AD04-9A1135D8CEB5": "exact",
+        "Q3356220$CE1E6D17-35E0-43DB-8C08-B3D25ECBE335": "fiscal_canonical"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q3356220$9A5F1BE8-811D-424C-AD04-9A1135D8CEB5": {
+          "P580": [
+            "+2023-01-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-12-31T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q3356220$CE1E6D17-35E0-43DB-8C08-B3D25ECBE335": {
+          "P580": [
+            "+2022-05-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-04-30T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q3356220$CE1E6D17-35E0-43DB-8C08-B3D25ECBE335"
+      ],
+      "values": {
+        "Q3356220$9A5F1BE8-811D-424C-AD04-9A1135D8CEB5": "+4846",
+        "Q3356220$CE1E6D17-35E0-43DB-8C08-B3D25ECBE335": "+577"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q63993633|P5991|slot:('2023', '', '', 'Q56296245', 'Q57084755')",
+      "family_id": "Q63993633|P5991",
+      "member_guids": [
+        "Q63993633$988C968E-2CE8-44D0-8C90-B14669EBC73F",
+        "Q63993633$66A6FB0E-42ED-4F5D-BE77-9DD3EA168EE7"
+      ],
+      "ranks": {
+        "Q63993633$66A6FB0E-42ED-4F5D-BE77-9DD3EA168EE7": "preferred",
+        "Q63993633$988C968E-2CE8-44D0-8C90-B14669EBC73F": "normal"
+      },
+      "slot": {
+        "applies_to_part": "",
+        "method": "Q56296245",
+        "scope": "",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q63993633$66A6FB0E-42ED-4F5D-BE77-9DD3EA168EE7": "fiscal_canonical",
+        "Q63993633$988C968E-2CE8-44D0-8C90-B14669EBC73F": "exact"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q63993633$66A6FB0E-42ED-4F5D-BE77-9DD3EA168EE7": {
+          "P580": [
+            "+2022-07-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-06-30T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q63993633$988C968E-2CE8-44D0-8C90-B14669EBC73F": {
+          "P580": [
+            "+2023-01-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-12-31T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q63993633$66A6FB0E-42ED-4F5D-BE77-9DD3EA168EE7"
+      ],
+      "values": {
+        "Q63993633$66A6FB0E-42ED-4F5D-BE77-9DD3EA168EE7": "+5038",
+        "Q63993633$988C968E-2CE8-44D0-8C90-B14669EBC73F": "+551"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q63993633|P5991|slot:('2023', 'Q124883250', '', 'Q56296245', 'Q57084755')",
+      "family_id": "Q63993633|P5991",
+      "member_guids": [
+        "Q63993633$C5BCAC7B-C2D5-42BE-9882-CB3A3FB51739",
+        "Q63993633$D13E2396-874D-4EF1-AD1A-ACD5A461F18E"
+      ],
+      "ranks": {
+        "Q63993633$C5BCAC7B-C2D5-42BE-9882-CB3A3FB51739": "normal",
+        "Q63993633$D13E2396-874D-4EF1-AD1A-ACD5A461F18E": "preferred"
+      },
+      "slot": {
+        "applies_to_part": "",
+        "method": "Q56296245",
+        "scope": "Q124883250",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q63993633$C5BCAC7B-C2D5-42BE-9882-CB3A3FB51739": "exact",
+        "Q63993633$D13E2396-874D-4EF1-AD1A-ACD5A461F18E": "fiscal_canonical"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q63993633$C5BCAC7B-C2D5-42BE-9882-CB3A3FB51739": {
+          "P580": [
+            "+2023-01-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-12-31T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q63993633$D13E2396-874D-4EF1-AD1A-ACD5A461F18E": {
+          "P580": [
+            "+2022-07-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-06-30T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q63993633$D13E2396-874D-4EF1-AD1A-ACD5A461F18E"
+      ],
+      "values": {
+        "Q63993633$C5BCAC7B-C2D5-42BE-9882-CB3A3FB51739": "+84",
+        "Q63993633$D13E2396-874D-4EF1-AD1A-ACD5A461F18E": "+84.1"
+      }
+    },
+    {
+      "collision_disposition": "rank_variant",
+      "collision_group_ref": "Q63993633|P5991|slot:('2023', 'Q124883330', '', 'Q56296245', 'Q57084755')",
+      "family_id": "Q63993633|P5991",
+      "member_guids": [
+        "Q63993633$7A5A717F-D025-47CC-920A-A812647544AC",
+        "Q63993633$20ACE182-CECB-4261-AFB1-E0E39A33BC8A"
+      ],
+      "ranks": {
+        "Q63993633$20ACE182-CECB-4261-AFB1-E0E39A33BC8A": "preferred",
+        "Q63993633$7A5A717F-D025-47CC-920A-A812647544AC": "normal"
+      },
+      "slot": {
+        "applies_to_part": "",
+        "method": "Q56296245",
+        "scope": "Q124883330",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q63993633$20ACE182-CECB-4261-AFB1-E0E39A33BC8A": "fiscal_canonical",
+        "Q63993633$7A5A717F-D025-47CC-920A-A812647544AC": "exact"
+      },
+      "sub_disposition": "H4d",
+      "temporal_evidence": {
+        "Q63993633$20ACE182-CECB-4261-AFB1-E0E39A33BC8A": {
+          "P580": [
+            "+2022-07-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-06-30T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q63993633$7A5A717F-D025-47CC-920A-A812647544AC": {
+          "P580": [
+            "+2023-01-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-12-31T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q63993633$20ACE182-CECB-4261-AFB1-E0E39A33BC8A"
+      ],
+      "values": {
+        "Q63993633$20ACE182-CECB-4261-AFB1-E0E39A33BC8A": "+467",
+        "Q63993633$7A5A717F-D025-47CC-920A-A812647544AC": "+467"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q65083539|P5991|slot:('2023', '', '', 'Q56296245', 'Q57084755')",
+      "family_id": "Q65083539|P5991",
+      "member_guids": [
+        "Q65083539$262CAE04-AAB3-4068-95D6-B17F1539FE3C",
+        "Q65083539$95A2E65C-E915-4C85-B11B-7B140D726B03"
+      ],
+      "ranks": {
+        "Q65083539$262CAE04-AAB3-4068-95D6-B17F1539FE3C": "normal",
+        "Q65083539$95A2E65C-E915-4C85-B11B-7B140D726B03": "normal"
+      },
+      "slot": {
+        "applies_to_part": "",
+        "method": "Q56296245",
+        "scope": "",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q65083539$262CAE04-AAB3-4068-95D6-B17F1539FE3C": "exact",
+        "Q65083539$95A2E65C-E915-4C85-B11B-7B140D726B03": "fiscal_canonical"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q65083539$262CAE04-AAB3-4068-95D6-B17F1539FE3C": {
+          "P580": [
+            "+2023-01-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-12-31T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q65083539$95A2E65C-E915-4C85-B11B-7B140D726B03": {
+          "P580": [
+            "+2022-04-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-03-31T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q65083539$95A2E65C-E915-4C85-B11B-7B140D726B03"
+      ],
+      "values": {
+        "Q65083539$262CAE04-AAB3-4068-95D6-B17F1539FE3C": "+8395",
+        "Q65083539$95A2E65C-E915-4C85-B11B-7B140D726B03": "+491637"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q65083539|P5991|slot:('2023', 'Q124883250', '', 'Q56296245', 'Q57084755')",
+      "family_id": "Q65083539|P5991",
+      "member_guids": [
+        "Q65083539$48824773-C4E5-42B6-BB0D-0E53AF6DE837",
+        "Q65083539$51B4DD2F-4E1B-4097-B51C-0394BCDF5761"
+      ],
+      "ranks": {
+        "Q65083539$48824773-C4E5-42B6-BB0D-0E53AF6DE837": "normal",
+        "Q65083539$51B4DD2F-4E1B-4097-B51C-0394BCDF5761": "normal"
+      },
+      "slot": {
+        "applies_to_part": "",
+        "method": "Q56296245",
+        "scope": "Q124883250",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q65083539$48824773-C4E5-42B6-BB0D-0E53AF6DE837": "exact",
+        "Q65083539$51B4DD2F-4E1B-4097-B51C-0394BCDF5761": "fiscal_canonical"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q65083539$48824773-C4E5-42B6-BB0D-0E53AF6DE837": {
+          "P580": [
+            "+2023-01-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-12-31T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q65083539$51B4DD2F-4E1B-4097-B51C-0394BCDF5761": {
+          "P580": [
+            "+2022-04-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-03-31T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q65083539$51B4DD2F-4E1B-4097-B51C-0394BCDF5761"
+      ],
+      "values": {
+        "Q65083539$48824773-C4E5-42B6-BB0D-0E53AF6DE837": "+1443",
+        "Q65083539$51B4DD2F-4E1B-4097-B51C-0394BCDF5761": "+1623"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q65083539|P5991|slot:('2023', 'Q124883327', '', 'Q56296245', 'Q57084755')",
+      "family_id": "Q65083539|P5991",
+      "member_guids": [
+        "Q65083539$2A6C8723-6236-4331-AD43-DF73401BCF99",
+        "Q65083539$2DB765D2-69F5-4BB6-8F81-E854EF14AF63"
+      ],
+      "ranks": {
+        "Q65083539$2A6C8723-6236-4331-AD43-DF73401BCF99": "normal",
+        "Q65083539$2DB765D2-69F5-4BB6-8F81-E854EF14AF63": "normal"
+      },
+      "slot": {
+        "applies_to_part": "",
+        "method": "Q56296245",
+        "scope": "Q124883327",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q65083539$2A6C8723-6236-4331-AD43-DF73401BCF99": "exact",
+        "Q65083539$2DB765D2-69F5-4BB6-8F81-E854EF14AF63": "fiscal_canonical"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q65083539$2A6C8723-6236-4331-AD43-DF73401BCF99": {
+          "P580": [
+            "+2023-01-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-12-31T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q65083539$2DB765D2-69F5-4BB6-8F81-E854EF14AF63": {
+          "P580": [
+            "+2022-04-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-03-31T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q65083539$2DB765D2-69F5-4BB6-8F81-E854EF14AF63"
+      ],
+      "values": {
+        "Q65083539$2A6C8723-6236-4331-AD43-DF73401BCF99": "+4418",
+        "Q65083539$2DB765D2-69F5-4BB6-8F81-E854EF14AF63": "+6952"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q65083539|P5991|slot:('2023', 'Q124883330', '', 'Q56296245', 'Q57084755')",
+      "family_id": "Q65083539|P5991",
+      "member_guids": [
+        "Q65083539$AA1312C6-B090-4EC1-AD65-862E778ABF3A",
+        "Q65083539$E62D1C5D-4A67-4E9F-9672-402FE452C867"
+      ],
+      "ranks": {
+        "Q65083539$AA1312C6-B090-4EC1-AD65-862E778ABF3A": "normal",
+        "Q65083539$E62D1C5D-4A67-4E9F-9672-402FE452C867": "normal"
+      },
+      "slot": {
+        "applies_to_part": "",
+        "method": "Q56296245",
+        "scope": "Q124883330",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q65083539$AA1312C6-B090-4EC1-AD65-862E778ABF3A": "exact",
+        "Q65083539$E62D1C5D-4A67-4E9F-9672-402FE452C867": "fiscal_canonical"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q65083539$AA1312C6-B090-4EC1-AD65-862E778ABF3A": {
+          "P580": [
+            "+2023-01-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-12-31T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q65083539$E62D1C5D-4A67-4E9F-9672-402FE452C867": {
+          "P580": [
+            "+2022-04-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-03-31T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q65083539$E62D1C5D-4A67-4E9F-9672-402FE452C867"
+      ],
+      "values": {
+        "Q65083539$AA1312C6-B090-4EC1-AD65-862E778ABF3A": "+6952",
+        "Q65083539$E62D1C5D-4A67-4E9F-9672-402FE452C867": "+5959"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q830608|P5991|slot:('2023', '', '', 'Q56296245', 'Q57084755')",
+      "family_id": "Q830608|P5991",
+      "member_guids": [
+        "Q830608$BAF71D7D-F992-4D72-BFE7-7277FF0F2D91",
+        "Q830608$E7AAA23E-196F-4ECE-8139-F8CA162E7947"
+      ],
+      "ranks": {
+        "Q830608$BAF71D7D-F992-4D72-BFE7-7277FF0F2D91": "normal",
+        "Q830608$E7AAA23E-196F-4ECE-8139-F8CA162E7947": "preferred"
+      },
+      "slot": {
+        "applies_to_part": "",
+        "method": "Q56296245",
+        "scope": "",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q830608$BAF71D7D-F992-4D72-BFE7-7277FF0F2D91": "fiscal_canonical",
+        "Q830608$E7AAA23E-196F-4ECE-8139-F8CA162E7947": "fiscal_canonical"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q830608$BAF71D7D-F992-4D72-BFE7-7277FF0F2D91": {
+          "P580": [
+            "+2022-04-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-03-31T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q830608$E7AAA23E-196F-4ECE-8139-F8CA162E7947": {
+          "P580": [
+            "+2022-05-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-04-30T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q830608$BAF71D7D-F992-4D72-BFE7-7277FF0F2D91",
+        "Q830608$E7AAA23E-196F-4ECE-8139-F8CA162E7947"
+      ],
+      "values": {
+        "Q830608$BAF71D7D-F992-4D72-BFE7-7277FF0F2D91": "+508227",
+        "Q830608$E7AAA23E-196F-4ECE-8139-F8CA162E7947": "+541541"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q830608|P5991|slot:('2023', 'Q124883250', '', 'Q56296245', 'Q57084755')",
+      "family_id": "Q830608|P5991",
+      "member_guids": [
+        "Q830608$56EA2623-5311-4C76-813F-A86F7F593621",
+        "Q830608$DE92C0E5-4C71-4DE7-9664-11A395B7B0E9"
+      ],
+      "ranks": {
+        "Q830608$56EA2623-5311-4C76-813F-A86F7F593621": "normal",
+        "Q830608$DE92C0E5-4C71-4DE7-9664-11A395B7B0E9": "preferred"
+      },
+      "slot": {
+        "applies_to_part": "",
+        "method": "Q56296245",
+        "scope": "Q124883250",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q830608$56EA2623-5311-4C76-813F-A86F7F593621": "fiscal_canonical",
+        "Q830608$DE92C0E5-4C71-4DE7-9664-11A395B7B0E9": "fiscal_canonical"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q830608$56EA2623-5311-4C76-813F-A86F7F593621": {
+          "P580": [
+            "+2022-04-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-03-31T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q830608$DE92C0E5-4C71-4DE7-9664-11A395B7B0E9": {
+          "P580": [
+            "+2022-05-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-04-30T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q830608$56EA2623-5311-4C76-813F-A86F7F593621",
+        "Q830608$DE92C0E5-4C71-4DE7-9664-11A395B7B0E9"
+      ],
+      "values": {
+        "Q830608$56EA2623-5311-4C76-813F-A86F7F593621": "+4442",
+        "Q830608$DE92C0E5-4C71-4DE7-9664-11A395B7B0E9": "+6141"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q830608|P5991|slot:('2023', 'Q124883309', '', 'Q56296245', 'Q57084755')",
+      "family_id": "Q830608|P5991",
+      "member_guids": [
+        "Q830608$4CC98B2E-DE09-48C8-B41E-F69F58EE83C0",
+        "Q830608$F8C6C3A0-22CD-48F2-A4D2-2547593F4D3B"
+      ],
+      "ranks": {
+        "Q830608$4CC98B2E-DE09-48C8-B41E-F69F58EE83C0": "normal",
+        "Q830608$F8C6C3A0-22CD-48F2-A4D2-2547593F4D3B": "preferred"
+      },
+      "slot": {
+        "applies_to_part": "",
+        "method": "Q56296245",
+        "scope": "Q124883309",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q830608$4CC98B2E-DE09-48C8-B41E-F69F58EE83C0": "fiscal_canonical",
+        "Q830608$F8C6C3A0-22CD-48F2-A4D2-2547593F4D3B": "fiscal_canonical"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q830608$4CC98B2E-DE09-48C8-B41E-F69F58EE83C0": {
+          "P580": [
+            "+2022-04-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-03-31T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q830608$F8C6C3A0-22CD-48F2-A4D2-2547593F4D3B": {
+          "P580": [
+            "+2022-05-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-04-30T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q830608$4CC98B2E-DE09-48C8-B41E-F69F58EE83C0",
+        "Q830608$F8C6C3A0-22CD-48F2-A4D2-2547593F4D3B"
+      ],
+      "values": {
+        "Q830608$4CC98B2E-DE09-48C8-B41E-F69F58EE83C0": "+500240",
+        "Q830608$F8C6C3A0-22CD-48F2-A4D2-2547593F4D3B": "+531640"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q830608|P5991|slot:('2023', 'Q124883309', 'Q124883638', 'Q56296245', 'Q57084755')",
+      "family_id": "Q830608|P5991",
+      "member_guids": [
+        "Q830608$80AE414B-84AF-4E4C-952A-1E49FC803D7A",
+        "Q830608$F774B086-DC1C-4E6A-A9A9-8ED7BBC755FC"
+      ],
+      "ranks": {
+        "Q830608$80AE414B-84AF-4E4C-952A-1E49FC803D7A": "normal",
+        "Q830608$F774B086-DC1C-4E6A-A9A9-8ED7BBC755FC": "preferred"
+      },
+      "slot": {
+        "applies_to_part": "Q124883638",
+        "method": "Q56296245",
+        "scope": "Q124883309",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q830608$80AE414B-84AF-4E4C-952A-1E49FC803D7A": "fiscal_canonical",
+        "Q830608$F774B086-DC1C-4E6A-A9A9-8ED7BBC755FC": "fiscal_canonical"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q830608$80AE414B-84AF-4E4C-952A-1E49FC803D7A": {
+          "P580": [
+            "+2022-04-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-03-31T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q830608$F774B086-DC1C-4E6A-A9A9-8ED7BBC755FC": {
+          "P580": [
+            "+2022-05-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-04-30T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q830608$80AE414B-84AF-4E4C-952A-1E49FC803D7A",
+        "Q830608$F774B086-DC1C-4E6A-A9A9-8ED7BBC755FC"
+      ],
+      "values": {
+        "Q830608$80AE414B-84AF-4E4C-952A-1E49FC803D7A": "+261793",
+        "Q830608$F774B086-DC1C-4E6A-A9A9-8ED7BBC755FC": "+226483"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q830608|P5991|slot:('2023', 'Q124883309', 'Q124883640', 'Q56296245', 'Q57084755')",
+      "family_id": "Q830608|P5991",
+      "member_guids": [
+        "Q830608$DCAD5324-41FF-46CA-AD1E-437EE22A72B3",
+        "Q830608$61112F30-B445-4D02-82A1-F30CBB7AF7D2"
+      ],
+      "ranks": {
+        "Q830608$61112F30-B445-4D02-82A1-F30CBB7AF7D2": "preferred",
+        "Q830608$DCAD5324-41FF-46CA-AD1E-437EE22A72B3": "normal"
+      },
+      "slot": {
+        "applies_to_part": "Q124883640",
+        "method": "Q56296245",
+        "scope": "Q124883309",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q830608$61112F30-B445-4D02-82A1-F30CBB7AF7D2": "fiscal_canonical",
+        "Q830608$DCAD5324-41FF-46CA-AD1E-437EE22A72B3": "fiscal_canonical"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q830608$61112F30-B445-4D02-82A1-F30CBB7AF7D2": {
+          "P580": [
+            "+2022-05-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-04-30T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q830608$DCAD5324-41FF-46CA-AD1E-437EE22A72B3": {
+          "P580": [
+            "+2022-04-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-03-31T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q830608$61112F30-B445-4D02-82A1-F30CBB7AF7D2",
+        "Q830608$DCAD5324-41FF-46CA-AD1E-437EE22A72B3"
+      ],
+      "values": {
+        "Q830608$61112F30-B445-4D02-82A1-F30CBB7AF7D2": "+2737",
+        "Q830608$DCAD5324-41FF-46CA-AD1E-437EE22A72B3": "+2618"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q830608|P5991|slot:('2023', 'Q124883309', 'Q124883642', 'Q56296245', 'Q57084755')",
+      "family_id": "Q830608|P5991",
+      "member_guids": [
+        "Q830608$73BA095C-3DE9-451D-9AD9-D68F4B2495C2",
+        "Q830608$BFAC9F6F-95DC-4D2F-BF95-3B43685B0CF8"
+      ],
+      "ranks": {
+        "Q830608$73BA095C-3DE9-451D-9AD9-D68F4B2495C2": "normal",
+        "Q830608$BFAC9F6F-95DC-4D2F-BF95-3B43685B0CF8": "preferred"
+      },
+      "slot": {
+        "applies_to_part": "Q124883642",
+        "method": "Q56296245",
+        "scope": "Q124883309",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q830608$73BA095C-3DE9-451D-9AD9-D68F4B2495C2": "fiscal_canonical",
+        "Q830608$BFAC9F6F-95DC-4D2F-BF95-3B43685B0CF8": "fiscal_canonical"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q830608$73BA095C-3DE9-451D-9AD9-D68F4B2495C2": {
+          "P580": [
+            "+2022-04-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-03-31T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q830608$BFAC9F6F-95DC-4D2F-BF95-3B43685B0CF8": {
+          "P580": [
+            "+2022-05-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-04-30T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q830608$73BA095C-3DE9-451D-9AD9-D68F4B2495C2",
+        "Q830608$BFAC9F6F-95DC-4D2F-BF95-3B43685B0CF8"
+      ],
+      "values": {
+        "Q830608$73BA095C-3DE9-451D-9AD9-D68F4B2495C2": "+17485",
+        "Q830608$BFAC9F6F-95DC-4D2F-BF95-3B43685B0CF8": "+16615"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q830608|P5991|slot:('2023', 'Q124883309', 'Q124883643', 'Q56296245', 'Q57084755')",
+      "family_id": "Q830608|P5991",
+      "member_guids": [
+        "Q830608$D1E2D81D-60AB-4CE0-9F51-09AE6528F6ED",
+        "Q830608$8986347B-C42A-4102-8AAA-91F19828CD7D"
+      ],
+      "ranks": {
+        "Q830608$8986347B-C42A-4102-8AAA-91F19828CD7D": "preferred",
+        "Q830608$D1E2D81D-60AB-4CE0-9F51-09AE6528F6ED": "normal"
+      },
+      "slot": {
+        "applies_to_part": "Q124883643",
+        "method": "Q56296245",
+        "scope": "Q124883309",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q830608$8986347B-C42A-4102-8AAA-91F19828CD7D": "fiscal_canonical",
+        "Q830608$D1E2D81D-60AB-4CE0-9F51-09AE6528F6ED": "fiscal_canonical"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q830608$8986347B-C42A-4102-8AAA-91F19828CD7D": {
+          "P580": [
+            "+2022-05-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-04-30T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q830608$D1E2D81D-60AB-4CE0-9F51-09AE6528F6ED": {
+          "P580": [
+            "+2022-04-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-03-31T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q830608$8986347B-C42A-4102-8AAA-91F19828CD7D",
+        "Q830608$D1E2D81D-60AB-4CE0-9F51-09AE6528F6ED"
+      ],
+      "values": {
+        "Q830608$8986347B-C42A-4102-8AAA-91F19828CD7D": "+586",
+        "Q830608$D1E2D81D-60AB-4CE0-9F51-09AE6528F6ED": "+42"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q830608|P5991|slot:('2023', 'Q124883309', 'Q124883644', 'Q56296245', 'Q57084755')",
+      "family_id": "Q830608|P5991",
+      "member_guids": [
+        "Q830608$D06F5EEB-483B-44A4-8B51-702CD1E2F6D3",
+        "Q830608$79A3A286-45E8-4557-8DF3-9E5944A4B697"
+      ],
+      "ranks": {
+        "Q830608$79A3A286-45E8-4557-8DF3-9E5944A4B697": "preferred",
+        "Q830608$D06F5EEB-483B-44A4-8B51-702CD1E2F6D3": "normal"
+      },
+      "slot": {
+        "applies_to_part": "Q124883644",
+        "method": "Q56296245",
+        "scope": "Q124883309",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q830608$79A3A286-45E8-4557-8DF3-9E5944A4B697": "fiscal_canonical",
+        "Q830608$D06F5EEB-483B-44A4-8B51-702CD1E2F6D3": "fiscal_canonical"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q830608$79A3A286-45E8-4557-8DF3-9E5944A4B697": {
+          "P580": [
+            "+2022-05-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-04-30T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q830608$D06F5EEB-483B-44A4-8B51-702CD1E2F6D3": {
+          "P580": [
+            "+2022-04-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-03-31T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q830608$79A3A286-45E8-4557-8DF3-9E5944A4B697",
+        "Q830608$D06F5EEB-483B-44A4-8B51-702CD1E2F6D3"
+      ],
+      "values": {
+        "Q830608$79A3A286-45E8-4557-8DF3-9E5944A4B697": "+17071",
+        "Q830608$D06F5EEB-483B-44A4-8B51-702CD1E2F6D3": "+14852"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q830608|P5991|slot:('2023', 'Q124883309', 'Q124883646', 'Q56296245', 'Q57084755')",
+      "family_id": "Q830608|P5991",
+      "member_guids": [
+        "Q830608$B231F661-4FC7-4877-9912-CC18D2D6EEEF",
+        "Q830608$79395CFF-300A-4C59-8BBA-B4CC38DFA6B1"
+      ],
+      "ranks": {
+        "Q830608$79395CFF-300A-4C59-8BBA-B4CC38DFA6B1": "preferred",
+        "Q830608$B231F661-4FC7-4877-9912-CC18D2D6EEEF": "normal"
+      },
+      "slot": {
+        "applies_to_part": "Q124883646",
+        "method": "Q56296245",
+        "scope": "Q124883309",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q830608$79395CFF-300A-4C59-8BBA-B4CC38DFA6B1": "fiscal_canonical",
+        "Q830608$B231F661-4FC7-4877-9912-CC18D2D6EEEF": "fiscal_canonical"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q830608$79395CFF-300A-4C59-8BBA-B4CC38DFA6B1": {
+          "P580": [
+            "+2022-05-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-04-30T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q830608$B231F661-4FC7-4877-9912-CC18D2D6EEEF": {
+          "P580": [
+            "+2022-04-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-03-31T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q830608$79395CFF-300A-4C59-8BBA-B4CC38DFA6B1",
+        "Q830608$B231F661-4FC7-4877-9912-CC18D2D6EEEF"
+      ],
+      "values": {
+        "Q830608$79395CFF-300A-4C59-8BBA-B4CC38DFA6B1": "+6738",
+        "Q830608$B231F661-4FC7-4877-9912-CC18D2D6EEEF": "+5159"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q830608|P5991|slot:('2023', 'Q124883309', 'Q124883650', 'Q56296245', 'Q57084755')",
+      "family_id": "Q830608|P5991",
+      "member_guids": [
+        "Q830608$3A000B07-E5F8-4471-8D61-75C9C1F1CF82",
+        "Q830608$0C5F2695-1DCD-4166-A56B-423ECBDB9064"
+      ],
+      "ranks": {
+        "Q830608$0C5F2695-1DCD-4166-A56B-423ECBDB9064": "preferred",
+        "Q830608$3A000B07-E5F8-4471-8D61-75C9C1F1CF82": "normal"
+      },
+      "slot": {
+        "applies_to_part": "Q124883650",
+        "method": "Q56296245",
+        "scope": "Q124883309",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q830608$0C5F2695-1DCD-4166-A56B-423ECBDB9064": "fiscal_canonical",
+        "Q830608$3A000B07-E5F8-4471-8D61-75C9C1F1CF82": "fiscal_canonical"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q830608$0C5F2695-1DCD-4166-A56B-423ECBDB9064": {
+          "P580": [
+            "+2022-05-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-04-30T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q830608$3A000B07-E5F8-4471-8D61-75C9C1F1CF82": {
+          "P580": [
+            "+2022-04-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-03-31T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q830608$0C5F2695-1DCD-4166-A56B-423ECBDB9064",
+        "Q830608$3A000B07-E5F8-4471-8D61-75C9C1F1CF82"
+      ],
+      "values": {
+        "Q830608$0C5F2695-1DCD-4166-A56B-423ECBDB9064": "+261244",
+        "Q830608$3A000B07-E5F8-4471-8D61-75C9C1F1CF82": "+198291"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q830608|P5991|slot:('2023', 'Q124883309', 'Q124883651', 'Q56296245', 'Q57084755')",
+      "family_id": "Q830608|P5991",
+      "member_guids": [
+        "Q830608$3652F365-4220-4937-B9A4-776473246B32",
+        "Q830608$52B68782-9571-415A-AC17-0466090509E8"
+      ],
+      "ranks": {
+        "Q830608$3652F365-4220-4937-B9A4-776473246B32": "normal",
+        "Q830608$52B68782-9571-415A-AC17-0466090509E8": "preferred"
+      },
+      "slot": {
+        "applies_to_part": "Q124883651",
+        "method": "Q56296245",
+        "scope": "Q124883309",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q830608$3652F365-4220-4937-B9A4-776473246B32": "fiscal_canonical",
+        "Q830608$52B68782-9571-415A-AC17-0466090509E8": "fiscal_canonical"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q830608$3652F365-4220-4937-B9A4-776473246B32": {
+          "P580": [
+            "+2022-04-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-03-31T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q830608$52B68782-9571-415A-AC17-0466090509E8": {
+          "P580": [
+            "+2022-05-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-04-30T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q830608$3652F365-4220-4937-B9A4-776473246B32",
+        "Q830608$52B68782-9571-415A-AC17-0466090509E8"
+      ],
+      "values": {
+        "Q830608$3652F365-4220-4937-B9A4-776473246B32": "+198",
+        "Q830608$52B68782-9571-415A-AC17-0466090509E8": "+167"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q830608|P5991|slot:('2023', 'Q124883327', '', 'Q56296245', 'Q57084755')",
+      "family_id": "Q830608|P5991",
+      "member_guids": [
+        "Q830608$EE399EB7-C176-4A49-9A8E-7363778C4CED",
+        "Q830608$C8B0EFD0-4A4B-4BFD-A897-1BD33758153C"
+      ],
+      "ranks": {
+        "Q830608$C8B0EFD0-4A4B-4BFD-A897-1BD33758153C": "preferred",
+        "Q830608$EE399EB7-C176-4A49-9A8E-7363778C4CED": "normal"
+      },
+      "slot": {
+        "applies_to_part": "",
+        "method": "Q56296245",
+        "scope": "Q124883327",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q830608$C8B0EFD0-4A4B-4BFD-A897-1BD33758153C": "fiscal_canonical",
+        "Q830608$EE399EB7-C176-4A49-9A8E-7363778C4CED": "fiscal_canonical"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q830608$C8B0EFD0-4A4B-4BFD-A897-1BD33758153C": {
+          "P580": [
+            "+2022-05-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-04-30T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q830608$EE399EB7-C176-4A49-9A8E-7363778C4CED": {
+          "P580": [
+            "+2022-04-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-03-31T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q830608$C8B0EFD0-4A4B-4BFD-A897-1BD33758153C",
+        "Q830608$EE399EB7-C176-4A49-9A8E-7363778C4CED"
+      ],
+      "values": {
+        "Q830608$C8B0EFD0-4A4B-4BFD-A897-1BD33758153C": "+5016",
+        "Q830608$EE399EB7-C176-4A49-9A8E-7363778C4CED": "+4744"
+      }
+    },
+    {
+      "collision_disposition": "provisional_temporal_collision",
+      "collision_group_ref": "Q830608|P5991|slot:('2023', 'Q124883330', '', 'Q56296245', 'Q57084755')",
+      "family_id": "Q830608|P5991",
+      "member_guids": [
+        "Q830608$4CD0B4AF-A2CF-4271-AA95-CF8BAC4315A2",
+        "Q830608$EFECE470-6353-46A6-ABDC-0E07F5117B86"
+      ],
+      "ranks": {
+        "Q830608$4CD0B4AF-A2CF-4271-AA95-CF8BAC4315A2": "normal",
+        "Q830608$EFECE470-6353-46A6-ABDC-0E07F5117B86": "preferred"
+      },
+      "slot": {
+        "applies_to_part": "",
+        "method": "Q56296245",
+        "scope": "Q124883330",
+        "unit": "Q57084755",
+        "year": "2023"
+      },
+      "slot_identity_states": {
+        "Q830608$4CD0B4AF-A2CF-4271-AA95-CF8BAC4315A2": "fiscal_canonical",
+        "Q830608$EFECE470-6353-46A6-ABDC-0E07F5117B86": "fiscal_canonical"
+      },
+      "sub_disposition": "H4b",
+      "temporal_evidence": {
+        "Q830608$4CD0B4AF-A2CF-4271-AA95-CF8BAC4315A2": {
+          "P580": [
+            "+2022-04-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-03-31T00:00:00Z"
+          ],
+          "P585": []
+        },
+        "Q830608$EFECE470-6353-46A6-ABDC-0E07F5117B86": {
+          "P580": [
+            "+2022-05-01T00:00:00Z"
+          ],
+          "P582": [
+            "+2023-04-30T00:00:00Z"
+          ],
+          "P585": []
+        }
+      },
+      "unresolved_coordinates": [
+        "Q830608$4CD0B4AF-A2CF-4271-AA95-CF8BAC4315A2",
+        "Q830608$EFECE470-6353-46A6-ABDC-0E07F5117B86"
+      ],
+      "values": {
+        "Q830608$4CD0B4AF-A2CF-4271-AA95-CF8BAC4315A2": "+3347",
+        "Q830608$EFECE470-6353-46A6-ABDC-0E07F5117B86": "+3760"
+      }
+    }
+  ],
+  "counts_by_sub_disposition": {
+    "H4a": 0,
+    "H4b": 24,
+    "H4c": 0,
+    "H4d": 1
+  },
+  "summary": {
+    "affected_statement_count": 50,
+    "collision_family_count": 5,
+    "collision_group_count": 25
+  }
+}

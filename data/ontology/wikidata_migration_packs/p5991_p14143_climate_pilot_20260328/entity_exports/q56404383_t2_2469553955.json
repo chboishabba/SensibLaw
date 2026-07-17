@@ -1,5 +1,5 @@
 {
-  "_source_path": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q56404383_t2_2469553955.json",
+  "_source_path": "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q56404383_t2_2469553955.json",
   "_source_qid": "Q56404383",
   "_source_revision": 2469553955,
   "entities": {
@@ -613,8 +613,7 @@
         "nowiki": {
           "badges": [],
           "site": "nowiki",
-          "title": "Handelsbanken",
-          "url": "https://no.wikipedia.org/wiki/Handelsbanken"
+          "title": "Handelsbanken"
         }
       },
       "title": "Q56404383",

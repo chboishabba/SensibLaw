@@ -174,6 +174,17 @@
   - DONE: make wider online discovery rate-limit aware. Respect bounded
     `Retry-After`/backoff and optional request pacing; never count a partially
     revision-pinned page as dry-run coverage.
+  - DONE: make exhaustive `company_direct` replays two-phase and resumable:
+    pin the complete discovery population and revision map before export,
+    isolate WDQS/Action API/entity-export pacing, pin revisions independently
+    where the Action API requires it, and retain only sanitized transport
+    receipts. Preserve the review-only,
+    non-editing migration-pack boundary.
+  - DONE: expose atomic live replay progress after pinning and each export,
+    including counts, throughput, ETA, current pinned item, and safe resume
+    command without persisting credentials or contact identity.
+  - DONE: reuse the shared terminal progress callback for Phase A pinning and
+    Phase B exports, with human, JSON-lines, and TTY bar formats.
   - DONE: replace QID-only statement discovery pagination with a
     composite QID + statement-GUID cursor. Record the next cursor in each
     discovery manifest and treat earlier QID-only pages as bounded samples,
@@ -2154,3 +2165,14 @@
   into a shared DB-backed lexical-rule substrate only if multiple
   jurisdictions/extractors need the same runtime shape. Do not widen semantic
   schema or ontology tables for cue storage.
+# Climate-GHG orthogonal assessment V2 (2026-07-17)
+
+- [x] Specify the generic carrier/profile ownership boundary and immutable
+  replay posture.
+- [x] Implement generic orthogonal validation and aggregate reporting.
+- [x] Implement climate V2 geometry, integrity, coverage, semantics,
+  predicates, outcomes, and compatibility projections.
+- [x] Add the offline atomic materializer and deterministic review sampler.
+- [x] Add focused policy/CLI tests and run the pinned 232/3,562 derivation.
+- [x] Reconcile legacy A4/A5/H4 acceptance values and record the completed
+  behavior in the changelog.

@@ -1,0 +1,14 @@
+{
+  "collision_groups": [],
+  "counts_by_sub_disposition": {
+    "H4a": 0,
+    "H4b": 0,
+    "H4c": 0,
+    "H4d": 0
+  },
+  "summary": {
+    "affected_statement_count": 0,
+    "collision_family_count": 0,
+    "collision_group_count": 0
+  }
+}

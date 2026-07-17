@@ -73,6 +73,12 @@ legacy A-E classifier labels remain review projections rather than rule
 matches. Incomplete or conflicting family context must abstain, and no
 candidate rule produces an edit or execution manifest.
 
+The pinned company-direct climate replay also has a derived-only orthogonal V2
+assessment contract. It separates family geometry, slot integrity, component
+coverage, statement semantics, and candidate-review eligibility while leaving
+the legacy A1-A5/H4 artifacts unchanged. See
+`docs/planning/climate_ghg_orthogonal_assessment_v2_20260717.md`.
+
 An incomplete graph view is candidate-only and cannot support an exhaustive
 claim. A completeness-certified view must name its coverage policy, revision,
 selected graph coverage, and receipt. External identity neither replaces a

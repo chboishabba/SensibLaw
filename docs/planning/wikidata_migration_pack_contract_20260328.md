@@ -1,5 +1,10 @@
 # Wikidata Migration Pack Contract (2026-03-28)
 
+Derived climate assessment note: the immutable company-direct replay may be
+consumed by the offline, read-only orthogonal V2 assessment defined in
+`climate_ghg_orthogonal_assessment_v2_20260717.md`. That derivation does not
+change this migration-pack contract or grant edit/execution authority.
+
 ## Purpose
 Define the first executable contract for a bounded property-migration review
 artifact in the Wikidata lane.
@@ -89,6 +94,52 @@ Only `statement_reconciled` rows may enter the climate classifier.  The
 classifier evaluates the complete statement family on that entity, rather than
 only an isolated statement, so temporal/scope splits and target-property
 coexistence remain visible.
+
+### Resumable live replay transport
+
+A wide discovery replay is a two-phase, read-only evidence operation:
+
+```text
+Phase A: discover every cursor page and pin the selected revision for each QID
+Phase B: fetch or validate exactly those pinned entity exports
+```
+
+Before Phase B, the materializer writes an atomic `run-state.json` containing
+the discovery/query contract hash, cursor bounds, population-exhaustion state,
+ordered QIDs, and per-QID revision IDs/timestamps. A resume reuses that state
+and never asks for a newer revision for an already pinned QID. Exports are
+immutable `QID + revision` evidence files; an existing file is reused only
+after its embedded QID/revision and content hash validate.
+
+Alongside durable run state, the materializer writes atomic `progress.json`
+after revision pinning and after each export. It exposes only operational
+status: phase, total/completed/reused/downloaded export counts, current
+QID/revision, elapsed time, throughput, estimated remaining time, and the
+safe `--resume` command. It contains no credentials or contact identity. A
+process may be stopped between updates and resumed from the pinned run state.
+The same updates are emitted to stderr through the repository's shared terminal
+progress callback: human, JSON-lines, or an interactive progress bar. Terminal
+output covers both Phase A revision pinning and Phase B exports.
+
+WDQS discovery, Action API revision lookup, and revision-pinned entity export
+share one HTTP session and identity, but retain independent pacing and backoff
+state. Each starts serially at a 500 ms interval. A `429` follows
+`Retry-After`; missing retry guidance or a `503` uses bounded exponential
+backoff with jitter for only the affected service. Non-interactive Action API
+calls include `maxlag=5`.
+
+The default User-Agent identifies the SensibLaw project URL. Operators may add
+contact information and an OAuth token through process environment variables.
+Contact identity is not authentication, and authentication's rate tier depends
+on the account's standing. Tokens, contact values, and authorization headers
+never enter state, receipts, manifests, or diagnostics.
+
+Copy `.env.example` to a local ignored `.env`, set values there, and source it
+in the invoking shell. The repository never writes a local `.env`. Wikimedia's
+published current limits distinguish identified anonymous/new authenticated
+clients from established authenticated editors; use a contact-bearing
+User-Agent, serial requests, and the service response rather than treating a
+token as a promise of a higher rate.
 
 The resulting classifier input records the source statement GUID, quantity
 unit, rank, `P585` time, `P459` method, `P3831` role, `P518` part,

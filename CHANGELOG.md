@@ -1,5 +1,18 @@
 # 2026-07-17
 
+- Add the derived-only climate-GHG orthogonal V2 assessment over the immutable
+  232-family / 3,562-statement company-direct replay. A generic shared carrier
+  validates five-axis cardinality, references, authority, ordering, hashes,
+  outcomes, and aggregate counts; the climate profile supplies geometry, slot
+  identity, coverage, semantic subtypes, eligibility predicates, and legacy
+  A1-A5/H4 projections.
+- Add an offline atomic materializer with six-file SHA-256 provenance,
+  target-collision evidence checks, byte-identical output reuse, deterministic
+  15-family review sampling, and no network/edit/execution path. The comparison
+  artifact reconciles legacy A4 124/2,416 against strict 110/2,198 with the
+  14-family/218-statement attrition identified, legacy A5 90/830 against zero
+  strict matches, and H4 5 families/25 groups/50 members against 2/15 strict.
+
 - Add candidate-only A1 atomic-total, A2 coherent scoped-component, and A3
   separated-annual-series climate transformation profiles over the generic
   rule carrier. Detector results retain predicate states, reason codes,
@@ -39,6 +52,20 @@
 # Changelog
 
 ## 2026-07-17
+
+- Make live Wikidata migration-pack materialization resumable and
+  revision-pinned before export. The materializer now persists an atomic run
+  state, pins Action API revisions independently where required, reuses only
+  QID/revision-validated
+  exports, and records sanitized transport telemetry. WDQS, Action API, and
+  revision-export traffic retain independent polite backoff state; the workflow
+  remains read-only and review-only.
+- Add atomic live `progress.json` updates for pinned replays. Operators can
+  inspect phase, current pinned export, completed/reused/downloaded work,
+  throughput, ETA, and the safe resume command while a long run proceeds.
+- Reuse the shared CLI progress callback so revision pinning and export
+  acquisition also report to the terminal as human text, JSON-lines, or a TTY
+  progress bar.
 
 - Added generic dependency-group inventory support to transformation-rule
   coverage. Profiles can now supply one deterministic primary obstruction,

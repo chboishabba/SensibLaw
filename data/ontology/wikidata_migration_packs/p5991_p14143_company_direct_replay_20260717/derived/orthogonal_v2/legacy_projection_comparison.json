@@ -1,0 +1,153 @@
+{
+  "a4_strict_attrition": {
+    "attribution": "strict detector predicate failure or abstention; legacy primary geometry remains contextual",
+    "family_refs": [
+      "Q10397786|P5991",
+      "Q10494308|P5991",
+      "Q10521828|P5991",
+      "Q10686298|P5991",
+      "Q11977084|P5991",
+      "Q1467848|P5991",
+      "Q1476113|P5991",
+      "Q2723182|P5991",
+      "Q4827724|P5991",
+      "Q4994121|P5991",
+      "Q505922|P5991",
+      "Q52579|P5991",
+      "Q558699|P5991",
+      "Q6460556|P5991"
+    ],
+    "lost_family_count": 14,
+    "lost_statement_count": 218
+  },
+  "acceptance_reconciliation": {
+    "h4_direct": {
+      "collision_group_count": 25,
+      "family_count": 5,
+      "statement_count": 50
+    },
+    "legacy_a4": {
+      "family_count": 124,
+      "statement_count": 2416
+    },
+    "legacy_a5": {
+      "family_count": 90,
+      "statement_count": 830
+    },
+    "strict_a4": {
+      "family_count": 110,
+      "statement_count": 2198
+    },
+    "strict_a5": {
+      "family_count": 0,
+      "statement_count": 0
+    },
+    "strict_h4": {
+      "family_count": 2,
+      "statement_count": 15
+    }
+  },
+  "authority": "diagnostic_comparison_only",
+  "execution_effect": "none",
+  "h4_collision_summary": {
+    "affected_statement_count": 50,
+    "collision_family_count": 5,
+    "collision_group_count": 25
+  },
+  "legacy_primary_assessment_counts": {
+    "family_counts": {
+      "A4_coherent_multidimensional_matrix": 124,
+      "A5_nonexhaustive_partial_family": 90,
+      "F1_coherent_atomic_total_component_family": 13,
+      "H4b_provisional_duplicate_unresolved_coordinate": 5
+    },
+    "statement_counts": {
+      "A4_coherent_multidimensional_matrix": 2416,
+      "A5_nonexhaustive_partial_family": 830,
+      "F1_coherent_atomic_total_component_family": 195,
+      "H4b_provisional_duplicate_unresolved_coordinate": 121
+    }
+  },
+  "predicate_attrition": {
+    "compatible_method": {
+      "true": 3550,
+      "unresolved": 12
+    },
+    "compatible_unit": {
+      "false": 3,
+      "true": 3559
+    },
+    "enterprise_subject": {
+      "true": 3541,
+      "unresolved": 21
+    },
+    "exact_annual_period": {
+      "true": 3253,
+      "unresolved": 309
+    },
+    "no_target_collision": {
+      "true": 3562
+    },
+    "structurally_adequate_reference": {
+      "true": 3558,
+      "unresolved": 4
+    },
+    "supported_statement_shape": {
+      "true": 3527,
+      "unresolved": 35
+    },
+    "target_semantics_fit": {
+      "false": 317,
+      "true": 3245
+    },
+    "unique_semantic_slot": {
+      "true": 3221,
+      "unresolved": 341
+    }
+  },
+  "schema_version": "sl.climate_ghg_legacy_projection_comparison.v2",
+  "strict_detector_matches": {
+    "A1": {
+      "family_count": 6,
+      "statement_count": 6
+    },
+    "A2": {
+      "family_count": 3,
+      "statement_count": 9
+    },
+    "A3": {
+      "family_count": 6,
+      "statement_count": 18
+    },
+    "A4": {
+      "family_count": 110,
+      "statement_count": 2198
+    },
+    "H4": {
+      "family_count": 2,
+      "statement_count": 15
+    }
+  },
+  "v2_projection_counts": {
+    "A1": {
+      "family_count": 220,
+      "statement_count": 346
+    },
+    "A2": {
+      "family_count": 227,
+      "statement_count": 3181
+    },
+    "A4": {
+      "family_count": 205,
+      "statement_count": 3082
+    },
+    "A5": {
+      "family_count": 91,
+      "statement_count": 864
+    },
+    "H4": {
+      "family_count": 27,
+      "statement_count": 341
+    }
+  }
+}

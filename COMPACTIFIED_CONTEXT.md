@@ -154,3 +154,14 @@ Compact snapshot of the current architecture and next seam.
   review
 - widen downstream consumers only where canonical refs materially reduce
   duplicate parsing
+# 2026-07-17 climate-GHG orthogonal assessment V2 decision
+
+- The immutable 232-family / 3,562-statement company-direct replay remains the
+  source substrate; V2 is installed only below `derived/orthogonal_v2/`.
+- Generic shared policy code owns orthogonal carrier validation, deterministic
+  ordering/hashes, authority checks, and aggregation. Climate profile code owns
+  GHG QIDs, semantic derivation, predicates, and A1-A5/H4 projections.
+- Eligibility is candidate-review-only and cannot create promotion, execution,
+  edit, or source-quality authority. Reference adequacy is structural only.
+- Canonical contract:
+  `docs/planning/climate_ghg_orthogonal_assessment_v2_20260717.md`.

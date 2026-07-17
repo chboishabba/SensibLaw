@@ -2,6 +2,8 @@
   "metadata": {
     "generated_by": "build_slice_from_entity_exports",
     "properties": [
+      "P14143",
+      "P31",
       "P5991"
     ]
   },
@@ -9,13 +11,23 @@
     {
       "id": "t1_previous",
       "source_files": [
-        "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10403939_t1_2413111410.json",
-        "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10416948_t1_2435184169.json",
-        "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10422059_t1_2442261799.json",
-        "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10651551_t1_2435181070.json",
-        "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q56404383_t1_2242857994.json"
+        "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10403939_t1_2413111410.json",
+        "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10416948_t1_2435184169.json",
+        "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10422059_t1_2442261799.json",
+        "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10651551_t1_2435181070.json",
+        "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q56404383_t1_2242857994.json"
       ],
       "statement_bundles": [
+        {
+          "property": "P31",
+          "qualifiers": {},
+          "rank": "normal",
+          "references": [],
+          "statement_id": "Q56404383$7c0816c1-4709-b912-27c8-004d492a155a",
+          "subject": "Q56404383",
+          "unit": null,
+          "value": "Q22687"
+        },
         {
           "property": "P5991",
           "qualifiers": {
@@ -43,7 +55,9 @@
               ]
             }
           ],
+          "statement_id": "Q56404383$936D8D61-347B-4039-8E7B-9DE83A342A93",
           "subject": "Q56404383",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+838358"
         },
         {
@@ -67,8 +81,40 @@
               ]
             }
           ],
+          "statement_id": "Q10651551$C5C84B2A-21EA-4036-888B-68ABF17D70CC",
           "subject": "Q10651551",
+          "unit": "http://www.wikidata.org/entity/Q57084901",
           "value": "+442"
+        },
+        {
+          "property": "P31",
+          "qualifiers": {},
+          "rank": "normal",
+          "references": [],
+          "statement_id": "Q10416948$29e21c40-49f1-829c-0d5c-e736d15649e6",
+          "subject": "Q10416948",
+          "unit": null,
+          "value": "Q113378406"
+        },
+        {
+          "property": "P31",
+          "qualifiers": {},
+          "rank": "normal",
+          "references": [],
+          "statement_id": "Q10416948$59F75249-BD96-4EC9-99AD-B8715D7CE602",
+          "subject": "Q10416948",
+          "unit": null,
+          "value": "Q43229"
+        },
+        {
+          "property": "P31",
+          "qualifiers": {},
+          "rank": "normal",
+          "references": [],
+          "statement_id": "Q10416948$94A08725-A8E4-49E7-8ECB-EEA928096BFF",
+          "subject": "Q10416948",
+          "unit": null,
+          "value": "Q68295960"
         },
         {
           "property": "P5991",
@@ -91,7 +137,9 @@
               ]
             }
           ],
+          "statement_id": "Q10416948$D823BE23-7D7D-47AB-9099-D11CD5534182",
           "subject": "Q10416948",
+          "unit": "http://www.wikidata.org/entity/Q57084901",
           "value": "+697"
         },
         {
@@ -115,8 +163,20 @@
               ]
             }
           ],
+          "statement_id": "Q10416948$C627D681-A928-4C4F-8F17-E41E1404E9B2",
           "subject": "Q10416948",
+          "unit": "http://www.wikidata.org/entity/Q57084901",
           "value": "+375.06"
+        },
+        {
+          "property": "P31",
+          "qualifiers": {},
+          "rank": "normal",
+          "references": [],
+          "statement_id": "Q10403939$396CD3E3-FE62-41A4-9C64-EAE15D3FBE83",
+          "subject": "Q10403939",
+          "unit": null,
+          "value": "Q4830453"
         },
         {
           "property": "P5991",
@@ -142,7 +202,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$792EFDDB-0AA4-4148-9A1F-018A1FC31122",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+852"
         },
         {
@@ -169,7 +231,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$7CFDC180-EF48-4789-A719-5E07DEB73B0D",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+6385"
         },
         {
@@ -196,7 +260,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$139C7728-7306-4017-8D8A-09F31F751A8F",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+29564"
         },
         {
@@ -223,7 +289,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$77889A80-F9C8-4AB3-B75E-0457F45BF7CD",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+24699"
         },
         {
@@ -253,7 +321,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$3A2B49B6-55AE-4066-809B-E771E5E11CD6",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+8030"
         },
         {
@@ -283,7 +353,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$38A94EF3-FD77-4FE5-B2DA-F3D83AAA577E",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+8942"
         },
         {
@@ -313,7 +385,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$10F5E6C1-4425-4C27-8882-B72B030598A1",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+5635"
         },
         {
@@ -343,7 +417,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$30CBB5C2-AB67-4505-BFD5-1DE38F9DFF70",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+1274"
         },
         {
@@ -373,7 +449,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$8F385CE2-F6B6-4538-99CF-D629BC10AFD1",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+542"
         },
         {
@@ -403,7 +481,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$97651E37-82D1-4169-B032-3EE682D4B87B",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+88"
         },
         {
@@ -433,7 +513,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$FF694236-B4B3-4403-B932-4B600337C080",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+188"
         },
         {
@@ -457,7 +539,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$85E84410-6023-43C6-AA1C-F7D7D6F899B9",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+31936"
         },
         {
@@ -487,7 +571,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$8811BF9F-8DFC-4827-B15A-2A97ACB27248",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+10316"
         },
         {
@@ -517,7 +603,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$92DE02F1-19E7-4621-AD10-D1E4C5031B0E",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+5755"
         },
         {
@@ -547,7 +635,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$AFF6C988-7ABE-4DAD-9D29-E1DB7A67CD37",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+6156"
         },
         {
@@ -577,7 +667,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$D5CCE21B-83A8-45D0-B50E-498EDDB8417C",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+677"
         },
         {
@@ -607,7 +699,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$9DF5E928-ECE2-4FB9-90F1-055CDB52B542",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+288"
         },
         {
@@ -637,7 +731,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$5B2AAE3E-46F1-455D-A64D-97A306717B10",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+145"
         },
         {
@@ -667,7 +763,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$6AC379EA-4D62-4812-ADC3-B45EE1106D0F",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+140"
         },
         {
@@ -694,7 +792,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$68213D23-51D9-41A8-974E-8B10029D50BE",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+1082"
         },
         {
@@ -721,7 +821,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$26065A4A-E4A4-4B6F-A8AC-7FA2A812AA1A",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+5094"
         },
         {
@@ -748,7 +850,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$146B1638-14B7-43EB-B4AD-866E1139A1FB",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+23725"
         },
         {
@@ -775,7 +879,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$0631210E-5D01-4E7A-ABE8-F4FD94148627",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+23477"
         },
         {
@@ -799,8 +905,20 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$8BFD30DC-7249-48B7-AF99-0773A150270F",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+29653"
+        },
+        {
+          "property": "P31",
+          "qualifiers": {},
+          "rank": "normal",
+          "references": [],
+          "statement_id": "Q10422059$BE6F54ED-B7AD-4936-9137-63A4E414077F",
+          "subject": "Q10422059",
+          "unit": null,
+          "value": "Q4830453"
         },
         {
           "property": "P5991",
@@ -826,7 +944,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$E8183E33-3D8B-4A6F-ACA0-9C214BE3EA89",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+140"
         },
         {
@@ -853,7 +973,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$55A54BDA-A555-4FC2-8673-D4E2B3AE933D",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+1594"
         },
         {
@@ -880,7 +1002,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$E3ECDF06-6161-4884-9754-EC47A94F239C",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+4851"
         },
         {
@@ -907,7 +1031,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$3E648F65-9A52-47BA-9658-77ACB132CBBA",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+9813"
         },
         {
@@ -937,7 +1063,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$BD71E734-D010-4623-9ACF-75526C03AAC7",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+4815"
         },
         {
@@ -967,7 +1095,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$BA46330C-9B98-459B-9C29-01C9CFF6A298",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+2437"
         },
         {
@@ -997,7 +1127,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$8D835028-AB39-4E7D-851F-4AEC251B542B",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+853"
         },
         {
@@ -1027,7 +1159,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$8B76BF83-D52C-4264-B1B5-366F52975E08",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+57"
         },
         {
@@ -1057,7 +1191,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$19FC549F-A9FC-44DE-80C4-E179F9D36509",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+162"
         },
         {
@@ -1087,7 +1223,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$ACAF79E3-AEFF-4CE9-AEB0-AE0916AD4436",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+34"
         },
         {
@@ -1117,7 +1255,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$18C20599-D6C3-4FFB-8EF5-6A96A78009A8",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+54"
         },
         {
@@ -1147,7 +1287,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$6AC0D49A-0DB3-4280-893C-C84221380D9A",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+1401"
         },
         {
@@ -1171,7 +1313,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$57376786-506A-4583-9C59-D206A32A4CCA",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+11547"
         },
         {
@@ -1198,7 +1342,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$0749A69D-4A89-4197-BD48-224FE7B88AF9",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+297"
         },
         {
@@ -1225,7 +1371,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$5EE5EBAF-BCC2-4ADD-90D3-DF6CB2303A28",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+1632"
         },
         {
@@ -1252,7 +1400,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$B6878DBA-5E9B-45EC-8D79-CA64820D6ADB",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+3677"
         },
         {
@@ -1282,7 +1432,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$7ED39700-FECC-430E-A794-E5EA540932C8",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+5707"
         },
         {
@@ -1312,7 +1464,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$FB7A9F41-EC06-421B-9216-EBC3A0089791",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+0"
         },
         {
@@ -1342,7 +1496,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$E540FB99-CBCB-42F1-9F8C-6029645C3AE7",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+962"
         },
         {
@@ -1372,7 +1528,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$AAD385D4-4DBB-49CC-B5A3-760D3F586281",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+9"
         },
         {
@@ -1402,7 +1560,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$2E70A249-3685-4F70-A5CB-7426EF0E94B4",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+93"
         },
         {
@@ -1432,7 +1592,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$316AA08E-6361-4E17-AD11-5568ACF23A72",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+62"
         },
         {
@@ -1462,7 +1624,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$5E2F714C-111F-4472-A088-E8E1860BEC42",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+196"
         },
         {
@@ -1492,7 +1656,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$78160357-F727-474F-9F7F-2BFC47664F4A",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+8579"
         },
         {
@@ -1522,7 +1688,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$6497320B-C1F7-4558-986D-84AC6A16F890",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+48"
         },
         {
@@ -1552,7 +1720,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$44C90522-7212-4A95-AC63-C10811FDC833",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+9090"
         },
         {
@@ -1582,7 +1752,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$2525EAC1-E376-4940-A929-55300D7CA740",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+153"
         },
         {
@@ -1609,7 +1781,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$765B4162-2AC6-4DDA-A1EE-EF2EC922DAAD",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+21044"
         },
         {
@@ -1633,7 +1807,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$C4792F55-CC2C-4FE7-B127-24B814FC2837",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+22973"
         }
       ]
@@ -1641,13 +1817,23 @@
     {
       "id": "t2_current",
       "source_files": [
-        "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10403939_t2_2419926147.json",
-        "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10416948_t2_2450591037.json",
-        "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10422059_t2_2445808770.json",
-        "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10651551_t2_2435181075.json",
-        "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q56404383_t2_2469553955.json"
+        "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10403939_t2_2419926147.json",
+        "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10416948_t2_2450591037.json",
+        "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10422059_t2_2445808770.json",
+        "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10651551_t2_2435181075.json",
+        "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q56404383_t2_2469553955.json"
       ],
       "statement_bundles": [
+        {
+          "property": "P31",
+          "qualifiers": {},
+          "rank": "normal",
+          "references": [],
+          "statement_id": "Q56404383$7c0816c1-4709-b912-27c8-004d492a155a",
+          "subject": "Q56404383",
+          "unit": null,
+          "value": "Q22687"
+        },
         {
           "property": "P5991",
           "qualifiers": {
@@ -1675,8 +1861,20 @@
               ]
             }
           ],
+          "statement_id": "Q56404383$936D8D61-347B-4039-8E7B-9DE83A342A93",
           "subject": "Q56404383",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+838358"
+        },
+        {
+          "property": "P31",
+          "qualifiers": {},
+          "rank": "normal",
+          "references": [],
+          "statement_id": "Q10651551$DEE1F0C8-7C52-474D-8CC4-FC9B43E3A6D0",
+          "subject": "Q10651551",
+          "unit": null,
+          "value": "Q68295960"
         },
         {
           "property": "P5991",
@@ -1699,8 +1897,40 @@
               ]
             }
           ],
+          "statement_id": "Q10651551$C5C84B2A-21EA-4036-888B-68ABF17D70CC",
           "subject": "Q10651551",
+          "unit": "http://www.wikidata.org/entity/Q57084901",
           "value": "+442"
+        },
+        {
+          "property": "P31",
+          "qualifiers": {},
+          "rank": "normal",
+          "references": [],
+          "statement_id": "Q10416948$29e21c40-49f1-829c-0d5c-e736d15649e6",
+          "subject": "Q10416948",
+          "unit": null,
+          "value": "Q113378406"
+        },
+        {
+          "property": "P31",
+          "qualifiers": {},
+          "rank": "normal",
+          "references": [],
+          "statement_id": "Q10416948$59F75249-BD96-4EC9-99AD-B8715D7CE602",
+          "subject": "Q10416948",
+          "unit": null,
+          "value": "Q43229"
+        },
+        {
+          "property": "P31",
+          "qualifiers": {},
+          "rank": "normal",
+          "references": [],
+          "statement_id": "Q10416948$94A08725-A8E4-49E7-8ECB-EEA928096BFF",
+          "subject": "Q10416948",
+          "unit": null,
+          "value": "Q68295960"
         },
         {
           "property": "P5991",
@@ -1723,7 +1953,9 @@
               ]
             }
           ],
+          "statement_id": "Q10416948$D823BE23-7D7D-47AB-9099-D11CD5534182",
           "subject": "Q10416948",
+          "unit": "http://www.wikidata.org/entity/Q57084901",
           "value": "+697"
         },
         {
@@ -1747,8 +1979,20 @@
               ]
             }
           ],
+          "statement_id": "Q10416948$C627D681-A928-4C4F-8F17-E41E1404E9B2",
           "subject": "Q10416948",
+          "unit": "http://www.wikidata.org/entity/Q57084901",
           "value": "+375.06"
+        },
+        {
+          "property": "P31",
+          "qualifiers": {},
+          "rank": "normal",
+          "references": [],
+          "statement_id": "Q10403939$396CD3E3-FE62-41A4-9C64-EAE15D3FBE83",
+          "subject": "Q10403939",
+          "unit": null,
+          "value": "Q4830453"
         },
         {
           "property": "P5991",
@@ -1774,7 +2018,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$792EFDDB-0AA4-4148-9A1F-018A1FC31122",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+852"
         },
         {
@@ -1801,7 +2047,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$7CFDC180-EF48-4789-A719-5E07DEB73B0D",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+6385"
         },
         {
@@ -1828,7 +2076,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$139C7728-7306-4017-8D8A-09F31F751A8F",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+29564"
         },
         {
@@ -1855,7 +2105,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$77889A80-F9C8-4AB3-B75E-0457F45BF7CD",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+24699"
         },
         {
@@ -1885,7 +2137,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$3A2B49B6-55AE-4066-809B-E771E5E11CD6",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+8030"
         },
         {
@@ -1915,7 +2169,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$38A94EF3-FD77-4FE5-B2DA-F3D83AAA577E",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+8942"
         },
         {
@@ -1945,7 +2201,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$10F5E6C1-4425-4C27-8882-B72B030598A1",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+5635"
         },
         {
@@ -1975,7 +2233,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$30CBB5C2-AB67-4505-BFD5-1DE38F9DFF70",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+1274"
         },
         {
@@ -2005,7 +2265,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$8F385CE2-F6B6-4538-99CF-D629BC10AFD1",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+542"
         },
         {
@@ -2035,7 +2297,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$97651E37-82D1-4169-B032-3EE682D4B87B",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+88"
         },
         {
@@ -2065,7 +2329,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$FF694236-B4B3-4403-B932-4B600337C080",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+188"
         },
         {
@@ -2089,7 +2355,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$85E84410-6023-43C6-AA1C-F7D7D6F899B9",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+31936"
         },
         {
@@ -2116,7 +2384,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$4B78B37A-D3A7-417A-8F7C-129789E28D51",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+1082"
         },
         {
@@ -2143,7 +2413,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$ACA83F0C-86DD-47F7-ADC6-69818EC15E84",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+5094"
         },
         {
@@ -2170,7 +2442,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$84C901C3-9A7B-4015-BB69-4F28EA9F4778",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+23725"
         },
         {
@@ -2200,7 +2474,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$EF22DFFF-3482-43C3-818D-299933A7EBDF",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+10316"
         },
         {
@@ -2230,7 +2506,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$BD334380-AD9F-4D34-9102-DAB84824C33B",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+5755"
         },
         {
@@ -2260,7 +2538,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$10086E7D-2424-4425-AABE-9D5A4FB98D97",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+6156"
         },
         {
@@ -2290,7 +2570,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$DFC82803-F595-4F16-9DE2-B6E499CCA4C5",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+677"
         },
         {
@@ -2320,7 +2602,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$F9751670-846C-4751-87C1-A912F90F7933",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+288"
         },
         {
@@ -2350,7 +2634,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$329C01FE-26AF-4075-951C-84BBE9AD53AF",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+145"
         },
         {
@@ -2380,7 +2666,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$D223002F-BA32-428A-B9D2-906B34BE74D8",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+140"
         },
         {
@@ -2407,7 +2695,9 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$87BE8973-24BC-4626-8AF3-238A334FE077",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+23477"
         },
         {
@@ -2431,8 +2721,20 @@
               ]
             }
           ],
+          "statement_id": "Q10403939$75713DBD-52FD-490C-909A-0C46B1EA29D7",
           "subject": "Q10403939",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+29653"
+        },
+        {
+          "property": "P31",
+          "qualifiers": {},
+          "rank": "normal",
+          "references": [],
+          "statement_id": "Q10422059$BE6F54ED-B7AD-4936-9137-63A4E414077F",
+          "subject": "Q10422059",
+          "unit": null,
+          "value": "Q4830453"
         },
         {
           "property": "P5991",
@@ -2458,7 +2760,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$E8183E33-3D8B-4A6F-ACA0-9C214BE3EA89",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+140"
         },
         {
@@ -2485,7 +2789,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$55A54BDA-A555-4FC2-8673-D4E2B3AE933D",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+1594"
         },
         {
@@ -2512,7 +2818,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$E3ECDF06-6161-4884-9754-EC47A94F239C",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+4851"
         },
         {
@@ -2539,7 +2847,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$3E648F65-9A52-47BA-9658-77ACB132CBBA",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+9813"
         },
         {
@@ -2569,7 +2879,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$BD71E734-D010-4623-9ACF-75526C03AAC7",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+4815"
         },
         {
@@ -2599,7 +2911,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$BA46330C-9B98-459B-9C29-01C9CFF6A298",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+2437"
         },
         {
@@ -2629,7 +2943,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$8D835028-AB39-4E7D-851F-4AEC251B542B",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+853"
         },
         {
@@ -2659,7 +2975,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$8B76BF83-D52C-4264-B1B5-366F52975E08",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+57"
         },
         {
@@ -2689,7 +3007,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$19FC549F-A9FC-44DE-80C4-E179F9D36509",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+162"
         },
         {
@@ -2719,7 +3039,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$ACAF79E3-AEFF-4CE9-AEB0-AE0916AD4436",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+34"
         },
         {
@@ -2749,7 +3071,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$18C20599-D6C3-4FFB-8EF5-6A96A78009A8",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+54"
         },
         {
@@ -2779,7 +3103,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$6AC0D49A-0DB3-4280-893C-C84221380D9A",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+1401"
         },
         {
@@ -2803,7 +3129,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$57376786-506A-4583-9C59-D206A32A4CCA",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+11547"
         },
         {
@@ -2830,7 +3158,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$0749A69D-4A89-4197-BD48-224FE7B88AF9",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+297"
         },
         {
@@ -2857,7 +3187,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$5EE5EBAF-BCC2-4ADD-90D3-DF6CB2303A28",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+1632"
         },
         {
@@ -2884,7 +3216,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$B6878DBA-5E9B-45EC-8D79-CA64820D6ADB",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+3677"
         },
         {
@@ -2914,7 +3248,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$7ED39700-FECC-430E-A794-E5EA540932C8",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+5707"
         },
         {
@@ -2944,7 +3280,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$FB7A9F41-EC06-421B-9216-EBC3A0089791",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+0"
         },
         {
@@ -2974,7 +3312,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$E540FB99-CBCB-42F1-9F8C-6029645C3AE7",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+962"
         },
         {
@@ -3004,7 +3344,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$AAD385D4-4DBB-49CC-B5A3-760D3F586281",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+9"
         },
         {
@@ -3034,7 +3376,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$2E70A249-3685-4F70-A5CB-7426EF0E94B4",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+93"
         },
         {
@@ -3064,7 +3408,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$316AA08E-6361-4E17-AD11-5568ACF23A72",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+62"
         },
         {
@@ -3094,7 +3440,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$5E2F714C-111F-4472-A088-E8E1860BEC42",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+196"
         },
         {
@@ -3124,7 +3472,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$78160357-F727-474F-9F7F-2BFC47664F4A",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+8579"
         },
         {
@@ -3154,7 +3504,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$6497320B-C1F7-4558-986D-84AC6A16F890",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+48"
         },
         {
@@ -3184,7 +3536,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$44C90522-7212-4A95-AC63-C10811FDC833",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+9090"
         },
         {
@@ -3214,7 +3568,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$2525EAC1-E376-4940-A929-55300D7CA740",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+153"
         },
         {
@@ -3241,7 +3597,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$765B4162-2AC6-4DDA-A1EE-EF2EC922DAAD",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+21044"
         },
         {
@@ -3265,7 +3623,9 @@
               ]
             }
           ],
+          "statement_id": "Q10422059$C4792F55-CC2C-4FE7-B127-24B814FC2837",
           "subject": "Q10422059",
+          "unit": "http://www.wikidata.org/entity/Q57084755",
           "value": "+22973"
         }
       ]
