@@ -4,6 +4,7 @@ from copy import deepcopy
 
 from src.policy.climate_ghg_transformation_profile import (
     build_coverage_report,
+    build_h4_collision_report,
     build_rules,
     evaluate_candidate,
 )
@@ -347,3 +348,387 @@ def test_fiscal_fiscal_collision_dissolves_to_f1() -> None:
     inv = report["coverage"]["dependency_group_inventory"]
     assert len(inv) == 1
     assert inv[0]["primary_obstruction"] == "F1_coherent_atomic_total_component_family"
+
+
+def test_h4b_when_conflicting_values_but_unresolved_coordinates() -> None:
+    first = _candidate()
+    first["claim_bundle_before"]["value"] = "100"
+    first["claim_bundle_before"]["qualifiers"] = {}
+    first["model_validation"]["resolved_year"] = None
+    first["statement_family_context"]["member_statement_ids"] = [
+        "Q1$statement-1",
+        "Q1$statement-2",
+    ]
+
+    second = deepcopy(first)
+    second["candidate_id"] = "Q1|P5991|2"
+    second["source_statement_id"] = "Q1$statement-2"
+    second["claim_bundle_before"]["value"] = "200"
+
+    report = build_coverage_report(
+        {"candidates": [first]},
+        source_snapshot_ref="wdqs:page-1",
+        target_collision_state="absent",
+        family_member_candidates=[first, second],
+    )
+
+    inv = report["coverage"]["dependency_group_inventory"]
+    assert len(inv) == 1
+    assert inv[0]["primary_obstruction"] == "H4b_provisional_duplicate_unresolved_coordinate"
+    assert inv[0]["candidate_action"] == "hold_provisional_collision"
+
+
+def test_h4b_when_same_unresolved_slot_same_value_different_ranks() -> None:
+    first = _candidate()
+    first["claim_bundle_before"]["value"] = "100"
+    first["claim_bundle_before"]["rank"] = "normal"
+    first["claim_bundle_before"]["qualifiers"] = {}
+    first["model_validation"]["resolved_year"] = None
+    first["statement_family_context"]["member_statement_ids"] = [
+        "Q1$statement-1",
+        "Q1$statement-2",
+    ]
+
+    second = deepcopy(first)
+    second["candidate_id"] = "Q1|P5991|2"
+    second["source_statement_id"] = "Q1$statement-2"
+    second["claim_bundle_before"]["rank"] = "preferred"
+
+    report = build_coverage_report(
+        {"candidates": [first]},
+        source_snapshot_ref="wdqs:page-1",
+        target_collision_state="absent",
+        family_member_candidates=[first, second],
+    )
+
+    inv = report["coverage"]["dependency_group_inventory"]
+    assert len(inv) == 1
+    assert inv[0]["primary_obstruction"] == "H4d_rank_variant_semantic_slot"
+
+
+def test_h4c_requires_exact_slot_coordinates() -> None:
+    first = _candidate()
+    first["claim_bundle_before"]["value"] = "100"
+    first["claim_bundle_before"]["qualifiers"] = {"P585": ["2021-01-01"]}
+    first["model_validation"]["resolved_year"] = "2021"
+    first["statement_family_context"]["member_statement_ids"] = [
+        "Q1$statement-1",
+        "Q1$statement-2",
+    ]
+
+    second = deepcopy(first)
+    second["candidate_id"] = "Q1|P5991|2"
+    second["source_statement_id"] = "Q1$statement-2"
+    second["claim_bundle_before"]["value"] = "200"
+
+    report = build_coverage_report(
+        {"candidates": [first]},
+        source_snapshot_ref="wdqs:page-1",
+        target_collision_state="absent",
+        family_member_candidates=[first, second],
+    )
+
+    inv = report["coverage"]["dependency_group_inventory"]
+    assert len(inv) == 1
+    assert inv[0]["primary_obstruction"] == "H4c_conflicting_value_semantic_slot"
+    assert inv[0]["candidate_action"] == "review_conflicting_values"
+
+
+def test_a4_matches_coherent_multidimensional_matrix() -> None:
+    first = _candidate(scope="explicit_scope")
+    first["candidate_id"] = "Q1|P5991|1"
+    first["source_statement_id"] = "Q1$2023-scope1"
+    first["model_validation"]["resolved_year"] = "2023"
+    first["claim_bundle_before"]["qualifiers"] = {
+        "P3831": ["Q12345"],
+        "P585": ["2023-01-01"],
+    }
+    first["claim_bundle_before"]["value"] = "100"
+    first["statement_family_context"] = {
+        "family_id": "Q1|P5991",
+        "coverage_complete": True,
+        "member_statement_ids": ["Q1$2023-scope1", "Q1$2023-scope2"],
+        "scope_partition_state": "already_partitioned",
+        "total_component_relation": "exact_reconciliation",
+        "member_conformance_state": "all_conform",
+    }
+    first["family_classifier"]["scope_resolution"] = "explicit_scope"
+
+    second = deepcopy(first)
+    second["candidate_id"] = "Q1|P5991|2"
+    second["source_statement_id"] = "Q1$2023-scope2"
+    second["claim_bundle_before"]["value"] = "200"
+    second["claim_bundle_before"]["qualifiers"] = {
+        "P3831": ["Q67890"],
+        "P585": ["2023-01-01"],
+    }
+
+    report = build_coverage_report(
+        {"candidates": [first]},
+        source_snapshot_ref="wdqs:page-1",
+        target_collision_state="absent",
+        family_member_candidates=[first, second],
+    )
+
+    row = report["coverage"]["candidate_rows"][0]
+    a4_results = [
+        result
+        for result in row["detector_results"]
+        if any(
+            predicate["predicate_ref"] == "family.valid-multidimensional-matrix"
+            for predicate in result["predicate_results"]
+        )
+    ]
+    assert len(a4_results) == 1
+    assert a4_results[0]["outcome"] == "matched"
+
+
+def test_a3_distinct_annual_periods_not_applicable_for_valid_matrix() -> None:
+    first = _candidate(scope="total_unscoped")
+    first["candidate_id"] = "Q1|P5991|1"
+    first["source_statement_id"] = "Q1$2023-total"
+    first["model_validation"]["resolved_year"] = "2023"
+    first["family_classifier"]["scope_resolution"] = "total_unscoped"
+    first["statement_family_context"] = {
+        "family_id": "Q1|P5991",
+        "coverage_complete": True,
+        "member_statement_ids": ["Q1$2023-total", "Q1$2023-scope1"],
+        "scope_partition_state": "unknown",
+        "total_component_relation": "exact_reconciliation",
+        "member_slot_data": [
+            {
+                "statement_id": "Q1$2023-total",
+                "ghg_slot": {
+                    "year": "2023",
+                    "scope": "",
+                    "applies_to_part": "",
+                    "method": "",
+                    "unit": "",
+                    "value": "300",
+                    "rank": "normal",
+                    "slot_identity_state": "exact",
+                },
+            },
+            {
+                "statement_id": "Q1$2023-scope1",
+                "ghg_slot": {
+                    "year": "2023",
+                    "scope": "Q12345",
+                    "applies_to_part": "",
+                    "method": "",
+                    "unit": "",
+                    "value": "100",
+                    "rank": "normal",
+                    "slot_identity_state": "exact",
+                },
+            },
+        ],
+        "member_conformance_state": "all_conform",
+    }
+
+    second = deepcopy(first)
+    second["candidate_id"] = "Q1|P5991|2"
+    second["source_statement_id"] = "Q1$2023-scope1"
+
+    evaluation = evaluate_candidate(
+        first, rules=build_rules(), target_collision_state="absent"
+    )
+
+    a3_result = next(
+        result
+        for result in evaluation["detector_results"]
+        if any(
+            predicate["predicate_ref"] == "family.distinct-annual-periods"
+            for predicate in result["predicate_results"]
+        )
+    )
+    distinct_pred = next(
+        p
+        for p in a3_result["predicate_results"]
+        if p["predicate_ref"] == "family.distinct-annual-periods"
+    )
+    assert distinct_pred["state"] == "not_applicable"
+    assert distinct_pred["reason_code"] == "multi_dimensional_matrix_not_applicable"
+
+
+def test_transition_receipt_has_receipt_ref() -> None:
+    first = _candidate()
+    first["claim_bundle_before"]["value"] = "100"
+    first["claim_bundle_before"]["qualifiers"] = {
+        "P585": ["2021-01-01"],
+    }
+    first["model_validation"]["resolved_year"] = "2021"
+    first["statement_family_context"]["scope_partition_state"] = "overlapping"
+    first["statement_family_context"]["member_statement_ids"] = [
+        "Q1$statement-1",
+        "Q1$statement-2",
+    ]
+    first["statement_family_context"]["member_slot_data"] = [
+        {
+            "statement_id": "Q1$statement-1",
+            "ghg_slot": {
+                "year": "2021",
+                "scope": "Q12345",
+                "applies_to_part": "",
+                "method": "",
+                "unit": "",
+                "value": "100",
+                "rank": "normal",
+                "slot_identity_state": "exact",
+            },
+        },
+        {
+            "statement_id": "Q1$statement-2",
+            "ghg_slot": {
+                "year": "2021",
+                "scope": "Q67890",
+                "applies_to_part": "",
+                "method": "",
+                "unit": "",
+                "value": "100",
+                "rank": "normal",
+                "slot_identity_state": "exact",
+            },
+        },
+    ]
+
+    second = deepcopy(first)
+    second["candidate_id"] = "Q1|P5991|2"
+    second["source_statement_id"] = "Q1$statement-2"
+
+    first["dependency_group_assessment"] = {
+        "primary_obstruction": "F1_coherent_atomic_total_component_family",
+        "secondary_obstructions": ["scope_overlap"],
+        "candidate_action": "preserve_existing_partition",
+        "affected_member_refs": ["Q1$statement-1", "Q1$statement-2"],
+        "geometry": {
+            "scope_partition_state": "overlapping",
+            "total_component_relation": "exact_reconciliation",
+            "period_partition_state": "unknown",
+            "period_geometry": "unresolved",
+            "member_conformance_state": "unresolved",
+            "member_count": 2,
+        },
+    }
+
+    from src.policy.climate_ghg_transformation_profile import _transition_receipt
+
+    receipt = _transition_receipt(
+        old_assessment={
+            "scope_partition_state": "overlapping",
+            "total_component_relation": "exact_reconciliation",
+            "slot_collisions": {},
+            "component_coverage": "",
+        },
+        new_primary="F1_coherent_atomic_total_component_family",
+        member_ids=["Q1$statement-1", "Q1$statement-2"],
+        member_slot_data=first["statement_family_context"]["member_slot_data"],
+        dependency_group_ref="Q1|P5991",
+    )
+    assert receipt is not None
+    assert receipt["receipt_ref"].startswith("transition-receipt:")
+    assert len(receipt["receipt_ref"]) > 20
+
+
+def test_h4_collision_report_summary_counts() -> None:
+    first = _candidate()
+    first["claim_bundle_before"]["value"] = "100"
+    first["claim_bundle_before"]["qualifiers"] = {"P585": ["2021-01-01"]}
+    first["model_validation"]["resolved_year"] = "2021"
+    first["statement_family_context"]["member_statement_ids"] = [
+        "Q1$statement-1",
+        "Q1$statement-2",
+    ]
+    first["statement_family_context"]["member_slot_data"] = [
+        {
+            "statement_id": "Q1$statement-1",
+            "ghg_slot": {
+                "year": "2021",
+                "scope": "",
+                "applies_to_part": "",
+                "method": "",
+                "unit": "",
+                "value": "100",
+                "rank": "normal",
+                "slot_identity_state": "exact",
+            },
+        },
+        {
+            "statement_id": "Q1$statement-2",
+            "ghg_slot": {
+                "year": "2021",
+                "scope": "",
+                "applies_to_part": "",
+                "method": "",
+                "unit": "",
+                "value": "200",
+                "rank": "normal",
+                "slot_identity_state": "exact",
+            },
+        },
+    ]
+
+    second = deepcopy(first)
+    second["candidate_id"] = "Q1|P5991|2"
+    second["source_statement_id"] = "Q1$statement-2"
+
+    result = build_h4_collision_report(
+        {"candidates": [first]},
+        family_member_candidates=[first, second],
+    )
+
+    assert "summary" in result
+    assert result["summary"]["collision_family_count"] == 1
+    assert result["summary"]["affected_statement_count"] == 2
+    assert result["summary"]["collision_group_count"] == 1
+
+
+def test_a3_and_a4_are_mutually_exclusive() -> None:
+    first = _candidate(scope="total_unscoped")
+    first["candidate_id"] = "Q1|P5991|1"
+    first["source_statement_id"] = "Q1$2023-total"
+    first["model_validation"]["resolved_year"] = "2023"
+    first["claim_bundle_before"]["value"] = "300"
+    first["claim_bundle_before"]["qualifiers"] = {"P585": ["2023-01-01"]}
+    first["family_classifier"]["scope_resolution"] = "total_unscoped"
+    first["statement_family_context"] = {
+        "family_id": "Q1|P5991",
+        "coverage_complete": True,
+        "member_statement_ids": ["Q1$2023-total", "Q1$2023-scope1"],
+        "scope_partition_state": "unknown",
+        "total_component_relation": "exact_reconciliation",
+        "period_partition_state": "overlapping",
+        "member_conformance_state": "all_conform",
+    }
+
+    second = deepcopy(first)
+    second["candidate_id"] = "Q1|P5991|2"
+    second["source_statement_id"] = "Q1$2023-scope1"
+    second["claim_bundle_before"]["value"] = "100"
+    second["claim_bundle_before"]["qualifiers"] = {
+        "P3831": ["Q12345"],
+        "P585": ["2023-01-01"],
+    }
+
+    evaluation = evaluate_candidate(
+        first, rules=build_rules(), target_collision_state="absent"
+    )
+
+    a3_outcomes = []
+    a4_outcomes = []
+    for result in evaluation["detector_results"]:
+        if any(
+            p["predicate_ref"] == "family.distinct-annual-periods"
+            for p in result["predicate_results"]
+        ):
+            a3_outcomes.append(result["outcome"])
+        if any(
+            p["predicate_ref"] == "family.valid-multidimensional-matrix"
+            for p in result["predicate_results"]
+        ):
+            a4_outcomes.append(result["outcome"])
+
+    if "matched" in a4_outcomes:
+        assert "matched" not in a3_outcomes
+    if "matched" in a3_outcomes:
+        assert "matched" not in a4_outcomes

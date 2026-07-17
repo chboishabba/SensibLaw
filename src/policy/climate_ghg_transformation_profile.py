@@ -7,9 +7,11 @@ classifier label as an applicability decision.
 
 from __future__ import annotations
 
-from collections import defaultdict
+
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
+import hashlib
+import json
 from typing import Any, Mapping, Sequence
 
 from .statement_family_context import build_statement_family_member_evidence
@@ -110,7 +112,6 @@ class GHGStatementSlot:
         bundle = candidate.get("claim_bundle_before") or {}
         qualifiers = bundle.get("qualifiers") or {}
         validation = candidate.get("model_validation") or {}
-        classifier = candidate.get("family_classifier") or {}
 
         year = _text(validation.get("resolved_year"))
         if not year:
@@ -220,21 +221,37 @@ def _slot_collisions(
 
             values = set()
             ranks = set()
-            has_unresolved_coordinate = False
+            coordinate_states: list[str] = []
+            unresolved_coordinate_names: list[str] = []
+            slot_fields = ("year", "scope", "applies_to_part", "method", "unit")
+
             for ev in ev_list:
                 ghg_slot = ev.get("ghg_slot") or {}
                 val = _text(ghg_slot.get("value"))
                 rank = _text(ghg_slot.get("rank")) or "normal"
-                state = _text(ghg_slot.get("slot_identity_state")) or "unresolved"
+                coord_state = _text(ghg_slot.get("slot_identity_state")) or "unresolved"
 
                 values.add(val)
                 ranks.add(rank)
-                if state in ("fiscal_canonical", "unresolved"):
-                    has_unresolved_coordinate = True
+                coordinate_states.append(coord_state)
+                if coord_state not in _EXACT_COORDINATE_STATES:
+                    for idx, field_name in enumerate(slot_fields):
+                        field_val = slot[idx] if idx < len(slot) else ""
+                        if field_val and coord_state not in _EXACT_COORDINATE_STATES:
+                            if field_name not in unresolved_coordinate_names:
+                                unresolved_coordinate_names.append(field_name)
 
-            if len(values) > 1:
+            slot_exact = all(
+                cs in _EXACT_COORDINATE_STATES for cs in coordinate_states
+            )
+            has_unresolved_coordinate = not slot_exact
+
+            if len(values) > 1 and slot_exact:
                 collision_type = "conflicting_value"
                 sub_disposition = "H4c"
+            elif len(values) > 1 and not slot_exact:
+                collision_type = "conflicting_value_provisional"
+                sub_disposition = "H4b"
             elif len(ranks) > 1:
                 collision_type = "rank_variant"
                 sub_disposition = "H4d"
@@ -249,7 +266,9 @@ def _slot_collisions(
                 "slot": list(slot),
                 "member_guids": statement_ids,
                 "collision_type": collision_type,
+                "slot_exact": slot_exact,
                 "has_unresolved_coordinate": has_unresolved_coordinate,
+                "unresolved_coordinates": unresolved_coordinate_names,
                 "sub_disposition": sub_disposition,
             })
 
@@ -281,21 +300,95 @@ def _text_list(raw: Any) -> list[str]:
     return [value] if value else []
 
 
+_EXACT_COORDINATE_STATES = frozenset({"exact"})
+
+
+def _is_valid_multidimensional_matrix(
+    *,
+    member_slot_data: Sequence[Mapping[str, Any]],
+    has_duplicate_slot: bool,
+    has_overloaded_guid: bool,
+    total_relation: str,
+) -> bool:
+    """Detect a coherent multi-dimensional matrix from normalized slot data.
+
+    Returns True when:
+      - member_count > 1
+      - all semantic slots are unique (no H4 collisions or overloaded GUIDs)
+      - all required slot coordinates are exact
+      - at least two members share a year
+      - members differ on scope or applies_to_part
+      - no H4 collision
+      - total/component relation is compatible (exact reconciliation or no_total)
+    """
+    if has_duplicate_slot or has_overloaded_guid:
+        return False
+    if total_relation not in {"exact_reconciliation", "no_total"}:
+        return False
+    if len(member_slot_data) < 2:
+        return False
+
+    slots: list[tuple[str, str, str, str, str]] = []
+    all_exact = True
+    for ev in member_slot_data:
+        ghg_slot = ev.get("ghg_slot") or {}
+        coord_state = _text(ghg_slot.get("slot_identity_state")) or "unresolved"
+        if coord_state not in _EXACT_COORDINATE_STATES:
+            all_exact = False
+        slot_tuple = (
+            ghg_slot.get("year") or "",
+            ghg_slot.get("scope") or "",
+            ghg_slot.get("applies_to_part") or "",
+            ghg_slot.get("method") or "",
+            ghg_slot.get("unit") or "",
+        )
+        slots.append(slot_tuple)
+
+    if not all_exact:
+        return False
+    if len(set(slots)) != len(slots):
+        return False
+
+    years = {s[0] for s in slots if s[0]}
+    if len(years) < 2:
+        if len(years) == 1 and len(slots) >= 2:
+            year_shared = True
+        else:
+            return False
+    else:
+        year_shared = False
+
+    scopes_or_parts = {(s[1], s[2]) for s in slots}
+    if len(scopes_or_parts) < 2:
+        return False
+
+    if not year_shared:
+        unique_years = {s[0] for s in slots if s[0]}
+        if len(unique_years) != len(slots):
+            return False
+
+    return True
+
+
 def _predicate(
     predicate_ref: str,
-    condition: bool | None,
+    condition: bool | None = None,
     *,
+    state: str | None = None,
     reason_code: str,
     observed: Any,
     evidence_refs: Sequence[str] = (),
     incomplete_evidence_kind: str | None = None,
 ) -> dict[str, Any]:
-    state = (
-        "unresolved" if condition is None else "satisfied" if condition else "failed"
-    )
+    if state is not None:
+        resolved_state = state
+    else:
+        resolved_state = (
+            "unresolved" if condition is None else "satisfied" if condition else "failed"
+        )
     return {
         "predicate_ref": predicate_ref,
-        "state": state,
+        "state": resolved_state,
         "reason_code": reason_code,
         "observed": observed,
         "evidence_refs": list(evidence_refs),
@@ -304,7 +397,7 @@ def _predicate(
 
 
 def build_rules() -> list[dict[str, Any]]:
-    """Return the candidate-only A1/A2/A3/A5/H4 rule catalogue."""
+    """Return the candidate-only A1/A2/A3/A4/A5/H4 rule catalogue."""
 
     common = {
         "domain_contract_ref": DOMAIN_CONTRACT_REF,
@@ -335,6 +428,15 @@ def build_rules() -> list[dict[str, Any]]:
             structural_family_ref="climate-ghg:A3:already-separated-annual-series:v0_1",
             detector_ref="detector:already-separated-annual-series:v0_1",
             near_miss_refs=["residual:period-overlap", "residual:multi-year-range"],
+        ),
+        build_transformation_rule(
+            **common,
+            structural_family_ref="climate-ghg:A4:coherent-multidimensional-matrix:v0_1",
+            detector_ref="detector:coherent-multidimensional-matrix:v0_1",
+            near_miss_refs=[
+                "residual:period-overlap",
+                "residual:scope-overlap",
+            ],
         ),
         build_transformation_rule(
             **common,
@@ -754,6 +856,23 @@ def _dependency_group_assessment(candidate: Mapping[str, Any]) -> dict[str, Any]
         and all_slots_unique
         and has_total_and_components
         and coverage_exhaustive
+        and _is_valid_multidimensional_matrix(
+            member_slot_data=member_slot_data,
+            has_duplicate_slot=has_duplicate_slot,
+            has_overloaded_guid=has_overloaded_guid,
+            total_relation=total_relation,
+        )
+    ):
+        primary, action, affected = (
+            "A4_coherent_multidimensional_matrix",
+            "evaluate_matrix_member",
+            member_ids,
+        )
+    elif (
+        slot_data_available
+        and all_slots_unique
+        and has_total_and_components
+        and coverage_exhaustive
     ):
         primary, action, affected = (
             "F1_coherent_atomic_total_component_family",
@@ -864,6 +983,7 @@ def _dependency_group_assessment(candidate: Mapping[str, Any]) -> dict[str, Any]
             new_primary=primary,
             member_ids=member_ids,
             member_slot_data=member_slot_data,
+            dependency_group_ref=_text(family.get("family_id")),
         )
         if transition_receipt:
             payload["transition_receipt"] = transition_receipt
@@ -876,6 +996,7 @@ def _transition_receipt(
     new_primary: str,
     member_ids: Sequence[str],
     member_slot_data: Sequence[Mapping[str, Any]],
+    dependency_group_ref: str = "",
 ) -> dict[str, Any] | None:
     """Record classification transition with evidence when slot normalization changes the result.
 
@@ -904,6 +1025,7 @@ def _transition_receipt(
 
     if new_primary in {
         "F1_coherent_atomic_total_component_family",
+        "A4_coherent_multidimensional_matrix",
         "A5_nonexhaustive_partial_family",
     } and old_partition in {"overlapping", "overloaded"}:
         reasons.append(
@@ -914,7 +1036,19 @@ def _transition_receipt(
             "component set not proven exhaustive; "
             "components below total are compatible with partial coverage"
         )
-    if new_primary == "H4_duplicate_semantic_slot" and old_partition in {
+    if new_primary == "A4_coherent_multidimensional_matrix" and old_partition in {
+        "overlapping",
+        "overloaded",
+    }:
+        reasons.append(
+            "multi-dimensional matrix structure confirmed by normalized slot analysis"
+        )
+    if new_primary in {
+        "H4a_confirmed_duplicate_semantic_slot",
+        "H4b_provisional_duplicate_unresolved_coordinate",
+        "H4c_conflicting_value_semantic_slot",
+        "H4d_rank_variant_semantic_slot",
+    } and old_partition in {
         "overlapping",
         "overloaded",
     }:
@@ -930,7 +1064,21 @@ def _transition_receipt(
     if not reasons:
         return None
 
+    receipt_identity = {
+        "schema_version": TRANSFORMATION_CONTRACT_REF,
+        "dependency_group_ref": dependency_group_ref,
+        "old_scope_partition_state": old_partition,
+        "old_total_component_relation": old_total_rel,
+        "new_primary_obstruction": new_primary,
+        "affected_member_ids": sorted(member_ids),
+        "transition_reasons": sorted(reasons),
+    }
+    receipt_hash = hashlib.sha256(
+        json.dumps(receipt_identity, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+
     return {
+        "receipt_ref": f"transition-receipt:{receipt_hash}",
         "old_scope_partition_state": old_partition,
         "old_total_component_relation": old_total_rel,
         "new_primary_obstruction": new_primary,
@@ -1051,7 +1199,7 @@ def evaluate_candidate(
     rules: Sequence[Mapping[str, Any]],
     target_collision_state: str = "unknown",
 ) -> dict[str, Any]:
-    """Evaluate one supplied candidate against the A1/A2/A3 contracts."""
+    """Evaluate one supplied candidate against the A1/A2/A3/A4 contracts."""
 
     candidate_ref = _text(candidate.get("candidate_id"))
     family = candidate.get("statement_family_context") or {}
@@ -1067,6 +1215,17 @@ def evaluate_candidate(
     )
     common = _common_predicates(
         candidate, target_collision_state=target_collision_state
+    )
+    member_slot_data = family.get("member_slot_data") or []
+    slot_collisions_detect = family.get("slot_collisions") or {}
+    has_duplicate_slot_detect = bool(slot_collisions_detect.get("duplicate_semantic_slot"))
+    has_overloaded_guid_detect = bool(slot_collisions_detect.get("genuinely_overloaded_guid"))
+    total_relation_detect = _text(family.get("total_component_relation"))
+    is_matrix = _is_valid_multidimensional_matrix(
+        member_slot_data=member_slot_data,
+        has_duplicate_slot=has_duplicate_slot_detect,
+        has_overloaded_guid=has_overloaded_guid_detect,
+        total_relation=total_relation_detect,
     )
     results: list[dict[str, Any]] = []
     for rule in rules:
@@ -1146,26 +1305,109 @@ def evaluate_candidate(
         elif ":A3:" in family_ref:
             period_partition = _text(family.get("period_partition_state"))
             member_conformance = _text(family.get("member_conformance_state"))
+            if is_matrix:
+                predicates.extend(
+                    [
+                        _predicate(
+                            "family.distinct-annual-periods",
+                            state="not_applicable",
+                            reason_code="multi_dimensional_matrix_not_applicable",
+                            observed="coherent_multidimensional_matrix",
+                        ),
+                        _predicate(
+                            "family.members-independently-conform",
+                            True
+                            if member_conformance == "all_conform"
+                            else False
+                            if member_conformance == "member_conflict"
+                            else None,
+                            reason_code="members_independently_conform"
+                            if member_conformance == "all_conform"
+                            else "member_conformance_unresolved",
+                            observed=member_conformance or "not_inspected",
+                            incomplete_evidence_kind=(
+                                "recoverable_retrieval"
+                                if member_conformance in {"incomplete", "not_inspected"}
+                                else "bounded_inspection"
+                                if member_conformance == "unresolved"
+                                else None
+                            ),
+                        ),
+                        _family_conflict_predicate(candidate),
+                    ]
+                )
+            else:
+                predicates.extend(
+                    [
+                        _predicate(
+                            "family.distinct-annual-periods",
+                            True
+                            if period_partition == "distinct_non_overlapping"
+                            else False
+                            if period_partition == "overlapping"
+                            else None,
+                            reason_code="annual_periods_distinct"
+                            if period_partition == "distinct_non_overlapping"
+                            else "annual_period_partition_unresolved",
+                            observed=period_partition or "not_inspected",
+                            incomplete_evidence_kind=(
+                                "recoverable_retrieval"
+                                if period_partition in {"incomplete", "not_inspected"}
+                                else "source_data"
+                                if period_partition == "unresolved"
+                                else None
+                            ),
+                        ),
+                        _predicate(
+                            "family.members-independently-conform",
+                            True
+                            if member_conformance == "all_conform"
+                            else False
+                            if member_conformance == "member_conflict"
+                            else None,
+                            reason_code="members_independently_conform"
+                            if member_conformance == "all_conform"
+                            else "member_conformance_unresolved",
+                            observed=member_conformance or "not_inspected",
+                            incomplete_evidence_kind=(
+                                "recoverable_retrieval"
+                                if member_conformance in {"incomplete", "not_inspected"}
+                                else "bounded_inspection"
+                                if member_conformance == "unresolved"
+                                else None
+                            ),
+                        ),
+                        _family_conflict_predicate(candidate),
+                    ]
+                )
+        elif ":A4:" in family_ref:
+            member_conformance = _text(family.get("member_conformance_state"))
             predicates.extend(
                 [
                     _predicate(
-                        "family.distinct-annual-periods",
-                        True
-                        if period_partition == "distinct_non_overlapping"
-                        else False
-                        if period_partition == "overlapping"
-                        else None,
-                        reason_code="annual_periods_distinct"
-                        if period_partition == "distinct_non_overlapping"
-                        else "annual_period_partition_unresolved",
-                        observed=period_partition or "not_inspected",
-                        incomplete_evidence_kind=(
-                            "recoverable_retrieval"
-                            if period_partition in {"incomplete", "not_inspected"}
-                            else "source_data"
-                            if period_partition == "unresolved"
-                            else None
-                        ),
+                        "family.valid-multidimensional-matrix",
+                        is_matrix,
+                        reason_code="valid_multidimensional_matrix"
+                        if is_matrix
+                        else "not_valid_matrix",
+                        observed=is_matrix,
+                    ),
+                    _predicate(
+                        "family.all-slots-unique",
+                        not has_duplicate_slot_detect and not has_overloaded_guid_detect,
+                        reason_code="slots_unique"
+                        if not has_duplicate_slot_detect and not has_overloaded_guid_detect
+                        else "slot_collision_prevents_matrix",
+                        observed=not has_duplicate_slot_detect
+                        and not has_overloaded_guid_detect,
+                    ),
+                    _predicate(
+                        "family.no-slot-collision",
+                        not has_duplicate_slot_detect,
+                        reason_code="no_h4_collision"
+                        if not has_duplicate_slot_detect
+                        else "h4_collision_present",
+                        observed=not has_duplicate_slot_detect,
                     ),
                     _predicate(
                         "family.members-independently-conform",
@@ -1186,7 +1428,6 @@ def evaluate_candidate(
                             else None
                         ),
                     ),
-                    _family_conflict_predicate(candidate),
                 ]
             )
         elif ":A5:" in family_ref:
@@ -1403,7 +1644,7 @@ def build_h4_collision_report(
                     "P585": p585,
                 }
 
-                if state in ("fiscal_canonical", "unresolved"):
+                if state not in _EXACT_COORDINATE_STATES:
                     unresolved_coordinates.append(guid)
 
             disposition_map = {
@@ -1440,9 +1681,17 @@ def build_h4_collision_report(
 
     collision_groups.sort(key=lambda x: x["collision_group_ref"])
 
+    collision_family_ids = {g["family_id"] for g in collision_groups}
+    affected_guids = {guid for g in collision_groups for guid in g["member_guids"]}
+
     return {
         "collision_groups": collision_groups,
         "counts_by_sub_disposition": counts,
+        "summary": {
+            "collision_family_count": len(collision_family_ids),
+            "affected_statement_count": len(affected_guids),
+            "collision_group_count": len(collision_groups),
+        },
     }
 
 
