@@ -797,7 +797,9 @@ def main() -> None:
     )
 
     family_member_pack = None
-    if args.discover_company_direct and (args.rule_coverage_output or args.h4_collision_output):
+    if (args.discover_company_direct or args.qid) and (
+        args.rule_coverage_output or args.h4_collision_output
+    ):
         # Keep the selected discovery population narrow while supplying every
         # sibling GUID from each pinned entity to the generic family-evidence
         # carrier. This is diagnostic hydration only, never an edit population.

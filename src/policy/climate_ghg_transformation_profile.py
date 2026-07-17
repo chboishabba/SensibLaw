@@ -323,7 +323,11 @@ def _is_valid_multidimensional_matrix(
     """
     if has_duplicate_slot or has_overloaded_guid:
         return False
-    if total_relation not in {"exact_reconciliation", "no_total"}:
+    if total_relation not in {
+        "exact_reconciliation",
+        "no_total",
+        "not_comparable",
+    }:
         return False
     if len(member_slot_data) < 2:
         return False
@@ -356,7 +360,7 @@ def _is_valid_multidimensional_matrix(
         else:
             return False
     else:
-        year_shared = False
+        year_shared = len(years) < len(slots)
 
     scopes_or_parts = {(s[1], s[2]) for s in slots}
     if len(scopes_or_parts) < 2:
@@ -854,8 +858,6 @@ def _dependency_group_assessment(candidate: Mapping[str, Any]) -> dict[str, Any]
     elif (
         slot_data_available
         and all_slots_unique
-        and has_total_and_components
-        and coverage_exhaustive
         and _is_valid_multidimensional_matrix(
             member_slot_data=member_slot_data,
             has_duplicate_slot=has_duplicate_slot,
