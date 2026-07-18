@@ -4,29 +4,11 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from src.policy.algebra.revision_identity import (
+    factor_revision_payload,
+    factor_revision_ref,
+)
 from src.policy.carriers.canonical import canonical_sha256
-
-
-def factor_revision_payload(factor: Mapping[str, Any]) -> dict[str, Any]:
-    """Return factor content without its derived self-reference metadata."""
-
-    payload = dict(factor)
-    metadata = dict(payload.get("metadata") or {})
-    metadata.pop("factor_revision_ref", None)
-    payload["metadata"] = metadata
-    return payload
-
-
-def factor_revision_ref(factor: Mapping[str, Any]) -> str:
-    computed = "factor-revision:" + canonical_sha256(
-        factor_revision_payload(factor)
-    )
-    explicit = str((factor.get("metadata") or {}).get("factor_revision_ref") or "")
-    if explicit and explicit != computed:
-        raise ValueError(
-            "factor_revision_ref metadata disagrees with canonical factor content"
-        )
-    return computed
 
 
 def _sha(value: object) -> bytes:
