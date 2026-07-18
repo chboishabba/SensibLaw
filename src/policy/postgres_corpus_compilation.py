@@ -5,17 +5,41 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from src.policy.carriers.canonical import canonical_sha256
 from src.policy.corpus_compilation import CompilerContext, build_corpus_manifest
-from src.policy.operational_corpus_compilation import compile_document_operational
+from src.policy.operational_corpus_compilation import (
+    OPERATIONAL_COMPILER_CONTRACT,
+    compile_document_operational,
+)
 from src.sensiblaw.interfaces.shared_reducer import tokenize_canonical_with_spans
 from src.storage.postgres import PersistedCompilation, PostgresCompilerStore
 from src.storage.postgres.binding_candidate_store import persist_binding_candidate_sets
 from src.storage.postgres.factor_revision_store import persist_factor_revision
+from src.storage.postgres.operational_build_store import (
+    load_completed_operational_build,
+    persist_completed_operational_build,
+)
 from src.storage.postgres.semantic_store import (
     persist_pnf_graph,
     persist_resolution_artifacts,
 )
 from src.storage.postgres.span_store import persist_licensed_spans
+
+
+def _operational_build_key(
+    *,
+    document_ref: str,
+    content_sha256: str,
+    context: CompilerContext,
+) -> str:
+    return canonical_sha256(
+        {
+            "document_ref": document_ref,
+            "content_sha256": content_sha256,
+            "context": context.to_dict(),
+            "compiler_contract": OPERATIONAL_COMPILER_CONTRACT,
+        }
+    )
 
 
 def _prepare_meets_for_relational_persistence(
@@ -57,22 +81,47 @@ def persist_document_compilation(
     The operational compiler never materializes pairwise binding evidence. It
     projects parser-observed pronominal arguments, normalizes immutable revision
     identity, and constructs candidate sets directly from the annotation/PNF
-    index. The expanded pairwise carrier remains limited to explicit legacy JSON
-    export. Candidate sets never close identity, occurrence, truth, or
-    expletive status.
+    index. An exact completed document build is returned without reparsing. The
+    expanded pairwise carrier remains limited to explicit legacy JSON export.
     """
+
+    document_ref = str(entry["document_ref"])
+    content_sha256 = str(entry["content_sha256"])
+    build_key_sha256 = _operational_build_key(
+        document_ref=document_ref,
+        content_sha256=content_sha256,
+        context=context,
+    )
+    with store.transaction() as cursor:
+        cached_demand_refs = load_completed_operational_build(
+            cursor,
+            document_ref=document_ref,
+            compiler_contract_ref=OPERATIONAL_COMPILER_CONTRACT,
+            build_key_sha256=build_key_sha256,
+        )
+        if cached_demand_refs is not None:
+            store.persist_occurrence(
+                cursor,
+                corpus_ref=corpus_ref,
+                relative_path=relative_path,
+                document_ref=document_ref,
+                state="reused_compilation",
+            )
+            return cached_demand_refs
 
     compilation = compile_document_operational(
         {
-            "document_ref": entry["document_ref"],
-            "content_sha256": entry["content_sha256"],
+            "document_ref": document_ref,
+            "content_sha256": content_sha256,
             "media_type": entry["media_type"],
             "canonical_text": canonical_text,
-            "source_ref": f"document-source:{entry['document_ref']}",
+            "source_ref": f"document-source:{document_ref}",
         },
         context,
     )
     artifacts = compilation.artifacts
+    if str(artifacts.get("build_key_sha256") or "") != build_key_sha256:
+        raise ValueError("operational compiler build key disagrees with persistence")
     refinements = tuple(artifacts.get("factor_refinements") or ())
     candidate_sets = tuple(artifacts.get("binding_candidate_sets") or ())
     factor_anchors = tuple(artifacts.get("factor_anchors") or ())
@@ -152,6 +201,14 @@ def persist_document_compilation(
             builds=candidate_set_builds,
             meets=meets,
             validate_indexed_query=True,
+        )
+        persist_completed_operational_build(
+            cursor,
+            document_ref=compilation.document_ref,
+            compiler_contract_ref=OPERATIONAL_COMPILER_CONTRACT,
+            build_key_sha256=build_key_sha256,
+            graph_ref=str(artifacts["pnf_graph"]["graph_ref"]),
+            demand_refs=demand_refs,
         )
         return demand_refs
 
