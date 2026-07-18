@@ -2,6 +2,8 @@ import importlib.util
 import sys
 from pathlib import Path
 
+# ruff: noqa: E402
+
 root = Path(__file__).resolve().parents[2]
 if str(root) not in sys.path:
     sys.path.insert(0, str(root))
@@ -63,3 +65,15 @@ def test_core_parser_emits_subdivisions():
 def test_ingestion_parser_emits_subdivisions():
     nodes = parse_sections_ingest(STATUTE_WITH_SUBDIVISIONS)
     _assert_subdivision_structure(nodes)
+
+
+def test_legacy_projection_preserves_provision_api_over_canonical_nodes():
+    provisions = parse_sections_core(STATUTE_WITH_SUBDIVISIONS)
+    nodes = parse_sections_ingest(STATUTE_WITH_SUBDIVISIONS)
+
+    assert type(provisions[0]).__name__ == "Provision"
+    assert provisions[0].to_dict()["children"]
+    assert provisions[0].identifier == nodes[0].identifier
+    assert provisions[0].children[0].children[0].identifier == (
+        nodes[0].children[0].children[0].identifier
+    )

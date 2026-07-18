@@ -1,0 +1,167 @@
+{
+  "authority": "diagnostic_comparison_only",
+  "execution_effect": "none",
+  "lost_family_count": 14,
+  "lost_statement_count": 218,
+  "rows": [
+    {
+      "failed_or_unresolved_predicates": {
+        "statement_requires_other_disposition": 9
+      },
+      "family_ref": "Q10397786|P5991",
+      "member_count": 9,
+      "v2_outcome_counts": {
+        "eligible": 9
+      }
+    },
+    {
+      "failed_or_unresolved_predicates": {
+        "statement_requires_other_disposition": 10
+      },
+      "family_ref": "Q10494308|P5991",
+      "member_count": 10,
+      "v2_outcome_counts": {
+        "eligible": 10
+      }
+    },
+    {
+      "failed_or_unresolved_predicates": {
+        "member_conformance_unresolved": 21,
+        "model_not_safe": 2,
+        "statement_requires_other_disposition": 2
+      },
+      "family_ref": "Q10521828|P5991",
+      "member_count": 21,
+      "v2_outcome_counts": {
+        "eligible": 18,
+        "hold": 3
+      }
+    },
+    {
+      "failed_or_unresolved_predicates": {
+        "statement_requires_other_disposition": 14
+      },
+      "family_ref": "Q10686298|P5991",
+      "member_count": 14,
+      "v2_outcome_counts": {
+        "eligible": 14
+      }
+    },
+    {
+      "failed_or_unresolved_predicates": {
+        "statement_requires_other_disposition": 10
+      },
+      "family_ref": "Q11977084|P5991",
+      "member_count": 10,
+      "v2_outcome_counts": {
+        "eligible": 10
+      }
+    },
+    {
+      "failed_or_unresolved_predicates": {
+        "member_conformance_unresolved": 23,
+        "model_not_safe": 1,
+        "statement_requires_other_disposition": 1
+      },
+      "family_ref": "Q1467848|P5991",
+      "member_count": 23,
+      "v2_outcome_counts": {
+        "eligible": 22,
+        "hold": 1
+      }
+    },
+    {
+      "failed_or_unresolved_predicates": {
+        "member_conformance_unresolved": 20,
+        "reference_transfer_unresolved": 4
+      },
+      "family_ref": "Q1476113|P5991",
+      "member_count": 20,
+      "v2_outcome_counts": {
+        "eligible": 16,
+        "hold": 4
+      }
+    },
+    {
+      "failed_or_unresolved_predicates": {
+        "statement_requires_other_disposition": 9
+      },
+      "family_ref": "Q2723182|P5991",
+      "member_count": 9,
+      "v2_outcome_counts": {
+        "eligible": 9
+      }
+    },
+    {
+      "failed_or_unresolved_predicates": {
+        "member_conformance_unresolved": 24,
+        "model_not_safe": 1,
+        "statement_requires_other_disposition": 1
+      },
+      "family_ref": "Q4827724|P5991",
+      "member_count": 24,
+      "v2_outcome_counts": {
+        "eligible": 23,
+        "hold": 1
+      }
+    },
+    {
+      "failed_or_unresolved_predicates": {
+        "member_conformance_unresolved": 20,
+        "model_not_safe": 2,
+        "statement_requires_other_disposition": 2
+      },
+      "family_ref": "Q4994121|P5991",
+      "member_count": 20,
+      "v2_outcome_counts": {
+        "eligible": 18,
+        "hold": 2
+      }
+    },
+    {
+      "failed_or_unresolved_predicates": {
+        "statement_requires_other_disposition": 8
+      },
+      "family_ref": "Q505922|P5991",
+      "member_count": 8,
+      "v2_outcome_counts": {
+        "eligible": 8
+      }
+    },
+    {
+      "failed_or_unresolved_predicates": {
+        "member_conformance_unresolved": 21,
+        "subject_not_company_or_unresolved": 21
+      },
+      "family_ref": "Q52579|P5991",
+      "member_count": 21,
+      "v2_outcome_counts": {
+        "hold": 21
+      }
+    },
+    {
+      "failed_or_unresolved_predicates": {
+        "member_conformance_unresolved": 21,
+        "model_not_safe": 1,
+        "statement_requires_other_disposition": 1
+      },
+      "family_ref": "Q558699|P5991",
+      "member_count": 21,
+      "v2_outcome_counts": {
+        "eligible": 20,
+        "hold": 1
+      }
+    },
+    {
+      "failed_or_unresolved_predicates": {
+        "statement_requires_other_disposition": 8
+      },
+      "family_ref": "Q6460556|P5991",
+      "member_count": 8,
+      "v2_outcome_counts": {
+        "eligible": 8
+      }
+    }
+  ],
+  "schema_version": "sl.climate_ghg_a4_attrition_explanation.v1"
+}

@@ -78,6 +78,126 @@ assessment contract. It separates family geometry, slot integrity, component
 coverage, statement semantics, and candidate-review eligibility while leaving
 the legacy A1-A5/H4 artifacts unchanged. See
 `docs/planning/climate_ghg_orthogonal_assessment_v2_20260717.md`.
+The follow-on evidence/governance reports are materialized offline with
+`scripts/materialize_climate_ghg_evidence_governance.py` under the sibling
+`derived/orthogonal_v2/evidence_governance/` directory. The JSON adjudication
+sidecar is review input only; a pending sample produces no contract or canary.
+The next bounded step is the offline policy-resolution dry run described in
+`docs/planning/climate_ghg_policy_resolution_dry_run_20260717.md`; fiscal
+normalization is explicitly separated from scope-ambiguous cases.
+Suite-wide sequencing across GWB, AU, and Nat/Wikidata is recorded in
+`docs/planning/itir_broader_todo_priority_20260717.md`.
+
+The updated P0 compiler spine now begins before review-target selection:
+
+```text
+canonical spans -> shared annotations -> locally typed world fragment
+-> partial PNF -> coverage/closure demands -> resolution broker
+-> bounded registry evidence -> typed reconciliation
+-> refined PNF alternatives -> claim/target selection -> promotion gate
+```
+
+The complete meaningful-span space remains recoverable, but candidates are
+instantiated lazily. Coverage pressure tries to type every meaningful entity,
+relation, quantity, role, and eventuality; closure pressure prioritizes deeper
+work that reduces PNF residuals. Ordinary nouns and phrases may contribute
+instance, class, property, role, event-type, literal, or document-local
+candidates. Candidate identity, resolved identity, and promoted fact remain
+separate authority states. Parsers stay registry-blind; a generic cache-aware
+scheduler may interleave local work with deduplicated, rate-limited backend
+microbatches. Wikidata and WorldMonitor are optional revisioned evidence
+backends, never canonical identity, event ontology, or mandatory mediation.
+Event occurrences, observations, clusters, forecasts, reports, alerts, and
+rolling states remain distinct and reconcile through typed meets rather than a
+single confidence score. GWB proves narrative/coreference ambiguity, AU proves
+typed legal constraints, and Nat/WorldMonitor supply registry evidence. See
+`docs/planning/pnf_driven_entity_resolution_spine_20260717.md`.
+
+The first P0a parser consolidation slice is implemented: canonical parsing,
+rule extraction, and structural-node construction now live in
+`src.ingestion.section_parser`; `src.section_parser` is a compatibility
+projection that retains historical `Provision` trees and simple section JSON.
+This removes the reverse parser dependency while preserving existing legacy
+callers. Span-only internal storage, one-pass annotation views, and cache keys
+remain subsequent P0a work.
+
+The first P0b carrier slice is also implemented in
+`src.policy.entity_resolution`. It validates and deterministically serializes
+span-anchored `MentionSpan`, candidate-only `EntityCandidateSet`, and
+document-local `CoreferenceCluster` records. It has no resolver, registry
+lookup, PNF mutation, promotion, or cross-document identity-join path.
+
+P0b.1 now also implements backend-free lazy mention licensing in that shared
+module. It consumes the public parser/reducer interfaces once, materializes
+non-structural lexical spans, numeric spans, maximal name-shaped phrases, and
+adapter-annotated eventualities, and receipts the complete recoverable token
+span lattice plus structural suppression. A license is not resolution or even
+candidate acceptance: alias/grammar expansion, candidate retrieval, and
+generated-mention coreference remain pending.
+
+P0b.2 adds a separate backend-free document-local recurrence receipt over
+generated mentions. It groups only repeated case-folded, whitespace-normalized
+surfaces within one document; recurrence is neither cross-surface aliasing nor
+coreference, and it cannot create candidates, resolve identity, alter PNF, or
+promote a claim.
+
+P0b.3 adds bounded expansion requests over the recoverable token lattice.
+Alias hints, structural grammar, and future PNF work can request a verified
+canonical token interval without asserting that an alias, interpretation, or
+identity is correct. The resulting mention/license remains candidate-only;
+structural-grammar production, PNF construction, and registry retrieval remain
+separate later stages.
+
+P0b.4 adds a backend-free alias-index input adapter. Caller-supplied,
+provenance-bearing canonical token sequences produce exact `alias_hint`
+expansion requests only: they carry no QID, selected candidate, registry
+lookup, identity assertion, PNF mutation, or promotion effect. Thus `9 / 11`
+can remain a reviewable surface span without being silently treated as `911`
+or as any particular event.
+
+P0b.5 adds a parser-interface-only structural-grammar adapter. It emits
+maximal annotated nominal phrases as bounded `grammar_phrase` requests, with
+their profile and context, but makes no entity/role/PNF decision and no
+registry call. Missing annotation produces no invented phrase boundary.
+
+P0b.6 adds offline bounded candidate retrieval. It compares anchored mention
+surfaces with a caller-supplied, provenance-bearing catalog in the canonical
+token space and preserves explicit zero/one/many candidate alternatives. It
+does not rank or resolve an identity, call a registry, change PNF, or promote a
+claim; in particular, `9 / 11` remains distinct from `911`.
+
+P0b.7 adds a generic form-relation layer before semantic typing and registry
+retrieval. It preserves surface, token, numeric, date-shaped, abbreviation,
+and profile-derived alternatives as `FormCandidate` records linked by declared
+`FormRelation` algebra. No form list or deterministic serialization order is a
+semantic preference: PNF/context must later establish any entity, event, or
+metonymic relation.
+
+P0b.8 turns those alternatives into a candidate-only local type fragment and
+an independent coverage receipt. Generic structural reductions identify numeric
+quantities, abbreviations, calendar expressions, and parser-annotated
+linguistic eventualities; provenance-bearing profiles may add entity, relation,
+role, class, or property alternatives. This still cannot choose an external
+identity, create PNF closure, query a registry, or promote a fact.
+
+P0c.1 now factorizes document-bounded `PartialPNF` slots over compatible local
+type alternatives and independently receipts each closure obligation. It never
+combines alternatives, issues a lookup/demand, selects an identity, or asserts
+a claim; the next stage turns only explicit closure states into budgeted
+registry-neutral demands.
+
+P0c.2 now projects only unresolved closure states into source-anchored,
+facet-specific, budget-labelled `ResolutionDemand` records. A demand is a
+backend-free evidence plan, not a request execution, candidate selection, PNF
+mutation, or promotion decision.
+
+P0c.3/P0c.4 now add typed resolution subjects before scheduling. Entity, event
+type, event occurrence, event artifact, document-local cluster, and property/
+relation targets remain distinct; event artifacts preserve observation,
+cluster, forecast, report, alert, and rolling-state roles. Demand-equivalence
+receipts use those roles, local types, PNF role, typed constraints, requested
+facets, and document scope—not surface text. They only identify potentially
+coalescible work; the next boundary is the append-only cache/scheduler.
 
 An incomplete graph view is candidate-only and cannot support an exhaustive
 claim. A completeness-certified view must name its coverage policy, revision,
@@ -175,11 +295,15 @@ mistaken for derived reconciliation.
 
 ## Observation Substrate Doctrine
 
-OpenRecall and WorldMonitor should be treated as two observation sources in
-the same ingestion substrate, not as separate semantic planes.
+OpenRecall and WorldMonitor can both contribute observations through the same
+ingestion substrate, not as separate semantic planes. That existing import
+role is only one WorldMonitor projection: the P0 entity/event-resolution plan
+also treats a pinned WorldMonitor world-model record as a resolvable external
+identity/event snapshot.
 
 - WorldMonitor:
-  external observation source
+  external observations plus an optional resolvable world-model snapshot
+  backend
 - OpenRecall:
   internal observation source
 - SensibLaw:
@@ -192,6 +316,13 @@ The current bounded rule is:
 - normalize WM and OpenRecall into the same observation-style substrate
 - feed that substrate into the existing relation/equivalence path
 - keep the result derived-only and operator-facing first
+
+The existing bridge below implements the observation projection only. It does
+not yet implement the planned registry-neutral snapshot adapter,
+cross-registry event meet, or identity resolution path. Future resolution must
+preserve whether a WorldMonitor record is an occurrence, observation, cluster,
+forecast, report, alert, or rolling state rather than flattening every record
+into an observation or occurrence.
 
 For WorldMonitor specifically, the supported bridge is:
 
@@ -496,6 +627,7 @@ interpretation.
 The practical doctrine is:
 
 - normalize shared primitives now
+- establish the shared mention/entity/PNF-resolution spine before targeting
 - normalize the targeting kernel before emitted alignment semantics
 - keep emitted structural targeting results weak and descriptive
 - hold composite alignment surfaces until semantics converge
@@ -509,6 +641,8 @@ The renewed targeting/alignment formalism is:
   - `review_candidate`
 - current bounded carrier:
   - `selection_basis`
+- prerequisite shared method layer:
+  - PNF-driven entity-resolution controller
 - next shared method layer:
   - `TargetingKernel`
 - next shared structural layer:

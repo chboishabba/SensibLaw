@@ -1,0 +1,1043 @@
+{
+  "authority": "diagnostic_aggregation_only",
+  "execution_effect": "none",
+  "reason_counts": {
+    "total_and_components_not_comparable": 129
+  },
+  "rows": [
+    {
+      "family_ref": "Q10397786|P5991",
+      "member_count": 9,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overlapping",
+      "split_requirement": "manual_reconstruction",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10403939|P5991",
+      "member_count": 24,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10422059|P5991",
+      "member_count": 29,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10423854|P5991",
+      "member_count": 6,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overlapping",
+      "split_requirement": "manual_reconstruction",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10425193|P5991",
+      "member_count": 34,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10429580|P5991",
+      "member_count": 27,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10434929|P5991",
+      "member_count": 30,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10443590|P5991",
+      "member_count": 26,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10443840|P5991",
+      "member_count": 19,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10474816|P5991",
+      "member_count": 15,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10494308|P5991",
+      "member_count": 10,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overlapping",
+      "split_requirement": "manual_reconstruction",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10494668|P5991",
+      "member_count": 26,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10509721|P5991",
+      "member_count": 19,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10521828|P5991",
+      "member_count": 21,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10523797|P5991",
+      "member_count": 11,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10526893|P5991",
+      "member_count": 20,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10535326|P5991",
+      "member_count": 14,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10535401|P5991",
+      "member_count": 9,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10584597|P5991",
+      "member_count": 24,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10590357|P5991",
+      "member_count": 15,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q105965579|P5991",
+      "member_count": 13,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10600414|P5991",
+      "member_count": 15,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10601765|P5991",
+      "member_count": 36,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10605629|P5991",
+      "member_count": 22,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10660042|P5991",
+      "member_count": 22,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10660896|P5991",
+      "member_count": 26,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q106625028|P5991",
+      "member_count": 19,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q106625550|P5991",
+      "member_count": 23,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q106627314|P5991",
+      "member_count": 23,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q106647141|P5991",
+      "member_count": 20,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q106684510|P5991",
+      "member_count": 12,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10686298|P5991",
+      "member_count": 14,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overlapping",
+      "split_requirement": "manual_reconstruction",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10719187|P5991",
+      "member_count": 17,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q10720019|P5991",
+      "member_count": 22,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q108733347|P5991",
+      "member_count": 16,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q109773651|P5991",
+      "member_count": 31,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q109787297|P5991",
+      "member_count": 15,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q109974149|P5991",
+      "member_count": 17,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q111843935|P5991",
+      "member_count": 18,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q1123823|P5991",
+      "member_count": 17,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "member_count": 22,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q1142582|P5991",
+      "member_count": 31,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q1145493|P5991",
+      "member_count": 11,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q115112945|P5991",
+      "member_count": 19,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q115167358|P5991",
+      "member_count": 14,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q115167531|P5991",
+      "member_count": 20,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q11977084|P5991",
+      "member_count": 10,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overlapping",
+      "split_requirement": "manual_reconstruction",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q126366671|P5991",
+      "member_count": 18,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "member_count": 26,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q126367344|P5991",
+      "member_count": 12,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q130366912|P5991",
+      "member_count": 7,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "already_partitioned",
+      "split_requirement": "existing_partition_preserved",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q130367275|P5991",
+      "member_count": 18,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q1337240|P5991",
+      "member_count": 10,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q1390136|P5991",
+      "member_count": 24,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q1421630|P5991",
+      "member_count": 16,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q1423707|P5991",
+      "member_count": 25,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q1467848|P5991",
+      "member_count": 23,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q1476113|P5991",
+      "member_count": 20,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q1537811|P5991",
+      "member_count": 15,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q1537901|P5991",
+      "member_count": 14,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q1564880|P5991",
+      "member_count": 29,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q15702556|P5991",
+      "member_count": 25,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q157675|P5991",
+      "member_count": 19,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q163810|P5991",
+      "member_count": 10,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q1640495|P5991",
+      "member_count": 25,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q1671804|P5991",
+      "member_count": 27,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q1703203|P5991",
+      "member_count": 9,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q1785637|P5991",
+      "member_count": 42,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q1805602|P5991",
+      "member_count": 13,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q18541785|P5991",
+      "member_count": 19,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "member_count": 37,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q215293|P5991",
+      "member_count": 28,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q219501|P5991",
+      "member_count": 19,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q22077794|P5991",
+      "member_count": 19,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q2723182|P5991",
+      "member_count": 9,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overlapping",
+      "split_requirement": "manual_reconstruction",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q276345|P5991",
+      "member_count": 21,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "member_count": 24,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q28836696|P5991",
+      "member_count": 29,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q30938280|P5991",
+      "member_count": 14,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q3121401|P5991",
+      "member_count": 17,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q3181430|P5991",
+      "member_count": 35,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q31884527|P5991",
+      "member_count": 16,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "member_count": 32,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q3366005|P5991",
+      "member_count": 21,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q3377840|P5991",
+      "member_count": 22,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q3429427|P5991",
+      "member_count": 12,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q378944|P5991",
+      "member_count": 24,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q3924567|P5991",
+      "member_count": 31,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q4356297|P5991",
+      "member_count": 13,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "member_count": 36,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q4827724|P5991",
+      "member_count": 24,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q4994121|P5991",
+      "member_count": 20,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q4998333|P5991",
+      "member_count": 13,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q505922|P5991",
+      "member_count": 8,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overlapping",
+      "split_requirement": "manual_reconstruction",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q52579|P5991",
+      "member_count": 21,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q52601|P5991",
+      "member_count": 19,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q52618|P5991",
+      "member_count": 30,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q52846|P5991",
+      "member_count": 24,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q5290243|P5991",
+      "member_count": 10,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q5362569|P5991",
+      "member_count": 15,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q54075|P5991",
+      "member_count": 17,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q558699|P5991",
+      "member_count": 21,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q6060753|P5991",
+      "member_count": 25,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q60967616|P5991",
+      "member_count": 24,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q60970803|P5991",
+      "member_count": 25,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q627577|P5991",
+      "member_count": 12,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q63993633|P5991",
+      "member_count": 7,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overlapping",
+      "split_requirement": "manual_reconstruction",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q6460556|P5991",
+      "member_count": 8,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overlapping",
+      "split_requirement": "manual_reconstruction",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "member_count": 22,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q65196379|P5991",
+      "member_count": 22,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q662174|P5991",
+      "member_count": 10,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q662664|P5991",
+      "member_count": 21,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q671398|P5991",
+      "member_count": 15,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q674575|P5991",
+      "member_count": 18,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q686030|P5991",
+      "member_count": 31,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q7295902|P5991",
+      "member_count": 14,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q731938|P5991",
+      "member_count": 91,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q738421|P5991",
+      "member_count": 41,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q747265|P5991",
+      "member_count": 18,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q757164|P5991",
+      "member_count": 17,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q7654795|P5991",
+      "member_count": 26,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q787044|P5991",
+      "member_count": 15,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q7916311|P5991",
+      "member_count": 22,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q792486|P5991",
+      "member_count": 26,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q820970|P5991",
+      "member_count": 31,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "member_count": 26,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q862303|P5991",
+      "member_count": 22,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q891345|P5991",
+      "member_count": 20,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    },
+    {
+      "family_ref": "Q899356|P5991",
+      "member_count": 16,
+      "reason": "total_and_components_not_comparable",
+      "scope_partition_state": "overloaded",
+      "split_requirement": "new_split_required",
+      "total_component_relation": "not_comparable"
+    }
+  ],
+  "schema_version": "sl.climate_ghg_coverage_reason_inventory.v1",
+  "unknown_family_count": 129
+}

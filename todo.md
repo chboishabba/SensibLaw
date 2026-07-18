@@ -1,5 +1,169 @@
 # SensibLaw TODO
 
+# 2026-07-17 broader priority checkpoint
+
+- [P0a] Consolidate the canonical parser/span substrate described in
+  `docs/planning/pnf_driven_entity_resolution_spine_20260717.md`:
+  - DONE: converge `src/section_parser.py` and
+    `src/ingestion/section_parser.py` on one implementation plus a
+    compatibility projection. Canonical parsing/rule extraction/node formation
+    live in `src.ingestion.section_parser`; the root module retains historical
+    `Provision` and simple-JSON outputs.
+  - retain one canonical character-coordinate system and immutable text/blob
+  - tokenize/annotate once per versioned profile and expose span views
+  - preserve verbose text-bearing JSON as a compatibility projection
+  - add content/profile/version cache keys before large-corpus resolution
+- [P0b] Add generic, receipt-free mention/entity carriers:
+  - DONE: `MentionSpan`, `EntityCandidateSet`, and `CoreferenceCluster` in
+    `src.policy.entity_resolution`, including deterministic validation,
+    ordering, serialization, provenance references, candidate-only authority,
+    and document-boundary enforcement
+  - NEXT: lazy candidate instantiation over a recoverable meaningful-span
+    lattice, using public parser/reducer outputs rather than raw parser calls
+  - DONE: P0b.1 baseline licensing profile materializes non-structural
+    lexical tokens, numeric literals, maximal name-shaped phrases, and
+    adapter-identified eventuality predicates; receipt the complete span-lattice
+    cardinality and structural-token suppressions without any lookup or
+    resolution
+  - DONE: P0b.2 document-local recurrence groups retain repeated generated
+    surfaces by case-folded whitespace-normalized form within one document;
+    they are evidence only, not aliases, coreference, candidate sets, or
+    identity decisions
+  - DONE: P0b.3 bounded expansion requests can license a source-anchored token
+    interval because of an alias hint, grammar phrase, or future PNF demand,
+    without treating the request as an alias, identity, PNF, or candidate
+    decision
+  - DONE: P0b.4 caller-supplied, provenance-bearing alias token sequences emit
+    exact `alias_hint` requests only; no QID, candidate selection, registry
+    lookup, identity decision, PNF mutation, or promotion is permitted
+  - DONE: P0b.5 public parser/token annotations emit maximal nominal-phrase
+    `grammar_phrase` requests only; parser evidence does not establish an
+    entity, identity, PNF role, candidate set, or promotion
+  - DONE: P0b.6 bounded candidate retrieval matches caller-supplied,
+    provenance-bearing catalogs in canonical token space; it preserves
+    explicit zero/one/many alternatives without ranking, resolution, or
+    network access
+  - DONE: P0b.7 form derivation keeps source-anchored surface, token, numeric,
+    date-shaped, abbreviation, and declaratively profile-derived alternatives
+    separate from entity candidates. Form relations are explicit; deterministic
+    serialization cannot encode semantic preference or alias truth; every
+    compatible declared composition path remains an explicit alternative.
+  - DONE: P0b.8 locally types form-derived quantities, abbreviations and
+    calendar expressions plus parser-annotated linguistic eventualities; a
+    provenance-bearing profile may add entity/relation/role/class/property
+    alternatives without external identity. Every mention receives independent
+    `typed`/`weakly_typed`/`untyped` coverage pressure; no PNF closure,
+    resolution, registry access, or promotion is possible.
+  - DONE: P0c.1 factorizes document-bounded `PartialPNF` slots over compatible
+    local type references and receipts one closure state per declared slot;
+    it does not combine alternatives, issue a demand, select an identity, or
+    create promotion authority.
+  - DONE: P0c.2 projects only unresolved P0c.1 slots into generic, source-
+    anchored, facet-specific, budget-labelled `ResolutionDemand` records;
+    demand construction remains backend-free and cannot alter PNF or identity.
+  - DONE: P0c.3 defines typed resolution subjects before scheduler work:
+    entity, event type, event occurrence, event artifact, document-local
+    cluster, and property/relation; preserve occurrence/observation/cluster/
+    forecast/report/alert/rolling-state roles explicitly
+  - DONE: P0c.4 derives semantic demand-equivalence keys and deduplication
+    receipts from typed subject, PNF role, local types, typed constraints,
+    requested facets, and document scope; never from surface text alone
+  - NEXT: define the registry-neutral append-only cache/microbatch scheduler
+    and its explicit cache/unavailable/budget outcomes
+- [P0c] Add the bounded PNF-driven resolution loop:
+  - `PartialPNF`
+  - `ResolutionDemand`
+  - `ResolutionAssessment`
+  - `PNFRefinement`
+  - `EventualityCandidate`, `EventObservation`,
+    `ExternalIdentityCandidate`, and `EventMeetAssessment`
+  - typed role/type/time/relation constraints, coverage/closure pressure,
+    evaluation budgets, residual widening, cache signatures, and explicit
+    stopping states
+  - factorized alternatives rather than duplicated full PNF graphs
+  - typed resolution subjects and formal event roles before scheduler design
+  - semantic demand equivalence before cache/in-flight deduplication
+  - registry-neutral broker: local/cache first, then deduplicated backend
+    microbatches with rate limits, retries, negative caching, and cancellation
+  - pinned Wikidata snapshot adapter followed by a current-schema-verified
+    WorldMonitor snapshot adapter; neither may leak into parser semantics
+  - typed event meets across temporal, spatial, participant, type, mention,
+    lineage, and observation/occurrence coordinates; scalar scores may order
+    review only and may not close identity
+- [P0d] Extract generic targeting semantics from the transitional
+  `GWBTargetingCandidate` / `GWBTargetingResult` surface and make targeting
+  consume resolved or explicitly ambiguous PNF/entity alternatives above
+  `review_text` / `review_candidate`. Keep shared emitted alignment held until
+  the readiness oracle can promote it.
+- [P0] Re-express the measured GWB public `28 singleton / 42 unresolved` and
+  broader `14 singleton / 13 unresolved` inventories as separate:
+  - mention/entity ambiguity
+  - claim/target ambiguity
+  - document-local coreference clusters
+  - factorized PNF alternatives and final readiness states
+  Include George W. Bush name/role recurrence and `9/11` event-vs-literal
+  fixtures. Prioritize books/memoir and official-record source families before
+  affidavit-shaped expansion.
+- [P1] Normalize AU onto the same entity-resolution/PNF/targeting spine, then
+  move the AU fact-review/legal-follow surface into the first operator-grade
+  workflow.
+- [P1] Continue Nat/Wikidata as a bounded, revision-pinned diagnostic and
+  optional external-entity evidence backend: run the climate policy dry run,
+  measure full-backlog rule coverage, and review near misses before any
+  migration-rule proposal.
+- [P2] Finish the narrow external-graph Apoteket isolation/replay handoff,
+  then consider graph expansion, spectral pressure, shard optimization, and
+  hard ontology remainders. Keep live migration, broad ontology automation,
+  and shared emitted alignment out of scope.
+
+Acceptance for P0a-P0d:
+
+- every mention/candidate/PNF slot traces to canonical spans;
+- one, many, or zero surviving candidates are explicit and deterministic;
+- deterministic carrier order is an encoding invariant, never a semantic
+  rank, preference, or resolution decision;
+- ordinary nouns and labelled phrases can contribute typed candidates without
+  requiring every token to have a QID;
+- meaningful eventualities receive local semantic typing even when no external
+  event identity is available;
+- coverage pressure and PNF closure pressure remain independently inspectable;
+- external calls are cache-aware, deduplicated, rate-limited, and microbatched
+  without making parser code backend-aware;
+- event observations, occurrences, clusters, forecasts, reports, alerts, and
+  rolling states remain distinct objects connected by explicit relations;
+- ambiguity, rejected alternatives, incomplete coverage, and budget exhaustion
+  remain visible;
+- candidate identity, resolved identity, and promoted fact never collapse;
+- cross-context joins remain explicit, opt-in, reviewable, and reversible;
+- at least GWB and AU consume the same generic carriers/controller before a
+  stronger shared alignment primitive is reconsidered.
+
+- [P0] Run the climate-GHG policy-resolution dry run from
+  `docs/planning/climate_ghg_policy_resolution_dry_run_20260717.md`:
+  - obtain and version the exact-12-month fiscal-period policy decision
+  - test the 132 fiscal-only transitions without releasing the 176
+    fiscal-plus-ambiguous-scope statements
+  - apply one Q52579 subject adjudication and one Q1476113 reference review
+  - test the concentrated 12 method and 3 unit mappings
+  - emit per-statement transition receipts and exclusive outcome partitions
+  - preserve the original V2/replay artifacts and all non-authoritative gates
+
+- [P1] Complete the climate-GHG V2 evidence/governance tranche from
+  `docs/planning/climate_ghg_orthogonal_assessment_v2_20260717.md`:
+  - add versioned JSON adjudications for the deterministic 15-family sample
+  - emit primary and overlapping hold-reason inventories
+  - subdivide unknown component coverage and explain strict A4 attrition
+  - calculate subtype precision and apply the five-positive / 95% / zero
+    critical-miss contract gate
+  - emit a review-only canary of at most 25 statements when a subtype qualifies
+  - defer CSV/OpenRefine export and all migration/edit execution
+
+- [P2] Investigate the structurally hard climate-GHG remainder only after the
+  policy-resolution dry run: 176 fiscal-plus-ambiguous-scope statements, 6
+  additional ambiguous scopes, 1 ambiguous category, 1 missing-time statement,
+  and remaining unsupported semantic shapes. Do not fold these into fiscal-year
+  policy or a first governed canary.
+
 - [P0] Implement the first generic external-graph bridge tranche.
   - contract: `docs/external_graph_bridge.md`
   - roadmap: `../docs/planning/itir_wd_zelph_sensiblaw_flatness_optimisation_roadmap_20260702.md`
@@ -630,6 +794,8 @@
         review-queue row -> event-target subset
     - doctrine:
       - normalize shared primitives first
+      - establish the shared mention/entity/PNF-resolution spine before
+        targeting
       - normalize the targeting kernel before emitted alignment semantics
       - treat weak targeting result as the next structural layer, not a shared
         semantic verdict

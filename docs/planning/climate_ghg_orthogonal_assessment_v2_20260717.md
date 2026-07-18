@@ -118,6 +118,40 @@ does not enter this outcome precedence by itself.
 - A5 derives only from partial component coverage and may coexist with the
   contextual projections above.
 - H4 derives from collided or unresolved slot integrity and never coexists
+
+## Evidence and governance tranche
+
+The next tranche extends V2 with derived-only evidence reports over the same
+immutable replay. It does not change the classifier, replay payloads, or
+authority boundary.
+
+- The existing deterministic 15-family manifest is the review population.
+- Human adjudication is recorded in a versioned JSON sidecar tied to the V2
+  assessment and source provenance hashes. CSV/OpenRefine export is deferred.
+- Reports distinguish an exclusive primary hold reason from all overlapping
+  reasons. Primary precedence is semantic-slot identity, enterprise-subject
+  evidence, reference adequacy, annual-period evidence, target semantics, then
+  other unsupported/incompatible predicates.
+- Unknown component coverage is subdivided into missing totals, unrecognised
+  partitions, incomparable boundaries, absent exhaustiveness evidence,
+  unresolved boundaries, and unavailable arithmetic evidence where supported by
+  the replay evidence.
+- A4 strict-detector attrition lists each lost family, failed or unresolved
+  predicate, member count, and V2 outcome counts.
+- A semantic subtype can propose a governed candidate contract only with at
+  least five reviewed eligible statements, at least 95% eligible precision, and
+  no critical target, qualifier, or collision miss. The largest qualifying
+  subtype wins; ties prefer organisation-wide totals, then Scope 1, Scope 2,
+  Scope 3 aggregate, and named Scope 3 category.
+- A qualifying contract emits a read-only, deterministically selected canary of
+  at most 25 statements. It remains a review manifest, never an edit or
+  execution manifest.
+
+The next narrower tranche is specified in
+`docs/planning/climate_ghg_policy_resolution_dry_run_20260717.md`. It tests
+132 fiscal-year-only holds, 21 Q52579 subject holds, 4 Q1476113 reference
+holds, and concentrated method/unit cases (12/3) without bundling the 176
+fiscal-plus-ambiguous-scope statements into the fiscal policy.
   with `eligible`.
 
 Legacy behavior and artifacts remain unchanged. The comparison artifact must

@@ -101,6 +101,60 @@ contract without making lane-local bundles a second shared input shape.
 Do not put lane-specific control-plane logic into the shared helpers unless the
 same audit concept is genuinely needed by multiple lanes.
 
+## Entity Resolution and PNF Rule
+
+Entity resolution is a shared compiler capability, not a GWB, AU, Nat, or
+Wikidata method. New runtime work must follow the contract in
+`docs/planning/pnf_driven_entity_resolution_spine_20260717.md`.
+
+Required shape:
+
+```text
+canonical spans -> shared annotations -> locally typed candidate world fragment
+-> partial PNF -> coverage/closure demands -> registry-neutral broker
+-> bounded candidate evidence -> typed reconciliation -> PNF refinement
+```
+
+Implementation rules:
+
+- preserve every token and make every logically meaningful span recoverable;
+- instantiate the span/candidate lattice lazily rather than eagerly allocating
+  every contiguous span;
+- keep `candidate identity`, `resolved identity`, and `promoted fact` as
+  separate authority states;
+- keep ambiguity, rejected candidates, evaluation-budget exhaustion, and
+  residuals explicit;
+- share external entity snapshots and document-local coreference evidence by
+  reference rather than copying them onto every mention;
+- factorize PNF alternatives over one local skeleton until materialization is
+  required for review or interacting constraints;
+- treat external registries, including Wikidata, as optional revisioned
+  evidence backends;
+- type all meaningful entities and eventualities locally where supported;
+  residual pressure controls evaluation depth, not candidate-world admission;
+- keep parsers backend-blind and route external evidence through a generic
+  cache-aware scheduler whose adapters may rate-limit and microbatch calls;
+- distinguish event class, event occurrence, observation, cluster, forecast,
+  report, alert, and rolling state, connecting them with explicit relations;
+- define typed resolution subjects and formal event roles before scheduler or
+  cache-key design; observations/clusters/forecasts/reports/alerts/states may
+  not be coerced into event occurrences;
+- deduplicate demands only by semantic equality over subject/role, local type
+  alternatives, PNF slot role, typed constraints, requested facets, and
+  document scope; surface equality is never sufficient;
+- reconcile events through typed temporal, spatial, participant, type,
+  lineage, and observation/occurrence obligations rather than a scalar score;
+- treat WorldMonitor as an optional resolvable snapshot backend, not an event
+  ontology or authority;
+- prohibit silent/default cross-context identity merging;
+- use `sensiblaw.interfaces` parser/reducer surfaces rather than raw regex,
+  direct spaCy parsing, or lane-local tokenization.
+
+The existing `GWBTargetingCandidate` and `GWBTargetingResult` classes are a
+transitional lane-named surface. Do not deepen them. Extract reusable candidate
+and targeting semantics into generic carriers, leaving the GWB module/profile
+as fixture mapping and compatibility labeling only.
+
 ## User-Surface Rule
 
 Users should not be required to know lane names or write lane glue code.

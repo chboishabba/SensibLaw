@@ -32,6 +32,14 @@ Never:
 - infer the same person across domains
 - merge home/work/medical/legal timelines automatically
 
+This does not prohibit explicit, span-anchored entity-resolution work inside a
+bounded user-supplied tranche. Document-local coreference and external identity
+candidates may be generated when their provenance, alternatives, context
+boundary, and authority state remain visible. Any cross-context join must be an
+opt-in, reversible, reviewable bridge proposal; it must never be hidden,
+passive, global by default, or promoted as fact merely because a registry label
+matches.
+
 ### 2.3 Hidden or passive capture
 Never:
 - silently record

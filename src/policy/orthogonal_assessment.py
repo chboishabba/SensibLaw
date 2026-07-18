@@ -183,4 +183,75 @@ def build_coverage_report(assessment: Mapping[str, Any]) -> dict[str, Any]:
     return report
 
 
-__all__ = ["build_assessment", "build_coverage_report"]
+def validate_review_adjudications(
+    *,
+    assessment: Mapping[str, Any],
+    manifest: Mapping[str, Any],
+    adjudications: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Validate a statement-level review sidecar against a sample manifest."""
+
+    if adjudications.get("schema_version") != "sl.orthogonal_review_adjudications.v1":
+        raise ValueError("unsupported orthogonal review adjudication schema")
+    if adjudications.get("assessment_ref") != assessment.get("assessment_ref"):
+        raise ValueError("review adjudications reference a different assessment")
+    if adjudications.get("provenance") and dict(adjudications["provenance"]) != dict(
+        assessment.get("provenance") or {}
+    ):
+        raise ValueError("review adjudications provenance differs from assessment")
+    expected_families = {
+        str(value) for value in manifest.get("selected_family_refs") or ()
+    }
+    expected_statements = {
+        str(row.get("statement_ref"))
+        for row in assessment.get("statements") or ()
+        if str(row.get("family_ref")) in expected_families
+    }
+    statement_families = {
+        str(row.get("statement_ref")): str(row.get("family_ref"))
+        for row in assessment.get("statements") or ()
+    }
+    rows = [dict(row) for row in adjudications.get("statements") or ()]
+    seen: set[str] = set()
+    for row in rows:
+        statement_ref = _required_text(row, "statement_ref")
+        family_ref = _required_text(row, "family_ref")
+        if statement_ref in seen:
+            raise ValueError(f"duplicate review adjudication: {statement_ref}")
+        if (
+            family_ref not in expected_families
+            or statement_ref not in expected_statements
+        ):
+            raise ValueError(
+                f"review adjudication is outside the selected sample: {statement_ref}"
+            )
+        if statement_families.get(statement_ref) != family_ref:
+            raise ValueError(f"review adjudication family mismatch: {statement_ref}")
+        seen.add(statement_ref)
+        for field in (
+            "v2_outcome_correct",
+            "semantic_subtype_correct",
+            "target_semantics_appropriate",
+            "qualifiers_preserved",
+            "qualifier_repair_needed",
+            "different_target_required",
+            "hold_reason_correct",
+        ):
+            value = row.get(field)
+            if value is not None and not isinstance(value, bool):
+                raise ValueError(f"review field must be boolean or null: {field}")
+    if adjudications.get("status") == "complete" and seen != expected_statements:
+        raise ValueError("complete adjudications must cover every sampled statement")
+    return {
+        **dict(adjudications),
+        "statements": sorted(rows, key=lambda row: str(row["statement_ref"])),
+        "reviewed_statement_count": len(seen),
+        "sample_statement_count": len(expected_statements),
+    }
+
+
+__all__ = [
+    "build_assessment",
+    "build_coverage_report",
+    "validate_review_adjudications",
+]

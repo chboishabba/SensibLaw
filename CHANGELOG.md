@@ -1,5 +1,107 @@
 # 2026-07-17
 
+- Implement P0c.3/P0c.4 typed resolution subjects and semantic demand-
+  equivalence receipts before scheduler work. Entity/event/property/local-
+  cluster subjects and formal event roles remain distinct; equivalent demands
+  retain every member and are only marked coalescible, with no backend, cache,
+  retrieval, resolution, PNF, or promotion effect.
+- Implement P0c.2's generic backend-free ResolutionDemand projection. Only
+  unresolved closure obligations now produce source-anchored, facet-specific,
+  budget-labelled evidence plans; no backend selection, request, resolution,
+  or PNF mutation occurs.
+- Implement P0c.1's generic factorized PartialPNF carrier and independent
+  closure-pressure receipt. Document-bounded slots now retain compatible local
+  type alternatives without combining them, making a registry request,
+  resolving identity, or asserting a claim.
+- Implement P0b.8's generic candidate-only local typing and coverage-pressure
+  carrier. Form and parser evidence can now produce explicit local semantic
+  alternatives and per-mention coverage states without selecting identity,
+  constructing PNF, contacting a registry, or promoting a fact.
+- Correct P0b.7 form composition so every compatible declared component path
+  is emitted; input and serialization order can no longer suppress a form
+  alternative.
+- Implement P0b.7's generic candidate-only form derivation carrier. Anchored
+  source forms now produce explicit surface, token, numeric, abbreviation, and
+  profile-derived alternatives plus declared form relations, before entity
+  retrieval or PNF interpretation. Deterministic encoding order is explicitly
+  non-semantic; no alias truth, event identity, metonymy, resolution, or
+  promotion is introduced.
+- Implement P0b.6's generic offline bounded candidate retrieval. Anchored
+  mentions now match caller-supplied, provenance-bearing catalog entries by
+  exact canonical token sequence, preserving explicit zero/one/many candidate
+  alternatives with no ranking, resolution, registry request, PNF mutation,
+  or promotion effect.
+- Implement P0b.5's parser-interface-only structural-grammar producer. The
+  initial nominal-phrase profile emits deterministic bounded `grammar_phrase`
+  requests while preserving a candidate-only boundary: no candidate set,
+  registry access, identity/PNF decision, or promotion.
+- Implement P0b.4's generic alias-index request producer. Provenance-bearing
+  canonical token sequences now emit deterministic exact `alias_hint` expansion
+  requests without carrying a QID, registry lookup, candidate selection,
+  identity resolution, PNF mutation, or promotion authority.
+- Implement P0b.3's generic bounded mention-expansion carrier. Explicit alias
+  hints, grammar phrases, and future PNF demands can license verified canonical
+  token intervals, reusing existing spans or creating source-anchored new ones
+  deterministically. Requests remain candidate-only context, not alias,
+  identity, PNF, candidate-set, registry, promotion, or execution decisions.
+- Implement P0b.2's generic document-local mention-recurrence carrier. It
+  deterministically groups only repeated case-folded, whitespace-normalized
+  generated surfaces within one document. Recurrence remains candidate-only
+  evidence, not aliasing, coreference, identity resolution, PNF mutation,
+  registry lookup, promotion, or execution.
+- Implement P0b.1's generic backend-free mention-licensing carrier. It uses
+  the public parser/reducer interfaces to materialize non-structural lexical
+  spans, numeric spans, maximal name-shaped phrases, and adapter-annotated
+  eventualities; it records the complete recoverable token-span lattice and
+  structural suppression deterministically. Licensing is candidate-only and
+  introduces no registry lookup, identity resolution, PNF mutation, promotion,
+  or cross-document join.
+- Refine the PNF/entity-resolution architecture so coverage pressure types all
+  meaningful local entities and eventualities while closure pressure controls
+  deeper evaluation. Document a registry-neutral, cache-aware microbatch
+  scheduler; Wikidata and WorldMonitor as optional snapshot backends; and
+  cross-registry event reconciliation through typed temporal, spatial,
+  participant, type, lineage, and observation/occurrence meets. This is a
+  documentation and implementation-sequencing correction only; no resolver,
+  network scheduler, WorldMonitor adapter, identity decision, or promotion path
+  has been implemented.
+- Add the first generic entity-resolution carrier slice. Anchored mentions,
+  typed local/external candidates, candidate sets, and document-local
+  coreference clusters now validate and serialize deterministically under a
+  candidate-only authority boundary. The carrier rejects cross-document joins
+  and promotion authority; it deliberately performs no lookup, resolution,
+  PNF mutation, or claim promotion.
+- Consolidate the section parser behind `src.ingestion.section_parser`. The
+  historical `src.section_parser` module now projects canonical nodes into its
+  legacy `Provision` tree and simple section JSON shapes, instead of carrying
+  a second parser/rule-extraction implementation. Existing parser-facing
+  callers retain their output shapes; span-storage and cache optimization are
+  still pending P0a work.
+- Reframe P0 around a shared PNF-driven entity-resolution spine before
+  targeting. The canonical plan now covers a recoverable lazy mention lattice,
+  generic candidate/coreference/resolution carriers, factorized PNF refinement,
+  parser/span consolidation prerequisites, GWB and AU proving tranches, and
+  Nat/Wikidata as an optional pinned evidence backend. Candidate identity,
+  resolved identity, and promoted fact remain separate; cross-context identity
+  joining remains explicit and opt-in. This is a documentation and sequencing
+  change only; no resolver runtime or promotion behavior has been implemented.
+- Record a suite-wide TODO priority checkpoint: shared compiler/targeting
+  first, GWB/affidavit as the ambiguity-heavy proving lane, AU as the next
+  targeting adopter, Nat/Wikidata as bounded diagnostics, and graph expansion
+  or hard ontology work afterward. Shared emitted alignment and live migration
+  remain held.
+- Document the next bounded climate-GHG policy-resolution dry run. It
+  separates 132 fiscal-only holds, 21 Q52579 subject holds, 4 Q1476113
+  reference holds, and concentrated method/unit cases from the 176
+  fiscal-plus-ambiguous-scope statements. The planned output is an offline,
+  diagnostic transition receipt partition with no migration or edit authority.
+- Add the derived climate-GHG evidence/governance tranche above the immutable
+  V2 assessment: a provenance-bound JSON review sidecar, exclusive and
+  overlapping hold-reason inventory, unknown-coverage explanation, 14-family /
+  218-statement A4 attrition explanation, and a five-positive / 95%-precision /
+  zero-critical-miss contract gate with a review-only 25-statement canary.
+  The current pending sample remains diagnostic-only; CSV/OpenRefine and all
+  migration/edit execution remain deferred.
 - Add the derived-only climate-GHG orthogonal V2 assessment over the immutable
   232-family / 3,562-statement company-direct replay. A generic shared carrier
   validates five-axis cardinality, references, authority, ordering, hashes,

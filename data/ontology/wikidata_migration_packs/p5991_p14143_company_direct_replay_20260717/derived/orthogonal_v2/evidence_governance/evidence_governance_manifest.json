@@ -1,0 +1,29 @@
+{
+  "assessment_ref": "orthogonal-assessment:0cdd2aa0cd40c15df71b4b465e0963911e1c9cc5e8fbd85fed3f5fb8c39c50b5",
+  "authority": "diagnostic_aggregation_only",
+  "execution_effect": "none",
+  "output_files": [
+    "a4_attrition_explanation.json",
+    "contract_proposal.json",
+    "coverage_reason_inventory.json",
+    "evidence_governance_manifest.json",
+    "hold_reason_inventory.json",
+    "review_adjudications.json"
+  ],
+  "output_hashes": {
+    "a4_attrition_explanation.json": "50b76fd639013bba240f1a45ee587822790c08453e8509d031a3fff95a0bb8e1",
+    "contract_proposal.json": "e96c69d81990b1140127b42fea673a36259523b2833a15ff59546aa8931e6b25",
+    "coverage_reason_inventory.json": "68863019d746a5ba08e30fcbaea3f3b45045157e3d7dbf9bb80fdae4f27ac2cb",
+    "hold_reason_inventory.json": "4d5b639d5f53a757b649c3410cc3f4931d95f255933601764cba46b0a791c27c",
+    "review_adjudications.json": "e6e85b007b86c412e78ffdec08644e02dee101d984e2eb5dc48721eadb9aec9c"
+  },
+  "provenance": {
+    "h4_collision_report.json": "b957178985dec82e71cd81c083bfb9f1a33658e92ff9520712c7def77a859298",
+    "manifest.json": "ef8c009ebb7b0f57bd1ca086538695c784678c1dc992f0e653e655c0f1ab9882",
+    "migration_pack.json": "e27108afd87ca038b2b44352d0fb50758f3ded81ef2e7bb0fba063b891c78d2a",
+    "rule_coverage.json": "a3664a5506d224702a60405c65a705b44e0a590bea5a43a7cc11e08b14e58832",
+    "run-state.json": "43bbbc41977cc0ad10b2659518e5edbbfb6cab84704850bd648acf8b1822362c",
+    "slice.json": "eb6cbf5433e3596f6e2f35bd11263dd73f70935fe35ee38aae8e8d32a19e393d"
+  },
+  "schema_version": "sl.climate_ghg_evidence_governance_manifest.v1"
+}
