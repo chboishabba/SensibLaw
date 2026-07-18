@@ -12,26 +12,11 @@ from src.policy.corpus_compilation import (
 )
 from src.sensiblaw.interfaces.shared_reducer import tokenize_canonical_with_spans
 from src.storage.postgres import PersistedCompilation, PostgresCompilerStore
+from src.storage.postgres.semantic_store import (
+    persist_pnf_graph,
+    persist_resolution_artifacts,
+)
 from src.storage.postgres.span_store import persist_licensed_spans
-
-
-def _normalized_refinement_rows(
-    rows: Sequence[Mapping[str, Any]],
-) -> tuple[dict[str, Any], ...]:
-    normalized: list[dict[str, Any]] = []
-    for row in rows:
-        prior = row.get("prior_factor")
-        resulting = row.get("resulting_factor")
-        if not isinstance(prior, Mapping) or not isinstance(resulting, Mapping):
-            raise ValueError("factor refinement requires prior and resulting factors")
-        normalized.append(
-            {
-                **dict(row),
-                "prior_factor_ref": str(prior["factor_ref"]),
-                "resulting_factor_ref": str(resulting["factor_ref"]),
-            }
-        )
-    return tuple(normalized)
 
 
 def persist_document_compilation(
@@ -46,9 +31,9 @@ def persist_document_compilation(
 ) -> tuple[str, ...]:
     """Compile and persist one document transactionally.
 
-    The compiler produces the existing immutable carriers; this boundary
-    normalizes those carriers into PostgreSQL rows. No semantic JSON files are
-    emitted and no readiness or external identity authority is introduced.
+    The compiler produces immutable carriers; this boundary normalizes those
+    carriers into PostgreSQL rows and immutable factor revisions. No semantic
+    JSON files are emitted and no resolution or promotion authority is added.
     """
 
     compilation = compile_document(
@@ -99,19 +84,18 @@ def persist_document_compilation(
             document_ref=compilation.document_ref,
             layer=artifacts["annotation_layer"],
         )
-        store.persist_pnf_graph(
+        factor_revisions = persist_pnf_graph(
             cursor,
             document_ref=compilation.document_ref,
             graph=artifacts["pnf_graph"],
         )
-        return store.persist_resolution_artifacts(
+        return persist_resolution_artifacts(
             cursor,
+            factor_revisions=factor_revisions,
             demands=artifacts.get("resolution_demands") or (),
             evidence=artifacts.get("local_evidence") or (),
             meets=artifacts.get("typed_meets") or (),
-            refinements=_normalized_refinement_rows(
-                artifacts.get("factor_refinements") or ()
-            ),
+            refinements=artifacts.get("factor_refinements") or (),
         )
 
 
@@ -129,12 +113,7 @@ def compile_directory_postgres(
     max_total_bytes: int | None = None,
     execution_phase: str = "local",
 ) -> PersistedCompilation:
-    """Compile a bounded directory directly into PostgreSQL.
-
-    Inventory, local compilation, and demand planning are supported. External
-    fetching, cross-document identity closure, readiness, and promotion remain
-    separate phases.
-    """
+    """Compile a bounded directory directly into PostgreSQL."""
 
     if execution_phase not in {"inventory", "local", "demand_planning"}:
         raise ValueError("unsupported corpus compilation phase")
