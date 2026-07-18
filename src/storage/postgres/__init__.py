@@ -1,6 +1,6 @@
 """PostgreSQL operational storage for the generic compiler runtime."""
 
-from .compiler_store import PersistedCompilation, PostgresCompilerStore
+from .runtime_store import PersistedCompilation, PostgresCompilerStore
 from .token_codec import (
     CorpusCodec,
     decode_delta_sequence,
