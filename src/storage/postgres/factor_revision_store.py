@@ -1,4 +1,4 @@
-"""Persistence helper for one immutable factor revision."""
+"""Persistence helpers for immutable factor revisions."""
 
 from __future__ import annotations
 
@@ -7,8 +7,26 @@ from typing import Any, Mapping
 from src.policy.carriers.canonical import canonical_sha256
 
 
+def factor_revision_payload(factor: Mapping[str, Any]) -> dict[str, Any]:
+    """Return factor content without its derived self-reference metadata."""
+
+    payload = dict(factor)
+    metadata = dict(payload.get("metadata") or {})
+    metadata.pop("factor_revision_ref", None)
+    payload["metadata"] = metadata
+    return payload
+
+
 def factor_revision_ref(factor: Mapping[str, Any]) -> str:
-    return f"factor-revision:{canonical_sha256(factor)}"
+    computed = "factor-revision:" + canonical_sha256(
+        factor_revision_payload(factor)
+    )
+    explicit = str((factor.get("metadata") or {}).get("factor_revision_ref") or "")
+    if explicit and explicit != computed:
+        raise ValueError(
+            "factor_revision_ref metadata disagrees with canonical factor content"
+        )
+    return computed
 
 
 def _sha(value: object) -> bytes:
@@ -22,6 +40,7 @@ def persist_factor_revision(
     factor: Mapping[str, Any],
 ) -> str:
     factor_ref = str(factor["factor_ref"])
+    revision_payload = factor_revision_payload(factor)
     revision_ref = factor_revision_ref(factor)
     cursor.execute(
         """
@@ -38,7 +57,12 @@ def persist_factor_revision(
         VALUES (%s, %s, %s, %s)
         ON CONFLICT (factor_revision_ref) DO NOTHING
         """,
-        (revision_ref, factor_ref, str(factor["closure_state"]), _sha(factor)),
+        (
+            revision_ref,
+            factor_ref,
+            str(factor["closure_state"]),
+            _sha(revision_payload),
+        ),
     )
     for alternative in factor.get("alternatives") or ():
         alternative_ref = str(alternative["alternative_ref"])
@@ -90,4 +114,8 @@ def persist_factor_revision(
     return revision_ref
 
 
-__all__ = ["factor_revision_ref", "persist_factor_revision"]
+__all__ = [
+    "factor_revision_payload",
+    "factor_revision_ref",
+    "persist_factor_revision",
+]
