@@ -26,7 +26,9 @@ def _factor(factor_ref: str, *, reference: bool = False) -> dict[str, object]:
         "alternatives": alternatives,
         "constraints": [],
         "residuals": ["antecedent_unresolved"] if reference else [],
-        "closure_state": "requires_external_resolution" if reference else "locally_closed",
+        "closure_state": "requires_external_resolution"
+        if reference
+        else "locally_closed",
         "metadata": {},
     }
 
@@ -68,7 +70,10 @@ def test_pairwise_binding_evidence_becomes_one_candidate_set() -> None:
         "value": {"candidate_factor_ref": "factor:candidate"},
         "derivation_refs": ["evidence:compatible"],
     }
-    resulting = {**reference, "alternatives": [*reference["alternatives"], pair_alternative]}
+    resulting = {
+        **reference,
+        "alternatives": [*reference["alternatives"], pair_alternative],
+    }
     artifacts = {
         "pnf_graph": {
             "graph_ref": "pnf:test",

@@ -10,7 +10,7 @@ reference is expletive.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping
 
 from src.policy.carriers.canonical import canonical_refs, canonical_sha256, require_text
 
@@ -110,9 +110,7 @@ class BindingCandidateSet:
                 "compatible_members_present" if self.members else "no_compatible_member"
             ),
             "members": [row.to_dict() for row in self.members],
-            "exclusion_summaries": [
-                row.to_dict() for row in self.exclusion_summaries
-            ],
+            "exclusion_summaries": [row.to_dict() for row in self.exclusion_summaries],
             "residuals": list(canonical_refs(self.residuals)),
             "authority": "candidate_only",
         }
@@ -163,9 +161,7 @@ def compact_binding_artifacts(
         return dict(artifacts)
 
     graph = artifacts.get("refined_pnf_graph") or artifacts.get("pnf_graph") or {}
-    factors = {
-        str(row["factor_ref"]): row for row in graph.get("factors") or ()
-    }
+    factors = {str(row["factor_ref"]): row for row in graph.get("factors") or ()}
     binding_rows = tuple(
         row
         for row in artifacts.get("local_evidence") or ()
@@ -271,10 +267,12 @@ def compact_binding_artifacts(
             alternatives = [
                 alternative
                 for alternative in resulting.get("alternatives") or ()
-                if str(alternative.get("type_ref") or "") != "semantic.binding_candidate"
+                if str(alternative.get("type_ref") or "")
+                != "semantic.binding_candidate"
             ]
             existing_refs = {
-                str(alternative.get("alternative_ref") or "") for alternative in alternatives
+                str(alternative.get("alternative_ref") or "")
+                for alternative in alternatives
             }
             for set_ref in set_refs:
                 alternative_ref = f"{factor_ref}:binding-set:{set_ref}"
@@ -313,9 +311,7 @@ def compact_binding_artifacts(
                 "rejected_alternative_refs": list(
                     compact.get("rejected_alternative_refs") or ()
                 ),
-                "residual_transitions": list(
-                    compact.get("residual_transitions") or ()
-                ),
+                "residual_transitions": list(compact.get("residual_transitions") or ()),
             }
         compact_refinements.append(compact)
 

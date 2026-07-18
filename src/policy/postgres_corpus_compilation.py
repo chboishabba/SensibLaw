@@ -32,7 +32,9 @@ def _prepare_meets_for_relational_persistence(
         item = dict(row)
         evidence_refs = tuple(str(ref) for ref in item.get("evidence_refs") or ())
         candidate_set_refs = tuple(
-            sorted(ref for ref in evidence_refs if ref.startswith("binding-candidate-set:"))
+            sorted(
+                ref for ref in evidence_refs if ref.startswith("binding-candidate-set:")
+            )
         )
         item["evidence_refs"] = [
             ref for ref in evidence_refs if not ref.startswith("binding-candidate-set:")

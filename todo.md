@@ -1,5 +1,10 @@
 # SensibLaw TODO
 
+- [P0] Validate the merged set-valued PNF binding tranche against the focused
+  compiler suite, migration application, GWB proper, and AU proof corpus.
+  Candidate sets must remain candidate-only; no antecedent, identity, truth,
+  occurrence, readiness, or promotion closure is permitted.
+
 # 2026-07-17 broader priority checkpoint
 
 - [P0a] Consolidate the canonical parser/span substrate described in

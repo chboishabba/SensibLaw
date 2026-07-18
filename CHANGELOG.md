@@ -1,5 +1,11 @@
 # 2026-07-18
 
+- Merge the set-valued local PNF binding tranche. Binding candidates now use
+  immutable candidate-set, membership, compatibility, and exclusion carriers
+  with PostgreSQL persistence, keeping refinements compact without selecting
+  antecedents or identities. Make the public `src.sensiblaw` exports lazy so
+  parser-interface imports cannot cycle through the compiler package.
+
 - Add candidate-only local PNF refinement over the preserved parser graph.
   Parser-supported argument constraints now receive immutable assessments, and
   revisions can close only their structural obligation while adding unresolved
