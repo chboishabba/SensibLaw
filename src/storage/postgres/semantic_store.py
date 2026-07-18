@@ -171,6 +171,15 @@ def persist_resolution_artifacts(
         demand_ref = str(row["demand_ref"])
         factor_ref = str(row["factor_ref"])
         demand_refs.append(demand_ref)
+        scope_ref = str(
+            row.get("scope_ref")
+            or row.get("document_scope")
+            or row.get("document_ref")
+            or "document_local"
+        )
+        budget_class_ref = str(
+            row.get("budget_class") or row.get("budget") or "default"
+        )
         cursor.execute(
             """
             INSERT INTO resolution.demand
@@ -186,9 +195,9 @@ def persist_resolution_artifacts(
                 factor_revisions.get(factor_ref),
                 str(row.get("subject_kind") or row.get("factor_type") or "unknown"),
                 row.get("formal_role"),
-                str(row.get("scope_ref") or row.get("document_ref") or "document_local"),
+                scope_ref,
                 _sha(row.get("semantic_key") or row),
-                str(row.get("budget_class") or "default"),
+                budget_class_ref,
             ),
         )
         for facet in row.get("requested_facets") or ():
