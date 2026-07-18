@@ -69,9 +69,7 @@ def _project_factor(factor: Mapping[str, Any]) -> tuple[dict[str, Any], bool]:
     morphology = metadata.get("parser_morphology") or {}
     relation_ref = str(metadata.get("relation_ref") or "") or None
     alternatives = [dict(row) for row in result.get("alternatives") or ()]
-    existing = {
-        str(row.get("alternative_ref") or "") for row in alternatives
-    }
+    existing = {str(row.get("alternative_ref") or "") for row in alternatives}
     changed = False
     for referential_type in _REFERENCE_TYPES:
         alternative = _reference_alternative(
@@ -211,6 +209,67 @@ def project_pronominal_reference_arguments(
     return result
 
 
+def _normalise_refinement_receipts(
+    artifacts: Mapping[str, Any],
+    *,
+    pairwise_binding_evidence_refs: set[str],
+) -> dict[str, Any]:
+    """Remove compatibility-carrier residue from set-valued refinements.
+
+    A pairwise alternative removed from the resulting factor cannot remain in
+    ``added_alternative_refs``. Unrelated local evidence is preserved; only the
+    retired pairwise binding evidence references are removed.
+    """
+
+    result = dict(artifacts)
+    refinements: list[dict[str, Any]] = []
+    for row in artifacts.get("factor_refinements") or ():
+        refinement = dict(row)
+        resulting = refinement.get("resulting_factor") or {}
+        resulting_refs = {
+            str(alternative.get("alternative_ref") or "")
+            for alternative in resulting.get("alternatives") or ()
+        }
+        added_refs = {
+            str(ref)
+            for ref in refinement.get("added_alternative_refs") or ()
+            if str(ref) in resulting_refs
+        }
+        rejected_refs = {
+            str(ref)
+            for ref in refinement.get("rejected_alternative_refs") or ()
+        }
+        rejected_refs.update(
+            str(ref)
+            for ref in refinement.get("added_alternative_refs") or ()
+            if str(ref) not in resulting_refs
+            and ":binding:" in str(ref)
+            and ":binding-set:" not in str(ref)
+        )
+        evidence_refs = [
+            str(ref)
+            for ref in refinement.get("evidence_refs") or ()
+            if str(ref) not in pairwise_binding_evidence_refs
+        ]
+        refinement["added_alternative_refs"] = sorted(added_refs)
+        refinement["rejected_alternative_refs"] = sorted(rejected_refs)
+        refinement["evidence_refs"] = sorted(set(evidence_refs))
+        delta = dict(refinement.get("refinement_delta") or {})
+        if delta:
+            delta["added_alternative_refs"] = refinement[
+                "added_alternative_refs"
+            ]
+            delta["rejected_alternative_refs"] = refinement[
+                "rejected_alternative_refs"
+            ]
+            refinement["refinement_delta"] = delta
+        refinements.append(refinement)
+    result["factor_refinements"] = sorted(
+        refinements, key=lambda row: str(row.get("refinement_ref") or "")
+    )
+    return result
+
+
 def _ensure_local_binding_demands(artifacts: Mapping[str, Any]) -> dict[str, Any]:
     result = dict(artifacts)
     refined_graph = artifacts.get("refined_pnf_graph") or {}
@@ -253,9 +312,7 @@ def _ensure_local_binding_demands(artifacts: Mapping[str, Any]) -> dict[str, Any
             str(row.get("type_ref") or "")
             for row in factor.get("alternatives") or ()
         )
-        constraints = [
-            dict(row) for row in factor.get("constraints") or ()
-        ]
+        constraints = [dict(row) for row in factor.get("constraints") or ()]
         semantic_key = {
             "document_ref": refined_graph.get("document_ref"),
             "factor_ref": factor_ref,
@@ -302,8 +359,18 @@ def build_set_valued_binding_artifacts(
     """Build the complete generic local reference-binding operational surface."""
 
     projected = project_pronominal_reference_arguments(artifacts)
+    pairwise_binding_evidence_refs = {
+        str(row.get("evidence_ref") or "")
+        for row in projected.get("local_evidence") or ()
+        if row.get("evidence_type") == "typed_binding_candidate"
+        and row.get("evidence_ref")
+    }
     compacted = compact_binding_artifacts(projected)
-    return _ensure_local_binding_demands(compacted)
+    normalised = _normalise_refinement_receipts(
+        compacted,
+        pairwise_binding_evidence_refs=pairwise_binding_evidence_refs,
+    )
+    return _ensure_local_binding_demands(normalised)
 
 
 __all__ = [
