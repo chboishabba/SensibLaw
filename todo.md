@@ -68,9 +68,9 @@
   - DONE: P0c.4 derives semantic demand-equivalence keys and deduplication
     receipts from typed subject, PNF role, local types, typed constraints,
     requested facets, and document scope; never from surface text alone
-  - NEXT: define the registry-neutral append-only cache/microbatch scheduler
-    and its explicit cache/unavailable/budget outcomes; keep it side-effect-free
-    and identity-blind, consuming semantic demand-equivalence groups only
+  - DONE: registry-neutral append-only cache/microbatch scheduling receipts
+    carry explicit cache/unavailable/budget outcomes while remaining
+    side-effect-free and identity-blind
 - [P0c] Add the bounded PNF-driven resolution loop:
   - `PartialPNF`
   - `ResolutionDemand`
@@ -91,6 +91,19 @@
   - typed event meets across temporal, spatial, participant, type, mention,
     lineage, and observation/occurrence coordinates; scalar scores may order
     review only and may not close identity
+- [P0 corpus] Add the generic directory compilation kernel described in
+  `docs/planning/directory_compilation_kernel_20260718.md`:
+  - implement immutable corpus/document manifests and bounded capability-aware
+    inventory with deterministic path/exclusion/failure receipts
+  - implement shared `compile_document(document_input, compiler_context)` and
+    thin `compile_directory(...)` orchestration; no corpus/profile selector
+  - persist content-addressed phase-0/1/2 artifacts with idempotent reuse
+  - compile local evidence, typed local meets, factor-local refinement receipts,
+    and unresolved demand inventory without network or cross-document closure
+  - add a generic tiny fixture directory plus deterministic rerun, resume,
+    duplicate-occurrence, unsupported-media, and failure-isolation tests
+  - NEXT after local-only proof: explicit cross-document candidate indexes,
+    then separately approved evidence acquisition/refinement phases
 - [P0d] Extract generic targeting semantics from the transitional
   `GWBTargetingCandidate` / `GWBTargetingResult` surface and make targeting
   consume resolved or explicitly ambiguous PNF/entity alternatives above

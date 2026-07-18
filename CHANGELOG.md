@@ -1,3 +1,19 @@
+# 2026-07-18
+
+- Add the generic local-only directory compilation kernel. `compile_document`
+  now supplies one shared per-document semantic operation, while
+  `compile_directory` only inventories bounded media, invokes that operation,
+  writes append-only content-addressed projections, and groups unresolved
+  demands. The initial UTF-8 text capability performs no network work,
+  external identity selection, readiness promotion, or cross-document identity
+  closure; failures and unsupported media remain explicit manifest receipts.
+- Expose the same generic directory kernel through
+  `scripts/compile_corpus.py` and the public `sensiblaw` package, with a
+  declarative `CompilerContext` rather than corpus/profile selectors. Add a
+  compact GWB proof corpus fixture solely for deterministic regression,
+  including duplicate-occurrence, resume, unsupported-media, and failure-
+  isolation coverage.
+
 # 2026-07-17
 
 - Implement P0c.5's registry-neutral evidence-control-plane carrier. Immutable

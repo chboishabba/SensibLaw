@@ -113,6 +113,13 @@ single confidence score. GWB proves narrative/coreference ambiguity, AU proves
 typed legal constraints, and Nat/WorldMonitor supply registry evidence. See
 `docs/planning/pnf_driven_entity_resolution_spine_20260717.md`.
 
+The first generic corpus boundary is now documented as a directory compilation
+kernel: directory traversal only inventories, invokes the shared per-document
+compiler, persists content-addressed artifacts, and groups unresolved demands.
+It is local-only in its first phase and cannot select external identities,
+promote claims, or silently join documents. Its declarations and phase
+boundaries are in `docs/planning/directory_compilation_kernel_20260718.md`.
+
 The first P0a parser consolidation slice is implemented: canonical parsing,
 rule extraction, and structural-node construction now live in
 `src.ingestion.section_parser`; `src.section_parser` is a compatibility

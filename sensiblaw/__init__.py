@@ -27,13 +27,25 @@ from src.policy.world_model_runtime import (  # noqa: E402
     project_review_surface,
     project_timeline,
 )
+from src.policy.corpus_compilation import (  # noqa: E402
+    CompilerContext,
+    build_corpus_manifest,
+    compile_directory,
+    compile_document,
+    default_compiler_context,
+)
 
 __all__ = [
     "WORLD_MODEL_INPUT_ENVELOPE_SCHEMA_VERSION",
+    "CompilerContext",
     "attach_receipt",
     "build_input_envelope",
+    "build_corpus_manifest",
     "build_world_model",
     "normalize_input_envelope",
+    "compile_directory",
+    "compile_document",
+    "default_compiler_context",
     "project_claim_table",
     "project_linkage_case",
     "project_report",

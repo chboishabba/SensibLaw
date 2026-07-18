@@ -336,3 +336,13 @@ Compact snapshot of the current architecture and next seam.
 - Anti-panopticon boundary: document-local resolution is allowed inside a
   declared tranche; cross-context joins remain explicit, opt-in, reversible,
   reviewable bridge proposals and are never global/default promotion.
+- 2026-07-18 directory-kernel decision: directory compilation is generic
+  orchestration over a shared per-document compiler, not a source type,
+  semantic profile, or authority boundary. The initial phase inventories
+  bounded non-symlink input, compiles each supported document locally,
+  writes append-only content-addressed artifacts, and groups unresolved
+  semantic demands. It performs no network work, external identity selection,
+  readiness promotion, or cross-document identity closure. Paths remain
+  provenance occurrences; content hash plus media-normalisation declaration
+  supplies document identity. See
+  `docs/planning/directory_compilation_kernel_20260718.md`.
