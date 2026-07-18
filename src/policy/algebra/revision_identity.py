@@ -1,9 +1,9 @@
 """Canonical identity for immutable factor revisions.
 
-A factor revision reference is derived from factor content. The derived
-self-reference stored in metadata is excluded from the content hash. Legacy
-transition-receipt identifiers can be normalized explicitly, while persistence
-requires any supplied canonical identifier to agree with the factor payload.
+A factor revision reference is derived from semantic factor content. Derived
+identity metadata is excluded from the content hash. Legacy transition-receipt
+identifiers can be normalized explicitly, while persistence requires any
+supplied canonical identifier to agree with the factor payload.
 """
 
 from __future__ import annotations
@@ -13,10 +13,17 @@ from typing import Any, Mapping
 from src.policy.carriers.canonical import canonical_sha256
 
 
+_DERIVED_IDENTITY_METADATA = {
+    "factor_revision_ref",
+    "factor_revision_identity_contract",
+}
+
+
 def factor_revision_payload(factor: Mapping[str, Any]) -> dict[str, Any]:
     payload = dict(factor)
     metadata = dict(payload.get("metadata") or {})
-    metadata.pop("factor_revision_ref", None)
+    for key in _DERIVED_IDENTITY_METADATA:
+        metadata.pop(key, None)
     payload["metadata"] = metadata
     return payload
 
