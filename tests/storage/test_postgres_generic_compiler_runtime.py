@@ -14,6 +14,9 @@ from src.storage.postgres.token_codec import (
 
 ROOT = Path(__file__).resolve().parents[2]
 MIGRATION = ROOT / "database/postgres_migrations/006_generic_compiler_runtime.sql"
+FACTOR_REVISION_MIGRATION = (
+    ROOT / "database/postgres_migrations/007_factor_revision_identity.sql"
+)
 CLI = ROOT / "scripts/compile_corpus.py"
 
 
@@ -66,6 +69,15 @@ def test_postgres_migration_is_generic_and_compression_aware() -> None:
     assert "wikidata" not in sql.casefold()
     assert "gwb" not in sql.casefold()
     assert "au_mini" not in sql.casefold()
+
+
+def test_factor_identity_is_separate_from_immutable_revisions() -> None:
+    sql = FACTOR_REVISION_MIGRATION.read_text(encoding="utf-8")
+    assert "CREATE TABLE IF NOT EXISTS algebra.factor_revision" in sql
+    assert "algebra.factor_revision_alternative" in sql
+    assert "pnf.graph_factor_revision" in sql
+    assert "prior_factor_revision_ref" in sql
+    assert "resulting_factor_revision_ref" in sql
 
 
 def test_cli_defaults_to_postgres_and_json_is_explicit_legacy_export() -> None:
