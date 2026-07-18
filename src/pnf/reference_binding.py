@@ -213,19 +213,25 @@ def _normalise_refinement_receipts(
     artifacts: Mapping[str, Any],
     *,
     pairwise_binding_evidence_refs: set[str],
+    original_evidence_by_factor: Mapping[str, set[str]],
 ) -> dict[str, Any]:
     """Remove compatibility-carrier residue from set-valued refinements.
 
     A pairwise alternative removed from the resulting factor cannot remain in
-    ``added_alternative_refs``. Unrelated local evidence is preserved; only the
-    retired pairwise binding evidence references are removed.
+    ``added_alternative_refs``. Unrelated local evidence is restored from the
+    pre-compaction factor ledger; only retired pairwise binding evidence is
+    removed.
     """
 
     result = dict(artifacts)
     refinements: list[dict[str, Any]] = []
     for row in artifacts.get("factor_refinements") or ():
         refinement = dict(row)
+        prior = refinement.get("prior_factor") or {}
         resulting = refinement.get("resulting_factor") or {}
+        factor_ref = str(
+            prior.get("factor_ref") or resulting.get("factor_ref") or ""
+        )
         resulting_refs = {
             str(alternative.get("alternative_ref") or "")
             for alternative in resulting.get("alternatives") or ()
@@ -246,14 +252,16 @@ def _normalise_refinement_receipts(
             and ":binding:" in str(ref)
             and ":binding-set:" not in str(ref)
         )
-        evidence_refs = [
+        evidence_refs = {
             str(ref)
             for ref in refinement.get("evidence_refs") or ()
             if str(ref) not in pairwise_binding_evidence_refs
-        ]
+        }
+        evidence_refs.update(original_evidence_by_factor.get(factor_ref, set()))
+        evidence_refs.difference_update(pairwise_binding_evidence_refs)
         refinement["added_alternative_refs"] = sorted(added_refs)
         refinement["rejected_alternative_refs"] = sorted(rejected_refs)
-        refinement["evidence_refs"] = sorted(set(evidence_refs))
+        refinement["evidence_refs"] = sorted(evidence_refs)
         delta = dict(refinement.get("refinement_delta") or {})
         if delta:
             delta["added_alternative_refs"] = refinement[
@@ -365,10 +373,25 @@ def build_set_valued_binding_artifacts(
         if row.get("evidence_type") == "typed_binding_candidate"
         and row.get("evidence_ref")
     }
+    original_evidence_by_factor: dict[str, set[str]] = {}
+    for refinement in projected.get("factor_refinements") or ():
+        prior = refinement.get("prior_factor") or {}
+        resulting = refinement.get("resulting_factor") or {}
+        factor_ref = str(
+            prior.get("factor_ref") or resulting.get("factor_ref") or ""
+        )
+        if not factor_ref:
+            continue
+        original_evidence_by_factor.setdefault(factor_ref, set()).update(
+            str(ref)
+            for ref in refinement.get("evidence_refs") or ()
+            if str(ref) not in pairwise_binding_evidence_refs
+        )
     compacted = compact_binding_artifacts(projected)
     normalised = _normalise_refinement_receipts(
         compacted,
         pairwise_binding_evidence_refs=pairwise_binding_evidence_refs,
+        original_evidence_by_factor=original_evidence_by_factor,
     )
     return _ensure_local_binding_demands(normalised)
 
