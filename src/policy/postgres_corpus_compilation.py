@@ -128,6 +128,7 @@ def persist_document_compilation(
     candidate_set_builds = tuple(
         artifacts.get("binding_candidate_set_builds") or ()
     )
+    demands = tuple(artifacts.get("resolution_demands") or ())
     meets = _prepare_meets_for_relational_persistence(
         artifacts.get("typed_meets") or ()
     )
@@ -187,7 +188,7 @@ def persist_document_compilation(
         demand_refs = persist_resolution_artifacts(
             cursor,
             factor_revisions=resulting_factor_revisions,
-            demands=artifacts.get("resolution_demands") or (),
+            demands=demands,
             evidence=artifacts.get("local_evidence") or (),
             meets=meets,
             refinements=refinements,
@@ -200,6 +201,7 @@ def persist_document_compilation(
             factor_anchors=factor_anchors,
             builds=candidate_set_builds,
             meets=meets,
+            demands=demands,
             validate_indexed_query=True,
         )
         persist_completed_operational_build(
