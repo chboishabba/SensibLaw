@@ -78,12 +78,21 @@ def test_reference_binding_mini_exercises_all_generic_reference_classes(tmp_path
     assert any(row["member_count"] >= 1 for row in entity_sets)
 
     object_reference = compiled["Ada greeted Lin. Lin thanked her."]
+    reference_factors = _reference_factors(object_reference)
     object_factors = [
-        row
-        for row in _reference_factors(object_reference)
-        if row["metadata"].get("role") == "object"
+        row for row in reference_factors if row["metadata"].get("role") == "object"
     ]
-    assert object_factors
+    observed_reference_roles = [
+        {
+            "factor_type": row["factor_type"],
+            "role": row["metadata"].get("role"),
+            "parser_pos": row["metadata"].get("parser_pos"),
+            "parser_dependency": row["metadata"].get("parser_dependency"),
+            "atom_id": row["metadata"].get("atom_id"),
+        }
+        for row in reference_factors
+    ]
+    assert object_factors, observed_reference_roles
     assert any(
         alternative["type_ref"] == "semantic.binding_candidate_set"
         for alternative in object_factors[0]["alternatives"]
