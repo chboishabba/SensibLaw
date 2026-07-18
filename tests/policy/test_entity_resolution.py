@@ -9,6 +9,7 @@ from src.policy.entity_resolution import (
     FormCompositionRule,
     FormLexiconEntry,
     LocalTypingRule,
+    LocalTypeAlternative,
     MentionAliasEntry,
     MentionExpansionRequest,
     MentionLicense,
@@ -17,6 +18,8 @@ from src.policy.entity_resolution import (
     PartialPNF,
     PartialPNFSlot,
     ResolutionConstraint,
+    ResolutionBackendCapability,
+    ResolutionCacheEntry,
     ResolutionSubjectDeclaration,
     build_entity_resolution_carrier,
     build_form_derivation_carrier,
@@ -24,6 +27,7 @@ from src.policy.entity_resolution import (
     build_partial_pnf_carrier,
     build_resolution_demand_carrier,
     build_resolution_subject_carrier,
+    build_resolution_schedule_carrier,
     build_alias_expansion_requests,
     build_candidate_retrieval_carrier,
     build_mention_expansion_carrier,
@@ -1462,6 +1466,91 @@ def test_resolution_subjects_reject_event_role_collapse() -> None:
             target_ref="event:one",
             subject_kind="event_occurrence",
             formal_role="observation",
+        ).to_dict()
+
+
+def test_resolution_schedule_is_cache_aware_and_identity_blind() -> None:
+    partial = build_partial_pnf_carrier(
+        mentions=[_mention("mention:bush", 0, 4, "Bush")],
+        local_type_alternatives=[
+            LocalTypeAlternative(
+                type_ref="type:bush:entity",
+                mention_ref="mention:bush",
+                semantic_family="entity",
+                local_type="proper_name",
+                derivation_basis="test",
+                evidence_refs=("source:demo",),
+            )
+        ],
+        partial_pnfs=[
+            PartialPNF(
+                pnf_ref="pnf:bush",
+                document_ref="document:demo",
+                slots=(
+                    PartialPNFSlot(
+                        slot_ref="slot:bush",
+                        slot_kind="subject",
+                        mention_ref="mention:bush",
+                        expected_semantic_families=("entity",),
+                        closure_requirement="external_identity",
+                    ),
+                ),
+            ),
+        ],
+    )
+    demands = build_resolution_demand_carrier(partial_pnf_carrier=partial)
+    demand_ref = demands["demands"][0]["demand_ref"]
+    subjects = build_resolution_subject_carrier(
+        partial_pnf_carrier=partial,
+        resolution_demand_carrier=demands,
+        subject_declarations=[
+            ResolutionSubjectDeclaration(
+                declaration_ref="declaration:bush",
+                demand_ref=demand_ref,
+                target_ref="local:bush",
+                subject_kind="entity",
+            )
+        ],
+    )
+    group = subjects["equivalence_groups"][0]
+    cache_key = f"resolution:{group['semantic_key_sha256']}"
+    plan = build_resolution_schedule_carrier(
+        resolution_subject_carrier=subjects,
+        cache_entries=[
+            ResolutionCacheEntry(
+                cache_key=cache_key,
+                backend_ref="local",
+                cache_state="fresh",
+                evidence_ref="evidence:local:bush",
+                provenance_refs=("source:demo",),
+            )
+        ],
+        backend_capabilities=[
+            ResolutionBackendCapability(
+                backend_ref="wikidata",
+                subject_kinds=("entity",),
+                facets=("identity",),
+            )
+        ],
+    )
+    assert plan["plans"][0]["state"] == "fresh_cache_hit"
+    assert plan["backend_effect"] == "plan_only"
+    assert plan["resolution_effect"] == "none"
+
+
+def test_resolution_schedule_reports_unavailable_and_batches_deterministically() -> (
+    None
+):
+    entry = ResolutionBackendCapability(
+        backend_ref="local",
+        subject_kinds=("entity",),
+        facets=("identity",),
+        available=False,
+    )
+    assert entry.to_dict()["available"] is False
+    with pytest.raises(ValueError, match="positive cache entries"):
+        ResolutionCacheEntry(
+            cache_key="k", backend_ref="local", cache_state="fresh"
         ).to_dict()
     with pytest.raises(ValueError, match="artifact formal role"):
         ResolutionSubjectDeclaration(

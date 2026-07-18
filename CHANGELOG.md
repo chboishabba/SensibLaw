@@ -1,5 +1,11 @@
 # 2026-07-17
 
+- Implement P0c.5's registry-neutral evidence-control-plane carrier. Immutable
+  cache metadata, typed backend capabilities, explicit cache/unavailable/
+  budget outcomes, and deterministic rate-limit-aware microbatch plans now sit
+  after semantic demand equivalence. This is plan-only: it performs no I/O,
+  selects no identity, reconciles no event, and mutates no PNF.
+
 - Implement P0c.3/P0c.4 typed resolution subjects and semantic demand-
   equivalence receipts before scheduler work. Entity/event/property/local-
   cluster subjects and formal event roles remain distinct; equivalent demands

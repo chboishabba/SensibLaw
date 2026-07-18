@@ -325,6 +325,14 @@ Compact snapshot of the current architecture and next seam.
   subjects, demand links, and semantic equivalence-group receipts while
   preserving every member. Coalescing remains potential only: there is no
   scheduler, backend/cache effect, evidence retrieval, or resolution decision.
+- P0c.5 implementation: `ResolutionCacheEntry`,
+  `ResolutionBackendCapability`, and `build_resolution_schedule_carrier` now
+  provide a registry-neutral, side-effect-free evidence control plane. Plans
+  consume semantic equivalence groups and emit fresh/stale/negative cache,
+  fetch-planned, unavailable, unsupported, and budget-exhausted states with
+  deterministic microbatch receipts. No I/O, identity choice, reconciliation,
+  PNF mutation, or promotion is possible; document-local evidence is the next
+  resolver proof before external adapters.
 - Anti-panopticon boundary: document-local resolution is allowed inside a
   declared tranche; cross-context joins remain explicit, opt-in, reversible,
   reviewable bridge proposals and are never global/default promotion.

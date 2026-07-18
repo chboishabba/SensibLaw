@@ -31,6 +31,7 @@ LOCAL_TYPING_SCHEMA_VERSION = "sl.local_typing.v0_1"
 PARTIAL_PNF_SCHEMA_VERSION = "sl.partial_pnf.v0_1"
 RESOLUTION_DEMAND_SCHEMA_VERSION = "sl.resolution_demand.v0_1"
 RESOLUTION_SUBJECT_SCHEMA_VERSION = "sl.resolution_subject.v0_1"
+RESOLUTION_SCHEDULER_SCHEMA_VERSION = "sl.resolution_scheduler.v0_1"
 _CANDIDATE_KINDS = frozenset(
     {
         "instance",
@@ -135,6 +136,18 @@ _RESOLUTION_CONSTRAINT_KINDS = frozenset(
     {"temporal", "spatial", "relation", "source_scope"}
 )
 _RESOLUTION_SOURCE_SCOPES = frozenset({"document_local", "declared_tranche"})
+_CACHE_STATES = frozenset({"fresh", "stale", "negative"})
+_SCHEDULE_STATES = frozenset(
+    {
+        "fresh_cache_hit",
+        "stale_cache_hit",
+        "negative_cache_hit",
+        "fetch_planned",
+        "backend_unavailable",
+        "budget_exhausted",
+        "unsupported_demand",
+    }
+)
 
 
 def _text(value: Any, field: str) -> str:
@@ -774,6 +787,88 @@ class ResolutionSubjectDeclaration:
         if formal_role:
             payload["formal_role"] = formal_role
         return payload
+
+
+@dataclass(frozen=True)
+class ResolutionCacheEntry:
+    """Immutable execution evidence metadata; never a resolved identity."""
+
+    cache_key: str
+    backend_ref: str
+    cache_state: str
+    evidence_ref: str | None = None
+    snapshot_ref: str | None = None
+    freshness_ref: str | None = None
+    provenance_refs: tuple[str, ...] = ()
+
+    def to_dict(self) -> dict[str, Any]:
+        state = _text(self.cache_state, "cache entry state")
+        if state not in _CACHE_STATES:
+            raise ValueError(f"unsupported cache entry state: {state}")
+        if state == "negative" and (self.evidence_ref or self.snapshot_ref):
+            raise ValueError("negative cache entries cannot carry evidence snapshots")
+        if state != "negative" and not self.evidence_ref:
+            raise ValueError("positive cache entries require evidence_ref")
+        payload: dict[str, Any] = {
+            "cache_key": _text(self.cache_key, "cache entry cache_key"),
+            "backend_ref": _text(self.backend_ref, "cache entry backend_ref"),
+            "cache_state": state,
+            "provenance_refs": list(_refs(self.provenance_refs)),
+            "authority": ENTITY_RESOLUTION_AUTHORITY,
+        }
+        if self.evidence_ref:
+            payload["evidence_ref"] = _text(
+                self.evidence_ref, "cache entry evidence_ref"
+            )
+        if self.snapshot_ref:
+            payload["snapshot_ref"] = _text(
+                self.snapshot_ref, "cache entry snapshot_ref"
+            )
+        if self.freshness_ref:
+            payload["freshness_ref"] = _text(
+                self.freshness_ref, "cache entry freshness_ref"
+            )
+        if state != "negative" and not payload["provenance_refs"]:
+            raise ValueError("positive cache entries require provenance references")
+        return payload
+
+
+@dataclass(frozen=True)
+class ResolutionBackendCapability:
+    """A declarative backend capability used only for schedule planning."""
+
+    backend_ref: str
+    subject_kinds: tuple[str, ...]
+    formal_roles: tuple[str, ...] = ()
+    facets: tuple[str, ...] = ()
+    available: bool = True
+    accepts_stale: bool = False
+    max_batch_size: int = 1
+    rate_limit_class: str = "default"
+
+    def to_dict(self) -> dict[str, Any]:
+        kinds = tuple(
+            sorted({_text(kind, "backend subject kind") for kind in self.subject_kinds})
+        )
+        if not kinds or any(kind not in _RESOLUTION_SUBJECT_KINDS for kind in kinds):
+            raise ValueError("backend capabilities require supported subject kinds")
+        roles = _refs(self.formal_roles)
+        if any(role not in _EVENT_FORMAL_ROLES for role in roles):
+            raise ValueError("backend capabilities contain unsupported event roles")
+        facets = _refs(self.facets)
+        if self.max_batch_size < 1:
+            raise ValueError("backend max_batch_size must be positive")
+        return {
+            "backend_ref": _text(self.backend_ref, "backend_ref"),
+            "subject_kinds": list(kinds),
+            "formal_roles": list(roles),
+            "facets": list(facets),
+            "available": bool(self.available),
+            "accepts_stale": bool(self.accepts_stale),
+            "max_batch_size": int(self.max_batch_size),
+            "rate_limit_class": _text(self.rate_limit_class, "rate_limit_class"),
+            "authority": ENTITY_RESOLUTION_AUTHORITY,
+        }
 
 
 @dataclass(frozen=True)
@@ -1425,6 +1520,49 @@ def _coerce_resolution_subject_declaration(
             str(value["formal_role"]).strip() if value.get("formal_role") else None
         ),
         source_scope=str(value.get("source_scope") or "document_local"),
+    )
+
+
+def _coerce_cache_entry(
+    value: ResolutionCacheEntry | Mapping[str, Any],
+) -> ResolutionCacheEntry:
+    if isinstance(value, ResolutionCacheEntry):
+        return value
+    if not isinstance(value, Mapping):
+        raise ValueError("cache entries must be values or mappings")
+    return ResolutionCacheEntry(
+        cache_key=str(value.get("cache_key") or ""),
+        backend_ref=str(value.get("backend_ref") or ""),
+        cache_state=str(value.get("cache_state") or ""),
+        evidence_ref=(
+            str(value["evidence_ref"]) if value.get("evidence_ref") else None
+        ),
+        snapshot_ref=(
+            str(value["snapshot_ref"]) if value.get("snapshot_ref") else None
+        ),
+        freshness_ref=(
+            str(value["freshness_ref"]) if value.get("freshness_ref") else None
+        ),
+        provenance_refs=tuple(value.get("provenance_refs") or ()),
+    )
+
+
+def _coerce_backend_capability(
+    value: ResolutionBackendCapability | Mapping[str, Any],
+) -> ResolutionBackendCapability:
+    if isinstance(value, ResolutionBackendCapability):
+        return value
+    if not isinstance(value, Mapping):
+        raise ValueError("backend capabilities must be values or mappings")
+    return ResolutionBackendCapability(
+        backend_ref=str(value.get("backend_ref") or ""),
+        subject_kinds=tuple(value.get("subject_kinds") or ()),
+        formal_roles=tuple(value.get("formal_roles") or ()),
+        facets=tuple(value.get("facets") or ()),
+        available=bool(value.get("available", True)),
+        accepts_stale=bool(value.get("accepts_stale", False)),
+        max_batch_size=int(value.get("max_batch_size", 1)),
+        rate_limit_class=str(value.get("rate_limit_class") or "default"),
     )
 
 
@@ -3067,6 +3205,9 @@ def build_resolution_subject_carrier(
             "source_scope": declaration["source_scope"],
             "constraints": constraint_semantics,
             "requested_facets": sorted(set(demand["requested_facets"])),
+            "budget_classes": [
+                _text(demand.get("budget_class"), "demand budget class")
+            ],
         }
         if declaration.get("formal_role"):
             semantic_key["formal_role"] = declaration["formal_role"]
@@ -3230,6 +3371,250 @@ def build_candidate_retrieval_carrier(
             "unmatched_mention_count": sum(
                 not candidate_set["candidates"] for candidate_set in candidate_set_rows
             ),
+        },
+    }
+
+
+def build_resolution_schedule_carrier(
+    *,
+    resolution_subject_carrier: Mapping[str, Any],
+    cache_entries: Sequence[ResolutionCacheEntry | Mapping[str, Any]] = (),
+    backend_capabilities: Sequence[
+        ResolutionBackendCapability | Mapping[str, Any]
+    ] = (),
+    allowed_budget_classes: Sequence[str] = (),
+    accept_stale: bool = False,
+    authority: str = ENTITY_RESOLUTION_AUTHORITY,
+) -> dict[str, Any]:
+    """Plan cache-aware backend work without performing I/O or resolving identity.
+
+    One plan is produced per semantic demand-equivalence group. Cache entries
+    are immutable metadata supplied by the caller; backend capabilities are
+    declarations only. The result records an execution state and any
+    microbatch reference, but has no backend, resolution, PNF, or promotion
+    effect.
+    """
+
+    if authority != ENTITY_RESOLUTION_AUTHORITY:
+        raise ValueError("resolution scheduling authority must be candidate_only")
+    if (
+        not isinstance(resolution_subject_carrier, Mapping)
+        or resolution_subject_carrier.get("schema_version")
+        != RESOLUTION_SUBJECT_SCHEMA_VERSION
+    ):
+        raise ValueError("scheduling requires a resolution subject carrier")
+    if resolution_subject_carrier.get("authority") != ENTITY_RESOLUTION_AUTHORITY:
+        raise ValueError("scheduling inputs must remain candidate_only")
+
+    cache_rows = sorted(
+        (_coerce_cache_entry(entry).to_dict() for entry in cache_entries),
+        key=lambda row: (row["cache_key"], row["backend_ref"]),
+    )
+    cache_by_key: dict[str, list[dict[str, Any]]] = {}
+    for row in cache_rows:
+        cache_by_key.setdefault(row["cache_key"], []).append(row)
+    capability_rows = sorted(
+        (
+            _coerce_backend_capability(capability).to_dict()
+            for capability in backend_capabilities
+        ),
+        key=lambda row: row["backend_ref"],
+    )
+    backend_refs = [row["backend_ref"] for row in capability_rows]
+    if len(backend_refs) != len(set(backend_refs)):
+        raise ValueError("backend capability references must be unique")
+    allowed = {_text(value, "allowed budget class") for value in allowed_budget_classes}
+
+    equivalence_groups = sorted(
+        (
+            dict(group)
+            for group in resolution_subject_carrier.get("equivalence_groups") or ()
+        ),
+        key=lambda group: group["equivalence_ref"],
+    )
+    plans: list[dict[str, Any]] = []
+    batch_members: dict[tuple[str, str, int], list[str]] = {}
+    for group in equivalence_groups:
+        group_ref = _text(group.get("equivalence_ref"), "equivalence_ref")
+        member_demands = sorted(_refs(group.get("member_demand_refs")))
+        if not member_demands:
+            raise ValueError("equivalence groups require member demands")
+        subject_refs = sorted(_refs(group.get("resolution_subject_refs")))
+        subjects = [
+            subject
+            for subject in resolution_subject_carrier.get("resolution_subjects") or ()
+            if subject.get("subject_ref") in set(subject_refs)
+        ]
+        if not subjects:
+            raise ValueError("equivalence group references unknown subjects")
+        semantic_key = group.get("semantic_key")
+        if not isinstance(semantic_key, Mapping):
+            raise ValueError("equivalence groups require semantic keys")
+        subject_kind = _text(semantic_key.get("subject_kind"), "semantic subject kind")
+        formal_role = semantic_key.get("formal_role")
+        if formal_role:
+            formal_role = _text(formal_role, "semantic formal role")
+        facets = set(_refs(semantic_key.get("requested_facets")))
+        budget_classes = set(_refs(semantic_key.get("budget_classes")))
+        if allowed and not budget_classes.intersection(allowed):
+            plans.append(
+                {
+                    "equivalence_ref": group_ref,
+                    "member_demand_refs": member_demands,
+                    "state": "budget_exhausted",
+                    "reason": "budget_class_not_allowed",
+                    "authority": ENTITY_RESOLUTION_AUTHORITY,
+                }
+            )
+            continue
+        cache_key = f"resolution:{group['semantic_key_sha256']}"
+        cached = cache_by_key.get(cache_key, [])
+        if cached:
+            cache = cached[0]
+            state = cache["cache_state"]
+            if state == "fresh":
+                plans.append(
+                    {
+                        "equivalence_ref": group_ref,
+                        "member_demand_refs": member_demands,
+                        "state": "fresh_cache_hit",
+                        "cache_key": cache_key,
+                        "backend_ref": cache["backend_ref"],
+                        "evidence_ref": cache.get("evidence_ref"),
+                        "authority": ENTITY_RESOLUTION_AUTHORITY,
+                    }
+                )
+                continue
+            if state == "negative":
+                plans.append(
+                    {
+                        "equivalence_ref": group_ref,
+                        "member_demand_refs": member_demands,
+                        "state": "negative_cache_hit",
+                        "cache_key": cache_key,
+                        "backend_ref": cache["backend_ref"],
+                        "authority": ENTITY_RESOLUTION_AUTHORITY,
+                    }
+                )
+                continue
+            if state == "stale" and accept_stale:
+                plans.append(
+                    {
+                        "equivalence_ref": group_ref,
+                        "member_demand_refs": member_demands,
+                        "state": "stale_cache_hit",
+                        "cache_key": cache_key,
+                        "backend_ref": cache["backend_ref"],
+                        "evidence_ref": cache.get("evidence_ref"),
+                        "authority": ENTITY_RESOLUTION_AUTHORITY,
+                    }
+                )
+                continue
+
+        capable = []
+        for backend in capability_rows:
+            if subject_kind not in backend["subject_kinds"]:
+                continue
+            if (
+                formal_role
+                and backend["formal_roles"]
+                and formal_role not in backend["formal_roles"]
+            ):
+                continue
+            if not facets.issubset(set(backend["facets"])):
+                continue
+            capable.append(backend)
+        if not capable:
+            plans.append(
+                {
+                    "equivalence_ref": group_ref,
+                    "member_demand_refs": member_demands,
+                    "state": "unsupported_demand",
+                    "reason": "no_capable_backend",
+                    "authority": ENTITY_RESOLUTION_AUTHORITY,
+                }
+            )
+            continue
+        backend = capable[0]
+        if not backend["available"]:
+            plans.append(
+                {
+                    "equivalence_ref": group_ref,
+                    "member_demand_refs": member_demands,
+                    "state": "backend_unavailable",
+                    "backend_ref": backend["backend_ref"],
+                    "authority": ENTITY_RESOLUTION_AUTHORITY,
+                }
+            )
+            continue
+        batch_key = (
+            backend["backend_ref"],
+            backend["rate_limit_class"],
+            backend["max_batch_size"],
+        )
+        batch_members.setdefault(batch_key, []).append(group_ref)
+        plans.append(
+            {
+                "equivalence_ref": group_ref,
+                "member_demand_refs": member_demands,
+                "state": "fetch_planned",
+                "backend_ref": backend["backend_ref"],
+                "batch_key": ":".join(map(str, batch_key)),
+                "cache_key": cache_key,
+                "authority": ENTITY_RESOLUTION_AUTHORITY,
+            }
+        )
+
+    batches: list[dict[str, Any]] = []
+    for (backend_ref, rate_class, max_size), members in sorted(batch_members.items()):
+        ordered = sorted(members)
+        for index in range(0, len(ordered), max_size):
+            chunk = ordered[index : index + max_size]
+            batch_ref = f"resolution-batch:{_canonical_digest([backend_ref, rate_class, chunk])}"
+            batches.append(
+                {
+                    "batch_ref": batch_ref,
+                    "backend_ref": backend_ref,
+                    "rate_limit_class": rate_class,
+                    "member_equivalence_refs": chunk,
+                    "authority": ENTITY_RESOLUTION_AUTHORITY,
+                }
+            )
+            for plan in plans:
+                if (
+                    plan.get("equivalence_ref") in chunk
+                    and plan["state"] == "fetch_planned"
+                ):
+                    plan["batch_ref"] = batch_ref
+    identity = {
+        "schema_version": RESOLUTION_SCHEDULER_SCHEMA_VERSION,
+        "authority": authority,
+        "input_resolution_subject_carrier_ref": _text(
+            resolution_subject_carrier.get("carrier_ref"), "subject carrier_ref"
+        ),
+        "cache_entries": cache_rows,
+        "backend_capabilities": capability_rows,
+        "plans": sorted(plans, key=lambda row: row["equivalence_ref"]),
+        "batches": batches,
+        "serialization_order": "reference_nonsemantic",
+    }
+    return {
+        **identity,
+        "carrier_ref": f"resolution-schedule:{_canonical_digest(identity)}",
+        "cache_effect": "none",
+        "backend_effect": "plan_only",
+        "resolution_effect": "none",
+        "pnf_effect": "none",
+        "promotion_effect": "none",
+        "execution_effect": "none",
+        "summary": {
+            "equivalence_group_count": len(equivalence_groups),
+            "plan_count": len(plans),
+            "batch_count": len(batches),
+            "state_counts": {
+                state: sum(plan["state"] == state for plan in plans)
+                for state in sorted(_SCHEDULE_STATES)
+            },
         },
     }
 
@@ -3485,6 +3870,7 @@ __all__ = [
     "LOCAL_TYPING_SCHEMA_VERSION",
     "PARTIAL_PNF_SCHEMA_VERSION",
     "RESOLUTION_DEMAND_SCHEMA_VERSION",
+    "RESOLUTION_SCHEDULER_SCHEMA_VERSION",
     "RESOLUTION_SUBJECT_SCHEMA_VERSION",
     "MENTION_LICENSING_SCHEMA_VERSION",
     "MENTION_RECURRENCE_SCHEMA_VERSION",
@@ -3510,6 +3896,8 @@ __all__ = [
     "PartialPNFSlot",
     "PNFSlotAlternative",
     "ResolutionDemand",
+    "ResolutionCacheEntry",
+    "ResolutionBackendCapability",
     "ResolutionConstraint",
     "ResolutionSubjectDeclaration",
     "SuppressedSpan",
@@ -3525,4 +3913,5 @@ __all__ = [
     "build_partial_pnf_carrier",
     "build_resolution_demand_carrier",
     "build_resolution_subject_carrier",
+    "build_resolution_schedule_carrier",
 ]

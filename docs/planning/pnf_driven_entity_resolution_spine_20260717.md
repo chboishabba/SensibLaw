@@ -595,6 +595,18 @@ equivalence groups retain all demand/subject members under a deterministic key.
 The grouping receipt has no scheduling or deduplication execution effect. The
 next slice is the append-only evidence-cache and microbatch scheduler contract.
 
+P0c.5 is registry-neutral and side-effect-free. It consumes semantic
+equivalence groups, matches typed demands to declared backend capabilities, and
+emits explicit execution states for fresh/stale/negative cache hits, planned
+fetches, unavailable or unsupported backends, and exhausted budgets. It does
+not perform I/O, choose identities, rank candidates, reconcile event records,
+or mutate PNF factors. A later document-local backend will prove the control
+loop before external Wikidata/WorldMonitor adapters are introduced.
+
+The scheduler is an execution carrier only. Cache entries remain immutable and
+provenance-bearing; rate limits, batch limits, retry class, and stale acceptance
+are planning metadata, not evidence of identity or truth.
+
 ## Coverage- and demand-driven control loop
 
 The shared controller should:

@@ -69,7 +69,8 @@
     receipts from typed subject, PNF role, local types, typed constraints,
     requested facets, and document scope; never from surface text alone
   - NEXT: define the registry-neutral append-only cache/microbatch scheduler
-    and its explicit cache/unavailable/budget outcomes
+    and its explicit cache/unavailable/budget outcomes; keep it side-effect-free
+    and identity-blind, consuming semantic demand-equivalence groups only
 - [P0c] Add the bounded PNF-driven resolution loop:
   - `PartialPNF`
   - `ResolutionDemand`
