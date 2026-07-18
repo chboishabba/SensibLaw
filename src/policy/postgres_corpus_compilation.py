@@ -31,16 +31,17 @@ def _prepare_meets_for_relational_persistence(
     for row in meets:
         item = dict(row)
         evidence_refs = tuple(str(ref) for ref in item.get("evidence_refs") or ())
-        candidate_set_refs = tuple(
-            sorted(
-                ref for ref in evidence_refs if ref.startswith("binding-candidate-set:")
-            )
+        candidate_set_refs = set(
+            str(ref) for ref in item.get("candidate_set_refs") or ()
+        )
+        candidate_set_refs.update(
+            ref for ref in evidence_refs if ref.startswith("binding-candidate-set:")
         )
         item["evidence_refs"] = [
             ref for ref in evidence_refs if not ref.startswith("binding-candidate-set:")
         ]
         if candidate_set_refs:
-            item["candidate_set_refs"] = list(candidate_set_refs)
+            item["candidate_set_refs"] = sorted(candidate_set_refs)
         prepared.append(item)
     return tuple(prepared)
 
@@ -57,10 +58,11 @@ def persist_document_compilation(
 ) -> tuple[str, ...]:
     """Compile and persist one document transactionally.
 
-    Pairwise local binding evidence is compacted into first-class candidate
-    sets before PostgreSQL persistence. Legacy JSON export remains the only
-    expanded compatibility surface. Candidate sets never close identity,
-    proposition truth, event occurrence, or expletive status.
+    The operational representation constructs candidate sets directly from the
+    preserved annotation graph and factor index. Pairwise binding evidence is
+    discarded before persistence and survives only in explicit compatibility
+    exports. Candidate sets never close identity, occurrence, truth, or
+    expletive status.
     """
 
     compilation = compile_document(
@@ -76,6 +78,10 @@ def persist_document_compilation(
     artifacts = compact_binding_artifacts(compilation.artifacts)
     refinements = tuple(artifacts.get("factor_refinements") or ())
     candidate_sets = tuple(artifacts.get("binding_candidate_sets") or ())
+    factor_anchors = tuple(artifacts.get("factor_anchors") or ())
+    candidate_set_builds = tuple(
+        artifacts.get("binding_candidate_set_builds") or ()
+    )
     meets = _prepare_meets_for_relational_persistence(
         artifacts.get("typed_meets") or ()
     )
@@ -116,11 +122,12 @@ def persist_document_compilation(
             document_ref=compilation.document_ref,
             layer=artifacts["annotation_layer"],
         )
-        factor_revisions = persist_pnf_graph(
+        base_factor_revisions = persist_pnf_graph(
             cursor,
             document_ref=compilation.document_ref,
             graph=artifacts["pnf_graph"],
         )
+        resulting_factor_revisions = dict(base_factor_revisions)
         for refinement in refinements:
             resulting = refinement.get("resulting_factor")
             if isinstance(resulting, Mapping):
@@ -130,10 +137,10 @@ def persist_document_compilation(
                     factor=resulting,
                 )
                 factor_ref = str(resulting["factor_ref"])
-                factor_revisions[factor_ref] = revision_ref
+                resulting_factor_revisions[factor_ref] = revision_ref
         demand_refs = persist_resolution_artifacts(
             cursor,
-            factor_revisions=factor_revisions,
+            factor_revisions=resulting_factor_revisions,
             demands=artifacts.get("resolution_demands") or (),
             evidence=artifacts.get("local_evidence") or (),
             meets=meets,
@@ -143,7 +150,11 @@ def persist_document_compilation(
             cursor,
             candidate_sets=candidate_sets,
             refinements=refinements,
-            factor_revisions=factor_revisions,
+            factor_revisions=base_factor_revisions,
+            factor_anchors=factor_anchors,
+            builds=candidate_set_builds,
+            meets=meets,
+            validate_indexed_query=True,
         )
         return demand_refs
 
