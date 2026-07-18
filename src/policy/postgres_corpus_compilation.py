@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from src.pnf.binding_candidate_sets import compact_binding_artifacts
 from src.policy.corpus_compilation import (
     CompilerContext,
     build_corpus_manifest,
@@ -12,12 +13,34 @@ from src.policy.corpus_compilation import (
 )
 from src.sensiblaw.interfaces.shared_reducer import tokenize_canonical_with_spans
 from src.storage.postgres import PersistedCompilation, PostgresCompilerStore
+from src.storage.postgres.binding_candidate_store import persist_binding_candidate_sets
 from src.storage.postgres.factor_revision_store import persist_factor_revision
 from src.storage.postgres.semantic_store import (
     persist_pnf_graph,
     persist_resolution_artifacts,
 )
 from src.storage.postgres.span_store import persist_licensed_spans
+
+
+def _prepare_meets_for_relational_persistence(
+    meets: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, Any], ...]:
+    """Keep candidate-set refs distinct from evidence-table references."""
+
+    prepared: list[dict[str, Any]] = []
+    for row in meets:
+        item = dict(row)
+        evidence_refs = tuple(str(ref) for ref in item.get("evidence_refs") or ())
+        candidate_set_refs = tuple(
+            sorted(ref for ref in evidence_refs if ref.startswith("binding-candidate-set:"))
+        )
+        item["evidence_refs"] = [
+            ref for ref in evidence_refs if not ref.startswith("binding-candidate-set:")
+        ]
+        if candidate_set_refs:
+            item["candidate_set_refs"] = list(candidate_set_refs)
+        prepared.append(item)
+    return tuple(prepared)
 
 
 def persist_document_compilation(
@@ -32,9 +55,10 @@ def persist_document_compilation(
 ) -> tuple[str, ...]:
     """Compile and persist one document transactionally.
 
-    The compiler produces immutable carriers; this boundary normalizes those
-    carriers into PostgreSQL rows and immutable factor revisions. No semantic
-    JSON files are emitted and no resolution or promotion authority is added.
+    Pairwise local binding evidence is compacted into first-class candidate
+    sets before PostgreSQL persistence.  Legacy JSON export remains the only
+    expanded compatibility surface.  Candidate sets never close identity,
+    proposition truth, event occurrence, or expletive status.
     """
 
     compilation = compile_document(
@@ -47,8 +71,12 @@ def persist_document_compilation(
         },
         context,
     )
-    artifacts = compilation.artifacts
+    artifacts = compact_binding_artifacts(compilation.artifacts)
     refinements = tuple(artifacts.get("factor_refinements") or ())
+    candidate_sets = tuple(artifacts.get("binding_candidate_sets") or ())
+    meets = _prepare_meets_for_relational_persistence(
+        artifacts.get("typed_meets") or ()
+    )
     with store.savepoint() as cursor:
         store.persist_source_document(
             cursor,
@@ -94,19 +122,27 @@ def persist_document_compilation(
         for refinement in refinements:
             resulting = refinement.get("resulting_factor")
             if isinstance(resulting, Mapping):
-                persist_factor_revision(
+                revision_ref = persist_factor_revision(
                     cursor,
                     document_ref=compilation.document_ref,
                     factor=resulting,
                 )
-        return persist_resolution_artifacts(
+                factor_ref = str(resulting["factor_ref"])
+                factor_revisions[factor_ref] = revision_ref
+        demand_refs = persist_resolution_artifacts(
             cursor,
             factor_revisions=factor_revisions,
             demands=artifacts.get("resolution_demands") or (),
             evidence=artifacts.get("local_evidence") or (),
-            meets=artifacts.get("typed_meets") or (),
+            meets=meets,
             refinements=refinements,
         )
+        persist_binding_candidate_sets(
+            cursor,
+            candidate_sets=candidate_sets,
+            refinements=refinements,
+        )
+        return demand_refs
 
 
 def compile_directory_postgres(
