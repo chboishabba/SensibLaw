@@ -12,6 +12,7 @@ on:
       - "tests/policy/test_operational_corpus_compilation.py"
       - "tests/storage/test_*binding*.py"
       - "tests/storage/test_factor_revision_identity.py"
+      - "tests/storage/test_operational_build_store.py"
       - ".github/workflows/reference-binding.yml"
   pull_request:
     paths:
@@ -24,6 +25,7 @@ on:
       - "tests/policy/test_operational_corpus_compilation.py"
       - "tests/storage/test_*binding*.py"
       - "tests/storage/test_factor_revision_identity.py"
+      - "tests/storage/test_operational_build_store.py"
       - ".github/workflows/reference-binding.yml"
 
 jobs:
@@ -82,22 +84,28 @@ jobs:
             tests/storage/test_factor_revision_identity.py \
             tests/storage/test_operational_build_store.py \
             tests/storage/test_postgres_reference_binding_live.py
-      - name: Pure and mocked proofs
+      - name: PNF reference semantics
         run: |
-          uv run pytest -q \
-            tests/language/test_semantic_reductions.py \
+          uv run pytest -x -vv \
             tests/pnf/test_binding_candidate_sets.py \
             tests/pnf/test_reference_binding_corpus.py \
-            tests/policy/test_corpus_compilation.py \
-            tests/policy/test_operational_corpus_compilation.py \
+            tests/policy/test_operational_corpus_compilation.py
+      - name: Revision and persistence invariants
+        run: |
+          uv run pytest -x -vv \
             tests/storage/test_binding_candidate_store.py \
             tests/storage/test_binding_migration_chain.py \
             tests/storage/test_factor_revision_identity.py \
-            tests/storage/test_operational_build_store.py \
+            tests/storage/test_operational_build_store.py
+      - name: Existing compiler regressions
+        run: |
+          uv run pytest -x -vv \
+            tests/language/test_semantic_reductions.py \
+            tests/policy/test_corpus_compilation.py \
             tests/storage/test_postgres_compiler.py \
             tests/storage/test_postgres_generic_compiler_runtime.py
       - name: Live PostgreSQL proofs
         run: |
-          uv run pytest -q \
+          uv run pytest -x -vv \
             tests/storage/test_postgres_compiler_live.py \
             tests/storage/test_postgres_reference_binding_live.py
