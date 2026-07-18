@@ -5,14 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from src.pnf.operational_reference_binding import (
-    build_operational_reference_binding_artifacts,
-)
-from src.policy.corpus_compilation import (
-    CompilerContext,
-    build_corpus_manifest,
-    compile_document,
-)
+from src.policy.corpus_compilation import CompilerContext, build_corpus_manifest
+from src.policy.operational_corpus_compilation import compile_document_operational
 from src.sensiblaw.interfaces.shared_reducer import tokenize_canonical_with_spans
 from src.storage.postgres import PersistedCompilation, PostgresCompilerStore
 from src.storage.postgres.binding_candidate_store import persist_binding_candidate_sets
@@ -60,15 +54,15 @@ def persist_document_compilation(
 ) -> tuple[str, ...]:
     """Compile and persist one document transactionally.
 
-    The operational representation projects every parser-observed pronominal
-    argument into typed PNF reference branches, normalizes immutable revision
-    identity, then constructs candidate sets directly from the preserved
-    annotation graph and factor index. Pairwise binding evidence is discarded
-    before persistence and survives only in explicit compatibility exports.
-    Candidate sets never close identity, occurrence, truth, or expletive status.
+    The operational compiler never materializes pairwise binding evidence. It
+    projects parser-observed pronominal arguments, normalizes immutable revision
+    identity, and constructs candidate sets directly from the annotation/PNF
+    index. The expanded pairwise carrier remains limited to explicit legacy JSON
+    export. Candidate sets never close identity, occurrence, truth, or
+    expletive status.
     """
 
-    compilation = compile_document(
+    compilation = compile_document_operational(
         {
             "document_ref": entry["document_ref"],
             "content_sha256": entry["content_sha256"],
@@ -78,9 +72,7 @@ def persist_document_compilation(
         },
         context,
     )
-    artifacts = build_operational_reference_binding_artifacts(
-        compilation.artifacts
-    )
+    artifacts = compilation.artifacts
     refinements = tuple(artifacts.get("factor_refinements") or ())
     candidate_sets = tuple(artifacts.get("binding_candidate_sets") or ())
     factor_anchors = tuple(artifacts.get("factor_anchors") or ())
