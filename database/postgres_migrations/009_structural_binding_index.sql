@@ -150,11 +150,15 @@ kind_candidates AS (
         CASE
             WHEN candidate.start_token >= reference.start_token
                 THEN 'not_preceding_reference'
-            WHEN reference.quotation_depth IS DISTINCT FROM candidate.quotation_depth
+            WHEN reference.quotation_depth IS NOT NULL
+                 AND candidate.quotation_depth IS NOT NULL
+                 AND reference.quotation_depth <> candidate.quotation_depth
                  AND (reference.reporting_scope_ref IS NOT NULL
                       OR candidate.reporting_scope_ref IS NOT NULL)
                 THEN 'reporting_content_boundary'
-            WHEN reference.quotation_depth IS DISTINCT FROM candidate.quotation_depth
+            WHEN reference.quotation_depth IS NOT NULL
+                 AND candidate.quotation_depth IS NOT NULL
+                 AND reference.quotation_depth <> candidate.quotation_depth
                 THEN 'quotation_boundary_crossed'
             WHEN reference.clause_ref IS NOT NULL
                  AND reference.clause_ref = candidate.clause_ref
@@ -185,6 +189,8 @@ kind_candidates AS (
       ON kind.compatibility_declaration_ref = p_compatibility_declaration_ref
      AND kind.referential_type_ref = p_referential_type_ref
      AND kind.pnf_kind_ref = candidate.pnf_kind_ref
+    WHERE p_referential_type_ref <> 'entity_reference'
+       OR candidate.parser_pos_ref IN ('NOUN', 'PROPN')
 ),
 accessible AS (
     SELECT candidate.*
