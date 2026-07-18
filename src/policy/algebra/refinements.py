@@ -36,6 +36,7 @@ class FactorRefinement(Generic[T]):
     added_alternative_refs: tuple[str, ...] = ()
     retained_alternative_refs: tuple[str, ...] = ()
     rejected_alternative_refs: tuple[str, ...] = ()
+    rejected_candidate_refs: tuple[str, ...] = ()
     residual_transitions: tuple[ResidualTransition, ...] = ()
     evidence_refs: tuple[str, ...] = ()
 
@@ -56,6 +57,9 @@ class FactorRefinement(Generic[T]):
             "added_alternative_refs": sorted(groups[0]),
             "retained_alternative_refs": sorted(groups[1]),
             "rejected_alternative_refs": sorted(groups[2]),
+            "rejected_candidate_refs": list(
+                canonical_refs(self.rejected_candidate_refs)
+            ),
             "residual_transitions": [
                 row.to_dict()
                 for row in sorted(

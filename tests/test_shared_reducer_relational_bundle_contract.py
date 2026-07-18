@@ -45,7 +45,7 @@ def _validate_relational_bundle_v1(bundle: dict) -> None:
             if relation["type"] == "composition" and role["role"] == "mode":
                 assert role["value"] == "question"
                 assert role["span_start"] < role["span_end"]
-                assert bundle["canonical_text"][role["span_start"]:role["span_end"]]
+                assert bundle["canonical_text"][role["span_start"] : role["span_end"]]
 
 
 def test_relational_bundle_contract_matches_hedging_volatility_shape() -> None:
@@ -62,11 +62,15 @@ def test_relational_bundle_contract_matches_hedging_volatility_shape() -> None:
     assert bundle["canonical_text"] == canonical_text
 
     predicate_pairs = [
-        tuple(atom_text_by_id[role["atom"]] for role in relation["roles"])
+        tuple(
+            atom_text_by_id[role["atom"]]
+            for role in relation["roles"]
+            if "atom" in role
+        )
         for relation in bundle["relations"]
         if relation["type"] == "predicate"
     ]
-    assert ("hedge", "volatility") in predicate_pairs
+    assert any(pair[:2] == ("hedge", "volatility") for pair in predicate_pairs)
 
     modifier_pairs = [
         tuple(atom_text_by_id[role["atom"]] for role in relation["roles"])

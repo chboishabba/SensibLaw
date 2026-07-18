@@ -120,6 +120,50 @@ It is local-only in its first phase and cannot select external identities,
 promote claims, or silently join documents. Its declarations and phase
 boundaries are in `docs/planning/directory_compilation_kernel_20260718.md`.
 
+The active next P0 implementation is the PostgreSQL semantic compiler contract
+in `docs/planning/postgres_semantic_compiler_p0_20260718.md`. It upgrades the
+local compiler from conservative mention-identity factors to generic
+predicate/argument/event/time/place and related factor structure, persists
+immutable declaration/build/factor/refinement records, and emits external
+demands only after local refinement. GWB and AU remain regression proofs, not
+semantic profiles or database namespaces.
+
+The active local-quality slice projects public annotation and relational
+structure into branch-preserving local type alternatives before any EPUB/PDF
+ingestion or external evidence is admitted. Predicate roles, temporal/spatial
+anchors, nominal structure, coordination, and composition can improve the
+local PNF graph, but cannot select an identity or promote a fact. `uv.lock` is
+kept as the reviewed Python dependency-resolution artifact for reproducible
+local, CI, and future Nix-backed development environments.
+
+The next local-only structural-semantics slice first partitions remaining
+untyped mentions by the parser observations actually available, then applies
+immutable generic reductions. A reduction emits provenance-bearing typed
+alternatives, factors, relations, constraints, and residual-specific closure
+receipts; it cannot select a referent, occurrence, scope, truth value, or
+external identity. Nominal descriptions, predication, syntactic arguments, and
+clause/composition structure come before further source-media support or
+registry evidence.
+
+The current implementation focus is the parser-to-PNF seam: preserve one
+public parser pass as a lossless annotation graph (including capability/model
+receipt, POS, morphology, dependency and sentence observations), then derive
+the relational bundle from that graph. Predicate observation is not limited to
+direct-object clauses: intransitive, copular, passive, complement-taking,
+modal, negative and oblique structures remain syntactic observations. PNF
+reductions may turn those into branch-preserving factors and constraints, but
+may not decide semantic roles, pronoun antecedents, identity, occurrence, or
+truth. The untyped diagnostic follows parser observation through graph
+projection and declaration consumption; earlier `markup_fragment` counts were
+an input-loss artefact rather than a corpus property.
+
+The next local-only refinement pass turns those structural observations into
+bounded PNF binding and semantic-role candidates.  Parser-supported
+coreference candidates and syntactic-role constraints remain typed
+alternatives: they can revise an affected factor and narrow a later evidence
+demand, but cannot assert identity, make a passive subject an agent, or turn a
+report's content into truth.
+
 The first P0a parser consolidation slice is implemented: canonical parsing,
 rule extraction, and structural-node construction now live in
 `src.ingestion.section_parser`; `src.section_parser` is a compatibility

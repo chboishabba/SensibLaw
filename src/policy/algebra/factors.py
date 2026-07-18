@@ -5,7 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 from typing import Any, Generic, Mapping, TypeVar
 
-from src.policy.carriers.canonical import canonical_mapping, canonical_refs, require_text
+from src.policy.carriers.canonical import (
+    canonical_mapping,
+    canonical_refs,
+    require_text,
+)
 
 from .alternatives import TypedAlternative
 
@@ -27,6 +31,11 @@ class FactorConstraint:
     constraint_type: str
     payload: Mapping[str, Any] = field(default_factory=dict)
     provenance_refs: tuple[str, ...] = ()
+    source_factor_refs: tuple[str, ...] = ()
+    target_factor_refs: tuple[str, ...] = ()
+    alternative_group: str | None = None
+    required: bool = True
+    residual_on_failure: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -34,6 +43,11 @@ class FactorConstraint:
             "constraint_type": require_text(self.constraint_type, "constraint_type"),
             "payload": canonical_mapping(self.payload),
             "provenance_refs": list(canonical_refs(self.provenance_refs)),
+            "source_factor_refs": list(canonical_refs(self.source_factor_refs)),
+            "target_factor_refs": list(canonical_refs(self.target_factor_refs)),
+            "alternative_group": self.alternative_group,
+            "required": self.required,
+            "residual_on_failure": self.residual_on_failure,
         }
 
 
@@ -80,13 +94,17 @@ class Factor(Generic[T]):
         for item in alternatives:
             existing = by_ref.get(item.alternative_ref)
             if existing is not None and existing.to_dict() != item.to_dict():
-                raise ValueError("cannot replace an alternative through add_alternatives")
+                raise ValueError(
+                    "cannot replace an alternative through add_alternatives"
+                )
             by_ref[item.alternative_ref] = item
         return replace(self, alternatives=tuple(by_ref[key] for key in sorted(by_ref)))
 
     def retain_alternatives(self, refs: tuple[str, ...]) -> "Factor[T]":
         retained = set(canonical_refs(refs))
-        unknown = retained.difference(item.alternative_ref for item in self.alternatives)
+        unknown = retained.difference(
+            item.alternative_ref for item in self.alternatives
+        )
         if unknown:
             raise ValueError(f"cannot retain unknown alternatives: {sorted(unknown)}")
         return replace(
@@ -101,7 +119,9 @@ class Factor(Generic[T]):
         return replace(
             self,
             alternatives=tuple(
-                item for item in self.alternatives if item.alternative_ref not in rejected
+                item
+                for item in self.alternatives
+                if item.alternative_ref not in rejected
             ),
         )
 

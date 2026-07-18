@@ -36,7 +36,9 @@ def test_collect_canonical_predicate_atoms_projects_predicate_relations() -> Non
     assert "head_modifiers" not in projected.modifiers
 
 
-def test_collect_canonical_relational_bundle_falls_back_without_spacy(monkeypatch) -> None:
+def test_collect_canonical_relational_bundle_falls_back_without_spacy(
+    monkeypatch,
+) -> None:
     def missing_spacy(_text: str):
         raise ModuleNotFoundError("spacy")
 
@@ -45,15 +47,78 @@ def test_collect_canonical_relational_bundle_falls_back_without_spacy(monkeypatc
     bundle = collect_canonical_relational_bundle("Leader publishes transactions.")
     atom_text_by_id = {atom["id"]: atom["text"].casefold() for atom in bundle["atoms"]}
     predicate_pairs = [
-        tuple(atom_text_by_id[role["atom"]] for role in relation["roles"] if role.get("atom"))
+        tuple(
+            atom_text_by_id[role["atom"]]
+            for role in relation["roles"]
+            if role.get("atom")
+        )
         for relation in bundle["relations"]
         if relation["type"] == "predicate"
     ]
 
-    assert any("publishes" in pair and "transactions" in pair for pair in predicate_pairs)
+    assert any(
+        "publishes" in pair and "transactions" in pair for pair in predicate_pairs
+    )
 
 
-def test_collect_canonical_predicate_atoms_is_empty_when_no_predicate_relation_exists() -> None:
+def test_relational_bundle_projects_a_supplied_parse_without_reparsing() -> None:
+    parsed = {
+        "text": "Bush resigned.",
+        "sents": [
+            {
+                "text": "Bush resigned.",
+                "start": 0,
+                "end": 14,
+                "tokens": [
+                    {
+                        "index": 0,
+                        "text": "Bush",
+                        "lemma": "Bush",
+                        "pos": "PROPN",
+                        "tag": "NNP",
+                        "morph": {"Number": ["Sing"]},
+                        "dep": "nsubj",
+                        "head_index": 1,
+                        "head_text": "resigned",
+                        "start": 0,
+                        "end": 4,
+                    },
+                    {
+                        "index": 1,
+                        "text": "resigned",
+                        "lemma": "resign",
+                        "pos": "VERB",
+                        "tag": "VBD",
+                        "morph": {"Tense": ["Past"]},
+                        "dep": "ROOT",
+                        "head_index": 1,
+                        "head_text": "resigned",
+                        "start": 5,
+                        "end": 13,
+                    },
+                ],
+            }
+        ],
+    }
+
+    bundle = collect_canonical_relational_bundle(
+        "Bush resigned.", parsed_document=parsed
+    )
+    atom_text_by_id = {atom["id"]: atom["text"] for atom in bundle["atoms"]}
+    predicate = next(row for row in bundle["relations"] if row["type"] == "predicate")
+
+    assert [
+        atom_text_by_id[row["atom"]] for row in predicate["roles"] if "atom" in row
+    ] == [
+        "resigned",
+        "Bush",
+    ]
+    assert {row["role"] for row in predicate["roles"]} >= {"head", "subject"}
+
+
+def test_collect_canonical_predicate_atoms_is_empty_when_no_predicate_relation_exists() -> (
+    None
+):
     atoms = collect_canonical_predicate_atoms("Bitcoin?")
 
     assert atoms == []
@@ -89,7 +154,9 @@ def test_collect_canonical_structural_ir_feed_emits_bounded_artifact_family() ->
     assert first_predicate["wrapper"]["evidence_only"] is True
 
 
-def test_collect_canonical_structural_ir_feed_does_not_emit_semantic_route_or_intent_keys() -> None:
+def test_collect_canonical_structural_ir_feed_does_not_emit_semantic_route_or_intent_keys() -> (
+    None
+):
     feed = collect_canonical_structural_ir_feed("Leader publishes transactions.")
 
     forbidden = {"intent", "route", "asset", "advice", "interaction_mode"}
@@ -106,7 +173,9 @@ def test_collect_canonical_structural_ir_feed_does_not_emit_semantic_route_or_in
     walk(feed)
 
 
-def test_collect_canonical_predicate_atoms_from_units_requires_body_qualified_units() -> None:
+def test_collect_canonical_predicate_atoms_from_units_requires_body_qualified_units() -> (
+    None
+):
     units = (
         CanonicalUnit(
             unit_id="u:0",
@@ -148,7 +217,9 @@ def test_collect_canonical_predicate_pnfs_exposes_real_pnf_carrier() -> None:
     assert first.wrapper.evidence_only is True
 
 
-def test_collect_canonical_predicate_pnfs_from_units_requires_body_qualified_units() -> None:
+def test_collect_canonical_predicate_pnfs_from_units_requires_body_qualified_units() -> (
+    None
+):
     units = (
         CanonicalUnit(
             unit_id="u:0",
@@ -176,7 +247,9 @@ def test_collect_canonical_predicate_pnfs_from_units_requires_body_qualified_uni
     assert pnfs[0].roles["object"].value == "transactions"
 
 
-def test_collect_canonical_predicate_atoms_emits_utterance_support_sign_carriers() -> None:
+def test_collect_canonical_predicate_atoms_emits_utterance_support_sign_carriers() -> (
+    None
+):
     positive = collect_canonical_predicate_atoms("I walked the dog.")
     negative = collect_canonical_predicate_atoms("I did not walk the dog.")
 
@@ -194,7 +267,9 @@ def test_collect_canonical_predicate_atoms_emits_utterance_support_sign_carriers
     assert "negation_evidence" in right.modifiers
 
 
-def test_collect_canonical_predicate_atoms_emits_copular_reclassification_pair() -> None:
+def test_collect_canonical_predicate_atoms_emits_copular_reclassification_pair() -> (
+    None
+):
     atoms = [
         atom
         for atom in collect_canonical_predicate_atoms(
@@ -223,7 +298,9 @@ def test_collect_canonical_predicate_atoms_emits_not_a_it_is_b_pair() -> None:
         if atom.predicate == "be/classify"
     ]
 
-    assert {(atom.roles["theme"].value, atom.qualifiers.polarity) for atom in atoms} == {
+    assert {
+        (atom.roles["theme"].value, atom.qualifiers.polarity) for atom in atoms
+    } == {
         ("a", "negative"),
         ("b", "positive"),
     }
@@ -234,7 +311,9 @@ def test_collect_canonical_structural_ir_feed_enriches_predicate_atoms_from_env_
     tmp_path: Path,
 ) -> None:
     artifact_path = _latent_fibre_artifact(tmp_path)
-    monkeypatch.setenv("SENSIBLAW_UTTERANCE_LATENT_FIBRE_INDEX_PATH", str(artifact_path))
+    monkeypatch.setenv(
+        "SENSIBLAW_UTTERANCE_LATENT_FIBRE_INDEX_PATH", str(artifact_path)
+    )
 
     feed = collect_canonical_structural_ir_feed("I walked the dog.")
 
@@ -268,7 +347,9 @@ def test_collect_canonical_structural_ir_feed_from_units_skips_non_body_units() 
 
 def test_collect_canonical_relational_bundle_emits_batch_progress() -> None:
     events: list[tuple[str, dict]] = []
-    text = "Leader publishes transactions. Verifier checks signatures. Time orders events."
+    text = (
+        "Leader publishes transactions. Verifier checks signatures. Time orders events."
+    )
 
     bundle = collect_canonical_relational_bundle(
         text,
@@ -277,7 +358,9 @@ def test_collect_canonical_relational_bundle_emits_batch_progress() -> None:
 
     assert bundle["relations"]
     assert events
-    progress_events = [details for stage, details in events if stage == "relational_bundle_progress"]
+    progress_events = [
+        details for stage, details in events if stage == "relational_bundle_progress"
+    ]
     assert progress_events
     last = progress_events[-1]
     assert last["sentences_done"] == last["total_sentences"]
@@ -294,9 +377,13 @@ def test_collect_canonical_structural_ir_feed_emits_feed_progress() -> None:
     )
 
     assert feed["predicate_atoms"]
-    progress_events = [details for stage, details in events if stage == "structural_feed_progress"]
+    progress_events = [
+        details for stage, details in events if stage == "structural_feed_progress"
+    ]
     assert progress_events
-    assert any(details["stage"] == "relational_bundle_progress" for details in progress_events)
+    assert any(
+        details["stage"] == "relational_bundle_progress" for details in progress_events
+    )
     final = progress_events[-1]
     assert final["stage"] == "receipt_finalize"
     assert final["provenance_ref_count"] == len(feed["provenance_refs"])
@@ -382,7 +469,9 @@ def _latent_fibre_artifact_with_id(
     return artifact_path
 
 
-def test_collect_canonical_predicate_atoms_can_enrich_from_utterance_latent_fibre_index(tmp_path: Path) -> None:
+def test_collect_canonical_predicate_atoms_can_enrich_from_utterance_latent_fibre_index(
+    tmp_path: Path,
+) -> None:
     artifact_path = _latent_fibre_artifact(tmp_path)
 
     atoms = collect_canonical_predicate_atoms(
@@ -398,7 +487,9 @@ def test_collect_canonical_predicate_atoms_can_enrich_from_utterance_latent_fibr
     assert atom.latent_grounding["artifact_id"] == "fixture-local-corpus-v1"
 
 
-def test_collect_canonical_predicate_atoms_falls_back_if_latent_fibre_index_unavailable(tmp_path: Path) -> None:
+def test_collect_canonical_predicate_atoms_falls_back_if_latent_fibre_index_unavailable(
+    tmp_path: Path,
+) -> None:
     atoms = collect_canonical_predicate_atoms(
         "I walked the dog.",
         utterance_latent_fibre_index=tmp_path / "missing-latent-fibre.json",
@@ -410,7 +501,9 @@ def test_collect_canonical_predicate_atoms_falls_back_if_latent_fibre_index_unav
     assert not atom.latent_grounding
 
 
-def test_collect_canonical_predicate_atoms_can_disable_default_latent_fibre_index(monkeypatch) -> None:
+def test_collect_canonical_predicate_atoms_can_disable_default_latent_fibre_index(
+    monkeypatch,
+) -> None:
     monkeypatch.setenv("SENSIBLAW_UTTERANCE_LATENT_FIBRES_DISABLED", "1")
 
     atoms = collect_canonical_predicate_atoms("I walked the dog.")
@@ -422,7 +515,9 @@ def test_collect_canonical_predicate_atoms_can_disable_default_latent_fibre_inde
     assert atom.semantic_comparison_mode == "exact"
 
 
-def test_collect_canonical_predicate_atoms_marks_unsupported_default_fibre_as_abstained() -> None:
+def test_collect_canonical_predicate_atoms_marks_unsupported_default_fibre_as_abstained() -> (
+    None
+):
     atoms = collect_canonical_predicate_atoms("Leader publishes transactions.")
 
     assert atoms
@@ -430,7 +525,9 @@ def test_collect_canonical_predicate_atoms_marks_unsupported_default_fibre_as_ab
     assert atom.predicate == "publish"
     assert atom.support_fibres == ()
     assert atom.semantic_comparison_mode == "abstained"
-    assert atom.latent_grounding["artifact_id"] == "sensiblaw-utterance-latent-fibres-v0_1"
+    assert (
+        atom.latent_grounding["artifact_id"] == "sensiblaw-utterance-latent-fibres-v0_1"
+    )
     assert atom.latent_grounding["abstention_reason"] == "no_supported_latent_fibre"
 
 
@@ -439,7 +536,9 @@ def test_collect_canonical_predicate_atoms_uses_env_seeded_latent_fibre_index(
     tmp_path: Path,
 ) -> None:
     artifact_path = _latent_fibre_artifact(tmp_path)
-    monkeypatch.setenv("SENSIBLAW_UTTERANCE_LATENT_FIBRE_INDEX_PATH", str(artifact_path))
+    monkeypatch.setenv(
+        "SENSIBLAW_UTTERANCE_LATENT_FIBRE_INDEX_PATH", str(artifact_path)
+    )
 
     atoms = collect_canonical_predicate_atoms("I walked the dog.")
 
@@ -454,10 +553,16 @@ def test_collect_canonical_predicate_atoms_resolves_utterance_latent_fibre_index
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    explicit_path = _latent_fibre_artifact_with_id(tmp_path / "explicit", artifact_id="explicit-index")
+    explicit_path = _latent_fibre_artifact_with_id(
+        tmp_path / "explicit", artifact_id="explicit-index"
+    )
     env_path = _latent_fibre_artifact_with_id(tmp_path / "env", artifact_id="env-index")
-    config_path = _latent_fibre_artifact_with_id(tmp_path / "config", artifact_id="config-index")
-    legacy_path = _latent_fibre_artifact_with_id(tmp_path / "legacy", artifact_id="legacy-index")
+    config_path = _latent_fibre_artifact_with_id(
+        tmp_path / "config", artifact_id="config-index"
+    )
+    legacy_path = _latent_fibre_artifact_with_id(
+        tmp_path / "legacy", artifact_id="legacy-index"
+    )
     config = {
         "utterance_latent_fibres": {
             "utterance_latent_fibre_index_path": str(config_path),
@@ -468,7 +573,9 @@ def test_collect_canonical_predicate_atoms_resolves_utterance_latent_fibre_index
 
     monkeypatch.setenv("SENSIBLAW_UTTERANCE_LATENT_FIBRE_INDEX_PATH", str(env_path))
     monkeypatch.setenv("SENSIBLAW_UTTERANCE_LATENT_FIBRE_INDEX", str(legacy_path))
-    monkeypatch.setenv("SENSIBLAW_UTTERANCE_LATENT_FIBRE_INDEX_CONFIG", str(config_path_spec))
+    monkeypatch.setenv(
+        "SENSIBLAW_UTTERANCE_LATENT_FIBRE_INDEX_CONFIG", str(config_path_spec)
+    )
 
     shared_reducer._clear_utterance_latent_fibre_index_cache()
     atoms = collect_canonical_predicate_atoms(

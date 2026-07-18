@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """Supported cross-product access to SL canonical lexer/reducer outputs."""
+
+from __future__ import annotations
 
 from dataclasses import dataclass
 import json
@@ -28,7 +28,10 @@ try:
         collect_lexeme_occurrences_with_profile,
         get_tokenizer_profile,
     )
-    from src.text.operational_structure import StructureOccurrence, collect_operational_structure_occurrences
+    from src.text.operational_structure import (
+        StructureOccurrence,
+        collect_operational_structure_occurrences,
+    )
     from src.text.structure_index import collect_structure_occurrences
     from src.text.residual_lattice import (
         CandidateResidual,
@@ -72,7 +75,10 @@ except ModuleNotFoundError:  # pragma: no cover - cross-product import path
         collect_lexeme_occurrences_with_profile,
         get_tokenizer_profile,
     )
-    from text.operational_structure import StructureOccurrence, collect_operational_structure_occurrences
+    from text.operational_structure import (
+        StructureOccurrence,
+        collect_operational_structure_occurrences,
+    )
     from text.structure_index import collect_structure_occurrences
     from text.residual_lattice import (
         CandidateResidual,
@@ -116,16 +122,46 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - cross-product import path
     raise
 try:
-    from src.nlp.ontology_mapping import canonical_action_morphology, unknown_action_morphology
+    from src.nlp.ontology_mapping import (
+        canonical_action_morphology,
+        unknown_action_morphology,
+    )
 except ModuleNotFoundError:  # pragma: no cover - cross-product import path
-    from nlp.ontology_mapping import canonical_action_morphology, unknown_action_morphology
+    from nlp.ontology_mapping import (
+        canonical_action_morphology,
+        unknown_action_morphology,
+    )
 
 
 _YEAR_RE = re.compile(r"^\d{4}$")
 _RELATIONAL_BUNDLE_BATCH_MAX_SENTENCES = 32
 _RELATIONAL_BUNDLE_BATCH_MAX_CHARS = 8192
 _NEGATION_LEXEMES = {"not", "never", "no"}
-_AUXILIARY_LEXEMES = {"am", "are", "is", "was", "were", "be", "been", "being", "do", "does", "did", "has", "have", "had", "will", "would", "shall", "should", "can", "could", "may", "might", "must"}
+_AUXILIARY_LEXEMES = {
+    "am",
+    "are",
+    "is",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "do",
+    "does",
+    "did",
+    "has",
+    "have",
+    "had",
+    "will",
+    "would",
+    "shall",
+    "should",
+    "can",
+    "could",
+    "may",
+    "might",
+    "must",
+}
 _DETERMINER_LEXEMES = {"a", "an", "the"}
 _CONJUNCTION_LEXEMES = {"and", "or"}
 _COPULAR_RECLASSIFICATION_PATTERNS = (
@@ -147,12 +183,17 @@ _COPULAR_NOT_TAIL_RE = re.compile(
 )
 UTTERANCE_LATENT_FIBRE_INDEX_SCHEMA = "sl.utterance_latent_fibre_index.v0_1"
 DEFAULT_UTTERANCE_LATENT_FIBRE_INDEX_PATH = (
-    Path(__file__).resolve().parents[3] / "data" / "latent_fibres" / "utterance_latent_fibres.v0_1.json"
+    Path(__file__).resolve().parents[3]
+    / "data"
+    / "latent_fibres"
+    / "utterance_latent_fibres.v0_1.json"
 )
 _UTTERANCE_LATENT_FIBRE_INDEX_PATH_ENV = "SENSIBLAW_UTTERANCE_LATENT_FIBRE_INDEX_PATH"
 _UTTERANCE_LATENT_FIBRES_DISABLED_ENV = "SENSIBLAW_UTTERANCE_LATENT_FIBRES_DISABLED"
 _LEGACY_UTTERANCE_LATENT_FIBRE_INDEX_ENV = "SENSIBLAW_UTTERANCE_LATENT_FIBRE_INDEX"
-_UTTERANCE_LATENT_FIBRE_INDEX_CONFIG_ENV = "SENSIBLAW_UTTERANCE_LATENT_FIBRE_INDEX_CONFIG"
+_UTTERANCE_LATENT_FIBRE_INDEX_CONFIG_ENV = (
+    "SENSIBLAW_UTTERANCE_LATENT_FIBRE_INDEX_CONFIG"
+)
 _UTTERANCE_LATENT_FIBRE_INDEX_CONFIG_KEYS = {
     "utterance_latent_fibre_index",
     "utterance_latent_fibre_index_path",
@@ -171,6 +212,8 @@ class RelationalAtom:
     span_end: int
     lemma: str | None = None
     morph: dict[str, Any] | None = None
+    pos: str | None = None
+    dependency: str | None = None
 
 
 def _dedupe_relation_key(relation: dict[str, Any]) -> tuple[Any, ...]:
@@ -183,7 +226,9 @@ def _dedupe_relation_key(relation: dict[str, Any]) -> tuple[Any, ...]:
     return tuple(parts)
 
 
-def _detect_question_span(parsed: dict[str, Any]) -> tuple[bool, tuple[int, int] | None]:
+def _detect_question_span(
+    parsed: dict[str, Any],
+) -> tuple[bool, tuple[int, int] | None]:
     for sentence in parsed.get("sents", ()):
         tokens = sentence.get("tokens", ())
         if any(token["text"] == "?" for token in tokens):
@@ -196,7 +241,11 @@ def _detect_question_span(parsed: dict[str, Any]) -> tuple[bool, tuple[int, int]
                 return True, (token["start"], token["end"])
             if token["dep"] == "aux":
                 head = token_by_index.get(token["head_index"])
-                if head is not None and head["pos"] in {"VERB", "AUX"} and token["index"] < head["index"]:
+                if (
+                    head is not None
+                    and head["pos"] in {"VERB", "AUX"}
+                    and token["index"] < head["index"]
+                ):
                     return True, (token["start"], token["end"])
 
     return False, None
@@ -246,8 +295,15 @@ def _normalized_sentence_records(text: str) -> list[dict[str, Any]]:
         found = text.find(sentence_text, cursor)
         if found < 0:
             raw_start = int(getattr(sentence, "start_char", cursor) or cursor)
-            raw_end = int(getattr(sentence, "end_char", raw_start + len(sentence_text)) or raw_start + len(sentence_text))
-            if raw_start < cursor or raw_end <= raw_start or text[raw_start:raw_end].strip() != sentence_text:
+            raw_end = int(
+                getattr(sentence, "end_char", raw_start + len(sentence_text))
+                or raw_start + len(sentence_text)
+            )
+            if (
+                raw_start < cursor
+                or raw_end <= raw_start
+                or text[raw_start:raw_end].strip() != sentence_text
+            ):
                 raw_start = cursor
                 raw_end = min(len(text), raw_start + len(sentence_text))
             start = raw_start
@@ -271,7 +327,10 @@ def _collect_utterance_latent_fibre_index(
     if not artifact_path:
         return None
 
-    if _UTTERANCE_LATENT_FIBRE_INDEX_CACHE is not None and _UTTERANCE_LATENT_FIBRE_INDEX_CACHE[0] == artifact_path:
+    if (
+        _UTTERANCE_LATENT_FIBRE_INDEX_CACHE is not None
+        and _UTTERANCE_LATENT_FIBRE_INDEX_CACHE[0] == artifact_path
+    ):
         return _UTTERANCE_LATENT_FIBRE_INDEX_CACHE[1]
 
     try:
@@ -379,12 +438,32 @@ def collect_canonical_relational_bundle(
     text: str,
     *,
     canonical_mode: str = "deterministic_legal",
+    parsed_document: Mapping[str, Any] | None = None,
     progress_callback=None,
 ) -> dict[str, Any]:
-    """Emit a deterministic relation bundle over canonical text."""
+    """Emit a deterministic relation bundle over canonical parser observations.
+
+    ``parsed_document`` is the public parser payload returned by
+    :func:`sensiblaw.interfaces.parse_canonical_text`.  Supplying it preserves
+    a one-parse compiler path; omitting it keeps the historical convenience
+    surface intact.  The bundle is a syntactic observation projection only.
+    """
 
     del canonical_mode  # reserved for future profile-routing parity
-    sentence_batches = _iter_sentence_batches(text)
+    if parsed_document is not None and str(parsed_document.get("text") or "") != text:
+        raise ValueError("parsed_document text must equal text")
+    sentence_batches = (
+        [
+            {
+                "text": text,
+                "start_char": 0,
+                "sentences": tuple(parsed_document.get("sents") or ()),
+                "parsed": parsed_document,
+            }
+        ]
+        if parsed_document is not None
+        else _iter_sentence_batches(text)
+    )
     total_sentences = sum(len(batch["sentences"]) for batch in sentence_batches)
     total_words = len([token for token in text.split() if token.strip()])
 
@@ -404,6 +483,8 @@ def collect_canonical_relational_bundle(
             span_end=key[2],
             lemma=str(token.get("lemma") or token.get("text") or ""),
             morph=token.get("morph") if isinstance(token.get("morph"), dict) else None,
+            pos=str(token.get("pos") or "") or None,
+            dependency=str(token.get("dep") or "") or None,
         )
         atoms_by_key[key] = atom
         return atom
@@ -431,60 +512,158 @@ def collect_canonical_relational_bundle(
     for batch_index, batch in enumerate(sentence_batches, start=1):
         batch_text = str(batch["text"])
         batch_start_char = int(batch["start_char"])
-        parsed = _parse_with_spacy_or_fallback(batch_text)
+        parsed = batch.get("parsed") or _parse_with_spacy_or_fallback(batch_text)
         sent_tokens: list[dict[str, Any]] = []
         for sentence in parsed.get("sents", ()):
             for token in sentence.get("tokens", ()):
                 adjusted = dict(token)
-                adjusted["start"] = int(token["start"]) + batch_start_char
-                adjusted["end"] = int(token["end"]) + batch_start_char
+                if parsed_document is None:
+                    adjusted["start"] = int(token["start"]) + batch_start_char
+                    adjusted["end"] = int(token["end"]) + batch_start_char
                 sent_tokens.append(adjusted)
         token_by_index = {token["index"]: token for token in sent_tokens}
 
         for token in sent_tokens:
             if token["dep"] in predicate_deps and token["pos"] in {"VERB", "AUX"}:
+                auxiliary_children = {
+                    child["index"]
+                    for child in sent_tokens
+                    if child["head_index"] == token["index"]
+                    and child["dep"] in {"aux", "auxpass"}
+                    and child["pos"] == "AUX"
+                }
                 subject_children = [
                     child
                     for child in sent_tokens
-                    if child["head_index"] == token["index"] and child["dep"] in {"nsubj", "nsubjpass"} and child["pos"] in nounish
+                    if (
+                        child["head_index"] == token["index"]
+                        or child["head_index"] in auxiliary_children
+                    )
+                    and child["dep"] in {"nsubj", "nsubjpass"}
+                    and child["pos"] in nounish
                 ]
                 object_children = [
                     child
                     for child in sent_tokens
-                    if child["head_index"] == token["index"] and child["dep"] in object_deps and child["pos"] in nounish
+                    if child["head_index"] == token["index"]
+                    and child["dep"] in object_deps
+                    and child["pos"] in nounish
+                ]
+                oblique_children = [
+                    child
+                    for child in sent_tokens
+                    if child["head_index"] == token["index"]
+                    and child["dep"] in {"obl", "pobj", "iobj"}
+                    and child["pos"] in nounish
+                ]
+                complement_children = [
+                    child
+                    for child in sent_tokens
+                    if child["head_index"] == token["index"]
+                    and child["dep"] in {"attr", "acomp", "ccomp", "xcomp", "oprd"}
+                ]
+                clausal_complement_children = [
+                    child
+                    for child in complement_children
+                    if child["dep"] in {"ccomp", "xcomp"}
                 ]
                 negation_children = [
                     child
                     for child in sent_tokens
-                    if child["head_index"] == token["index"] and (child["dep"] == "neg" or child["lemma"].casefold() in _NEGATION_LEXEMES)
+                    if child["head_index"] == token["index"]
+                    and (
+                        child["dep"] == "neg"
+                        or child["lemma"].casefold() in _NEGATION_LEXEMES
+                    )
                 ]
                 aux_children = [
                     child
                     for child in sent_tokens
-                    if child["head_index"] == token["index"] and child["dep"] in {"aux", "auxpass"} and child["pos"] == "AUX"
+                    if child["head_index"] == token["index"]
+                    and child["dep"] in {"aux", "auxpass"}
+                    and child["pos"] == "AUX"
                 ]
-                relation_subjects = subject_children or [None]
-                for child in object_children:
+                if object_children:
+                    # Preserve the v1 object-centred projection for existing
+                    # predicate-atom consumers.  The no-object branch below
+                    # extends coverage without changing these legacy rows.
+                    relation_subjects = subject_children or [None]
+                    for child in object_children:
+                        head_atom = ensure_atom(token)
+                        argument_atom = ensure_atom(child)
+                        roles = [{"role": "head", "atom": head_atom.atom_id}]
+                        for subject in relation_subjects:
+                            if subject is not None:
+                                subject_atom = ensure_atom(subject)
+                                roles.append(
+                                    {"role": "subject", "atom": subject_atom.atom_id}
+                                )
+                        roles.append({"role": "object", "atom": argument_atom.atom_id})
+                        roles.append(
+                            {"role": "argument", "atom": argument_atom.atom_id}
+                        )
+                        for negation in negation_children:
+                            negation_atom = ensure_atom(negation)
+                            roles.append(
+                                {"role": "negation", "atom": negation_atom.atom_id}
+                            )
+                        for aux in aux_children:
+                            aux_atom = ensure_atom(aux)
+                            roles.append(
+                                {"role": "auxiliary", "atom": aux_atom.atom_id}
+                            )
+                        roles.append(
+                            {
+                                "role": "action_meta",
+                                "value": _canonical_action_metadata(token),
+                            }
+                        )
+                        append_relation("predicate", roles)
+                else:
                     head_atom = ensure_atom(token)
-                    argument_atom = ensure_atom(child)
                     roles = [{"role": "head", "atom": head_atom.atom_id}]
-                    for subject in relation_subjects:
-                        if subject is not None:
-                            subject_atom = ensure_atom(subject)
-                            roles.append({"role": "subject", "atom": subject_atom.atom_id})
-                    roles.append({"role": "object", "atom": argument_atom.atom_id})
-                    roles.append({"role": "argument", "atom": argument_atom.atom_id})
+                    for subject in subject_children:
+                        subject_atom = ensure_atom(subject)
+                        roles.append({"role": "subject", "atom": subject_atom.atom_id})
+                    for child in oblique_children:
+                        argument_atom = ensure_atom(child)
+                        roles.append({"role": "oblique", "atom": argument_atom.atom_id})
+                        roles.append(
+                            {"role": "argument", "atom": argument_atom.atom_id}
+                        )
+                    for child in complement_children:
+                        argument_atom = ensure_atom(child)
+                        roles.append(
+                            {"role": "complement", "atom": argument_atom.atom_id}
+                        )
+                        roles.append(
+                            {"role": "argument", "atom": argument_atom.atom_id}
+                        )
                     for negation in negation_children:
                         negation_atom = ensure_atom(negation)
-                        roles.append({"role": "negation", "atom": negation_atom.atom_id})
+                        roles.append(
+                            {"role": "negation", "atom": negation_atom.atom_id}
+                        )
                     for aux in aux_children:
                         aux_atom = ensure_atom(aux)
                         roles.append({"role": "auxiliary", "atom": aux_atom.atom_id})
-                    action_meta = _canonical_action_metadata(token)
-                    roles.append({"role": "action_meta", "value": action_meta})
+                    roles.append(
+                        {
+                            "role": "action_meta",
+                            "value": _canonical_action_metadata(token),
+                        }
+                    )
+                    append_relation("predicate", roles)
+
+                for child in clausal_complement_children:
+                    host_atom = ensure_atom(token)
+                    content_atom = ensure_atom(child)
                     append_relation(
-                        "predicate",
-                        roles,
+                        "composition",
+                        [
+                            {"role": "host", "atom": host_atom.atom_id},
+                            {"role": "content", "atom": content_atom.atom_id},
+                        ],
                     )
 
             if token["dep"] in modifier_deps:
@@ -513,7 +692,9 @@ def collect_canonical_relational_bundle(
                         ],
                     )
 
-            if token["dep"] in {"npadvmod", "tmod", "pobj"} and _YEAR_RE.match(token["text"]):
+            if token["dep"] in {"npadvmod", "tmod", "pobj"} and _YEAR_RE.match(
+                token["text"]
+            ):
                 anchor_atom = ensure_atom(token)
                 append_relation(
                     "temporal",
@@ -546,7 +727,10 @@ def collect_canonical_relational_bundle(
             )
 
     atoms = []
-    for atom in sorted(atoms_by_key.values(), key=lambda value: (value.span_start, value.span_end, value.atom_id)):
+    for atom in sorted(
+        atoms_by_key.values(),
+        key=lambda value: (value.span_start, value.span_end, value.atom_id),
+    ):
         payload = {
             "id": atom.atom_id,
             "text": atom.text,
@@ -556,6 +740,10 @@ def collect_canonical_relational_bundle(
             payload["lemma"] = atom.lemma
         if atom.morph:
             payload["morph"] = dict(atom.morph)
+        if atom.pos:
+            payload["pos"] = atom.pos
+        if atom.dependency:
+            payload["dependency"] = atom.dependency
         atoms.append(payload)
     return {
         "version": "relational_bundle_v1",
@@ -599,7 +787,9 @@ def _fallback_parse(text: str) -> dict[str, Any]:
     parsed_sentences: list[dict[str, Any]] = []
     token_index = 0
     for sentence in sentences:
-        sentence_tokens = _fallback_tokens(text, int(sentence["start_char"]), int(sentence["end_char"]), token_index)
+        sentence_tokens = _fallback_tokens(
+            text, int(sentence["start_char"]), int(sentence["end_char"]), token_index
+        )
         token_index += len(sentence_tokens)
         _fallback_assign_dependencies(sentence_tokens)
         parsed_sentences.append(
@@ -626,7 +816,9 @@ def _fallback_sentence_spans(text: str) -> list[tuple[int, int]]:
     return spans
 
 
-def _fallback_tokens(text: str, start: int, end: int, token_index_start: int) -> list[dict[str, Any]]:
+def _fallback_tokens(
+    text: str, start: int, end: int, token_index_start: int
+) -> list[dict[str, Any]]:
     tokens: list[dict[str, Any]] = []
     token_start: int | None = None
     for index in range(start, end):
@@ -636,16 +828,44 @@ def _fallback_tokens(text: str, start: int, end: int, token_index_start: int) ->
                 token_start = index
             continue
         if token_start is not None:
-            tokens.append(_fallback_token(text[token_start:index], token_start, index, token_index_start + len(tokens)))
+            tokens.append(
+                _fallback_token(
+                    text[token_start:index],
+                    token_start,
+                    index,
+                    token_index_start + len(tokens),
+                )
+            )
             token_start = None
         if char in "?!":
-            tokens.append(_fallback_token(char, index, index + 1, token_index_start + len(tokens), pos="PUNCT", tag="."))
+            tokens.append(
+                _fallback_token(
+                    char,
+                    index,
+                    index + 1,
+                    token_index_start + len(tokens),
+                    pos="PUNCT",
+                    tag=".",
+                )
+            )
     if token_start is not None:
-        tokens.append(_fallback_token(text[token_start:end], token_start, end, token_index_start + len(tokens)))
+        tokens.append(
+            _fallback_token(
+                text[token_start:end], token_start, end, token_index_start + len(tokens)
+            )
+        )
     return tokens
 
 
-def _fallback_token(text: str, start: int, end: int, index: int, *, pos: str | None = None, tag: str | None = None) -> dict[str, Any]:
+def _fallback_token(
+    text: str,
+    start: int,
+    end: int,
+    index: int,
+    *,
+    pos: str | None = None,
+    tag: str | None = None,
+) -> dict[str, Any]:
     lower = text.casefold()
     inferred_pos = pos or _fallback_pos(lower)
     return {
@@ -753,7 +973,9 @@ class _TokenMorphAdapter:
 
 def _canonical_action_metadata(token: dict[str, Any]) -> dict[str, str]:
     if not isinstance(token.get("morph"), dict):
-        return unknown_action_morphology(surface=str(token.get("text") or ""), source="fallback")
+        return unknown_action_morphology(
+            surface=str(token.get("text") or ""), source="fallback"
+        )
     return canonical_action_morphology(
         _TokenMorphAdapter(token),
         surface=str(token.get("text") or ""),
@@ -771,7 +993,9 @@ def _fallback_assign_dependencies(tokens: list[dict[str, Any]]) -> None:
                     (
                         item
                         for item in tokens[index + 1 :]
-                        if item["pos"] in {"NOUN", "PROPN"} and str(item.get("lemma") or item.get("text") or "").casefold() not in _DETERMINER_LEXEMES
+                        if item["pos"] in {"NOUN", "PROPN"}
+                        and str(item.get("lemma") or item.get("text") or "").casefold()
+                        not in _DETERMINER_LEXEMES
                     ),
                     None,
                 )
@@ -799,8 +1023,12 @@ def _fallback_assign_dependencies(tokens: list[dict[str, Any]]) -> None:
 
     for index, current_verb in enumerate(verbs):
         current_verb["dep"] = "ROOT" if index == 0 else "conj"
-        current_verb["head_index"] = primary_verb["index"] if index else current_verb["index"]
-        current_verb["head_text"] = primary_verb["text"] if index else current_verb["text"]
+        current_verb["head_index"] = (
+            primary_verb["index"] if index else current_verb["index"]
+        )
+        current_verb["head_text"] = (
+            primary_verb["text"] if index else current_verb["text"]
+        )
 
         next_verb_index = verbs[index + 1]["index"] if index + 1 < len(verbs) else None
         previous_verb_index = verbs[index - 1]["index"] if index > 0 else None
@@ -824,7 +1052,11 @@ def _fallback_assign_dependencies(tokens: list[dict[str, Any]]) -> None:
             token["dep"] = "punct"
             token["head_index"] = primary_verb["index"]
             token["head_text"] = primary_verb["text"]
-        elif token["pos"] == "PART" and str(token.get("lemma") or token.get("text") or "").casefold() in _NEGATION_LEXEMES:
+        elif (
+            token["pos"] == "PART"
+            and str(token.get("lemma") or token.get("text") or "").casefold()
+            in _NEGATION_LEXEMES
+        ):
             head = _fallback_next_verb(tokens, token, verbs) or primary_verb
             token["dep"] = "neg"
             token["head_index"] = head["index"]
@@ -847,7 +1079,8 @@ def _fallback_nearest_subject(
         for token in tokens
         if lower_bound < token["index"] < verb["index"]
         and token["pos"] in {"NOUN", "PROPN", "PRON", "NUM"}
-        and str(token.get("lemma") or token.get("text") or "").casefold() not in _DETERMINER_LEXEMES
+        and str(token.get("lemma") or token.get("text") or "").casefold()
+        not in _DETERMINER_LEXEMES
     ]
     return candidates[-1] if candidates else None
 
@@ -862,7 +1095,10 @@ def _fallback_nearest_object(
         if token["index"] <= verb["index"] or token["index"] >= upper_bound:
             continue
         lemma = str(token.get("lemma") or token.get("text") or "").casefold()
-        if token["pos"] in {"NOUN", "PROPN", "PRON", "NUM"} and lemma not in _DETERMINER_LEXEMES:
+        if (
+            token["pos"] in {"NOUN", "PROPN", "PRON", "NUM"}
+            and lemma not in _DETERMINER_LEXEMES
+        ):
             return token
     return None
 
@@ -881,7 +1117,10 @@ def collect_canonical_predicate_atoms(
     *,
     canonical_mode: str = "deterministic_legal",
     enable_utterance_latent_fibres: bool = True,
-    utterance_latent_fibre_index: str | UtteranceLatentIndex | os.PathLike[str] | None = None,
+    utterance_latent_fibre_index: str
+    | UtteranceLatentIndex
+    | os.PathLike[str]
+    | None = None,
 ) -> list[PredicateAtom]:
     """Expose bounded predicate-ready atoms derived from the shared reducer.
 
@@ -917,7 +1156,10 @@ def collect_canonical_predicate_pnfs(
     *,
     canonical_mode: str = "deterministic_legal",
     enable_utterance_latent_fibres: bool = True,
-    utterance_latent_fibre_index: str | UtteranceLatentIndex | os.PathLike[str] | None = None,
+    utterance_latent_fibre_index: str
+    | UtteranceLatentIndex
+    | os.PathLike[str]
+    | None = None,
 ) -> list[PredicatePNF]:
     """Expose canonical predicate normal forms derived from the shared reducer.
 
@@ -940,8 +1182,12 @@ def _body_qualified_unit_text(
 ) -> str:
     body_units = [
         unit
-        for unit in sorted(units, key=lambda item: (item.start_char, item.end_char, item.unit_id))
-        if isinstance(unit, CanonicalUnit) and unit.metadata.get("body_qualified") is True and unit.text.strip()
+        for unit in sorted(
+            units, key=lambda item: (item.start_char, item.end_char, item.unit_id)
+        )
+        if isinstance(unit, CanonicalUnit)
+        and unit.metadata.get("body_qualified") is True
+        and unit.text.strip()
     ]
     return "\n\n".join(unit.text.strip() for unit in body_units)
 
@@ -951,7 +1197,10 @@ def collect_canonical_predicate_atoms_from_units(
     *,
     canonical_mode: str = "deterministic_legal",
     enable_utterance_latent_fibres: bool = True,
-    utterance_latent_fibre_index: str | UtteranceLatentIndex | os.PathLike[str] | None = None,
+    utterance_latent_fibre_index: str
+    | UtteranceLatentIndex
+    | os.PathLike[str]
+    | None = None,
 ) -> list[PredicateAtom]:
     """Project predicate atoms only from body-qualified canonical units."""
 
@@ -971,7 +1220,10 @@ def collect_canonical_predicate_pnfs_from_units(
     *,
     canonical_mode: str = "deterministic_legal",
     enable_utterance_latent_fibres: bool = True,
-    utterance_latent_fibre_index: str | UtteranceLatentIndex | os.PathLike[str] | None = None,
+    utterance_latent_fibre_index: str
+    | UtteranceLatentIndex
+    | os.PathLike[str]
+    | None = None,
 ) -> list[PredicatePNF]:
     """Project predicate normal forms only from body-qualified canonical units."""
 
@@ -986,7 +1238,9 @@ def collect_canonical_predicate_pnfs_from_units(
     )
 
 
-def _collect_canonical_predicate_atoms_from_bundle(bundle: dict[str, Any]) -> list[PredicateAtom]:
+def _collect_canonical_predicate_atoms_from_bundle(
+    bundle: dict[str, Any],
+) -> list[PredicateAtom]:
     atoms_by_id = {
         str(atom["id"]): atom
         for atom in bundle.get("atoms", ())
@@ -1058,7 +1312,9 @@ def _collect_canonical_predicate_atoms_from_bundle(bundle: dict[str, Any]) -> li
                 negation_ids.append(str(role["atom"]))
             if role.get("role") == "auxiliary" and role.get("atom") is not None:
                 auxiliary_ids.append(str(role["atom"]))
-            if role.get("role") == "action_meta" and isinstance(role.get("value"), dict):
+            if role.get("role") == "action_meta" and isinstance(
+                role.get("value"), dict
+            ):
                 action_meta = {
                     str(key): str(value)
                     for key, value in role["value"].items()
@@ -1081,7 +1337,9 @@ def _collect_canonical_predicate_atoms_from_bundle(bundle: dict[str, Any]) -> li
 
         head_span = head_atom.get("span") or ()
         argument_span = argument_atom.get("span") or ()
-        subject_span = subject_atom.get("span") if isinstance(subject_atom, dict) else ()
+        subject_span = (
+            subject_atom.get("span") if isinstance(subject_atom, dict) else ()
+        )
         relation_id = str(relation.get("id", "")).strip() or None
         provenance_parts: list[str] = []
         if relation_id is not None:
@@ -1160,10 +1418,17 @@ def _collect_canonical_predicate_atoms_from_bundle(bundle: dict[str, Any]) -> li
             subject_value = str(subject_atom.get("text", "")).strip().lower()
             if len(subject_span) == 2:
                 subject_provenance = (f"subject:{subject_span[0]}-{subject_span[1]}",)
-        polarity = "negative" if any(
-            item["text"] in _NEGATION_LEXEMES
-            for item in (*modifiers.get("modifier_evidence", ()), *modifiers.get("negation_evidence", ()))
-        ) else "positive"
+        polarity = (
+            "negative"
+            if any(
+                item["text"] in _NEGATION_LEXEMES
+                for item in (
+                    *modifiers.get("modifier_evidence", ()),
+                    *modifiers.get("negation_evidence", ()),
+                )
+            )
+            else "positive"
+        )
         typed_roles = {
             "action": TypedArg(
                 value=predicate,
@@ -1176,7 +1441,7 @@ def _collect_canonical_predicate_atoms_from_bundle(bundle: dict[str, Any]) -> li
                 entity_type="object",
                 provenance=argument_provenance,
                 status="bound",
-            )
+            ),
         }
         if subject_value:
             typed_roles["subject"] = TypedArg(
@@ -1193,10 +1458,16 @@ def _collect_canonical_predicate_atoms_from_bundle(bundle: dict[str, Any]) -> li
                 roles=typed_roles,
                 qualifiers=QualifierState(
                     polarity=polarity,
-                    tense=action_meta.get("tense") if action_meta.get("tense") != "unknown" else None,
-                    modality=action_meta.get("modality") if action_meta.get("modality") != "unknown" else None,
+                    tense=action_meta.get("tense")
+                    if action_meta.get("tense") != "unknown"
+                    else None,
+                    modality=action_meta.get("modality")
+                    if action_meta.get("modality") != "unknown"
+                    else None,
                 ),
-                wrapper=WrapperState(status="structural_projection", evidence_only=True),
+                wrapper=WrapperState(
+                    status="structural_projection", evidence_only=True
+                ),
                 modifiers=modifiers,
                 provenance=tuple(provenance_parts),
                 atom_id=relation_id,
@@ -1226,7 +1497,9 @@ def _collect_copular_reclassification_atoms(text: str) -> list[PredicateAtom]:
         )
     for match in _COPULAR_RECLASSIFICATION_PATTERNS:
         for found in match.finditer(text):
-            first_negative = bool(found.groupdict().get("neg")) or str(found.groupdict().get("verb") or "").casefold() in {"isn't", "aren't", "wasn't", "weren't"}
+            first_negative = bool(found.groupdict().get("neg")) or str(
+                found.groupdict().get("verb") or ""
+            ).casefold() in {"isn't", "aren't", "wasn't", "weren't"}
             trailing_negative = bool(found.groupdict().get("trailing_neg"))
             if not first_negative and not trailing_negative:
                 continue
@@ -1266,8 +1539,24 @@ def _copular_classification_pair(
     if first_value == second_value:
         return []
     return [
-        _classification_atom(text, subject_value, first_value, first_polarity, match_start, match_end, seen),
-        _classification_atom(text, subject_value, second_value, second_polarity, match_start, match_end, seen),
+        _classification_atom(
+            text,
+            subject_value,
+            first_value,
+            first_polarity,
+            match_start,
+            match_end,
+            seen,
+        ),
+        _classification_atom(
+            text,
+            subject_value,
+            second_value,
+            second_polarity,
+            match_start,
+            match_end,
+            seen,
+        ),
     ]
 
 
@@ -1289,7 +1578,10 @@ def _classification_atom(
 ) -> PredicateAtom:
     key = (subject, class_value, polarity, span_start, span_end)
     provenance = (f"copular:{span_start}-{span_end}",)
-    atom_id = "copular:" + hashlib.sha256("|".join(map(str, key)).encode("utf-8")).hexdigest()[:16]
+    atom_id = (
+        "copular:"
+        + hashlib.sha256("|".join(map(str, key)).encode("utf-8")).hexdigest()[:16]
+    )
     if key in seen:
         provenance = (*provenance, "deduped")
     seen.add(key)
@@ -1297,10 +1589,30 @@ def _classification_atom(
         predicate="be/classify",
         structural_signature="classification:agent-theme",
         roles={
-            "agent": TypedArg(value=subject, entity_type="classified_entity", provenance=provenance, status="bound"),
-            "theme": TypedArg(value=class_value, entity_type="classification", provenance=provenance, status="bound"),
-            "subject": TypedArg(value=subject, entity_type="classified_entity", provenance=provenance, status="bound"),
-            "object": TypedArg(value=class_value, entity_type="classification", provenance=provenance, status="bound"),
+            "agent": TypedArg(
+                value=subject,
+                entity_type="classified_entity",
+                provenance=provenance,
+                status="bound",
+            ),
+            "theme": TypedArg(
+                value=class_value,
+                entity_type="classification",
+                provenance=provenance,
+                status="bound",
+            ),
+            "subject": TypedArg(
+                value=subject,
+                entity_type="classified_entity",
+                provenance=provenance,
+                status="bound",
+            ),
+            "object": TypedArg(
+                value=class_value,
+                entity_type="classification",
+                provenance=provenance,
+                status="bound",
+            ),
         },
         qualifiers=QualifierState(polarity=polarity),
         wrapper=WrapperState(status="directEvidence", evidence_only=True),
@@ -1380,15 +1692,26 @@ def _emit_structural_feed_progress(
     if progress_callback is None:
         return
     elapsed_seconds = round(time.monotonic() - started_at, 3)
-    stage_fraction_complete = 0.0 if total_steps <= 0 else float(completed_steps) / float(total_steps)
+    stage_fraction_complete = (
+        0.0 if total_steps <= 0 else float(completed_steps) / float(total_steps)
+    )
     work_fraction_complete = None
     eta_seconds = None
-    if work_unit is not None and work_completed is not None and work_total is not None and work_total > 0:
+    if (
+        work_unit is not None
+        and work_completed is not None
+        and work_total is not None
+        and work_total > 0
+    ):
         work_fraction_complete = float(work_completed) / float(work_total)
         if 0.0 < work_fraction_complete < 1.0 and elapsed_seconds > 0:
-            eta_seconds = round((elapsed_seconds / work_fraction_complete) - elapsed_seconds, 3)
+            eta_seconds = round(
+                (elapsed_seconds / work_fraction_complete) - elapsed_seconds, 3
+            )
     elif 0.0 < stage_fraction_complete < 1.0 and elapsed_seconds > 0:
-        eta_seconds = round((elapsed_seconds / stage_fraction_complete) - elapsed_seconds, 3)
+        eta_seconds = round(
+            (elapsed_seconds / stage_fraction_complete) - elapsed_seconds, 3
+        )
     progress_callback(
         "structural_feed_progress",
         {
@@ -1396,7 +1719,9 @@ def _emit_structural_feed_progress(
             "completed_steps": completed_steps,
             "total_steps": total_steps,
             "stage_fraction_complete": round(stage_fraction_complete, 4),
-            "work_fraction_complete": round(work_fraction_complete, 4) if work_fraction_complete is not None else None,
+            "work_fraction_complete": round(work_fraction_complete, 4)
+            if work_fraction_complete is not None
+            else None,
             "work_unit": work_unit,
             "work_completed": work_completed,
             "work_total": work_total,
@@ -1418,7 +1743,10 @@ def collect_canonical_structural_ir_feed(
     canonical_mode: str = "deterministic_legal",
     progress_callback=None,
     enable_utterance_latent_fibres: bool = True,
-    utterance_latent_fibre_index: str | UtteranceLatentIndex | os.PathLike[str] | None = None,
+    utterance_latent_fibre_index: str
+    | UtteranceLatentIndex
+    | os.PathLike[str]
+    | None = None,
 ) -> dict[str, Any]:
     """Emit a bounded structural IR feed for downstream consumer contracts.
 
@@ -1440,6 +1768,7 @@ def collect_canonical_structural_ir_feed(
         total_steps=total_steps,
         body_chars=body_chars,
     )
+
     def bundle_progress_callback(stage: str, details: dict[str, Any]) -> None:
         if stage != "relational_bundle_progress":
             return
@@ -1450,19 +1779,32 @@ def collect_canonical_structural_ir_feed(
             fraction_complete = float(sentences_done) / float(total_sentences)
         bundle_elapsed_seconds = round(time.monotonic() - feed_started_at, 3)
         bundle_eta_seconds = None
-        if fraction_complete > 0.0 and fraction_complete < 1.0 and bundle_elapsed_seconds > 0:
-            bundle_eta_seconds = round((bundle_elapsed_seconds / fraction_complete) - bundle_elapsed_seconds, 3)
+        if (
+            fraction_complete > 0.0
+            and fraction_complete < 1.0
+            and bundle_elapsed_seconds > 0
+        ):
+            bundle_eta_seconds = round(
+                (bundle_elapsed_seconds / fraction_complete) - bundle_elapsed_seconds, 3
+            )
         progress_callback(
             "structural_feed_progress",
             {
                 "stage": "relational_bundle_progress",
                 "completed_steps": round(fraction_complete, 4),
                 "total_steps": 1.0,
-                "stage_fraction_complete": round(fraction_complete / float(total_steps), 4),
+                "stage_fraction_complete": round(
+                    fraction_complete / float(total_steps), 4
+                ),
                 "work_fraction_complete": round(
-                    (float(details.get("words_done") or 0) / float(details.get("total_words") or 1)),
+                    (
+                        float(details.get("words_done") or 0)
+                        / float(details.get("total_words") or 1)
+                    ),
                     4,
-                ) if int(details.get("total_words") or 0) > 0 else None,
+                )
+                if int(details.get("total_words") or 0) > 0
+                else None,
                 "work_unit": "words",
                 "work_completed": int(details.get("words_done") or 0),
                 "work_total": int(details.get("total_words") or 0),
@@ -1488,7 +1830,9 @@ def collect_canonical_structural_ir_feed(
     bundle = collect_canonical_relational_bundle(
         text,
         canonical_mode=canonical_mode,
-        progress_callback=bundle_progress_callback if progress_callback is not None else None,
+        progress_callback=bundle_progress_callback
+        if progress_callback is not None
+        else None,
     )
     _emit_structural_feed_progress(
         progress_callback,
@@ -1530,7 +1874,9 @@ def collect_canonical_structural_ir_feed(
         body_chars=body_chars,
         predicate_atom_count=len(predicate_atoms),
     )
-    legal_occurrences = tuple(collect_lexeme_occurrences(text, canonical_mode=canonical_mode))
+    legal_occurrences = tuple(
+        collect_lexeme_occurrences(text, canonical_mode=canonical_mode)
+    )
     _emit_structural_feed_progress(
         progress_callback,
         stage="legal_structure",
@@ -1607,13 +1953,8 @@ def collect_canonical_structural_ir_feed(
     total_signal_occurrences = len(structure_occurrences)
     for index, occurrence in enumerate(structure_occurrences, start=1):
         signal_atoms.append(_structure_signal_atom(occurrence))
-        if (
-            progress_callback is not None
-            and (
-                index == 1
-                or index == total_signal_occurrences
-                or index % 2048 == 0
-            )
+        if progress_callback is not None and (
+            index == 1 or index == total_signal_occurrences or index % 2048 == 0
         ):
             _emit_structural_feed_progress(
                 progress_callback,
@@ -1646,7 +1987,9 @@ def collect_canonical_structural_ir_feed(
         work_total=total_signal_occurrences,
     )
     provenance_refs: list[str] = []
-    expected_provenance_upper_bound = sum(len(atom.provenance) for atom in predicate_atoms) + len(signal_atoms)
+    expected_provenance_upper_bound = sum(
+        len(atom.provenance) for atom in predicate_atoms
+    ) + len(signal_atoms)
     provenance_seen = 0
     for atom in predicate_atoms:
         for provenance_ref in atom.provenance:
@@ -1774,7 +2117,10 @@ def collect_canonical_structural_ir_feed_from_units(
     canonical_mode: str = "deterministic_legal",
     progress_callback=None,
     enable_utterance_latent_fibres: bool = True,
-    utterance_latent_fibre_index: str | UtteranceLatentIndex | os.PathLike[str] | None = None,
+    utterance_latent_fibre_index: str
+    | UtteranceLatentIndex
+    | os.PathLike[str]
+    | None = None,
 ) -> dict[str, Any]:
     """Emit a structural IR feed only from body-qualified canonical units."""
 
@@ -1788,7 +2134,9 @@ def collect_canonical_structural_ir_feed_from_units(
             "constraint_receipt": {
                 "canonical_mode": canonical_mode,
                 "question_mode": False,
-                "tokenizer_profile_id": get_canonical_tokenizer_profile_receipt()["profile_id"],
+                "tokenizer_profile_id": get_canonical_tokenizer_profile_receipt()[
+                    "profile_id"
+                ],
                 "evidence_only": True,
             },
         }
@@ -1877,12 +2225,14 @@ def collect_canonical_lexeme_refs(
         )
         refs.append(
             {
-                "occurrence_id": hashlib.sha256(occurrence_seed.encode("utf-8")).hexdigest()[:16],
+                "occurrence_id": hashlib.sha256(
+                    occurrence_seed.encode("utf-8")
+                ).hexdigest()[:16],
                 "kind": occurrence.kind,
                 "span_start": occurrence.start_char,
                 "span_end": occurrence.end_char,
             }
-    )
+        )
     return refs
 
 

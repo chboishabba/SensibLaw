@@ -1,4 +1,5 @@
 from src.ingestion.media_adapter import (
+    HtmlDocumentMediaAdapter,
     MediaType,
     PdfPageMediaAdapter,
     SegmentKind,
@@ -39,6 +40,19 @@ def test_adapt_text_content_emits_canonical_text():
     }
     assert segment.start_char == 0
     assert segment.end_char == len(canonical.text)
+
+
+def test_html_document_adapter_preserves_visible_text_without_script_or_style():
+    canonical = HtmlDocumentMediaAdapter(source_artifact_ref="source:html").adapt(
+        "<main><h1>Heading</h1><p>Visible <b>text</b>.</p>"
+        "<script>hidden()</script><style>.hidden {}</style></main>"
+    )
+
+    assert canonical.media_type == MediaType.TEXT.value
+    assert canonical.provenance["adapter"] == "html_document_media_adapter"
+    assert "Heading" in canonical.text
+    assert "Visible text." in canonical.text
+    assert "hidden" not in canonical.text
 
 
 def test_pdf_page_media_adapter_emits_heading_and_paragraph_segments():
@@ -99,7 +113,9 @@ def test_pdf_page_media_adapter_emits_heading_and_paragraph_segments():
 
 
 def test_parse_canonical_text_accepts_profile_override():
-    canonical = adapt_text_content("Section 1\nAlpha must comply.", segment_prefix="policy")
+    canonical = adapt_text_content(
+        "Section 1\nAlpha must comply.", segment_prefix="policy"
+    )
 
     envelope = parse_canonical_text(
         canonical,
@@ -119,14 +135,19 @@ def test_parse_canonical_text_accepts_profile_override():
 
 def test_parse_canonical_text_can_attach_structure_graph():
     adapter = PdfPageMediaAdapter(source_artifact_ref="graph-doc")
-    canonical = adapter.adapt([{"page": 1, "heading": "Section 1", "text": "Alpha body"}])
+    canonical = adapter.adapt(
+        [{"page": 1, "heading": "Section 1", "text": "Alpha body"}]
+    )
 
     envelope = parse_canonical_text(canonical, include_structure_graph=True)
 
     assert envelope.segment_graph is not None
     assert envelope.parse_receipt["has_structure_graph"] is True
     assert envelope.segment_graph.graph_id == f"{envelope.envelope_id}:segment_graph"
-    assert envelope.to_dict()["segment_graph"]["graph_id"] == envelope.segment_graph.graph_id
+    assert (
+        envelope.to_dict()["segment_graph"]["graph_id"]
+        == envelope.segment_graph.graph_id
+    )
 
 
 def test_text_document_media_adapter_emits_canonical_text():
@@ -192,7 +213,16 @@ def test_text_document_media_adapter_round_trips_into_parse_canonical_text():
     }
     assert envelope.parsed_units[1].text == "`beta`"
     assert envelope.parsed_units[1].segment_id == canonical.segments[0].segment_id
-    assert envelope.parsed_units[1].anchor_refs["unit_id"] == envelope.parsed_units[1].unit_id
-    assert envelope.parsed_units[1].anchor_refs["start_char"] == envelope.parsed_units[1].start_char
-    assert envelope.parsed_units[1].anchor_refs["end_char"] == envelope.parsed_units[1].end_char
+    assert (
+        envelope.parsed_units[1].anchor_refs["unit_id"]
+        == envelope.parsed_units[1].unit_id
+    )
+    assert (
+        envelope.parsed_units[1].anchor_refs["start_char"]
+        == envelope.parsed_units[1].start_char
+    )
+    assert (
+        envelope.parsed_units[1].anchor_refs["end_char"]
+        == envelope.parsed_units[1].end_char
+    )
     assert envelope.parsed_units[3].metadata["target"] == "https://example.test"

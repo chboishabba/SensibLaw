@@ -346,3 +346,78 @@ Compact snapshot of the current architecture and next seam.
   provenance occurrences; content hash plus media-normalisation declaration
   supplies document identity. See
   `docs/planning/directory_compilation_kernel_20260718.md`.
+- 2026-07-18 PostgreSQL semantic-compiler decision: the next P0 slice must
+  build structured generic PNF factors from one annotation graph, plan sparse
+  local typed meets, persist immutable factor revisions and build dependencies,
+  and derive demands only after local refinement. The active contract is
+  `docs/planning/postgres_semantic_compiler_p0_20260718.md`; GWB and AU remain
+  proof fixtures rather than semantic profiles. The workspace previously had
+  only the older legal PostgreSQL migrations, so the compiler substrate starts
+  as an additive generic schema rather than claiming runtime parity.
+- 2026-07-18 PostgreSQL runtime checkpoint: migration `007` is applied to the
+  persistent user-owned PostgreSQL 18 development cluster. A `gwb-mini` proof
+  persisted 3 documents, 40 PNF factors, and 29 unresolved demands; an
+  identical rerun introduced no additional demand-projection build rows. The
+  local service is a development surface only, never source-artifact or claim
+  authority; broader reuse measurements and full proofs remain pending.
+- 2026-07-18 first proper-corpus checkpoint: generic structural HTML
+  canonicalisation enabled the raw six-document GWB public-bios collection to
+  compile through the same PostgreSQL-backed local-only path. It produced
+  11,676 factors, 8,719 unresolved demands, and 5,012 compatible local typed
+  meets; no network, cross-document identity closure, or readiness ran. An
+  identical rerun added no demand-projection builds. EPUB/PDF books, external
+  evidence, and any GWB-specific semantics remain out of scope.
+- 2026-07-18 local-quality decision: retain `uv.lock` as a reviewed Python
+  dependency-resolution artifact in support of reproducible local PostgreSQL,
+  CI, and future Nix development. Before any EPUB/PDF capability or external
+  evidence work, improve generic local typing by projecting existing public
+  annotation/relation structure into branch-preserving predicate-role,
+  temporal/spatial, nominal, coordination, and composition alternatives. This
+  remains candidate-only and must not choose identities or add corpus-specific
+  semantics.
+- 2026-07-18 local-quality checkpoint: the six raw GWB public-bios HTML
+  sources recompiled under semantic compiler v0.2 with 5,317 provenance-backed
+  generic role/structure hypotheses. `local_type_unresolved` fell from 7,355
+  to 3,824; demands rose from 8,719 to 8,817 because local structure now
+  preserves explicit external-identity obligations rather than masking them as
+  generic untyped mentions. No EPUB/PDF, network, cross-document closure, or
+  readiness work was added.
+- 2026-07-18 parser-to-PNF decision: the next local semantic-compiler slice
+  repairs information loss, not parser availability. One public parser pass
+  must preserve token/sentence/POS/lemma/morphology/dependency/head and parser
+  capability/model observations in the immutable annotation graph. The
+  relational bundle becomes a projection of that graph and must retain
+  predicate structure without a direct-object precondition. PNF reductions
+  consume these observations as branch-preserving syntactic factors and
+  constraints; pronouns are unresolved PNF arguments/reference branches, not
+  English word-list classifications. Historic `markup_fragment` diagnostics
+  are invalid where missing diagnostic input caused the classification.
+- 2026-07-18 parser-to-PNF checkpoint: v0.5 now shares one public spaCy parse
+  across compiler mention licensing and relation projection. The graph retains
+  parser token/span/dependency/capability observations, predicate projection
+  retains subject-only/oblique/complement structures, and PNF reductions add
+  predicate-inflection, clausal host/content constraints, plus parser-derived
+  pronominal reference alternatives.
+  No antecedent, semantic-role, truth, identity, occurrence, external evidence,
+  or readiness decision is made. Focused parser/reduction/compiler tests and
+  the `gwb-mini` directory proof passed under the ITIR-suite root venv with
+  `en_core_web_sm`.
+- 2026-07-18 local-refinement decision: the next v0.5 slice treats pronouns as
+  unresolved PNF argument/reference factors.  It may generate bounded
+  same-document entity/eventuality/proposition binding candidates from parser
+  position, morphology, syntactic accessibility and factor kind, but a
+  candidate is never identity closure.  Constraint evaluation is immutable and
+  separate from a constraint declaration; syntax/voice/morphology can narrow
+  semantic-role alternatives without an English verb-role catalogue or an
+  automatic passive-subject-to-agent rule.  Refinements must be factor-local,
+  receipt-backed and revision-linked before demand projection.
+- 2026-07-18 local-refinement checkpoint: v0.6 evaluates parser-supported PNF
+  constraints independently, closes only `syntactic_argument_structure_unchecked`,
+  and records a factor revision when it adds role or binding candidates.
+  Document-local candidate generation distinguishes entity/eventuality/
+  proposition references and emits incompatible bindings explicitly; it never
+  asserts coreference.  Passive subjects retain patient/theme role branches,
+  and expletive-compatible reference branches remain available without an
+  invented antecedent.  The shared local-type carrier now includes propositions
+  so composition observations compile generically.  GWB proper and AU-mini
+  local proofs completed without network or readiness.

@@ -11,8 +11,14 @@ from src.language import (
     SpanAnnotation,
     apply_reduction_grammar,
 )
-from src.pnf import ClosureContract, PNFGraph, assess_pnf_closure, derive_resolution_demands
+from src.pnf import (
+    ClosureContract,
+    PNFGraph,
+    assess_pnf_closure,
+    derive_resolution_demands,
+)
 from src.policy.algebra import (
+    ConstraintAssessment,
     Factor,
     FactorRefinement,
     MeetState,
@@ -72,6 +78,24 @@ def test_factor_refinement_cannot_change_factor_identity() -> None:
             prior_factor=Factor("factor:a", "pnf.subject"),
             resulting_factor=Factor("factor:b", "pnf.subject"),
         ).to_dict()
+
+
+def test_constraint_assessment_is_immutable_and_state_bounded() -> None:
+    assessment = ConstraintAssessment(
+        assessment_ref="constraint-assessment:subject",
+        constraint_ref="constraint:subject",
+        state="satisfied_with_alternatives",
+        evidence_refs=("parser:dependency:1",),
+        residual_refs=("semantic_role_unresolved",),
+    ).to_dict()
+    assert assessment["state"] == "satisfied_with_alternatives"
+    assert assessment["authority"] == "assessment_only"
+    with pytest.raises(ValueError):
+        ConstraintAssessment(
+            assessment_ref="constraint-assessment:bad",
+            constraint_ref="constraint:subject",
+            state="resolved_identity",
+        )
 
 
 def test_typed_meet_product_derives_structural_outcome() -> None:

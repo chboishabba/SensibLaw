@@ -1,5 +1,66 @@
 # 2026-07-18
 
+- Add candidate-only local PNF refinement over the preserved parser graph.
+  Parser-supported argument constraints now receive immutable assessments, and
+  revisions can close only their structural obligation while adding unresolved
+  semantic-role alternatives.  Pronominal arguments gain bounded
+  document-local entity/eventuality/proposition binding candidates; candidates
+  remain non-identifying, incompatible bindings remain explicit evidence, and
+  expletive-compatible branches are retained.  Passive subjects never acquire
+  an automatic agent alternative.  Demand projection now consumes the revised
+  factor and separates document-local binding work from external evidence
+  work.  The semantic compiler contract advances to v0.6.
+  Auxiliary-attached subjects and parser-observed proposition branches are
+  retained through the same generic carrier.
+
+- Preserve the public parser observation stream through the generic local PNF
+  compiler. The spaCy adapter now receipts its model/capabilities; compilation
+  shares one parse with mention licensing and relation projection, persists
+  token/span/dependency/capability observations in the annotation graph, and
+  retains subject-only, oblique, complement, predicate-inflection,
+  clausal-composition, and parser-derived pronominal-reference branches. This is syntactic,
+  candidate-only structure: it does not resolve an antecedent, semantic role,
+  identity, event occurrence, or proposition truth. The semantic compiler
+  contract advances to v0.5, and the old `markup_fragment` diagnostic baseline
+  is retired as an input-loss artefact.
+
+- Extend the generic structural-semantics reducer with declaration-owned
+  factor/graph constraints for syntactic argument, temporal, spatial,
+  coordination, nominal, and composition relations. Constraint payloads carry
+  source/target factor references and provenance; syntactic roles remain
+  distinct from semantic-role or identity resolution. Split untyped-span
+  diagnostics into actionable alignment, boundary, projection, markup/function,
+  and weak-span causes. Semantic declarations advance to v0.3 and the compiler
+  contract to v0.4; no external
+  identity, event occurrence, attachment, truth, or promotion is inferred.
+
+- Add the next generic local-only structural-semantics foundation. Immutable
+  relation-to-local-type declarations now own role projections instead of a
+  hidden role map, and every compilation emits a provenance-only diagnostic
+  partition for still-untyped mentions (`annotation shape × missing reduction
+  capability × PNF impact`). The v0.3 compiler contract invalidates only
+  semantic descendants. This does not resolve identity, assert truth, add a
+  lexical catalog, admit new media, or fetch external evidence.
+
+- Improve the generic PostgreSQL semantic compiler's local typing before any
+  EPUB/PDF or external-evidence work. Public relational annotations now project
+  branch-preserving predicate-role, temporal/spatial, nominal, coordination,
+  and composition type hypotheses onto licensed mention spans; the v0.2
+  compiler contract invalidates semantic descendants while retaining canonical
+  document identity. The six-document GWB public-bios baseline produced 5,317
+  such hypotheses and reduced `local_type_unresolved` from 7,355 to 3,824.
+  Demands increased from 8,719 to 8,817 because typed but unresolved
+  entity/role candidates now remain explicit.
+- Retain `uv.lock` as the reviewed Python dependency-resolution artifact for
+  reproducible local PostgreSQL, CI, and future Nix-backed environments.
+
+- Add generic structural `text/html` canonicalisation through the shared media-adapter boundary. Visible HTML text now enters the same compiler path with a normalisation receipt; script/style/template content is excluded. This is capability-based and does not add a GWB-specific adapter.
+- Run the first proper PostgreSQL-backed local-only corpus baseline over the six raw GWB public-bios HTML sources. It compiled all six without failures, network access, cross-document identity closure, or readiness invocation; the run recorded 11,676 factors, 8,719 unresolved demands, and 5,012 compatible local typed meets. An identical rerun added no demand-projection builds, confirming PostgreSQL build reuse. Raw run artifacts remain outside the repository under the local SensibLaw run store.
+
+- Add the first PostgreSQL semantic-compiler substrate (`007_compiler_substrate.sql`) and a direct driver-neutral `PostgresCompilerStore`. The additive generic schema persists revisioned declarations, staged builds/dependencies, annotation tokens/spans/relations, factorised PNF graphs and revisions, typed meets, refinements, and unresolved demands without forcing compiler documents through legal-source, actor, or event tables.
+- Upgrade the shared local compiler from mention-identity-only PNF construction to public relational-annotation reductions for eventualities, predicate arguments, temporal expressions, coordination, nominal structure, composition, source attribution, and locally typed quantities/places where available. Local recurrence now creates a factor-local revision that closes only its recurrence obligation and preserves external-identity uncertainty; demands are projected from the refined graph with factor revision, subject/role, expected types, constraints, pressures, scope, and budget.
+- Record the PostgreSQL semantic-compiler P0 contract and add generic reduction/store regression coverage. Migration `007` has been applied to the persistent local PostgreSQL 18 development cluster; `gwb-mini` persisted three documents, 40 PNF factors, and 29 unresolved demands, while a rerun added no demand-projection builds. Full-suite and broader-corpus reuse measurement remain follow-up gates.
+
 - Add the generic local-only directory compilation kernel. `compile_document`
   now supplies one shared per-document semantic operation, while
   `compile_directory` only inventories bounded media, invokes that operation,
@@ -172,8 +233,6 @@
   `highest_priority_score`)
   as separate workflow/readout channels rather than reusing them as the typed
   payload
-
-# Changelog
 
 ## 2026-07-17
 
