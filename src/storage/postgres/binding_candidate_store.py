@@ -149,6 +149,7 @@ def persist_binding_candidate_sets(
     factor_anchors: Sequence[Mapping[str, Any]] = (),
     builds: Sequence[Mapping[str, Any]] = (),
     meets: Sequence[Mapping[str, Any]] = (),
+    demands: Sequence[Mapping[str, Any]] = (),
     validate_indexed_query: bool = False,
 ) -> None:
     """Persist candidate sets, indexes, members, exclusions, and links.
@@ -163,9 +164,7 @@ def persist_binding_candidate_sets(
         factor_anchors=factor_anchors,
         factor_revisions=factor_revisions,
     )
-    builds_by_set = {
-        str(row["candidate_set_ref"]): row for row in builds
-    }
+    builds_by_set = {str(row["candidate_set_ref"]): row for row in builds}
     persisted_reference_revisions: dict[str, str] = {}
     for row in candidate_sets:
         candidate_set_ref = str(row["candidate_set_ref"])
@@ -310,6 +309,20 @@ def persist_binding_candidate_sets(
                 ON CONFLICT DO NOTHING
                 """,
                 (str(meet["meet_ref"]), candidate_set_ref),
+            )
+    for demand in demands:
+        for candidate_set_ref in demand.get("candidate_set_refs") or ():
+            candidate_set_ref = str(candidate_set_ref)
+            if candidate_set_ref not in known_sets:
+                continue
+            cursor.execute(
+                """
+                INSERT INTO resolution.demand_candidate_set
+                    (demand_ref, candidate_set_ref)
+                VALUES (%s, %s)
+                ON CONFLICT DO NOTHING
+                """,
+                (str(demand["demand_ref"]), candidate_set_ref),
             )
     if validate_indexed_query:
         for candidate_set in candidate_sets:
