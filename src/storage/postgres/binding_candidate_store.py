@@ -16,15 +16,24 @@ def persist_binding_candidate_sets(
     *,
     candidate_sets: Sequence[Mapping[str, Any]],
     refinements: Sequence[Mapping[str, Any]],
+    factor_revisions: Mapping[str, str],
 ) -> None:
     """Persist candidate sets, members, exclusions, and refinement links.
 
-    Pairwise binding evidence is intentionally not persisted here.  The set and
+    Pairwise binding evidence is intentionally not persisted here. The set and
     member rows reconstruct the same branch-preserving candidate membership.
+    The persisted factor-revision mapping is authoritative for foreign keys;
+    serialized metadata is not allowed to manufacture a revision identity.
     """
 
     for row in candidate_sets:
         candidate_set_ref = str(row["candidate_set_ref"])
+        reference_factor_ref = str(row["reference_factor_ref"])
+        reference_factor_revision_ref = factor_revisions.get(reference_factor_ref)
+        if reference_factor_revision_ref is None:
+            raise ValueError(
+                "binding candidate set references an unpersisted factor revision"
+            )
         cursor.execute(
             """
             INSERT INTO resolution.binding_candidate_set
@@ -39,8 +48,8 @@ def persist_binding_candidate_sets(
             (
                 candidate_set_ref,
                 str(row["document_ref"]),
-                str(row["reference_factor_ref"]),
-                str(row["reference_factor_revision_ref"]),
+                reference_factor_ref,
+                reference_factor_revision_ref,
                 str(row["referential_type_ref"]),
                 str(row["accessibility_declaration_ref"]),
                 str(row["compatibility_declaration_ref"]),
@@ -108,9 +117,7 @@ def persist_binding_candidate_sets(
                 ),
             )
 
-    known_sets = {
-        str(row["candidate_set_ref"]) for row in candidate_sets
-    }
+    known_sets = {str(row["candidate_set_ref"]) for row in candidate_sets}
     for refinement in refinements:
         for candidate_set_ref in refinement.get("candidate_set_refs") or ():
             candidate_set_ref = str(candidate_set_ref)
