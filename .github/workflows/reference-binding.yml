@@ -85,27 +85,55 @@ jobs:
             tests/storage/test_operational_build_store.py \
             tests/storage/test_postgres_reference_binding_live.py
       - name: Legacy compaction compatibility
-        run: uv run pytest -x -vv tests/pnf/test_binding_candidate_sets.py
+        run: |
+          mkdir -p test-results
+          set -o pipefail
+          uv run pytest -x -vv tests/pnf/test_binding_candidate_sets.py \
+            2>&1 | tee test-results/legacy-compaction.log
       - name: Generic reference-binding corpus
-        run: uv run pytest -x -vv tests/pnf/test_reference_binding_corpus.py
+        run: |
+          mkdir -p test-results
+          set -o pipefail
+          uv run pytest -x -vv tests/pnf/test_reference_binding_corpus.py \
+            2>&1 | tee test-results/reference-corpus.log
       - name: Pairwise-free operational compiler
-        run: uv run pytest -x -vv tests/policy/test_operational_corpus_compilation.py
+        run: |
+          mkdir -p test-results
+          set -o pipefail
+          uv run pytest -x -vv tests/policy/test_operational_corpus_compilation.py \
+            2>&1 | tee test-results/operational-compiler.log
       - name: Revision and persistence invariants
         run: |
+          mkdir -p test-results
+          set -o pipefail
           uv run pytest -x -vv \
             tests/storage/test_binding_candidate_store.py \
             tests/storage/test_binding_migration_chain.py \
             tests/storage/test_factor_revision_identity.py \
-            tests/storage/test_operational_build_store.py
+            tests/storage/test_operational_build_store.py \
+            2>&1 | tee test-results/revision-persistence.log
       - name: Existing compiler regressions
         run: |
+          mkdir -p test-results
+          set -o pipefail
           uv run pytest -x -vv \
             tests/language/test_semantic_reductions.py \
             tests/policy/test_corpus_compilation.py \
             tests/storage/test_postgres_compiler.py \
-            tests/storage/test_postgres_generic_compiler_runtime.py
+            tests/storage/test_postgres_generic_compiler_runtime.py \
+            2>&1 | tee test-results/compiler-regressions.log
       - name: Live PostgreSQL proofs
         run: |
+          mkdir -p test-results
+          set -o pipefail
           uv run pytest -x -vv \
             tests/storage/test_postgres_compiler_live.py \
-            tests/storage/test_postgres_reference_binding_live.py
+            tests/storage/test_postgres_reference_binding_live.py \
+            2>&1 | tee test-results/live-postgres.log
+      - name: Upload focused proof transcripts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reference-binding-proof-logs
+          path: test-results/*.log
+          if-no-files-found: ignore
