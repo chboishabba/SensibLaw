@@ -3,11 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 import shutil
 
-from src.pnf.reference_binding import (
+from src.pnf.operational_reference_binding import (
     REFERENCE_BINDING_CONTRACT_REF,
     REFERENCE_REDUCTION_DECLARATION_REF,
     build_set_valued_binding_artifacts,
 )
+from src.policy.algebra import factor_revision_ref
 from src.policy.corpus_compilation import compile_directory, default_compiler_context
 
 
@@ -126,6 +127,9 @@ def test_reference_binding_mini_exercises_all_generic_reference_classes(tmp_path
         assert artifacts["binding_compaction_summary"]["generation_mode"] == (
             "direct_observation_graph_index"
         )
+        assert artifacts["factor_revision_normalization"]["identity_contract"] == (
+            "content-addressed-factor:v0_1"
+        )
         assert not any(
             row["evidence_type"] == "typed_binding_candidate"
             for row in artifacts["local_evidence"]
@@ -138,6 +142,14 @@ def test_reference_binding_mini_exercises_all_generic_reference_classes(tmp_path
         assert artifacts["reference_argument_projection_summary"][
             "english_pronoun_catalogue_used"
         ] is False
+        for refinement in artifacts["factor_refinements"]:
+            resulting = refinement["resulting_factor"]
+            assert factor_revision_ref(resulting) == resulting["metadata"][
+                "factor_revision_ref"
+            ]
+            assert refinement["refinement_delta"][
+                "resulting_factor_revision_ref"
+            ] == resulting["metadata"]["factor_revision_ref"]
 
 
 def test_structural_accessibility_is_not_a_fixed_two_sentence_window(tmp_path):
@@ -198,3 +210,7 @@ def test_candidate_set_refinement_retains_uncertainty_and_uses_deltas(tmp_path):
             for alternative in refinement["resulting_factor"]["alternatives"]
         )
         assert refinement["rejected_candidate_refs"] == []
+        assert not any(
+            ":binding:" in ref and ":binding-set:" not in ref
+            for ref in refinement["added_alternative_refs"]
+        )
