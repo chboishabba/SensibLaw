@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from src.pnf.binding_candidate_sets import compact_binding_artifacts
+from src.pnf.reference_binding import build_set_valued_binding_artifacts
 from src.policy.corpus_compilation import (
     CompilerContext,
     build_corpus_manifest,
@@ -58,11 +58,12 @@ def persist_document_compilation(
 ) -> tuple[str, ...]:
     """Compile and persist one document transactionally.
 
-    The operational representation constructs candidate sets directly from the
-    preserved annotation graph and factor index. Pairwise binding evidence is
-    discarded before persistence and survives only in explicit compatibility
-    exports. Candidate sets never close identity, occurrence, truth, or
-    expletive status.
+    The operational representation projects every parser-observed pronominal
+    argument into typed PNF reference branches, then constructs candidate sets
+    directly from the preserved annotation graph and factor index. Pairwise
+    binding evidence is discarded before persistence and survives only in
+    explicit compatibility exports. Candidate sets never close identity,
+    occurrence, truth, or expletive status.
     """
 
     compilation = compile_document(
@@ -75,7 +76,7 @@ def persist_document_compilation(
         },
         context,
     )
-    artifacts = compact_binding_artifacts(compilation.artifacts)
+    artifacts = build_set_valued_binding_artifacts(compilation.artifacts)
     refinements = tuple(artifacts.get("factor_refinements") or ())
     candidate_sets = tuple(artifacts.get("binding_candidate_sets") or ())
     factor_anchors = tuple(artifacts.get("factor_anchors") or ())
