@@ -1,0 +1,192 @@
+"""PostgreSQL-backed corpus compilation with no semantic JSON projections."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any, Mapping, Sequence
+
+from src.policy.corpus_compilation import (
+    CompilerContext,
+    build_corpus_manifest,
+    compile_document,
+)
+from src.sensiblaw.interfaces.shared_reducer import tokenize_canonical_with_spans
+from src.storage.postgres import PersistedCompilation, PostgresCompilerStore
+
+
+def persist_document_compilation(
+    *,
+    store: PostgresCompilerStore,
+    corpus_ref: str,
+    relative_path: str,
+    entry: Mapping[str, Any],
+    source_bytes: bytes,
+    canonical_text: str,
+    context: CompilerContext,
+) -> tuple[str, ...]:
+    """Compile and persist one document transactionally.
+
+    The compiler produces the existing immutable carriers; this boundary
+    normalizes those carriers into PostgreSQL rows.  No semantic JSON files are
+    emitted and no readiness or external identity authority is introduced.
+    """
+
+    compilation = compile_document(
+        {
+            "document_ref": entry["document_ref"],
+            "content_sha256": entry["content_sha256"],
+            "media_type": entry["media_type"],
+            "canonical_text": canonical_text,
+            "source_ref": f"document-source:{entry['document_ref']}",
+        },
+        context,
+    )
+    artifacts = compilation.artifacts
+    with store.savepoint() as cursor:
+        store.persist_source_document(
+            cursor,
+            document_ref=compilation.document_ref,
+            media_type=compilation.media_type,
+            content_sha256=compilation.content_sha256,
+            source_bytes=source_bytes,
+            canonical_text=canonical_text,
+            adapter_ref=str(entry["adapter_capability_ref"]),
+            adapter_version=context.media_normalization_ref,
+            compiler_context_ref=context.context_ref,
+            normalization_ref=context.media_normalization_ref,
+        )
+        store.persist_occurrence(
+            cursor,
+            corpus_ref=corpus_ref,
+            relative_path=relative_path,
+            document_ref=compilation.document_ref,
+            state="compiled",
+        )
+        store.persist_tokens(
+            cursor,
+            document_ref=compilation.document_ref,
+            tokenizer_ref=context.annotation_backend_ref,
+            tokenizer_version=context.compiler_version,
+            tokens=tokenize_canonical_with_spans(canonical_text),
+        )
+        store.persist_annotation_layer(
+            cursor,
+            document_ref=compilation.document_ref,
+            layer=artifacts["annotation_layer"],
+        )
+        store.persist_pnf_graph(
+            cursor,
+            document_ref=compilation.document_ref,
+            graph=artifacts["pnf_graph"],
+        )
+        return store.persist_resolution_artifacts(
+            cursor,
+            demands=artifacts.get("resolution_demands") or (),
+            evidence=artifacts.get("local_evidence") or (),
+            meets=artifacts.get("typed_meets") or (),
+            refinements=artifacts.get("factor_refinements") or (),
+        )
+
+
+def compile_directory_postgres(
+    input_dir: str | Path,
+    *,
+    context: CompilerContext,
+    store: PostgresCompilerStore,
+    recursive: bool = True,
+    follow_symlinks: bool = False,
+    include_globs: Sequence[str] = (),
+    exclude_globs: Sequence[str] = (),
+    max_files: int | None = None,
+    max_file_bytes: int | None = None,
+    max_total_bytes: int | None = None,
+    execution_phase: str = "local",
+) -> PersistedCompilation:
+    """Compile a bounded directory directly into PostgreSQL.
+
+    Inventory, local compilation, and demand planning are supported.  External
+    fetching, cross-document identity closure, readiness, and promotion remain
+    separate phases.
+    """
+
+    if execution_phase not in {"inventory", "local", "demand_planning"}:
+        raise ValueError("unsupported corpus compilation phase")
+    root = Path(input_dir).resolve()
+    manifest = build_corpus_manifest(
+        root,
+        context=context,
+        recursive=recursive,
+        follow_symlinks=follow_symlinks,
+        include_globs=include_globs,
+        exclude_globs=exclude_globs,
+        max_files=max_files,
+        max_file_bytes=max_file_bytes,
+        max_total_bytes=max_total_bytes,
+    )
+    manifest_row = manifest.to_dict()
+    with store.transaction() as cursor:
+        store.persist_context(cursor, context.to_dict())
+        store.persist_manifest(cursor, manifest_row)
+        for entry in manifest_row["ordered_documents"]:
+            if entry["status"] == "unsupported_media":
+                # Unsupported files have no source_document row because no
+                # canonical content exists yet; their inventory status remains
+                # represented by the deterministic manifest hash.
+                continue
+    if execution_phase == "inventory":
+        return PersistedCompilation(manifest.corpus_ref, (), (), ())
+
+    compiled: set[str] = set()
+    document_refs: list[str] = []
+    demand_refs: list[str] = []
+    failure_refs: list[str] = []
+    for entry in manifest_row["ordered_documents"]:
+        if entry["status"] != "inventoried":
+            continue
+        document_ref = str(entry["document_ref"])
+        relative_path = str(entry["relative_path"])
+        if document_ref in compiled:
+            with store.transaction() as cursor:
+                store.persist_occurrence(
+                    cursor,
+                    corpus_ref=manifest.corpus_ref,
+                    relative_path=relative_path,
+                    document_ref=document_ref,
+                    state="duplicate_content_occurrence",
+                )
+            continue
+        try:
+            source_bytes = (root / relative_path).read_bytes()
+            canonical_text = source_bytes.decode("utf-8")
+            refs = persist_document_compilation(
+                store=store,
+                corpus_ref=manifest.corpus_ref,
+                relative_path=relative_path,
+                entry=entry,
+                source_bytes=source_bytes,
+                canonical_text=canonical_text,
+                context=context,
+            )
+        except (OSError, UnicodeDecodeError, ValueError, RuntimeError) as error:
+            with store.transaction() as cursor:
+                failure_refs.append(
+                    store.persist_failure(
+                        cursor,
+                        target_ref=document_ref,
+                        phase_ref="local_compile",
+                        error=error,
+                    )
+                )
+            continue
+        compiled.add(document_ref)
+        document_refs.append(document_ref)
+        demand_refs.extend(refs)
+    return PersistedCompilation(
+        corpus_ref=manifest.corpus_ref,
+        document_refs=tuple(sorted(document_refs)),
+        demand_refs=tuple(sorted(set(demand_refs))),
+        failure_refs=tuple(sorted(failure_refs)),
+    )
+
+
+__all__ = ["compile_directory_postgres", "persist_document_compilation"]
