@@ -225,3 +225,10 @@ codex_history*.sqlite*-shm
 # Local artifacts
 artifacts_generic/*.sqlite
 generic_text_demo.sqlite
+
+# Immutable local Wikidata replay payloads.  The committed compiler artifacts
+# retain source hashes and provenance; these bulk exports stay local.
+data/ontology/wikidata_migration_packs/p5991_p14143_company_direct_replay_20260717/entity_exports/
+data/ontology/wikidata_migration_packs/p5991_p14143_company_direct_replay_20260717/export-receipts/
+data/ontology/wikidata_migration_packs/p5991_p14143_company_direct_replay_20260717/migration_pack.json
+data/ontology/wikidata_migration_packs/p5991_p14143_company_direct_replay_20260717/rule_coverage.json
