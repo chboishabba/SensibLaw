@@ -8,6 +8,7 @@ on:
       - "src/policy/algebra/**"
       - "src/storage/postgres/**"
       - "database/postgres_migrations/**"
+      - "scripts/*reference_binding*.py"
       - "tests/pnf/**"
       - "tests/policy/test_operational_corpus_compilation.py"
       - "tests/storage/test_*binding*.py"
@@ -21,6 +22,7 @@ on:
       - "src/policy/algebra/**"
       - "src/storage/postgres/**"
       - "database/postgres_migrations/**"
+      - "scripts/*reference_binding*.py"
       - "tests/pnf/**"
       - "tests/policy/test_operational_corpus_compilation.py"
       - "tests/storage/test_*binding*.py"
@@ -76,6 +78,7 @@ jobs:
             src/storage/postgres/operational_build_store.py \
             src/storage/postgres/semantic_store.py \
             scripts/benchmark_binding_candidate_sets.py \
+            scripts/inspect_reference_binding_case.py \
             scripts/report_binding_candidate_storage.py \
             tests/pnf \
             tests/policy/test_operational_corpus_compilation.py \
@@ -90,6 +93,12 @@ jobs:
           set -o pipefail
           uv run pytest -x -vv tests/pnf/test_binding_candidate_sets.py \
             2>&1 | tee test-results/legacy-compaction.log
+      - name: Inspect morphology candidate case
+        run: |
+          mkdir -p test-results
+          uv run python scripts/inspect_reference_binding_case.py \
+            "Engineers arrived. She spoke." \
+            > test-results/morphology-candidate-case.json
       - name: Generic reference-binding corpus
         run: |
           mkdir -p test-results
@@ -135,5 +144,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: reference-binding-proof-logs
-          path: test-results/*.log
+          path: |
+            test-results/*.log
+            test-results/*.json
           if-no-files-found: ignore
