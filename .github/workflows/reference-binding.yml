@@ -84,12 +84,12 @@ jobs:
             tests/storage/test_factor_revision_identity.py \
             tests/storage/test_operational_build_store.py \
             tests/storage/test_postgres_reference_binding_live.py
-      - name: PNF reference semantics
-        run: |
-          uv run pytest -x -vv \
-            tests/pnf/test_binding_candidate_sets.py \
-            tests/pnf/test_reference_binding_corpus.py \
-            tests/policy/test_operational_corpus_compilation.py
+      - name: Legacy compaction compatibility
+        run: uv run pytest -x -vv tests/pnf/test_binding_candidate_sets.py
+      - name: Generic reference-binding corpus
+        run: uv run pytest -x -vv tests/pnf/test_reference_binding_corpus.py
+      - name: Pairwise-free operational compiler
+        run: uv run pytest -x -vv tests/policy/test_operational_corpus_compilation.py
       - name: Revision and persistence invariants
         run: |
           uv run pytest -x -vv \
