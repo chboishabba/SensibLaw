@@ -318,15 +318,17 @@ def build_affidavit_mechanical_plantuml(
         sentence_id = f"AF_{_slug(proposition_id)}"
         text_id = f"P_{_slug(proposition_id)}"
         lines.append(f"' {display_id}")
-        lines.append(
-            f'  component {_quote("extracted " + display_id + "\\n" + _wrap(row.get("text"), width=28, max_lines=5))} as {text_id}'
+        extracted_label = "extracted " + display_id + "\n" + _wrap(
+            row.get("text"), width=28, max_lines=5
         )
+        lines.append(f'  component {_quote(extracted_label)} as {text_id}')
         lines.append(f"  {sentence_id} --> {text_id} : extracted_as")
 
         token_values = row.get("tokens") if isinstance(row.get("tokens"), list) else None
         atoms = [str(value) for value in token_values[:token_limit]] if token_values else _lexical_atoms(row.get("text"), limit=token_limit)
         token_id = f"T_{_slug(proposition_id)}"
-        lines.append(f'  component {_quote(display_id + " tokens\\n" + "\\n".join(atoms or ["-"]))} as {token_id}')
+        token_label = display_id + " tokens\n" + "\n".join(atoms or ["-"])
+        lines.append(f'  component {_quote(token_label)} as {token_id}')
         lines.append(f"  {text_id} --> {token_id} : tokenize")
 
         best_excerpt = _text(row.get("best_match_excerpt"))
