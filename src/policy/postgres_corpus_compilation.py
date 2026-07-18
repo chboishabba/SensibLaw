@@ -14,6 +14,25 @@ from src.sensiblaw.interfaces.shared_reducer import tokenize_canonical_with_span
 from src.storage.postgres import PersistedCompilation, PostgresCompilerStore
 
 
+def _normalized_refinement_rows(
+    rows: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, Any], ...]:
+    normalized: list[dict[str, Any]] = []
+    for row in rows:
+        prior = row.get("prior_factor")
+        resulting = row.get("resulting_factor")
+        if not isinstance(prior, Mapping) or not isinstance(resulting, Mapping):
+            raise ValueError("factor refinement requires prior and resulting factors")
+        normalized.append(
+            {
+                **dict(row),
+                "prior_factor_ref": str(prior["factor_ref"]),
+                "resulting_factor_ref": str(resulting["factor_ref"]),
+            }
+        )
+    return tuple(normalized)
+
+
 def persist_document_compilation(
     *,
     store: PostgresCompilerStore,
@@ -84,7 +103,9 @@ def persist_document_compilation(
             demands=artifacts.get("resolution_demands") or (),
             evidence=artifacts.get("local_evidence") or (),
             meets=artifacts.get("typed_meets") or (),
-            refinements=artifacts.get("factor_refinements") or (),
+            refinements=_normalized_refinement_rows(
+                artifacts.get("factor_refinements") or ()
+            ),
         )
 
 
@@ -127,12 +148,6 @@ def compile_directory_postgres(
     with store.transaction() as cursor:
         store.persist_context(cursor, context.to_dict())
         store.persist_manifest(cursor, manifest_row)
-        for entry in manifest_row["ordered_documents"]:
-            if entry["status"] == "unsupported_media":
-                # Unsupported files have no source_document row because no
-                # canonical content exists yet; their inventory status remains
-                # represented by the deterministic manifest hash.
-                continue
     if execution_phase == "inventory":
         return PersistedCompilation(manifest.corpus_ref, (), (), ())
 
