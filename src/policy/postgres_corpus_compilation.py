@@ -56,8 +56,8 @@ def persist_document_compilation(
     """Compile and persist one document transactionally.
 
     Pairwise local binding evidence is compacted into first-class candidate
-    sets before PostgreSQL persistence.  Legacy JSON export remains the only
-    expanded compatibility surface.  Candidate sets never close identity,
+    sets before PostgreSQL persistence. Legacy JSON export remains the only
+    expanded compatibility surface. Candidate sets never close identity,
     proposition truth, event occurrence, or expletive status.
     """
 
@@ -141,6 +141,7 @@ def persist_document_compilation(
             cursor,
             candidate_sets=candidate_sets,
             refinements=refinements,
+            factor_revisions=factor_revisions,
         )
         return demand_refs
 
