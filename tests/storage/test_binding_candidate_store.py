@@ -91,6 +91,10 @@ def test_store_persists_indexes_sets_members_builds_and_links() -> None:
         "meet_ref": "meet:test",
         "candidate_set_refs": ["binding-candidate-set:test"],
     }
+    demand = {
+        "demand_ref": "demand:test",
+        "candidate_set_refs": ["binding-candidate-set:test"],
+    }
 
     persist_binding_candidate_sets(
         cursor,
@@ -103,6 +107,7 @@ def test_store_persists_indexes_sets_members_builds_and_links() -> None:
         factor_anchors=[factor_anchor],
         builds=[build],
         meets=[meet],
+        demands=[demand],
     )
 
     sql = "\n".join(call[0] for call in cursor.calls)
@@ -115,6 +120,7 @@ def test_store_persists_indexes_sets_members_builds_and_links() -> None:
     assert "INSERT INTO resolution.binding_exclusion_summary" in sql
     assert "INSERT INTO resolution.refinement_candidate_set" in sql
     assert "INSERT INTO resolution.meet_candidate_set" in sql
+    assert "INSERT INTO resolution.demand_candidate_set" in sql
 
     candidate_set_insert = next(
         params
