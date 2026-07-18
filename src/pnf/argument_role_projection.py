@@ -190,6 +190,86 @@ def _project_refinement(refinement: Mapping[str, Any]) -> dict[str, Any]:
     return row
 
 
+def _argument_morphology_by_span(
+    *graphs: Mapping[str, Any],
+) -> dict[str, object]:
+    """Return parser morphology already preserved on argument factors."""
+
+    morphology: dict[str, object] = {}
+    for graph in graphs:
+        for factor in graph.get("factors") or ():
+            if not _is_argument_factor(factor):
+                continue
+            metadata = factor.get("metadata") or {}
+            span_ref = metadata.get("atom_span_ref")
+            observed = metadata.get("parser_morphology")
+            if isinstance(span_ref, str) and observed:
+                morphology[span_ref] = observed
+    return morphology
+
+
+def _align_annotation_morphology(
+    layer: Mapping[str, Any], *, morphology_by_span: Mapping[str, object]
+) -> dict[str, Any]:
+    """Align factor-preserved morphology with its parser-token graph anchor.
+
+    This copies an existing parser observation between two projections of the
+    same parse. It never manufactures a feature or consults lexical knowledge.
+    """
+
+    if not morphology_by_span:
+        return dict(layer)
+    span_start = {
+        str(row.get("span_ref") or ""): int(row["start_token"])
+        for row in layer.get("span_annotations") or ()
+        if row.get("span_ref") and row.get("start_token") is not None
+    }
+    morphology_by_token = {
+        span_start[span_ref]: observed
+        for span_ref, observed in morphology_by_span.items()
+        if span_ref in span_start
+    }
+    if not morphology_by_token:
+        return dict(layer)
+    annotations: list[dict[str, Any]] = []
+    seen_tokens: set[int] = set()
+    for source in layer.get("token_annotations") or ():
+        row = dict(source)
+        token_index = int(row.get("token_index", -1))
+        if (
+            row.get("annotation_type") == "parser.morphology"
+            and token_index in morphology_by_token
+        ):
+            row["value"] = morphology_by_token[token_index]
+            provenance = {
+                str(ref) for ref in row.get("provenance_refs") or ()
+            }
+            provenance.add(ARGUMENT_ROLE_DECLARATION_REF)
+            row["provenance_refs"] = sorted(provenance)
+            seen_tokens.add(token_index)
+        annotations.append(row)
+    for token_index, observed in sorted(morphology_by_token.items()):
+        if token_index in seen_tokens:
+            continue
+        annotations.append(
+            {
+                "token_index": token_index,
+                "annotation_type": "parser.morphology",
+                "value": observed,
+                "provenance_refs": [ARGUMENT_ROLE_DECLARATION_REF],
+            }
+        )
+    result = dict(layer)
+    result["token_annotations"] = sorted(
+        annotations,
+        key=lambda row: (
+            int(row.get("token_index", -1)),
+            str(row.get("annotation_type") or ""),
+        ),
+    )
+    return result
+
+
 def canonicalize_parser_argument_roles(
     artifacts: Mapping[str, Any],
 ) -> dict[str, Any]:
@@ -210,6 +290,13 @@ def canonicalize_parser_argument_roles(
         _project_refinement(row)
         for row in artifacts.get("factor_refinements") or ()
     ]
+    morphology_by_span = _argument_morphology_by_span(
+        pnf_graph, refined_graph
+    )
+    result["semantic_annotation_layer"] = _align_annotation_morphology(
+        artifacts.get("semantic_annotation_layer") or {},
+        morphology_by_span=morphology_by_span,
+    )
     declarations = [
         dict(row) for row in artifacts.get("compiler_declarations") or ()
     ]
@@ -241,6 +328,7 @@ def canonicalize_parser_argument_roles(
     result["argument_role_projection_summary"] = {
         "base_factor_changes": base_changes,
         "refined_factor_changes": refined_changes,
+        "aligned_morphology_span_count": len(morphology_by_span),
         "declaration_ref": ARGUMENT_ROLE_DECLARATION_REF,
         "authority": "syntactic_projection_only",
     }
