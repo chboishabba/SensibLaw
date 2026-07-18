@@ -12,6 +12,7 @@ from src.policy.corpus_compilation import (
 )
 from src.sensiblaw.interfaces.shared_reducer import tokenize_canonical_with_spans
 from src.storage.postgres import PersistedCompilation, PostgresCompilerStore
+from src.storage.postgres.span_store import persist_licensed_spans
 
 
 def _normalized_refinement_rows(
@@ -46,7 +47,7 @@ def persist_document_compilation(
     """Compile and persist one document transactionally.
 
     The compiler produces the existing immutable carriers; this boundary
-    normalizes those carriers into PostgreSQL rows.  No semantic JSON files are
+    normalizes those carriers into PostgreSQL rows. No semantic JSON files are
     emitted and no readiness or external identity authority is introduced.
     """
 
@@ -80,6 +81,11 @@ def persist_document_compilation(
             relative_path=relative_path,
             document_ref=compilation.document_ref,
             state="compiled",
+        )
+        persist_licensed_spans(
+            cursor,
+            document_ref=compilation.document_ref,
+            mentions=artifacts["licensing"].get("mentions") or (),
         )
         store.persist_tokens(
             cursor,
@@ -125,7 +131,7 @@ def compile_directory_postgres(
 ) -> PersistedCompilation:
     """Compile a bounded directory directly into PostgreSQL.
 
-    Inventory, local compilation, and demand planning are supported.  External
+    Inventory, local compilation, and demand planning are supported. External
     fetching, cross-document identity closure, readiness, and promotion remain
     separate phases.
     """
