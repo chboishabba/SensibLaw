@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.pnf.reference_binding import (  # noqa: E402
+from src.pnf.operational_reference_binding import (  # noqa: E402
     build_set_valued_binding_artifacts,
 )
 
@@ -98,9 +98,15 @@ def main() -> int:
         "exclusion_summaries": len(
             compact.get("binding_exclusion_summaries") or ()
         ),
-        "zero_member_sets": sum(int(row.get("member_count", 0)) == 0 for row in candidate_sets),
-        "one_member_sets": sum(int(row.get("member_count", 0)) == 1 for row in candidate_sets),
-        "many_member_sets": sum(int(row.get("member_count", 0)) > 1 for row in candidate_sets),
+        "zero_member_sets": sum(
+            int(row.get("member_count", 0)) == 0 for row in candidate_sets
+        ),
+        "one_member_sets": sum(
+            int(row.get("member_count", 0)) == 1 for row in candidate_sets
+        ),
+        "many_member_sets": sum(
+            int(row.get("member_count", 0)) > 1 for row in candidate_sets
+        ),
         "factor_revisions": len(compact.get("factor_refinements") or ()),
         "local_binding_demands": sum(
             row.get("budget") == "bounded_document_local_evidence"
