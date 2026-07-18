@@ -15,6 +15,9 @@ def test_binding_migrations_repair_active_document_authority_and_add_reuse() -> 
     migration_011 = (
         MIGRATIONS / "011_operational_document_build_reuse.sql"
     ).read_text(encoding="utf-8")
+    migration_012 = (
+        MIGRATIONS / "012_binding_demand_links.sql"
+    ).read_text(encoding="utf-8")
 
     assert "REFERENCES compiler_document(document_ref)" in migration_008
     assert "DROP CONSTRAINT IF EXISTS factor_anchor_document_ref_fkey" in (
@@ -31,4 +34,13 @@ def test_binding_migrations_repair_active_document_authority_and_add_reuse() -> 
     assert "UNIQUE (document_ref, compiler_contract_ref, build_key_sha256)" in (
         migration_011
     )
-    assert "candidate_payload JSONB" not in migration_010 + migration_011
+
+    assert "resolution.demand_candidate_set" in migration_012
+    assert "resolution.v_binding_demand" in migration_012
+    assert "REFERENCES resolution.demand(demand_ref)" in migration_012
+    assert "REFERENCES resolution.binding_candidate_set(candidate_set_ref)" in (
+        migration_012
+    )
+    assert "candidate_payload JSONB" not in (
+        migration_010 + migration_011 + migration_012
+    )
