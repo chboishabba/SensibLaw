@@ -1,0 +1,103 @@
+name: Reference binding
+
+on:
+  push:
+    paths:
+      - "src/pnf/**"
+      - "src/policy/*corpus_compilation.py"
+      - "src/policy/algebra/**"
+      - "src/storage/postgres/**"
+      - "database/postgres_migrations/**"
+      - "tests/pnf/**"
+      - "tests/policy/test_operational_corpus_compilation.py"
+      - "tests/storage/test_*binding*.py"
+      - "tests/storage/test_factor_revision_identity.py"
+      - ".github/workflows/reference-binding.yml"
+  pull_request:
+    paths:
+      - "src/pnf/**"
+      - "src/policy/*corpus_compilation.py"
+      - "src/policy/algebra/**"
+      - "src/storage/postgres/**"
+      - "database/postgres_migrations/**"
+      - "tests/pnf/**"
+      - "tests/policy/test_operational_corpus_compilation.py"
+      - "tests/storage/test_*binding*.py"
+      - "tests/storage/test_factor_revision_identity.py"
+      - ".github/workflows/reference-binding.yml"
+
+jobs:
+  focused-proof:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sensiblaw_compiler_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sensiblaw_compiler_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sensiblaw_compiler_ci
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: sensiblaw_compiler_ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install environment
+        run: |
+          python -m pip install --upgrade pip uv
+          uv sync --frozen --extra test --extra dev
+          uv run python -m spacy download en_core_web_sm
+      - name: Apply immutable migrations
+        run: bash scripts/apply_pg_migrations.sh
+      - name: Ruff
+        run: |
+          uv run ruff check \
+            src/pnf \
+            src/policy/operational_corpus_compilation.py \
+            src/policy/postgres_corpus_compilation.py \
+            src/policy/algebra/revision_identity.py \
+            src/storage/postgres/binding_candidate_store.py \
+            src/storage/postgres/factor_revision_store.py \
+            src/storage/postgres/operational_build_store.py \
+            src/storage/postgres/semantic_store.py \
+            scripts/benchmark_binding_candidate_sets.py \
+            scripts/report_binding_candidate_storage.py \
+            tests/pnf \
+            tests/policy/test_operational_corpus_compilation.py \
+            tests/storage/test_binding_candidate_store.py \
+            tests/storage/test_binding_migration_chain.py \
+            tests/storage/test_factor_revision_identity.py \
+            tests/storage/test_operational_build_store.py \
+            tests/storage/test_postgres_reference_binding_live.py
+      - name: Pure and mocked proofs
+        run: |
+          uv run pytest -q \
+            tests/language/test_semantic_reductions.py \
+            tests/pnf/test_binding_candidate_sets.py \
+            tests/pnf/test_reference_binding_corpus.py \
+            tests/policy/test_corpus_compilation.py \
+            tests/policy/test_operational_corpus_compilation.py \
+            tests/storage/test_binding_candidate_store.py \
+            tests/storage/test_binding_migration_chain.py \
+            tests/storage/test_factor_revision_identity.py \
+            tests/storage/test_operational_build_store.py \
+            tests/storage/test_postgres_compiler.py \
+            tests/storage/test_postgres_generic_compiler_runtime.py
+      - name: Live PostgreSQL proofs
+        run: |
+          uv run pytest -q \
+            tests/storage/test_postgres_compiler_live.py \
+            tests/storage/test_postgres_reference_binding_live.py
