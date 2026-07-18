@@ -12,6 +12,7 @@ from src.policy.corpus_compilation import (
 )
 from src.sensiblaw.interfaces.shared_reducer import tokenize_canonical_with_spans
 from src.storage.postgres import PersistedCompilation, PostgresCompilerStore
+from src.storage.postgres.factor_revision_store import persist_factor_revision
 from src.storage.postgres.semantic_store import (
     persist_pnf_graph,
     persist_resolution_artifacts,
@@ -47,6 +48,7 @@ def persist_document_compilation(
         context,
     )
     artifacts = compilation.artifacts
+    refinements = tuple(artifacts.get("factor_refinements") or ())
     with store.savepoint() as cursor:
         store.persist_source_document(
             cursor,
@@ -89,13 +91,21 @@ def persist_document_compilation(
             document_ref=compilation.document_ref,
             graph=artifacts["pnf_graph"],
         )
+        for refinement in refinements:
+            resulting = refinement.get("resulting_factor")
+            if isinstance(resulting, Mapping):
+                persist_factor_revision(
+                    cursor,
+                    document_ref=compilation.document_ref,
+                    factor=resulting,
+                )
         return persist_resolution_artifacts(
             cursor,
             factor_revisions=factor_revisions,
             demands=artifacts.get("resolution_demands") or (),
             evidence=artifacts.get("local_evidence") or (),
             meets=artifacts.get("typed_meets") or (),
-            refinements=artifacts.get("factor_refinements") or (),
+            refinements=refinements,
         )
 
 
