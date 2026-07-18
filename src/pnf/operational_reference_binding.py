@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from .argument_role_projection import (
+    ARGUMENT_ROLE_DECLARATION_REF,
+    canonicalize_parser_argument_roles,
+)
 from .binding_candidate_sets import compact_binding_artifacts
 from .reference_binding import (
     REFERENCE_BINDING_CONTRACT_REF,
@@ -22,15 +26,17 @@ def build_operational_reference_binding_artifacts(
 
     The order is deliberate:
 
-    1. project parser-observed pronominal arguments into PNF;
-    2. migrate legacy refinement identities before candidate build keys exist;
-    3. generate candidate sets directly from normalized graph indexes;
-    4. remove only the retired pairwise compatibility carrier;
-    5. normalize resulting factor revisions/refinement/demand identities again;
-    6. add any missing local set-bound demands.
+    1. narrow generic argument roles from public parser dependencies;
+    2. project parser-observed pronominal arguments into PNF;
+    3. migrate legacy refinement identities before candidate build keys exist;
+    4. generate candidate sets directly from normalized graph indexes;
+    5. remove only the retired pairwise compatibility carrier;
+    6. normalize resulting factor revisions/refinement/demand identities again;
+    7. add any missing local set-bound demands.
     """
 
-    projected = project_pronominal_reference_arguments(artifacts)
+    role_projected = canonicalize_parser_argument_roles(artifacts)
+    projected = project_pronominal_reference_arguments(role_projected)
     normalized_input = normalize_factor_revision_artifacts(projected)
     pairwise_binding_evidence_refs = {
         str(row.get("evidence_ref") or "")
@@ -64,6 +70,7 @@ def build_operational_reference_binding_artifacts(
         REFERENCE_BINDING_CONTRACT_REF
     )
     completed["reference_binding_assembly"] = {
+        "argument_role_declaration_ref": ARGUMENT_ROLE_DECLARATION_REF,
         "reference_reduction_declaration_ref": (
             REFERENCE_REDUCTION_DECLARATION_REF
         ),
@@ -79,6 +86,7 @@ build_set_valued_binding_artifacts = build_operational_reference_binding_artifac
 
 
 __all__ = [
+    "ARGUMENT_ROLE_DECLARATION_REF",
     "REFERENCE_BINDING_CONTRACT_REF",
     "REFERENCE_REDUCTION_DECLARATION_REF",
     "build_operational_reference_binding_artifacts",
