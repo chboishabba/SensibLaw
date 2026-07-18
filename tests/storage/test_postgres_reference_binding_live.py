@@ -160,7 +160,7 @@ def test_reference_binding_mini_persists_nonempty_and_zero_member_sets() -> None
                 """
                 SELECT COUNT(*)
                 FROM corpus.document_occurrence
-                WHERE corpus_ref = %s AND occurrence_state_ref = 'reused_compilation'
+                WHERE corpus_ref = %s AND occurrence_state = 'reused_compilation'
                 """,
                 (first.corpus_ref,),
             )
