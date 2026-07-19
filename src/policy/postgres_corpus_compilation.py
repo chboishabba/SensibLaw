@@ -28,6 +28,9 @@ from src.storage.postgres.semantic_store import (
 from src.storage.postgres.span_store import persist_licensed_spans
 
 
+PreparedSource = tuple[bytes, str]
+
+
 def _canonical_source_coordinates(
     *, media_type: str, source_text: str, source_ref: str
 ) -> tuple[str, str, str]:
@@ -48,6 +51,103 @@ def _canonical_source_coordinates(
         hashlib.sha256(canonical_text.encode("utf-8")).hexdigest(),
         adapter_ref,
     )
+
+
+def _operational_document_ref(
+    *,
+    source_content_sha256: str,
+    canonical_text_sha256: str,
+    media_type: str,
+    media_adapter_ref: str,
+    context: CompilerContext,
+) -> str:
+    """Derive immutable document identity from source and canonical coordinates."""
+
+    return "document:" + canonical_sha256(
+        {
+            "source_content_sha256": source_content_sha256,
+            "canonical_text_sha256": canonical_text_sha256,
+            "media_type": media_type,
+            "media_adapter_ref": media_adapter_ref,
+            "media_normalization_ref": context.media_normalization_ref,
+            "compiler_contract": OPERATIONAL_COMPILER_CONTRACT,
+        }
+    )
+
+
+def _prepare_operational_manifest(
+    *,
+    root: Path,
+    manifest: Mapping[str, Any],
+    context: CompilerContext,
+) -> tuple[dict[str, Any], dict[str, PreparedSource]]:
+    """Bind a raw inventory to the active canonical-coordinate contract.
+
+    The source inventory remains represented by ``source_document_ref``. The
+    operational ``document_ref`` changes whenever canonical text, the selected
+    media adapter, or the compiler coordinate contract changes. This prevents a
+    v0.8 rebuild from colliding with a v0.7 document row whose canonical pointer
+    addressed raw HTML.
+    """
+
+    prepared_sources: dict[str, PreparedSource] = {}
+    prepared_documents: list[dict[str, Any]] = []
+    for raw_entry in manifest.get("ordered_documents") or ():
+        entry = dict(raw_entry)
+        if str(entry.get("status") or "") == "inventoried":
+            relative_path = str(entry["relative_path"])
+            source_document_ref = str(entry["document_ref"])
+            try:
+                source_bytes = (root / relative_path).read_bytes()
+                source_text = source_bytes.decode("utf-8")
+                canonical_text, canonical_sha, media_adapter_ref = (
+                    _canonical_source_coordinates(
+                        media_type=str(entry["media_type"]),
+                        source_text=source_text,
+                        source_ref=f"source-content:{entry['content_sha256']}",
+                    )
+                )
+            except (OSError, UnicodeDecodeError, ValueError):
+                # The compile loop records the concrete failure receipt. Keeping
+                # the raw inventory identity here preserves a truthful manifest.
+                pass
+            else:
+                del canonical_text
+                entry.update(
+                    {
+                        "source_document_ref": source_document_ref,
+                        "canonical_text_sha256": canonical_sha,
+                        "media_adapter_ref": media_adapter_ref,
+                        "document_ref": _operational_document_ref(
+                            source_content_sha256=str(entry["content_sha256"]),
+                            canonical_text_sha256=canonical_sha,
+                            media_type=str(entry["media_type"]),
+                            media_adapter_ref=media_adapter_ref,
+                            context=context,
+                        ),
+                    }
+                )
+                prepared_sources[relative_path] = (source_bytes, source_text)
+        prepared_documents.append(entry)
+
+    row = dict(manifest)
+    row["ordered_documents"] = prepared_documents
+    row["compiler_contract_ref"] = OPERATIONAL_COMPILER_CONTRACT
+    corpus_identity = {
+        "root_ref": row["root_ref"],
+        "compiler_context_ref": row["compiler_context_ref"],
+        "compiler_contract_ref": OPERATIONAL_COMPILER_CONTRACT,
+        "ordered_documents": prepared_documents,
+        "ignored_entries": row.get("ignored_entries") or (),
+        "unsupported_entries": row.get("unsupported_entries") or (),
+        "inventory_failures": row.get("inventory_failures") or (),
+    }
+    row["corpus_ref"] = "corpus:" + canonical_sha256(corpus_identity)
+    row_without_digest = {
+        key: value for key, value in row.items() if key != "manifest_sha256"
+    }
+    row["manifest_sha256"] = canonical_sha256(row_without_digest)
+    return row, prepared_sources
 
 
 def _operational_build_key(
@@ -138,11 +238,9 @@ def persist_document_compilation(
 ) -> tuple[str, ...]:
     """Compile and persist one document transactionally.
 
-    The operational compiler never materializes pairwise binding evidence. It
-    projects parser-observed pronominal arguments, normalizes immutable revision
-    identity, and constructs candidate sets directly from the annotation/PNF
-    index. An exact completed document build is returned without reparsing. The
-    expanded pairwise carrier remains limited to explicit legacy JSON export.
+    Raw source bytes remain source evidence. The compiler-produced canonical
+    projection is the only coordinate system used by token, span, annotation,
+    PNF, refinement, and demand persistence.
     """
 
     document_ref = str(entry["document_ref"])
@@ -155,6 +253,22 @@ def persist_document_compilation(
             source_ref=source_ref,
         )
     )
+    expected_document_ref = _operational_document_ref(
+        source_content_sha256=content_sha256,
+        canonical_text_sha256=canonical_text_sha256,
+        media_type=str(entry["media_type"]),
+        media_adapter_ref=media_adapter_ref,
+        context=context,
+    )
+    if document_ref != expected_document_ref:
+        raise ValueError("operational document identity disagrees with canonical text")
+    if str(entry.get("canonical_text_sha256") or "") != canonical_text_sha256:
+        raise ValueError("manifest canonical text hash disagrees with compilation")
+    if str(entry.get("media_adapter_ref") or "") != media_adapter_ref:
+        raise ValueError("manifest media adapter disagrees with compilation")
+    if str(entry.get("adapter_capability_ref") or "") != media_adapter_ref:
+        raise ValueError("declared media capability disagrees with selected adapter")
+
     build_key_sha256 = _operational_build_key(
         document_ref=document_ref,
         content_sha256=content_sha256,
@@ -218,7 +332,7 @@ def persist_document_compilation(
             content_sha256=compilation.content_sha256,
             source_bytes=source_bytes,
             canonical_text=canonical_text,
-            adapter_ref=str(entry["adapter_capability_ref"]),
+            adapter_ref=media_adapter_ref,
             adapter_version=context.media_normalization_ref,
             compiler_context_ref=context.context_ref,
             normalization_ref=context.media_normalization_ref,
@@ -323,12 +437,17 @@ def compile_directory_postgres(
         max_file_bytes=max_file_bytes,
         max_total_bytes=max_total_bytes,
     )
-    manifest_row = manifest.to_dict()
+    manifest_row, prepared_sources = _prepare_operational_manifest(
+        root=root,
+        manifest=manifest.to_dict(),
+        context=context,
+    )
+    corpus_ref = str(manifest_row["corpus_ref"])
     with store.transaction() as cursor:
         store.persist_context(cursor, context.to_dict())
         store.persist_manifest(cursor, manifest_row)
     if execution_phase == "inventory":
-        return PersistedCompilation(manifest.corpus_ref, (), (), ())
+        return PersistedCompilation(corpus_ref, (), (), ())
 
     compiled: set[str] = set()
     document_refs: list[str] = []
@@ -343,18 +462,22 @@ def compile_directory_postgres(
             with store.transaction() as cursor:
                 store.persist_occurrence(
                     cursor,
-                    corpus_ref=manifest.corpus_ref,
+                    corpus_ref=corpus_ref,
                     relative_path=relative_path,
                     document_ref=document_ref,
                     state="duplicate_content_occurrence",
                 )
             continue
         try:
-            source_bytes = (root / relative_path).read_bytes()
-            source_text = source_bytes.decode("utf-8")
+            prepared = prepared_sources.get(relative_path)
+            if prepared is None:
+                source_bytes = (root / relative_path).read_bytes()
+                source_text = source_bytes.decode("utf-8")
+            else:
+                source_bytes, source_text = prepared
             refs = persist_document_compilation(
                 store=store,
-                corpus_ref=manifest.corpus_ref,
+                corpus_ref=corpus_ref,
                 relative_path=relative_path,
                 entry=entry,
                 source_bytes=source_bytes,
@@ -376,7 +499,7 @@ def compile_directory_postgres(
         document_refs.append(document_ref)
         demand_refs.extend(refs)
     return PersistedCompilation(
-        corpus_ref=manifest.corpus_ref,
+        corpus_ref=corpus_ref,
         document_refs=tuple(sorted(document_refs)),
         demand_refs=tuple(sorted(set(demand_refs))),
         failure_refs=tuple(sorted(failure_refs)),
