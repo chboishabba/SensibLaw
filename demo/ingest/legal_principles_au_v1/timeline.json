@@ -1,0 +1,204 @@
+{
+  "events": [
+    {
+      "anchor": {
+        "day": 11,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-11",
+        "year": 2026
+      },
+      "doc_id": "doc:0001",
+      "event_id": "ev:0001",
+      "links": [],
+      "section": "Judicial College of Victoria Bench Books",
+      "source_id": "jcv_benchbooks_index",
+      "status": "ok",
+      "text": "Bench books | Judicial College of Victoria",
+      "title": "Bench books | Judicial College of Victoria",
+      "url": "https://judicialcollege.vic.edu.au/bench-books"
+    },
+    {
+      "anchor": {
+        "day": 11,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-11",
+        "year": 2026
+      },
+      "doc_id": "doc:0002",
+      "event_id": "ev:0002",
+      "links": [],
+      "section": "Judicial College of Victoria Bench Books",
+      "source_id": "jcv_benchbooks_index",
+      "status": "ok",
+      "text": "Criminal Charge Book - BarNet Jade",
+      "title": "Criminal Charge Book - BarNet Jade",
+      "url": "https://resources.judicialcollege.vic.edu.au/article/1053858"
+    },
+    {
+      "anchor": {
+        "day": 11,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-11",
+        "year": 2026
+      },
+      "doc_id": "doc:0003",
+      "event_id": "ev:0003",
+      "links": [],
+      "section": "AIJA Bench Books",
+      "source_id": "aija_benchbooks_index",
+      "status": "ok",
+      "text": "Bench Books Archives - Australasian Institute of Judicial Administration - Australasian Institute of Judicial Administration",
+      "title": "Bench Books Archives - Australasian Institute of Judicial Administration - Australasian Institute of Judicial Administration",
+      "url": "https://aija.org.au/product-category/bench-books/"
+    },
+    {
+      "anchor": {
+        "day": 11,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-11",
+        "year": 2026
+      },
+      "doc_id": "doc:0004",
+      "event_id": "ev:0004",
+      "links": [],
+      "section": "AIJA Bench Books",
+      "source_id": "aija_benchbooks_index",
+      "status": "ok",
+      "text": "AIJA",
+      "title": "AIJA",
+      "url": "https://dfvbenchbook.aija.org.au/article/1085400"
+    },
+    {
+      "anchor": {
+        "day": 11,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-11",
+        "year": 2026
+      },
+      "doc_id": "doc:0005",
+      "event_id": "ev:0005",
+      "links": [],
+      "section": "Fair Work Commission Benchbooks",
+      "source_id": "fwc_benchbooks",
+      "status": "ok",
+      "text": "Case law benchbooks | Fair Work Commission",
+      "title": "Case law benchbooks | Fair Work Commission",
+      "url": "https://www.fwc.gov.au/hearings-decisions/case-law-benchbooks"
+    },
+    {
+      "anchor": {
+        "day": 11,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-11",
+        "year": 2026
+      },
+      "doc_id": "doc:0006",
+      "event_id": "ev:0006",
+      "links": [],
+      "section": "Fair Work Commission Benchbooks",
+      "source_id": "fwc_benchbooks",
+      "status": "ok",
+      "text": "Unfair dismissals benchbook | Fair Work Commission",
+      "title": "Unfair dismissals benchbook | Fair Work Commission",
+      "url": "https://www.fwc.gov.au/benchbook/unfair-dismissals-benchbook"
+    },
+    {
+      "anchor": {
+        "day": 11,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-11",
+        "year": 2026
+      },
+      "doc_id": "doc:0007",
+      "event_id": "ev:0007",
+      "links": [],
+      "section": "Fair Work Commission Benchbooks",
+      "source_id": "fwc_benchbooks",
+      "status": "ok",
+      "text": "https://www.fwc.gov.au/documents/benchbooks/unfair-dismissals-benchbook.pdf",
+      "title": null,
+      "url": "https://www.fwc.gov.au/documents/benchbooks/unfair-dismissals-benchbook.pdf"
+    },
+    {
+      "anchor": {
+        "day": 11,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-11",
+        "year": 2026
+      },
+      "doc_id": "doc:0008",
+      "event_id": "ev:0008",
+      "links": [
+        "AustLII",
+        "Search",
+        "Advanced Search\u2026",
+        "Close",
+        "About",
+        "Contact",
+        "Copyright & Usage",
+        "Privacy",
+        "Disclaimers",
+        "Feedback",
+        "Help",
+        "Type All Databases",
+        "Jurisdiction Select a Region",
+        "Database Select a database",
+        "All DatabasesComplete database listing",
+        "Cases & LegislationPrimary sources of law",
+        "Journals & ScholarshipAustralasian Legal Scholarship",
+        "TreatiesAustralian Treaties",
+        "LibrariesSubject-specifc libraries",
+        "LawCiteLaw citator with international scope",
+        "Australia",
+        "CTH",
+        "ACT",
+        "NSW"
+      ],
+      "section": "AustLII Databases Directory",
+      "source_id": "austlii_databases",
+      "status": "ok",
+      "text": "All Databases",
+      "title": "All Databases",
+      "url": "https://www.austlii.edu.au/databases.html"
+    },
+    {
+      "anchor": {
+        "day": 11,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-11",
+        "year": 2026
+      },
+      "doc_id": "doc:0009",
+      "event_id": "ev:0009",
+      "links": [
+        "https://jade.io/#t=home"
+      ],
+      "section": "JADE Registry",
+      "source_id": "jade_registry",
+      "status": "ok",
+      "text": "BarNet Jade - Find recent Australian legal decisions, judgments, case summaries for legal professionals (Judgments And Decisions Enhanced)",
+      "title": "BarNet Jade - Find recent Australian legal decisions, judgments, case summaries for legal professionals (Judgments And Decisions Enhanced)",
+      "url": "https://jade.io/"
+    }
+  ],
+  "generated_at": "2026-02-11T06:47:57+00:00",
+  "pack_id": "legal_principles_au_v1"
+}

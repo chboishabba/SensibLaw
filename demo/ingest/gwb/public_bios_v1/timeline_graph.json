@@ -1,0 +1,212 @@
+{
+  "edges": [
+    {
+      "from": "pack:gwb_public_bios_v1",
+      "to": "source:gwb_public_bios_web",
+      "type": "HAS_SOURCE"
+    },
+    {
+      "from": "source:gwb_public_bios_web",
+      "to": "ev:ev:0001",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-13",
+      "to": "ev:ev:0001",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "source:gwb_public_bios_web",
+      "to": "ev:ev:0002",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-13",
+      "to": "ev:ev:0002",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "source:gwb_public_bios_web",
+      "to": "ev:ev:0003",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-13",
+      "to": "ev:ev:0003",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "source:gwb_public_bios_web",
+      "to": "ev:ev:0004",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-13",
+      "to": "ev:ev:0004",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "source:gwb_public_bios_web",
+      "to": "ev:ev:0005",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-13",
+      "to": "ev:ev:0005",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "source:gwb_public_bios_web",
+      "to": "ev:ev:0006",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-13",
+      "to": "ev:ev:0006",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "source:gwb_public_bios_web",
+      "to": "ev:ev:0007",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-13",
+      "to": "ev:ev:0007",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "source:gwb_public_bios_web",
+      "to": "ev:ev:0008",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-13",
+      "to": "ev:ev:0008",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "source:gwb_public_bios_web",
+      "to": "ev:ev:0009",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-13",
+      "to": "ev:ev:0009",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "ev:ev:0001",
+      "order": 1,
+      "to": "ev:ev:0002",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0002",
+      "order": 2,
+      "to": "ev:ev:0003",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0003",
+      "order": 3,
+      "to": "ev:ev:0004",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0004",
+      "order": 4,
+      "to": "ev:ev:0005",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0005",
+      "order": 5,
+      "to": "ev:ev:0006",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0006",
+      "order": 6,
+      "to": "ev:ev:0007",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0007",
+      "order": 7,
+      "to": "ev:ev:0008",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0008",
+      "order": 8,
+      "to": "ev:ev:0009",
+      "type": "NEXT_CHRONO"
+    }
+  ],
+  "generated_at": "2026-02-13T11:57:16+00:00",
+  "graph_id": "source_pack_timeline_gwb_public_bios_v1",
+  "nodes": [
+    {
+      "id": "pack:gwb_public_bios_v1",
+      "label": "gwb_public_bios_v1",
+      "type": "pack"
+    },
+    {
+      "id": "source:gwb_public_bios_web",
+      "label": "gwb_public_bios_web",
+      "type": "source"
+    },
+    {
+      "id": "time:2026-02-13",
+      "label": "2026-02-13",
+      "type": "time_day"
+    },
+    {
+      "id": "ev:ev:0001",
+      "label": "Biography of President George W. Bush",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0002",
+      "label": "George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0003",
+      "label": "George W. Bush - White House Historical Association",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0004",
+      "label": "George W. Bush Presidential Library",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0005",
+      "label": "George W. Bush | George W. Bush Presidential Center",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0006",
+      "label": "George W. Bush: Life in Brief | Miller Center",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0007",
+      "label": "Bush family._ Bush, George_ Bush, George Walker_ Bush, Jeb_ Bush - Jeb and the Bush crime family _ the inside story of an American dynasty (2016, Skyhorse Publishing, Inc.) - libgen.li.epub",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0008",
+      "label": "Bush family._Bush, George_Bush, George Walker_Baker, Russ - Family of secrets_ the Bush dynasty, the powerful forces that put it in the White House, and what their influence means for Ame (2009, Bloomsbury Publishing Plc_Bloomsb - libgen.li.epub",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0009",
+      "label": "Bush, George_Bush, George H._Nelson, Michael_Perry, Barbara Ann - 41 - Inside the Presidency of George H. W. Bush (2014, Cornell University Press, in association with the University of Virginia's Miller Center) - libgen.li.pdf",
+      "type": "event"
+    }
+  ],
+  "pack_id": "gwb_public_bios_v1"
+}

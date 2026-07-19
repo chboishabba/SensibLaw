@@ -1,0 +1,171 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+<head>
+
+  <title> LawCite </title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="charset" content="utf-8">
+  <meta name="robots" content="noindex"> 
+  <link rel='shortcut icon' href='/LawCite/favicon.ico'>
+  <link rel="StyleSheet" href="/LawCite/styles.css" type="text/css" media=screen>
+
+  <!--script type='text/javascript' src='/LawCite/scripts/common.js'></script>
+  <script type='text/javascript' src='/LawCite/scripts/css.js'></script>
+  <script type='text/javascript' src='/LawCite/scripts/sort.js'></script-->
+
+  <link rel="stylesheet" type="text/css" href="autosuggest.css"></link>
+  <script type="text/javascript" src="autosuggest.js"></script>
+
+</head>
+
+<body>
+  <p></p>
+  <table class="header">
+    <tr valign="top">
+      <td class="header" align="left" rowspan="2" width="20%">
+  <div class="logo">
+        <a href="/LawCite/" title="LawCite Search">
+          <img alt="LawCite" border="0" src="/LawCite/images/LawCite_small.gif">
+        </a>
+  </div>
+      </td>
+      <td class="header" align="right" width="80%" border="0">
+        <small>
+          <a href="/LawCite/" title="LawCite Search">LawCite Search</a> |
+          <a href="/LawCite/markup.html" title="LawCite Markup Tool">LawCite Markup Tool</a> |
+          <a href="/LawCite/doc/help.html" title="LawCite Overview">Help</a> |
+          <a href="http://www.austlii.edu.au/austlii/feedback.html" title="Send Feedback">Feedback</a>
+        </small>
+	<p>
+	<div class="citator"><div class="gray">Law</div>Cite</div>
+	<!--sub><div class="release">ALPHA</div></sub-->
+	</p>
+      </td>
+    </tr>
+  </table>
+  <br />
+  <p></p>
+  <p></p>
+  <small>
+  <a href="http://www.austlii.edu.au/austlii/privacy.html">Privacy</a> |
+  <a href="/LawCite/doc/disclaimers.html">Disclaimers</a> |
+  <a href="/LawCite/doc/usage.html">Conditions of Use</a> |
+  <a href="/LawCite/doc/overview.html#acknowledgements">Acknowledgements</a>
+  </small>
+  </body>
+</html>
+
+  <hr />
+  <p class="update-status">There are currently <span class="document-count">6,818,104</span> indexed cases,
+  law reform documents and journal articles included in the system. Last updated: 
+  <span class="last-updated">05 February 2026</span>.</p>
+  <form method="get" action="/cgi-bin/LawCite">
+  <a href="/LawCite/doc/search-help.html" class="help">Help</a>
+  <fieldset>
+
+  <ul>
+  <li><label for="citation">Citation:</label> <input id="citation"
+  type="text" name="cit" size="40" maxlength="64" autocomplete="off"/>
+   <nobr class="example">eg [1963] 2 All ER 575</nobr></li>
+<script> new autosuggest("citation", "", "/cgi-bin/autosuggest.cgi?suggestions=/home/www/lawcite/seriessuggest&userInput="); </script>
+  
+  <li><label for="party1">Parties:</label> <input id="party1"
+  type="text" name="party1" size="30" maxlength="128" autocomplete="off"/> <span
+  class="label">v</span> 
+<script> new autosuggest("party1", "", "/cgi-bin/autosuggest.cgi?suggestions=/home/www/lawcite/casesuggest&userInput="); </script>
+  <input type="text" name="party2" size="30"
+  maxlength="128" /></li>
+  
+  <li><label for="court">Court:</label> <input id="court" type="text"
+  name="court" size="48" maxlength="128" autocomplete="off" /> <nobr class="example">eg
+  Supreme Court</nobr></li>
+  
+<script> new autosuggest("court", "", "/cgi-bin/autosuggest.cgi?suggestions=/home/www/lawcite/courtsuggest&userInput="); </script>
+
+  <li><label for="juris">Jurisdiction:</label> <input id="juris"
+  type="text" name="juris" size="48" maxlength="128" autocomplete="off" /> <nobr
+  class="example">eg Australia</nobr></li>
+<script> new autosuggest("juris", "", "/cgi-bin/autosuggest.cgi?suggestions=/home/www/lawcite/countrysuggest&userInput="); </script>
+  
+  <li><label for="article">Article Title:</label> <input id="article"
+  type="text" name="article" size="48" maxlength="128" autocomplete="off" /> <nobr
+  class="example">eg "Human Rights"</nobr></li>
+<script> new autosuggest("article", "", "/cgi-bin/autosuggest.cgi?suggestions=/home/www/lawcite/articlesuggest&userInput="); </script>
+  
+  <li><label for="author">Author:</label> <input id="author"
+  type="text" name="author" size="48" maxlength="128" autocomplete="off" /> <nobr
+  class="example">eg Michael Kirby</nobr></li>
+<script> new autosuggest("author", "", "/cgi-bin/autosuggest.cgi?suggestions=/home/www/lawcite/authorsuggest&userInput="); </script>
+
+			<script type="text/javascript"> new autosuggest("author", custom_array2); </script></li>
+  
+  <li><label for="year">Year:</label> <input id="year" type="text"
+  name="year1" size="4" maxlength="4" /><span class="label">to</span>
+  <input type="text" name="year2" size="4" maxlength="4" />&#160;
+  &#160; &#160; <input id="synonyms" type="checkbox"
+  checked="checked" name="synonyms" />Use Synonyms
+  &#160; &#160; <input type="checkbox" name="filter" \
+  checked="checked" />Filter Results</li>
+  
+  <li><label for="cases-cited">Cases Considered:</label> <input
+  id="cases-cited" type="text" name="cases-cited" size="48"
+  maxlength="128" autocomplete="off" /></li>
+<script> new autosuggest("cases-cited", "", "/cgi-bin/autosuggest.cgi?suggestions=/home/www/lawcite/casesuggest&userInput="); </script>
+  
+  <li><label for="legis-cited">Legislation Considered:</label> <input
+  id="legis-cited" type="text" name="legis-cited" size="38" autocomplete="off"
+  maxlength="128" /> 
+<script> new autosuggest("legis-cited", "", "/cgi-bin/autosuggest.cgi?suggestions=/home/www/lawcite/legissuggest&userInput="); </script>
+
+  <span class="label">Section:</span> <input
+  type="text" name="section" size="7" maxlength="20" /> <!--/li>
+          <li>
+            <label for="catchwords">Catchwords:</label>
+            <input id="catchwords" type="text" 
+              name="catchwords" size="38" maxlength="128" />
+          </li-->
+   <!--li>
+            <label for="fulltext">Full Text:</label>
+            <input id="fulltext" type="text" 
+              name="fulltext" size="38" maxlength="128" /-->
+   <input class="submit" type="submit" value="Search"
+  title="LawCite Search" /><input class="lucky" type="submit"
+  value="I'm Feeling Lucky" title="Find closest match"
+  name="lucky" />
+  <!--input class="reset" type="reset" title="Reset form values"-->
+  </li>
+  </ul>
+  </fieldset>
+  </form>
+  
+  <p class="centered">LawCite is a collaborative project with the following members of the 
+<a href="http://www.worldlii.org/worldlii/declaration/">Free Access to Law Movement</a>:
+</p>
+<img class="coop_banner" name="coop_banner201010304" src="/images/coop_banner_lawcite.gif" width="600" height="100" border="0" id="coop_banner201010304" usemap="#m_coop_banner201010304" alt="" /><map name="m_coop_banner201010304" id="m_coop_banner201010304">
+<area shape="rect" coords="554,51,595,96" href="http://www.worldlii.org/" title="WorldLII" alt="WorldLII" />
+<area shape="rect" coords="501,57,551,83" href="http://www.ulii.org/" title="ULII" alt="ULII" />
+<area shape="rect" coords="457,53,489,90" href="http://www.lawreform.go.th/" title="TLRC" alt="TLRC" />
+<area shape="rect" coords="393,53,450,91" href="http://www.saflii.org/" title="SAFLII" alt="SAFLII" />
+<area shape="rect" coords="354,46,393,96" href="http://www.paclii.org/" title="PacLII" alt="PacLII" />
+<area shape="rect" coords="305,51,353,96" href="http://www.nzlii.org/" title="NZLII" alt="NZLII" />
+
+<area shape="rect" coords="228,58,305,95" href="http://www.law.cornell.edu/" title="LII (Cornell)" alt="LII (Cornell)" />
+<area shape="rect" coords="95,59,223,93" href="http://www.lawphil.net/" title="LawPhil" alt="LawPhil" />
+<area shape="rect" coords="55,56,92,96" href="http://www.jura.uni-saarland.de/" title="JIPS" alt="JIPS" />
+<area shape="rect" coords="5,51,55,96" href="http://www.irlii.org/" title="IRLII" alt="IRLII" />
+<area shape="rect" coords="550,5,595,46" href="http://www.hklii.org/" title="HKLII" alt="HKLII" />
+<area shape="rect" coords="465,9,545,42" href="http://www.glin.gov/" alt="" />
+<area shape="rect" coords="374,15,455,36" href="http://www.droit.org/" title="Droit.org" alt="Droit.org" />
+<area shape="rect" coords="274,11,365,42" href="http://www.cylaw.org/" title="CyLaw" alt="CyLaw" />
+<area shape="rect" coords="215,8,268,50" href="http://www.commonlii.org/" title="CommonLII" alt="CommonLII" />
+<area shape="rect" coords="162,9,199,45" href="http://www.legalabbrevs.cardiff.ac.uk/" title="Cardiff" alt="Cardiff" />
+<area shape="rect" coords="109,8,148,50" href="http://www.bailii.org/" title="BAILII" alt="BAILII" />
+<area shape="rect" coords="57,6,103,49" href="http://www.austlii.edu.au/" title="AustLII" alt="AustLII" />
+<area shape="rect" coords="6,5,51,51" href="http://www.asianlii.org/" title="AsianLII" alt="AsianLII" />
+</map>
+</img>
+</body>
+</html>

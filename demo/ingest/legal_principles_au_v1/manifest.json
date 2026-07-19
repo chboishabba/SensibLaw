@@ -1,0 +1,3189 @@
+{
+  "contracts": {
+    "citation_follow": {
+      "max_depth_required": true,
+      "max_new_docs_required": true,
+      "mode": "bounded"
+    },
+    "truth_vs_view": "benchbooks and wiki are support lanes; primary cases/statutes remain authority anchors",
+    "wiki_role": "identity_disambiguation_only"
+  },
+  "documents": [
+    {
+      "authority_links": [],
+      "bytes": 136944,
+      "content_type": "text/html; charset=UTF-8",
+      "doc_id": "doc:0001",
+      "fetched_at": "2026-02-11T06:47:57+00:00",
+      "final_url": "https://judicialcollege.vic.edu.au/bench-books",
+      "outbound_links": [
+        {
+          "text": "Skip to main content",
+          "url": "https://judicialcollege.vic.edu.au/bench-books#main-content"
+        },
+        {
+          "text": "",
+          "url": "https://judicialcollege.vic.edu.au/"
+        },
+        {
+          "text": "Home",
+          "url": "https://judicialcollege.vic.edu.au/"
+        },
+        {
+          "text": "Events",
+          "url": "https://judicialcollege.vic.edu.au/events"
+        },
+        {
+          "text": "Bench books",
+          "url": "https://judicialcollege.vic.edu.au/bench-books"
+        },
+        {
+          "text": "Resources",
+          "url": "https://judicialcollege.vic.edu.au/resources"
+        },
+        {
+          "text": "About us",
+          "url": "https://judicialcollege.vic.edu.au/about-us"
+        },
+        {
+          "text": "News",
+          "url": "https://judicialcollege.vic.edu.au/news"
+        },
+        {
+          "text": "",
+          "url": "https://judicialcollege.vic.edu.au/search"
+        },
+        {
+          "text": "Log In",
+          "url": "https://judicialcollege.vic.edu.au/user/login"
+        },
+        {
+          "text": "All",
+          "url": "https://judicialcollege.vic.edu.au/bench-books"
+        },
+        {
+          "text": "Criminal",
+          "url": "https://judicialcollege.vic.edu.au/bench-books/criminal"
+        },
+        {
+          "text": "Civil",
+          "url": "https://judicialcollege.vic.edu.au/bench-books/civil"
+        },
+        {
+          "text": "View Criminal Charge Book",
+          "url": "https://judicialcollege.vic.edu.au/node/78073"
+        },
+        {
+          "text": "View Bail Bench Book",
+          "url": "https://judicialcollege.vic.edu.au/node/78074"
+        },
+        {
+          "text": "View Victorian Sentencing Manual",
+          "url": "https://judicialcollege.vic.edu.au/node/78046"
+        },
+        {
+          "text": "View Sentencing Manual Case Summaries",
+          "url": "https://judicialcollege.vic.edu.au/bench-books/sentencing-manual-case-summaries"
+        },
+        {
+          "text": "View Criminal Proceedings Manual",
+          "url": "https://judicialcollege.vic.edu.au/node/78067"
+        },
+        {
+          "text": "View Uniform Evidence Manual",
+          "url": "https://judicialcollege.vic.edu.au/node/78070"
+        },
+        {
+          "text": "View Civil Juries Charge Book",
+          "url": "https://judicialcollege.vic.edu.au/node/78062"
+        },
+        {
+          "text": "View Civil Procedure Bench Book",
+          "url": "https://judicialcollege.vic.edu.au/bench-books/civil-procedure-bench-book"
+        },
+        {
+          "text": "View Serious Injury Manual",
+          "url": "https://judicialcollege.vic.edu.au/node/78065"
+        },
+        {
+          "text": "View Family Violence Bench Book",
+          "url": "https://judicialcollege.vic.edu.au/node/78068"
+        },
+        {
+          "text": "View Coroners Court Bench Book",
+          "url": "https://judicialcollege.vic.edu.au/node/78066"
+        },
+        {
+          "text": "View Disability Access Bench Book",
+          "url": "https://judicialcollege.vic.edu.au/node/78072"
+        },
+        {
+          "text": "View Charter of Human Rights Bench Book",
+          "url": "https://judicialcollege.vic.edu.au/node/78063"
+        },
+        {
+          "text": "View Guardianship, Administration and Enduring Powers of Attorney",
+          "url": "https://judicialcollege.vic.edu.au/bench-books/guardianship-administration-and-enduring-powers-attorney"
+        },
+        {
+          "text": "View Open Courts Bench Book",
+          "url": "https://judicialcollege.vic.edu.au/bench-books/open-courts-bench-book"
+        },
+        {
+          "text": "View Personal Safety Intervention Orders Bench Book",
+          "url": "https://judicialcollege.vic.edu.au/node/78071"
+        },
+        {
+          "text": "View Modern Slavery: Guidance for Australian Courts",
+          "url": "https://judicialcollege.vic.edu.au/node/78061"
+        },
+        {
+          "text": "View Children's Court Bench Book (retired)",
+          "url": "https://judicialcollege.vic.edu.au/bench-books/childrens-court-bench-book"
+        },
+        {
+          "text": "Level 16, 181 William Street Melbourne, Victoria Australia 3000",
+          "url": "https://maps.app.goo.gl/1xT1n6WNvNmQwaVS9"
+        },
+        {
+          "text": "Accessibility",
+          "url": "https://judicialcollege.vic.edu.au/accessibility"
+        },
+        {
+          "text": "Copyright",
+          "url": "https://judicialcollege.vic.edu.au/copyright"
+        },
+        {
+          "text": "Disclaimer",
+          "url": "https://judicialcollege.vic.edu.au/disclaimer"
+        },
+        {
+          "text": "Freedom of Information",
+          "url": "https://judicialcollege.vic.edu.au/freedom-information"
+        },
+        {
+          "text": "Privacy",
+          "url": "https://judicialcollege.vic.edu.au/privacy"
+        },
+        {
+          "text": "",
+          "url": "https://www.facebook.com/JudicialCollege"
+        },
+        {
+          "text": "",
+          "url": "https://twitter.com/JudicialCollege"
+        },
+        {
+          "text": "",
+          "url": "https://www.instagram.com/judicialcollege/"
+        },
+        {
+          "text": "",
+          "url": "https://www.linkedin.com/company/judicial-college-of-victoria/"
+        },
+        {
+          "text": "Subscribe to updates",
+          "url": "https://judicialcollege.vic.edu.au/subscribe"
+        }
+      ],
+      "raw_path": "SensibLaw/demo/ingest/legal_principles_au_v1/raw/0001_jcv_benchbooks_index_https_judicialcollege.vic.edu.au_bench-books.html",
+      "sha256": "ee806f542e5d81ce96c62fa5406a76c5a6c60647c63d15cfb29e59ea682f343e",
+      "source_id": "jcv_benchbooks_index",
+      "source_name": "Judicial College of Victoria Bench Books",
+      "status": "ok",
+      "status_code": 200,
+      "title": "Bench books | Judicial College of Victoria",
+      "url": "https://judicialcollege.vic.edu.au/bench-books"
+    },
+    {
+      "authority_links": [],
+      "bytes": 2418,
+      "content_type": "text/html",
+      "doc_id": "doc:0002",
+      "fetched_at": "2026-02-11T06:47:57+00:00",
+      "final_url": "https://resources.judicialcollege.vic.edu.au/article/1053858",
+      "outbound_links": [],
+      "raw_path": "SensibLaw/demo/ingest/legal_principles_au_v1/raw/0002_jcv_benchbooks_index_https_resources.judicialcollege.vic.edu.au_article_1053858.html",
+      "sha256": "bd81bd34371f8c1c1bfd78fa5c4f80339aef2042bf2aa74f5c5666a54b1b1a65",
+      "source_id": "jcv_benchbooks_index",
+      "source_name": "Judicial College of Victoria Bench Books",
+      "status": "ok",
+      "status_code": 200,
+      "title": "Criminal Charge Book - BarNet Jade",
+      "url": "https://resources.judicialcollege.vic.edu.au/article/1053858"
+    },
+    {
+      "authority_links": [],
+      "bytes": 74345,
+      "content_type": "text/html; charset=UTF-8",
+      "doc_id": "doc:0003",
+      "fetched_at": "2026-02-11T06:47:57+00:00",
+      "final_url": "https://aija.org.au/product-category/bench-books/",
+      "outbound_links": [
+        {
+          "text": "",
+          "url": "https://aija.org.au"
+        },
+        {
+          "text": "About",
+          "url": "https://aija.org.au/about/"
+        },
+        {
+          "text": "About the AIJA",
+          "url": "https://aija.org.au/about/"
+        },
+        {
+          "text": "Governance",
+          "url": "https://aija.org.au/about/governance/"
+        },
+        {
+          "text": "Annual Reports",
+          "url": "https://aija.org.au/about/annual-reports/"
+        },
+        {
+          "text": "Donate to AIJA",
+          "url": "https://aija.org.au/support-aija-research"
+        },
+        {
+          "text": "Contact Us",
+          "url": "https://aija.org.au/about/aija-staff"
+        },
+        {
+          "text": "Log in",
+          "url": "https://aija.org.au/login"
+        },
+        {
+          "text": "Award for Excellence",
+          "url": "https://aija.org.au/about/awards/"
+        },
+        {
+          "text": "Support AIJA Research",
+          "url": "https://aija.org.au/about/support-aija-research/"
+        },
+        {
+          "text": "Contact Us",
+          "url": "https://aija.org.au/about/aija-staff/"
+        },
+        {
+          "text": "Membership",
+          "url": "https://aija.org.au/about-aija-membership/"
+        },
+        {
+          "text": "About AIJA Membership",
+          "url": "https://aija.org.au/about-aija-membership/"
+        },
+        {
+          "text": "Join or Renew",
+          "url": "https://aija.org.au/about-aija-membership/apply/"
+        },
+        {
+          "text": "Life Members",
+          "url": "https://aija.org.au/about-aija-membership/aija-life-members/"
+        },
+        {
+          "text": "Membership Account",
+          "url": "https://aija.org.au/members/"
+        },
+        {
+          "text": "Resources",
+          "url": "https://aija.org.au/publications-introduction/"
+        },
+        {
+          "text": "Resources Overview",
+          "url": "https://aija.org.au/publications-introduction/"
+        },
+        {
+          "text": "Browse All AIJA Publications",
+          "url": "https://aija.org.au/publications-introduction/publications/"
+        },
+        {
+          "text": "AIJA Judicial Gender Statistics",
+          "url": "https://aija.org.au/publications-introduction/publications/?type=177"
+        },
+        {
+          "text": "Journal of Judicial Administration (JJA)",
+          "url": "https://aija.org.au/publications-introduction/journal-of-judicial-administration-jja/"
+        },
+        {
+          "text": "Australasian Therapeutic Jurisprudence Clearinghouse",
+          "url": "https://aija.org.au/publications-introduction/australasian-therapeutic-jurisprudence-clearinghouse/"
+        },
+        {
+          "text": "Research Funding",
+          "url": "https://aija.org.au/research/"
+        },
+        {
+          "text": "Apply for Funding",
+          "url": "https://aija.org.au/research/apply/"
+        },
+        {
+          "text": "Currently Funded Projects",
+          "url": "https://aija.org.au/research/current-projects/"
+        },
+        {
+          "text": "News and Events",
+          "url": "https://aija.org.au/events/"
+        },
+        {
+          "text": "Past AIJA Events",
+          "url": "https://aija.org.au/events/past-aija-events/"
+        },
+        {
+          "text": "Newsletters",
+          "url": "https://aija.org.au/events/aija-newsletters/"
+        },
+        {
+          "text": "International Framework",
+          "url": "https://aija.org.au/icce/"
+        },
+        {
+          "text": "Home",
+          "url": "https://aija.org.au"
+        },
+        {
+          "text": "Browse All AIJA Publications and Resources",
+          "url": "https://aija.org.au/publications-introduction/publications/"
+        },
+        {
+          "text": "Uncategorised",
+          "url": "https://aija.org.au/publications-introduction/publications/?type=152"
+        },
+        {
+          "text": "Bench Books",
+          "url": "https://aija.org.au/publications-introduction/publications/?type=100"
+        },
+        {
+          "text": "Educational Resources (Slides, Factsheets, CDs, DVDs)",
+          "url": "https://aija.org.au/publications-introduction/publications/?type=178"
+        },
+        {
+          "text": "Guidelines",
+          "url": "https://aija.org.au/publications-introduction/publications/?type=103"
+        },
+        {
+          "text": "Research Reports",
+          "url": "https://aija.org.au/publications-introduction/publications/?type=99"
+        },
+        {
+          "text": "Seminar and conference papers",
+          "url": "https://aija.org.au/publications-introduction/publications/?type=180"
+        },
+        {
+          "text": "Statistics",
+          "url": "https://aija.org.au/publications-introduction/publications/?type=177"
+        },
+        {
+          "text": "Videos and Podcasts",
+          "url": "https://aija.org.au/publications-introduction/publications/?type=179"
+        },
+        {
+          "text": "All",
+          "url": "https://aija.org.au/publications-introduction/publications"
+        },
+        {
+          "text": "National Domestic and Family Violence Bench Book Project Lead: Professor Heather Douglas (University of Melbourne)2025",
+          "url": "https://aija.org.au/publications/national-domestic-and-family-violence-bench-book/"
+        },
+        {
+          "text": "Read more",
+          "url": "https://aija.org.au/publications/national-domestic-and-family-violence-bench-book/"
+        },
+        {
+          "text": "Bugmy Bar Book (external resource) Bugmy Bar Book Project Committee (external)2024",
+          "url": "https://aija.org.au/publications/bugmy-bar-book-external-resource/"
+        },
+        {
+          "text": "Read more",
+          "url": "https://aija.org.au/publications/bugmy-bar-book-external-resource/"
+        },
+        {
+          "text": "Bench Book for Children Giving Evidence in Australian Courts (Updated 2020) 2020",
+          "url": "https://aija.org.au/publications/bench-book-for-children-giving-evidence-in-australian-courts-updated-2020/"
+        },
+        {
+          "text": "Read more",
+          "url": "https://aija.org.au/publications/bench-book-for-children-giving-evidence-in-australian-courts-updated-2020/"
+        },
+        {
+          "text": "Solution-Focused Judging Bench Book Dr Michael King2009",
+          "url": "https://aija.org.au/publications/solution-focused-judging-bench-book/"
+        },
+        {
+          "text": "Read more",
+          "url": "https://aija.org.au/publications/solution-focused-judging-bench-book/"
+        },
+        {
+          "text": "Aboriginal Benchbook for Western Australian Courts 2nd Edition Stephanie Fryer-Smith2008",
+          "url": "https://aija.org.au/publications/2nd-ed-aboriginal-benchbook-for-western-australian-courts/"
+        },
+        {
+          "text": "Read more",
+          "url": "https://aija.org.au/publications/2nd-ed-aboriginal-benchbook-for-western-australian-courts/"
+        },
+        {
+          "text": "",
+          "url": "https://www.acnc.gov.au/charity/charities/bb53e1d4-ea71-ed11-81ac-002248122b18/profile"
+        },
+        {
+          "text": "",
+          "url": "https://www.linkedin.com/company/aijajudicial"
+        },
+        {
+          "text": "About us",
+          "url": "https://aija.org.au/about/"
+        },
+        {
+          "text": "International Framework for Court Excellence",
+          "url": "https://aija.org.au/international-framework-for-court-excellence/"
+        },
+        {
+          "text": "Donate to AIJA",
+          "url": "https://aija.org.au/about/support-aija-research/"
+        },
+        {
+          "text": "About the benefits of membership",
+          "url": "https://aija.org.au/about-aija-membership/"
+        },
+        {
+          "text": "Join now",
+          "url": "https://aija.org.au/about-aija-membership/apply/"
+        }
+      ],
+      "raw_path": "SensibLaw/demo/ingest/legal_principles_au_v1/raw/0003_aija_benchbooks_index_https_aija.org.au_product-category_bench-books.html",
+      "sha256": "8ea44b10b7327ece71f5072c86c78b3bfa71b88ba36dd082a37bc8bcfabfc22b",
+      "source_id": "aija_benchbooks_index",
+      "source_name": "AIJA Bench Books",
+      "status": "ok",
+      "status_code": 200,
+      "title": "Bench Books Archives - Australasian Institute of Judicial Administration - Australasian Institute of Judicial Administration",
+      "url": "https://aija.org.au/product-category/bench-books/"
+    },
+    {
+      "authority_links": [],
+      "bytes": 234319,
+      "content_type": "text/html; charset=utf-8",
+      "doc_id": "doc:0004",
+      "fetched_at": "2026-02-11T06:47:59+00:00",
+      "final_url": "https://dfvbenchbook.aija.org.au/article/1085400",
+      "outbound_links": [
+        {
+          "text": "",
+          "url": "https://dfvbenchbook.aija.org.au/"
+        },
+        {
+          "text": "Download",
+          "url": "https://dfvbenchbook.aija.org.au/article/1085400/download"
+        },
+        {
+          "text": "Print",
+          "url": "https://dfvbenchbook.aija.org.au/article/1085400/print"
+        },
+        {
+          "text": "Home",
+          "url": "https://dfvbenchbook.aija.org.au/home"
+        },
+        {
+          "text": "Table of Contents",
+          "url": "https://dfvbenchbook.aija.org.au/article/1085400"
+        },
+        {
+          "text": "Quick exit to Google",
+          "url": "https://google.com"
+        },
+        {
+          "text": "Book Cover",
+          "url": "https://dfvbenchbook.aija.org.au/"
+        },
+        {
+          "text": "Site search",
+          "url": "https://dfvbenchbook.aija.org.au/search/"
+        },
+        {
+          "text": "Case database",
+          "url": "https://dfvbenchbook.aija.org.au/article/1079852"
+        },
+        {
+          "text": "1. Purpose and limitations",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080051"
+        },
+        {
+          "text": "2. Using this bench book",
+          "url": "https://dfvbenchbook.aija.org.au/assets/dvbb/docs/Chap-2-Using-this-bench-book.pdf"
+        },
+        {
+          "text": "3. Terminology",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080055"
+        },
+        {
+          "text": "3.1. Understanding domestic and family violence",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080059"
+        },
+        {
+          "text": "3.1.1. Physical violence and harm",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080063"
+        },
+        {
+          "text": "3.1.2. Sexual and reproductive abuse",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080068"
+        },
+        {
+          "text": "3.1.3. Economic and financial abuse",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080074"
+        },
+        {
+          "text": "3.1.4. Emotional and psychological abuse",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080080"
+        },
+        {
+          "text": "3.1.5. Cultural and spiritual abuse",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080085"
+        },
+        {
+          "text": "3.1.6. Following, harassing and monitoring",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080090"
+        },
+        {
+          "text": "3.1.7. Social abuse",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080096"
+        },
+        {
+          "text": "3.1.8. Exposing children to domestic and family violence",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080102"
+        },
+        {
+          "text": "3.1.9. Damaging property",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080108"
+        },
+        {
+          "text": "3.1.10. Animal abuse",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080113"
+        },
+        {
+          "text": "3.1.11. Systems abuse",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080119"
+        },
+        {
+          "text": "3.1.12. Forced marriage",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080125"
+        },
+        {
+          "text": "3.1.13. Dowry abuse",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080131"
+        },
+        {
+          "text": "3.2. Coercive control",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080134"
+        },
+        {
+          "text": "3.3. Protection order",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080139"
+        },
+        {
+          "text": "3.4. Parties",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080140"
+        },
+        {
+          "text": "4. Dynamics of domestic and family violence",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080142"
+        },
+        {
+          "text": "4.1. Myths and misunderstandings",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080145"
+        },
+        {
+          "text": "4.2. Factors affecting risk",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080149"
+        },
+        {
+          "text": "4.2.1. Death review",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080153"
+        },
+        {
+          "text": "4.3. Typological approaches",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080154"
+        },
+        {
+          "text": "4.4. Vulnerable groups",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080158"
+        },
+        {
+          "text": "4.4.1. Women",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080161"
+        },
+        {
+          "text": "4.4.2. People with children",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080167"
+        },
+        {
+          "text": "4.4.3. Children",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080173"
+        },
+        {
+          "text": "4.4.4. Young people",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080179"
+        },
+        {
+          "text": "4.4.5. Older people",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080184"
+        },
+        {
+          "text": "4.4.6. Pregnant people",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080189"
+        },
+        {
+          "text": "4.4.7. People with disability and impairment",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080194"
+        },
+        {
+          "text": "4.4.8. People with mental illness",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080200"
+        },
+        {
+          "text": "4.4.9. People from culturally and linguistically diverse backgrounds",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080206"
+        },
+        {
+          "text": "4.4.10. Aboriginal and Torres Strait Islander people",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080212"
+        },
+        {
+          "text": "4.4.11. People living in regional, rural and remote communities",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080218"
+        },
+        {
+          "text": "4.4.12. People affected by substance misuse",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080224"
+        },
+        {
+          "text": "4.4.13. People who are lesbian, gay, bisexual, transgender, intersex and queer +",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080230"
+        },
+        {
+          "text": "4.4.14. People with poor literacy skills",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080234"
+        },
+        {
+          "text": "4.4.15. Victims as (alleged) perpetrators",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080239"
+        },
+        {
+          "text": "5. Fair hearing and safety",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080245"
+        },
+        {
+          "text": "5.1. Impact on consent and disclosure",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080250"
+        },
+        {
+          "text": "5.2. Victim experience of court processes",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080253"
+        },
+        {
+          "text": "5.3. Safety and protection of victim and witnesses",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080258"
+        },
+        {
+          "text": "5.4. Legal representation and self-represented litigants",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080263"
+        },
+        {
+          "text": "5.5. Interpreters and translators",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080268"
+        },
+        {
+          "text": "5.6. Support person in court",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080273"
+        },
+        {
+          "text": "5.7. Referral to support services",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080277"
+        },
+        {
+          "text": "5.8. Adjournments and timely decision making",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080280"
+        },
+        {
+          "text": "5.9. Information sharing",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080283"
+        },
+        {
+          "text": "5.10. Implicit bias",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080287"
+        },
+        {
+          "text": "5.11. Trauma-informed judicial practice",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080291"
+        },
+        {
+          "text": "6. Evidence issues",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080295"
+        },
+        {
+          "text": "7. Protection orders",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080296"
+        },
+        {
+          "text": "7.1. Purpose",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080299"
+        },
+        {
+          "text": "7.2. Management of application proceedings",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080304"
+        },
+        {
+          "text": "7.2.1. Cross-examination",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080309"
+        },
+        {
+          "text": "7.3. Information sharing",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080313"
+        },
+        {
+          "text": "7.4. Conditions",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080316"
+        },
+        {
+          "text": "7.5. Property",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080320"
+        },
+        {
+          "text": "7.6. Duration",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080323"
+        },
+        {
+          "text": "7.7. Related family law proceedings",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080327"
+        },
+        {
+          "text": "7.8. Parenting orders",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080331"
+        },
+        {
+          "text": "7.9. Recognition of interstate orders",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080335"
+        },
+        {
+          "text": "7.10. Breach",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080338"
+        },
+        {
+          "text": "7.11. Undertakings",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080344"
+        },
+        {
+          "text": "7.12. Summary of considerations",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080348"
+        },
+        {
+          "text": "7.13. Sample conditions",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080349"
+        },
+        {
+          "text": "8. Perpetrator interventions",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080351"
+        },
+        {
+          "text": "9. Responses in criminal proceedings",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080356"
+        },
+        {
+          "text": "9.1. Bail",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080358"
+        },
+        {
+          "text": "9.2. Evidence",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080363"
+        },
+        {
+          "text": "9.2.1. Relationship, context, tendency and coincidence evidence",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080364"
+        },
+        {
+          "text": "9.2.2. Expert or opinion evidence",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080366"
+        },
+        {
+          "text": "9.2.3. Vulnerable or special witnesses",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080367"
+        },
+        {
+          "text": "9.3. Sentencing",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080368"
+        },
+        {
+          "text": "9.3.1. Sentencing considerations - breaches of protection orders",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080373"
+        },
+        {
+          "text": "9.3.2. Specific considerations - Aboriginal and Torres Strait Islander people",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080379"
+        },
+        {
+          "text": "9.3.3. Listening to victims",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080384"
+        },
+        {
+          "text": "9.3.4. Options",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080412"
+        },
+        {
+          "text": "9.3.4.1. Imprisonment",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080413"
+        },
+        {
+          "text": "9.3.4.2. Intermediate sanctions",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080417"
+        },
+        {
+          "text": "9.3.4.3. Fines",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080420"
+        },
+        {
+          "text": "10. Family law proceedings",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080424"
+        },
+        {
+          "text": "10.1. Foundational information",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080426"
+        },
+        {
+          "text": "10.1.1. FCFCA Family Violence Best Practice Principles",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080429"
+        },
+        {
+          "text": "10.1.2. Key statutory provisions in Family Law Act (Cth) and Family Court Act (WA)",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080431"
+        },
+        {
+          "text": "10.1.3. Intersection of legal systems",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080432"
+        },
+        {
+          "text": "10.1.4. Jurisdiction of FCFCA",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080435"
+        },
+        {
+          "text": "10.1.5. Jurisdiction of the Family Court of Western Australia",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080437"
+        },
+        {
+          "text": "10.1.6. Jurisdiction of state/territory courts",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080439"
+        },
+        {
+          "text": "10.1.7. Prevalence of domestic and family violence in the family law system",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080441"
+        },
+        {
+          "text": "10.1.8. Impact of domestic and family violence on children and parenting capacity",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080444"
+        },
+        {
+          "text": "10.1.9. Independent children's lawyer",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080447"
+        },
+        {
+          "text": "10.2. Family dispute resolution",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080450"
+        },
+        {
+          "text": "10.3. Court and case management",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080453"
+        },
+        {
+          "text": "10.3.1. Child-related proceedings",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080454"
+        },
+        {
+          "text": "10.3.2. Cross-examination",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080457"
+        },
+        {
+          "text": "10.3.3. Self-represented litigants",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080460"
+        },
+        {
+          "text": "10.3.4. Unmeritorious, harmful or vexatious proceedings",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080463"
+        },
+        {
+          "text": "10.4. Family consultants and expert witnesses",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080465"
+        },
+        {
+          "text": "10.5. Information sharing",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080469"
+        },
+        {
+          "text": "10.6. Unacceptable risk and best interests",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080472"
+        },
+        {
+          "text": "10.7. Parenting orders and impact on children",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080475"
+        },
+        {
+          "text": "10.7.1. Allegations of domestic and family violence",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080479"
+        },
+        {
+          "text": "10.7.2. Court-based parenting outcomes",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080482"
+        },
+        {
+          "text": "10.7.3. Relocation",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080512"
+        },
+        {
+          "text": "10.7.4. Recovery orders",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080517"
+        },
+        {
+          "text": "10.7.5. Hague Convention international return and removal of children",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080521"
+        },
+        {
+          "text": "10.7.6. Parental alienation",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080525"
+        },
+        {
+          "text": "10.8. Property proceedings",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080528"
+        },
+        {
+          "text": "Victim experiences",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080532"
+        },
+        {
+          "text": "Acknowledgements",
+          "url": "https://dfvbenchbook.aija.org.au/article/1080533"
+        },
+        {
+          "text": "available here",
+          "url": "https://openlawau-my.sharepoint.com/:b:/g/personal/felix_kang_openlaw_com_au/EZVXFC1CLApArTquHrTubSMBmjmDr-4g-nYUpaKVlmi_mw?e=BcfvyV"
+        },
+        {
+          "text": "Publications and Resources",
+          "url": "https://aija.org.au/publications-introduction/"
+        },
+        {
+          "text": "Research Funding",
+          "url": "https://aija.org.au/research/"
+        },
+        {
+          "text": "News and Events",
+          "url": "https://aija.org.au/events/"
+        },
+        {
+          "text": "International Framework for Court Excellence",
+          "url": "https://aija.org.au/international-framework-for-court-excellence/"
+        },
+        {
+          "text": "",
+          "url": "https://www.linkedin.com/company/aijajudicial/"
+        },
+        {
+          "text": "",
+          "url": "https://twitter.com/AIJAJudicial"
+        }
+      ],
+      "raw_path": "SensibLaw/demo/ingest/legal_principles_au_v1/raw/0004_aija_benchbooks_index_https_dfvbenchbook.aija.org.au_article_1085400.html",
+      "sha256": "2b02a1e6bb968d846e5f957d0c8a6d796364b05f13849064c053a71882461ea7",
+      "source_id": "aija_benchbooks_index",
+      "source_name": "AIJA Bench Books",
+      "status": "ok",
+      "status_code": 200,
+      "title": "AIJA",
+      "url": "https://dfvbenchbook.aija.org.au/article/1085400"
+    },
+    {
+      "authority_links": [],
+      "bytes": 863673,
+      "content_type": "text/html; charset=UTF-8",
+      "doc_id": "doc:0005",
+      "fetched_at": "2026-02-11T06:47:59+00:00",
+      "final_url": "https://www.fwc.gov.au/hearings-decisions/case-law-benchbooks",
+      "outbound_links": [
+        {
+          "text": "Skip to main content",
+          "url": "https://www.fwc.gov.au/hearings-decisions/case-law-benchbooks#main-content"
+        },
+        {
+          "text": "Regulated worker minimum standards applications that may impact gig workers and road transport contractors",
+          "url": "https://www.fwc.gov.au/node/5202"
+        },
+        {
+          "text": "Close",
+          "url": "https://www.fwc.gov.au/hearings-decisions/case-law-benchbooks"
+        },
+        {
+          "text": "",
+          "url": "https://www.fwc.gov.au/"
+        },
+        {
+          "text": "About us",
+          "url": "https://www.fwc.gov.au/about-us"
+        },
+        {
+          "text": "Contact us",
+          "url": "https://www.fwc.gov.au/contact"
+        },
+        {
+          "text": "Support and legal help",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/legal-help-and-representation"
+        },
+        {
+          "text": "Online Learning Portal",
+          "url": "https://learn.fwc.gov.au/"
+        },
+        {
+          "text": "Show/hide search box",
+          "url": "https://www.fwc.gov.au/hearings-decisions/case-law-benchbooks#search-form"
+        },
+        {
+          "text": "Home",
+          "url": "https://www.fwc.gov.au/"
+        },
+        {
+          "text": "Job loss or dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal"
+        },
+        {
+          "text": "Types of dismissal and termination",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/types-dismissal-and-termination"
+        },
+        {
+          "text": "Unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal"
+        },
+        {
+          "text": "About unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/about-unfair-dismissal"
+        },
+        {
+          "text": "What is unfair dismissal?",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/about-unfair-dismissal/what-unfair-dismissal"
+        },
+        {
+          "text": "Who the law protects from unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/about-unfair-dismissal/who-law-protects-unfair-dismissal"
+        },
+        {
+          "text": "Check eligibility for unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/about-unfair-dismissal/check-eligibility-unfair-dismissal"
+        },
+        {
+          "text": "The process for unfair dismissal claims",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/process-unfair-dismissal-claims"
+        },
+        {
+          "text": "Apply for unfair dismissal (Form F2)",
+          "url": "https://www.fwc.gov.au/form/apply-unfair-dismissal-form-f2"
+        },
+        {
+          "text": "Check you are ready to apply for unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/apply-unfair-dismissal-form-f2/check-you-are-ready-apply"
+        },
+        {
+          "text": "Respond to an unfair dismissal claim",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/respond-unfair-dismissal-claim"
+        },
+        {
+          "text": "What to do when an employee claims unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/respond-unfair-dismissal-claim/what-do-when-employee-claims"
+        },
+        {
+          "text": "Respond to a claim for unfair dismissal (Form F3)",
+          "url": "https://www.fwc.gov.au/form/respond-claim-unfair-dismissal-form-f3"
+        },
+        {
+          "text": "Help with Form F3 \u2013 Employer response to unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/respond-unfair-dismissal-claim/respond-claim-unfair"
+        },
+        {
+          "text": "Object to an unfair dismissal claim",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/respond-unfair-dismissal-claim/object-unfair-dismissal-0"
+        },
+        {
+          "text": "Reasons to object to an unfair dismissal claim",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/respond-unfair-dismissal-claim/object-unfair-dismissal-2"
+        },
+        {
+          "text": "Jurisdiction hearings in unfair dismissal cases",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/respond-unfair-dismissal-claim/object-unfair-dismissal-claim"
+        },
+        {
+          "text": "Conciliation for unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/conciliation-unfair-dismissal"
+        },
+        {
+          "text": "What is conciliation?",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/conciliation-unfair-dismissal/what-conciliation"
+        },
+        {
+          "text": "Tips to prepare for conciliation",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/conciliation-unfair-dismissal/tips-prepare-conciliation"
+        },
+        {
+          "text": "What happens in a conciliation meeting",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/conciliation-unfair-dismissal/what-happens-conciliation"
+        },
+        {
+          "text": "Options at conciliation for unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/conciliation-unfair-dismissal/options-conciliation-unfair"
+        },
+        {
+          "text": "The role of the independent conciliator",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/conciliation-unfair-dismissal/role-independent-conciliator"
+        },
+        {
+          "text": "Ask to delay a conciliation",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/conciliation-unfair-dismissal/ask-change-or-delay"
+        },
+        {
+          "text": "Withdraw your application for unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/withdraw-your-application-unfair-dismissal"
+        },
+        {
+          "text": "Possible results of unfair dismissal claims",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/possible-results-unfair-dismissal-claims"
+        },
+        {
+          "text": "Compensation for unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/possible-results-unfair-dismissal-claims/compensation-unfair"
+        },
+        {
+          "text": "The formula to calculate compensation",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/possible-results-unfair-dismissal-claims/compensation-0"
+        },
+        {
+          "text": "Reinstatement after unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/possible-results-unfair-dismissal-claims/reinstatement-after"
+        },
+        {
+          "text": "Outcomes or remedies at an unfair dismissal hearing",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/possible-results-unfair-dismissal-claims/outcomes-or"
+        },
+        {
+          "text": "Dismissal under general protections",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections"
+        },
+        {
+          "text": "About general protections",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/about-general-protections"
+        },
+        {
+          "text": "Understand general protections",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/about-general-protections/understand"
+        },
+        {
+          "text": "Who the general protections laws cover",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/about-general-protections/who-general-0"
+        },
+        {
+          "text": "The difference between contractors and employees",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/about-general-protections/who-general"
+        },
+        {
+          "text": "Check eligibility for general protections",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/about-general-protections/check"
+        },
+        {
+          "text": "What is adverse action?",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/about-general-protections/what-adverse"
+        },
+        {
+          "text": "Prohibited reasons in general protections",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/about-general-protections/prohibited"
+        },
+        {
+          "text": "Other workplace protections",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/about-general-protections/other-workplace"
+        },
+        {
+          "text": "The process for general protections dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/process-general-protections-dismissal"
+        },
+        {
+          "text": "Apply for general protections \u2013 dismissal (Form F8)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-general-protections-dismissal-form-f8"
+        },
+        {
+          "text": "Responding to a general protections claim",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/respond-claim-general-protections"
+        },
+        {
+          "text": "Response to general protections application (Form F8A)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/response-general-protections-dismissal-application-form-f8a"
+        },
+        {
+          "text": "Object to a general protections dismissal claim",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/responding-general-protections-claim-0"
+        },
+        {
+          "text": "Conferences for general protections dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/conferences-general-protections-dismissal"
+        },
+        {
+          "text": "Tips to prepare for a general protections conference",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/conferences-general-protections-0"
+        },
+        {
+          "text": "Possible outcomes of a general protections \u2013 dismissal case",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/possible-outcomes-general-protections"
+        },
+        {
+          "text": "Respondents in a general protections dismissal case",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/possible-outcomes-general-protections/respondents-general-protections-dismissal-case"
+        },
+        {
+          "text": "Apply for arbitration of a general protections \u2013 dismissal case (Form F8B)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-arbitration-general-protections-form-f8b"
+        },
+        {
+          "text": "Take your general protections case to court",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/take-your-general-protections-case-court"
+        },
+        {
+          "text": "Unfair deactivation or termination for regulated workers",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-deactivation-or-termination-regulated-workers"
+        },
+        {
+          "text": "Unfair deactivation for employee-like workers",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-deactivation-or-termination-regulated-workers/unfair-deactivation"
+        },
+        {
+          "text": "Apply for unfair deactivation (for regulated workers) (Form F89)",
+          "url": "https://www.fwc.gov.au/apply-unfair-deactivation-regulated-workers-form-f89"
+        },
+        {
+          "text": "Response to an unfair deactivation application (Form F89A)",
+          "url": "https://www.fwc.gov.au/response-unfair-deactivation-application-form-f89a"
+        },
+        {
+          "text": "Unfair termination for regulated road transport contractors",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-deactivation-or-termination-regulated-workers/unfair-termination"
+        },
+        {
+          "text": "Apply for unfair termination (for regulated workers) (Form F90)",
+          "url": "https://www.fwc.gov.au/apply-unfair-termination-regulated-workers-form-f90"
+        },
+        {
+          "text": "Respond to an unfair termination application (Form F90A)",
+          "url": "https://www.fwc.gov.au/respond-unfair-termination-application-form-f90a"
+        },
+        {
+          "text": "The process for unfair deactivation or termination claims",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-deactivation-or-termination-regulated-workers/process-unfair"
+        },
+        {
+          "text": "Unlawful termination",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unlawful-termination"
+        },
+        {
+          "text": "Apply for help with unlawful termination (Form F9)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-help-unlawful-termination-form-f9"
+        },
+        {
+          "text": "Respond to an application for unlawful termination (Form F9A)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/respond-application-unlawful-termination-form-f9a"
+        },
+        {
+          "text": "Agree to arbitration for unlawful termination (Form F9B)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/agree-arbitration-unlawful-termination-form-f9b"
+        },
+        {
+          "text": "Redundancy",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/redundancy"
+        },
+        {
+          "text": "Issues we help with",
+          "url": "https://www.fwc.gov.au/issues-we-help"
+        },
+        {
+          "text": "Common issues in the workplace",
+          "url": "https://www.fwc.gov.au/issues-we-help/common-issues-workplace"
+        },
+        {
+          "text": "Resolve a dispute in your workplace",
+          "url": "https://www.fwc.gov.au/issues-we-help/common-issues-workplace/resolve-dispute-your-workplace"
+        },
+        {
+          "text": "Bullying",
+          "url": "https://www.fwc.gov.au/issues-we-help/bullying"
+        },
+        {
+          "text": "The process to resolve workplace bullying",
+          "url": "https://www.fwc.gov.au/issues-we-help/bullying/process-resolve-workplace-bullying"
+        },
+        {
+          "text": "What is bullying at work?",
+          "url": "https://www.fwc.gov.au/issues-we-help/bullying/what-bullying-work"
+        },
+        {
+          "text": "About reasonable management action",
+          "url": "https://www.fwc.gov.au/issues-we-help/bullying/what-bullying-work/about-reasonable-management-action"
+        },
+        {
+          "text": "What to do if you\u2019re bullied at work",
+          "url": "https://www.fwc.gov.au/issues-we-help/bullying/what-do-if-youre-bullied-work"
+        },
+        {
+          "text": "How we help stop workplace bullying",
+          "url": "https://www.fwc.gov.au/issues-we-help/bullying/what-do-if-youre-bullied-work/how-we-help-stop-workplace-bullying"
+        },
+        {
+          "text": "Who can apply to stop bullying",
+          "url": "https://www.fwc.gov.au/issues-we-help/bullying/what-do-if-youre-bullied-work/who-can-apply-stop-bullying"
+        },
+        {
+          "text": "Check eligibility for an order to stop bullying",
+          "url": "https://www.fwc.gov.au/issues-we-help/bullying/what-do-if-youre-bullied-work/who-can-apply-stop-bullying/check-eligibility"
+        },
+        {
+          "text": "Apply to stop workplace bullying at work (Form F72)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-stop-workplace-bullying-form-f72"
+        },
+        {
+          "text": "Respond to a bullying claim",
+          "url": "https://www.fwc.gov.au/issues-we-help/bullying/respond-bullying-claim"
+        },
+        {
+          "text": "Respond as an employer or principal in a bullying application (Form F73)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/respond-employer-or-principal-bullying-application-form-f73"
+        },
+        {
+          "text": "Respond as a person named in a bullying application (Form F74)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/respond-person-named-bullying-application-form-f74"
+        },
+        {
+          "text": "Conciliation for bullying at work",
+          "url": "https://www.fwc.gov.au/issues-we-help/bullying/conciliation-bullying-work"
+        },
+        {
+          "text": "Prepare for a conciliation session",
+          "url": "https://www.fwc.gov.au/issues-we-help/bullying/conciliation-bullying-work/prepare-conciliation-session"
+        },
+        {
+          "text": "Sexual harassment",
+          "url": "https://www.fwc.gov.au/issues-we-help/sexual-harassment-work"
+        },
+        {
+          "text": "What is workplace sexual harassment",
+          "url": "https://www.fwc.gov.au/issues-we-help/sexual-harassment/what-is-workplace-sexual-harassment"
+        },
+        {
+          "text": "What you can do if you\u2019ve been sexually harassed",
+          "url": "https://www.fwc.gov.au/issues-we-help/sexual-harassment/what-you-can-do-if-youve-been-sexually-harassed"
+        },
+        {
+          "text": "Who can make a sexual harassment application",
+          "url": "https://www.fwc.gov.au/issues-we-help/sexual-harassment/who-can-make-sexual-harassment-application"
+        },
+        {
+          "text": "Discrimination, the general protections and work health and safety",
+          "url": "https://www.fwc.gov.au/issues-we-help/sexual-harassment/sexual-harassment-and-discrimination-general-protections-and-work"
+        },
+        {
+          "text": "How we deal with sexual harassment cases",
+          "url": "https://www.fwc.gov.au/issues-we-help/sexual-harassment/how-we-deal-sexual-harassment-cases"
+        },
+        {
+          "text": "Member conferences",
+          "url": "https://www.fwc.gov.au/issues-we-help/sexual-harassment/how-we-deal-sexual-harassment-cases/member-conferences-sexual"
+        },
+        {
+          "text": "Determinative conferences and hearings",
+          "url": "https://www.fwc.gov.au/issues-we-help/sexual-harassment/how-we-deal-sexual-harassment-cases/determinative-conferences-and"
+        },
+        {
+          "text": "If the sexual harassment dispute is not resolved",
+          "url": "https://www.fwc.gov.au/issues-we-help/sexual-harassment/how-we-deal-sexual-harassment-cases/if-sexual-harassment-dispute"
+        },
+        {
+          "text": "Notice of consent to arbitration (Form F78)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/notice-consent-arbitration-sexual-harassment-form-f78"
+        },
+        {
+          "text": "Apply to resolve a sexual harassment dispute (Form F75)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-resolve-sexual-harassment-dispute-form-f75"
+        },
+        {
+          "text": "Apply to stop sexual harassment that started before 6 March 2023 (Form F72A)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-order-stop-sexual-harassment-before-6-march-2023-form-f72a"
+        },
+        {
+          "text": "Respond to an application about workplace sexual harassment",
+          "url": "https://www.fwc.gov.au/issues-we-help/sexual-harassment/respond-application-about-workplace-sexual-harassment"
+        },
+        {
+          "text": "Respond as an individual (Form F76)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/individual-response-deal-sexual-harassment-dispute-form-f76"
+        },
+        {
+          "text": "Respond as an employer or principal (Form F77)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/employer-or-principal-response-application-deal-sexual-harassment-dispute-form-f77"
+        },
+        {
+          "text": "Respond as an employer or principal from before 6 March 2023 (Form F73A)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/employer-or-principal-response-application-order-stop-sexual-harassment-occurred-prior-6-march-2023-form-f73a"
+        },
+        {
+          "text": "Respond as a person named from before 6 March 2023 (Form F74A)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/response-person-named-application-order-stop-sexual-harassment-occurred-prior-6-march-2023-form-f74a"
+        },
+        {
+          "text": "Discrimination",
+          "url": "https://www.fwc.gov.au/issues-we-help/discrimination"
+        },
+        {
+          "text": "Small business hub",
+          "url": "https://www.fwc.gov.au/issues-we-help/small-business-hub"
+        },
+        {
+          "text": "Assistance for small business",
+          "url": "https://www.fwc.gov.au/issues-we-help/small-business-hub/assistance-small-business"
+        },
+        {
+          "text": "What is a \u2018small business\u2019?",
+          "url": "https://www.fwc.gov.au/issues-we-help/small-business-hub/what-small-business"
+        },
+        {
+          "text": "Types of workplace disputes",
+          "url": "https://www.fwc.gov.au/issues-we-help/small-business-hub/types-workplace-disputes"
+        },
+        {
+          "text": "Respond to a claim against a business",
+          "url": "https://www.fwc.gov.au/issues-we-help/small-business-hub/respond-claim-against-business"
+        },
+        {
+          "text": "Dismissal rules for small business owners",
+          "url": "https://www.fwc.gov.au/issues-we-help/small-business-hub/dismissal-rules-small-business-owners"
+        },
+        {
+          "text": "What we are doing to help small business",
+          "url": "https://www.fwc.gov.au/issues-we-help/small-business-hub/initiatives-help-small-business"
+        },
+        {
+          "text": "Casual to full-time or part-time employment",
+          "url": "https://www.fwc.gov.au/issues-we-help/casual-permanent-status"
+        },
+        {
+          "text": "Apply to resolve a dispute about changing from casual to full-time or part-time employment (Form F10A)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-resolve-dispute-about-casual-conversion-form-f10a"
+        },
+        {
+          "text": "Dispute about an award or agreement",
+          "url": "https://www.fwc.gov.au/issues-we-help/dispute-about-award-or-agreement"
+        },
+        {
+          "text": "Apply to resolve a dispute about an award or agreement (Form F10)",
+          "url": "https://www.fwc.gov.au/form/apply-resolve-dispute-about-award-or-agreement-form-f10"
+        },
+        {
+          "text": "Disputes about fixed term contracts",
+          "url": "https://www.fwc.gov.au/issues-we-help/disputes-about-fixed-term-contracts"
+        },
+        {
+          "text": "Apply to resolve a dispute about fixed term contracts (Form F10DA)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/resolve-dispute-about-fixed-term-contracts-form-f10da"
+        },
+        {
+          "text": "Notify agreement for arbitration of a dispute about fixed term contracts (Form F10DB)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/notify-arbitration-dispute-fixed-term-agreements-form-f10db"
+        },
+        {
+          "text": "Flexible work and unpaid parental leave requests",
+          "url": "https://www.fwc.gov.au/issues-we-help/flexible-work-and-unpaid-parental-leave-requests"
+        },
+        {
+          "text": "Disputes about flexible work or unpaid parental leave extensions",
+          "url": "https://www.fwc.gov.au/issues-we-help/flexible-work-and-unpaid-parental-leave-requests/disputes-about-flexible-work-or"
+        },
+        {
+          "text": "Apply to resolve a dispute about extension of unpaid parental leave (Form F10B)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/resolve-dispute-about-extension-period-unpaid-parental-leave-form-10b"
+        },
+        {
+          "text": "Apply to resolve a dispute about flexible working arrangements (Form F10C)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/resolve-dispute-about-flexible-working-arrangements-form-10c"
+        },
+        {
+          "text": "Disputes about general protections",
+          "url": "https://www.fwc.gov.au/issues-we-help/disputes-about-general-protections"
+        },
+        {
+          "text": "Process for general protection disputes",
+          "url": "https://www.fwc.gov.au/issues-we-help/disputes-about-general-protections/process-general-protection-disputes"
+        },
+        {
+          "text": "Apply for general protections \u2013 no dismissal (Form F8C)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-general-protections-no-dismissal-form-f8c"
+        },
+        {
+          "text": "Responding to a general protections claim not involving dismissal",
+          "url": "https://www.fwc.gov.au/issues-we-help/disputes-about-general-protections/responding-general-protections-claim-not"
+        },
+        {
+          "text": "Response to general protections \u2013 no dismissal (Form F8D)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/response-general-protections-application-form-f8d"
+        },
+        {
+          "text": "Right to disconnect disputes",
+          "url": "https://www.fwc.gov.au/issues-we-help/right-disconnect-disputes"
+        },
+        {
+          "text": "What is the right to disconnect?",
+          "url": "https://www.fwc.gov.au/issues-we-help/right-disconnect-disputes/what-right-disconnect"
+        },
+        {
+          "text": "Disputes about the right to disconnect",
+          "url": "https://www.fwc.gov.au/issues-we-help/right-disconnect-disputes/disputes-about-right-disconnect"
+        },
+        {
+          "text": "How we deal with right to disconnect disputes",
+          "url": "https://www.fwc.gov.au/issues-we-help/right-disconnect-disputes/disputes-about-right-disconnect/how-we-deal-right"
+        },
+        {
+          "text": "Apply to deal with a dispute about the right to disconnect (Form F92)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-deal-dispute-right-disconnect-form-f92"
+        },
+        {
+          "text": "Respond to a right to disconnect application (Form F92A)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/respond-application-deal-dispute-right-to-disconnect-form-f92a"
+        },
+        {
+          "text": "Notification of agreement to arbitration (Form F92B)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/notification-agreement-arbitration-dispute-employee-right-to-disconnect-form-f92b"
+        },
+        {
+          "text": "Labour hire arrangement order disputes",
+          "url": "https://www.fwc.gov.au/issues-we-help/labour-hire-arrangement-order-disputes"
+        },
+        {
+          "text": "Independent contractor disputes about unfair contract terms",
+          "url": "https://www.fwc.gov.au/issues-we-help/independent-contractor-disputes-about-unfair-contract-terms"
+        },
+        {
+          "text": "Apply for an unfair contract terms remedy (Form F91)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-unfair-contract-term-form-f91"
+        },
+        {
+          "text": "Respond to an application for an unfair contract term remedy (Form F91A)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/respond-unfair-contract-term-remedy-form-f91a"
+        },
+        {
+          "text": "Industrial action",
+          "url": "https://www.fwc.gov.au/issues-we-help/industrial-action"
+        },
+        {
+          "text": "Eligible protected action ballot agents",
+          "url": "https://www.fwc.gov.au/issues-we-help/industrial-action/eligible-protected-action-ballot-agents"
+        },
+        {
+          "text": "Apply to become an eligible protected action ballot agent (Form F34C)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-become-eligible-protected-action-ballot-agent-f34c"
+        },
+        {
+          "text": "Organise a protected action ballot",
+          "url": "https://www.fwc.gov.au/issues-we-help/industrial-action/organise-protected-action-ballot"
+        },
+        {
+          "text": "The process for protected action ballots",
+          "url": "https://www.fwc.gov.au/process-protected-action-ballots"
+        },
+        {
+          "text": "Compulsory conciliation conferences during ballot period",
+          "url": "https://www.fwc.gov.au/issues-we-help/industrial-action/organise-protected-action-ballot/compulsory-conciliation"
+        },
+        {
+          "text": "Apply to hold a protected action ballot (Form F34)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-hold-protected-action-ballot-form-f34"
+        },
+        {
+          "text": "Apply to extend the 30-day period for protected action (Form F34A)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-extend-30-day-period-protected-action-form-f34a"
+        },
+        {
+          "text": "Protected and unprotected industrial action",
+          "url": "https://www.fwc.gov.au/issues-we-help/industrial-action/types-industrial-action"
+        },
+        {
+          "text": "Protected action in multi-enterprise bargaining",
+          "url": "https://www.fwc.gov.au/protected-action-multi-enterprise-bargaining"
+        },
+        {
+          "text": "Payments during certain forms of industrial action",
+          "url": "https://www.fwc.gov.au/issues-we-help/industrial-action/payments-during-industrial-action"
+        },
+        {
+          "text": "Ballot results",
+          "url": "https://www.fwc.gov.au/issues-we-help/industrial-action/ballot-results"
+        },
+        {
+          "text": "Apply to resolve a stand down dispute (Form F13)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-resolve-stand-down-dispute-form-f13"
+        },
+        {
+          "text": "Apply to stop unprotected industrial action (Form F14)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/stop-unprotected-industrial-action-form-f14"
+        },
+        {
+          "text": "Collaborative Approaches Program",
+          "url": "https://www.fwc.gov.au/issues-we-help/collaborative-approaches-program"
+        },
+        {
+          "text": "Interest-based approaches",
+          "url": "https://www.fwc.gov.au/issues-we-help/cooperative-workplaces-program/interest-based-approaches"
+        },
+        {
+          "text": "Interest-based bargaining",
+          "url": "https://www.fwc.gov.au/issues-we-help/collaborative-approaches-program/interest-based-bargaining"
+        },
+        {
+          "text": "Interest-based consultation",
+          "url": "https://www.fwc.gov.au/issues-we-help/cooperative-workplaces-program/interest-based-consultation"
+        }
+      ],
+      "raw_path": "SensibLaw/demo/ingest/legal_principles_au_v1/raw/0005_fwc_benchbooks_https_www.fwc.gov.au_hearings-decisions_case-law-benchbooks.html",
+      "sha256": "7031f4b39913fc32104a98a6fea14825a9b970ab02591bd87f16e5e553c94a0f",
+      "source_id": "fwc_benchbooks",
+      "source_name": "Fair Work Commission Benchbooks",
+      "status": "ok",
+      "status_code": 200,
+      "title": "Case law benchbooks | Fair Work Commission",
+      "url": "https://www.fwc.gov.au/hearings-decisions/case-law-benchbooks"
+    },
+    {
+      "authority_links": [],
+      "bytes": 595517,
+      "content_type": "text/html; charset=UTF-8",
+      "doc_id": "doc:0006",
+      "fetched_at": "2026-02-11T06:48:00+00:00",
+      "final_url": "https://www.fwc.gov.au/benchbook/unfair-dismissals-benchbook",
+      "outbound_links": [
+        {
+          "text": "Skip to main content",
+          "url": "https://www.fwc.gov.au/benchbook/unfair-dismissals-benchbook#main-content"
+        },
+        {
+          "text": "Regulated worker minimum standards applications that may impact gig workers and road transport contractors",
+          "url": "https://www.fwc.gov.au/node/5202"
+        },
+        {
+          "text": "Close",
+          "url": "https://www.fwc.gov.au/benchbook/unfair-dismissals-benchbook"
+        },
+        {
+          "text": "",
+          "url": "https://www.fwc.gov.au/"
+        },
+        {
+          "text": "About us",
+          "url": "https://www.fwc.gov.au/about-us"
+        },
+        {
+          "text": "Contact us",
+          "url": "https://www.fwc.gov.au/contact"
+        },
+        {
+          "text": "Support and legal help",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/legal-help-and-representation"
+        },
+        {
+          "text": "Online Learning Portal",
+          "url": "https://learn.fwc.gov.au/"
+        },
+        {
+          "text": "Show/hide search box",
+          "url": "https://www.fwc.gov.au/benchbook/unfair-dismissals-benchbook#search-form"
+        },
+        {
+          "text": "Home",
+          "url": "https://www.fwc.gov.au/"
+        },
+        {
+          "text": "Job loss or dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal"
+        },
+        {
+          "text": "Types of dismissal and termination",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/types-dismissal-and-termination"
+        },
+        {
+          "text": "Unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal"
+        },
+        {
+          "text": "About unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/about-unfair-dismissal"
+        },
+        {
+          "text": "What is unfair dismissal?",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/about-unfair-dismissal/what-unfair-dismissal"
+        },
+        {
+          "text": "Who the law protects from unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/about-unfair-dismissal/who-law-protects-unfair-dismissal"
+        },
+        {
+          "text": "Check eligibility for unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/about-unfair-dismissal/check-eligibility-unfair-dismissal"
+        },
+        {
+          "text": "The process for unfair dismissal claims",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/process-unfair-dismissal-claims"
+        },
+        {
+          "text": "Apply for unfair dismissal (Form F2)",
+          "url": "https://www.fwc.gov.au/form/apply-unfair-dismissal-form-f2"
+        },
+        {
+          "text": "Check you are ready to apply for unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/apply-unfair-dismissal-form-f2/check-you-are-ready-apply"
+        },
+        {
+          "text": "Respond to an unfair dismissal claim",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/respond-unfair-dismissal-claim"
+        },
+        {
+          "text": "What to do when an employee claims unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/respond-unfair-dismissal-claim/what-do-when-employee-claims"
+        },
+        {
+          "text": "Respond to a claim for unfair dismissal (Form F3)",
+          "url": "https://www.fwc.gov.au/form/respond-claim-unfair-dismissal-form-f3"
+        },
+        {
+          "text": "Help with Form F3 \u2013 Employer response to unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/respond-unfair-dismissal-claim/respond-claim-unfair"
+        },
+        {
+          "text": "Object to an unfair dismissal claim",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/respond-unfair-dismissal-claim/object-unfair-dismissal-0"
+        },
+        {
+          "text": "Reasons to object to an unfair dismissal claim",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/respond-unfair-dismissal-claim/object-unfair-dismissal-2"
+        },
+        {
+          "text": "Jurisdiction hearings in unfair dismissal cases",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/respond-unfair-dismissal-claim/object-unfair-dismissal-claim"
+        },
+        {
+          "text": "Conciliation for unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/conciliation-unfair-dismissal"
+        },
+        {
+          "text": "What is conciliation?",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/conciliation-unfair-dismissal/what-conciliation"
+        },
+        {
+          "text": "Tips to prepare for conciliation",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/conciliation-unfair-dismissal/tips-prepare-conciliation"
+        },
+        {
+          "text": "What happens in a conciliation meeting",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/conciliation-unfair-dismissal/what-happens-conciliation"
+        },
+        {
+          "text": "Options at conciliation for unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/conciliation-unfair-dismissal/options-conciliation-unfair"
+        },
+        {
+          "text": "The role of the independent conciliator",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/conciliation-unfair-dismissal/role-independent-conciliator"
+        },
+        {
+          "text": "Ask to delay a conciliation",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/conciliation-unfair-dismissal/ask-change-or-delay"
+        },
+        {
+          "text": "Withdraw your application for unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/withdraw-your-application-unfair-dismissal"
+        },
+        {
+          "text": "Possible results of unfair dismissal claims",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/possible-results-unfair-dismissal-claims"
+        },
+        {
+          "text": "Compensation for unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/possible-results-unfair-dismissal-claims/compensation-unfair"
+        },
+        {
+          "text": "The formula to calculate compensation",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/possible-results-unfair-dismissal-claims/compensation-0"
+        },
+        {
+          "text": "Reinstatement after unfair dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/possible-results-unfair-dismissal-claims/reinstatement-after"
+        },
+        {
+          "text": "Outcomes or remedies at an unfair dismissal hearing",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-dismissal/possible-results-unfair-dismissal-claims/outcomes-or"
+        },
+        {
+          "text": "Dismissal under general protections",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections"
+        },
+        {
+          "text": "About general protections",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/about-general-protections"
+        },
+        {
+          "text": "Understand general protections",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/about-general-protections/understand"
+        },
+        {
+          "text": "Who the general protections laws cover",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/about-general-protections/who-general-0"
+        },
+        {
+          "text": "The difference between contractors and employees",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/about-general-protections/who-general"
+        },
+        {
+          "text": "Check eligibility for general protections",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/about-general-protections/check"
+        },
+        {
+          "text": "What is adverse action?",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/about-general-protections/what-adverse"
+        },
+        {
+          "text": "Prohibited reasons in general protections",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/about-general-protections/prohibited"
+        },
+        {
+          "text": "Other workplace protections",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/about-general-protections/other-workplace"
+        },
+        {
+          "text": "The process for general protections dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/process-general-protections-dismissal"
+        },
+        {
+          "text": "Apply for general protections \u2013 dismissal (Form F8)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-general-protections-dismissal-form-f8"
+        },
+        {
+          "text": "Responding to a general protections claim",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/respond-claim-general-protections"
+        },
+        {
+          "text": "Response to general protections application (Form F8A)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/response-general-protections-dismissal-application-form-f8a"
+        },
+        {
+          "text": "Object to a general protections dismissal claim",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/responding-general-protections-claim-0"
+        },
+        {
+          "text": "Conferences for general protections dismissal",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/conferences-general-protections-dismissal"
+        },
+        {
+          "text": "Tips to prepare for a general protections conference",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/conferences-general-protections-0"
+        },
+        {
+          "text": "Possible outcomes of a general protections \u2013 dismissal case",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/possible-outcomes-general-protections"
+        },
+        {
+          "text": "Respondents in a general protections dismissal case",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/possible-outcomes-general-protections/respondents-general-protections-dismissal-case"
+        },
+        {
+          "text": "Apply for arbitration of a general protections \u2013 dismissal case (Form F8B)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-arbitration-general-protections-form-f8b"
+        },
+        {
+          "text": "Take your general protections case to court",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/dismissal-under-general-protections/take-your-general-protections-case-court"
+        },
+        {
+          "text": "Unfair deactivation or termination for regulated workers",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-deactivation-or-termination-regulated-workers"
+        },
+        {
+          "text": "Unfair deactivation for employee-like workers",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-deactivation-or-termination-regulated-workers/unfair-deactivation"
+        },
+        {
+          "text": "Apply for unfair deactivation (for regulated workers) (Form F89)",
+          "url": "https://www.fwc.gov.au/apply-unfair-deactivation-regulated-workers-form-f89"
+        },
+        {
+          "text": "Response to an unfair deactivation application (Form F89A)",
+          "url": "https://www.fwc.gov.au/response-unfair-deactivation-application-form-f89a"
+        },
+        {
+          "text": "Unfair termination for regulated road transport contractors",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-deactivation-or-termination-regulated-workers/unfair-termination"
+        },
+        {
+          "text": "Apply for unfair termination (for regulated workers) (Form F90)",
+          "url": "https://www.fwc.gov.au/apply-unfair-termination-regulated-workers-form-f90"
+        },
+        {
+          "text": "Respond to an unfair termination application (Form F90A)",
+          "url": "https://www.fwc.gov.au/respond-unfair-termination-application-form-f90a"
+        },
+        {
+          "text": "The process for unfair deactivation or termination claims",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unfair-deactivation-or-termination-regulated-workers/process-unfair"
+        },
+        {
+          "text": "Unlawful termination",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/unlawful-termination"
+        },
+        {
+          "text": "Apply for help with unlawful termination (Form F9)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-help-unlawful-termination-form-f9"
+        },
+        {
+          "text": "Respond to an application for unlawful termination (Form F9A)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/respond-application-unlawful-termination-form-f9a"
+        },
+        {
+          "text": "Agree to arbitration for unlawful termination (Form F9B)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/agree-arbitration-unlawful-termination-form-f9b"
+        },
+        {
+          "text": "Redundancy",
+          "url": "https://www.fwc.gov.au/job-loss-or-dismissal/redundancy"
+        },
+        {
+          "text": "Issues we help with",
+          "url": "https://www.fwc.gov.au/issues-we-help"
+        },
+        {
+          "text": "Common issues in the workplace",
+          "url": "https://www.fwc.gov.au/issues-we-help/common-issues-workplace"
+        },
+        {
+          "text": "Resolve a dispute in your workplace",
+          "url": "https://www.fwc.gov.au/issues-we-help/common-issues-workplace/resolve-dispute-your-workplace"
+        },
+        {
+          "text": "Bullying",
+          "url": "https://www.fwc.gov.au/issues-we-help/bullying"
+        },
+        {
+          "text": "The process to resolve workplace bullying",
+          "url": "https://www.fwc.gov.au/issues-we-help/bullying/process-resolve-workplace-bullying"
+        },
+        {
+          "text": "What is bullying at work?",
+          "url": "https://www.fwc.gov.au/issues-we-help/bullying/what-bullying-work"
+        },
+        {
+          "text": "About reasonable management action",
+          "url": "https://www.fwc.gov.au/issues-we-help/bullying/what-bullying-work/about-reasonable-management-action"
+        },
+        {
+          "text": "What to do if you\u2019re bullied at work",
+          "url": "https://www.fwc.gov.au/issues-we-help/bullying/what-do-if-youre-bullied-work"
+        },
+        {
+          "text": "How we help stop workplace bullying",
+          "url": "https://www.fwc.gov.au/issues-we-help/bullying/what-do-if-youre-bullied-work/how-we-help-stop-workplace-bullying"
+        },
+        {
+          "text": "Who can apply to stop bullying",
+          "url": "https://www.fwc.gov.au/issues-we-help/bullying/what-do-if-youre-bullied-work/who-can-apply-stop-bullying"
+        },
+        {
+          "text": "Check eligibility for an order to stop bullying",
+          "url": "https://www.fwc.gov.au/issues-we-help/bullying/what-do-if-youre-bullied-work/who-can-apply-stop-bullying/check-eligibility"
+        },
+        {
+          "text": "Apply to stop workplace bullying at work (Form F72)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-stop-workplace-bullying-form-f72"
+        },
+        {
+          "text": "Respond to a bullying claim",
+          "url": "https://www.fwc.gov.au/issues-we-help/bullying/respond-bullying-claim"
+        },
+        {
+          "text": "Respond as an employer or principal in a bullying application (Form F73)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/respond-employer-or-principal-bullying-application-form-f73"
+        },
+        {
+          "text": "Respond as a person named in a bullying application (Form F74)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/respond-person-named-bullying-application-form-f74"
+        },
+        {
+          "text": "Conciliation for bullying at work",
+          "url": "https://www.fwc.gov.au/issues-we-help/bullying/conciliation-bullying-work"
+        },
+        {
+          "text": "Prepare for a conciliation session",
+          "url": "https://www.fwc.gov.au/issues-we-help/bullying/conciliation-bullying-work/prepare-conciliation-session"
+        },
+        {
+          "text": "Sexual harassment",
+          "url": "https://www.fwc.gov.au/issues-we-help/sexual-harassment-work"
+        },
+        {
+          "text": "What is workplace sexual harassment",
+          "url": "https://www.fwc.gov.au/issues-we-help/sexual-harassment/what-is-workplace-sexual-harassment"
+        },
+        {
+          "text": "What you can do if you\u2019ve been sexually harassed",
+          "url": "https://www.fwc.gov.au/issues-we-help/sexual-harassment/what-you-can-do-if-youve-been-sexually-harassed"
+        },
+        {
+          "text": "Who can make a sexual harassment application",
+          "url": "https://www.fwc.gov.au/issues-we-help/sexual-harassment/who-can-make-sexual-harassment-application"
+        },
+        {
+          "text": "Discrimination, the general protections and work health and safety",
+          "url": "https://www.fwc.gov.au/issues-we-help/sexual-harassment/sexual-harassment-and-discrimination-general-protections-and-work"
+        },
+        {
+          "text": "How we deal with sexual harassment cases",
+          "url": "https://www.fwc.gov.au/issues-we-help/sexual-harassment/how-we-deal-sexual-harassment-cases"
+        },
+        {
+          "text": "Member conferences",
+          "url": "https://www.fwc.gov.au/issues-we-help/sexual-harassment/how-we-deal-sexual-harassment-cases/member-conferences-sexual"
+        },
+        {
+          "text": "Determinative conferences and hearings",
+          "url": "https://www.fwc.gov.au/issues-we-help/sexual-harassment/how-we-deal-sexual-harassment-cases/determinative-conferences-and"
+        },
+        {
+          "text": "If the sexual harassment dispute is not resolved",
+          "url": "https://www.fwc.gov.au/issues-we-help/sexual-harassment/how-we-deal-sexual-harassment-cases/if-sexual-harassment-dispute"
+        },
+        {
+          "text": "Notice of consent to arbitration (Form F78)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/notice-consent-arbitration-sexual-harassment-form-f78"
+        },
+        {
+          "text": "Apply to resolve a sexual harassment dispute (Form F75)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-resolve-sexual-harassment-dispute-form-f75"
+        },
+        {
+          "text": "Apply to stop sexual harassment that started before 6 March 2023 (Form F72A)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-order-stop-sexual-harassment-before-6-march-2023-form-f72a"
+        },
+        {
+          "text": "Respond to an application about workplace sexual harassment",
+          "url": "https://www.fwc.gov.au/issues-we-help/sexual-harassment/respond-application-about-workplace-sexual-harassment"
+        },
+        {
+          "text": "Respond as an individual (Form F76)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/individual-response-deal-sexual-harassment-dispute-form-f76"
+        },
+        {
+          "text": "Respond as an employer or principal (Form F77)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/employer-or-principal-response-application-deal-sexual-harassment-dispute-form-f77"
+        },
+        {
+          "text": "Respond as an employer or principal from before 6 March 2023 (Form F73A)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/employer-or-principal-response-application-order-stop-sexual-harassment-occurred-prior-6-march-2023-form-f73a"
+        },
+        {
+          "text": "Respond as a person named from before 6 March 2023 (Form F74A)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/response-person-named-application-order-stop-sexual-harassment-occurred-prior-6-march-2023-form-f74a"
+        },
+        {
+          "text": "Discrimination",
+          "url": "https://www.fwc.gov.au/issues-we-help/discrimination"
+        },
+        {
+          "text": "Small business hub",
+          "url": "https://www.fwc.gov.au/issues-we-help/small-business-hub"
+        },
+        {
+          "text": "Assistance for small business",
+          "url": "https://www.fwc.gov.au/issues-we-help/small-business-hub/assistance-small-business"
+        },
+        {
+          "text": "What is a \u2018small business\u2019?",
+          "url": "https://www.fwc.gov.au/issues-we-help/small-business-hub/what-small-business"
+        },
+        {
+          "text": "Types of workplace disputes",
+          "url": "https://www.fwc.gov.au/issues-we-help/small-business-hub/types-workplace-disputes"
+        },
+        {
+          "text": "Respond to a claim against a business",
+          "url": "https://www.fwc.gov.au/issues-we-help/small-business-hub/respond-claim-against-business"
+        },
+        {
+          "text": "Dismissal rules for small business owners",
+          "url": "https://www.fwc.gov.au/issues-we-help/small-business-hub/dismissal-rules-small-business-owners"
+        },
+        {
+          "text": "What we are doing to help small business",
+          "url": "https://www.fwc.gov.au/issues-we-help/small-business-hub/initiatives-help-small-business"
+        },
+        {
+          "text": "Casual to full-time or part-time employment",
+          "url": "https://www.fwc.gov.au/issues-we-help/casual-permanent-status"
+        },
+        {
+          "text": "Apply to resolve a dispute about changing from casual to full-time or part-time employment (Form F10A)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-resolve-dispute-about-casual-conversion-form-f10a"
+        },
+        {
+          "text": "Dispute about an award or agreement",
+          "url": "https://www.fwc.gov.au/issues-we-help/dispute-about-award-or-agreement"
+        },
+        {
+          "text": "Apply to resolve a dispute about an award or agreement (Form F10)",
+          "url": "https://www.fwc.gov.au/form/apply-resolve-dispute-about-award-or-agreement-form-f10"
+        },
+        {
+          "text": "Disputes about fixed term contracts",
+          "url": "https://www.fwc.gov.au/issues-we-help/disputes-about-fixed-term-contracts"
+        },
+        {
+          "text": "Apply to resolve a dispute about fixed term contracts (Form F10DA)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/resolve-dispute-about-fixed-term-contracts-form-f10da"
+        },
+        {
+          "text": "Notify agreement for arbitration of a dispute about fixed term contracts (Form F10DB)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/notify-arbitration-dispute-fixed-term-agreements-form-f10db"
+        },
+        {
+          "text": "Flexible work and unpaid parental leave requests",
+          "url": "https://www.fwc.gov.au/issues-we-help/flexible-work-and-unpaid-parental-leave-requests"
+        },
+        {
+          "text": "Disputes about flexible work or unpaid parental leave extensions",
+          "url": "https://www.fwc.gov.au/issues-we-help/flexible-work-and-unpaid-parental-leave-requests/disputes-about-flexible-work-or"
+        },
+        {
+          "text": "Apply to resolve a dispute about extension of unpaid parental leave (Form F10B)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/resolve-dispute-about-extension-period-unpaid-parental-leave-form-10b"
+        },
+        {
+          "text": "Apply to resolve a dispute about flexible working arrangements (Form F10C)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/resolve-dispute-about-flexible-working-arrangements-form-10c"
+        },
+        {
+          "text": "Disputes about general protections",
+          "url": "https://www.fwc.gov.au/issues-we-help/disputes-about-general-protections"
+        },
+        {
+          "text": "Process for general protection disputes",
+          "url": "https://www.fwc.gov.au/issues-we-help/disputes-about-general-protections/process-general-protection-disputes"
+        },
+        {
+          "text": "Apply for general protections \u2013 no dismissal (Form F8C)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-general-protections-no-dismissal-form-f8c"
+        },
+        {
+          "text": "Responding to a general protections claim not involving dismissal",
+          "url": "https://www.fwc.gov.au/issues-we-help/disputes-about-general-protections/responding-general-protections-claim-not"
+        },
+        {
+          "text": "Response to general protections \u2013 no dismissal (Form F8D)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/response-general-protections-application-form-f8d"
+        },
+        {
+          "text": "Right to disconnect disputes",
+          "url": "https://www.fwc.gov.au/issues-we-help/right-disconnect-disputes"
+        },
+        {
+          "text": "What is the right to disconnect?",
+          "url": "https://www.fwc.gov.au/issues-we-help/right-disconnect-disputes/what-right-disconnect"
+        },
+        {
+          "text": "Disputes about the right to disconnect",
+          "url": "https://www.fwc.gov.au/issues-we-help/right-disconnect-disputes/disputes-about-right-disconnect"
+        },
+        {
+          "text": "How we deal with right to disconnect disputes",
+          "url": "https://www.fwc.gov.au/issues-we-help/right-disconnect-disputes/disputes-about-right-disconnect/how-we-deal-right"
+        },
+        {
+          "text": "Apply to deal with a dispute about the right to disconnect (Form F92)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-deal-dispute-right-disconnect-form-f92"
+        },
+        {
+          "text": "Respond to a right to disconnect application (Form F92A)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/respond-application-deal-dispute-right-to-disconnect-form-f92a"
+        },
+        {
+          "text": "Notification of agreement to arbitration (Form F92B)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/notification-agreement-arbitration-dispute-employee-right-to-disconnect-form-f92b"
+        },
+        {
+          "text": "Labour hire arrangement order disputes",
+          "url": "https://www.fwc.gov.au/issues-we-help/labour-hire-arrangement-order-disputes"
+        },
+        {
+          "text": "Independent contractor disputes about unfair contract terms",
+          "url": "https://www.fwc.gov.au/issues-we-help/independent-contractor-disputes-about-unfair-contract-terms"
+        },
+        {
+          "text": "Apply for an unfair contract terms remedy (Form F91)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-unfair-contract-term-form-f91"
+        },
+        {
+          "text": "Respond to an application for an unfair contract term remedy (Form F91A)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/respond-unfair-contract-term-remedy-form-f91a"
+        },
+        {
+          "text": "Industrial action",
+          "url": "https://www.fwc.gov.au/issues-we-help/industrial-action"
+        },
+        {
+          "text": "Eligible protected action ballot agents",
+          "url": "https://www.fwc.gov.au/issues-we-help/industrial-action/eligible-protected-action-ballot-agents"
+        },
+        {
+          "text": "Apply to become an eligible protected action ballot agent (Form F34C)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-become-eligible-protected-action-ballot-agent-f34c"
+        },
+        {
+          "text": "Organise a protected action ballot",
+          "url": "https://www.fwc.gov.au/issues-we-help/industrial-action/organise-protected-action-ballot"
+        },
+        {
+          "text": "The process for protected action ballots",
+          "url": "https://www.fwc.gov.au/process-protected-action-ballots"
+        },
+        {
+          "text": "Compulsory conciliation conferences during ballot period",
+          "url": "https://www.fwc.gov.au/issues-we-help/industrial-action/organise-protected-action-ballot/compulsory-conciliation"
+        },
+        {
+          "text": "Apply to hold a protected action ballot (Form F34)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-hold-protected-action-ballot-form-f34"
+        },
+        {
+          "text": "Apply to extend the 30-day period for protected action (Form F34A)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-extend-30-day-period-protected-action-form-f34a"
+        },
+        {
+          "text": "Protected and unprotected industrial action",
+          "url": "https://www.fwc.gov.au/issues-we-help/industrial-action/types-industrial-action"
+        },
+        {
+          "text": "Protected action in multi-enterprise bargaining",
+          "url": "https://www.fwc.gov.au/protected-action-multi-enterprise-bargaining"
+        },
+        {
+          "text": "Payments during certain forms of industrial action",
+          "url": "https://www.fwc.gov.au/issues-we-help/industrial-action/payments-during-industrial-action"
+        },
+        {
+          "text": "Ballot results",
+          "url": "https://www.fwc.gov.au/issues-we-help/industrial-action/ballot-results"
+        },
+        {
+          "text": "Apply to resolve a stand down dispute (Form F13)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/apply-resolve-stand-down-dispute-form-f13"
+        },
+        {
+          "text": "Apply to stop unprotected industrial action (Form F14)",
+          "url": "https://www.fwc.gov.au/apply-or-lodge/form/stop-unprotected-industrial-action-form-f14"
+        },
+        {
+          "text": "Collaborative Approaches Program",
+          "url": "https://www.fwc.gov.au/issues-we-help/collaborative-approaches-program"
+        },
+        {
+          "text": "Interest-based approaches",
+          "url": "https://www.fwc.gov.au/issues-we-help/cooperative-workplaces-program/interest-based-approaches"
+        },
+        {
+          "text": "Interest-based bargaining",
+          "url": "https://www.fwc.gov.au/issues-we-help/collaborative-approaches-program/interest-based-bargaining"
+        },
+        {
+          "text": "Interest-based consultation",
+          "url": "https://www.fwc.gov.au/issues-we-help/cooperative-workplaces-program/interest-based-consultation"
+        }
+      ],
+      "raw_path": "SensibLaw/demo/ingest/legal_principles_au_v1/raw/0006_fwc_benchbooks_https_www.fwc.gov.au_benchbook_unfair-dismissals-benchbook.html",
+      "sha256": "7c134cdbf10f397aa537f00b9a36886d8e039cee79495c51fc596682f6a29b2f",
+      "source_id": "fwc_benchbooks",
+      "source_name": "Fair Work Commission Benchbooks",
+      "status": "ok",
+      "status_code": 200,
+      "title": "Unfair dismissals benchbook | Fair Work Commission",
+      "url": "https://www.fwc.gov.au/benchbook/unfair-dismissals-benchbook"
+    },
+    {
+      "authority_links": [],
+      "bytes": 3595302,
+      "content_type": "application/pdf",
+      "doc_id": "doc:0007",
+      "fetched_at": "2026-02-11T06:48:01+00:00",
+      "final_url": "https://www.fwc.gov.au/documents/benchbooks/unfair-dismissals-benchbook.pdf",
+      "outbound_links": [],
+      "raw_path": "SensibLaw/demo/ingest/legal_principles_au_v1/raw/0007_fwc_benchbooks_https_www.fwc.gov.au_documents_benchbooks_unfair-dismissals-benchbook.pdf.pdf",
+      "sha256": "416daaa38182be387695e608f50d6b59e59880800dadc57b2cf4372a8b23e2d3",
+      "source_id": "fwc_benchbooks",
+      "source_name": "Fair Work Commission Benchbooks",
+      "status": "ok",
+      "status_code": 200,
+      "title": null,
+      "url": "https://www.fwc.gov.au/documents/benchbooks/unfair-dismissals-benchbook.pdf"
+    },
+    {
+      "authority_links": [
+        {
+          "text": "AustLII",
+          "url": "https://www.austlii.edu.au/"
+        },
+        {
+          "text": "Search",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Advanced Search\u2026",
+          "url": "https://www.austlii.edu.au/advanced_search.shtml"
+        },
+        {
+          "text": "Close",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "About",
+          "url": "https://www.austlii.edu.au/about.html"
+        },
+        {
+          "text": "Contact",
+          "url": "https://www.austlii.edu.au/contact.html"
+        },
+        {
+          "text": "Copyright & Usage",
+          "url": "https://www.austlii.edu.au/copyright.html"
+        },
+        {
+          "text": "Privacy",
+          "url": "https://www.austlii.edu.au/privacy.html"
+        },
+        {
+          "text": "Disclaimers",
+          "url": "https://www.austlii.edu.au/disclaimers.html"
+        },
+        {
+          "text": "Feedback",
+          "url": "https://www.austlii.edu.au/feedback.html"
+        },
+        {
+          "text": "Help",
+          "url": "https://www.austlii.edu.au/help.html"
+        },
+        {
+          "text": "Type All Databases",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Jurisdiction Select a Region",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Database Select a database",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "All DatabasesComplete database listing",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Cases & LegislationPrimary sources of law",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Journals & ScholarshipAustralasian Legal Scholarship",
+          "url": "https://www.austlii.edu.au/au/journals/"
+        },
+        {
+          "text": "TreatiesAustralian Treaties",
+          "url": "https://www.austlii.edu.au/au/other/dfat/"
+        },
+        {
+          "text": "LibrariesSubject-specifc libraries",
+          "url": "https://www.austlii.edu.au/database-libraries.html"
+        },
+        {
+          "text": "LawCiteLaw citator with international scope",
+          "url": "https://www.austlii.edu.au/lawcite/"
+        },
+        {
+          "text": "Australia",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "CTH",
+          "url": "https://www.austlii.edu.au/au/cth/"
+        },
+        {
+          "text": "ACT",
+          "url": "https://www.austlii.edu.au/au/act/"
+        },
+        {
+          "text": "NSW",
+          "url": "https://www.austlii.edu.au/au/nsw/"
+        },
+        {
+          "text": "NT",
+          "url": "https://www.austlii.edu.au/au/nt/"
+        },
+        {
+          "text": "QLD",
+          "url": "https://www.austlii.edu.au/au/qld/"
+        },
+        {
+          "text": "SA",
+          "url": "https://www.austlii.edu.au/au/sa/"
+        },
+        {
+          "text": "TAS",
+          "url": "https://www.austlii.edu.au/au/tas/"
+        },
+        {
+          "text": "VIC",
+          "url": "https://www.austlii.edu.au/au/vic/"
+        },
+        {
+          "text": "WA",
+          "url": "https://www.austlii.edu.au/au/wa/"
+        },
+        {
+          "text": "2015",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "1970",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Apply",
+          "url": "https://www.austlii.edu.au/results.html"
+        },
+        {
+          "text": "Any",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "0",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "A",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "B",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "C",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "D",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "E",
+          "url": "https://www.austlii.edu.au/databases.html"
+        }
+      ],
+      "bytes": 167557,
+      "content_type": "text/html; charset=utf-8",
+      "doc_id": "doc:0008",
+      "fetched_at": "2026-02-11T06:48:02+00:00",
+      "final_url": "https://www.austlii.edu.au/databases.html",
+      "outbound_links": [
+        {
+          "text": "AustLII",
+          "url": "https://www.austlii.edu.au/"
+        },
+        {
+          "text": "Search",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Advanced Search\u2026",
+          "url": "https://www.austlii.edu.au/advanced_search.shtml"
+        },
+        {
+          "text": "Close",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "About",
+          "url": "https://www.austlii.edu.au/about.html"
+        },
+        {
+          "text": "Contact",
+          "url": "https://www.austlii.edu.au/contact.html"
+        },
+        {
+          "text": "Copyright & Usage",
+          "url": "https://www.austlii.edu.au/copyright.html"
+        },
+        {
+          "text": "Privacy",
+          "url": "https://www.austlii.edu.au/privacy.html"
+        },
+        {
+          "text": "Disclaimers",
+          "url": "https://www.austlii.edu.au/disclaimers.html"
+        },
+        {
+          "text": "Feedback",
+          "url": "https://www.austlii.edu.au/feedback.html"
+        },
+        {
+          "text": "Help",
+          "url": "https://www.austlii.edu.au/help.html"
+        },
+        {
+          "text": "Type All Databases",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Jurisdiction Select a Region",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Database Select a database",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "All DatabasesComplete database listing",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Cases & LegislationPrimary sources of law",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Journals & ScholarshipAustralasian Legal Scholarship",
+          "url": "https://www.austlii.edu.au/au/journals/"
+        },
+        {
+          "text": "TreatiesAustralian Treaties",
+          "url": "https://www.austlii.edu.au/au/other/dfat/"
+        },
+        {
+          "text": "LibrariesSubject-specifc libraries",
+          "url": "https://www.austlii.edu.au/database-libraries.html"
+        },
+        {
+          "text": "LawCiteLaw citator with international scope",
+          "url": "https://www.austlii.edu.au/lawcite/"
+        },
+        {
+          "text": "Australia",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "CTH",
+          "url": "https://www.austlii.edu.au/au/cth/"
+        },
+        {
+          "text": "ACT",
+          "url": "https://www.austlii.edu.au/au/act/"
+        },
+        {
+          "text": "NSW",
+          "url": "https://www.austlii.edu.au/au/nsw/"
+        },
+        {
+          "text": "NT",
+          "url": "https://www.austlii.edu.au/au/nt/"
+        },
+        {
+          "text": "QLD",
+          "url": "https://www.austlii.edu.au/au/qld/"
+        },
+        {
+          "text": "SA",
+          "url": "https://www.austlii.edu.au/au/sa/"
+        },
+        {
+          "text": "TAS",
+          "url": "https://www.austlii.edu.au/au/tas/"
+        },
+        {
+          "text": "VIC",
+          "url": "https://www.austlii.edu.au/au/vic/"
+        },
+        {
+          "text": "WA",
+          "url": "https://www.austlii.edu.au/au/wa/"
+        },
+        {
+          "text": "New Zealand",
+          "url": "http://www.nzlii.org/"
+        },
+        {
+          "text": "2015",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "1970",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Apply",
+          "url": "https://www.austlii.edu.au/results.html"
+        },
+        {
+          "text": "Any",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "0",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "A",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "B",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "C",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "D",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "E",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "F",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "G",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "H",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "I",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "J",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "K",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "L",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "M",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "N",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "O",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "P",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Q",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "R",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "S",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "T",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "U",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "V",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "W",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "X",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Y",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Z",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Any",
+          "url": "https://www.austlii.edu.au/results.html"
+        },
+        {
+          "text": "2015",
+          "url": "https://www.austlii.edu.au/results.html"
+        },
+        {
+          "text": "2014",
+          "url": "https://www.austlii.edu.au/results.html"
+        },
+        {
+          "text": "2013",
+          "url": "https://www.austlii.edu.au/results.html"
+        },
+        {
+          "text": "2012",
+          "url": "https://www.austlii.edu.au/results.html"
+        },
+        {
+          "text": "2011",
+          "url": "https://www.austlii.edu.au/results.html"
+        },
+        {
+          "text": "2010",
+          "url": "https://www.austlii.edu.au/results.html"
+        },
+        {
+          "text": "2009",
+          "url": "https://www.austlii.edu.au/results.html"
+        },
+        {
+          "text": "2008",
+          "url": "https://www.austlii.edu.au/results.html"
+        },
+        {
+          "text": "2007",
+          "url": "https://www.austlii.edu.au/results.html"
+        },
+        {
+          "text": "2006",
+          "url": "https://www.austlii.edu.au/results.html"
+        },
+        {
+          "text": "2005",
+          "url": "https://www.austlii.edu.au/results.html"
+        },
+        {
+          "text": "2004",
+          "url": "https://www.austlii.edu.au/results.html"
+        },
+        {
+          "text": "2014",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "2013",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "2012",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "2011",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "2010",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "2009",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "2008",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "2007",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "2006",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "2005",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "2004",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "All",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Cth",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "ACT",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "NSW",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "NT",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Qld",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "SA",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Tas",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Vic",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "WA",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Norfolk Island",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "New Zealand",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Journals",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Law Reform",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Australian Treaties",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Libraries",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "Hosted Home Pages",
+          "url": "https://www.austlii.edu.au/databases.html"
+        },
+        {
+          "text": "High Court of Australia 1903-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/HCA/"
+        },
+        {
+          "text": "High Court of Australia - Single Justice 2024-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/HCASJ/"
+        },
+        {
+          "text": "High Court of Australia - Seminal Case Files 1919-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/HCASCF/"
+        },
+        {
+          "text": "Privy Council Appeals 1903-1980",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/UKPCHCA/"
+        },
+        {
+          "text": "Family Court of Australia 1976-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/FamCA/"
+        },
+        {
+          "text": "Family Court of Australia - Full Court 2008-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/FamCAFC/"
+        },
+        {
+          "text": "Federal Circuit and Family Court of Australia - Division 1 Appellate Jurisdiction 2021-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/FedCFamC1A/"
+        },
+        {
+          "text": "Federal Circuit and Family Court of Australia - Division 1 First Instance 2021-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/FedCFamC1F/"
+        },
+        {
+          "text": "Federal Circuit and Family Court of Australia - Division 2 Family Law 2021-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/FedCFamC2F/"
+        },
+        {
+          "text": "Federal Circuit and Family Court of Australia - Division 2 General Federal Law 2021-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/FedCFamC2G/"
+        },
+        {
+          "text": "Federal Circuit Court of Australia 2013-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/FCCA/"
+        },
+        {
+          "text": "Federal Court of Australia 1977-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/FCA/"
+        },
+        {
+          "text": "Federal Court of Australia - Full Court 2002-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/FCAFC/"
+        },
+        {
+          "text": "Federal Magistrates Court of Australia 2000-2013",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/FMCA/"
+        },
+        {
+          "text": "Federal Magistrates Court of Australia - Family Law 2000-2013",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/FMCAfam/"
+        },
+        {
+          "text": "Industrial Relations Court of Australia 1994-2002",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/IRCA/"
+        },
+        {
+          "text": "Argus Law Reports 1895-1950",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/ArgusLawRp/"
+        },
+        {
+          "text": "Argus Law Reports, Current Notes 1896-1950",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/ArgusLawRpCN/"
+        },
+        {
+          "text": "Commonwealth Arbitration Reports 1905-1993",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/CthArbRp/"
+        },
+        {
+          "text": "Administrative Review Tribunal of Australia 2024-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/ARTA/"
+        },
+        {
+          "text": "Administrative Appeals Tribunal of Australia 1976-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/AATA/"
+        },
+        {
+          "text": "Australian Coal Industry Tribunal 1940-1995",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/ACIndT/"
+        },
+        {
+          "text": "Australian Competition Tribunal 1997-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/ACompT/"
+        },
+        {
+          "text": "Australian Designs Office 1982-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/ADO/"
+        },
+        {
+          "text": "Australia Domain Name 2003-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/AUDND/"
+        },
+        {
+          "text": "Australian Human Rights Commission 1996-",
+          "url": "https://www.austlii.edu.au/au/other/AusHRC/"
+        },
+        {
+          "text": "Australian Industrial Relations Commission 1983-2009",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/AIRC/"
+        },
+        {
+          "text": "Australian Industrial Relations Commission - Full Bench 2007-2009",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/AIRCFB/"
+        },
+        {
+          "text": "Australian Information Commissioner 2011-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/AICmr/"
+        },
+        {
+          "text": "Australian Information Commissioner Case Notes 2011-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/AICmrCN/"
+        },
+        {
+          "text": "Australian Patent Office 1981-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/APO/"
+        },
+        {
+          "text": "Australian Plant Breeder's Rights Office Decisions 2016-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/APBRO/"
+        },
+        {
+          "text": "Australian Takeovers Panel 2000-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/ATP/"
+        },
+        {
+          "text": "Australian Trade Marks Office 1991-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/ATMO/"
+        },
+        {
+          "text": "Australian Trade Marks Office Geographical Indication 2008-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/ATMOGI/"
+        },
+        {
+          "text": "Copyright Tribunal 1982-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/ACopyT/"
+        },
+        {
+          "text": "Defence Force Discipline Appeal Tribunal 1999-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/ADFDAT/"
+        },
+        {
+          "text": "Fair Work Australia 2009-2012",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/FWA/"
+        },
+        {
+          "text": "Fair Work Australia - Enterprise Agreement 2009-2012",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/FWAA/"
+        },
+        {
+          "text": "Fair Work Australia - Full Bench 2009-2012",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/FWAFB/"
+        },
+        {
+          "text": "Fair Work Commission 2013-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/FWC/"
+        },
+        {
+          "text": "Fair Work Commission - Full Bench 2013-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/FWCFB/"
+        },
+        {
+          "text": "Fair Work Commission - Enterprise Agreement 2013-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/FWCA/"
+        },
+        {
+          "text": "Fair Work Commission - General Manager and Delegates 2013-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/FWCD/"
+        },
+        {
+          "text": "Federal Privacy Commissioner of Australia Case Notes 1989-2011",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/PrivCmrA/"
+        },
+        {
+          "text": "Federal Privacy Commissioner of Australia Complaint Determinations 1993-2004",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/PrivCmrACD/"
+        },
+        {
+          "text": "Human Rights and Equal Opportunity Commission 1985-2001",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/HREOCA/"
+        },
+        {
+          "text": "Immigration Review Tribunal 1990-1999",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/IRTA/"
+        },
+        {
+          "text": "Insurance Ombudsman Service Limited Privacy Compliance Committee Complaint Determinations 2004-2005",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/IOSPCC/"
+        },
+        {
+          "text": "Migration Review Tribunal 1999-2015",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/MRTA/"
+        },
+        {
+          "text": "National Native Title Tribunal 1994-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/NNTTA/"
+        },
+        {
+          "text": "Refugee Review Tribunal 1993-2015",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/RRTA/"
+        },
+        {
+          "text": "Social Security Appeals Tribunal of Australia - Review of Child Support Agency 2007-2015",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/SSATACSA/"
+        },
+        {
+          "text": "Superannuation Complaints Tribunal of Australia 1995-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/cases/cth/SCTA/"
+        },
+        {
+          "text": "Commonwealth Consolidated Acts",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/legis/cth/consol_act/"
+        },
+        {
+          "text": "Commonwealth Numbered Acts 1901-",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/legis/cth/num_act/"
+        },
+        {
+          "text": "Commonwealth Repealed Acts",
+          "url": "https://www.austlii.edu.au/cgi-bin/viewdb/au/legis/cth/repealed_act/"
+        }
+      ],
+      "raw_path": "SensibLaw/demo/ingest/legal_principles_au_v1/raw/0008_austlii_databases_https_www.austlii.edu.au_databases.html.html",
+      "sha256": "19b482ef6f80245e878fa38ff774c4d4171cbc69f823fe6a6530172d08c2158b",
+      "source_id": "austlii_databases",
+      "source_name": "AustLII Databases Directory",
+      "status": "ok",
+      "status_code": 200,
+      "title": "All Databases",
+      "url": "https://www.austlii.edu.au/databases.html"
+    },
+    {
+      "authority_links": [
+        {
+          "text": "",
+          "url": "https://jade.io/#t=home"
+        }
+      ],
+      "bytes": 12993,
+      "content_type": "text/html",
+      "doc_id": "doc:0009",
+      "fetched_at": "2026-02-11T06:48:02+00:00",
+      "final_url": "https://jade.io/",
+      "outbound_links": [
+        {
+          "text": "",
+          "url": "https://jade.io/#t=home"
+        }
+      ],
+      "raw_path": "SensibLaw/demo/ingest/legal_principles_au_v1/raw/0009_jade_registry_https_jade.io.html",
+      "sha256": "e3dcbc67cc6289d9076e4a2357c4808bd9fcf598eead994f58428131e40a8d46",
+      "source_id": "jade_registry",
+      "source_name": "JADE Registry",
+      "status": "ok",
+      "status_code": 200,
+      "title": "BarNet Jade - Find recent Australian legal decisions, judgments, case summaries for legal professionals (Judgments And Decisions Enhanced)",
+      "url": "https://jade.io/"
+    }
+  ],
+  "errors": [],
+  "generated_at": "2026-02-11T06:47:57+00:00",
+  "pack_id": "legal_principles_au_v1",
+  "pack_path": "SensibLaw/data/source_packs/legal_principles_au_v1.json",
+  "summary": {
+    "authority_links_total": 41,
+    "documents_error": 0,
+    "documents_ok": 9,
+    "documents_total": 9
+  }
+}

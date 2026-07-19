@@ -1,0 +1,387 @@
+{
+  "contract": {
+    "kind": "observer_signals",
+    "non_authoritative": true,
+    "notes": [
+      "Signals are derived from artifact status and sentence-local narrative AAO extraction.",
+      "These records are suitable for SB observer ingestion and must not be treated as normative truth."
+    ]
+  },
+  "generated_at": "2026-02-12T05:06:29+00:00",
+  "ok": true,
+  "signals": [
+    {
+      "action": "pending",
+      "anchor": {
+        "day": 17,
+        "kind": "date",
+        "month": 6,
+        "precision": "day",
+        "text": "2025-06-17",
+        "year": 2025
+      },
+      "citations": [],
+      "legal_section_markers": {},
+      "objects": [
+        "Hearing (SLA, Canberra)"
+      ],
+      "party": "",
+      "party_source": "",
+      "purpose": "artifact_link_missing",
+      "section": "Hearings",
+      "signal_class": "artifact_status",
+      "signal_id": "ev:0001",
+      "sl_references": [],
+      "subjects": [
+        "High Court of Australia"
+      ],
+      "text": "Hearing (SLA, Canberra) (missing_url)",
+      "timeline_facts": [],
+      "warnings": [
+        "missing_url"
+      ]
+    },
+    {
+      "action": "pending",
+      "anchor": {
+        "day": 1,
+        "kind": "date",
+        "month": 7,
+        "precision": "day",
+        "text": "2025-07-01",
+        "year": 2025
+      },
+      "citations": [],
+      "legal_section_markers": {},
+      "objects": [
+        "Notice of appeal"
+      ],
+      "party": "",
+      "party_source": "",
+      "purpose": "artifact_link_missing",
+      "section": "Filings",
+      "signal_class": "artifact_status",
+      "signal_id": "ev:0002",
+      "sl_references": [],
+      "subjects": [
+        "High Court of Australia"
+      ],
+      "text": "Notice of appeal (missing_url)",
+      "timeline_facts": [],
+      "warnings": [
+        "missing_url"
+      ]
+    },
+    {
+      "action": "pending",
+      "anchor": {
+        "day": 7,
+        "kind": "date",
+        "month": 7,
+        "precision": "day",
+        "text": "2025-07-07",
+        "year": 2025
+      },
+      "citations": [],
+      "legal_section_markers": {},
+      "objects": [
+        "Written submissions (Appellant)"
+      ],
+      "party": "",
+      "party_source": "",
+      "purpose": "artifact_link_missing",
+      "section": "Filings",
+      "signal_class": "artifact_status",
+      "signal_id": "ev:0003",
+      "sl_references": [],
+      "subjects": [
+        "High Court of Australia"
+      ],
+      "text": "Written submissions (Appellant) (missing_url)",
+      "timeline_facts": [],
+      "warnings": [
+        "missing_url"
+      ]
+    },
+    {
+      "action": "pending",
+      "anchor": {
+        "day": 7,
+        "kind": "date",
+        "month": 7,
+        "precision": "day",
+        "text": "2025-07-07",
+        "year": 2025
+      },
+      "citations": [],
+      "legal_section_markers": {},
+      "objects": [
+        "Chronology (Appellant)"
+      ],
+      "party": "",
+      "party_source": "",
+      "purpose": "artifact_link_missing",
+      "section": "Filings",
+      "signal_class": "artifact_status",
+      "signal_id": "ev:0004",
+      "sl_references": [],
+      "subjects": [
+        "High Court of Australia"
+      ],
+      "text": "Chronology (Appellant) (missing_url)",
+      "timeline_facts": [],
+      "warnings": [
+        "missing_url"
+      ]
+    },
+    {
+      "action": "pending",
+      "anchor": {
+        "day": 18,
+        "kind": "date",
+        "month": 7,
+        "precision": "day",
+        "text": "2025-07-18",
+        "year": 2025
+      },
+      "citations": [],
+      "legal_section_markers": {},
+      "objects": [
+        "Written submissions (Respondent)"
+      ],
+      "party": "",
+      "party_source": "",
+      "purpose": "artifact_link_missing",
+      "section": "Filings",
+      "signal_class": "artifact_status",
+      "signal_id": "ev:0005",
+      "sl_references": [],
+      "subjects": [
+        "High Court of Australia"
+      ],
+      "text": "Written submissions (Respondent) (missing_url)",
+      "timeline_facts": [],
+      "warnings": [
+        "missing_url"
+      ]
+    },
+    {
+      "action": "pending",
+      "anchor": {
+        "day": 23,
+        "kind": "date",
+        "month": 7,
+        "precision": "day",
+        "text": "2025-07-23",
+        "year": 2025
+      },
+      "citations": [],
+      "legal_section_markers": {},
+      "objects": [
+        "Reply"
+      ],
+      "party": "",
+      "party_source": "",
+      "purpose": "artifact_link_missing",
+      "section": "Filings",
+      "signal_class": "artifact_status",
+      "signal_id": "ev:0006",
+      "sl_references": [],
+      "subjects": [
+        "High Court of Australia"
+      ],
+      "text": "Reply (missing_url)",
+      "timeline_facts": [],
+      "warnings": [
+        "missing_url"
+      ]
+    },
+    {
+      "action": "pending",
+      "anchor": {
+        "day": 1,
+        "kind": "date",
+        "month": 8,
+        "precision": "day",
+        "text": "2025-08-01",
+        "year": 2025
+      },
+      "citations": [],
+      "legal_section_markers": {},
+      "objects": [
+        "Case summary (Canberra PDF)"
+      ],
+      "party": "",
+      "party_source": "",
+      "purpose": "artifact_download_failed",
+      "section": "Summaries",
+      "signal_class": "artifact_status",
+      "signal_id": "ev:0011",
+      "sl_references": [],
+      "subjects": [
+        "High Court of Australia"
+      ],
+      "text": "Case summary (Canberra PDF) (error)",
+      "timeline_facts": [],
+      "warnings": [
+        "download_error"
+      ]
+    },
+    {
+      "action": "pending",
+      "anchor": {
+        "day": 7,
+        "kind": "date",
+        "month": 8,
+        "precision": "day",
+        "text": "2025-08-07",
+        "year": 2025
+      },
+      "citations": [],
+      "legal_section_markers": {},
+      "objects": [
+        "Hearing (Full Court, Canberra)"
+      ],
+      "party": "",
+      "party_source": "",
+      "purpose": "artifact_link_missing",
+      "section": "Hearings",
+      "signal_class": "artifact_status",
+      "signal_id": "ev:0007",
+      "sl_references": [],
+      "subjects": [
+        "High Court of Australia"
+      ],
+      "text": "Hearing (Full Court, Canberra) (missing_url)",
+      "timeline_facts": [],
+      "warnings": [
+        "missing_url"
+      ]
+    },
+    {
+      "action": "pending",
+      "anchor": {
+        "day": 7,
+        "kind": "date",
+        "month": 8,
+        "precision": "day",
+        "text": "2025-08-07",
+        "year": 2025
+      },
+      "citations": [],
+      "legal_section_markers": {},
+      "objects": [
+        "Outline of oral argument (Appellant)"
+      ],
+      "party": "",
+      "party_source": "",
+      "purpose": "artifact_link_missing",
+      "section": "Hearings",
+      "signal_class": "artifact_status",
+      "signal_id": "ev:0008",
+      "sl_references": [],
+      "subjects": [
+        "High Court of Australia"
+      ],
+      "text": "Outline of oral argument (Appellant) (missing_url)",
+      "timeline_facts": [],
+      "warnings": [
+        "missing_url"
+      ]
+    },
+    {
+      "action": "pending",
+      "anchor": {
+        "day": 7,
+        "kind": "date",
+        "month": 8,
+        "precision": "day",
+        "text": "2025-08-07",
+        "year": 2025
+      },
+      "citations": [],
+      "legal_section_markers": {},
+      "objects": [
+        "Outline of oral argument (Respondent)"
+      ],
+      "party": "",
+      "party_source": "",
+      "purpose": "artifact_link_missing",
+      "section": "Hearings",
+      "signal_class": "artifact_status",
+      "signal_id": "ev:0009",
+      "sl_references": [],
+      "subjects": [
+        "High Court of Australia"
+      ],
+      "text": "Outline of oral argument (Respondent) (missing_url)",
+      "timeline_facts": [],
+      "warnings": [
+        "missing_url"
+      ]
+    },
+    {
+      "action": "pending",
+      "anchor": {
+        "day": 7,
+        "kind": "date",
+        "month": 8,
+        "precision": "day",
+        "text": "2025-08-07",
+        "year": 2025
+      },
+      "citations": [],
+      "legal_section_markers": {},
+      "objects": [
+        "Case recording"
+      ],
+      "party": "",
+      "party_source": "",
+      "purpose": "artifact_link_missing",
+      "section": "Recordings",
+      "signal_class": "artifact_status",
+      "signal_id": "ev:0012",
+      "sl_references": [],
+      "subjects": [
+        "High Court of Australia"
+      ],
+      "text": "Case recording (missing_url)",
+      "timeline_facts": [],
+      "warnings": [
+        "missing_url"
+      ]
+    },
+    {
+      "action": "pending",
+      "anchor": {
+        "day": 11,
+        "kind": "date",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-11",
+        "year": 2026
+      },
+      "citations": [],
+      "legal_section_markers": {},
+      "objects": [
+        "Judgment (Judgment Summary)"
+      ],
+      "party": "",
+      "party_source": "",
+      "purpose": "artifact_link_missing",
+      "section": "Judgment",
+      "signal_class": "artifact_status",
+      "signal_id": "ev:0010",
+      "sl_references": [],
+      "subjects": [
+        "High Court of Australia"
+      ],
+      "text": "Judgment (Judgment Summary) (missing_url)",
+      "timeline_facts": [],
+      "warnings": [
+        "missing_url"
+      ]
+    }
+  ],
+  "source": "https://www.hcourt.gov.au/cases-and-judgments/cases/decided/case-s942025"
+}
