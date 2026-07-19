@@ -691,6 +691,16 @@ class Provision:
     def to_dict(self) -> Dict[str, Any]:
         """Serialize the provision to a dictionary."""
         self.ensure_rule_atoms()
+        serialized_rule_tokens = {}
+        for k, v in self.rule_tokens.items():
+            if k == "references" and isinstance(v, list):
+                serialized_rule_tokens[k] = [
+                    ref.to_dict() if isinstance(ref, RuleReference) else ref
+                    for ref in v
+                ]
+            else:
+                serialized_rule_tokens[k] = v
+
         return {
             "text": self.text,
             "identifier": self.identifier,
@@ -699,9 +709,14 @@ class Provision:
             "toc_id": self.toc_id,
             "stable_id": self.stable_id,
             "position": self.position,
-            "rule_tokens": dict(self.rule_tokens),
+            "rule_tokens": serialized_rule_tokens,
             "cultural_flags": list(self.cultural_flags),
-            "references": [tuple(ref) for ref in self.references],
+            "references": [
+                (ref.work, ref.section, ref.pinpoint, ref.citation_text, ref.glossary_id)
+                if isinstance(ref, RuleReference)
+                else tuple(ref)
+                for ref in self.references
+            ],
             "children": [c.to_dict() for c in self.children],
             "principles": list(self.principles),
             "customs": list(self.customs),
@@ -712,6 +727,13 @@ class Provision:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Provision":
         """Deserialize a provision from a dictionary."""
+        rule_tokens = dict(data.get("rule_tokens", {}))
+        if "references" in rule_tokens and isinstance(rule_tokens["references"], list):
+            rule_tokens["references"] = [
+                RuleReference.from_dict(ref) if isinstance(ref, dict) else ref
+                for ref in rule_tokens["references"]
+            ]
+
         provision = cls(
             text=data["text"],
             identifier=data.get("identifier"),
@@ -720,10 +742,12 @@ class Provision:
             toc_id=data.get("toc_id"),
             stable_id=data.get("stable_id"),
             position=data.get("position"),
-            rule_tokens=dict(data.get("rule_tokens", {})),
+            rule_tokens=rule_tokens,
             cultural_flags=list(data.get("cultural_flags", [])),
             references=[
-                tuple(ref) if isinstance(ref, (list, tuple)) else tuple(ref)
+                (ref.work, ref.section, ref.pinpoint, ref.citation_text, ref.glossary_id)
+                if isinstance(ref, RuleReference)
+                else (tuple(ref) if isinstance(ref, (list, tuple)) else (str(ref), None, None, None, None))
                 for ref in data.get("references", [])
             ],
             children=[cls.from_dict(c) for c in data.get("children", [])],
