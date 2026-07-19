@@ -2,7 +2,8 @@
 
 Date: 2026-07-18
 Status: implemented PostgreSQL operational tranche
-Compiler contract: `postgres-semantic-compiler:v0_7`
+Document compiler contract: `postgres-semantic-compiler:v0_8`
+Reference-binding contract: `postgres-semantic-compiler:v0_7`
 
 ## Purpose
 
@@ -20,7 +21,10 @@ PostgreSQL operational compiler.
 The operational construction is:
 
 ```text
-parser-observed PNF argument
+source bytes
+→ declared media adapter
+→ canonical text coordinate system
+→ parser-observed PNF argument
 × structural accessibility declaration
 × referential type
 × PNF-kind/morphology compatibility declaration
@@ -34,6 +38,48 @@ parser-observed PNF argument
 
 Candidate membership is not identity closure. An empty set is not evidence that
 a grammatical argument is expletive.
+
+## Canonical source boundary
+
+Raw source bytes and canonical text are separate immutable carriers.
+
+For HTML:
+
+```text
+raw HTML bytes
+→ HtmlDocumentMediaAdapter
+→ tag-free canonical text
+→ tokens, licensed spans, annotation graph, PNF and demands
+```
+
+The raw HTML remains in `corpus.binary_content`. The adapter-produced text is
+stored in `corpus.canonical_content`; every character offset and token range in
+the semantic runtime addresses that canonical payload.
+
+The v0.8 operational document identity includes:
+
+```text
+raw source content hash
++ canonical text hash
++ media type
++ selected media-adapter revision
++ media-normalization revision
++ document compiler contract
+```
+
+This is deliberately stronger than the source-only v0.7 identity. Recompiling a
+pre-v0.8 database creates a new immutable operational document rather than
+mutating or colliding with a document row whose canonical pointer retained raw
+HTML. The old source/document evidence remains inspectable.
+
+Persistence fails closed if:
+
+- compiler and persistence canonical text differ;
+- canonical hashes differ;
+- the selected adapter differs from the declared capability;
+- a licensed mention falls outside canonical character or token coordinates;
+- a mention surface differs from the canonical substring at its stored range;
+- character and token boundaries disagree.
 
 ## PNF reference projection
 
@@ -81,9 +127,15 @@ foreign keys from the superseded `compiler_document` carrier to the active
 `corpus.document` operational table.
 
 Migration `011_operational_document_build_reuse.sql` records exact-key completed
-v0.7 document builds and their demand refs. An unchanged rerun returns those
-refs without reparsing or rebuilding, including documents with zero candidate
-sets or zero demands.
+document builds and their demand refs. An unchanged rerun returns those refs
+without reparsing or rebuilding, including documents with zero candidate sets or
+zero demands.
+
+Migration `012_binding_demand_links.sql` normalizes demand-to-candidate-set links.
+
+Migration `013_canonical_text_coordinate_build.sql` registers the v0.8 document
+compiler operation after canonical text, adapter revision and coordinate identity
+became explicit build inputs.
 
 One reference-factor revision and referential type produce one candidate set.
 Compatible candidates are member rows. Predictable inaccessible/incompatible
@@ -150,6 +202,10 @@ old explicit exports and synthetic compatibility tests. PostgreSQL compilation
 uses `compile_document_operational(...)`, which never calls or materializes
 `_binding_evidence`.
 
+The document compiler v0.8 and reference-binding algebra v0.7 are distinct
+contracts. Canonical-coordinate persistence changed without changing the
+meaning or authority of candidate-set membership.
+
 ## Build identity and reuse
 
 A candidate set is keyed by:
@@ -165,10 +221,12 @@ reference factor revision
 A complete document build is keyed by:
 
 ```text
-document identity
-+ content hash
+operational document identity
++ raw source content hash
++ canonical text hash
++ selected media adapter
 + compiler context/declarations
-+ postgres-semantic-compiler:v0_7
++ postgres-semantic-compiler:v0_8
 ```
 
 External snapshots are not inputs and cannot invalidate local candidate-set or
@@ -192,6 +250,21 @@ This tranche performs no:
 reference, proposition reference, zero-member expletive-compatible sets,
 morphology exclusions, structural accessibility beyond two sentences,
 set-native refinements, canonical revisions and exact-key rerun reuse.
+
+The live HTML proof seeds a source-only pre-v0.8 document whose canonical payload
+is raw HTML, then proves that v0.8:
+
+- preserves that old row unchanged;
+- creates a distinct operational document;
+- stores clean adapter-produced canonical text;
+- keeps raw bytes as source evidence;
+- aligns every licensed span surface with the canonical substring;
+- persists no markup lexemes;
+- reuses the new build exactly on rerun.
+
+`scripts/run_gwb_binding_baseline.py` adds the same coordinate-integrity gates to
+the six-document GWB tranche: zero canonical markup documents, zero span-surface
+mismatches, zero markup-fragment mentions and zero markup lexemes.
 
 `scripts/benchmark_binding_candidate_sets.py` compares an explicit expanded
 legacy compilation with the complete set-valued projection.
