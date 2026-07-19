@@ -8,7 +8,7 @@ from src.policy.carriers.canonical import canonical_sha256
 
 
 _OPERATION_REF = "compiler.document.local-binding"
-_OPERATION_VERSION = "v0_7"
+_OPERATION_VERSION = "v0_8"
 
 
 def _digest(value: str) -> bytes:
