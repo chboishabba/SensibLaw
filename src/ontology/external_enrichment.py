@@ -10,6 +10,7 @@ from dataclasses import asdict, dataclass
 import hashlib
 import json
 import math
+import re
 import unicodedata
 from typing import Any, Iterable, Mapping, Sequence
 
@@ -271,11 +272,15 @@ def _surface_score(surface: str, candidate: ExternalCandidate) -> float:
 
 
 def _type_score(demand: ExternalLookupDemand, candidate: ExternalCandidate) -> float:
-    if not demand.local_type_refs or not candidate.type_refs:
+    expected_qids = {
+        ref for ref in demand.local_type_refs if re.fullmatch(r"Q[1-9][0-9]*", ref)
+    }
+    observed_qids = {
+        ref for ref in candidate.type_refs if re.fullmatch(r"Q[1-9][0-9]*", ref)
+    }
+    if not expected_qids or not observed_qids:
         return 0.5
-    expected = set(demand.local_type_refs)
-    observed = set(candidate.type_refs)
-    return 1.0 if expected & observed else 0.0
+    return 1.0 if expected_qids & observed_qids else 0.0
 
 
 def _context_score(demand: ExternalLookupDemand, candidate: ExternalCandidate) -> float:
@@ -414,7 +419,7 @@ def build_external_candidate_set(
         before=before,
         after=after,
         residual_transitions=tuple(transitions),
-        monotone=after.lookup_absence <= before.lookup_absence,
+        monotone=after.total <= before.total,
     )
     return candidate_set, receipt
 
