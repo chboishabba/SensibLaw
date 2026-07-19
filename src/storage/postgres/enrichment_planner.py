@@ -40,9 +40,10 @@ def load_external_lookup_demands(
 ) -> tuple[ExternalLookupDemand, ...]:
     """Load candidate-only provider work from persisted open demands.
 
-    Mention surfaces are recovered through immutable factor alternatives whose
-    ``value_ref`` is the licensed mention node. The query does not inspect raw
-    source bytes and does not mutate resolution state.
+    The demand names the active factor revision. Mention surfaces and parser
+    anchors are recovered over the immutable revision family of the same stable
+    factor because local refinements need not duplicate those structural rows.
+    Residual state remains anchored to the demand's active revision.
     """
 
     if limit < 1:
@@ -54,7 +55,7 @@ def load_external_lookup_demands(
             demand.factor_ref,
             demand.factor_revision_ref,
             factor.factor_type_ref,
-            anchor.parser_pos_ref,
+            MIN(anchor.parser_pos_ref) AS parser_pos_ref,
             MIN(node.value_ref) AS surface,
             COALESCE(
                 ARRAY_AGG(DISTINCT alternative.type_ref)
@@ -69,13 +70,15 @@ def load_external_lookup_demands(
         FROM resolution.demand AS demand
         JOIN algebra.factor AS factor
           ON factor.factor_ref = demand.factor_ref
-        JOIN algebra.factor_revision AS revision
-          ON revision.factor_revision_ref = demand.factor_revision_ref
-         AND revision.factor_ref = demand.factor_ref
+        JOIN algebra.factor_revision AS active_revision
+          ON active_revision.factor_revision_ref = demand.factor_revision_ref
+         AND active_revision.factor_ref = demand.factor_ref
+        JOIN algebra.factor_revision AS source_revision
+          ON source_revision.factor_ref = demand.factor_ref
         LEFT JOIN pnf.factor_anchor AS anchor
-          ON anchor.factor_revision_ref = demand.factor_revision_ref
+          ON anchor.factor_revision_ref = source_revision.factor_revision_ref
         LEFT JOIN algebra.factor_revision_alternative AS revision_alternative
-          ON revision_alternative.factor_revision_ref = demand.factor_revision_ref
+          ON revision_alternative.factor_revision_ref = source_revision.factor_revision_ref
         LEFT JOIN algebra.alternative AS alternative
           ON alternative.alternative_ref = revision_alternative.alternative_ref
         LEFT JOIN language.annotation_node AS node
@@ -96,11 +99,10 @@ def load_external_lookup_demands(
             demand.demand_ref,
             demand.factor_ref,
             demand.factor_revision_ref,
-            factor.factor_type_ref,
-            anchor.parser_pos_ref
+            factor.factor_type_ref
         HAVING MIN(node.value_ref) IS NOT NULL
         ORDER BY
-            CASE WHEN anchor.parser_pos_ref = 'PROPN' THEN 0 ELSE 1 END,
+            CASE WHEN MIN(anchor.parser_pos_ref) = 'PROPN' THEN 0 ELSE 1 END,
             demand.demand_ref
         LIMIT %s
         """,
