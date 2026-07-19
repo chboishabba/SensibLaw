@@ -21,6 +21,7 @@ on:
       - "tests/pnf/test_external_enrichment.py"
       - "tests/sources/test_legal_follow.py"
       - "tests/storage/test_external_enrichment_planner.py"
+      - "tests/storage/test_external_enrichment_postgres.py"
       - "tests/storage/test_binding_migration_chain.py"
       - ".github/workflows/external-enrichment.yml"
   pull_request:
@@ -43,6 +44,7 @@ on:
       - "tests/pnf/test_external_enrichment.py"
       - "tests/sources/test_legal_follow.py"
       - "tests/storage/test_external_enrichment_planner.py"
+      - "tests/storage/test_external_enrichment_postgres.py"
       - "tests/storage/test_binding_migration_chain.py"
       - ".github/workflows/external-enrichment.yml"
   workflow_dispatch:
@@ -104,6 +106,7 @@ jobs:
             tests/pnf/test_external_enrichment.py \
             tests/sources/test_legal_follow.py \
             tests/storage/test_external_enrichment_planner.py \
+            tests/storage/test_external_enrichment_postgres.py \
             tests/storage/test_binding_migration_chain.py \
             2>&1 | tee test-results/ruff.log
       - name: Candidate pressure and persisted planning
@@ -113,6 +116,7 @@ jobs:
             tests/pnf/test_external_enrichment.py \
             tests/ontology/test_wikimedia_providers.py \
             tests/storage/test_external_enrichment_planner.py \
+            tests/storage/test_external_enrichment_postgres.py \
             2>&1 | tee test-results/external-candidate-pressure.log
       - name: URL and legal follow receipts
         run: |
