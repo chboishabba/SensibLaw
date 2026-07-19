@@ -86,7 +86,7 @@ def load_external_lookup_demands(
          AND residual.residual_state_ref = 'open'
         WHERE demand.demand_state_ref = 'open'
           AND demand.budget_class_ref = 'bounded_external_evidence'
-          AND (%s IS NULL OR EXISTS (
+          AND (CAST(%s AS TEXT) IS NULL OR EXISTS (
               SELECT 1
               FROM corpus.document_occurrence AS occurrence
               WHERE occurrence.corpus_ref = %s
