@@ -6,8 +6,10 @@ on:
       - "src/ontology/external_enrichment.py"
       - "src/ontology/wikimedia_providers.py"
       - "src/pnf/external_enrichment_projection.py"
+      - "src/pnf/external_reconciliation.py"
       - "src/ingestion/web_fetch.py"
       - "src/ingestion/link_follow.py"
+      - "src/ingestion/corpus_source_projection.py"
       - "src/runtime/**"
       - "src/sources/legal_follow.py"
       - "src/sources/national_archives/brexit_legal_follow_lane.py"
@@ -16,9 +18,11 @@ on:
       - "database/postgres_migrations/014_external_pnf_enrichment.sql"
       - "scripts/run_wikimedia_enrichment.py"
       - "scripts/run_legal_follow.py"
+      - "scripts/run_complete_tranche.py"
       - "tests/ingestion/test_web_fetch_and_follow.py"
       - "tests/ontology/test_wikimedia_providers.py"
       - "tests/pnf/test_external_enrichment.py"
+      - "tests/runtime/test_complete_tranche_pipeline.py"
       - "tests/sources/test_legal_follow.py"
       - "tests/storage/test_external_enrichment_planner.py"
       - "tests/storage/test_external_enrichment_postgres.py"
@@ -29,8 +33,10 @@ on:
       - "src/ontology/external_enrichment.py"
       - "src/ontology/wikimedia_providers.py"
       - "src/pnf/external_enrichment_projection.py"
+      - "src/pnf/external_reconciliation.py"
       - "src/ingestion/web_fetch.py"
       - "src/ingestion/link_follow.py"
+      - "src/ingestion/corpus_source_projection.py"
       - "src/runtime/**"
       - "src/sources/legal_follow.py"
       - "src/sources/national_archives/brexit_legal_follow_lane.py"
@@ -39,9 +45,11 @@ on:
       - "database/postgres_migrations/014_external_pnf_enrichment.sql"
       - "scripts/run_wikimedia_enrichment.py"
       - "scripts/run_legal_follow.py"
+      - "scripts/run_complete_tranche.py"
       - "tests/ingestion/test_web_fetch_and_follow.py"
       - "tests/ontology/test_wikimedia_providers.py"
       - "tests/pnf/test_external_enrichment.py"
+      - "tests/runtime/test_complete_tranche_pipeline.py"
       - "tests/sources/test_legal_follow.py"
       - "tests/storage/test_external_enrichment_planner.py"
       - "tests/storage/test_external_enrichment_postgres.py"
@@ -92,8 +100,10 @@ jobs:
             src/ontology/external_enrichment.py \
             src/ontology/wikimedia_providers.py \
             src/pnf/external_enrichment_projection.py \
+            src/pnf/external_reconciliation.py \
             src/ingestion/web_fetch.py \
             src/ingestion/link_follow.py \
+            src/ingestion/corpus_source_projection.py \
             src/runtime \
             src/sources/legal_follow.py \
             src/sources/national_archives/brexit_legal_follow_lane.py \
@@ -101,9 +111,11 @@ jobs:
             src/storage/postgres/enrichment_store.py \
             scripts/run_wikimedia_enrichment.py \
             scripts/run_legal_follow.py \
+            scripts/run_complete_tranche.py \
             tests/ingestion/test_web_fetch_and_follow.py \
             tests/ontology/test_wikimedia_providers.py \
             tests/pnf/test_external_enrichment.py \
+            tests/runtime/test_complete_tranche_pipeline.py \
             tests/sources/test_legal_follow.py \
             tests/storage/test_external_enrichment_planner.py \
             tests/storage/test_external_enrichment_postgres.py \
@@ -118,6 +130,11 @@ jobs:
             tests/storage/test_external_enrichment_planner.py \
             tests/storage/test_external_enrichment_postgres.py \
             2>&1 | tee test-results/external-candidate-pressure.log
+      - name: Complete tranche phase and review contracts
+        run: |
+          set -o pipefail
+          uv run pytest -x -vv tests/runtime/test_complete_tranche_pipeline.py \
+            2>&1 | tee test-results/complete-tranche.log
       - name: URL and legal follow receipts
         run: |
           set -o pipefail
