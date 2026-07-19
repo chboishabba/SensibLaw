@@ -43,6 +43,8 @@ def load_external_lookup_demands(
     The demand names the active factor revision. Mention surfaces and parser
     anchors are recovered over the immutable revision family of the same stable
     factor because local refinements need not duplicate those structural rows.
+    The canonical anchor-range to licensed-span join is authoritative; an
+    alternative ``value_ref`` join is retained only as a compatibility fallback.
     Residual state remains anchored to the demand's active revision.
     """
 
@@ -56,7 +58,10 @@ def load_external_lookup_demands(
             demand.factor_revision_ref,
             factor.factor_type_ref,
             MIN(anchor.parser_pos_ref) AS parser_pos_ref,
-            MIN(node.value_ref) AS surface,
+            COALESCE(
+                MIN(span_node.value_ref),
+                MIN(alternative_node.value_ref)
+            ) AS surface,
             COALESCE(
                 ARRAY_AGG(DISTINCT alternative.type_ref)
                     FILTER (WHERE alternative.type_ref IS NOT NULL),
@@ -77,13 +82,21 @@ def load_external_lookup_demands(
           ON source_revision.factor_ref = demand.factor_ref
         LEFT JOIN pnf.factor_anchor AS anchor
           ON anchor.factor_revision_ref = source_revision.factor_revision_ref
+        LEFT JOIN corpus.span AS mention_span
+          ON mention_span.document_ref = anchor.document_ref
+         AND mention_span.start_token = anchor.start_token
+         AND mention_span.end_token = anchor.end_token
+         AND mention_span.span_type_ref = 'licensed_mention'
+        LEFT JOIN language.annotation_node AS span_node
+          ON span_node.span_ref = mention_span.span_ref
+         AND span_node.annotation_type_ref = 'licensed_mention'
         LEFT JOIN algebra.factor_revision_alternative AS revision_alternative
           ON revision_alternative.factor_revision_ref = source_revision.factor_revision_ref
         LEFT JOIN algebra.alternative AS alternative
           ON alternative.alternative_ref = revision_alternative.alternative_ref
-        LEFT JOIN language.annotation_node AS node
-          ON node.annotation_node_ref = alternative.value_ref
-         AND node.annotation_type_ref = 'licensed_mention'
+        LEFT JOIN language.annotation_node AS alternative_node
+          ON alternative_node.annotation_node_ref = alternative.value_ref
+         AND alternative_node.annotation_type_ref = 'licensed_mention'
         LEFT JOIN algebra.residual AS residual
           ON residual.target_ref = demand.factor_revision_ref
          AND residual.residual_state_ref = 'open'
@@ -100,7 +113,10 @@ def load_external_lookup_demands(
             demand.factor_ref,
             demand.factor_revision_ref,
             factor.factor_type_ref
-        HAVING MIN(node.value_ref) IS NOT NULL
+        HAVING COALESCE(
+            MIN(span_node.value_ref),
+            MIN(alternative_node.value_ref)
+        ) IS NOT NULL
         ORDER BY
             CASE WHEN MIN(anchor.parser_pos_ref) = 'PROPN' THEN 0 ELSE 1 END,
             demand.demand_ref
