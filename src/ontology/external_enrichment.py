@@ -6,7 +6,7 @@ identity, truth, occurrence, semantic-role, or Wikidata-edit obligations.
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 import hashlib
 import json
 import math
