@@ -11,6 +11,7 @@ on:
       - "src/runtime/**"
       - "src/sources/legal_follow.py"
       - "src/sources/national_archives/brexit_legal_follow_lane.py"
+      - "src/storage/postgres/enrichment_planner.py"
       - "src/storage/postgres/enrichment_store.py"
       - "database/postgres_migrations/014_external_pnf_enrichment.sql"
       - "scripts/run_wikimedia_enrichment.py"
@@ -19,6 +20,7 @@ on:
       - "tests/ontology/test_wikimedia_providers.py"
       - "tests/pnf/test_external_enrichment.py"
       - "tests/sources/test_legal_follow.py"
+      - "tests/storage/test_external_enrichment_planner.py"
       - "tests/storage/test_binding_migration_chain.py"
       - ".github/workflows/external-enrichment.yml"
   pull_request:
@@ -31,6 +33,7 @@ on:
       - "src/runtime/**"
       - "src/sources/legal_follow.py"
       - "src/sources/national_archives/brexit_legal_follow_lane.py"
+      - "src/storage/postgres/enrichment_planner.py"
       - "src/storage/postgres/enrichment_store.py"
       - "database/postgres_migrations/014_external_pnf_enrichment.sql"
       - "scripts/run_wikimedia_enrichment.py"
@@ -39,6 +42,7 @@ on:
       - "tests/ontology/test_wikimedia_providers.py"
       - "tests/pnf/test_external_enrichment.py"
       - "tests/sources/test_legal_follow.py"
+      - "tests/storage/test_external_enrichment_planner.py"
       - "tests/storage/test_binding_migration_chain.py"
       - ".github/workflows/external-enrichment.yml"
   workflow_dispatch:
@@ -91,6 +95,7 @@ jobs:
             src/runtime \
             src/sources/legal_follow.py \
             src/sources/national_archives/brexit_legal_follow_lane.py \
+            src/storage/postgres/enrichment_planner.py \
             src/storage/postgres/enrichment_store.py \
             scripts/run_wikimedia_enrichment.py \
             scripts/run_legal_follow.py \
@@ -98,14 +103,16 @@ jobs:
             tests/ontology/test_wikimedia_providers.py \
             tests/pnf/test_external_enrichment.py \
             tests/sources/test_legal_follow.py \
+            tests/storage/test_external_enrichment_planner.py \
             tests/storage/test_binding_migration_chain.py \
             2>&1 | tee test-results/ruff.log
-      - name: Candidate and pressure algebra
+      - name: Candidate pressure and persisted planning
         run: |
           set -o pipefail
           uv run pytest -x -vv \
             tests/pnf/test_external_enrichment.py \
             tests/ontology/test_wikimedia_providers.py \
+            tests/storage/test_external_enrichment_planner.py \
             2>&1 | tee test-results/external-candidate-pressure.log
       - name: URL and legal follow receipts
         run: |
