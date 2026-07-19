@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from src.ingestion.media_adapter import HtmlDocumentMediaAdapter
 from src.policy.carriers.canonical import canonical_sha256
 from src.policy.corpus_compilation import CompilerContext, build_corpus_manifest
 from src.policy.operational_corpus_compilation import (
@@ -26,16 +28,42 @@ from src.storage.postgres.semantic_store import (
 from src.storage.postgres.span_store import persist_licensed_spans
 
 
+def _canonical_source_coordinates(
+    *, media_type: str, source_text: str, source_ref: str
+) -> tuple[str, str, str]:
+    """Return the deterministic text coordinate system used by the compiler."""
+
+    if media_type == "text/html":
+        canonical_text = HtmlDocumentMediaAdapter(
+            source_artifact_ref=source_ref
+        ).adapt(source_text).text
+        adapter_ref = "media:html:v0_1"
+    else:
+        canonical_text = source_text
+        adapter_ref = "media:utf8-text:v0_1"
+    if not canonical_text:
+        raise ValueError("source normalisation produced empty canonical text")
+    return (
+        canonical_text,
+        hashlib.sha256(canonical_text.encode("utf-8")).hexdigest(),
+        adapter_ref,
+    )
+
+
 def _operational_build_key(
     *,
     document_ref: str,
     content_sha256: str,
+    canonical_text_sha256: str,
+    media_adapter_ref: str,
     context: CompilerContext,
 ) -> str:
     return canonical_sha256(
         {
             "document_ref": document_ref,
             "content_sha256": content_sha256,
+            "canonical_text_sha256": canonical_text_sha256,
+            "media_adapter_ref": media_adapter_ref,
             "context": context.to_dict(),
             "compiler_contract": OPERATIONAL_COMPILER_CONTRACT,
         }
@@ -66,6 +94,38 @@ def _prepare_meets_for_relational_persistence(
     return tuple(prepared)
 
 
+def _validated_canonical_tokens(
+    *, artifacts: Mapping[str, Any], expected_text: str, expected_sha256: str
+) -> tuple[tuple[str, int, int], ...]:
+    """Validate that every persisted span and token uses compiler coordinates."""
+
+    canonical_text = artifacts.get("canonical_text")
+    if canonical_text != expected_text:
+        raise ValueError("operational compiler canonical text disagrees with persistence")
+    canonical_text_sha256 = str(artifacts.get("canonical_text_sha256") or "")
+    if canonical_text_sha256 != expected_sha256:
+        raise ValueError("operational compiler canonical text hash disagrees with persistence")
+    tokens = tuple(tokenize_canonical_with_spans(expected_text))
+    mentions = tuple((artifacts.get("licensing") or {}).get("mentions") or ())
+    for mention in mentions:
+        start_char = int(mention["start_char"])
+        end_char = int(mention["end_char"])
+        start_token = int(mention["start_token"])
+        end_token = int(mention["end_token"])
+        if not (0 <= start_char < end_char <= len(expected_text)):
+            raise ValueError("licensed mention is outside canonical text coordinates")
+        if not (0 <= start_token < end_token <= len(tokens)):
+            raise ValueError("licensed mention is outside canonical token coordinates")
+        observed_surface = expected_text[start_char:end_char]
+        if observed_surface != str(mention["canonical_surface"]):
+            raise ValueError("licensed mention surface disagrees with canonical text")
+        token_start = tokens[start_token][1]
+        token_end = tokens[end_token - 1][2]
+        if token_start != start_char or token_end != end_char:
+            raise ValueError("licensed mention character and token ranges disagree")
+    return tokens
+
+
 def persist_document_compilation(
     *,
     store: PostgresCompilerStore,
@@ -73,7 +133,7 @@ def persist_document_compilation(
     relative_path: str,
     entry: Mapping[str, Any],
     source_bytes: bytes,
-    canonical_text: str,
+    source_text: str,
     context: CompilerContext,
 ) -> tuple[str, ...]:
     """Compile and persist one document transactionally.
@@ -87,9 +147,19 @@ def persist_document_compilation(
 
     document_ref = str(entry["document_ref"])
     content_sha256 = str(entry["content_sha256"])
+    source_ref = f"document-source:{document_ref}"
+    canonical_text, canonical_text_sha256, media_adapter_ref = (
+        _canonical_source_coordinates(
+            media_type=str(entry["media_type"]),
+            source_text=source_text,
+            source_ref=source_ref,
+        )
+    )
     build_key_sha256 = _operational_build_key(
         document_ref=document_ref,
         content_sha256=content_sha256,
+        canonical_text_sha256=canonical_text_sha256,
+        media_adapter_ref=media_adapter_ref,
         context=context,
     )
     with store.transaction() as cursor:
@@ -114,14 +184,22 @@ def persist_document_compilation(
             "document_ref": document_ref,
             "content_sha256": content_sha256,
             "media_type": entry["media_type"],
-            "canonical_text": canonical_text,
-            "source_ref": f"document-source:{document_ref}",
+            "canonical_text": source_text,
+            "source_ref": source_ref,
         },
         context,
     )
     artifacts = compilation.artifacts
     if str(artifacts.get("build_key_sha256") or "") != build_key_sha256:
         raise ValueError("operational compiler build key disagrees with persistence")
+    source_normalisation = artifacts.get("source_normalisation") or {}
+    if str(source_normalisation.get("adapter_ref") or "") != media_adapter_ref:
+        raise ValueError("operational compiler media adapter disagrees with persistence")
+    canonical_tokens = _validated_canonical_tokens(
+        artifacts=artifacts,
+        expected_text=canonical_text,
+        expected_sha256=canonical_text_sha256,
+    )
     refinements = tuple(artifacts.get("factor_refinements") or ())
     candidate_sets = tuple(artifacts.get("binding_candidate_sets") or ())
     factor_anchors = tuple(artifacts.get("factor_anchors") or ())
@@ -162,7 +240,7 @@ def persist_document_compilation(
             document_ref=compilation.document_ref,
             tokenizer_ref=context.annotation_backend_ref,
             tokenizer_version=context.compiler_version,
-            tokens=tokenize_canonical_with_spans(canonical_text),
+            tokens=canonical_tokens,
         )
         store.persist_annotation_layer(
             cursor,
@@ -273,14 +351,14 @@ def compile_directory_postgres(
             continue
         try:
             source_bytes = (root / relative_path).read_bytes()
-            canonical_text = source_bytes.decode("utf-8")
+            source_text = source_bytes.decode("utf-8")
             refs = persist_document_compilation(
                 store=store,
                 corpus_ref=manifest.corpus_ref,
                 relative_path=relative_path,
                 entry=entry,
                 source_bytes=source_bytes,
-                canonical_text=canonical_text,
+                source_text=source_text,
                 context=context,
             )
         except (OSError, UnicodeDecodeError, ValueError, RuntimeError) as error:
