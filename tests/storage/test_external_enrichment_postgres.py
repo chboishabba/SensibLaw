@@ -66,7 +66,15 @@ def _planner_diagnostic(cursor, corpus_ref: str):
     return cursor.fetchall()
 
 
-def test_compiled_corpus_plans_external_lookups_without_network(tmp_path) -> None:
+def test_fallback_compiler_does_not_plan_untyped_external_lookups(tmp_path) -> None:
+    """The lightweight fallback parser must not turn every token into registry work.
+
+    Typed persisted planning is covered by the deterministic planner fixture.
+    This live test instead proves that generic ``semantic.mention_candidate``
+    rows with only ``local_type_unresolved`` remain local work until a parser or
+    reducer supplies entity/lexical shape evidence.
+    """
+
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
         pytest.skip("DATABASE_URL is required for the PostgreSQL integration proof")
@@ -92,16 +100,15 @@ def test_compiled_corpus_plans_external_lookups_without_network(tmp_path) -> Non
             )
             diagnostic = _planner_diagnostic(cursor, compilation.corpus_ref)
 
-        assert demands, diagnostic
-        surfaces = {row.surface for row in demands}
-        assert surfaces.intersection(
-            {"George W. Bush", "George", "Bush", "Texas"}
-        ), diagnostic
-        assert all(row.surface != "He" for row in demands)
-        assert any(row.demand_kind == "entity_identity" for row in demands)
+        assert demands == (), diagnostic
+        assert diagnostic
+        assert all(row[1] == "semantic.mention_identity" for row in diagnostic)
         assert all(
-            "postgres-external-lookup-plan:v0_1" in row.provenance_refs
-            for row in demands
+            set(row[3] or ())
+            <= {"document_local_recurrence_unchecked", "local_type_unresolved"}
+            for row in diagnostic
         )
+        assert all(set(row[4] or ()) == {"semantic.mention_candidate"} for row in diagnostic)
+        assert all(not row[6] for row in diagnostic)
     finally:
         store.close()
