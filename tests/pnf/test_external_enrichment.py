@@ -46,6 +46,64 @@ def test_alias_surfaces_can_share_qid_candidate_without_identity_closure() -> No
     assert len({row.candidates[0].candidate_ref for row in sets}) == 1
 
 
+def test_linguistic_types_do_not_false_conflict_with_wikidata_qid_types() -> None:
+    demand = ExternalLookupDemand(
+        demand_ref="demand:usa",
+        subject_ref="factor:usa",
+        surface="United States",
+        local_type_refs=("named_entity_candidate", "semantic-family:entity"),
+    )
+    candidate = ExternalCandidate(
+        provider_ref="wikidata-wbsearchentities:v0_1",
+        external_id="Q30",
+        label="United States",
+        candidate_kind="wikidata_item",
+        type_refs=("Q6256",),
+    )
+
+    candidate_set, _pressure = build_external_candidate_set(
+        demand,
+        provider_ref=candidate.provider_ref,
+        candidates=(candidate,),
+    )
+
+    assessment = candidate_set.assessments[0]
+    assert assessment.type_score == 0.5
+    assert assessment.compatibility_state == "compatible_candidate"
+    assert "type_evidence_incomplete" in assessment.reasons
+    assert "external_candidate_type_mismatch" not in candidate_set.residuals
+
+
+def test_pressure_monotonicity_uses_the_complete_vector() -> None:
+    demand = ExternalLookupDemand(
+        demand_ref="demand:bush",
+        subject_ref="factor:bush",
+        surface="Bush",
+    )
+    candidates = tuple(
+        ExternalCandidate(
+            provider_ref="wikidata-wbsearchentities:v0_1",
+            external_id=f"Q{index}",
+            label=f"Bush candidate {index}",
+            aliases=("Bush",),
+            candidate_kind="wikidata_item",
+        )
+        for index in range(1, 4)
+    )
+
+    candidate_set, pressure = build_external_candidate_set(
+        demand,
+        provider_ref="wikidata-wbsearchentities:v0_1",
+        candidates=candidates,
+    )
+
+    assert "external_candidate_ambiguity" in candidate_set.residuals
+    assert pressure.after.lookup_absence == 0.0
+    assert pressure.after.candidate_ambiguity > 1.0
+    assert pressure.after.total > pressure.before.total
+    assert pressure.monotone is False
+
+
 def test_lookup_grouping_deduplicates_same_semantic_request_only() -> None:
     rows = (
         ExternalLookupDemand("demand:a", "factor:a", "George W. Bush"),
