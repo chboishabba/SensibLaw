@@ -1,4 +1,4 @@
-"""Report semantic cardinality and physical PostgreSQL binding storage."""
+"""Report corpus-scoped PNF binding cardinality and PostgreSQL storage."""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ END
 
 _ROLE_SQL = """
 CASE
-    WHEN anchor.pnf_kind_ref LIKE 'semantic.argument.%'
+    WHEN left(anchor.pnf_kind_ref, 18) = 'semantic.argument.'
         THEN split_part(anchor.pnf_kind_ref, '.', 3)
     WHEN anchor.parser_dependency_ref IN
          ('nsubj', 'nsubjpass', 'csubj', 'csubjpass')
@@ -70,11 +70,7 @@ def _parse_args() -> argparse.Namespace:
         "--corpus-ref",
         help="Optional corpus restriction. Relation sizes remain database-wide.",
     )
-    parser.add_argument(
-        "--output",
-        type=Path,
-        help="Optional JSON output path; stdout is always emitted.",
-    )
+    parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     if not args.database_url:
         parser.error("--database-url or DATABASE_URL is required")
@@ -82,7 +78,7 @@ def _parse_args() -> argparse.Namespace:
 
 
 def _relation_sizes(cursor: Any) -> list[dict[str, object]]:
-    rows: list[dict[str, object]] = []
+    result: list[dict[str, object]] = []
     for relation in _RELATIONS:
         cursor.execute(
             """
@@ -95,7 +91,7 @@ def _relation_sizes(cursor: Any) -> list[dict[str, object]]:
             (relation, relation, relation, relation),
         )
         heap_bytes, table_bytes, index_bytes, total_bytes = cursor.fetchone()
-        rows.append(
+        result.append(
             {
                 "relation": relation,
                 "heap_bytes": int(heap_bytes),
@@ -105,11 +101,11 @@ def _relation_sizes(cursor: Any) -> list[dict[str, object]]:
                 "total_bytes": int(total_bytes),
             }
         )
-    return rows
+    return result
 
 
 def _scope(corpus_ref: str | None, column: str) -> tuple[str, tuple[object, ...]]:
-    if not corpus_ref:
+    if corpus_ref is None:
         return "", ()
     return (
         f"""
@@ -128,8 +124,8 @@ def _candidate_metrics(cursor: Any, corpus_ref: str | None) -> dict[str, object]
     cursor.execute(
         f"""
         SELECT
-            COUNT(*) AS candidate_set_count,
-            COALESCE(SUM(candidate_set.member_count), 0) AS candidate_member_count,
+            COUNT(*),
+            COALESCE(SUM(candidate_set.member_count), 0),
             COUNT(*) FILTER (WHERE candidate_set.member_count = 0),
             COUNT(*) FILTER (WHERE candidate_set.member_count = 1),
             COUNT(*) FILTER (WHERE candidate_set.member_count > 1),
@@ -141,12 +137,12 @@ def _candidate_metrics(cursor: Any, corpus_ref: str | None) -> dict[str, object]
         params,
     )
     (
-        candidate_set_count,
-        candidate_member_count,
-        zero_member_sets,
-        one_member_sets,
-        many_member_sets,
-        reference_factor_count,
+        set_count,
+        member_count,
+        zero_count,
+        singleton_count,
+        plural_count,
+        reference_count,
         build_count,
     ) = cursor.fetchone()
 
@@ -165,8 +161,8 @@ def _candidate_metrics(cursor: Any, corpus_ref: str | None) -> dict[str, object]
         params,
     )
     by_type: dict[str, dict[str, object]] = {}
-    for referential_type, bucket, set_count, member_count in cursor.fetchall():
-        type_row = by_type.setdefault(
+    for referential_type, bucket, bucket_sets, bucket_members in cursor.fetchall():
+        row = by_type.setdefault(
             str(referential_type),
             {
                 "candidate_sets": 0,
@@ -174,13 +170,13 @@ def _candidate_metrics(cursor: Any, corpus_ref: str | None) -> dict[str, object]
                 "cardinality_buckets": {},
             },
         )
-        type_row["candidate_sets"] = int(type_row["candidate_sets"]) + int(set_count)
-        type_row["candidate_members"] = int(type_row["candidate_members"]) + int(
-            member_count
+        row["candidate_sets"] = int(row["candidate_sets"]) + int(bucket_sets)
+        row["candidate_members"] = int(row["candidate_members"]) + int(
+            bucket_members
         )
-        type_row["cardinality_buckets"][str(bucket)] = {
-            "candidate_sets": int(set_count),
-            "candidate_members": int(member_count),
+        row["cardinality_buckets"][str(bucket)] = {
+            "candidate_sets": int(bucket_sets),
+            "candidate_members": int(bucket_members),
         }
 
     cursor.execute(
@@ -201,18 +197,18 @@ def _candidate_metrics(cursor: Any, corpus_ref: str | None) -> dict[str, object]
         params,
     )
     by_type_and_role: dict[str, dict[str, dict[str, int]]] = {}
-    for referential_type, role, set_count, member_count in cursor.fetchall():
+    for referential_type, role, role_sets, role_members in cursor.fetchall():
         by_type_and_role.setdefault(str(referential_type), {})[str(role)] = {
-            "candidate_sets": int(set_count),
-            "candidate_members": int(member_count),
+            "candidate_sets": int(role_sets),
+            "candidate_members": int(role_members),
         }
 
     cursor.execute(
         f"""
         SELECT
             exclusion.reason_ref,
-            COUNT(*) AS summary_rows,
-            COALESCE(SUM(exclusion.excluded_count), 0) AS excluded_candidates
+            COUNT(*),
+            COALESCE(SUM(exclusion.excluded_count), 0)
         FROM resolution.binding_exclusion_summary AS exclusion
         JOIN resolution.binding_candidate_set AS candidate_set
           ON candidate_set.candidate_set_ref = exclusion.candidate_set_ref
@@ -222,34 +218,33 @@ def _candidate_metrics(cursor: Any, corpus_ref: str | None) -> dict[str, object]
         """,
         params,
     )
-    exclusion_rows = {
+    exclusions = {
         str(reason): {
             "summary_rows": int(summary_rows),
             "excluded_candidates": int(excluded_candidates),
         }
         for reason, summary_rows, excluded_candidates in cursor.fetchall()
     }
-    excluded_total = sum(
-        int(row["excluded_candidates"]) for row in exclusion_rows.values()
+    excluded_count = sum(
+        int(row["excluded_candidates"]) for row in exclusions.values()
     )
-    accessible_total = int(candidate_member_count) + excluded_total
+    member_count = int(member_count)
+    accessible_count = member_count + excluded_count
     return {
-        "reference_factors": int(reference_factor_count),
-        "candidate_sets": int(candidate_set_count),
-        "candidate_members": int(candidate_member_count),
-        "zero_member_sets": int(zero_member_sets),
-        "one_member_sets": int(one_member_sets),
-        "many_member_sets": int(many_member_sets),
+        "reference_factors": int(reference_count),
+        "candidate_sets": int(set_count),
+        "candidate_members": member_count,
+        "zero_member_sets": int(zero_count),
+        "one_member_sets": int(singleton_count),
+        "many_member_sets": int(plural_count),
         "candidate_set_builds": int(build_count),
         "candidate_sets_by_referential_type": by_type,
         "candidate_sets_by_referential_type_and_role": by_type_and_role,
-        "excluded_candidates_by_reason": exclusion_rows,
-        "excluded_candidates": excluded_total,
-        "accessible_candidates": accessible_total,
+        "excluded_candidates_by_reason": exclusions,
+        "excluded_candidates": excluded_count,
+        "accessible_candidates": accessible_count,
         "compatibility_retention_rate": (
-            round(int(candidate_member_count) / accessible_total, 6)
-            if accessible_total
-            else None
+            round(member_count / accessible_count, 6) if accessible_count else None
         ),
     }
 
@@ -272,18 +267,16 @@ def _factor_metrics(cursor: Any, corpus_ref: str | None) -> dict[str, object]:
         """,
         params,
     )
-    factor_count, revision_count, refinement_count, refined_factor_count = (
-        cursor.fetchone()
-    )
-    factor_count = int(factor_count)
-    refined_factor_count = int(refined_factor_count)
+    factors, revisions, refinements, refined_factors = cursor.fetchone()
+    factors = int(factors)
+    refined_factors = int(refined_factors)
     return {
-        "factors": factor_count,
-        "factor_revisions": int(revision_count),
-        "refinements": int(refinement_count),
-        "refined_factors": refined_factor_count,
+        "factors": factors,
+        "factor_revisions": int(revisions),
+        "refinements": int(refinements),
+        "refined_factors": refined_factors,
         "revision_locality": (
-            round(refined_factor_count / factor_count, 6) if factor_count else None
+            round(refined_factors / factors, 6) if factors else None
         ),
     }
 
@@ -344,7 +337,7 @@ def _demand_metrics(cursor: Any, corpus_ref: str | None) -> dict[str, object]:
 
 
 def _execution_metrics(cursor: Any, corpus_ref: str | None) -> dict[str, object]:
-    if not corpus_ref:
+    if corpus_ref is None:
         return {
             "occurrence_states": {},
             "document_compilation_builds": None,
@@ -360,7 +353,7 @@ def _execution_metrics(cursor: Any, corpus_ref: str | None) -> dict[str, object]
         """,
         (corpus_ref,),
     )
-    occurrence_states = {str(state): int(count) for state, count in cursor.fetchall()}
+    states = {str(state): int(count) for state, count in cursor.fetchall()}
     cursor.execute(
         """
         SELECT COUNT(*)
@@ -387,23 +380,20 @@ def _execution_metrics(cursor: Any, corpus_ref: str | None) -> dict[str, object]
         """,
         (corpus_ref,),
     )
-    pairwise_rows = int(cursor.fetchone()[0])
     return {
-        "occurrence_states": occurrence_states,
+        "occurrence_states": states,
         "document_compilation_builds": document_builds,
-        "pairwise_binding_evidence_rows": pairwise_rows,
+        "pairwise_binding_evidence_rows": int(cursor.fetchone()[0]),
     }
 
 
-def _document_metrics(cursor: Any, corpus_ref: str | None) -> dict[str, object]:
-    if not corpus_ref:
+def _document_metrics(cursor: Any, corpus_ref: str | None) -> dict[str, int]:
+    if corpus_ref is None:
         cursor.execute("SELECT COUNT(*) FROM corpus.document")
         return {"documents": int(cursor.fetchone()[0])}
     cursor.execute(
         """
-        SELECT
-            COUNT(*),
-            COUNT(DISTINCT document_ref)
+        SELECT COUNT(*), COUNT(DISTINCT document_ref)
         FROM corpus.document_occurrence
         WHERE corpus_ref = %s
         """,
@@ -422,26 +412,26 @@ def collect_binding_report(
     """Collect one explicit corpus-scoped semantic and execution ledger."""
 
     relation_sizes = _relation_sizes(cursor)
-    candidate_metrics = _candidate_metrics(cursor, corpus_ref)
-    factor_metrics = _factor_metrics(cursor, corpus_ref)
-    demand_metrics = _demand_metrics(cursor, corpus_ref)
-    execution_metrics = _execution_metrics(cursor, corpus_ref)
-    document_metrics = _document_metrics(cursor, corpus_ref)
-    member_count = int(candidate_metrics["candidate_members"])
+    binding = _candidate_metrics(cursor, corpus_ref)
+    factors = _factor_metrics(cursor, corpus_ref)
+    demands = _demand_metrics(cursor, corpus_ref)
+    execution = _execution_metrics(cursor, corpus_ref)
+    documents = _document_metrics(cursor, corpus_ref)
     candidate_storage = sum(
         int(row["total_bytes"])
         for row in relation_sizes
         if str(row["relation"]).startswith("resolution.binding_")
     )
+    member_count = int(binding["candidate_members"])
     return {
         "corpus_ref": corpus_ref,
-        "documents": document_metrics,
+        "documents": documents,
         "semantic_metrics": {
-            "factors": factor_metrics,
-            "binding": candidate_metrics,
-            "demands": demand_metrics,
+            "factors": factors,
+            "binding": binding,
+            "demands": demands,
         },
-        "execution_metrics": execution_metrics,
+        "execution_metrics": execution,
         "physical_storage": {
             "relations": relation_sizes,
             "binding_relation_total_bytes": candidate_storage,
@@ -453,8 +443,8 @@ def collect_binding_report(
         },
         "measurement_boundary": {
             "relation_sizes_are_database_wide": True,
-            "semantic_counts_are_corpus_scoped": bool(corpus_ref),
-            "occurrence_and_reuse_counts_are_corpus_scoped": bool(corpus_ref),
+            "semantic_counts_are_corpus_scoped": corpus_ref is not None,
+            "occurrence_and_reuse_counts_are_corpus_scoped": corpus_ref is not None,
             "legacy_json_size_included": False,
             "candidate_membership_does_not_imply_identity": True,
             "zero_member_set_does_not_imply_expletivity": True,
@@ -471,8 +461,8 @@ def main() -> int:
 
     with psycopg.connect(args.database_url) as connection:
         with connection.cursor() as cursor:
-            output = collect_binding_report(cursor, corpus_ref=args.corpus_ref)
-    encoded = json.dumps(output, sort_keys=True)
+            report = collect_binding_report(cursor, corpus_ref=args.corpus_ref)
+    encoded = json.dumps(report, sort_keys=True)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(encoded + "\n", encoding="utf-8")
