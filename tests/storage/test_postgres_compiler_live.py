@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from scripts.run_gwb_binding_baseline import _coordinate_report
 from src.policy.corpus_compilation import (
     build_corpus_manifest,
     default_compiler_context,
@@ -108,6 +109,16 @@ def test_html_source_and_canonical_coordinates_remain_distinct(tmp_path: Path) -
         document_ref = first.document_refs[0]
         assert document_ref != source_document_ref
 
+        coordinate_report = _coordinate_report(store, first.corpus_ref)
+        assert coordinate_report["documents"] == 1
+        assert coordinate_report["html_documents"] == 1
+        assert coordinate_report["source_equals_canonical_documents"] == 0
+        assert coordinate_report["canonical_markup_documents"] == 0
+        assert coordinate_report["licensed_mentions"] > 0
+        assert coordinate_report["licensed_mention_surface_mismatches"] == 0
+        assert coordinate_report["markup_fragment_mentions"] == 0
+        assert coordinate_report["markup_lexemes"] == 0
+
         with store.transaction() as cursor:
             cursor.execute(
                 """
@@ -201,6 +212,7 @@ def test_html_source_and_canonical_coordinates_remain_distinct(tmp_path: Path) -
         assert second.document_refs == first.document_refs
         assert second.demand_refs == first.demand_refs
         assert second.failure_refs == ()
+        assert _coordinate_report(store, second.corpus_ref) == coordinate_report
         with store.transaction() as cursor:
             cursor.execute(
                 """
