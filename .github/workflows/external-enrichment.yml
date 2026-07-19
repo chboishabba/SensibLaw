@@ -1,0 +1,123 @@
+name: External enrichment
+
+on:
+  push:
+    paths:
+      - "src/ontology/external_enrichment.py"
+      - "src/ontology/wikimedia_providers.py"
+      - "src/pnf/external_enrichment_projection.py"
+      - "src/ingestion/web_fetch.py"
+      - "src/ingestion/link_follow.py"
+      - "src/runtime/**"
+      - "src/sources/legal_follow.py"
+      - "src/storage/postgres/enrichment_store.py"
+      - "database/postgres_migrations/014_external_pnf_enrichment.sql"
+      - "scripts/run_wikimedia_enrichment.py"
+      - "scripts/run_legal_follow.py"
+      - "tests/ingestion/test_web_fetch_and_follow.py"
+      - "tests/ontology/test_wikimedia_providers.py"
+      - "tests/pnf/test_external_enrichment.py"
+      - "tests/sources/test_legal_follow.py"
+      - "tests/storage/test_binding_migration_chain.py"
+      - ".github/workflows/external-enrichment.yml"
+  pull_request:
+    paths:
+      - "src/ontology/external_enrichment.py"
+      - "src/ontology/wikimedia_providers.py"
+      - "src/pnf/external_enrichment_projection.py"
+      - "src/ingestion/web_fetch.py"
+      - "src/ingestion/link_follow.py"
+      - "src/runtime/**"
+      - "src/sources/legal_follow.py"
+      - "src/storage/postgres/enrichment_store.py"
+      - "database/postgres_migrations/014_external_pnf_enrichment.sql"
+      - "scripts/run_wikimedia_enrichment.py"
+      - "scripts/run_legal_follow.py"
+      - "tests/ingestion/test_web_fetch_and_follow.py"
+      - "tests/ontology/test_wikimedia_providers.py"
+      - "tests/pnf/test_external_enrichment.py"
+      - "tests/sources/test_legal_follow.py"
+      - "tests/storage/test_binding_migration_chain.py"
+      - ".github/workflows/external-enrichment.yml"
+  workflow_dispatch:
+
+jobs:
+  offline-proof:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sensiblaw_enrichment_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sensiblaw_enrichment_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sensiblaw_enrichment_ci
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: sensiblaw_enrichment_ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install environment
+        run: |
+          python -m pip install --upgrade pip uv
+          uv sync --frozen --extra test --extra dev
+      - name: Apply immutable migrations
+        run: bash scripts/apply_pg_migrations.sh
+      - name: Ruff
+        run: |
+          uv run ruff check \
+            src/ontology/external_enrichment.py \
+            src/ontology/wikimedia_providers.py \
+            src/pnf/external_enrichment_projection.py \
+            src/ingestion/web_fetch.py \
+            src/ingestion/link_follow.py \
+            src/runtime \
+            src/sources/legal_follow.py \
+            src/storage/postgres/enrichment_store.py \
+            scripts/run_wikimedia_enrichment.py \
+            scripts/run_legal_follow.py \
+            tests/ingestion/test_web_fetch_and_follow.py \
+            tests/ontology/test_wikimedia_providers.py \
+            tests/pnf/test_external_enrichment.py \
+            tests/sources/test_legal_follow.py \
+            tests/storage/test_binding_migration_chain.py
+      - name: Candidate and pressure algebra
+        run: |
+          mkdir -p test-results
+          set -o pipefail
+          uv run pytest -x -vv \
+            tests/pnf/test_external_enrichment.py \
+            tests/ontology/test_wikimedia_providers.py \
+            2>&1 | tee test-results/external-candidate-pressure.log
+      - name: URL and legal follow receipts
+        run: |
+          set -o pipefail
+          uv run pytest -x -vv \
+            tests/ingestion/test_web_fetch_and_follow.py \
+            tests/sources/test_legal_follow.py \
+            2>&1 | tee test-results/web-legal-follow.log
+      - name: Migration contract
+        run: |
+          set -o pipefail
+          uv run pytest -x -vv tests/storage/test_binding_migration_chain.py \
+            2>&1 | tee test-results/enrichment-migration.log
+      - name: Upload proof transcripts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: external-enrichment-proof-logs
+          path: test-results/*.log
+          if-no-files-found: ignore
