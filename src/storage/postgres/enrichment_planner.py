@@ -45,7 +45,7 @@ def load_external_lookup_demands(
     factor because local refinements need not duplicate those structural rows.
     The canonical anchor-range to licensed-span join is authoritative; an
     alternative ``value_ref`` join is retained only as a compatibility fallback.
-    Residual state remains anchored to the demand's active revision.
+    Requested work is read from normalized ``resolution.demand_facet`` rows.
     """
 
     if limit < 1:
@@ -68,10 +68,10 @@ def load_external_lookup_demands(
                 ARRAY[]::TEXT[]
             ) AS local_type_refs,
             COALESCE(
-                ARRAY_AGG(DISTINCT residual.residual_type_ref)
-                    FILTER (WHERE residual.residual_type_ref IS NOT NULL),
+                ARRAY_AGG(DISTINCT facet.facet_ref)
+                    FILTER (WHERE facet.facet_ref IS NOT NULL),
                 ARRAY[]::TEXT[]
-            ) AS residual_refs
+            ) AS requested_facets
         FROM resolution.demand AS demand
         JOIN algebra.factor AS factor
           ON factor.factor_ref = demand.factor_ref
@@ -97,9 +97,8 @@ def load_external_lookup_demands(
         LEFT JOIN language.annotation_node AS alternative_node
           ON alternative_node.annotation_node_ref = alternative.value_ref
          AND alternative_node.annotation_type_ref = 'licensed_mention'
-        LEFT JOIN algebra.residual AS residual
-          ON residual.target_ref = demand.factor_revision_ref
-         AND residual.residual_state_ref = 'open'
+        LEFT JOIN resolution.demand_facet AS facet
+          ON facet.demand_ref = demand.demand_ref
         WHERE demand.demand_state_ref = 'open'
           AND demand.budget_class_ref = 'bounded_external_evidence'
           AND (CAST(%s AS TEXT) IS NULL OR EXISTS (
@@ -134,13 +133,13 @@ def load_external_lookup_demands(
             parser_pos,
             surface,
             local_type_refs,
-            residual_refs,
+            requested_facets,
         ) = row
         normalized_surface = str(surface or "").strip()
         if not normalized_surface:
             continue
         type_refs = tuple(sorted(str(value) for value in local_type_refs or ()))
-        residuals = {str(value) for value in residual_refs or ()}
+        facets = {str(value) for value in requested_facets or ()}
         pos = str(parser_pos) if parser_pos is not None else None
         if _is_pronominal(type_refs, pos):
             continue
@@ -150,7 +149,7 @@ def load_external_lookup_demands(
         )
         if (
             str(factor_type) == "semantic.mention_identity"
-            and "external_identity_unresolved" in residuals
+            and "external_identity_unresolved" in facets
             and _entity_shaped(type_refs, pos)
         ):
             projected.append(
@@ -168,7 +167,7 @@ def load_external_lookup_demands(
         if (
             include_wiktionary
             and pos in _LEXICAL_POS
-            and residuals.intersection(
+            and facets.intersection(
                 {"local_type_unresolved", "external_identity_unresolved"}
             )
         ):
