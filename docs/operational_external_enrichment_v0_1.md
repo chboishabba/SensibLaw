@@ -1,10 +1,10 @@
-# Operational external enrichment v0.1
+# Operational external enrichment v0.2
 
 Date: 2026-07-19
 
 ## Purpose
 
-The local compiler now produces stable PNF factors and resolution demands before
+The local compiler produces stable PNF factors and resolution demands before
 any registry request is made. External enrichment is a later, explicit phase:
 
 ```text
@@ -12,7 +12,7 @@ source bytes
   -> canonical text
   -> local parser / annotation graph
   -> local PNF factors and open demands
-  -> external lookup plan
+  -> persisted or artifact-derived external lookup plan
   -> bounded Wikimedia microbatches
   -> candidate sets and pressure receipts
   -> governed typed meet (not implemented by lookup)
@@ -56,9 +56,14 @@ Each provider candidate set emits a before/after vector containing:
 - unresolved lexical sense.
 
 Lookup can remove absence pressure while revealing ambiguity or type pressure.
-The receipt records the complete vector and residual transitions; it does not
-claim that every observation reduces total pressure. Candidate mutation and
-promotion remain downstream governance operations.
+`monotone` compares the complete vector totals, not only lookup absence. A
+three-candidate result can therefore be correctly non-monotone even though a
+provider returned useful candidates.
+
+Wikidata P31/P279 QIDs are compared only with explicit QID-shaped local type
+constraints. Linguistic types such as `named_entity_candidate` are retained as
+incomplete cross-vocabulary evidence rather than falsely declared incompatible.
+Candidate mutation and promotion remain downstream governance operations.
 
 ## Microbatch and cache policy
 
@@ -91,9 +96,48 @@ The original `resolution.demand` remains authoritative for whether work is
 open. External rows are evidence and candidate projections linked to that
 demand.
 
+`enrichment_planner.py` reconstructs provider work directly from normalized
+PostgreSQL rows:
+
+```text
+resolution.demand
+  -> factor revision
+  -> factor alternatives
+  -> licensed mention annotation node
+  -> parser POS / open residuals
+  -> ExternalLookupDemand
+```
+
+It skips pronominal factors, prioritizes structurally entity-shaped mentions,
+applies a hard plan limit, and performs no network work.
+
+## Running over a persisted corpus
+
+Plan directly from a compiled corpus without network access:
+
+```bash
+python scripts/run_wikimedia_enrichment.py \
+  --corpus-ref "$CORPUS_REF" \
+  --database-url "$DATABASE_URL" \
+  --output test-results/wikimedia-plan.json \
+  --plan-only
+```
+
+Run bounded providers and persist candidate sets against the existing demands:
+
+```bash
+python scripts/run_wikimedia_enrichment.py \
+  --corpus-ref "$CORPUS_REF" \
+  --database-url "$DATABASE_URL" \
+  --output test-results/wikimedia-results.json \
+  --plan-limit 1000 \
+  --microbatch-size 16 \
+  --request-budget-per-provider 64
+```
+
 ## Running over compiler artifacts
 
-Plan without network access:
+The same phase can operate on explicit compiler artifact JSON:
 
 ```bash
 python scripts/run_wikimedia_enrichment.py \
@@ -102,18 +146,8 @@ python scripts/run_wikimedia_enrichment.py \
   --plan-only
 ```
 
-Run bounded providers and write a review artifact:
-
-```bash
-python scripts/run_wikimedia_enrichment.py \
-  --input path/to/compiler-output.json \
-  --output test-results/wikimedia-results.json \
-  --microbatch-size 16 \
-  --request-budget-per-provider 64
-```
-
-Add `--database-url` or set `DATABASE_URL` only when the input artifacts refer to
-demands already persisted in that database.
+Add `--database-url` only when those artifact demands already exist in that
+database and the candidate sets should be persisted.
 
 ## URL ingestion and source follow
 
@@ -128,10 +162,9 @@ and link policy.
 
 ## Legal lanes
 
-AU, GB, and US now share one `LegalFollowProfile` contract and one bounded
-runtime. Endpoints are tagged as official or supporting and by source role.
-The profiles include official legislation and court surfaces plus selected
-research indexes.
+AU, GB, and US share one `LegalFollowProfile` contract and one bounded runtime.
+Endpoints are tagged as official or supporting and by source role. The profiles
+include official legislation and court surfaces plus selected research indexes.
 
 The Brexit v2 lane uses real legislation.gov.uk and Find Case Law targets and
 never silently substitutes a fixture after a failed live request. The legacy
@@ -150,7 +183,8 @@ python scripts/run_legal_follow.py \
 ## CI
 
 `.github/workflows/external-enrichment.yml` is offline by design. It applies all
-immutable migrations and tests mocked Wikimedia transports, cache reuse,
-Q30 alias behavior, URL failure receipts, bounded traversal, and equal legal
-follow capability. Live provider smoke tests are intentionally not required for
-pull-request correctness.
+immutable migrations and tests mocked Wikimedia transports, cache reuse, Q30
+alias behavior, full-vector pressure semantics, direct PostgreSQL planning, URL
+failure receipts, bounded traversal, and equal legal-follow capability. Live
+provider smoke tests are intentionally not required for pull-request
+correctness.
