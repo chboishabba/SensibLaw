@@ -43,9 +43,6 @@ on:
       - ".github/workflows/external-enrichment.yml"
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   offline-proof:
     runs-on: ubuntu-latest
@@ -72,8 +69,6 @@ jobs:
       PGDATABASE: sensiblaw_enrichment_ci
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: agent/wikidata-pnf-enrichment
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -83,11 +78,11 @@ jobs:
           uv sync --frozen --extra test --extra dev
       - name: Apply immutable migrations
         run: bash scripts/apply_pg_migrations.sh
-      - name: Ruff autofix
+      - name: Ruff
         run: |
           mkdir -p test-results
           set -o pipefail
-          uv run ruff check --fix \
+          uv run ruff check \
             src/ontology/external_enrichment.py \
             src/ontology/wikimedia_providers.py \
             src/pnf/external_enrichment_projection.py \
@@ -105,16 +100,6 @@ jobs:
             tests/sources/test_legal_follow.py \
             tests/storage/test_binding_migration_chain.py \
             2>&1 | tee test-results/ruff.log
-      - name: Commit mechanical Ruff fixes
-        if: github.event_name == 'push'
-        run: |
-          if ! git diff --quiet; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add src tests scripts
-            git commit -m "Fix external enrichment lint"
-            git push origin HEAD:agent/wikidata-pnf-enrichment
-          fi
       - name: Candidate and pressure algebra
         run: |
           set -o pipefail
