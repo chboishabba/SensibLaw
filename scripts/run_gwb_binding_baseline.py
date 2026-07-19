@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -66,6 +67,14 @@ def _report(store: PostgresCompilerStore, corpus_ref: str) -> dict[str, Any]:
         return collect_binding_report(cursor, corpus_ref=corpus_ref)
 
 
+def _refs_sha256(refs: tuple[str, ...]) -> str:
+    digest = hashlib.sha256()
+    for ref in refs:
+        digest.update(ref.encode("utf-8"))
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
 def _compile_summary(compilation: Any) -> dict[str, object]:
     return {
         "corpus_ref": compilation.corpus_ref,
@@ -73,7 +82,7 @@ def _compile_summary(compilation: Any) -> dict[str, object]:
         "open_demands": len(compilation.demand_refs),
         "failures": len(compilation.failure_refs),
         "document_refs": list(compilation.document_refs),
-        "demand_refs_sha256_basis": list(compilation.demand_refs),
+        "demand_refs_sha256": _refs_sha256(compilation.demand_refs),
         "failure_refs": list(compilation.failure_refs),
     }
 
@@ -158,6 +167,13 @@ def _assert_reuse(
     return checks
 
 
+def _relative_input_dir(input_dir: Path) -> str:
+    try:
+        return str(input_dir.relative_to(ROOT))
+    except ValueError:
+        return str(input_dir)
+
+
 def main() -> int:
     args = _parse_args()
     input_dir = args.input_dir.resolve()
@@ -194,7 +210,7 @@ def main() -> int:
 
     output = {
         "proof": "full-gwb-local-pnf-binding-baseline:v0_1",
-        "input_dir": str(input_dir.relative_to(ROOT)),
+        "input_dir": _relative_input_dir(input_dir),
         "source_files": [str(path.relative_to(input_dir)) for path in source_files],
         "expected_documents": args.expected_documents,
         "first_compile": _compile_summary(first),
