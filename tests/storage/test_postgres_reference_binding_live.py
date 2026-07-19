@@ -7,6 +7,7 @@ import pytest
 
 from scripts.report_binding_candidate_storage import collect_binding_report
 from src.policy.corpus_compilation import default_compiler_context
+from src.policy.operational_corpus_compilation import OPERATIONAL_COMPILER_CONTRACT
 from src.policy.postgres_corpus_compilation import compile_directory_postgres
 from src.storage.postgres import PostgresCompilerStore
 
@@ -76,9 +77,9 @@ def test_reference_binding_mini_persists_nonempty_and_zero_member_sets() -> None
                 SELECT COUNT(*)
                 FROM execution.document_compilation_build
                 WHERE document_ref = ANY(%s)
-                  AND compiler_contract_ref = 'postgres-semantic-compiler:v0_7'
+                  AND compiler_contract_ref = %s
                 """,
-                (list(first.document_refs),),
+                (list(first.document_refs), OPERATIONAL_COMPILER_CONTRACT),
             )
             first_document_build_count = int(cursor.fetchone()[0])
             cursor.execute(
@@ -192,9 +193,9 @@ def test_reference_binding_mini_persists_nonempty_and_zero_member_sets() -> None
                 SELECT COUNT(*)
                 FROM execution.document_compilation_build
                 WHERE document_ref = ANY(%s)
-                  AND compiler_contract_ref = 'postgres-semantic-compiler:v0_7'
+                  AND compiler_contract_ref = %s
                 """,
-                (list(first.document_refs),),
+                (list(first.document_refs), OPERATIONAL_COMPILER_CONTRACT),
             )
             second_document_build_count = int(cursor.fetchone()[0])
             cursor.execute(
