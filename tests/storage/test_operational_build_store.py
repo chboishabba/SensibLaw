@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import hashlib
+
+from src.policy.corpus_compilation import default_compiler_context
+from src.policy.postgres_corpus_compilation import _operational_document_ref
 from src.storage.postgres.operational_build_store import (
     load_completed_operational_build,
     operational_build_ref,
@@ -36,15 +40,54 @@ class Cursor:
 def test_operational_build_ref_is_exact_keyed() -> None:
     first = operational_build_ref(
         document_ref="document:test",
-        compiler_contract_ref="postgres-semantic-compiler:v0_7",
+        compiler_contract_ref="postgres-semantic-compiler:v0_8",
         build_key_sha256="00" * 32,
     )
     second = operational_build_ref(
         document_ref="document:test",
-        compiler_contract_ref="postgres-semantic-compiler:v0_7",
+        compiler_contract_ref="postgres-semantic-compiler:v0_8",
         build_key_sha256="11" * 32,
     )
     assert first != second
+
+
+def test_operational_document_ref_is_canonical_coordinate_keyed() -> None:
+    context = default_compiler_context()
+    source_sha = hashlib.sha256(b"raw source").hexdigest()
+    first_canonical_sha = hashlib.sha256(b"canonical one").hexdigest()
+    second_canonical_sha = hashlib.sha256(b"canonical two").hexdigest()
+
+    first = _operational_document_ref(
+        source_content_sha256=source_sha,
+        canonical_text_sha256=first_canonical_sha,
+        media_type="text/html",
+        media_adapter_ref="media:html:v0_1",
+        context=context,
+    )
+    repeated = _operational_document_ref(
+        source_content_sha256=source_sha,
+        canonical_text_sha256=first_canonical_sha,
+        media_type="text/html",
+        media_adapter_ref="media:html:v0_1",
+        context=context,
+    )
+    changed_canonical = _operational_document_ref(
+        source_content_sha256=source_sha,
+        canonical_text_sha256=second_canonical_sha,
+        media_type="text/html",
+        media_adapter_ref="media:html:v0_1",
+        context=context,
+    )
+    changed_adapter = _operational_document_ref(
+        source_content_sha256=source_sha,
+        canonical_text_sha256=first_canonical_sha,
+        media_type="text/html",
+        media_adapter_ref="media:html:v0_2",
+        context=context,
+    )
+
+    assert first == repeated
+    assert len({first, changed_canonical, changed_adapter}) == 3
 
 
 def test_completed_build_replays_exact_demand_refs() -> None:
@@ -52,7 +95,7 @@ def test_completed_build_replays_exact_demand_refs() -> None:
     demands = load_completed_operational_build(
         cursor,
         document_ref="document:test",
-        compiler_contract_ref="postgres-semantic-compiler:v0_7",
+        compiler_contract_ref="postgres-semantic-compiler:v0_8",
         build_key_sha256="00" * 32,
     )
     assert demands == ("demand:a", "demand:b")
@@ -65,7 +108,7 @@ def test_missing_build_is_not_confused_with_zero_demand_build() -> None:
         load_completed_operational_build(
             missing,
             document_ref="document:test",
-            compiler_contract_ref="postgres-semantic-compiler:v0_7",
+            compiler_contract_ref="postgres-semantic-compiler:v0_8",
             build_key_sha256="00" * 32,
         )
         is None
@@ -75,7 +118,7 @@ def test_missing_build_is_not_confused_with_zero_demand_build() -> None:
     assert load_completed_operational_build(
         zero_demands,
         document_ref="document:test",
-        compiler_contract_ref="postgres-semantic-compiler:v0_7",
+        compiler_contract_ref="postgres-semantic-compiler:v0_8",
         build_key_sha256="00" * 32,
     ) == ()
 
@@ -85,7 +128,7 @@ def test_persisted_build_links_all_demands() -> None:
     build_ref = persist_completed_operational_build(
         cursor,
         document_ref="document:test",
-        compiler_contract_ref="postgres-semantic-compiler:v0_7",
+        compiler_contract_ref="postgres-semantic-compiler:v0_8",
         build_key_sha256="00" * 32,
         graph_ref="pnf:test",
         demand_refs=["demand:b", "demand:a", "demand:a"],
