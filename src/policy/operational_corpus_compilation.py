@@ -8,6 +8,7 @@ materializes pairwise binding evidence or per-candidate factor alternatives.
 
 from __future__ import annotations
 
+import hashlib
 from typing import Any, Mapping
 
 from src.pnf.operational_reference_binding import (
@@ -16,7 +17,7 @@ from src.pnf.operational_reference_binding import (
 from src.policy import corpus_compilation as legacy
 
 
-OPERATIONAL_COMPILER_CONTRACT = "postgres-semantic-compiler:v0_7"
+OPERATIONAL_COMPILER_CONTRACT = "postgres-semantic-compiler:v0_8"
 
 
 def compile_document_operational(
@@ -64,11 +65,14 @@ def compile_document_operational(
         }
     if not text:
         raise ValueError("source normalisation produced empty canonical text")
+    canonical_text_sha256 = hashlib.sha256(text.encode("utf-8")).hexdigest()
     context_payload = compiler_context.to_dict()
     build_key_sha256 = legacy.canonical_sha256(
         {
             "document_ref": document_ref,
             "content_sha256": content_sha256,
+            "canonical_text_sha256": canonical_text_sha256,
+            "media_adapter_ref": source_normalisation["adapter_ref"],
             "context": context_payload,
             "compiler_contract": OPERATIONAL_COMPILER_CONTRACT,
         }
@@ -88,10 +92,10 @@ def compile_document_operational(
     layer = legacy.AnnotationLayer(
         layer_ref="annotation-layer:"
         + legacy.canonical_sha256(
-            {"document_ref": document_ref, "content": content_sha256}
+            {"document_ref": document_ref, "content": canonical_text_sha256}
         ),
         tokenizer_ref=compiler_context.annotation_backend_ref,
-        text_sha256=content_sha256,
+        text_sha256=canonical_text_sha256,
         token_annotations=tuple(
             legacy.TokenAnnotation(index, "canonical_token", token, (source_ref,))
             for index, (token, _start, _end) in enumerate(tokens)
@@ -116,7 +120,7 @@ def compile_document_operational(
         legacy._semantic_annotation_layer(
             document_ref=document_ref,
             source_ref=source_ref,
-            content_sha256=content_sha256,
+            content_sha256=canonical_text_sha256,
             tokens=tokens,
             base_layer=layer,
             text=text,
@@ -194,6 +198,7 @@ def compile_document_operational(
     demands = legacy.derive_resolution_demands(refined_pnf_graph)
     artifacts = {
         "canonical_text": text,
+        "canonical_text_sha256": canonical_text_sha256,
         "source_normalisation": source_normalisation,
         "build_key_sha256": build_key_sha256,
         "licensing": licensing,
