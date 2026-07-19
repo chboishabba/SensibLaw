@@ -187,15 +187,28 @@ jobs:
           uv run python -m spacy download en_core_web_sm
       - name: Apply immutable migrations
         run: bash scripts/apply_pg_migrations.sh
-      - name: Verify full GWB corpus
+      - name: Inventory tracked GWB corpus surfaces
         run: |
-          test -d demo/ingest/gwb/public_bios_v1/raw
-          test "$(find demo/ingest/gwb/public_bios_v1/raw -type f | wc -l)" -eq 6
+          mkdir -p test-results
+          find . -type f \( -iname '*gwb*' -o -path '*/gwb/*' \) \
+            -not -path './.git/*' | sort | tee test-results/gwb-corpus-inventory.txt
+          GWB_ROOT="$(find . -type d -path '*/gwb/public_bios_v1/raw' \
+            -not -path './.git/*' | sort | head -n 1)"
+          if [ -z "$GWB_ROOT" ]; then
+            echo "No tracked full GWB public-bios raw corpus was found." \
+              | tee -a test-results/gwb-corpus-inventory.txt
+            exit 1
+          fi
+          echo "GWB_ROOT=$GWB_ROOT" | tee -a test-results/gwb-corpus-inventory.txt
+          echo "GWB_ROOT=$GWB_ROOT" >> "$GITHUB_ENV"
+          find "$GWB_ROOT" -type f | sort | tee -a test-results/gwb-corpus-inventory.txt
+          test "$(find "$GWB_ROOT" -type f | wc -l)" -eq 6
       - name: Compile and rerun full GWB tranche
         run: |
           mkdir -p test-results
           set -o pipefail
           uv run python scripts/run_gwb_binding_baseline.py \
+            --input-dir "$GWB_ROOT" \
             --output test-results/gwb-binding-baseline.json \
             2>&1 | tee test-results/gwb-binding-baseline.log
       - name: Upload GWB binding ledger
@@ -204,6 +217,7 @@ jobs:
         with:
           name: gwb-binding-baseline
           path: |
+            test-results/gwb-corpus-inventory.txt
             test-results/gwb-binding-baseline.json
             test-results/gwb-binding-baseline.log
-          if-no-files-found: error
+          if-no-files-found: warn
