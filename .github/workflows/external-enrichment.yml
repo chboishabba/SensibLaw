@@ -10,6 +10,7 @@ on:
       - "src/ingestion/link_follow.py"
       - "src/runtime/**"
       - "src/sources/legal_follow.py"
+      - "src/sources/national_archives/brexit_legal_follow_lane.py"
       - "src/storage/postgres/enrichment_store.py"
       - "database/postgres_migrations/014_external_pnf_enrichment.sql"
       - "scripts/run_wikimedia_enrichment.py"
@@ -29,6 +30,7 @@ on:
       - "src/ingestion/link_follow.py"
       - "src/runtime/**"
       - "src/sources/legal_follow.py"
+      - "src/sources/national_archives/brexit_legal_follow_lane.py"
       - "src/storage/postgres/enrichment_store.py"
       - "database/postgres_migrations/014_external_pnf_enrichment.sql"
       - "scripts/run_wikimedia_enrichment.py"
@@ -78,6 +80,8 @@ jobs:
         run: bash scripts/apply_pg_migrations.sh
       - name: Ruff
         run: |
+          mkdir -p test-results
+          set -o pipefail
           uv run ruff check \
             src/ontology/external_enrichment.py \
             src/ontology/wikimedia_providers.py \
@@ -86,6 +90,7 @@ jobs:
             src/ingestion/link_follow.py \
             src/runtime \
             src/sources/legal_follow.py \
+            src/sources/national_archives/brexit_legal_follow_lane.py \
             src/storage/postgres/enrichment_store.py \
             scripts/run_wikimedia_enrichment.py \
             scripts/run_legal_follow.py \
@@ -93,10 +98,10 @@ jobs:
             tests/ontology/test_wikimedia_providers.py \
             tests/pnf/test_external_enrichment.py \
             tests/sources/test_legal_follow.py \
-            tests/storage/test_binding_migration_chain.py
+            tests/storage/test_binding_migration_chain.py \
+            2>&1 | tee test-results/ruff.log
       - name: Candidate and pressure algebra
         run: |
-          mkdir -p test-results
           set -o pipefail
           uv run pytest -x -vv \
             tests/pnf/test_external_enrichment.py \
