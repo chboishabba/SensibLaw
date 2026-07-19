@@ -67,6 +67,112 @@ def _report(store: PostgresCompilerStore, corpus_ref: str) -> dict[str, Any]:
         return collect_binding_report(cursor, corpus_ref=corpus_ref)
 
 
+def _coordinate_report(
+    store: PostgresCompilerStore, corpus_ref: str
+) -> dict[str, int]:
+    """Measure source/canonical separation and persisted span/token parity."""
+
+    with store.transaction() as cursor:
+        cursor.execute(
+            """
+            SELECT
+                COUNT(*),
+                COUNT(*) FILTER (WHERE document.media_type = 'text/html'),
+                COUNT(*) FILTER (WHERE source.payload = canonical.payload),
+                COUNT(*) FILTER (
+                    WHERE document.media_type = 'text/html'
+                      AND convert_from(canonical.payload, 'UTF8') ~*
+                          '<[[:space:]]*/?[[:space:]]*'
+                          '(html|head|body|script|style|div|span|a|li)'
+                          '([[:space:]]|>|/)'
+                )
+            FROM corpus.document AS document
+            JOIN corpus.binary_content AS source
+              ON source.content_ref = document.source_content_ref
+            JOIN corpus.canonical_content AS canonical
+              ON canonical.canonical_ref = document.canonical_ref
+            WHERE document.document_ref IN (
+                SELECT DISTINCT occurrence.document_ref
+                FROM corpus.document_occurrence AS occurrence
+                WHERE occurrence.corpus_ref = %s
+            )
+            """,
+            (corpus_ref,),
+        )
+        (
+            document_count,
+            html_document_count,
+            source_equals_canonical_count,
+            canonical_markup_document_count,
+        ) = cursor.fetchone()
+
+        cursor.execute(
+            """
+            SELECT
+                COUNT(*),
+                COUNT(*) FILTER (
+                    WHERE substring(
+                        convert_from(canonical.payload, 'UTF8')
+                        FROM span.start_char + 1
+                        FOR span.end_char - span.start_char
+                    ) <> COALESCE(node.value_ref, '')
+                ),
+                COUNT(*) FILTER (
+                    WHERE COALESCE(node.value_ref, '') ~
+                          '^[[:space:]]*(<|</|class=|href=|data-)'
+                )
+            FROM corpus.span AS span
+            JOIN corpus.document AS document
+              ON document.document_ref = span.document_ref
+            JOIN corpus.canonical_content AS canonical
+              ON canonical.canonical_ref = document.canonical_ref
+            JOIN language.annotation_node AS node
+              ON node.span_ref = span.span_ref
+             AND node.annotation_type_ref = 'licensed_mention'
+            WHERE span.span_type_ref = 'licensed_mention'
+              AND span.document_ref IN (
+                  SELECT DISTINCT occurrence.document_ref
+                  FROM corpus.document_occurrence AS occurrence
+                  WHERE occurrence.corpus_ref = %s
+              )
+            """,
+            (corpus_ref,),
+        )
+        mention_count, mention_mismatch_count, markup_mention_count = cursor.fetchone()
+
+        cursor.execute(
+            """
+            SELECT COUNT(DISTINCT lexeme.lexeme_id)
+            FROM language.tokenizer_run AS run
+            JOIN language.token_stream_chunk AS chunk
+              ON chunk.tokenizer_run_ref = run.tokenizer_run_ref
+            JOIN language.codec_symbol AS symbol
+              ON symbol.codec_ref = chunk.codec_ref
+            JOIN language.lexeme AS lexeme
+              ON lexeme.lexeme_id = symbol.lexeme_id
+            WHERE run.document_ref IN (
+                SELECT DISTINCT occurrence.document_ref
+                FROM corpus.document_occurrence AS occurrence
+                WHERE occurrence.corpus_ref = %s
+            )
+              AND lexeme.normalized_text ~ '[<>]'
+            """,
+            (corpus_ref,),
+        )
+        markup_lexeme_count = int(cursor.fetchone()[0])
+
+    return {
+        "documents": int(document_count),
+        "html_documents": int(html_document_count),
+        "source_equals_canonical_documents": int(source_equals_canonical_count),
+        "canonical_markup_documents": int(canonical_markup_document_count),
+        "licensed_mentions": int(mention_count),
+        "licensed_mention_surface_mismatches": int(mention_mismatch_count),
+        "markup_fragment_mentions": int(markup_mention_count),
+        "markup_lexemes": markup_lexeme_count,
+    }
+
+
 def _refs_sha256(refs: tuple[str, ...]) -> str:
     digest = hashlib.sha256()
     for ref in refs:
@@ -88,7 +194,11 @@ def _compile_summary(compilation: Any) -> dict[str, object]:
 
 
 def _assert_first_run(
-    compilation: Any, report: dict[str, Any], *, expected_documents: int
+    compilation: Any,
+    report: dict[str, Any],
+    coordinate_report: dict[str, int],
+    *,
+    expected_documents: int,
 ) -> None:
     documents = report["documents"]
     binding = report["semantic_metrics"]["binding"]
@@ -109,12 +219,23 @@ def _assert_first_run(
     assert execution["pairwise_binding_evidence_rows"] == 0
     assert execution["occurrence_states"] == {"compiled": expected_documents}
 
+    assert coordinate_report["documents"] == expected_documents
+    assert coordinate_report["html_documents"] == expected_documents
+    assert coordinate_report["source_equals_canonical_documents"] == 0
+    assert coordinate_report["canonical_markup_documents"] == 0
+    assert coordinate_report["licensed_mentions"] > 0
+    assert coordinate_report["licensed_mention_surface_mismatches"] == 0
+    assert coordinate_report["markup_fragment_mentions"] == 0
+    assert coordinate_report["markup_lexemes"] == 0
+
 
 def _assert_reuse(
     first: Any,
     second: Any,
     first_report: dict[str, Any],
     second_report: dict[str, Any],
+    first_coordinate_report: dict[str, int],
+    second_coordinate_report: dict[str, int],
     *,
     expected_documents: int,
 ) -> dict[str, object]:
@@ -149,6 +270,9 @@ def _assert_reuse(
         ),
         "demands_unchanged": (
             second_demands["demands"] == first_demands["demands"]
+        ),
+        "canonical_coordinates_unchanged": (
+            second_coordinate_report == first_coordinate_report
         ),
         "all_occurrences_reused": (
             second_execution["occurrence_states"]
@@ -190,26 +314,31 @@ def main() -> int:
     try:
         first = _compile(store, input_dir)
         first_report = _report(store, first.corpus_ref)
+        first_coordinate_report = _coordinate_report(store, first.corpus_ref)
         _assert_first_run(
             first,
             first_report,
+            first_coordinate_report,
             expected_documents=args.expected_documents,
         )
 
         second = _compile(store, input_dir)
         second_report = _report(store, second.corpus_ref)
+        second_coordinate_report = _coordinate_report(store, second.corpus_ref)
         reuse_checks = _assert_reuse(
             first,
             second,
             first_report,
             second_report,
+            first_coordinate_report,
+            second_coordinate_report,
             expected_documents=args.expected_documents,
         )
     finally:
         store.close()
 
     output = {
-        "proof": "full-gwb-local-pnf-binding-baseline:v0_1",
+        "proof": "full-gwb-local-pnf-binding-baseline:v0_2",
         "input_dir": _relative_input_dir(input_dir),
         "source_files": [str(path.relative_to(input_dir)) for path in source_files],
         "expected_documents": args.expected_documents,
@@ -217,6 +346,8 @@ def main() -> int:
         "second_compile": _compile_summary(second),
         "first_report": first_report,
         "second_report": second_report,
+        "first_coordinate_integrity": first_coordinate_report,
+        "second_coordinate_integrity": second_coordinate_report,
         "reuse_checks": reuse_checks,
         "authority_boundary": {
             "candidate_membership_is_not_identity_closure": True,
