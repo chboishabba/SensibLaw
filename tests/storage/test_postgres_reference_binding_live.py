@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from scripts.report_binding_candidate_storage import collect_binding_report
 from src.policy.corpus_compilation import default_compiler_context
 from src.policy.postgres_corpus_compilation import compile_directory_postgres
 from src.storage.postgres import PostgresCompilerStore
@@ -114,6 +115,10 @@ def test_reference_binding_mini_persists_nonempty_and_zero_member_sets() -> None
                 (list(first.document_refs),),
             )
             linked_budget_classes = {str(row[0]) for row in cursor.fetchall()}
+            first_report = collect_binding_report(
+                cursor,
+                corpus_ref=first.corpus_ref,
+            )
 
         assert first.failure_refs == ()
         assert len(first.document_refs) == 5
@@ -128,6 +133,42 @@ def test_reference_binding_mini_persists_nonempty_and_zero_member_sets() -> None
         assert pairwise_rows == 0
         assert demand_set_links > 0
         assert "bounded_document_local_evidence" in linked_budget_classes
+
+        report_binding = first_report["semantic_metrics"]["binding"]
+        report_demands = first_report["semantic_metrics"]["demands"]
+        report_execution = first_report["execution_metrics"]
+        assert first_report["documents"] == {
+            "document_occurrences": 5,
+            "documents": 5,
+        }
+        assert report_binding["candidate_sets"] == first_candidate_build_count
+        assert report_binding["zero_member_sets"] == zero_member_sets
+        assert report_binding["candidate_members"] == sum(
+            value[1] for value in first_counts.values()
+        )
+        assert set(report_binding["candidate_sets_by_referential_type"]) == {
+            "entity_reference",
+            "eventuality_reference",
+            "proposition_reference",
+        }
+        assert report_binding["accessible_candidates"] >= report_binding[
+            "candidate_members"
+        ]
+        assert report_binding["compatibility_retention_rate"] is not None
+        assert report_demands["demands"] == len(first.demand_refs)
+        assert report_demands["open_demands"] == len(first.demand_refs)
+        assert report_demands["demands_missing_factor_revision"] == 0
+        assert report_demands["candidate_set_linked_demands"] > 0
+        assert report_execution["pairwise_binding_evidence_rows"] == 0
+        assert report_execution["occurrence_states"] == {"compiled": 5}
+        assert first_report["measurement_boundary"] == {
+            "relation_sizes_are_database_wide": True,
+            "semantic_counts_are_corpus_scoped": True,
+            "occurrence_and_reuse_counts_are_corpus_scoped": True,
+            "legacy_json_size_included": False,
+            "candidate_membership_does_not_imply_identity": True,
+            "zero_member_set_does_not_imply_expletivity": True,
+        }
 
         second = compile_directory_postgres(
             FIXTURE,
@@ -165,6 +206,10 @@ def test_reference_binding_mini_persists_nonempty_and_zero_member_sets() -> None
                 (first.corpus_ref,),
             )
             reused_occurrences = int(cursor.fetchone()[0])
+            second_report = collect_binding_report(
+                cursor,
+                corpus_ref=first.corpus_ref,
+            )
 
         assert second.corpus_ref == first.corpus_ref
         assert second.document_refs == first.document_refs
@@ -173,5 +218,12 @@ def test_reference_binding_mini_persists_nonempty_and_zero_member_sets() -> None
         assert second_candidate_build_count == first_candidate_build_count
         assert second_document_build_count == first_document_build_count
         assert reused_occurrences == 5
+        assert second_report["semantic_metrics"] == first_report["semantic_metrics"]
+        assert second_report["execution_metrics"]["occurrence_states"] == {
+            "reused_compilation": 5
+        }
+        assert second_report["execution_metrics"][
+            "document_compilation_builds"
+        ] == first_report["execution_metrics"]["document_compilation_builds"]
     finally:
         store.close()
