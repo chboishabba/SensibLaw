@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 
+from src.pnf.reference_binding import REFERENCE_BINDING_CONTRACT_REF
 from src.policy import corpus_compilation as legacy
 from src.policy.corpus_compilation import default_compiler_context
 from src.policy.operational_corpus_compilation import (
@@ -33,8 +34,9 @@ def test_operational_compiler_never_materializes_pairwise_binding(monkeypatch) -
         "pairwise_binding_evidence_materialized"
     ] is False
     assert compilation.artifacts["reference_binding_operational_contract"] == (
-        OPERATIONAL_COMPILER_CONTRACT
+        REFERENCE_BINDING_CONTRACT_REF
     )
+    assert OPERATIONAL_COMPILER_CONTRACT == "postgres-semantic-compiler:v0_8"
     assert compilation.artifacts["binding_candidate_sets"]
     assert not any(
         row["evidence_type"] == "typed_binding_candidate"
@@ -69,6 +71,9 @@ def test_operational_html_uses_one_canonical_coordinate_system() -> None:
     canonical_sha256 = hashlib.sha256(canonical_text.encode("utf-8")).hexdigest()
 
     assert OPERATIONAL_COMPILER_CONTRACT == "postgres-semantic-compiler:v0_8"
+    assert artifacts["reference_binding_operational_contract"] == (
+        REFERENCE_BINDING_CONTRACT_REF
+    )
     assert "George W. Bush" in canonical_text
     assert "Patriot Act" in canonical_text
     assert "RawTagActor" not in canonical_text
