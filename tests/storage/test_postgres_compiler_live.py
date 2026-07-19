@@ -6,7 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from src.policy.corpus_compilation import default_compiler_context
+from src.policy.corpus_compilation import (
+    build_corpus_manifest,
+    default_compiler_context,
+)
 from src.policy.postgres_corpus_compilation import compile_directory_postgres
 from src.storage.postgres import PostgresCompilerStore
 
@@ -68,36 +71,70 @@ def test_html_source_and_canonical_coordinates_remain_distinct(tmp_path: Path) -
     """
     fixture = tmp_path / "html-canonical-corpus"
     fixture.mkdir()
-    (fixture / "bush.html").write_text(html, encoding="utf-8")
+    source_path = fixture / "bush.html"
+    source_path.write_text(html, encoding="utf-8")
+    source_bytes = html.encode("utf-8")
+    source_sha256 = hashlib.sha256(source_bytes).hexdigest()
+    context = default_compiler_context()
+    raw_manifest = build_corpus_manifest(fixture, context=context).to_dict()
+    source_document_ref = str(raw_manifest["ordered_documents"][0]["document_ref"])
 
     store = PostgresCompilerStore.connect(database_url)
     try:
+        # Seed the pre-v0.8 collision shape: raw HTML was both source and
+        # canonical payload under the source-only document identity.
+        with store.transaction() as cursor:
+            store.persist_context(cursor, context.to_dict())
+            store.persist_source_document(
+                cursor,
+                document_ref=source_document_ref,
+                media_type="text/html",
+                content_sha256=source_sha256,
+                source_bytes=source_bytes,
+                canonical_text=html,
+                adapter_ref="media:html:v0_1",
+                adapter_version=context.media_normalization_ref,
+                compiler_context_ref=context.context_ref,
+                normalization_ref=context.media_normalization_ref,
+            )
+
         first = compile_directory_postgres(
             fixture,
-            context=default_compiler_context(),
+            context=context,
             store=store,
         )
         assert first.failure_refs == ()
         assert len(first.document_refs) == 1
         document_ref = first.document_refs[0]
+        assert document_ref != source_document_ref
 
         with store.transaction() as cursor:
             cursor.execute(
                 """
-                SELECT source.payload, canonical.payload,
+                SELECT document.document_ref, source.payload, canonical.payload,
                        encode(canonical.content_sha256, 'hex')
                 FROM corpus.document AS document
                 JOIN corpus.binary_content AS source
                   ON source.content_ref = document.source_content_ref
                 JOIN corpus.canonical_content AS canonical
                   ON canonical.canonical_ref = document.canonical_ref
-                WHERE document.document_ref = %s
+                WHERE document.document_ref = ANY(%s)
+                ORDER BY document.document_ref
                 """,
-                (document_ref,),
+                ([source_document_ref, document_ref],),
             )
-            source_payload, canonical_payload, canonical_sha256 = cursor.fetchone()
-            source_text = bytes(source_payload).decode("utf-8")
-            canonical_text = bytes(canonical_payload).decode("utf-8")
+            document_rows = {
+                str(row[0]): (bytes(row[1]), bytes(row[2]), str(row[3]))
+                for row in cursor.fetchall()
+            }
+            source_payload, canonical_payload, canonical_sha256 = document_rows[
+                document_ref
+            ]
+            old_source_payload, old_canonical_payload, _old_sha256 = document_rows[
+                source_document_ref
+            ]
+            source_text = source_payload.decode("utf-8")
+            canonical_text = canonical_payload.decode("utf-8")
 
             cursor.execute(
                 """
@@ -131,6 +168,9 @@ def test_html_source_and_canonical_coordinates_remain_distinct(tmp_path: Path) -
             )
             persisted_lexemes = {str(row[0]) for row in cursor.fetchall()}
 
+        assert old_source_payload == source_bytes
+        assert old_canonical_payload == source_bytes
+        assert source_text == html
         assert "data-pnf-poison" in source_text
         assert "RawTagActor" in source_text
         assert "George W. Bush" in canonical_text
@@ -154,7 +194,7 @@ def test_html_source_and_canonical_coordinates_remain_distinct(tmp_path: Path) -
 
         second = compile_directory_postgres(
             fixture,
-            context=default_compiler_context(),
+            context=context,
             store=store,
         )
         assert second.corpus_ref == first.corpus_ref
