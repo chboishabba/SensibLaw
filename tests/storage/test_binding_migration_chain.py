@@ -18,6 +18,9 @@ def test_binding_migrations_repair_active_document_authority_and_add_reuse() -> 
     migration_012 = (
         MIGRATIONS / "012_binding_demand_links.sql"
     ).read_text(encoding="utf-8")
+    migration_013 = (
+        MIGRATIONS / "013_canonical_text_coordinate_build.sql"
+    ).read_text(encoding="utf-8")
 
     assert "REFERENCES compiler_document(document_ref)" in migration_008
     assert "DROP CONSTRAINT IF EXISTS factor_anchor_document_ref_fkey" in (
@@ -41,6 +44,10 @@ def test_binding_migrations_repair_active_document_authority_and_add_reuse() -> 
     assert "REFERENCES resolution.binding_candidate_set(candidate_set_ref)" in (
         migration_012
     )
+
+    assert "compiler.document.local-binding" in migration_013
+    assert "'v0_8'" in migration_013
+    assert "canonical text coordinate system" in migration_013
     assert "candidate_payload JSONB" not in (
-        migration_010 + migration_011 + migration_012
+        migration_010 + migration_011 + migration_012 + migration_013
     )
