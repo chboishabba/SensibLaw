@@ -78,6 +78,7 @@ jobs:
             src/storage/postgres/operational_build_store.py \
             src/storage/postgres/semantic_store.py \
             scripts/benchmark_binding_candidate_sets.py \
+            scripts/inspect_gwb_sqlite.py \
             scripts/inspect_reference_binding_case.py \
             scripts/report_binding_candidate_storage.py \
             scripts/run_gwb_binding_baseline.py \
@@ -192,6 +193,11 @@ jobs:
           mkdir -p test-results
           find . -type f \( -iname '*gwb*' -o -path '*/gwb/*' \) \
             -not -path './.git/*' | sort | tee test-results/gwb-corpus-inventory.txt
+          if [ -f .tmp_phi_gwb.sqlite ]; then
+            uv run python scripts/inspect_gwb_sqlite.py .tmp_phi_gwb.sqlite \
+              --output test-results/gwb-sqlite-inventory.json \
+              > test-results/gwb-sqlite-inventory.log
+          fi
           GWB_ROOT="$(find . -type d -path '*/gwb/public_bios_v1/raw' \
             -not -path './.git/*' | sort | head -n 1)"
           if [ -z "$GWB_ROOT" ]; then
@@ -218,6 +224,8 @@ jobs:
           name: gwb-binding-baseline
           path: |
             test-results/gwb-corpus-inventory.txt
+            test-results/gwb-sqlite-inventory.json
+            test-results/gwb-sqlite-inventory.log
             test-results/gwb-binding-baseline.json
             test-results/gwb-binding-baseline.log
           if-no-files-found: warn
