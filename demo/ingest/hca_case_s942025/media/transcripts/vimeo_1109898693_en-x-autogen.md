@@ -1,0 +1,5744 @@
+# Transcript (1109898693, en-x-autogen)
+
+- [00:00:01.105 --> 00:00:02.675] Silence all stand.
+- [00:00:25.215 --> 00:00:27.195] The high court of Australia is now in session.
+- [00:00:27.655 --> 00:00:30.035] God save the king. Please be seated.
+- [00:00:30.305 --> 00:00:31.555] Call the matter for hearing please.
+- [00:00:32.415 --> 00:00:34.955] AA and the trustees of the Roman Catholic Church
+- [00:00:35.055 --> 00:00:36.955] for the Diocese of Maitland, Newcastle,
+- [00:00:37.775 --> 00:00:42.115] ABN 7 9 4 6 9 3 4 3 0 5 4.
+- [00:00:43.265 --> 00:00:45.355] Your honor's, I appear with Mr. McCamish and Mr.
+- [00:00:45.385 --> 00:00:47.435] Tierney for the appellate. Thank you.
+- [00:00:47.435 --> 00:00:50.075] Mr. Herzel. May please court appear with Mr.
+- [00:00:50.245 --> 00:00:52.395] Sheer of Senior Council, Ms. Robertson and Ms.
+- [00:00:52.395 --> 00:00:53.875] Bristow for the respondent.
+- [00:00:54.095 --> 00:00:56.115] Yes. Thank you, Mr. Gleason. Mr. Hertz.
+- [00:00:57.295 --> 00:00:59.955] Uh, thank you, your Honor. May we structure our oral
+- [00:00:59.955 --> 00:01:00.995] submissions in this way?
+- [00:01:01.495 --> 00:01:03.795] Uh, I'll deal first with the question
+- [00:01:03.795 --> 00:01:04.795] of whether the diocese,
+- [00:01:04.815 --> 00:01:07.835] and I'll come back to that word, uh, owed a relevant duty
+- [00:01:07.855 --> 00:01:10.155] of care to the appellant.
+- [00:01:10.825 --> 00:01:13.795] I'll then deal with the question of whether, if, so
+- [00:01:13.825 --> 00:01:15.795] that was a nondelegable duty
+- [00:01:15.975 --> 00:01:17.555] and whether that can be breached
+- [00:01:17.555 --> 00:01:19.515] by intentional conduct, uh, Mr.
+- [00:01:19.595 --> 00:01:22.795] McCamish will then deal with the notice of contention.
+- [00:01:23.535 --> 00:01:27.155] Uh, as I go, I will at appropriate points, locate
+- [00:01:27.775 --> 00:01:31.435] my submissions by reference to the disputed facts document,
+- [00:01:31.645 --> 00:01:35.155] which was, uh, filed on the 1st of August.
+- [00:01:36.135 --> 00:01:40.915] And I will also, as I go, deal with the respondent's status
+- [00:01:41.055 --> 00:01:44.235] of facts document filed on the 5th of August.
+- [00:01:46.095 --> 00:01:48.395] Um, starting with the duty of care.
+- [00:01:48.935 --> 00:01:52.195] May we emphasize at once the significant effect
+- [00:01:52.195 --> 00:01:54.515] of the Civil Liability Act on that question.
+- [00:01:54.525 --> 00:01:55.995] Would your honors take that up please?
+- [00:02:02.535 --> 00:02:05.795] If your honor's turn in the Civil Liability Act
+- [00:02:06.535 --> 00:02:08.715] to Section six, capital I,
+- [00:02:10.145 --> 00:02:14.315] your honors will see the objects of Division four
+- [00:02:14.335 --> 00:02:15.515] of the relevant part.
+- [00:02:19.255 --> 00:02:22.235] And in Section six J may we draw attention
+- [00:02:22.375 --> 00:02:25.475] to the definitions of child abuse, proceedings,
+- [00:02:27.925 --> 00:02:29.315] legal personality,
+- [00:02:31.775 --> 00:02:34.275] and then unincorporated organization.
+- [00:02:35.865 --> 00:02:39.955] Your honors will see that Section six, capital K, uh,
+- [00:02:40.375 --> 00:02:43.515] allows child abuse proceedings to be commenced
+- [00:02:43.515 --> 00:02:46.995] or continued against an unincorporated organization.
+- [00:02:49.855 --> 00:02:51.315] And as I'll show your honors in a moment,
+- [00:02:51.385 --> 00:02:53.595] that provision ultimately wasn't needed here.
+- [00:02:54.545 --> 00:02:57.555] Section six, capital L permits an unincorporated
+- [00:02:57.555 --> 00:03:01.725] organization to appoint an entity as a proper defendant.
+- [00:03:02.385 --> 00:03:04.205] And again, as I'll show your honors in a moment
+- [00:03:04.235 --> 00:03:06.925] that is in substance, uh, what appears
+- [00:03:06.925 --> 00:03:10.165] to have happened here, turning over
+- [00:03:10.165 --> 00:03:11.765] to Section six, capital ed.
+- [00:03:11.765 --> 00:03:14.525] And that empowers the court to appoint a proper defendant,
+- [00:03:15.265 --> 00:03:18.365] uh, if one isn't otherwise appointed,
+- [00:03:19.025 --> 00:03:21.805] and that wasn't required here.
+- [00:03:23.025 --> 00:03:24.845] And then Section six, capital O
+- [00:03:25.825 --> 00:03:28.205] is a most substantive provision.
+- [00:03:29.835 --> 00:03:32.285] Your honors will see that by paragraph A,
+- [00:03:33.265 --> 00:03:37.285] the proper defendant is taken to be the defendant on behalf
+- [00:03:37.345 --> 00:03:40.365] of the unincorporated organization.
+- [00:03:44.665 --> 00:03:48.525] And then paragraph B makes it clear two things
+- [00:03:48.635 --> 00:03:49.765] that anything done
+- [00:03:49.785 --> 00:03:52.045] by the unincorporated organization is deemed
+- [00:03:52.065 --> 00:03:54.085] to have been done by the proper defendant.
+- [00:03:56.125 --> 00:03:58.545] And importantly, that a duty
+- [00:03:58.765 --> 00:04:02.745] or obligation of the unincorporated organization in relation
+- [00:04:02.745 --> 00:04:05.865] to the proceedings is taken to be a duty owed
+- [00:04:05.885 --> 00:04:06.945] by the proper defendant.
+- [00:04:07.405 --> 00:04:09.705] And your honors will notice that both paragraph A
+- [00:04:09.705 --> 00:04:13.465] and B assume that acts can be done
+- [00:04:14.085 --> 00:04:18.425] and duties can be owed by the unincorporated organization.
+- [00:04:20.175 --> 00:04:24.945] And that, uh, is then given, uh, effect
+- [00:04:25.965 --> 00:04:27.425] by paragraph D.
+- [00:04:27.945 --> 00:04:31.385] A court may make substantive findings in the child abuse
+- [00:04:31.385 --> 00:04:34.225] proceedings against an unincorporated association
+- [00:04:34.645 --> 00:04:38.105] as if the organization had legal personality.
+- [00:04:40.135 --> 00:04:44.315] And then paragraph E, uh, again, assumes
+- [00:04:45.105 --> 00:04:48.235] that, uh, or proceeds on the basis
+- [00:04:48.235 --> 00:04:50.795] that if the unincorporated organization
+- [00:04:51.455 --> 00:04:52.715] had legal personality,
+- [00:04:53.325 --> 00:04:57.595] which this provision effectively deems it to have, uh,
+- [00:04:57.735 --> 00:05:00.435] and would've incurred a liability, that liability is
+- [00:05:00.775 --> 00:05:03.115] to be born by the proper defendant,
+- [00:05:04.055 --> 00:05:05.055] Mr. Hertz, with
+- [00:05:05.055 --> 00:05:06.315] b anything done?
+- [00:05:06.545 --> 00:05:07.715] Mate, you may be coming to this.
+- [00:05:10.535 --> 00:05:13.795] How is something done by the unincorporated organization?
+- [00:05:13.895 --> 00:05:18.795] Is it done by those legal entities that are identified
+- [00:05:18.795 --> 00:05:21.235] as the constituent members? Is that what
+- [00:05:21.625 --> 00:05:25.315] Well, um, your Honor, um,
+- [00:05:26.785 --> 00:05:29.355] asks a question, the answer to which is not entirely clear,
+- [00:05:30.095 --> 00:05:34.715] um, but it, it is to be effectively, uh,
+- [00:05:35.345 --> 00:05:36.955] treated in the same way
+- [00:05:37.215 --> 00:05:41.595] as if the unincorporated organi organization itself had a
+- [00:05:41.605 --> 00:05:42.795] legal existence.
+- [00:05:43.215 --> 00:05:46.435] And so any way in which a legal entity could be said
+- [00:05:46.435 --> 00:05:49.795] to have done something that is by individuals
+- [00:05:49.815 --> 00:05:51.835] or other legal entities, uh,
+- [00:05:52.215 --> 00:05:55.635] is a way in which an unincorporated organization can
+- [00:05:56.095 --> 00:05:57.975] for the purposes of this, uh, set
+- [00:05:57.975 --> 00:05:59.735] of provisions be taken to do something.
+- [00:06:00.145 --> 00:06:04.975] Right. The well, perhaps in this case, who, uh, do is,
+- [00:06:05.155 --> 00:06:06.575] my understanding is on your case,
+- [00:06:06.595 --> 00:06:08.135] and tell me if I'm jumping ahead,
+- [00:06:08.135 --> 00:06:11.735] is whether the unincorporated organization included
+- [00:06:12.315 --> 00:06:14.215] the bishop, and I'll call 'em the trustees.
+- [00:06:14.915 --> 00:06:17.415] The trustees are not relevant to our case, right?
+- [00:06:17.475 --> 00:06:18.655] The Bishop Yes.
+- [00:06:19.115 --> 00:06:20.615] And the priests Yes.
+- [00:06:20.885 --> 00:06:22.655] Including Father Picken? Yes.
+- [00:06:23.155 --> 00:06:26.015] So anything done by the unincorporated
+- [00:06:26.315 --> 00:06:28.815] by Father Picken was on your case done
+- [00:06:28.815 --> 00:06:30.175] by the unincorporated We
+- [00:06:30.175 --> 00:06:31.175] Agent. Um, we don't
+- [00:06:31.175 --> 00:06:33.695] put it quite that, uh, highly, that's why we,
+- [00:06:34.035 --> 00:06:35.775] uh, need the Nondelegable duty.
+- [00:06:36.015 --> 00:06:40.335] I see. Um, aspect, but I will, I will come to that.
+- [00:06:40.335 --> 00:06:42.895] Is, is that because the people you've identified other
+- [00:06:42.895 --> 00:06:44.815] than Father Picken are ones with authority?
+- [00:06:45.075 --> 00:06:46.075] Yes. Thank you.
+- [00:06:46.995 --> 00:06:49.375] Um, would your honors then turn to the appellants book
+- [00:06:49.375 --> 00:06:51.215] of further materials, please?
+- [00:06:54.755 --> 00:06:56.135] Uh, in volume one,
+- [00:06:58.875 --> 00:07:00.615] and at page 11,
+- [00:07:00.685 --> 00:07:03.735] your honors will see the amended statement of claim.
+- [00:07:04.755 --> 00:07:06.495] And your Honor, will, your honors will see
+- [00:07:06.495 --> 00:07:09.135] that the name defendant, uh, was the trustees.
+- [00:07:11.995 --> 00:07:14.855] If your honors turn over to page 12,
+- [00:07:16.185 --> 00:07:18.215] under the heading the defendant,
+- [00:07:18.605 --> 00:07:22.415] your honors will see in paragraph five that it was alleged
+- [00:07:22.415 --> 00:07:24.935] that the defendant, that is the trustees is a proper
+- [00:07:24.935 --> 00:07:28.615] defendant to the claim, which relates to the diocese there
+- [00:07:29.195 --> 00:07:31.495] for the purposes of the relevant part.
+- [00:07:31.995 --> 00:07:35.895] And so that identifies the unincorporated organization in
+- [00:07:36.135 --> 00:07:39.335] question as the diocese of the Roman Catholic Church
+- [00:07:39.395 --> 00:07:40.735] for Maitland, Newcastle.
+- [00:07:41.435 --> 00:07:44.215] And it identifies the proper defendant for
+- [00:07:44.215 --> 00:07:46.255] that unincorporated association.
+- [00:07:47.075 --> 00:07:51.175] Um, the numbering of the next paragraphs is a little, um,
+- [00:07:51.895 --> 00:07:56.015] confused, but jumping over the, uh, paragraphs three
+- [00:07:56.035 --> 00:08:00.415] and four, there's then another paragraph five, which alleges
+- [00:08:00.415 --> 00:08:03.095] that at all material times the diocese was a diocese
+- [00:08:03.095 --> 00:08:04.775] of the Roman Catholic Church.
+- [00:08:06.335 --> 00:08:10.035] If your honors then turn to page 72 in this volume,
+- [00:08:10.265 --> 00:08:11.795] your honors will see the defense.
+- [00:08:14.615 --> 00:08:18.595] And if your honors turn to page 74, um,
+- [00:08:19.825 --> 00:08:22.635] your honors will see in the third paragraph on that page,
+- [00:08:23.305 --> 00:08:25.555] paragraph five is admitted.
+- [00:08:26.105 --> 00:08:28.075] That was the first paragraph five.
+- [00:08:29.665 --> 00:08:32.405] And then your honors will see that in paragraph eight.
+- [00:08:33.505 --> 00:08:36.485] The second paragraph five in the statement
+- [00:08:36.485 --> 00:08:38.645] of claim was also admitted.
+- [00:08:41.185 --> 00:08:45.085] The, the effect of those pleadings when read against the
+- [00:08:45.085 --> 00:08:47.845] background of Section six capital O, is
+- [00:08:47.845 --> 00:08:50.165] that it was common ground that the diocese
+- [00:08:50.165 --> 00:08:52.805] of the Roman Catholic Church for Maitland, Newcastle,
+- [00:08:53.655 --> 00:08:58.085] which within the church structure is a separate diocese, was
+- [00:08:58.085 --> 00:09:01.405] to be treated for the purposes of making findings a fact
+- [00:09:01.405 --> 00:09:04.405] and legal obligation as if it were a separate legal entity.
+- [00:09:05.065 --> 00:09:06.085] And it's for that reason
+- [00:09:06.085 --> 00:09:08.845] that there is no difficulty in posing the question whether
+- [00:09:08.865 --> 00:09:11.285] the diocese owed a duty of care.
+- [00:09:12.945 --> 00:09:15.645] And the facts agreed between the parties, uh,
+- [00:09:15.705 --> 00:09:19.325] at trial indeed gave greater precision to the context, uh,
+- [00:09:19.325 --> 00:09:20.725] concept of the diocese.
+- [00:09:21.055 --> 00:09:24.125] Would your honors turn to those agreed facts at page 79?
+- [00:09:24.265 --> 00:09:25.265] Please?
+- [00:09:26.835 --> 00:09:27.885] Just so I get Mr.
+- [00:09:27.885 --> 00:09:30.925] Hertzfeld, and I think this was reflected in Justice LE's
+- [00:09:31.005 --> 00:09:33.125] judgment, the initial references
+- [00:09:33.225 --> 00:09:36.885] to the diocese is the geographic area of the
+- [00:09:37.905 --> 00:09:40.885] what's broadly known as the Catholic Church.
+- [00:09:41.145 --> 00:09:44.885] Is that right? And then that became the,
+- [00:09:45.025 --> 00:09:49.365] and then the idea is that's the organization, is that right?
+- [00:09:49.665 --> 00:09:52.085] Um, your Honor says the initial references,
+- [00:09:52.245 --> 00:09:55.645] I think the first reference is in paragraph five, uh, yes.
+- [00:09:55.645 --> 00:09:58.725] Which is actually to the organizational structure
+- [00:10:00.065 --> 00:10:01.085] within the church
+- [00:10:01.145 --> 00:10:02.285] Of the church within that area.
+- [00:10:02.585 --> 00:10:05.965] Yes. Yes. But your, your Honor is right that, um,
+- [00:10:06.665 --> 00:10:10.845] at some other times, diocese is used unsurprisingly
+- [00:10:11.025 --> 00:10:14.845] to mean also a geographic area. Um,
+- [00:10:15.215 --> 00:10:16.215] Sorry. In,
+- [00:10:16.215 --> 00:10:19.925] in on page 79, uh, is the list of matters
+- [00:10:20.065 --> 00:10:22.685] and facts in issue from trial.
+- [00:10:24.345 --> 00:10:27.885] And if your honor's turnover to, um, page 80,
+- [00:10:28.795 --> 00:10:31.245] your honors will see paragraph 17
+- [00:10:31.585 --> 00:10:34.165] and 18, which were matters in facts,
+- [00:10:34.505 --> 00:10:35.765] not in issue, in other words.
+- [00:10:35.985 --> 00:10:37.685] Agreed. Uh, matters.
+- [00:10:40.045 --> 00:10:42.865] And so we, uh, agree
+- [00:10:43.805 --> 00:10:48.025] in the respondent's status of facts, document we agree
+- [00:10:48.025 --> 00:10:51.225] with points one to three of that document
+- [00:10:52.055 --> 00:10:55.225] Care and control of Catholic churches mean, does that mean
+- [00:10:56.015 --> 00:10:57.585] maintenance of the churches?
+- [00:10:59.135 --> 00:11:01.955] Um, y uh, your Honor, um,
+- [00:11:03.395 --> 00:11:05.505] there was some further evidence about that.
+- [00:11:06.105 --> 00:11:11.065] I, I don't want to, uh, gloss what was agreed at this point,
+- [00:11:11.125 --> 00:11:12.705] but I will come back to your honor's question.
+- [00:11:14.375 --> 00:11:17.275] Are you rely upon that of essentially
+- [00:11:17.275 --> 00:11:22.035] for attribution purposes that the bishop is in the position
+- [00:11:22.655 --> 00:11:26.475] of a controlling mind or a person whose conduct
+- [00:11:26.695 --> 00:11:28.915] and knowledge can be attributed to the diocese?
+- [00:11:29.215 --> 00:11:32.475] Yes. And that aspect of attribution we don't
+- [00:11:33.045 --> 00:11:34.835] think is in controversy.
+- [00:11:35.225 --> 00:11:36.235] Some other aspects
+- [00:11:36.235 --> 00:11:39.315] of attribution are in controversy, and I'll come to those.
+- [00:11:41.055 --> 00:11:44.155] So in relation to the duty of care at issue here,
+- [00:11:44.205 --> 00:11:46.515] would your honors turn back to the statement of claim,
+- [00:11:46.535 --> 00:11:50.275] please, at page 15 of this volume,
+- [00:11:51.935 --> 00:11:53.205] Are you coming Back to the Civil
+- [00:11:53.205 --> 00:11:54.725] Liability Act at any stage?
+- [00:11:55.145 --> 00:11:57.485] Uh, I think I, um, yes, I will,
+- [00:11:57.785 --> 00:11:59.965] but towards the end of my submissions,
+- [00:12:00.185 --> 00:12:02.525] You'll, you'll deal with Justice LE's reference
+- [00:12:02.525 --> 00:12:05.205] to section, um, six F.
+- [00:12:05.605 --> 00:12:06.685] I will, yes. Thank you.
+- [00:12:09.705 --> 00:12:14.065] So page 15 of the, uh, book,
+- [00:12:14.935 --> 00:12:16.465] your honors will see that the duty
+- [00:12:16.525 --> 00:12:19.625] of care was pleaded in paragraph 33,
+- [00:12:21.045 --> 00:12:25.745] and the duty was pleaded in rather, um, general terms,
+- [00:12:27.205 --> 00:12:31.825] The respondent conceded, for instance, that the diocese
+- [00:12:32.005 --> 00:12:36.385] as the occupier of the premises of the presbytery, uh,
+- [00:12:36.405 --> 00:12:40.185] at which the abuse occurred, would owe, uh,
+- [00:12:40.365 --> 00:12:44.265] the usual occupier's duty that is to take reasonable care
+- [00:12:44.645 --> 00:12:47.905] to avoid causing reasonably foreseeable harm, uh,
+- [00:12:47.905 --> 00:12:49.865] to those on the premises as a result
+- [00:12:49.865 --> 00:12:51.625] of the state of the premises.
+- [00:12:52.725 --> 00:12:57.545] Um, but if one reads the particulars to paragraph 34,
+- [00:12:58.405 --> 00:13:01.185] uh, and then the pleading in paragraph 35,
+- [00:13:01.465 --> 00:13:05.825] particularly in light of the facts of the case, uh, the duty
+- [00:13:05.825 --> 00:13:07.825] of care at issue here, or,
+- [00:13:07.845 --> 00:13:11.305] or perhaps rather more precisely the scope of the duty
+- [00:13:11.365 --> 00:13:15.345] of care at issue here, is rather more focused.
+- [00:13:17.015 --> 00:13:20.945] It's whether the diocese owed a duty to take reasonable care
+- [00:13:21.845 --> 00:13:25.105] to avoid reasonably foreseeable personal injury
+- [00:13:26.165 --> 00:13:30.305] to children invited onto diocesan premises caused
+- [00:13:30.405 --> 00:13:34.305] by the conduct of diocesan priests at those premises.
+- [00:13:35.405 --> 00:13:39.305] And by invited, I mean invited by a person
+- [00:13:39.365 --> 00:13:42.505] to whom the diocese had given control of those premises,
+- [00:13:43.085 --> 00:13:47.385] or put another way whom the diocese had authorized
+- [00:13:47.485 --> 00:13:49.825] or armed to invite people onto those
+- [00:13:50.185 --> 00:13:51.745] premises. And of course, so that
+- [00:13:51.945 --> 00:13:54.505] I just ask that duty you've just outlined is, is
+- [00:13:54.505 --> 00:13:56.665] that your summation of 33 to 35?
+- [00:13:56.925 --> 00:13:57.985] It is a a
+- [00:13:58.005 --> 00:13:59.465] and if I may put it generally,
+- [00:13:59.925 --> 00:14:01.905] the way the case was conducted
+- [00:14:02.045 --> 00:14:04.225] and what was an issue in the case, thank you.
+- [00:14:06.125 --> 00:14:08.825] And I, I've sought to articulate it precisely,
+- [00:14:08.825 --> 00:14:11.465] particularly given observations in a number of cases
+- [00:14:11.645 --> 00:14:14.065] by this court of the need for a duty of care
+- [00:14:14.165 --> 00:14:18.985] to be framed at a sufficiently precise, uh, level. But
+- [00:14:18.985 --> 00:14:20.985] You don't frame it at a level of a duty
+- [00:14:21.185 --> 00:14:23.665] to prevent harm from sexual assault?
+- [00:14:24.005 --> 00:14:25.305] No, you put it higher than that.
+- [00:14:25.705 --> 00:14:27.665] I, I put it so more Abstract than that,
+- [00:14:28.725 --> 00:14:29.985] In some ways, more abstractly,
+- [00:14:29.985 --> 00:14:31.185] and in some ways more precisely,
+- [00:14:31.185 --> 00:14:34.545] because I've referred to additional elements.
+- [00:14:34.825 --> 00:14:36.775] I see. But,
+- [00:14:36.835 --> 00:14:38.975] but what Your Honor says is correct
+- [00:14:38.975 --> 00:14:42.375] that the sexual assault was in fact the conduct at issue
+- [00:14:42.375 --> 00:14:44.375] here, but no, that is not, um,
+- [00:14:45.155 --> 00:14:46.775] the way in which I've articulated the
+- [00:14:46.895 --> 00:14:48.695] Defining character of the scope of the duty. Yes,
+- [00:14:48.995 --> 00:14:49.995] Yes. The,
+- [00:14:49.995 --> 00:14:50.815] the, these
+- [00:14:50.925 --> 00:14:52.685] Paragraphs of the pleading are kind
+- [00:14:52.685 --> 00:14:54.325] of contradictory in a way,
+- [00:14:54.325 --> 00:14:57.555] because either the duty of care is a duty
+- [00:14:57.615 --> 00:14:58.715] to take reasonable care,
+- [00:14:59.135 --> 00:15:02.235] or it's a duty to ensure that reasonable care is taken.
+- [00:15:02.335 --> 00:15:03.355] It it can't be both.
+- [00:15:03.815 --> 00:15:05.595] Um, it, it can be argued.
+- [00:15:06.335 --> 00:15:09.155] The way that it's pleaded, your Honor, is right.
+- [00:15:09.575 --> 00:15:11.155] It is contradictory.
+- [00:15:11.995 --> 00:15:16.555] EE everybody running the case now, and I say now,
+- [00:15:16.705 --> 00:15:19.995] because of the way the trial was conducted, understands
+- [00:15:19.995 --> 00:15:21.555] that the way that we put it is,
+- [00:15:21.555 --> 00:15:22.795] firstly there was a duty of care.
+- [00:15:23.755 --> 00:15:24.975] We have to get to that hurdle.
+- [00:15:25.035 --> 00:15:27.375] We accept the force of what the respondents put on
+- [00:15:27.375 --> 00:15:31.015] that point, but we then say, in addition, it was
+- [00:15:31.075 --> 00:15:32.855] of a nondelegable kind.
+- [00:15:32.955 --> 00:15:35.935] And if that is right, then your honor's articulation, uh,
+- [00:15:35.955 --> 00:15:37.015] is with respect to correct.
+- [00:15:37.395 --> 00:15:39.135] I'm gonna address duty of care,
+- [00:15:39.155 --> 00:15:41.175] and then I'll come back to the Nondelegable duty.
+- [00:15:42.655 --> 00:15:45.355] Um, now the Court of Appeal rejected any such duty.
+- [00:15:45.735 --> 00:15:47.675] So may we explain, uh,
+- [00:15:47.675 --> 00:15:49.835] the features which we submit support it,
+- [00:15:50.215 --> 00:15:51.475] and in the course of doing so,
+- [00:15:51.495 --> 00:15:52.795] why the Court of Appeal earned,
+- [00:15:54.365 --> 00:15:55.365] Sorry, Mr.
+- [00:15:55.445 --> 00:15:58.555] Could you just, uh, repeat slowly
+- [00:15:58.585 --> 00:16:00.515] that the way you formulate that duty,
+- [00:16:00.955 --> 00:16:02.395] I, I wondered if we should have written it down.
+- [00:16:02.415 --> 00:16:03.875] And the answer is yes. I
+- [00:16:04.035 --> 00:16:05.635] I think I'd be grateful if he could be
+- [00:16:05.875 --> 00:16:08.155] provided, um, sooner rather than later.
+- [00:16:08.155 --> 00:16:09.555] So we can actually see the way in which
+- [00:16:09.555 --> 00:16:10.995] you summarize those paragraphs.
+- [00:16:11.175 --> 00:16:13.755] Yes. Because I think the issue that arises is that put
+- [00:16:13.755 --> 00:16:16.365] to you by Justice Edelman, there's a confusion.
+- [00:16:16.445 --> 00:16:19.085] I think if we're dealing with Nondelegable duty,
+- [00:16:19.115 --> 00:16:20.645] then in a sense, what you're starting
+- [00:16:20.645 --> 00:16:23.685] with may be interesting, but irrelevant in the sense
+- [00:16:23.685 --> 00:16:24.765] that we're asking whether
+- [00:16:24.765 --> 00:16:28.045] or not there's been an entrustment of someone on the basis
+- [00:16:28.045 --> 00:16:30.885] that, that they must ensure care is taken Yes.
+- [00:16:31.705 --> 00:16:35.485] As distinct from a set of facts, which give rise to a duty
+- [00:16:35.505 --> 00:16:37.685] of care is arising out of a special relationship,
+- [00:16:37.685 --> 00:16:39.845] whether it's got knowledge attached to it or not. Yes.
+- [00:16:40.165 --> 00:16:43.325] I I'm going to address both. Um, and
+- [00:16:43.365 --> 00:16:44.525] So what are we dealing with now?
+- [00:16:44.755 --> 00:16:48.005] Just an ordinary duty of care, which I'll, I'll say again,
+- [00:16:48.005 --> 00:16:49.325] but we will reduce it to writing.
+- [00:16:50.025 --> 00:16:53.325] Um, whether the diocese owed a duty to take reasonable care
+- [00:16:53.945 --> 00:16:56.925] to avoid reasonably foreseeable personal injury
+- [00:16:57.305 --> 00:17:01.365] to children invited onto diocesan premises caused
+- [00:17:01.425 --> 00:17:05.685] by the conduct of diocesan priests at those premises.
+- [00:17:09.035 --> 00:17:11.935] And I think you also included and had authority to invite,
+- [00:17:12.155 --> 00:17:14.055] Uh, so by invited, yeah.
+- [00:17:14.255 --> 00:17:15.855] I couldn't put too much into the one sentence.
+- [00:17:16.155 --> 00:17:19.055] By invited, I mean invited by a person
+- [00:17:19.275 --> 00:17:22.895] to whom the diocese had given control of the premises, uh,
+- [00:17:22.915 --> 00:17:25.775] or put another way whom the diocese had authorized
+- [00:17:25.875 --> 00:17:28.455] or armed to invite people onto the premises.
+- [00:17:28.755 --> 00:17:29.975] You, you really must
+- [00:17:30.315 --> 00:17:32.335] Put it in writing and give it to us.
+- [00:17:33.035 --> 00:17:36.175] Yes. At, uh, morning tea. We, we, we will do that.
+- [00:17:38.395 --> 00:17:42.495] Um, so can I start? Sorry, I'm so sorry. No, no.
+- [00:17:43.515 --> 00:17:45.855] Um, now it was an agreed fact at trial
+- [00:17:46.245 --> 00:17:49.245] that Father Picken was the parish priest of St.
+- [00:17:49.275 --> 00:17:50.445] Patrick's Church.
+- [00:17:51.385 --> 00:17:56.125] Um, your honors can see that in pa on page 80 of the,
+- [00:17:56.585 --> 00:17:58.845] uh, book of further materials
+- [00:17:59.765 --> 00:18:01.445] Admitted on the pleadings before we
+- [00:18:01.585 --> 00:18:03.565] Get to trial, was it, it it was admitted on the pleadings
+- [00:18:03.905 --> 00:18:07.165] and it was reflected in these agreed facts.
+- [00:18:08.865 --> 00:18:11.965] And, uh, your honors, we'll see on page 80,
+- [00:18:13.035 --> 00:18:15.445] paragraph 19, at all material times,
+- [00:18:15.445 --> 00:18:18.445] father Picken was an incarnated priest in the diocese.
+- [00:18:19.945 --> 00:18:22.965] And that is the proposition in 0.5
+- [00:18:23.825 --> 00:18:27.005] of the respondent's status of facts document.
+- [00:18:28.505 --> 00:18:31.005] But then your honors will also notice paragraph 20
+- [00:18:31.105 --> 00:18:34.725] of all material, uh, the bishop appointed Father Picken
+- [00:18:35.145 --> 00:18:36.725] as the parish priest of St.
+- [00:18:36.725 --> 00:18:40.605] Patrick's Church. Now, the significance of that fact
+- [00:18:40.665 --> 00:18:42.445] for present purposes is
+- [00:18:42.445 --> 00:18:45.285] that the case was conducted on the basis
+- [00:18:45.635 --> 00:18:48.765] that Father Picken had the authority of the diocese
+- [00:18:49.305 --> 00:18:52.685] to decide who was invited to the presbytery
+- [00:18:53.185 --> 00:18:55.445] and what events could take place there,
+- [00:18:55.915 --> 00:18:58.325] because that was part of the authority
+- [00:18:58.385 --> 00:19:00.285] of a parish priest. You,
+- [00:19:00.305 --> 00:19:01.405] You don't say that the court,
+- [00:19:01.785 --> 00:19:05.325] or at least the court of the was bound by that paragraph.
+- [00:19:05.805 --> 00:19:08.045] A, A-A-A-A-A judge can disagree,
+- [00:19:08.685 --> 00:19:11.775] A trial judge can, the Court
+- [00:19:11.775 --> 00:19:13.695] of appeal couldn't. I'll come back to that.
+- [00:19:14.435 --> 00:19:17.735] And when you do, would you also, if it's possible,
+- [00:19:18.615 --> 00:19:20.935] identify the error in the factual reasoning
+- [00:19:20.935 --> 00:19:22.895] of Justice Leming in concluding
+- [00:19:22.895 --> 00:19:24.135] that he was only an assistant
+- [00:19:24.135 --> 00:19:25.135] Priest? I, I'm not going
+- [00:19:25.135 --> 00:19:26.495] to seek to do so. Okay.
+- [00:19:26.495 --> 00:19:28.695] Alright. Thank you. Y your argument is
+- [00:19:29.155 --> 00:19:30.215] his honor just shouldn't
+- [00:19:30.215 --> 00:19:31.055] Have gone there. Yes.
+- [00:19:31.475 --> 00:19:32.495] And so, just so I'm clear,
+- [00:19:32.495 --> 00:19:34.015] there's an omission on the pleadings
+- [00:19:34.015 --> 00:19:35.095] that he's a parish priest.
+- [00:19:35.715 --> 00:19:38.895] You can see that by paragraph five, numbered the third time.
+- [00:19:39.075 --> 00:19:42.895] Yes. Admitted on page 75 of the book
+- [00:19:42.895 --> 00:19:44.135] of Further materials Yes.
+- [00:19:44.635 --> 00:19:46.855] Is then a document provided to the trial judge,
+- [00:19:46.855 --> 00:19:47.855] which says it's an agreed
+- [00:19:47.885 --> 00:19:48.885] Fact. And as I'll
+- [00:19:48.885 --> 00:19:50.015] show you, your Honor, is that document was
+- [00:19:50.175 --> 00:19:51.495] provided on day three of the trial
+- [00:19:51.625 --> 00:19:54.215] after all of the evidence, uh, oral evidence.
+- [00:19:54.385 --> 00:19:57.335] Thank you. And then there's a finding by the trial judge
+- [00:19:58.155 --> 00:20:00.415] in a sense, relying on those facts
+- [00:20:00.415 --> 00:20:02.295] because no other evidence was aduc otherwise.
+- [00:20:02.635 --> 00:20:05.415] Yes. Paragraph one. Thank you.
+- [00:20:06.965 --> 00:20:08.985] Um, but the significance
+- [00:20:09.405 --> 00:20:11.225] for our purposes isn't so much the title.
+- [00:20:12.445 --> 00:20:14.465] It was what influence
+- [00:20:14.465 --> 00:20:17.105] that had on the way the case was conducted,
+- [00:20:18.485 --> 00:20:22.785] and in particular, what influence it had as to the findings
+- [00:20:22.885 --> 00:20:26.225] to be made about the authority of Father Picken to decide
+- [00:20:26.245 --> 00:20:27.825] who was invited to the presbytery
+- [00:20:27.825 --> 00:20:29.065] and what could take place there.
+- [00:20:29.675 --> 00:20:32.145] Would your honors, please, in this volume go
+- [00:20:32.145 --> 00:20:33.785] to the expert report of Father Dylan?
+- [00:20:34.665 --> 00:20:36.425] Starting at page 4, 3 8.
+- [00:20:45.115 --> 00:20:47.325] Um, father Dylan's evidence
+- [00:20:48.935 --> 00:20:51.045] after there was a challenge to its admissibility
+- [00:20:51.605 --> 00:20:53.005] resolved favorably to the appellant
+- [00:20:53.105 --> 00:20:54.405] by the, by the trial judge.
+- [00:20:54.945 --> 00:20:57.085] His evidence wasn't challenged in any way
+- [00:20:57.265 --> 00:20:58.525] in cross-examination.
+- [00:20:59.185 --> 00:21:01.485] Uh, and it wasn't challenged in the court of appeal.
+- [00:21:01.515 --> 00:21:04.085] What could be made of it was the subject of submissions,
+- [00:21:04.085 --> 00:21:06.925] but the correctness of it was not the subject of challenge.
+- [00:21:07.905 --> 00:21:12.125] Um, would your honors on page 4 3 9, uh,
+- [00:21:13.515 --> 00:21:17.605] look firstly at, uh, paragraph at question C
+- [00:21:20.865 --> 00:21:24.085] and then, uh, the answer to that, which is framed
+- [00:21:24.165 --> 00:21:27.165] by reference to the parish priest in Australia in 1969.
+- [00:21:27.185 --> 00:21:29.285] The parish priest was the highest local authority
+- [00:21:29.385 --> 00:21:30.645] for members of the Catholic church
+- [00:21:30.645 --> 00:21:32.845] and answerable only to the diocesan bishop.
+- [00:21:34.145 --> 00:21:37.165] And then it led us you to the no question the priest.
+- [00:21:37.595 --> 00:21:39.925] It's a reference to the parish priest was the center
+- [00:21:39.945 --> 00:21:42.205] and focus of what we might today call the governance
+- [00:21:42.205 --> 00:21:44.165] of the parish at its local level.
+- [00:21:46.165 --> 00:21:48.505] If your honors then turn to the second report
+- [00:21:48.505 --> 00:21:52.185] of Father Dylan, starting on page 4, 4, 5,
+- [00:21:55.685 --> 00:21:59.305] On page 4, 4 6 at letters I
+- [00:21:59.365 --> 00:22:00.985] to n your honors will see.
+- [00:22:01.885 --> 00:22:04.625] He gave evidence about the bishop of the diocese,
+- [00:22:04.725 --> 00:22:07.065] the ultimate authority with regard to the use
+- [00:22:07.165 --> 00:22:09.825] and administration of all properties in the diocese.
+- [00:22:10.645 --> 00:22:12.345] And this is the beginning of the answer to your honor,
+- [00:22:12.345 --> 00:22:14.305] justice Gleason's question about property.
+- [00:22:14.305 --> 00:22:17.185] Excuse me. Property can't be sold without his permission,
+- [00:22:17.245 --> 00:22:19.465] nor can it be used for any purpose in any way contrary
+- [00:22:19.465 --> 00:22:21.265] to the wishes or directions of the bishops.
+- [00:22:21.265 --> 00:22:24.345] That's the bishop. But then your honors will see in,
+- [00:22:24.565 --> 00:22:27.905] in letters K to MN for those activities
+- [00:22:27.905 --> 00:22:29.745] and uses directly part of the church's mission.
+- [00:22:29.925 --> 00:22:31.705] The parish priest's authorization
+- [00:22:31.705 --> 00:22:33.865] and permission would normally be sufficient,
+- [00:22:34.735 --> 00:22:37.425] placing a new building would need bishop's permission.
+- [00:22:37.885 --> 00:22:39.785] And should the bishop disapprove of any use
+- [00:22:39.785 --> 00:22:41.785] of parish property for which a parish priest had given
+- [00:22:41.785 --> 00:22:42.825] permission, the bishop could
+- [00:22:42.825 --> 00:22:45.385] and usually would prohibit the use of that property
+- [00:22:46.965 --> 00:22:48.265] For Activities and uses
+- [00:22:48.265 --> 00:22:49.945] that are directly part of the church's
+- [00:22:49.945 --> 00:22:50.945] Mission. Yes.
+- [00:22:50.945 --> 00:22:54.985] And if your honors turn back to page 4, 4 7,
+- [00:22:56.215 --> 00:23:00.145] there's then specific evidence about, uh, the use
+- [00:23:00.165 --> 00:23:03.825] of presbyteries from E two P
+- [00:23:05.425 --> 00:23:08.225] purposes, other than solely the priest's residence
+- [00:23:08.925 --> 00:23:11.225] parish offices and administrative headquarters
+- [00:23:13.295 --> 00:23:14.465] with constant visits,
+- [00:23:14.725 --> 00:23:17.065] but then also meeting rooms, kitchen facilities
+- [00:23:17.065 --> 00:23:19.225] for committee meetings, social gatherings,
+- [00:23:19.665 --> 00:23:23.465] religious instructions, et cetera, indispensable components
+- [00:23:23.525 --> 00:23:25.665] of the priest fulfilling both his pastoral
+- [00:23:25.665 --> 00:23:26.985] and administrative responsibilities.
+- [00:23:29.405 --> 00:23:31.545] And then, uh, particularly at, uh,
+- [00:23:34.305 --> 00:23:38.075] O to P for the priest.
+- [00:23:38.695 --> 00:23:40.675] The presbytery wasn't just where he lived, it was
+- [00:23:40.675 --> 00:23:42.595] where he worked in order to undertake the spiritual pastor
+- [00:23:42.615 --> 00:23:44.035] of administrative responsibilities.
+- [00:23:45.095 --> 00:23:48.125] Would your honors then take up volume two of the book
+- [00:23:48.125 --> 00:23:50.845] of further of the appellant's book of further materials?
+- [00:23:53.785 --> 00:23:56.125] Are there findings of the primary judge
+- [00:23:56.125 --> 00:23:57.525] in relation to these, this evidence?
+- [00:23:57.525 --> 00:23:59.605] Yes. Why are we going to this?
+- [00:24:00.035 --> 00:24:01.085] Because, in a sense,
+- [00:24:01.195 --> 00:24:02.805] because these findings are part
+- [00:24:03.125 --> 00:24:06.165] of the respondent's challenge, uh, in this court.
+- [00:24:06.665 --> 00:24:08.525] And so, um, these matters,
+- [00:24:08.905 --> 00:24:11.125] and so I need to take your honors to the evidence.
+- [00:24:11.905 --> 00:24:15.525] Do we, do we have the pleaded canon law
+- [00:24:16.425 --> 00:24:17.525] and other directions
+- [00:24:18.385 --> 00:24:21.475] that are pleaded in the amended statement of claim?
+- [00:24:22.235 --> 00:24:23.875] I don't understand your honor's question.
+- [00:24:24.235 --> 00:24:27.155] I don't think they've been included in the bundle.
+- [00:24:27.695 --> 00:24:32.675] Um, father Dylan's first report extracts some parts of them.
+- [00:24:33.095 --> 00:24:35.395] Uh, we can see if we can supply them to your
+- [00:24:35.395 --> 00:24:36.395] Honor's. It's just that, uh,
+- [00:24:36.395 --> 00:24:37.395] some of them are admitted.
+- [00:24:37.395 --> 00:24:40.315] Well, it's admitted that they apply it is just
+- [00:24:40.315 --> 00:24:42.155] that they rely on the whole of it, et cetera.
+- [00:24:42.235 --> 00:24:43.915] I think it might be useful to have those
+- [00:24:43.915 --> 00:24:44.915] Things. Yes. Um, I don't
+- [00:24:44.915 --> 00:24:45.635] think we've included
+- [00:24:45.635 --> 00:24:46.755] them in the bundle, but we will,
+- [00:24:46.755 --> 00:24:49.035] Especially because two one two's been specifically
+- [00:24:49.375 --> 00:24:50.595] Yes, we will, we will.
+- [00:24:50.825 --> 00:24:53.395] Okay. Um, attend to that homework task also.
+- [00:24:53.975 --> 00:24:55.235] But were they attended separately?
+- [00:24:55.555 --> 00:24:59.715] I, I think so, but, um, Oh, well, it
+- [00:24:59.755 --> 00:25:00.915] Only, I'm, I'm so sorry.
+- [00:25:01.055 --> 00:25:02.635] I'm, I'm told that they, they weren't
+- [00:25:02.875 --> 00:25:03.915] actually tended, oh, sorry.
+- [00:25:04.355 --> 00:25:06.155] I assume they were tended. I, they were, I, I, I had,
+- [00:25:06.315 --> 00:25:08.035] I had two, but, um,
+- [00:25:08.895 --> 00:25:10.475] and I don't think they're matters of law.
+- [00:25:10.735 --> 00:25:12.875] So in any event, I won't delay
+- [00:25:12.875 --> 00:25:13.875] This. I had assumed they were before the
+- [00:25:13.875 --> 00:25:13.995] people.
+- [00:25:14.255 --> 00:25:16.395] Can I, but you've got extracts of them in the report.
+- [00:25:16.815 --> 00:25:18.835] We do. And That report was tendered.
+- [00:25:18.975 --> 00:25:20.555] It was. And so just to, just, that's
+- [00:25:20.555 --> 00:25:21.555] Enough. If they weren't tendered, I
+- [00:25:21.555 --> 00:25:21.835] don't,
+- [00:25:22.255 --> 00:25:24.115] and the accuracy of that report wasn't challenged.
+- [00:25:24.215 --> 00:25:25.235] It, it wasn't, um,
+- [00:25:25.375 --> 00:25:27.755] but I will make sure I find out the correct
+- [00:25:27.755 --> 00:25:29.195] answer to all of those matters.
+- [00:25:29.345 --> 00:25:33.955] Sure. Um, just to go back
+- [00:25:33.975 --> 00:25:38.075] to volume two, uh, if your honors turn
+- [00:25:38.255 --> 00:25:41.075] to page 5 6 0, this is part
+- [00:25:41.075 --> 00:25:43.075] of Father Dylan's cross-examination.
+- [00:25:45.175 --> 00:25:49.915] And at lines 25, uh,
+- [00:25:50.575 --> 00:25:55.235] to 47, your honors will see
+- [00:25:55.235 --> 00:25:58.915] that Father Dylan gave evidence of the, um,
+- [00:25:58.935 --> 00:26:01.795] social gatherings that could take place, that a lot
+- [00:26:01.795 --> 00:26:03.875] of it depended on the attitude of the priest,
+- [00:26:04.155 --> 00:26:06.955] particularly the parish priest because it was his home.
+- [00:26:08.535 --> 00:26:10.355] And so some would have a private approach
+- [00:26:10.355 --> 00:26:12.355] and some would have a more open approach.
+- [00:26:13.695 --> 00:26:17.955] And then at, uh, pages 30, at lines 35 to 47,
+- [00:26:18.025 --> 00:26:21.275] some examples were given of, um, the kinds of, uh,
+- [00:26:21.405 --> 00:26:23.075] activities that could take place.
+- [00:26:24.535 --> 00:26:27.395] And if your honors then turn to page 5 6 2,
+- [00:26:30.935 --> 00:26:34.675] at lines 24 to 35, he was asked about rules
+- [00:26:34.775 --> 00:26:37.515] or stipulations as to the use of presbyteries.
+- [00:26:39.455 --> 00:26:41.195] And he said there might have been one or two,
+- [00:26:41.375 --> 00:26:44.105] but, um, at line 30, all these things were left
+- [00:26:44.245 --> 00:26:46.905] to the common sense and good judgment of the parish priest
+- [00:26:48.335 --> 00:26:50.665] with the parish priest who had say over what events,
+- [00:26:50.665 --> 00:26:53.065] meetings, gatherings would happen. And so
+- [00:26:53.325 --> 00:26:54.785] How was this evidence characterized?
+- [00:26:54.845 --> 00:26:56.505] Was it led as opinion evidence,
+- [00:26:56.525 --> 00:26:59.305] or was it lay evidence of someone
+- [00:26:59.405 --> 00:27:00.865] who was a priest at the time?
+- [00:27:01.265 --> 00:27:04.265] It was characterized as opinion evidence based on his
+- [00:27:04.475 --> 00:27:08.745] experience, which included being, uh, a par being,
+- [00:27:08.745 --> 00:27:10.105] being a priest over a very long period.
+- [00:27:10.445 --> 00:27:11.545] But these are not really opinions.
+- [00:27:11.545 --> 00:27:13.825] These are direct observations of what he remembers,
+- [00:27:14.285 --> 00:27:15.705] Um, that that may be so,
+- [00:27:16.265 --> 00:27:18.985] although, um, that would then only be observations
+- [00:27:18.985 --> 00:27:20.105] of what he remembered.
+- [00:27:20.145 --> 00:27:22.265] He was qualified to give opinions,
+- [00:27:22.265 --> 00:27:24.305] which were then more generally applicable.
+- [00:27:25.655 --> 00:27:28.065] Okay. In any event,
+- [00:27:28.415 --> 00:27:30.265] this was the, this was the evidence.
+- [00:27:31.045 --> 00:27:33.985] And what's significant to the existence of a duty of care,
+- [00:27:34.285 --> 00:27:37.185] as I said, is not then so much the title parish priest.
+- [00:27:38.415 --> 00:27:41.985] It's that Father Pickens being agreed to hold
+- [00:27:41.985 --> 00:27:45.505] that position carried with it, the fact that subject
+- [00:27:45.525 --> 00:27:48.185] to the bishop's direction, he was given
+- [00:27:48.405 --> 00:27:52.025] by the diocese control over the premises of the presbytery
+- [00:27:52.085 --> 00:27:55.905] who was invited to it, and what activities took place there.
+- [00:27:57.805 --> 00:28:00.465] And you, your honors will notice from that evidence that,
+- [00:28:01.125 --> 00:28:05.025] um, what the priest could permissibly authorize to occur.
+- [00:28:05.025 --> 00:28:06.505] There wasn't limited to,
+- [00:28:06.925 --> 00:28:11.185] if I can put this in very large quotes, church events, um,
+- [00:28:11.365 --> 00:28:13.945] in the sense of religious events or events
+- [00:28:14.045 --> 00:28:17.385] or authorized by someone other than the priest.
+- [00:28:17.885 --> 00:28:21.745] It included effectively all of the social gatherings
+- [00:28:22.215 --> 00:28:26.825] that the priest decided, uh, were suitable subject
+- [00:28:27.045 --> 00:28:29.105] to prohibition by the bishop.
+- [00:28:29.925 --> 00:28:33.785] And that then qualifies a point in the res in the
+- [00:28:34.065 --> 00:28:36.945] respondent's status of facts document.
+- [00:28:37.445 --> 00:28:40.825] If your honors would look at paragraph 32
+- [00:28:41.485 --> 00:28:45.265] of the respondent's status of facts, document
+- [00:28:47.665 --> 00:28:51.145] Y Your honors will see the fact
+- [00:28:52.265 --> 00:28:55.585] asserted in paragraph 32 is
+- [00:28:55.585 --> 00:28:57.745] that the gatherings at the presbytery were not
+- [00:28:57.805 --> 00:28:58.945] church events.
+- [00:29:01.085 --> 00:29:04.145] And, um, that notion
+- [00:29:04.145 --> 00:29:08.265] of church events is a rather, um, imprecise one.
+- [00:29:08.925 --> 00:29:11.985] Um, the imprecision of that was evidently recognized
+- [00:29:12.045 --> 00:29:13.225] by the trial judge.
+- [00:29:13.765 --> 00:29:14.905] Uh, because where do
+- [00:29:14.905 --> 00:29:17.185] These facts in the first column come from?
+- [00:29:17.205 --> 00:29:18.585] Did they come from your submissions?
+- [00:29:19.045 --> 00:29:22.505] Um, n no, the the grade ones are ones that are covered
+- [00:29:22.525 --> 00:29:24.545] by the disputed facts document.
+- [00:29:25.635 --> 00:29:29.215] How's that necessarily grade? You mean the bolded ones?
+- [00:29:30.195 --> 00:29:32.855] Yes. Uh, they, I think they should be grade.
+- [00:29:32.855 --> 00:29:35.495] That is, that is regrettable for the respondent.
+- [00:29:36.035 --> 00:29:39.815] Um, but, um, the ones that say this is a disputed factor,
+- [00:29:39.815 --> 00:29:41.965] obviously the disputed facts, but,
+- [00:29:42.065 --> 00:29:44.445] But just to take 32, yes.
+- [00:29:44.875 --> 00:29:48.525] That sentence is that sentence replicating something
+- [00:29:48.525 --> 00:29:50.485] that's said somewhere else in, in a judgment.
+- [00:29:50.785 --> 00:29:53.965] So what the respondent says about it is the primary
+- [00:29:54.015 --> 00:29:55.365] judge accepted the submission.
+- [00:29:55.365 --> 00:29:57.125] The Friday evenings were not church events.
+- [00:29:57.785 --> 00:29:59.525] That's in the second column.
+- [00:30:00.945 --> 00:30:04.965] Um, if your honors take up the core appeal book, please,
+- [00:30:06.265 --> 00:30:07.485] at page 49,
+- [00:30:15.515 --> 00:30:17.725] your honors will see at page 49
+- [00:30:23.625 --> 00:30:25.965] at page 49, paragraph 190.
+- [00:30:28.505 --> 00:30:32.445] It, it is said the diocese, the diocese case was.
+- [00:30:32.785 --> 00:30:35.125] So this paragraph is a summary of the case.
+- [00:30:36.635 --> 00:30:37.855] And in the second sentence,
+- [00:30:37.915 --> 00:30:40.335] nor were the Friday evenings at the presbytery church
+- [00:30:40.435 --> 00:30:44.375] events, and the primary judge puts that in, uh, quotes.
+- [00:30:45.275 --> 00:30:47.775] The other paragraph in the primary judge's reasons
+- [00:30:47.955 --> 00:30:52.015] to which the respondent refers is paragraph 218.
+- [00:30:52.315 --> 00:30:55.855] If your honor's turn to that, this is part
+- [00:30:55.855 --> 00:30:57.775] of the primary judge's reasons about
+- [00:30:58.365 --> 00:31:00.655] vicarious liability being established.
+- [00:31:01.005 --> 00:31:02.855] What was that paragraph Again? Two 18.
+- [00:31:05.235 --> 00:31:09.375] And part of her honor's reasoning as to the establishment
+- [00:31:09.375 --> 00:31:11.935] of vicarious liability was the special role which the
+- [00:31:12.255 --> 00:31:13.815] diocese gave Father Picken.
+- [00:31:15.265 --> 00:31:16.885] And then in the last sentence
+- [00:31:16.995 --> 00:31:19.285] that the Friday nights he arranged were not, quote,
+- [00:31:19.285 --> 00:31:21.525] church events, does not preclude the diocese
+- [00:31:22.075 --> 00:31:23.205] vicarious liability.
+- [00:31:23.825 --> 00:31:26.405] And so the respondent, in their status
+- [00:31:26.505 --> 00:31:30.085] of facts document in the left hand column, asserts a series
+- [00:31:30.085 --> 00:31:33.365] of facts I'm identifying as I go along,
+- [00:31:33.365 --> 00:31:35.005] those which are agreed,
+- [00:31:35.465 --> 00:31:39.005] but this one needs to be substantially qualified
+- [00:31:39.235 --> 00:31:42.525] because of the imprecision in the notion which the primary
+- [00:31:42.575 --> 00:31:46.165] judge evidently recognized by use of her quote marks
+- [00:31:46.745 --> 00:31:49.365] in the language of church events.
+- [00:31:49.905 --> 00:31:51.325] And that imprecision is
+- [00:31:51.325 --> 00:31:53.965] because of the evidence of Father Dylan, about
+- [00:31:54.195 --> 00:31:56.645] what the parish priest was authorized
+- [00:31:56.985 --> 00:31:59.445] to do at the presbytery. But
+- [00:31:59.445 --> 00:32:01.805] The finding wasn't gatherings general, isn't it?
+- [00:32:01.805 --> 00:32:02.845] The finding limited to what
+- [00:32:02.845 --> 00:32:05.365] that the Friday nights he arranged were not church events.
+- [00:32:05.385 --> 00:32:10.245] It, it was, um, and, uh, that is so,
+- [00:32:10.505 --> 00:32:13.485] but what I'm picking up is the, um, whole notion
+- [00:32:13.485 --> 00:32:16.245] of church events carries with it, uh,
+- [00:32:16.265 --> 00:32:20.085] an extremely imprecise ambit was, was that
+- [00:32:21.085 --> 00:32:22.325] language used in a submission?
+- [00:32:22.655 --> 00:32:24.245] Where, where does it come from? I think it's from the
+- [00:32:24.245 --> 00:32:26.085] respondent's, uh, submissions.
+- [00:32:26.905 --> 00:32:27.925] But you are not saying
+- [00:32:28.115 --> 00:32:30.685] that these Friday night events were,
+- [00:32:30.795 --> 00:32:32.525] were church events, whatever that means.
+- [00:32:32.825 --> 00:32:35.325] You are not propounding a concept of church events.
+- [00:32:35.805 --> 00:32:38.045] NN no, but in a sense,
+- [00:32:38.505 --> 00:32:40.045] the question question was sexual abuse
+- [00:32:40.045 --> 00:32:42.405] of children an authorized church thing to do?
+- [00:32:42.625 --> 00:32:44.605] Of course not. But that's
+- [00:32:44.705 --> 00:32:46.925] as I'm gonna come on the wrong question.
+- [00:32:47.025 --> 00:32:48.885] One has to look at the more general milieu.
+- [00:32:49.225 --> 00:32:50.725] And the point that I'm making is
+- [00:32:50.725 --> 00:32:53.885] that having social functions, uh, at the presbytery
+- [00:32:54.355 --> 00:32:57.565] with people, the, uh, parish priest chose
+- [00:32:57.585 --> 00:32:59.885] to invite was something that was part of
+- [00:32:59.885 --> 00:33:02.085] what he was authorized to do by the diocese.
+- [00:33:02.745 --> 00:33:06.085] And so the notion of saying this was not a church event, um,
+- [00:33:06.085 --> 00:33:10.045] rather conceals a degree of factual information relevant
+- [00:33:10.045 --> 00:33:11.165] to the question of a duty of care.
+- [00:33:11.765 --> 00:33:13.325] Ultimately, we're much more concerned here
+- [00:33:13.325 --> 00:33:15.325] with the relationship between the diocese
+- [00:33:15.385 --> 00:33:20.045] and the plaintiff, then with the scope of the, the authority
+- [00:33:20.185 --> 00:33:22.245] of the, um, the priest.
+- [00:33:22.705 --> 00:33:25.485] Yes. But the parish priest,
+- [00:33:26.135 --> 00:33:28.765] which Father Picken had been agree, was agreed to be,
+- [00:33:29.065 --> 00:33:31.125] had authority of the kind that I've mentioned.
+- [00:33:31.265 --> 00:33:35.805] And that is, um, something that informs the first
+- [00:33:36.345 --> 00:33:39.365] aspect of why we say a duty was of care was owed
+- [00:33:39.365 --> 00:33:40.765] by the diocese because of
+- [00:33:40.765 --> 00:33:42.565] what it armed the parish priest to do.
+- [00:33:43.825 --> 00:33:48.245] Um, so this is not a case like Modbury, for example,
+- [00:33:49.145 --> 00:33:53.645] uh, where there are the actions of a third party who happens
+- [00:33:53.825 --> 00:33:56.645] to be on, uh, the defendant's property
+- [00:33:56.665 --> 00:33:58.565] and there injures the plaintiff.
+- [00:33:59.505 --> 00:34:01.445] Um, it, it's not a case
+- [00:34:01.785 --> 00:34:04.805] to adopt the language in Modbury at paragraph 19
+- [00:34:04.805 --> 00:34:08.205] where the diocese had no control over the behavior
+- [00:34:08.205 --> 00:34:09.565] of diocesan priests
+- [00:34:10.645 --> 00:34:13.425] or where such priests were strangers to the parties.
+- [00:34:14.925 --> 00:34:19.265] Um, now just staying with the respondent's facts
+- [00:34:19.945 --> 00:34:22.545] document, we agree with
+- [00:34:22.545 --> 00:34:25.345] what is said in par in point 33.
+- [00:34:26.415 --> 00:34:29.185] This is, again, referable to the Friday evening gatherings,
+- [00:34:30.005 --> 00:34:32.825] and we agree that they were not for the purpose
+- [00:34:32.845 --> 00:34:35.985] of religious instruction, but the same is.
+- [00:34:36.085 --> 00:34:38.585] So for many of the events
+- [00:34:39.055 --> 00:34:43.065] that might take place at the presbytery at the decision
+- [00:34:43.125 --> 00:34:44.145] of the parish priest.
+- [00:34:45.805 --> 00:34:47.745] Now, it was pointed out in the hearing in the Court
+- [00:34:47.745 --> 00:34:51.905] of Appeal that there are documents, a number of them
+- [00:34:51.975 --> 00:34:55.345] that indicate that Father Picken was in fact an assistant
+- [00:34:55.345 --> 00:34:58.505] priest under a Father Oyer.
+- [00:34:59.645 --> 00:35:01.825] But the position that procedural fairness
+- [00:35:02.425 --> 00:35:06.705] requires be adopted was conceded in the Court of Appeal.
+- [00:35:07.525 --> 00:35:12.385] Uh, by then, uh, counsel for, uh, the respondent here,
+- [00:35:12.435 --> 00:35:14.785] would your honors take up the respondent's book
+- [00:35:14.845 --> 00:35:16.985] of further materials, please?
+- [00:35:24.925 --> 00:35:26.385] I'm sorry, Mr. Um, Hertz,
+- [00:35:26.385 --> 00:35:27.905] could you just gimme that reference again?
+- [00:35:28.245 --> 00:35:29.585] Yes. It's the respondent's book
+- [00:35:29.585 --> 00:35:32.705] of further materials at page one 90
+- [00:35:38.625 --> 00:35:42.165] and, um, at one 90 line 18,
+- [00:35:42.995 --> 00:35:47.285] justice Leming, who had raised the, uh,
+- [00:35:47.285 --> 00:35:51.605] factual issue by this time in reply, Mr.
+- [00:35:51.605 --> 00:35:55.725] Sheller's reply, uh, identified
+- [00:35:55.845 --> 00:35:57.125] that there were pleadings
+- [00:35:57.145 --> 00:35:59.485] and admissions that the parish priest,
+- [00:35:59.715 --> 00:36:01.485] that Father Picken was a parish priest.
+- [00:36:05.425 --> 00:36:07.165] And that explains, he said,
+- [00:36:07.305 --> 00:36:08.765] why There's no evidence on the point.
+- [00:36:08.825 --> 00:36:10.845] And Mr. Sheller said, we are stuck with the admission.
+- [00:36:11.705 --> 00:36:16.015] And then Justice Leming said he understood
+- [00:36:16.015 --> 00:36:19.235] how the litigation should be determined, uh,
+- [00:36:22.135 --> 00:36:24.955] And it included that Father Picken was the parish priest
+- [00:36:24.955 --> 00:36:27.435] and lived alone in the presbytery at the relevant time.
+- [00:36:28.135 --> 00:36:29.555] And the response, there was no evidence
+- [00:36:29.555 --> 00:36:31.395] of anyone else living at the presbytery, whether that's
+- [00:36:31.395 --> 00:36:33.435] because of the passing or time of what have you,
+- [00:36:33.435 --> 00:36:35.715] that wasn't established, but we're stuck with the admission,
+- [00:36:35.975 --> 00:36:37.275] uh, we made.
+- [00:36:38.175 --> 00:36:43.035] And so notice that, uh, what was conceded was not only
+- [00:36:43.505 --> 00:36:46.795] that there were no other adults present
+- [00:36:47.055 --> 00:36:49.115] during the gatherings at the presbytery.
+- [00:36:49.735 --> 00:36:54.235] That's the point in the respondents, uh, status
+- [00:36:54.415 --> 00:36:57.715] of facts document at 0.34.
+- [00:36:58.285 --> 00:36:59.875] There were no other adults present
+- [00:36:59.895 --> 00:37:01.795] during the gatherings at the presbytery.
+- [00:37:01.935 --> 00:37:04.955] We agree. But as is apparent, Mr.
+- [00:37:05.015 --> 00:37:07.635] Mr. Hirschfield, Mr. Sheer may have been stuck.
+- [00:37:09.305 --> 00:37:10.645] Why was the Court of Appeal
+- [00:37:11.265 --> 00:37:14.085] For the same reason? Um, the reason
+- [00:37:14.625 --> 00:37:17.165] The breadth of Section 75 a of the Supreme Court Act,
+- [00:37:17.265 --> 00:37:20.005] The, the reason one cannot as a party
+- [00:37:20.775 --> 00:37:23.565] raise a new matter on appeal, which could have been met
+- [00:37:23.585 --> 00:37:26.245] by evidence below is
+- [00:37:26.765 --> 00:37:28.885] procedural fairness. And that isn't, that is
+- [00:37:28.885 --> 00:37:29.885] That submission that was made. Did,
+- [00:37:29.885 --> 00:37:31.685] did I,
+- [00:37:31.805 --> 00:37:34.125] I dunno whether you appeared below, but I didn't. No,
+- [00:37:34.465 --> 00:37:37.045] But, but Justice Lemming himself, um,
+- [00:37:37.525 --> 00:37:39.685] accepted the point appears to be good.
+- [00:37:39.985 --> 00:37:42.725] And Justice Leming himself was accepting that
+- [00:37:42.725 --> 00:37:45.285] that was the basis upon which the court ought to proceed
+- [00:37:45.545 --> 00:37:47.725] as a matter of procedural fairness, because
+- [00:37:47.795 --> 00:37:50.245] otherwise one has this position, the respondent
+- [00:37:50.425 --> 00:37:52.885] or the appellant can't raise an issue,
+- [00:37:53.835 --> 00:37:57.575] but the court, absent anyone being able to raise the issue,
+- [00:37:57.635 --> 00:38:01.455] can itself determine the case on the manner that was, uh,
+- [00:38:01.545 --> 00:38:03.175] could have been met by evidence below.
+- [00:38:03.245 --> 00:38:04.775] It's a breach of procedural fairness, one
+- [00:38:04.775 --> 00:38:06.295] of your grounds in your notice of appeal.
+- [00:38:06.515 --> 00:38:09.495] We don't need that because we simply say the Court
+- [00:38:09.495 --> 00:38:13.495] of Appeal was wrong in the outcome for deciding the cases.
+- [00:38:13.565 --> 00:38:14.735] I'll show you, your Honor, in a moment.
+- [00:38:15.315 --> 00:38:18.455] Not on the basis that was the agreed position
+- [00:38:18.455 --> 00:38:20.855] between the parties, whether that was a denial
+- [00:38:20.855 --> 00:38:24.095] of procedural fairness, uh, I is, uh, a step
+- [00:38:24.235 --> 00:38:27.135] to the ultimate conclusion, which is they were wrong to,
+- [00:38:27.635 --> 00:38:28.635] To do it. Just so I'm clear,
+- [00:38:28.635 --> 00:38:31.655] leaving aside procedural fairness point,
+- [00:38:31.655 --> 00:38:33.415] which I understand you don't deny
+- [00:38:33.415 --> 00:38:34.775] that the court had the power
+- [00:38:36.025 --> 00:38:38.925] to find its own facts under Section 75 A
+- [00:38:39.065 --> 00:38:41.125] As a general matter, of course not. Righto.
+- [00:38:41.125 --> 00:38:42.845] Thank you. So just to be clear though, Mr.
+- [00:38:43.345 --> 00:38:45.925] So we're, we're all getting procedural fairness, as far
+- [00:38:45.925 --> 00:38:48.245] as I'm concerned, is very clear.
+- [00:38:48.245 --> 00:38:49.845] These issues are defined by pleadings,
+- [00:38:50.185 --> 00:38:52.325] and it's not just amount of procedural fairness,
+- [00:38:52.475 --> 00:38:54.925] it's the scope of what their fundamental function is.
+- [00:38:55.505 --> 00:38:58.125] Yes. So That's why I took you back earlier.
+- [00:38:58.445 --> 00:39:00.485] I mean, you start with the agreed statement of facts,
+- [00:39:00.585 --> 00:39:03.445] but the pleadings pleaded it and it was admitted.
+- [00:39:03.785 --> 00:39:04.785] Um,
+- [00:39:05.045 --> 00:39:06.845] I, I'm not disagreeing with any of that.
+- [00:39:06.845 --> 00:39:08.565] There's a whole series of problems of what occurred.
+- [00:39:09.145 --> 00:39:12.925] But if, uh, if there had been, um,
+- [00:39:14.105 --> 00:39:16.085] no possibility that the matter could have been,
+- [00:39:16.175 --> 00:39:18.125] could have affected the evidence below,
+- [00:39:19.095 --> 00:39:22.485] there is at least power in the court of appeal if necessary,
+- [00:39:22.515 --> 00:39:24.365] even to grant an amendment of pleadings
+- [00:39:24.365 --> 00:39:25.725] and leave to withdraw an admission.
+- [00:39:26.105 --> 00:39:28.245] But none of that could possibly occur here
+- [00:39:28.245 --> 00:39:31.405] because of the way that the matter was conducted,
+- [00:39:31.545 --> 00:39:32.605] as was conceded.
+- [00:39:33.145 --> 00:39:36.725] Um, so what, as I say is the significant point out
+- [00:39:36.725 --> 00:39:38.245] of this is not so much the title.
+- [00:39:39.185 --> 00:39:42.165] The significant point is that in the context
+- [00:39:42.265 --> 00:39:46.565] of an agreed position, pleaded admitted agreed facts
+- [00:39:47.305 --> 00:39:50.365] in the context that Father Picken was the parish priest.
+- [00:39:50.415 --> 00:39:52.645] There was no evidence or even suggestion
+- [00:39:53.115 --> 00:39:56.565] that there was anyone else living at the presbytery. Um,
+- [00:39:57.185 --> 00:40:01.325] You referred to an agreed fact, maybe paragraph 34,
+- [00:40:01.395 --> 00:40:03.245] that he was alone. I'm trying to find
+- [00:40:03.245 --> 00:40:04.245] That. Yes. So in the respondent's
+- [00:40:04.245 --> 00:40:06.405] status of facts document,
+- [00:40:06.875 --> 00:40:08.485] I'll state a fact in this court,
+- [00:40:08.705 --> 00:40:10.485] Not the agreed facts in this court. Right.
+- [00:40:10.645 --> 00:40:12.925] Um, um, it, it was said
+- [00:40:12.925 --> 00:40:14.685] that there were no other adults present
+- [00:40:14.745 --> 00:40:16.005] during the gatherings.
+- [00:40:16.425 --> 00:40:17.485] And, and that is true.
+- [00:40:17.745 --> 00:40:20.365] No, but I'm making a, a, a slightly more fundamental point,
+- [00:40:20.495 --> 00:40:22.365] which is about no one else living there, and
+- [00:40:22.365 --> 00:40:24.365] therefore no one else having the authority,
+- [00:40:24.365 --> 00:40:27.405] which the evidence showed that a parish priest could have.
+- [00:40:28.105 --> 00:40:32.685] And had that been an issue, which was in issue at trial, um,
+- [00:40:33.105 --> 00:40:34.685] the suggestion that there was another priest
+- [00:40:34.705 --> 00:40:37.685] who was living there who was more senior than Father Picken,
+- [00:40:38.425 --> 00:40:41.205] um, then that matter would've had to be thoroughly explored.
+- [00:40:41.945 --> 00:40:45.165] Um, and that not having done the position is as Mr.
+- [00:40:45.375 --> 00:40:48.205] Sheer, um, conceded it in the court below.
+- [00:40:48.585 --> 00:40:50.085] And to be clear, um,
+- [00:40:50.215 --> 00:40:52.245] while the title may have been incorrect,
+- [00:40:52.875 --> 00:40:55.405] it's not at all clear that the substantial fact
+- [00:40:55.715 --> 00:40:58.925] that Father Picken lived alone at the presbytery
+- [00:40:59.025 --> 00:41:01.245] and had control of it was incorrect.
+- [00:41:01.625 --> 00:41:06.165] It was entirely possible that Father O'Dwyer, who was,
+- [00:41:06.225 --> 00:41:08.725] it appears the parish priest didn't live there,
+- [00:41:09.105 --> 00:41:10.765] and that Father Picken lived there
+- [00:41:10.765 --> 00:41:12.165] alone as the assistant priest.
+- [00:41:12.225 --> 00:41:14.285] Can you just remind me, was there a finding of fact
+- [00:41:14.285 --> 00:41:15.885] by the trial judge that he lived alone?
+- [00:41:16.745 --> 00:41:19.365] Uh, I think the answer is yes. Yes.
+- [00:41:19.365 --> 00:41:23.205] According to Well, no, found
+- [00:41:23.205 --> 00:41:25.565] that there were no other adults when the assaults occurred.
+- [00:41:25.585 --> 00:41:28.725] That's PJ 85 according to that, that's different to the,
+- [00:41:29.085 --> 00:41:30.205] I I I accept that.
+- [00:41:30.585 --> 00:41:35.045] Yes. The, the, um, uh, uh, your Honor,
+- [00:41:35.135 --> 00:41:37.045] we'll see at paragraph,
+- [00:41:37.585 --> 00:41:41.885] uh, yes.
+- [00:41:42.145 --> 00:41:47.125] Um, your Honor, we'll see at paragraph 68
+- [00:41:48.425 --> 00:41:50.605] Of the primary Judge of the primary judge's reasons,
+- [00:41:51.155 --> 00:41:53.685] this is in dealing with the, um,
+- [00:41:54.785 --> 00:41:57.045] Uh, uh,
+- [00:41:58.505 --> 00:42:01.005] One of the evidentiary objections your honors
+- [00:42:01.005 --> 00:42:02.085] will see in dealing with it.
+- [00:42:02.085 --> 00:42:03.965] The primary judge said, in this case,
+- [00:42:03.965 --> 00:42:06.725] the disputed evidence Concerned Uncharged Act, uh, acts
+- [00:42:06.725 --> 00:42:08.845] and so on, but also surrounding,
+- [00:42:08.845 --> 00:42:10.725] including having repeatedly invited him
+- [00:42:10.725 --> 00:42:11.925] and Mr. Perry Prairie to the
+- [00:42:11.925 --> 00:42:13.205] presbytery where he lived alone.
+- [00:42:13.255 --> 00:42:16.845] Thank you. So the primary judge was proceeding, um, uh,
+- [00:42:17.345 --> 00:42:22.125] unsurprisingly on the, uh, basis consistent
+- [00:42:22.235 --> 00:42:25.205] with the fact that he was the parish priest, consistent
+- [00:42:25.205 --> 00:42:27.405] with the fact that there was no suggestion anyone else was
+- [00:42:27.405 --> 00:42:29.165] living there, that he did live alone
+- [00:42:29.185 --> 00:42:30.365] and exercised all the power
+- [00:42:30.545 --> 00:42:32.165] Is one of those findings which Justice
+- [00:42:32.305 --> 00:42:33.845] Leming disagreed with from memory.
+- [00:42:35.295 --> 00:42:37.355] Uh, yes.
+- [00:42:37.355 --> 00:42:39.795] Justice Leming, and I'll show your honors this,
+- [00:42:39.795 --> 00:42:41.715] this is the whole point of what I'm going through.
+- [00:42:42.375 --> 00:42:46.435] Um, uh, your honors will see also at paragraph 1 37. I was
+- [00:42:46.435 --> 00:42:47.915] Gonna say the third bullet point
+- [00:42:48.095 --> 00:42:49.155] is, is there's an agreement,
+- [00:42:49.575 --> 00:42:52.715] Uh, that's an agreement between the evidence of Mr. Perry
+- [00:42:53.015 --> 00:42:54.515] and the appellant.
+- [00:42:55.255 --> 00:42:57.155] And in the third bullet point, it was clear
+- [00:42:57.155 --> 00:42:59.075] that their evidence was in agreement
+- [00:42:59.185 --> 00:43:01.995] that Father Picken lived alone. Sorry,
+- [00:43:01.995 --> 00:43:03.155] Who's that agreement of again?
+- [00:43:03.375 --> 00:43:07.075] Um, the appellant and Mr. Perry. Thank
+- [00:43:07.075 --> 00:43:08.075] You.
+- [00:43:08.225 --> 00:43:10.515] Your honors will see that in the previous paragraph.
+- [00:43:11.055 --> 00:43:13.795] And so that's why I say that even if the title was wrong,
+- [00:43:14.775 --> 00:43:17.355] the substantial fact may well have been correct,
+- [00:43:17.545 --> 00:43:19.475] because the two parties
+- [00:43:19.535 --> 00:43:21.755] who gave most direct evidence about the matter,
+- [00:43:21.815 --> 00:43:26.155] the appellant and Mr. Perry, uh, gave evidence
+- [00:43:26.465 --> 00:43:27.995] that he lived alone.
+- [00:43:28.015 --> 00:43:31.555] And it wasn't suggested to anyone that he didn't, and
+- [00:43:31.555 --> 00:43:33.915] So, don't, don't, don't the primary facts support your
+- [00:43:33.915 --> 00:43:36.235] proposition that whether he was a parish
+- [00:43:36.235 --> 00:43:37.315] priest or assistant priest.
+- [00:43:37.315 --> 00:43:41.035] The fact is he did invite them into the presbytery,
+- [00:43:41.095 --> 00:43:43.155] and no one seemed to have objected to it.
+- [00:43:43.375 --> 00:43:45.875] But I'm going a little bit further than that, which is
+- [00:43:45.875 --> 00:43:48.955] that, um, the way the trial was conducted
+- [00:43:48.955 --> 00:43:51.515] and the evidence showed that that was part of his function,
+- [00:43:52.615 --> 00:43:54.875] not to invite people to sexually abuse them,
+- [00:43:55.535 --> 00:43:57.435] but to control the activities
+- [00:43:57.455 --> 00:43:59.675] and people at the presbytery. Do
+- [00:43:59.675 --> 00:44:01.275] You alarm paragraph 2, 2 8
+- [00:44:01.275 --> 00:44:03.755] of the primary judge in court appeal book 59?
+- [00:44:11.415 --> 00:44:15.515] We, we do, we do Actually the last sentence
+- [00:44:16.175 --> 00:44:18.275] We do, and, and this is one of the findings
+- [00:44:18.275 --> 00:44:20.435] that the primary that, that the Court of Appeal criticized.
+- [00:44:20.435 --> 00:44:22.275] So let me take your honors to that immediately.
+- [00:44:22.275 --> 00:44:24.755] Now, would your honors turn in the core appeal book
+- [00:44:24.755 --> 00:44:25.835] to page 1 9 1?
+- [00:44:30.175 --> 00:44:32.725] Uh, if your honors actually started page 1, 9 0,
+- [00:44:33.235 --> 00:44:36.125] your honors will see in paragraph 2 0 1 of the court
+- [00:44:36.125 --> 00:44:37.765] of appeals, uh, reasons.
+- [00:44:37.955 --> 00:44:40.245] There's a quote from the primary judge's reasons,
+- [00:44:40.245 --> 00:44:42.045] including the paragraph to which, your Honor,
+- [00:44:42.045 --> 00:44:43.685] justice Gordon has directed my attention.
+- [00:44:46.025 --> 00:44:50.245] And, um, your honors will see that in paragraph 2 0 3,
+- [00:44:51.915 --> 00:44:55.965] justice Leming identified that that paragraph to which,
+- [00:44:55.965 --> 00:44:57.925] your Honor, justice Gordon has directed attention,
+- [00:44:58.015 --> 00:45:00.805] presuppose wrongly that Father Picken was a parish priest
+- [00:45:00.805 --> 00:45:02.605] who lived alone in the presbytery without
+- [00:45:02.605 --> 00:45:03.725] other adults present.
+- [00:45:04.545 --> 00:45:07.725] So can we just break that up for the moment?
+- [00:45:08.505 --> 00:45:10.965] Um, wrongly that he was a parish priest
+- [00:45:12.385 --> 00:45:13.805] who lived alone in the presbytery.
+- [00:45:13.805 --> 00:45:15.605] So there's a number of facts there
+- [00:45:15.605 --> 00:45:17.005] that are the subject of challenge.
+- [00:45:18.225 --> 00:45:20.165] Do you read that as challenging every each
+- [00:45:20.185 --> 00:45:21.405] and every one of those facts?
+- [00:45:21.625 --> 00:45:25.235] Yes. And your honors will see that in the next, um,
+- [00:45:25.625 --> 00:45:27.475] justice Leming was challenging each
+- [00:45:27.475 --> 00:45:28.795] Respect. Oh, sorry. I meant to say that.
+- [00:45:29.495 --> 00:45:31.995] Yes. Um, your honors will see that in paragraph 2 0 4,
+- [00:45:32.855 --> 00:45:34.755] his honor said the reasoning of the primary judge,
+- [00:45:34.755 --> 00:45:36.915] if it were based on facts, would not be without force.
+- [00:45:38.055 --> 00:45:40.075] And then your honors will see dropping down halfway
+- [00:45:40.075 --> 00:45:41.355] through that paragraph.
+- [00:45:41.355 --> 00:45:44.195] But Father Picken was an assistant priest sharing a
+- [00:45:44.195 --> 00:45:47.515] presbytery with Father Oyer pp parish priest
+- [00:45:47.575 --> 00:45:48.915] in suburban Newcastle.
+- [00:45:50.655 --> 00:45:53.315] And insofar as the primary judge gave emphasis
+- [00:45:53.315 --> 00:45:54.595] to the sole power to control
+- [00:45:54.595 --> 00:45:56.355] who entered Father Pickin's accommodation,
+- [00:45:56.385 --> 00:45:57.515] that was effectively wrong.
+- [00:45:58.385 --> 00:46:01.035] That that reasoning is, um,
+- [00:46:01.385 --> 00:46:03.715] impermissibly both procedurally,
+- [00:46:03.935 --> 00:46:06.675] but also substantively, substantively,
+- [00:46:06.675 --> 00:46:10.195] because it assumes the incorrectness in the proposition
+- [00:46:10.195 --> 00:46:13.515] that Father Picken lived alone absent any evidence.
+- [00:46:14.895 --> 00:46:18.115] So what I've said so far, then tracking back
+- [00:46:18.115 --> 00:46:22.835] to the disputed facts document in this court that deals
+- [00:46:22.995 --> 00:46:26.875] with our oral submissions on items one to four
+- [00:46:27.255 --> 00:46:29.315] of the disputed facts, documents,
+- [00:46:29.415 --> 00:46:32.115] not the respondent's status of facts document,
+- [00:46:32.135 --> 00:46:33.195] that's their document.
+- [00:46:33.495 --> 00:46:36.315] The disputed facts document is an agreed document which
+- [00:46:36.355 --> 00:46:38.435] catalogs the disputed facts in this court.
+- [00:46:39.335 --> 00:46:42.435] And what I have said, deals orally with matters,
+- [00:46:42.665 --> 00:46:46.515] with items one to four of the disputed facts. Document
+- [00:46:47.205 --> 00:46:48.595] Those facts.
+- [00:46:49.615 --> 00:46:54.395] I'm wondering how, um, precisely
+- [00:46:54.455 --> 00:46:57.155] how they are relevant to the relationship between the
+- [00:46:57.755 --> 00:47:01.195] diocese and the plaintiff.
+- [00:47:02.085 --> 00:47:04.825] Yes. Is there, was there a finding, for example,
+- [00:47:04.975 --> 00:47:09.145] that the diocese held out or offered or,
+- [00:47:09.325 --> 00:47:13.105] or made, um, the presbytery available as a place
+- [00:47:13.105 --> 00:47:15.845] of sanctuary for parishioners?
+- [00:47:16.305 --> 00:47:18.165] Um, not in those terms.
+- [00:47:18.465 --> 00:47:20.805] The way they're relevant, I is in the way
+- [00:47:20.805 --> 00:47:22.925] that's really reflected in paragraph 2, 2, 8
+- [00:47:22.925 --> 00:47:26.245] of the primary judge's, uh, reasons that is
+- [00:47:26.475 --> 00:47:30.365] that the diocese, um, authorized let father
+- [00:47:30.365 --> 00:47:32.205] Pick, let father Picken do whatever he wanted
+- [00:47:32.225 --> 00:47:33.925] to in the, in the presbytery,
+- [00:47:34.145 --> 00:47:36.165] Um, in broad terms, yes. And,
+- [00:47:36.165 --> 00:47:38.125] And that is said to give rise
+- [00:47:38.305 --> 00:47:40.365] to something about the relationship
+- [00:47:40.365 --> 00:47:42.045] between the diocese and the plaintiff.
+- [00:47:42.105 --> 00:47:45.085] Yes. That's the first point that I'm relying on
+- [00:47:45.085 --> 00:47:49.685] for the duty to demonstrate that this is not a case of
+- [00:47:51.215 --> 00:47:54.435] the priest at some other location completely unconnected
+- [00:47:54.435 --> 00:47:56.835] with the diocese, um, abusing someone.
+- [00:47:57.185 --> 00:47:59.995] This is as part of, uh, at the premises
+- [00:47:59.995 --> 00:48:02.435] that he was authorized to occupy control
+- [00:48:02.455 --> 00:48:05.875] and invite people to, for the effectively for the functions
+- [00:48:06.115 --> 00:48:08.395] that he deemed were appropriate. You, you
+- [00:48:08.395 --> 00:48:09.635] Have to go a lot further than that.
+- [00:48:09.715 --> 00:48:11.835] I mean, that, that, that's just a landlord relationship.
+- [00:48:11.855 --> 00:48:13.275] So as I said, I've just started.
+- [00:48:13.695 --> 00:48:17.355] So, um, that's point, that's point number one about duty.
+- [00:48:18.935 --> 00:48:23.795] Um, the next point, uh, the next point, uh,
+- [00:48:23.795 --> 00:48:27.395] to the role, which the next point which we point to
+- [00:48:28.175 --> 00:48:29.755] is the role which the diocese
+- [00:48:29.755 --> 00:48:32.795] and the church more generally required priests,
+- [00:48:33.055 --> 00:48:34.395] not merely parish priests,
+- [00:48:34.495 --> 00:48:37.595] but priests to perform in connection with children.
+- [00:48:38.845 --> 00:48:40.465] So would your honors again turn
+- [00:48:40.925 --> 00:48:44.825] to Father Dylan's first report in the appellant's book
+- [00:48:44.825 --> 00:48:45.905] of further materials?
+- [00:48:45.905 --> 00:48:50.625] Volume one. And would your
+- [00:48:50.625 --> 00:48:52.465] honors turn to page four?
+- [00:48:52.885 --> 00:48:54.025] Uh, 40.
+- [00:48:57.765 --> 00:49:01.945] Uh, your honors will see in question D,
+- [00:49:03.605 --> 00:49:07.025] it extracts a, um, papal ordinance.
+- [00:49:08.485 --> 00:49:13.465] And may we draw attention particularly to, um, paragraph B
+- [00:49:14.245 --> 00:49:15.305] of that ordinance.
+- [00:49:20.525 --> 00:49:24.065] And then the answer, which was given underneath was
+- [00:49:24.065 --> 00:49:25.505] that the responsibilities
+- [00:49:25.525 --> 00:49:27.825] of priests on all those paragraphs were consistent
+- [00:49:27.825 --> 00:49:30.705] with normal and traditional practice of, uh, the church.
+- [00:49:32.195 --> 00:49:35.145] Would your honors then turn over to page 4, 4, 1,
+- [00:49:35.845 --> 00:49:36.845] Mr. Hertzel? Just
+- [00:49:36.845 --> 00:49:40.945] that opening question. What is the question?
+- [00:49:41.005 --> 00:49:42.385] It says, do you recall whether
+- [00:49:46.605 --> 00:49:49.345] Yes, um, there, there's, there, there seems
+- [00:49:49.345 --> 00:49:51.945] to be a slightly missing question, missing question,
+- [00:49:52.165 --> 00:49:55.905] but, um, what he answered, uh, he
+- [00:49:55.905 --> 00:49:58.985] Just affirmed it, Affirmed that, um, as a matter
+- [00:49:58.985 --> 00:50:02.945] of fact, that was how churches, um, behaved.
+- [00:50:03.525 --> 00:50:06.505] I'm not sure if the question was defective
+- [00:50:06.505 --> 00:50:07.745] or if just the reproduction
+- [00:50:07.745 --> 00:50:09.865] of the question in this report was defective.
+- [00:50:09.865 --> 00:50:11.665] I'll see if I can, um, clarify that.
+- [00:50:12.805 --> 00:50:14.785] Can I then direct attention to question? I think, I
+- [00:50:14.785 --> 00:50:16.665] Think the words at the end of paragraph D
+- [00:50:17.225 --> 00:50:18.465] probably just need to be in a separate
+- [00:50:18.465 --> 00:50:19.825] paragraph, and that, that
+- [00:50:20.145 --> 00:50:21.145] Structures the question. Uh,
+- [00:50:21.145 --> 00:50:23.305] I think your honor's quite right, probably, uh,
+- [00:50:24.465 --> 00:50:25.825] informed the instruction
+- [00:50:25.885 --> 00:50:29.565] and so on, should be a tailpiece to all of A to D.
+- [00:50:33.545 --> 00:50:37.805] Um, in question G, your honors will see
+- [00:50:37.805 --> 00:50:42.045] what was asked, and your honors will see in many parishes
+- [00:50:42.045 --> 00:50:43.845] was common practice provided there was agreement
+- [00:50:43.845 --> 00:50:46.565] of local state school authorities for priests
+- [00:50:46.565 --> 00:50:47.925] to give religious instruction lessons
+- [00:50:47.985 --> 00:50:50.325] to Catholic students at the school.
+- [00:50:50.865 --> 00:50:54.205] I'm so sorry. Is this question G? Yes, question G.
+- [00:50:59.375 --> 00:51:02.955] But that has to be read with the previous answer to question
+- [00:51:03.475 --> 00:51:04.955] F on the previous page.
+- [00:51:06.545 --> 00:51:11.015] Your honors will see there that, uh, priests,
+- [00:51:12.665 --> 00:51:15.235] It's expressed in terms of, uh, parish priests,
+- [00:51:15.235 --> 00:51:17.435] the question, but the answer is given in terms
+- [00:51:17.435 --> 00:51:19.715] of priests were subject to the authority
+- [00:51:19.715 --> 00:51:21.915] and direction of the diocesan bishop in terms
+- [00:51:21.915 --> 00:51:22.995] of determining a priest
+- [00:51:22.995 --> 00:51:24.595] duties, responsibilities, and priorities.
+- [00:51:24.615 --> 00:51:26.235] He was expected to go where he was sent
+- [00:51:26.235 --> 00:51:27.675] and do what he was told by the bishop.
+- [00:51:28.255 --> 00:51:30.675] So notice then, in the answer to question G,
+- [00:51:30.675 --> 00:51:32.755] and I'll come back to this, while they had to
+- [00:51:32.755 --> 00:51:36.195] of course be agreement of local school authorities, in light
+- [00:51:36.195 --> 00:51:39.675] of the previous answer, whether a priest could take up, uh,
+- [00:51:39.775 --> 00:51:43.435] the position at a state school was ultimately under the
+- [00:51:43.435 --> 00:51:46.035] control of the bishop to appoint a priest
+- [00:51:46.135 --> 00:51:47.355] to a particular role.
+- [00:51:48.495 --> 00:51:53.355] And the answer to question H makes clear that doing
+- [00:51:53.355 --> 00:51:57.515] that role, uh, was, uh, viewed as part
+- [00:51:57.515 --> 00:52:01.675] of the priest's responsibility as part of his ministry.
+- [00:52:01.675 --> 00:52:03.835] Your honors will see that in the answers to Q
+- [00:52:04.655 --> 00:52:06.915] at letters Q2 V.
+- [00:52:11.635 --> 00:52:14.175] If your honors then turn over to page 4, 4, 2,
+- [00:52:15.445 --> 00:52:17.975] your honors will see what was asked in question J.
+- [00:52:20.475 --> 00:52:23.535] And then the answer standard expectation of all priests,
+- [00:52:23.535 --> 00:52:24.855] that their engagement with the young people
+- [00:52:24.855 --> 00:52:26.295] of the parish was a most important
+- [00:52:26.315 --> 00:52:29.735] and valued part of the ministry youth groups, movie nights,
+- [00:52:29.865 --> 00:52:32.375] camps, sporting teams, choirs, and so on.
+- [00:52:34.055 --> 00:52:37.965] And notice that this evidence, that is the evidence
+- [00:52:37.965 --> 00:52:39.485] that I've just taken your honors to,
+- [00:52:39.505 --> 00:52:41.205] is expressed generally about priests,
+- [00:52:41.205 --> 00:52:42.205] not merely about parish
+- [00:52:42.235 --> 00:52:43.685] priests to the extent that it matters.
+- [00:52:45.145 --> 00:52:49.325] Now, that is the, that evidence is the context, uh, for
+- [00:52:49.355 --> 00:52:52.085] what appears in what was agreed between the parties.
+- [00:52:52.145 --> 00:52:55.165] If your honors turn back to the agreed facts at page 80,
+- [00:53:01.955 --> 00:53:06.765] your honors will see the agreed facts of paragraphs 21
+- [00:53:08.305 --> 00:53:10.405] to 20, uh, three.
+- [00:53:16.575 --> 00:53:19.755] And again, just to situate these by reference
+- [00:53:19.755 --> 00:53:24.675] to the respondent's status of facts document, we agree
+- [00:53:24.955 --> 00:53:28.125] with the matters that are in item 16 to 18
+- [00:53:29.465 --> 00:53:32.125] and 20 of that document,
+- [00:53:34.585 --> 00:53:37.365] but this evidence reveals something of a missed focus
+- [00:53:37.515 --> 00:53:39.845] with respect in the court of appeals reasons.
+- [00:53:40.255 --> 00:53:41.725] Would your honors take up the court
+- [00:53:41.725 --> 00:53:44.245] of appeals reasons at Poor appeal?
+- [00:53:44.275 --> 00:53:46.005] Book 1 9 1
+- [00:53:50.265 --> 00:53:52.005] At paragraph 2 0 5,
+- [00:53:54.965 --> 00:53:57.325] criticizing, again, the primary judge's reasons,
+- [00:53:57.405 --> 00:53:59.605] particularly at, uh, 2, 2 8.
+- [00:53:59.965 --> 00:54:01.605] Secondly, and it's a small point,
+- [00:54:01.785 --> 00:54:03.805] but the decision to permit Father Picken
+- [00:54:03.805 --> 00:54:06.165] to conduct strip strip classes at a government school was
+- [00:54:06.285 --> 00:54:07.805] ultimately the decision of the head of the school
+- [00:54:07.825 --> 00:54:11.885] or state government, um, that, that, uh,
+- [00:54:12.745 --> 00:54:15.165] is not right in a relevant sense.
+- [00:54:15.345 --> 00:54:17.845] Of course, uh, there had to be agreement
+- [00:54:18.025 --> 00:54:20.605] of school authorities, but that's rather beside the point.
+- [00:54:20.745 --> 00:54:25.485] Beside the point is that performing that role was part
+- [00:54:25.485 --> 00:54:26.645] of the responsibility.
+- [00:54:26.985 --> 00:54:30.285] Oh five, I'm sorry, paragraph 2 0 5, your Honor, is
+- [00:54:30.285 --> 00:54:31.725] what I was directing attention to.
+- [00:54:32.505 --> 00:54:35.885] And the point is that, um, part is that performing
+- [00:54:35.885 --> 00:54:38.525] that role, while of course, requiring the agreement
+- [00:54:38.585 --> 00:54:42.565] of the head of the school was part of the role of the priest
+- [00:54:42.745 --> 00:54:46.165] as part of his mission to interact with children,
+- [00:54:47.085 --> 00:54:49.085] ultimately at the direction of the bishop.
+- [00:54:49.865 --> 00:54:53.645] And that is actually, um, ultimately conceded, uh,
+- [00:54:54.065 --> 00:54:58.325] at the end of paragraph 2 0 5, which was an inference,
+- [00:54:59.255 --> 00:55:04.245] which, uh, justice Leming drew that, um, it was a matter
+- [00:55:04.245 --> 00:55:06.685] for the headmaster or head mistress to choose whether
+- [00:55:06.705 --> 00:55:09.125] to have such a class at school.
+- [00:55:09.745 --> 00:55:11.805] But then it was left to the various denominations
+- [00:55:11.805 --> 00:55:15.005] to determine who would attend precisely it.
+- [00:55:15.005 --> 00:55:18.205] It was ultimately a decision of the bishop as
+- [00:55:18.205 --> 00:55:21.365] to whether anyone, and if so, who would attend
+- [00:55:21.425 --> 00:55:22.525] to fulfill that role.
+- [00:55:22.945 --> 00:55:26.685] And in doing so as part of the, uh, religious mission,
+- [00:55:27.105 --> 00:55:30.485] uh, of the diocese. And so, but isn't there
+- [00:55:30.635 --> 00:55:33.765] Another element there, which comes back to this question
+- [00:55:33.765 --> 00:55:35.245] of nondelegable duty
+- [00:55:35.345 --> 00:55:38.885] or probably anterior duty of care.
+- [00:55:39.665 --> 00:55:42.885] How does the child come to be in the scripture class?
+- [00:55:43.785 --> 00:55:47.565] And, um, that one might think would be
+- [00:55:47.565 --> 00:55:50.085] because the parents gave permission for the child
+- [00:55:50.085 --> 00:55:52.445] to be in the class, or possibly
+- [00:55:52.445 --> 00:55:55.525] because the child without the parent's permission
+- [00:55:55.915 --> 00:55:57.245] decided to be in the class.
+- [00:55:57.785 --> 00:56:02.365] And that is how the priest comes to have some degree of care
+- [00:56:02.905 --> 00:56:05.245] for the child in relation to that scripture class.
+- [00:56:05.345 --> 00:56:06.365] That's so not just
+- [00:56:06.365 --> 00:56:09.845] because the, the diocese has given a priest
+- [00:56:10.365 --> 00:56:14.245] a roving mission of pastoral care in relation to children,
+- [00:56:14.515 --> 00:56:17.445] That that is so, but the way that the child comes
+- [00:56:17.445 --> 00:56:21.655] to be at the presbytery is the decision of the priest.
+- [00:56:23.225 --> 00:56:26.765] And that is why, uh, as your honors will recall
+- [00:56:27.155 --> 00:56:29.525] that the framing of the duty is important.
+- [00:56:30.785 --> 00:56:35.685] Um, so to the ex to that extent, that is to the extent
+- [00:56:35.685 --> 00:56:39.525] that I've, uh, qualified what appears at paragraph 2 0 5,
+- [00:56:40.345 --> 00:56:43.885] the same qualification is necessary in the respondent's
+- [00:56:43.905 --> 00:56:48.725] status of facts document to what appears at item 19
+- [00:56:49.425 --> 00:56:51.245] of that, uh, document.
+- [00:56:59.785 --> 00:57:01.525] And so what I have then said
+- [00:57:01.785 --> 00:57:05.965] so far addresses in the disputed facts document
+- [00:57:07.145 --> 00:57:10.995] item five of the disputed facts document.
+- [00:57:13.495 --> 00:57:17.315] Um, the converse of the priestly role,
+- [00:57:17.375 --> 00:57:21.995] to which I have drawn attention, uh, is the then, um,
+- [00:57:22.475 --> 00:57:26.235] societal attitudes by which priests were figures of serious
+- [00:57:26.375 --> 00:57:29.315] and unquestionable authority, particularly for those
+- [00:57:29.695 --> 00:57:30.875] of the Catholic faith.
+- [00:57:31.575 --> 00:57:33.155] Um, we've given your honor's references
+- [00:57:33.735 --> 00:57:36.275] to the evidence in paragraph 29
+- [00:57:36.275 --> 00:57:37.995] of our written submissions in chief,
+- [00:57:38.495 --> 00:57:41.915] and also the disputed facts document at 0.6.
+- [00:57:42.415 --> 00:57:44.915] I'm not going to take your honors through all of that, um,
+- [00:57:45.555 --> 00:57:50.515] evidence, but, uh, we, so that's evidence directed to, um,
+- [00:57:50.775 --> 00:57:55.395] the then societal attitudes by which priests were figures
+- [00:57:55.395 --> 00:57:57.595] of serious and unquestionable authority, particularly
+- [00:57:57.595 --> 00:57:59.555] amongst those of the Catholic faith.
+- [00:58:00.495 --> 00:58:02.675] Um, in relation to the respondent's status
+- [00:58:02.815 --> 00:58:06.115] of facts document, we agree with
+- [00:58:06.115 --> 00:58:10.115] what appears at items 15 and 23.
+- [00:58:12.015 --> 00:58:15.795] Now, those societal attitudes increase the power imbalance
+- [00:58:15.825 --> 00:58:18.635] that would exist in any event between a priest on one hand
+- [00:58:18.635 --> 00:58:19.635] and a child on the other.
+- [00:58:20.095 --> 00:58:21.435] But I wanna be clear about this.
+- [00:58:21.575 --> 00:58:24.155] Our submissions do not turn on
+- [00:58:24.295 --> 00:58:26.875] how religious the appellant was,
+- [00:58:27.135 --> 00:58:28.915] or even whether the children in question were
+- [00:58:28.915 --> 00:58:31.715] of the Catholic, uh, faith at
+- [00:58:31.715 --> 00:58:35.395] likewise, they're not defeated by a submission which is made
+- [00:58:35.395 --> 00:58:38.115] by the respondent that the appellant didn't regularly
+- [00:58:38.115 --> 00:58:42.115] attend, uh, mass, quite apart from any, uh,
+- [00:58:42.395 --> 00:58:43.875] religious deference to priests.
+- [00:58:44.215 --> 00:58:47.235] The class of people, uh, with whom this duty is concerned
+- [00:58:47.235 --> 00:58:49.595] that is children, is a well-recognized class
+- [00:58:49.595 --> 00:58:52.955] of vulnerable people, in any event, quite apart from
+- [00:58:52.985 --> 00:58:54.955] that religious, uh, aspect.
+- [00:58:55.375 --> 00:59:00.315] So do you need item six? Uh, we do not, is not your case.
+- [00:59:00.495 --> 00:59:04.075] We do not. It helps, but we don't need it.
+- [00:59:05.735 --> 00:59:07.675] Um, because cases like Guy
+- [00:59:07.675 --> 00:59:11.435] and Downs recognize that children per se, are, um,
+- [00:59:11.595 --> 00:59:14.915] a vulnerable class which can generate, uh, a duty extending
+- [00:59:14.915 --> 00:59:16.195] to the control of third parties.
+- [00:59:17.615 --> 00:59:20.915] Um, now those matters together with the points
+- [00:59:21.025 --> 00:59:23.425] that I've already made about Father Pickens, control
+- [00:59:23.425 --> 00:59:24.545] of the presbytery
+- [00:59:25.125 --> 00:59:27.665] and the ministry that he was expected
+- [00:59:27.725 --> 00:59:29.425] to undertake directed to children.
+- [00:59:30.045 --> 00:59:33.385] Uh, address what we want to say about the disputed facts,
+- [00:59:33.745 --> 00:59:37.105] documents, fact 12, capital A.
+- [00:59:40.165 --> 00:59:44.665] Um, staying with that disputed facts document,
+- [00:59:46.895 --> 00:59:49.425] Just looking at paragraph at point 13
+- [00:59:49.925 --> 00:59:54.225] and 14, uh, those disputed factual matters
+- [00:59:55.005 --> 00:59:59.025] are irrelevant to the question of whether duty was owed.
+- [01:00:00.125 --> 01:00:01.545] It is cross those out
+- [01:00:01.545 --> 01:00:03.785] With six For our part.
+- [01:00:04.005 --> 01:00:05.985] The respondent may say that they're relevant,
+- [01:00:06.085 --> 01:00:08.865] but even if it was so that 13
+- [01:00:08.865 --> 01:00:11.385] and 14 were true, they don't matter.
+- [01:00:13.885 --> 01:00:17.305] Um, can I then, as the next point, tending in favor
+- [01:00:17.325 --> 01:00:19.745] of the existence of a duty point to the control,
+- [01:00:19.745 --> 01:00:23.785] which the diocese in the person of the bishop had, uh,
+- [01:00:23.785 --> 01:00:26.985] over both priests, not merely parish priests, um,
+- [01:00:27.405 --> 01:00:29.385] but also diocesan premises.
+- [01:00:29.815 --> 01:00:32.465] I've already pointed out, uh, the material which
+- [01:00:33.105 --> 01:00:35.505] demonstrates that both in the agreed facts
+- [01:00:36.045 --> 01:00:38.625] and in Father Dylan's, uh, evidence,
+- [01:00:41.745 --> 01:00:44.735] again, this is not a case in which, um,
+- [01:00:44.845 --> 01:00:47.175] it's suggested the diocese had a duty
+- [01:00:47.275 --> 01:00:51.375] to prevent harm being caused by an independent third party.
+- [01:00:51.765 --> 01:00:55.735] It's a case involving harm being caused by, um, people
+- [01:00:55.995 --> 01:00:59.375] who were hierarchically part of the diocese,
+- [01:00:59.435 --> 01:01:02.735] but subject to its control through the person of the bishop
+- [01:01:04.195 --> 01:01:05.055] Almost. Um,
+- [01:01:05.635 --> 01:01:07.095] It, it, it, it bears
+- [01:01:07.135 --> 01:01:09.935] A strong analogy to the hazardous activities cases.
+- [01:01:10.955 --> 01:01:13.855] It, it, it does. It's one of the analogies I'm gonna come
+- [01:01:13.855 --> 01:01:15.935] to when it comes to nondelegable duty.
+- [01:01:16.795 --> 01:01:19.535] But yes, finally,
+- [01:01:19.795 --> 01:01:22.495] may we make some points about awareness of risks.
+- [01:01:24.075 --> 01:01:26.535] Um, as for the general awareness of the church,
+- [01:01:26.785 --> 01:01:28.015] would your honor's turn back
+- [01:01:28.015 --> 01:01:31.175] to Father Dylan's first report in volume, one
+- [01:01:31.195 --> 01:01:33.655] of the appellant's book of further materials?
+- [01:01:35.525 --> 01:01:36.975] This is an element of knowledge,
+- [01:01:37.355 --> 01:01:39.495] Yes, This is the knowledge element you
+- [01:01:39.495 --> 01:01:40.975] need for this duty.
+- [01:01:42.155 --> 01:01:44.895] Um, I may not need it
+- [01:01:44.895 --> 01:01:47.935] because ought to know is sufficient. That's
+- [01:01:47.935 --> 01:01:48.935] Why. So
+- [01:01:48.935 --> 01:01:50.815] we need some form of knowledge.
+- [01:01:50.995 --> 01:01:52.255] We accept, you accept that
+- [01:01:52.595 --> 01:01:56.015] and you put it on two bases, ought to know or knew
+- [01:01:56.285 --> 01:01:57.285] That is so. And
+- [01:01:57.285 --> 01:02:00.135] this is the evidence or the findings? Yes.
+- [01:02:00.315 --> 01:02:01.415] The findings that are going
+- [01:02:01.415 --> 01:02:03.335] to be gonna take us to on that element. Yes.
+- [01:02:03.465 --> 01:02:06.255] Thank you. So would your honors turn to, um,
+- [01:02:06.595 --> 01:02:10.295] father Dylan's first report at page 4, 4, 2?
+- [01:02:14.645 --> 01:02:19.205] Your honors will see on page 4, 4, 2 at lines n to O.
+- [01:02:20.745 --> 01:02:25.605] Um, he accepted that community awareness of the potential
+- [01:02:25.605 --> 01:02:26.605] for abuse by priest
+- [01:02:26.625 --> 01:02:30.205] and religious was minimal at the time, if not, uh,
+- [01:02:30.315 --> 01:02:31.485] totally unknown.
+- [01:02:33.265 --> 01:02:37.085] But then would your honors turn to page 4, 4, 3?
+- [01:02:42.335 --> 01:02:47.035] Um, your honors will see, uh, that,
+- [01:02:47.535 --> 01:02:51.315] uh, he says at letters D to F, that among Catholic people,
+- [01:02:51.935 --> 01:02:55.435] um, that was still virtually unknown, the crimes and so on.
+- [01:02:55.975 --> 01:02:58.835] But he then says, a likely exception to this overall lack
+- [01:02:58.835 --> 01:03:00.115] of awareness would be the knowledge
+- [01:03:00.115 --> 01:03:01.235] of some people in positions
+- [01:03:01.235 --> 01:03:03.115] of high authority in the church such as bishops,
+- [01:03:03.275 --> 01:03:04.515] religious superiors, and provincials,
+- [01:03:04.515 --> 01:03:05.915] who would have been aware of complaints
+- [01:03:05.915 --> 01:03:07.675] and allegations made against other priests,
+- [01:03:07.675 --> 01:03:08.715] brothers and nuns.
+- [01:03:08.935 --> 01:03:12.315] And then he repeats it, I to Kay, uh, uh,
+- [01:03:12.315 --> 01:03:13.795] that they wouldn't have reached the awareness
+- [01:03:13.795 --> 01:03:15.875] of the Catholic populace generally.
+- [01:03:16.095 --> 01:03:18.115] But that's not a statement about every bishop.
+- [01:03:18.775 --> 01:03:20.195] It is not, it is a,
+- [01:03:20.515 --> 01:03:22.275] a statement about the likely knowledge
+- [01:03:22.275 --> 01:03:23.715] of bishops generally. So
+- [01:03:23.765 --> 01:03:25.675] Don't we need a finding about the knowledge
+- [01:03:25.675 --> 01:03:26.795] of the Bishop of Maitland?
+- [01:03:26.975 --> 01:03:30.955] We do at the time we do. But this is evidence from which
+- [01:03:30.955 --> 01:03:32.115] Or what he, or what he ought to have known.
+- [01:03:32.335 --> 01:03:35.195] Yes. So this is, this is evidence from which both
+- [01:03:35.195 --> 01:03:37.115] of those findings can be made. It,
+- [01:03:37.115 --> 01:03:39.795] It, it may promote an infra inference
+- [01:03:39.825 --> 01:03:41.915] That that is so, so the first point we
+- [01:03:41.915 --> 01:03:43.035] make, um, sorry, just
+- [01:03:43.035 --> 01:03:44.635] So I'm clear, this is the extent of the
+- [01:03:44.835 --> 01:03:45.835] Evidence. There's more evidence. This
+- [01:03:45.835 --> 01:03:46.355] is the
+- [01:03:46.355 --> 01:03:47.395] first part of the evidence.
+- [01:03:47.395 --> 01:03:50.515] Thank you. So this evidence simply shows at a general level,
+- [01:03:50.515 --> 01:03:54.075] there was awareness within the church at the bishop level,
+- [01:03:55.175 --> 01:03:59.935] um, and a difference in knowledge of what, uh, as he said,
+- [01:04:00.035 --> 01:04:02.775] of complaints and allegations made against other priests,
+- [01:04:02.775 --> 01:04:04.135] brothers and nuns.
+- [01:04:05.685 --> 01:04:07.865] And the complaints he's obviously talking about in the
+- [01:04:07.865 --> 01:04:10.425] context of the previous paragraph is complaints to do
+- [01:04:10.425 --> 01:04:12.465] with sexual abuse of children.
+- [01:04:15.615 --> 01:04:18.715] If your honors then go to the court of appeals reasons,
+- [01:04:18.935 --> 01:04:23.755] please, at
+- [01:04:23.785 --> 01:04:28.035] page 1, 9 2 In paragraph
+- [01:04:28.095 --> 01:04:31.875] 2 0 7, there is criticism here
+- [01:04:31.875 --> 01:04:35.675] of the findings the primary judge made, which are extracted,
+- [01:04:36.175 --> 01:04:39.875] uh, on the previous page, uh,
+- [01:04:39.935 --> 01:04:43.035] and the criticisms which are being made of, uh, uh, what,
+- [01:04:43.335 --> 01:04:47.155] uh, appear at paragraphs 2, 3, 1, 2, 2, 3, 2,
+- [01:04:48.455 --> 01:04:49.675] and your honors will see.
+- [01:04:49.675 --> 01:04:53.195] The finding was about Father Dylan's evidence about the
+- [01:04:53.195 --> 01:04:54.395] awareness, which bishops
+- [01:04:54.395 --> 01:04:56.555] and other senior members of the church then had about the
+- [01:04:56.555 --> 01:04:59.515] risks which priests could pose to children given complaints,
+- [01:04:59.515 --> 01:05:01.555] which they'd received, which was not widely
+- [01:05:01.555 --> 01:05:02.595] known in the community.
+- [01:05:04.135 --> 01:05:06.275] And your honor, we'll, your honors will see in paragraph
+- [01:05:06.295 --> 01:05:08.315] 2 0 7 that was criticized.
+- [01:05:09.255 --> 01:05:12.395] The first reason it was criticized was the reference
+- [01:05:12.395 --> 01:05:13.795] to bishops in the plural,
+- [01:05:13.795 --> 01:05:16.035] which suggests her honor didn't confine her analysis
+- [01:05:16.035 --> 01:05:18.285] to people within the geographic diocese of Maitland,
+- [01:05:18.285 --> 01:05:19.485] of which there was only one bishop.
+- [01:05:19.985 --> 01:05:21.925] But that is with respect and unfair criticism,
+- [01:05:21.925 --> 01:05:24.725] because what her honor was clearly doing was reasoning from
+- [01:05:24.725 --> 01:05:26.325] the knowledge of bishops generally
+- [01:05:26.745 --> 01:05:29.645] to an inference either about the actual knowledge
+- [01:05:29.665 --> 01:05:31.165] of this bishop, or what the bishop,
+- [01:05:31.395 --> 01:05:33.325] what this bishop ought to have known.
+- [01:05:34.625 --> 01:05:37.045] And there's then a criticism
+- [01:05:37.075 --> 01:05:40.205] that the primary judge's reasons misstate the evidence
+- [01:05:41.595 --> 01:05:44.205] that is expanded upon in 2 0 9.
+- [01:05:45.365 --> 01:05:47.415] Your honors will say there's a long quote from Father
+- [01:05:47.525 --> 01:05:49.535] Dylan's evidence, bolding the passage
+- [01:05:49.635 --> 01:05:50.815] to which I've drawn attention.
+- [01:05:52.155 --> 01:05:55.935] And in paragraph two 10, justice Lehman criticizes this
+- [01:05:56.395 --> 01:05:59.295] for elevating criticize the primary judge
+- [01:05:59.295 --> 01:06:02.935] for elevating Father Dylan's likely exception to a finding
+- [01:06:02.955 --> 01:06:04.295] of actual knowledge.
+- [01:06:04.835 --> 01:06:08.575] But there's, um, nothing wrong in a civil case
+- [01:06:08.885 --> 01:06:13.855] with reasoning from likely to proceeding on that basis.
+- [01:06:15.115 --> 01:06:20.015] Um, the balance of the paragraph, uh, as I have said,
+- [01:06:20.475 --> 01:06:22.535] is addressed by the fact that there's nothing wrong
+- [01:06:22.535 --> 01:06:25.335] with reasoning from a statement about the knowledge
+- [01:06:25.335 --> 01:06:27.775] of bishops generally in the absence
+- [01:06:27.775 --> 01:06:30.855] of any evidence being put forward by the respondent,
+- [01:06:30.955 --> 01:06:35.375] to the contrary, uh, to the likely knowledge of this bishop
+- [01:06:35.915 --> 01:06:39.495] or to, uh, what this bishop ought to have known.
+- [01:06:40.555 --> 01:06:44.015] Um, so the criticism, uh, there's an additional, uh,
+- [01:06:44.015 --> 01:06:46.535] criticism which is made here that, um,
+- [01:06:46.635 --> 01:06:49.775] father Dylan didn't provide any reasons for his opinion,
+- [01:06:50.315 --> 01:06:53.975] but that is with respect unfair, given his vast experience.
+- [01:06:54.135 --> 01:06:55.575] I won't take your honors back to it,
+- [01:06:55.955 --> 01:06:57.815] but at pa at the beginning of his report,
+- [01:06:58.115 --> 01:07:00.815] it sets out his 55 years of experience, uh,
+- [01:07:00.835 --> 01:07:04.215] in the Catholic church, both generally at the parish level,
+- [01:07:04.215 --> 01:07:05.575] but then in later years dealing
+- [01:07:05.575 --> 01:07:08.455] with child abuse complaints in particular.
+- [01:07:09.235 --> 01:07:10.615] So that's the general matters.
+- [01:07:11.115 --> 01:07:14.295] Can I now come to the evidence specific to this diocese?
+- [01:07:14.475 --> 01:07:16.215] And we point to two matters.
+- [01:07:17.915 --> 01:07:19.815] The first, I'm so sorry. What
+- [01:07:19.815 --> 01:07:22.895] Were the precise findings of the primary judge?
+- [01:07:23.435 --> 01:07:25.815] Um, in, in, in
+- [01:07:25.815 --> 01:07:27.815] Summary form, um, para,
+- [01:07:28.275 --> 01:07:29.975] so just staying, it's getting the magnitude.
+- [01:07:30.075 --> 01:07:31.615] Yes. It's 2, 2, 2 30.
+- [01:07:31.835 --> 01:07:34.775] One is, uh, where this, um,
+- [01:07:35.325 --> 01:07:37.935] finding particularly, uh, is made.
+- [01:07:42.885 --> 01:07:44.855] That was the paragraph that Justice Lehman was
+- [01:07:45.335 --> 01:07:46.495] specifically directing himself to.
+- [01:07:46.515 --> 01:07:49.735] So paragraph 2, 31 of the primary judge's, uh, reasons Mr.
+- [01:07:49.735 --> 01:07:51.375] Hertzfeld, that paragraph refers
+- [01:07:51.375 --> 01:07:53.695] to given the complaints which they had received.
+- [01:07:53.715 --> 01:07:55.095] Is that what you're about to take us to?
+- [01:07:55.675 --> 01:07:57.255] So that is a reference still
+- [01:07:57.255 --> 01:07:59.015] to Father Dylan's general evidence.
+- [01:07:59.255 --> 01:08:00.375] I see. Um, that
+- [01:08:00.375 --> 01:08:03.415] that was why bishop's generally would've had knowledge.
+- [01:08:03.675 --> 01:08:06.095] I'm now about to take you to some specific evidence,
+- [01:08:06.195 --> 01:08:09.535] and that is what, um, her honor, the primary judge says.
+- [01:08:09.915 --> 01:08:11.935] She says that Accords with the Kain report
+- [01:08:11.935 --> 01:08:13.655] where reference was made to the then bishop
+- [01:08:13.675 --> 01:08:14.855] of the diocese having to deal
+- [01:08:14.855 --> 01:08:18.245] with the risks which priest posed in the 19, uh, fifties.
+- [01:08:18.585 --> 01:08:21.885] So, can I just go back, is 2 3 1 a finding of
+- [01:08:22.735 --> 01:08:25.755] actual knowledge or a finding of constructive,
+- [01:08:25.755 --> 01:08:30.135] because the conclusion is an acceptance of a duty of care.
+- [01:08:31.395 --> 01:08:35.375] Yes. The, the first part of 2 3, 1 is not a finding
+- [01:08:35.395 --> 01:08:37.095] of actual knowledge of this bishop.
+- [01:08:37.535 --> 01:08:40.775] Right. The second part does relate specifically
+- [01:08:40.775 --> 01:08:42.535] to this bishop, as I'm about to show your
+- [01:08:42.535 --> 01:08:43.935] Honor, reference to that accords.
+- [01:08:44.155 --> 01:08:45.375] Yes. I see. Thank you.
+- [01:08:45.955 --> 01:08:47.695] Um, And you're gonna, you're gonna have
+- [01:08:47.695 --> 01:08:51.095] to address Justice Lehman's criticism of the Kain report.
+- [01:08:51.375 --> 01:08:52.535] I am, I am.
+- [01:08:53.195 --> 01:08:56.495] Um, so if your honor's turn in, uh, the book
+- [01:08:56.495 --> 01:08:59.135] of further materials, please to page 2 9 6.
+- [01:09:00.235 --> 01:09:01.935] The appellants. Yes. I'm so sorry.
+- [01:09:01.935 --> 01:09:04.095] Appellant's book of further materials, volume one,
+- [01:09:04.405 --> 01:09:05.375] page 2 9 6,
+- [01:09:12.275 --> 01:09:14.855] um, y your honors, we'll see here, this is a letter
+- [01:09:14.875 --> 01:09:18.775] of the 5th of November, 1987, um, sent
+- [01:09:18.995 --> 01:09:22.255] to the then bishop of this diocese.
+- [01:09:23.515 --> 01:09:27.135] And your honors will see that it is about a father, uh,
+- [01:09:27.975 --> 01:09:31.175] Macklin, Lindon, McLendon
+- [01:09:31.755 --> 01:09:35.255] Lindon, And your honors.
+- [01:09:35.255 --> 01:09:38.375] We'll see from the second paragraph at letters L to P
+- [01:09:39.435 --> 01:09:43.455] it is about allegations of sexual activity with children.
+- [01:09:45.935 --> 01:09:48.155] Now, what is significant about this letter is not
+- [01:09:48.345 --> 01:09:51.115] what appear, what occurred in 1987.
+- [01:09:52.025 --> 01:09:53.195] What is significant is
+- [01:09:53.195 --> 01:09:55.555] what is on the next page of the letter.
+- [01:09:57.195 --> 01:10:01.285] Your honors will see that at letters H to JJ in any case,
+- [01:10:01.395 --> 01:10:03.365] according, uh, to that priest.
+- [01:10:03.855 --> 01:10:06.485] There had been previous similar allegations,
+- [01:10:06.785 --> 01:10:10.125] the first one occurring in 1954 when the,
+- [01:10:10.185 --> 01:10:13.685] the late Bishop toy had caused to discuss the issue
+- [01:10:13.915 --> 01:10:15.565] with him at the time.
+- [01:10:17.275 --> 01:10:20.775] Now, Bishop Toy was the bishop of the diocese
+- [01:10:21.615 --> 01:10:23.535] relevant at the time of this matter.
+- [01:10:24.955 --> 01:10:29.735] Uh, and we agree in that regard with, uh, what's said in 0.4
+- [01:10:30.075 --> 01:10:32.815] of the respondent's status of facts document.
+- [01:10:35.515 --> 01:10:37.375] If your honors then go to what the Court
+- [01:10:37.375 --> 01:10:41.015] of Appeal said about this, your honors will see that, uh,
+- [01:10:41.235 --> 01:10:46.175] on page, uh, one nine, uh, four.
+- [01:10:48.275 --> 01:10:50.735] Hit the paragraph number Please. Paragraph two 11.
+- [01:10:50.905 --> 01:10:54.415] Thank you. Um, his honor picked up the fact
+- [01:10:54.445 --> 01:10:57.335] that her honor was wrong to refer in terms
+- [01:10:57.395 --> 01:10:58.535] to the Kain report.
+- [01:10:58.835 --> 01:11:00.415] The Kain report was not in evidence.
+- [01:11:00.675 --> 01:11:02.295] Is this a letter that was attached to the report?
+- [01:11:02.355 --> 01:11:05.015] It was included in, that's how the error has occurred
+- [01:11:05.325 --> 01:11:08.335] because, um, I think during opening submissions,
+- [01:11:08.335 --> 01:11:10.335] it might have been intended to tender the whole report,
+- [01:11:10.355 --> 01:11:12.095] but the relevant thing was actually this letter.
+- [01:11:12.435 --> 01:11:15.285] So there is a slip in the primary judge's reasons in
+- [01:11:15.285 --> 01:11:17.685] referring to the Kain report per se,
+- [01:11:18.585 --> 01:11:22.005] but substantively what the primary judge said was correct,
+- [01:11:22.735 --> 01:11:24.285] based on this letter that it
+- [01:11:24.525 --> 01:11:27.445] provided evidence that there had been a complaint
+- [01:11:27.785 --> 01:11:30.285] to the then bishop about precisely this kind
+- [01:11:30.285 --> 01:11:31.445] of activity. But, but
+- [01:11:31.915 --> 01:11:34.285] Justice Leming said the canine report was not
+- [01:11:34.285 --> 01:11:35.405] in evidence and that includes
+- [01:11:35.405 --> 01:11:36.405] The letter? No, the letter
+- [01:11:36.405 --> 01:11:37.965] was tended separately. Separately. Okay.
+- [01:11:37.965 --> 01:11:39.925] Thank you. But the canine report was not in evidence.
+- [01:11:41.155 --> 01:11:44.605] What your honors will then see in paragraph 214
+- [01:11:46.785 --> 01:11:47.845] is that, uh,
+- [01:11:48.425 --> 01:11:50.445] Was it, was it put in the court of appeal
+- [01:11:50.475 --> 01:11:52.325] that the reference to the canine report
+- [01:11:52.385 --> 01:11:54.645] by the primary judge was really intended
+- [01:11:54.665 --> 01:11:56.245] to be a reference to the letter?
+- [01:11:56.545 --> 01:11:57.845] I'm not sure. I'll check.
+- [01:11:59.825 --> 01:12:04.325] Um, what your honors will, uh, see though in paragraph 214
+- [01:12:05.625 --> 01:12:08.765] is Justice Lehman seeking to deal substantively
+- [01:12:08.765 --> 01:12:12.775] with the letter and
+- [01:12:13.085 --> 01:12:14.575] Well, he, he acknowledges that all
+- [01:12:14.575 --> 01:12:15.935] that was tendered was the letter.
+- [01:12:15.955 --> 01:12:17.935] Yes. He says that in two 13 in the second
+- [01:12:18.335 --> 01:12:19.335] Sentence. Um, that, that's
+- [01:12:19.335 --> 01:12:20.415] so, um,
+- [01:12:21.155 --> 01:12:23.695] but then at paragraph 214, he seeks
+- [01:12:23.695 --> 01:12:25.455] to deal substantively with the letter.
+- [01:12:26.395 --> 01:12:30.735] And what he says is that, um, it doesn't show what was said.
+- [01:12:31.235 --> 01:12:34.215] It seems reasonable to assume that the priest denied
+- [01:12:34.275 --> 01:12:37.735] or wrong, uh, doing, and that may be true,
+- [01:12:37.795 --> 01:12:40.055] but it's not significant for present purposes.
+- [01:12:40.315 --> 01:12:43.095] What's significant is not whether the priest denied
+- [01:12:43.155 --> 01:12:47.695] or wrongdoing or whether Bishop Tuy rejected the allegations
+- [01:12:47.715 --> 01:12:48.815] or investigated them.
+- [01:12:48.875 --> 01:12:50.895] What's significant for our purposes is
+- [01:12:50.895 --> 01:12:52.455] that the allegations were made
+- [01:12:52.755 --> 01:12:55.535] and the very making of those allegations must have given
+- [01:12:55.645 --> 01:12:58.335] rise to knowledge that there was a risk
+- [01:12:58.845 --> 01:13:01.415] that a priest might abuse children,
+- [01:13:01.835 --> 01:13:04.455] or at the very least that it ought to have done so.
+- [01:13:04.875 --> 01:13:06.615] And so the criticisms that the Court
+- [01:13:06.615 --> 01:13:11.495] of Appeal made at paragraph 218 are with respect, uh, not
+- [01:13:12.065 --> 01:13:14.935] sound, I'm sorry, 214.
+- [01:13:15.595 --> 01:13:19.655] Uh, and the same is so about 250, uh, 215
+- [01:13:20.395 --> 01:13:21.935] in paragraph 216.
+- [01:13:22.475 --> 01:13:25.615] It said at the end of the paragraph, even if Bishop Toy knew
+- [01:13:25.615 --> 01:13:27.015] or believed or suspected that
+- [01:13:27.015 --> 01:13:29.655] that priest preyed upon children in 1969,
+- [01:13:29.675 --> 01:13:31.175] he was no longer in the diocese.
+- [01:13:31.475 --> 01:13:33.135] And again, that is a mis focus
+- [01:13:33.135 --> 01:13:36.895] because the relevant thing is what this complaint showed,
+- [01:13:37.155 --> 01:13:38.895] not about this priest in particular,
+- [01:13:39.235 --> 01:13:42.175] but about the risk generally posed by priests.
+- [01:13:42.995 --> 01:13:46.015] Oh, the, he, the, he's Father McClindon, not Bishop
+- [01:13:46.315 --> 01:13:47.315] Toy. Yes. Right.
+- [01:13:47.315 --> 01:13:51.455] Um, the second matter
+- [01:13:51.475 --> 01:13:53.415] to which we point about this diocese in
+- [01:13:53.415 --> 01:13:54.855] particular is the evidence of Mr.
+- [01:13:55.045 --> 01:13:59.615] McClung. Um, uh, would your honors in,
+- [01:14:00.155 --> 01:14:04.295] uh, the appellant's book of further materials volume two,
+- [01:14:05.035 --> 01:14:07.055] please turn to page six.
+- [01:14:07.365 --> 01:14:08.815] Nine. Uh, two,
+- [01:14:21.145 --> 01:14:24.765] uh, before I start this, I can see the time, uh, your Honor,
+- [01:14:24.825 --> 01:14:27.085] is that Yes, it is convenient time. Convenient time.
+- [01:14:27.085 --> 01:14:28.925] Thank you. We'll take the morning
+- [01:14:30.185 --> 01:14:31.185] All stand.
+- [01:14:33.225 --> 01:14:34.965] The High Court of Australia will resume
+- [01:14:34.965 --> 01:14:36.325] sitting in 15 minutes.
+- [01:14:56.595 --> 01:14:58.165] Silence all stand.
+- [01:15:20.515 --> 01:15:22.695] The high court of Australia is now in session.
+- [01:15:22.955 --> 01:15:24.015] Please be seated.
+- [01:15:26.195 --> 01:15:29.575] Um, I'm conscious of time. So can I deal with Mr.
+- [01:15:29.645 --> 01:15:31.135] McClean's evidence rather briefly.
+- [01:15:31.835 --> 01:15:33.615] Um, he gave evidence
+- [01:15:34.005 --> 01:15:38.775] that in 1966 he had complained to the then parish priest,
+- [01:15:39.195 --> 01:15:44.135] father Durham, about being abused by Father Picken himself.
+- [01:15:45.465 --> 01:15:47.935] There was no challenge to that evidence.
+- [01:15:49.015 --> 01:15:52.055] C appellant's book of further materials volume two,
+- [01:15:52.845 --> 01:15:54.215] page 6 9 2.
+- [01:15:55.615 --> 01:15:58.035] And the evidence itself, which I'm not going to go
+- [01:15:58.035 --> 01:16:01.155] to in the interest of time, is it volume one,
+- [01:16:01.785 --> 01:16:03.395] page 3, 5 4.
+- [01:16:03.895 --> 01:16:05.355] But where, where does that go?
+- [01:16:05.795 --> 01:16:07.955] 'cause Father Doran is not a person
+- [01:16:08.095 --> 01:16:11.355] to whom you can attribute any knowledge to the
+- [01:16:11.595 --> 01:16:12.595] Diocese. Well, that is
+- [01:16:12.595 --> 01:16:14.515] the point that I now want to tackle. Alright.
+- [01:16:14.975 --> 01:16:16.355] Um, your honor's, I,
+- [01:16:16.415 --> 01:16:18.835] I'm being slow and I know you're up short of time,
+- [01:16:19.175 --> 01:16:21.395] but I do think it's important that you identify
+- [01:16:21.425 --> 01:16:24.875] what you say is the evidence in its precise
+- [01:16:25.945 --> 01:16:26.945] Form. Yes.
+- [01:16:26.945 --> 01:16:29.355] So I'll give your honors the paragraphs
+- [01:16:29.615 --> 01:16:33.635] to his affidavit, which as I say is at volume one,
+- [01:16:33.665 --> 01:16:34.835] page 3, 5 4.
+- [01:16:36.295 --> 01:16:38.675] The relevant paragraphs are paragraphs
+- [01:16:39.105 --> 01:16:43.995] 4, 6, 9 to 12,
+- [01:16:45.415 --> 01:16:47.355] and then 14 to 16.
+- [01:16:50.895 --> 01:16:53.715] The your honors have seen Father Dylan's evidence
+- [01:16:53.985 --> 01:16:57.435] that a parish priest was the highest local church authority
+- [01:16:57.535 --> 01:16:58.635] for members of the church.
+- [01:16:59.695 --> 01:17:03.075] The Diocese of Maitland contained 57
+- [01:17:03.355 --> 01:17:04.795] parishes at the time.
+- [01:17:05.495 --> 01:17:08.355] The evidence for that is at page 1, 8 6.
+- [01:17:09.225 --> 01:17:12.285] And so treating the diocese a bit like a body corporate
+- [01:17:12.385 --> 01:17:14.245] to whom knowledge may be attributed,
+- [01:17:15.105 --> 01:17:17.685] it is in our submission unthinkable that the knowledge
+- [01:17:17.685 --> 01:17:21.485] of those 57 parish priests would not be attributed.
+- [01:17:22.035 --> 01:17:25.965] They are immediately hierarchically placed below the bishop.
+- [01:17:26.745 --> 01:17:30.365] And if their knowledge is not attributed, then it would seem
+- [01:17:30.365 --> 01:17:32.645] that only the bishop's knowledge could count.
+- [01:17:32.705 --> 01:17:35.205] And that's inconsistent with treating the diocese
+- [01:17:35.205 --> 01:17:36.805] as an incorporated institution.
+- [01:17:37.505 --> 01:17:41.925] Can we commend to your honors the analysis in O'Connor
+- [01:17:42.345 --> 01:17:45.805] and comment solely that's 2022
+- [01:17:46.405 --> 01:17:50.375] VSC 3 1 3 at paragraphs
+- [01:17:50.795 --> 01:17:52.335] 2 35 to
+- [01:17:52.335 --> 01:17:56.475] 2 46, 2 8 2
+- [01:17:57.695 --> 01:18:00.515] and 2 8 9 to 2 9 5.
+- [01:18:02.455 --> 01:18:05.235] And if that attribution is correct, then in fact,
+- [01:18:05.455 --> 01:18:07.635] the diocese here had knowledge of the risk posed
+- [01:18:07.635 --> 01:18:08.875] by Father Picken himself.
+- [01:18:09.855 --> 01:18:11.395] Can I show your honors what the Court
+- [01:18:11.395 --> 01:18:13.915] of Appeals said about this at court?
+- [01:18:14.015 --> 01:18:16.515] At, uh, appeal book page 1 9 8,
+- [01:18:26.545 --> 01:18:28.475] Your honors we'll see at 2 2 9.
+- [01:18:29.415 --> 01:18:32.675] Um, that what was said was the knowledge of each
+- [01:18:32.675 --> 01:18:34.475] and every priest is not taken to be knowledge
+- [01:18:34.475 --> 01:18:35.995] of the institution as a whole,
+- [01:18:36.135 --> 01:18:38.715] the institution there being the Roman Catholic Church.
+- [01:18:38.815 --> 01:18:40.515] But that focuses on the wrong question
+- [01:18:41.145 --> 01:18:44.035] because what is here at issue is a much narrower question
+- [01:18:44.035 --> 01:18:45.715] of attribution to the diocese.
+- [01:18:47.375 --> 01:18:51.635] In paragraph, uh, two 30, it said
+- [01:18:51.745 --> 01:18:54.355] that the plaintiff's case turned on establishing knowledge
+- [01:18:54.355 --> 01:18:56.475] by the bishop or senior members of the diocese.
+- [01:18:57.015 --> 01:19:01.075] That's not, um, correct insofar as it suggests
+- [01:19:01.075 --> 01:19:03.835] that attribution was not, uh, in play.
+- [01:19:05.075 --> 01:19:06.295] Mr. Hertzel,
+- [01:19:06.295 --> 01:19:08.655] Does this involve treating the organization
+- [01:19:08.795 --> 01:19:11.575] for the purposes of the Civil Liability Act as extending
+- [01:19:11.575 --> 01:19:13.855] to the bishop and then the priests
+- [01:19:14.025 --> 01:19:15.025] There? There's two different
+- [01:19:15.025 --> 01:19:15.855] ways of viewing it.
+- [01:19:16.955 --> 01:19:19.655] If one is trying to identify individuals as part
+- [01:19:19.695 --> 01:19:21.335] of the organization, that is one.
+- [01:19:21.795 --> 01:19:22.895] But probably the better way
+- [01:19:22.895 --> 01:19:24.575] of viewing it is treating the organization
+- [01:19:24.835 --> 01:19:26.895] for these purposes, a separate legal entity,
+- [01:19:27.215 --> 01:19:27.975] separate from any of those
+- [01:19:28.005 --> 01:19:29.655] individuals, a bit like a company.
+- [01:19:29.995 --> 01:19:31.655] And then the question is, um,
+- [01:19:32.145 --> 01:19:34.135] whose individual knowledge can
+- [01:19:34.135 --> 01:19:35.215] be attributed to that company?
+- [01:19:36.155 --> 01:19:39.735] Uh, either approach is sufficient for our purposes. Who,
+- [01:19:39.735 --> 01:19:41.015] Who are the members that
+- [01:19:41.355 --> 01:19:43.655] of the unincorporated association?
+- [01:19:44.005 --> 01:19:45.575] Well, there aren't members
+- [01:19:45.885 --> 01:19:48.135] because it's not, in truth,
+- [01:19:48.435 --> 01:19:50.815] an unincorporated association. I'll
+- [01:19:50.815 --> 01:19:51.815] Ask a different question. You
+- [01:19:51.815 --> 01:19:55.415] who are, who are the identified people within the
+- [01:19:55.415 --> 01:19:58.135] organization that you rely upon?
+- [01:19:58.755 --> 01:20:02.055] Um, I don't rely on any people within the organization.
+- [01:20:02.215 --> 01:20:04.655] I rely on the organization as an entity,
+- [01:20:05.235 --> 01:20:08.685] and I identify individuals with it in the same way
+- [01:20:08.685 --> 01:20:12.445] that I can identify individuals with any other body,
+- [01:20:12.555 --> 01:20:14.085] corporate and individual.
+- [01:20:14.085 --> 01:20:16.685] But sorry, but I just take a body corporate, I can say,
+- [01:20:16.685 --> 01:20:19.205] could you please identify who are the individuals within
+- [01:20:19.205 --> 01:20:22.525] that body corporate who I might attribute you?
+- [01:20:22.605 --> 01:20:25.285] I say, well, there's board of directors, there's directors,
+- [01:20:25.405 --> 01:20:28.365] I can look at senior management, I can identify
+- [01:20:28.425 --> 01:20:29.685] by their positional role.
+- [01:20:29.865 --> 01:20:32.245] Yes. That's the question I'm asking rather than any
+- [01:20:32.245 --> 01:20:33.405] legal formulation of
+- [01:20:33.405 --> 01:20:34.405] It. I, I understand.
+- [01:20:34.405 --> 01:20:34.845] Um,
+- [01:20:34.905 --> 01:20:37.245] and I would identify at least the bishop
+- [01:20:37.665 --> 01:20:38.765] and the parish priests
+- [01:20:39.665 --> 01:20:40.685] Of the whole, of the Diocese.
+- [01:20:40.705 --> 01:20:41.845] Of the diocese. But,
+- [01:20:41.945 --> 01:20:44.685] But that's not the relevant defendant.
+- [01:20:44.825 --> 01:20:47.285] The relevant defendant is this diocese.
+- [01:20:47.745 --> 01:20:50.365] And so what you are, what you are doing is for the purposes
+- [01:20:50.365 --> 01:20:54.045] of attribution, you are including all
+- [01:20:54.045 --> 01:20:56.685] of the priests in all of the diocese? N
+- [01:20:56.705 --> 01:20:58.605] No, no, only the priest of this diocese.
+- [01:20:58.665 --> 01:21:01.765] Father Doran was a priest of this diocese.
+- [01:21:02.545 --> 01:21:05.645] So just we are clear. The organization is the Diocese
+- [01:21:05.645 --> 01:21:06.965] of Newcastle and Maitland.
+- [01:21:07.185 --> 01:21:08.925] Yes. And the people within it
+- [01:21:08.925 --> 01:21:12.685] that you identify are the bishop of the Diocese of Maitland,
+- [01:21:12.685 --> 01:21:13.765] Newcastle, and Maitland,
+- [01:21:14.025 --> 01:21:16.325] and then the parish priests within that diocese.
+- [01:21:16.505 --> 01:21:18.285] Yes. Although, as I said, I I,
+- [01:21:18.435 --> 01:21:22.005] I've resisted the need given this statutory structure
+- [01:21:22.865 --> 01:21:23.885] to do that task.
+- [01:21:24.585 --> 01:21:25.765] But yes. Can
+- [01:21:25.765 --> 01:21:26.765] I ask you a question? Um,
+- [01:21:26.765 --> 01:21:30.285] sorry, Mr. Herzfeld, uh, I can understand how
+- [01:21:30.915 --> 01:21:33.405] your reliance on the Civil Liability Act would apply
+- [01:21:33.685 --> 01:21:35.925] prospectively, but how does it apply
+- [01:21:35.925 --> 01:21:37.685] to fact finding in 1969?
+- [01:21:38.665 --> 01:21:42.165] Um, because the act applies retrospectively.
+- [01:21:42.945 --> 01:21:46.325] So the ACT requires us to treat the, I
+- [01:21:46.365 --> 01:21:48.085] I thought I read in Justice
+- [01:21:48.435 --> 01:21:49.565] LE's Judgment, it's perspective
+- [01:21:49.565 --> 01:21:50.845] Only different part of the act.
+- [01:21:50.845 --> 01:21:53.445] These provisions of the act apply retrospectively,
+- [01:21:53.445 --> 01:21:54.885] And, and we know that from We,
+- [01:21:54.885 --> 01:21:56.245] I'll turn up the reference. Thank
+- [01:21:56.245 --> 01:21:57.245] You for that. Very grateful to
+- [01:21:57.245 --> 01:21:57.485] you.
+- [01:21:58.345 --> 01:22:00.405] Um, Mr. Mr uh, hurtful.
+- [01:22:00.875 --> 01:22:04.285] What is the risk that you say was known, um,
+- [01:22:05.505 --> 01:22:07.525] on the basis of Father Doran's knowledge
+- [01:22:07.835 --> 01:22:11.365] That Father Picken himself might abuse
+- [01:22:11.885 --> 01:22:13.725] children on church property? Is
+- [01:22:13.725 --> 01:22:16.325] That, that's expressed at a very high level
+- [01:22:16.325 --> 01:22:19.645] of generality having regard to what, um,
+- [01:22:20.635 --> 01:22:22.675] this, uh, Mr.
+- [01:22:22.745 --> 01:22:24.595] McClung says about his experience.
+- [01:22:24.795 --> 01:22:27.315] I mean, in particular, the fact that he says that he,
+- [01:22:27.535 --> 01:22:29.035] he didn't feel like a naive
+- [01:22:29.645 --> 01:22:31.715] child at the time of the abuse is
+- [01:22:32.015 --> 01:22:33.015] He was slightly older.
+- [01:22:33.215 --> 01:22:36.635] But in our submission, once those facts are known, the risk,
+- [01:22:36.635 --> 01:22:38.595] as I've articulated it, was one
+- [01:22:38.595 --> 01:22:40.915] that was in fact known to this bishop child.
+- [01:22:41.315 --> 01:22:42.755] Anything from baby to 18? Yes.
+- [01:22:42.855 --> 01:22:45.755] Yes. Um, can I,
+- [01:22:46.615 --> 01:22:47.955] uh, just deal quickly,
+- [01:22:48.175 --> 01:22:49.795] Do you have any, I mean, this is a,
+- [01:22:49.795 --> 01:22:53.035] obviously a very important question about attribution.
+- [01:22:53.935 --> 01:22:57.835] Um, I understand your submission to be that the 57
+- [01:22:57.975 --> 01:23:01.955] or so parish priests, their acts
+- [01:23:02.095 --> 01:23:05.765] and knowledge are acts and knowledge of the diocese.
+- [01:23:05.985 --> 01:23:10.125] Yes. Um, as well as obviously the bishop. Yes.
+- [01:23:10.385 --> 01:23:12.925] Do we have any findings of fact
+- [01:23:13.105 --> 01:23:15.845] or, um, any evidence that you can take us to
+- [01:23:16.155 --> 01:23:19.085] that establishes, um, that
+- [01:23:19.675 --> 01:23:21.645] hierarchy relationship other than
+- [01:23:21.645 --> 01:23:22.805] what you've already taken us to?
+- [01:23:23.265 --> 01:23:26.925] Um, there, there is some documentary evidence which lists
+- [01:23:26.925 --> 01:23:30.165] people, but it doesn't do any more than the evidence
+- [01:23:30.165 --> 01:23:32.245] that I've already taken your honors to.
+- [01:23:32.945 --> 01:23:36.655] So, so what, what is wrong then with, with 2 32?
+- [01:23:36.935 --> 01:23:38.615] I was gonna come to 2, 2 32.
+- [01:23:39.355 --> 01:23:42.775] So, um, uh, it, it is, um,
+- [01:23:43.915 --> 01:23:46.895] the first thing that's wrong with 2 32 is it's not correct
+- [01:23:47.125 --> 01:23:49.895] that no submission of the kind, uh, was put.
+- [01:23:50.155 --> 01:23:51.535] And I'll give your honors the reference.
+- [01:23:51.535 --> 01:23:54.415] It's respondent's book of further materials, page 1 1 4,
+- [01:23:54.805 --> 01:23:56.215] paragraph, uh, 60.
+- [01:23:57.555 --> 01:23:59.335] Um, but the second thing is wrong is
+- [01:23:59.335 --> 01:24:01.055] that it assumes there's no duty
+- [01:24:01.155 --> 01:24:02.855] to communicate the complaint.
+- [01:24:03.915 --> 01:24:06.815] And, um, in the reference to O'Connor
+- [01:24:06.915 --> 01:24:08.975] and comments solely that I've given to Your Honor,
+- [01:24:09.205 --> 01:24:12.055] that topic is your honor's that topic is dealt with.
+- [01:24:15.835 --> 01:24:17.295] Uh, your Honor, the answer to your honor,
+- [01:24:17.295 --> 01:24:20.495] justice Stewart's question about, um, the application
+- [01:24:20.495 --> 01:24:22.135] of these provisions is section 45
+- [01:24:22.235 --> 01:24:23.775] of the civil thank you for the liability act.
+- [01:24:24.915 --> 01:24:25.915] Um,
+- [01:24:26.155 --> 01:24:27.935] Is the, just coming back to, I'm sorry,
+- [01:24:27.935 --> 01:24:30.855] to my question about the level of generality is the,
+- [01:24:30.995 --> 01:24:33.655] is the test nothing more than what is within the class
+- [01:24:33.675 --> 01:24:34.935] of injury?
+- [01:24:36.715 --> 01:24:38.175] Uh, yes.
+- [01:24:38.635 --> 01:24:41.855] And here, even at, at this very specific level,
+- [01:24:42.065 --> 01:24:44.495] which is even more specific than I need,
+- [01:24:45.025 --> 01:24:47.455] there is the attribution of knowledge of the risk
+- [01:24:47.455 --> 01:24:50.175] of sexual assault by priests of children,
+- [01:24:50.995 --> 01:24:52.495] Of father picken by children.
+- [01:24:52.955 --> 01:24:55.775] If Father Doran's evidence is, sorry,
+- [01:24:55.775 --> 01:24:58.135] father Doran's knowledge is attributed, if
+- [01:24:58.135 --> 01:24:59.535] that knowledge is not attributed,
+- [01:24:59.585 --> 01:25:01.935] there is still other material pitched at the more general
+- [01:25:01.935 --> 01:25:03.695] level that I've taken your honors to.
+- [01:25:03.915 --> 01:25:06.295] So the ion that's put is I've taken
+- [01:25:06.395 --> 01:25:08.655] to the general evidence and the findings in relation to
+- [01:25:08.655 --> 01:25:10.495] that, that's sufficient for my case.
+- [01:25:10.675 --> 01:25:14.055] If that's not, then I rely further on the evidence of father
+- [01:25:15.895 --> 01:25:18.395] to make good any or to,
+- [01:25:18.535 --> 01:25:20.915] to improve the specificity of the risk.
+- [01:25:21.015 --> 01:25:24.555] That's So Mr. Hertzel, did you, did you say 45?
+- [01:25:26.415 --> 01:25:29.315] Yes. That might need to be checked.
+- [01:25:33.905 --> 01:25:35.885] Oh, I think it's in a schedule. I'm so sorry.
+- [01:25:36.085 --> 01:25:39.285] I think it's section 45 of, uh, the schedule
+- [01:25:39.505 --> 01:25:40.525] to the civil library.
+- [01:25:40.935 --> 01:25:43.085] Thank you for that first, I'm so sorry. Not at
+- [01:25:43.085 --> 01:25:44.085] All.
+- [01:25:44.705 --> 01:25:48.085] Um, can I just finally on ordinary duty of care, say this,
+- [01:25:48.085 --> 01:25:51.645] it is not an answer for the, um, respondent to say
+- [01:25:51.645 --> 01:25:53.365] that Father Pickin's particular conduct
+- [01:25:53.435 --> 01:25:55.965] that is supplying cigarettes and alcohol to children
+- [01:25:56.065 --> 01:25:59.645] and sexually abusing them was utterly out of order for
+- [01:25:59.795 --> 01:26:02.125] what a priest could properly be doing on the,
+- [01:26:02.385 --> 01:26:04.005] uh, premises of the presbytery.
+- [01:26:04.625 --> 01:26:07.445] Um, that approaches the question of duty of care
+- [01:26:07.445 --> 01:26:08.605] with too narrow a focus.
+- [01:26:09.105 --> 01:26:11.645] Um, the fact that a surgeon conducts a, a
+- [01:26:12.195 --> 01:26:15.685] surgery in a grossly negligent manner doesn't deny
+- [01:26:15.685 --> 01:26:16.725] that the surgeon owed a duty
+- [01:26:16.725 --> 01:26:18.165] of care when performing that surgery.
+- [01:26:18.865 --> 01:26:21.045] Um, indeed that's likely to be evidence
+- [01:26:21.045 --> 01:26:22.645] of a breach of duty of care.
+- [01:26:22.955 --> 01:26:25.805] It's the more general circumstances which call forth, uh,
+- [01:26:25.805 --> 01:26:28.565] the duty, not the particular way in which the wrongdoer
+- [01:26:28.565 --> 01:26:31.645] breached it, uh, on a particular occasion that is relevant.
+- [01:26:32.585 --> 01:26:35.525] Um, can I then turn to Nondelegable duty?
+- [01:26:36.345 --> 01:26:37.525] Uh, and can I hand up
+- [01:26:38.595 --> 01:26:39.605] With More than one copy?
+- [01:26:39.745 --> 01:26:42.605] Yes. I understand Your
+- [01:26:42.605 --> 01:26:43.845] honors have now been, we have a good note.
+- [01:26:43.945 --> 01:26:46.125] Yes, yes. You're on page Note. Thank you. Do you
+- [01:26:46.125 --> 01:26:47.125] Have that?
+- [01:26:47.825 --> 01:26:49.565] So just focusing on that
+- [01:26:49.745 --> 01:26:53.605] and can I frame that as a, uh, non delegatable duty?
+- [01:26:54.915 --> 01:26:57.925] It's, did the diocese owe a duty to ensure
+- [01:26:58.595 --> 01:27:00.205] that reasonable care was taken
+- [01:27:00.305 --> 01:27:03.005] to avoid reasonably foreseeable physical injury
+- [01:27:03.065 --> 01:27:06.125] to children invited onto diocesan premises caused
+- [01:27:06.145 --> 01:27:09.845] by the conduct of diocesan priests at those premises, um,
+- [01:27:10.275 --> 01:27:12.885] that, uh, a non-eligible duty was pleaded
+- [01:27:13.785 --> 01:27:17.565] and it was put in issue in the document the list
+- [01:27:17.565 --> 01:27:20.645] of issues document, but if, of course, was not the subject
+- [01:27:20.665 --> 01:27:21.725] of a great deal of attention,
+- [01:27:21.725 --> 01:27:23.365] because at the time of the trial, uh,
+- [01:27:23.365 --> 01:27:25.245] intermediate appellate authority accepted
+- [01:27:25.245 --> 01:27:28.555] that vicarious liability was, uh, available.
+- [01:27:29.455 --> 01:27:31.515] Um, the respondent suggests a couple
+- [01:27:31.515 --> 01:27:33.315] of times in the disputed facts documents
+- [01:27:33.315 --> 01:27:36.955] that if we had focused more squarely on Nondelegable duty,
+- [01:27:37.525 --> 01:27:39.155] their evidence might have been different.
+- [01:27:39.535 --> 01:27:41.435] Um, that shouldn't be accepted for two reasons.
+- [01:27:42.335 --> 01:27:44.435] The first is that the respondent couldn't have known
+- [01:27:44.805 --> 01:27:47.395] until closing submissions whether the appellant would focus
+- [01:27:47.395 --> 01:27:48.995] on nondelegable duty or not,
+- [01:27:49.345 --> 01:27:51.635] because nondelegable duty was pleaded
+- [01:27:51.935 --> 01:27:54.555] and identified by the parties as an issue.
+- [01:27:54.865 --> 01:27:56.595] That document, identifying the list
+- [01:27:56.595 --> 01:27:59.075] of issues wasn't handed up until the third day of trial
+- [01:27:59.205 --> 01:28:01.315] after the close of, uh, evidence.
+- [01:28:01.915 --> 01:28:04.435] Secondly, and in any event, in this case, all
+- [01:28:04.435 --> 01:28:07.555] of the factors relevant to a nondelegable duty were the same
+- [01:28:07.575 --> 01:28:10.115] as those which were, uh, relevant to the question
+- [01:28:10.115 --> 01:28:13.715] of an ordinary duty of care and or vicarious liability.
+- [01:28:13.855 --> 01:28:15.795] And so the suggestion that there may have been some
+- [01:28:15.795 --> 01:28:18.035] different evidence advanced by the respondent,
+- [01:28:18.085 --> 01:28:20.435] which was relevant only to non delegatable duty,
+- [01:28:20.695 --> 01:28:24.435] but not to the cases, uh, was ultimately more fully pressed,
+- [01:28:24.695 --> 01:28:25.875] is just not a credible one.
+- [01:28:26.515 --> 01:28:31.125] W why do you confine the non duty to,
+- [01:28:32.505 --> 01:28:35.705] uh, the conduct of
+- [01:28:36.295 --> 01:28:38.265] priests, uh, at the
+- [01:28:38.465 --> 01:28:39.465] Premises? Um,
+- [01:28:39.465 --> 01:28:40.865] because that's all I need.
+- [01:28:41.665 --> 01:28:45.245] It, it would be possible to, uh, frame it more broadly,
+- [01:28:45.825 --> 01:28:48.685] but all I need in this case is that,
+- [01:28:49.185 --> 01:28:52.645] and we are also conscious of, uh, comments again
+- [01:28:52.645 --> 01:28:55.125] that have been made about the need for, um,
+- [01:28:55.255 --> 01:28:59.205] reasonably precise framing in, uh, a duty,
+- [01:28:59.205 --> 01:29:00.325] particularly on the non
+- [01:29:00.715 --> 01:29:01.715] Time on your case.
+- [01:29:01.785 --> 01:29:05.245] The priests are part of the organization that is
+- [01:29:05.245 --> 01:29:08.165] to be treated as an
+- [01:29:08.705 --> 01:29:10.645] entity for this purpose.
+- [01:29:10.825 --> 01:29:15.565] So it's a very odd nondelegable duty, I think.
+- [01:29:15.915 --> 01:29:17.845] Well, um, if I was dealing with the conduct
+- [01:29:17.845 --> 01:29:21.485] of the priest at a school, for example, during one
+- [01:29:21.485 --> 01:29:23.645] of the lessons, this wouldn't be sufficient.
+- [01:29:23.785 --> 01:29:26.085] But for the present purposes, it is sufficient.
+- [01:29:26.385 --> 01:29:30.165] It is sufficient because I'm identifying something squarely
+- [01:29:30.165 --> 01:29:33.775] within the, um, conduct of the
+- [01:29:34.615 --> 01:29:37.215] hypothesized organization that is engaging
+- [01:29:37.215 --> 01:29:41.335] with children in particular at, at diocese and premises. So
+- [01:29:41.335 --> 01:29:42.535] What, why wouldn't it be
+- [01:29:43.055 --> 01:29:45.575] Sufficient if the diocese sends a pre stout into a school
+- [01:29:45.675 --> 01:29:47.095] and the abuse occurs in the school?
+- [01:29:47.235 --> 01:29:50.255] It, it may be, uh, it just creates a, a, a,
+- [01:29:50.415 --> 01:29:52.935] a matter which is not part of this case
+- [01:29:53.035 --> 01:29:55.735] and has less of a degree of control by the diocese.
+- [01:29:55.835 --> 01:30:00.095] And I'm aiming, I'm aiming at the point that I need to be,
+- [01:30:00.595 --> 01:30:02.695] So can we just take the school example?
+- [01:30:03.275 --> 01:30:06.535] Yes. For the non eligible duty, there are, as
+- [01:30:06.535 --> 01:30:08.695] what it's explained in Bird at 37,
+- [01:30:09.235 --> 01:30:10.655] in effect two requirements.
+- [01:30:10.655 --> 01:30:13.775] There's the entrusting by the parent of the child
+- [01:30:13.795 --> 01:30:16.855] to the school, and then the adoption by the school
+- [01:30:18.635 --> 01:30:23.535] of the care giving rise to, um, a duty
+- [01:30:23.675 --> 01:30:25.295] to ensure that care is taken.
+- [01:30:25.715 --> 01:30:28.015] Yes. What happens here?
+- [01:30:29.115 --> 01:30:31.695] You adopt both, you, you don't dispute those elements. No.
+- [01:30:31.875 --> 01:30:34.015] And what happens here in the application
+- [01:30:34.015 --> 01:30:36.255] of both those elements in terms of the facts
+- [01:30:36.275 --> 01:30:37.615] and where you say you get to,
+- [01:30:37.795 --> 01:30:38.795] Yes. The diocese
+- [01:30:38.795 --> 01:30:39.615] had determined
+- [01:30:39.615 --> 01:30:42.735] to engage upon an educational ministry directed to children.
+- [01:30:43.835 --> 01:30:47.855] It had decided to do so via priests to whom it had delegated
+- [01:30:47.855 --> 01:30:52.175] that task as an aspect of that subject to the control
+- [01:30:52.175 --> 01:30:53.335] of the Bishop Parish.
+- [01:30:53.365 --> 01:30:56.015] Priests were permitted to hold events as they saw fit,
+- [01:30:56.245 --> 01:30:58.935] including children at diocesan property,
+- [01:30:59.195 --> 01:31:01.615] namely Presbyteries at which they lived,
+- [01:31:02.195 --> 01:31:05.295] and the bishop retained control of all of the priests
+- [01:31:05.355 --> 01:31:09.335] of the diocese and the diocesan property that at a,
+- [01:31:10.155 --> 01:31:12.375] at a punchy level, if I can put it that way,
+- [01:31:12.915 --> 01:31:14.895] is the highlights of the material
+- [01:31:14.895 --> 01:31:17.975] that I've taken your honors through, which we rely on
+- [01:31:18.635 --> 01:31:21.495] as the analogy to a school case.
+- [01:31:21.565 --> 01:31:23.375] Where's the entrusting by the parent
+- [01:31:23.475 --> 01:31:25.015] of the child to the diocese?
+- [01:31:25.165 --> 01:31:28.055] That that is obviously a particular feature with, uh,
+- [01:31:28.055 --> 01:31:32.095] schools, but is not an essential feature, uh, of a duty
+- [01:31:32.095 --> 01:31:33.855] of care which is owed to children.
+- [01:31:34.355 --> 01:31:39.335] Um, in fact, uh, there is, um, as I mentioned in one
+- [01:31:39.335 --> 01:31:43.265] of my heads of, uh, inter not heads of interest, one
+- [01:31:43.265 --> 01:31:44.825] of the particular features of a duty of care,
+- [01:31:44.915 --> 01:31:47.785] there is evidence which shows how parents, uh,
+- [01:31:47.905 --> 01:31:50.105] particularly Catholic parents did do that.
+- [01:31:50.565 --> 01:31:53.825] But this is not a case where there is any formal, um,
+- [01:31:54.665 --> 01:31:56.785] entrusting by enrolling your child in a school,
+- [01:31:57.485 --> 01:31:58.485] Mr.
+- [01:31:58.725 --> 01:32:02.645] Um, in the, the, the duty of care that you've formulated,
+- [01:32:03.025 --> 01:32:05.245] you've used invited onto the premises.
+- [01:32:05.265 --> 01:32:07.085] So you've used the passive voice.
+- [01:32:07.985 --> 01:32:10.525] You are not saying that the children were invited onto the
+- [01:32:10.765 --> 01:32:12.885] premises by the diocese.
+- [01:32:13.635 --> 01:32:17.525] Well, I, I, I said invited in the sense of invited
+- [01:32:17.585 --> 01:32:21.765] by someone that the diocese authorized to do that in his,
+- [01:32:21.865 --> 01:32:23.645] in this case, the parish priest.
+- [01:32:25.505 --> 01:32:28.445] Um, just to go back to your honor, justice Gordon,
+- [01:32:28.535 --> 01:32:32.765] there is obviously not, uh, the same degree of formal, uh,
+- [01:32:33.575 --> 01:32:37.125] enrollment by a parent of their child in a school. I
+- [01:32:37.125 --> 01:32:39.165] Don't suggest you need formal enrollment.
+- [01:32:40.695 --> 01:32:43.805] There has to be some, I think, entrustment entrusting
+- [01:32:43.805 --> 01:32:46.555] of the child by the parent.
+- [01:32:47.265 --> 01:32:48.995] Well, And it may be,
+- [01:32:48.995 --> 01:32:51.395] and so it may be that you have facts which identify
+- [01:32:52.125 --> 01:32:54.115] informally, um,
+- [01:32:54.575 --> 01:32:57.235] The, the, the, the only facts which identified informally
+- [01:32:57.655 --> 01:33:00.915] are one the facts here that, um, the children went
+- [01:33:01.335 --> 01:33:05.595] and, uh, the parents, uh, believed they were going, I think
+- [01:33:05.615 --> 01:33:10.075] to, um, plaintiff said that he had had been going to, uh,
+- [01:33:10.595 --> 01:33:12.675] religious class or scripture class or something like that.
+- [01:33:13.495 --> 01:33:18.315] Um, but the more general point about the duty is only the
+- [01:33:18.315 --> 01:33:23.035] one about, uh, uh, societal attitudes to, uh,
+- [01:33:23.625 --> 01:33:25.955] priests and the educational ministry
+- [01:33:25.955 --> 01:33:27.915] that the diocese had set itself on
+- [01:33:28.245 --> 01:33:31.415] There, an entrustment by the school the school had,
+- [01:33:31.845 --> 01:33:34.415] leaving aside whether it has any liability,
+- [01:33:34.555 --> 01:33:37.375] but the parents entrust of the school,
+- [01:33:38.895 --> 01:33:41.835] school then entrusts part
+- [01:33:41.835 --> 01:33:45.565] of its effectively its function to the priest
+- [01:33:46.505 --> 01:33:49.205] In that exercise in that.
+- [01:33:49.225 --> 01:33:50.245] And that formed part
+- [01:33:50.265 --> 01:33:53.325] of a broader educational ministry by the church.
+- [01:33:53.985 --> 01:33:58.045] Um, there, there was also, of course, the, uh,
+- [01:33:58.745 --> 01:34:02.285] aspect that church teaching would've required
+- [01:34:02.965 --> 01:34:05.325] Catholic parents at any rate, to trust priests.
+- [01:34:05.325 --> 01:34:07.365] But I've made clear that this is not suggested
+- [01:34:07.365 --> 01:34:09.645] that the duty is limited to Catholic children's,
+- [01:34:09.985 --> 01:34:13.605] So that if a school was to entrust some part of
+- [01:34:14.585 --> 01:34:17.835] its function, say group of courses
+- [01:34:18.015 --> 01:34:21.475] or PE to an organization who then accepted
+- [01:34:22.705 --> 01:34:24.565] that entrustment, sure,
+- [01:34:24.565 --> 01:34:26.165] the school might have a non-eligible duty,
+- [01:34:26.265 --> 01:34:28.725] but you'd say the receiving
+- [01:34:28.725 --> 01:34:31.365] organization may have one as well.
+- [01:34:31.625 --> 01:34:34.525] Yes. Although that kind of analogy we're in, but I,
+- [01:34:34.525 --> 01:34:38.405] but I, it is, but I don't wanna put too much emphasis only
+- [01:34:38.465 --> 01:34:40.005] on the school communion classes
+- [01:34:40.515 --> 01:34:44.285] because I understand that, uh, the ministry here included
+- [01:34:44.285 --> 01:34:45.925] that, but was not limited to that.
+- [01:34:46.145 --> 01:34:48.045] You have to be very precise
+- [01:34:48.145 --> 01:34:51.125] or at least sufficiently precise about what the task is
+- [01:34:51.145 --> 01:34:54.965] that's, that's delegated by the, uh, by the diocese
+- [01:34:55.145 --> 01:34:56.485] and entrusted
+- [01:34:57.985 --> 01:34:59.485] By the plaintiff or the Appearance.
+- [01:34:59.745 --> 01:35:02.045] Yes. And I identified in my answer to Justice Gordon
+- [01:35:02.045 --> 01:35:04.085] what the high points of that is.
+- [01:35:04.785 --> 01:35:07.205] We know from the past cases we've been told so much
+- [01:35:07.205 --> 01:35:09.565] of it depends on a really close scrutiny of the facts,
+- [01:35:11.245 --> 01:35:14.125] a whole range of past authorities in relation to this issue.
+- [01:35:15.025 --> 01:35:17.805] So to pick up on the question you asked by Justice Gleason
+- [01:35:18.705 --> 01:35:21.005] in response to me, um,
+- [01:35:24.485 --> 01:35:25.825] at a, at a general level,
+- [01:35:25.845 --> 01:35:28.665] and I'm not saying this is this case, one can have intimacy
+- [01:35:28.685 --> 01:35:31.065] and control in relation to a vulnerable child,
+- [01:35:31.635 --> 01:35:35.695] which one could, um, see him in the relation
+- [01:35:35.715 --> 01:35:38.375] of a pastoral relationship between a particular person
+- [01:35:38.555 --> 01:35:41.935] and a diocese in the context of the people you identified
+- [01:35:42.605 --> 01:35:45.985] giving rise in the circumstances to some form of entrusting
+- [01:35:45.985 --> 01:35:49.545] of care and one could identify particular facts.
+- [01:35:49.735 --> 01:35:52.545] Just wanna be abundantly clear what you say are your facts
+- [01:35:52.935 --> 01:35:55.825] that give rise to that kind of analysis.
+- [01:35:55.825 --> 01:35:57.505] And if it's not that analysis, what is
+- [01:35:57.505 --> 01:35:58.505] It? Um,
+- [01:35:58.505 --> 01:36:00.545] uh, your Honor, I, um,
+- [01:36:01.255 --> 01:36:02.635] You may wanna take it on notice, Mr.
+- [01:36:02.915 --> 01:36:04.995] Swell. I, I can, I can, I'm also conscious
+- [01:36:04.995 --> 01:36:08.115] that I'm in about 10 minutes going to tell Your Honor,
+- [01:36:08.495 --> 01:36:10.235] in the next 10 minutes, going to tell your honors
+- [01:36:10.235 --> 01:36:11.795] that Lapore was wrongly decided.
+- [01:36:11.935 --> 01:36:13.995] So I wanna leave a little bit of time to do that.
+- [01:36:14.095 --> 01:36:17.035] So I will, um, see if I can do better than that,
+- [01:36:17.575 --> 01:36:18.835] uh, afterwards.
+- [01:36:18.885 --> 01:36:22.115] Thank you. And so can I come to that point?
+- [01:36:22.115 --> 01:36:25.315] Because we, um, obviously despite everything else
+- [01:36:25.415 --> 01:36:27.395] for a nondelegable duty of care, also need
+- [01:36:27.395 --> 01:36:30.235] to succeed on the point on which we failed in the Court
+- [01:36:30.235 --> 01:36:34.355] of appeal, which was whether a non duty can be breached,
+- [01:36:34.355 --> 01:36:36.635] if I can put it that way, by intentionally wrongful conduct
+- [01:36:37.015 --> 01:36:40.515] by intentionally wrongful conduct ahead,
+- [01:36:40.775 --> 01:36:43.315] but by the by, by the delegate.
+- [01:36:43.575 --> 01:36:44.675] By the delegate, yes.
+- [01:36:45.615 --> 01:36:47.315] Why, why do you need to establish that?
+- [01:36:47.495 --> 01:36:51.035] Why do you need to say that? Um, Lapore is wrong?
+- [01:36:51.175 --> 01:36:53.555] Lapore was argued on the basis
+- [01:36:53.705 --> 01:36:57.555] that an intentional tot itself was something
+- [01:36:57.555 --> 01:37:00.755] that gave rise to this so-called nondelegable duty.
+- [01:37:00.775 --> 01:37:02.355] It wasn't argued on the basis
+- [01:37:02.425 --> 01:37:06.035] that a nondelegable duty is a duty for which
+- [01:37:06.695 --> 01:37:10.355] one party has assumed a responsibility independently
+- [01:37:10.375 --> 01:37:12.995] of whether or not the tort is intentional
+- [01:37:12.995 --> 01:37:15.535] or not assumed, a responsibility
+- [01:37:15.595 --> 01:37:17.015] to ensure that care is taken.
+- [01:37:17.355 --> 01:37:19.215] Yes, and that is how we would put it.
+- [01:37:19.555 --> 01:37:22.295] Um, it did seem to us that, uh, at least the way
+- [01:37:22.295 --> 01:37:24.895] that it was reasoned in La Poe would stand against that.
+- [01:37:25.395 --> 01:37:27.575] Um, and so let me, let me deal with that.
+- [01:37:28.355 --> 01:37:32.135] Um, c can I make, uh, firstly my submissions about matters
+- [01:37:32.135 --> 01:37:36.575] of principle and then a restraint about overruling, um,
+- [01:37:37.355 --> 01:37:40.535] as matters of principle, there are authorities prior
+- [01:37:40.535 --> 01:37:44.775] to Lapore in which a nondelegable duty has been
+- [01:37:45.375 --> 01:37:48.415] breached by reason of intentional
+- [01:37:48.435 --> 01:37:51.015] and unlawful conduct of the delegate.
+- [01:37:51.915 --> 01:37:55.095] One, which your honors noted in burden
+- [01:37:55.125 --> 01:37:58.605] and DP at paragraph 52 is Morrison
+- [01:37:58.945 --> 01:38:00.165] CW Martin and Sons.
+- [01:38:00.385 --> 01:38:04.845] That's the case about the furrier who, uh, gave the fur
+- [01:38:04.865 --> 01:38:06.125] for cleaning to a cleaner.
+- [01:38:06.865 --> 01:38:09.965] The employee of the cleaner made off with it,
+- [01:38:10.305 --> 01:38:12.965] and the plaintiff sued for the cleaner,
+- [01:38:13.945 --> 01:38:17.805] and that was analyzed by the master of the roles
+- [01:38:17.905 --> 01:38:19.565] as a nondelegable duty case.
+- [01:38:19.745 --> 01:38:21.805] And that is the better analysis of it,
+- [01:38:22.985 --> 01:38:24.645] as this court noted in Byrd.
+- [01:38:25.515 --> 01:38:28.535] And the Supreme Court of the uk, uh, took the same view
+- [01:38:28.535 --> 01:38:30.095] of it, or at least that it was a possible view
+- [01:38:30.095 --> 01:38:31.895] of it in Woodland at paragraph seven,
+- [01:38:32.365 --> 01:38:33.735] there's actually a second case
+- [01:38:33.735 --> 01:38:35.855] to which we would draw attention mentioned in the reasons
+- [01:38:35.875 --> 01:38:37.815] of this court in Bernie Port Authority.
+- [01:38:38.065 --> 01:38:41.815] Would your honors take that up, please? 1 7 9 CLR five 20.
+- [01:38:42.885 --> 01:38:46.215] What volume? Mr. Uh, volume three. Tab 13.
+- [01:38:51.105 --> 01:38:55.575] Thank you. And if your honors turn to page 5 5, 1
+- [01:38:56.515 --> 01:38:59.055] of the CLR print, um,
+- [01:38:59.145 --> 01:39:03.055] their honors were there discussing the, um, uh,
+- [01:39:03.085 --> 01:39:04.575] rule in Rylands and Fletcher,
+- [01:39:04.575 --> 01:39:06.015] so the dangerous activity cases,
+- [01:39:06.395 --> 01:39:10.375] and assimilating that within the ordinary law of negligence,
+- [01:39:10.435 --> 01:39:12.865] in particular, so as to give rise
+- [01:39:12.865 --> 01:39:14.465] to a nondelegable duty of care.
+- [01:39:15.405 --> 01:39:18.905] And if your honors turn to page 5, 5 3, their honors refer
+- [01:39:18.925 --> 01:39:21.945] to a previous decision of this court McKinnon Waddle.
+- [01:39:22.725 --> 01:39:25.945] And what your honors will see is that what occurred there
+- [01:39:27.165 --> 01:39:31.385] was that the delegate burnt, it started a fire,
+- [01:39:31.575 --> 01:39:33.105] even though it was unlawful
+- [01:39:33.165 --> 01:39:37.225] and dangerous activity, it was done for a good reason
+- [01:39:37.225 --> 01:39:38.825] that is clearing the property.
+- [01:39:38.845 --> 01:39:40.905] But it was nonetheless an intentional act done,
+- [01:39:40.915 --> 01:39:43.825] which was unlawful, and that was
+- [01:39:43.825 --> 01:39:47.065] nonetheless said to give rise to a breach of the rule.
+- [01:39:47.065 --> 01:39:49.265] Inlands and Fletcher now understood as breach
+- [01:39:49.265 --> 01:39:50.665] of a nondelegable duty of care.
+- [01:39:51.845 --> 01:39:54.785] So previous authorities do not stand for the proposition
+- [01:39:54.895 --> 01:39:58.905] that one cannot have a, um, breach of a nondelegable duty
+- [01:39:58.905 --> 01:40:00.265] of care for intentional tort.
+- [01:40:00.355 --> 01:40:02.545] Could your honor then take up Lapore itself?
+- [01:40:02.885 --> 01:40:06.625] That's two 11 CLR volume four, tab 24.
+- [01:40:10.325 --> 01:40:11.785] And, um, can we start
+- [01:40:11.785 --> 01:40:13.665] with the dissenting reasons of justice?
+- [01:40:14.365 --> 01:40:18.225] Ew, On page 5 7 2
+- [01:40:18.325 --> 01:40:19.905] of the CLR print
+- [01:40:25.285 --> 01:40:27.985] And your honors, we'll see on page 5 7 2 at the end
+- [01:40:27.985 --> 01:40:29.865] of paragraph 1 6 1, his honor,
+- [01:40:29.895 --> 01:40:33.385] correctly identified Morrison's, uh, CW Martin
+- [01:40:33.405 --> 01:40:37.305] and Sons, as an example in paragraph 1 6 2.
+- [01:40:37.325 --> 01:40:40.625] His honor correctly explained that prior to the abolition
+- [01:40:40.625 --> 01:40:44.025] of the forms of action, a plaintiff could frame a cause
+- [01:40:44.025 --> 01:40:45.825] of action either as a trespass
+- [01:40:45.825 --> 01:40:48.465] or an action on the case, depending on whether the plaintiff
+- [01:40:48.465 --> 01:40:49.545] alleged intention.
+- [01:40:49.925 --> 01:40:53.105] It wasn't about the facts, it was about the allegations,
+- [01:40:53.625 --> 01:40:55.445] of course, that being essential in the
+- [01:40:55.445 --> 01:40:56.605] era of the forms of action.
+- [01:40:57.145 --> 01:40:59.085] But his honor then went on to observe that
+- [01:40:59.135 --> 01:41:00.485] after the air abolition,
+- [01:41:00.795 --> 01:41:03.925] there's no reason why you can't sue in negligence
+- [01:41:03.985 --> 01:41:05.525] for an intentional infliction of harm.
+- [01:41:05.545 --> 01:41:08.765] And his honor gave them as example in footnote 2, 4 8,
+- [01:41:08.785 --> 01:41:10.165] the decision of this court in gray
+- [01:41:10.185 --> 01:41:14.045] and motor accident, uh, commission that case was
+- [01:41:14.045 --> 01:41:15.525] of course about exemplary damages,
+- [01:41:15.525 --> 01:41:16.605] but there was no suggestion
+- [01:41:16.635 --> 01:41:18.525] that there was anything defective about the framing
+- [01:41:18.545 --> 01:41:20.325] of the negligence claim, even though
+- [01:41:20.325 --> 01:41:23.365] what in it involved was deliberate running down by a car
+- [01:41:23.585 --> 01:41:26.605] of one person, uh, by another, which in fact led
+- [01:41:26.605 --> 01:41:27.645] to a criminal prosecution
+- [01:41:27.655 --> 01:41:30.285] Point being that, as I understand Justice Bob,
+- [01:41:30.285 --> 01:41:33.165] justice McCue was saying, is it was sort of illogical
+- [01:41:33.165 --> 01:41:36.125] that you could have breach of duty for a negligent breach,
+- [01:41:36.185 --> 01:41:37.885] but not for gross or flagrant breach.
+- [01:41:37.905 --> 01:41:39.565] That's so, and I'll come back to that point,
+- [01:41:39.825 --> 01:41:42.445] but in terms of authority, what His Honor said was, uh,
+- [01:41:42.445 --> 01:41:44.565] correct, uh, his honor.
+- [01:41:44.565 --> 01:41:47.405] Then at paragraph 1, 6 4, particularly over the page,
+- [01:41:48.325 --> 01:41:51.565] identified that to subject educational authorities
+- [01:41:51.565 --> 01:41:54.645] to a nondelegable duty of care, even extending
+- [01:41:54.645 --> 01:41:57.085] to intentional torts, um, didn't mean
+- [01:41:57.085 --> 01:41:58.845] that educational authorities were helpless
+- [01:41:58.865 --> 01:42:00.285] to take preventative actions.
+- [01:42:00.465 --> 01:42:04.405] And your honors will see, uh, what is on upset about it, um,
+- [01:42:04.425 --> 01:42:07.325] the reasons of the majority in the interests of time.
+- [01:42:07.465 --> 01:42:10.445] Can we point to five significant errors in those reasons?
+- [01:42:10.665 --> 01:42:12.445] And I will give your honors the references
+- [01:42:12.505 --> 01:42:15.125] to the paragraphs without actually going through them.
+- [01:42:16.435 --> 01:42:18.245] Firstly, the majority seemed
+- [01:42:18.245 --> 01:42:20.085] to think there was a conceptual problem
+- [01:42:20.315 --> 01:42:22.685] with saying there was a breach of a nondelegable duty
+- [01:42:22.685 --> 01:42:24.965] of care by the school in the case
+- [01:42:25.145 --> 01:42:27.605] of an intentional wrongdoing by the teacher.
+- [01:42:28.345 --> 01:42:31.005] The references are particularly apparent in the reasons
+- [01:42:31.025 --> 01:42:32.525] of Chief Justice Gleason,
+- [01:42:32.635 --> 01:42:35.405] with whom Justice Callan agreed at paragraph 31.
+- [01:42:36.305 --> 01:42:38.965] And that, um, as your honor, justice Edelman raised
+- [01:42:38.965 --> 01:42:41.645] with me really fails to recognize that the duty
+- [01:42:41.665 --> 01:42:43.805] as a personal duty to the school to ensure
+- [01:42:43.805 --> 01:42:46.565] that reasonable care is taken for the student.
+- [01:42:47.105 --> 01:42:50.365] The school fails in that duty, whether the conduct
+- [01:42:50.425 --> 01:42:52.565] of the teacher is well intentioned, but,
+- [01:42:52.785 --> 01:42:56.045] or negligent just as much as if the conduct
+- [01:42:56.065 --> 01:42:59.525] of the teacher is intentional in terms of the duty holder,
+- [01:43:00.385 --> 01:43:04.405] the school, the quality of the failure is the same.
+- [01:43:04.515 --> 01:43:08.645] That is that the school has failed to ensure that, uh,
+- [01:43:08.695 --> 01:43:11.045] reasonable care was taken for the student.
+- [01:43:11.235 --> 01:43:12.525] There's no conceptual problem.
+- [01:43:12.585 --> 01:43:13.805] That's three members of the majority,
+- [01:43:13.945 --> 01:43:15.285] the other two members.
+- [01:43:15.825 --> 01:43:17.805] Um, this is not said against you,
+- [01:43:17.805 --> 01:43:20.655] but the other two members are justices.
+- [01:43:20.955 --> 01:43:24.495] Um, Gamo and Hane are more equivocal on this point.
+- [01:43:24.675 --> 01:43:25.775] On this particular point,
+- [01:43:25.775 --> 01:43:27.135] there's not a conceptual problem.
+- [01:43:27.155 --> 01:43:29.255] That's why I identified only Justice,
+- [01:43:29.345 --> 01:43:30.935] chief Justice Glac and Justice Callen.
+- [01:43:30.935 --> 01:43:33.615] So that's the first problem. The second problem is
+- [01:43:33.615 --> 01:43:34.935] that at least Justices Gummo
+- [01:43:34.935 --> 01:43:37.135] and Hane seemed to take the view that one couldn't plead
+- [01:43:37.155 --> 01:43:39.735] as a negligence case, intentional wrongdoing.
+- [01:43:39.735 --> 01:43:44.015] Their honors said that at paragraph two 70, um, now, even if
+- [01:43:44.015 --> 01:43:46.455] that point is correct, it's an irrelevance
+- [01:43:46.455 --> 01:43:47.575] for the reason I've just given.
+- [01:43:48.195 --> 01:43:51.055] Um, it's just not material whether one could bring a,
+- [01:43:51.060 --> 01:43:55.165] a negligence claim against the teacher in this example.
+- [01:43:55.825 --> 01:43:58.005] But in any event, the reasons are not correct.
+- [01:43:58.385 --> 01:44:00.165] As Justice Chu explained.
+- [01:44:00.665 --> 01:44:01.685] Um, as for Williams
+- [01:44:01.825 --> 01:44:04.725] and Otin, which Justice Chu referred to
+- [01:44:04.725 --> 01:44:08.165] that was a pleading point, wasn't a substantive point, uh,
+- [01:44:08.165 --> 01:44:10.485] because the court was referring to a time prior
+- [01:44:10.485 --> 01:44:12.285] to the abolition of the forms of action.
+- [01:44:12.525 --> 01:44:14.165] 'cause that's what the South Australian
+- [01:44:14.165 --> 01:44:15.965] statute in question required. Well,
+- [01:44:15.965 --> 01:44:17.805] There, there's an, there's an ambiguity here,
+- [01:44:17.945 --> 01:44:21.285] and it, it may be on one view that justices Gummo
+- [01:44:21.285 --> 01:44:22.525] and Hain are not saying anything
+- [01:44:22.525 --> 01:44:23.885] different on this point from justice.
+- [01:44:24.245 --> 01:44:27.005] Ew, which may in the ambiguity is that prior
+- [01:44:27.105 --> 01:44:29.365] to the abolition of forms of action,
+- [01:44:29.915 --> 01:44:31.405] what one might have thought of
+- [01:44:31.585 --> 01:44:34.245] as negligence may not have included the notion
+- [01:44:34.245 --> 01:44:35.885] of an assumption of responsibility.
+- [01:44:36.595 --> 01:44:41.245] That that, that that concept was much more closely related
+- [01:44:41.385 --> 01:44:44.245] to general assumption Yes.
+- [01:44:44.245 --> 01:44:45.405] Um, and promises.
+- [01:44:45.745 --> 01:44:49.125] Um, that is so, and we would love to embrace that reading.
+- [01:44:49.785 --> 01:44:52.685] But at paragraph two 70, justices, Gummo
+- [01:44:52.685 --> 01:44:53.965] and Hayne do also say,
+- [01:44:54.065 --> 01:44:57.205] but the intentional infliction of harm cannot be pleaded
+- [01:44:57.265 --> 01:45:00.245] as negligence, and they cite a New Zealand case, cousin
+- [01:45:00.265 --> 01:45:02.765] and Wilson, that wasn't a form of action case,
+- [01:45:03.345 --> 01:45:05.445] but it also doesn't stand for the proposition
+- [01:45:05.465 --> 01:45:07.365] for which their honors apparently cited it.
+- [01:45:07.715 --> 01:45:10.405] That was a case where a trespass claim failed
+- [01:45:10.955 --> 01:45:13.325] because the plaintiffs didn't have possession
+- [01:45:13.325 --> 01:45:14.325] of the land in question.
+- [01:45:14.825 --> 01:45:17.925] And all that, the high court of New Zealand said was,
+- [01:45:18.035 --> 01:45:21.245] there's no duty of care which could be recognized in those
+- [01:45:21.245 --> 01:45:22.725] circumstances, not
+- [01:45:22.725 --> 01:45:25.205] because it was an intentional infliction of harm case,
+- [01:45:25.545 --> 01:45:27.805] but just because it wasn't a case involving
+- [01:45:28.565 --> 01:45:30.725] salient features, which gave rise to a duty of care.
+- [01:45:32.065 --> 01:45:33.605] Um, the third, uh,
+- [01:45:33.815 --> 01:45:35.645] Point, so sorry to labor this,
+- [01:45:35.705 --> 01:45:38.885] but I'm, I'm, I'm, I'm not sure
+- [01:45:38.885 --> 01:45:41.005] that is necessarily what they're saying.
+- [01:45:41.395 --> 01:45:44.045] It's that when one talks about pleading something
+- [01:45:44.045 --> 01:45:48.445] as negligence to plead a nondelegable duty
+- [01:45:50.185 --> 01:45:53.965] is not comfortably described as a pleading of negligence.
+- [01:45:54.185 --> 01:45:56.245] It, it, in other words, as I mentioned to you earlier,
+- [01:45:56.385 --> 01:45:58.325] it doesn't matter whether it's negligent
+- [01:45:58.505 --> 01:46:02.165] or not, it's an assumed duty yes.
+- [01:46:02.345 --> 01:46:04.085] To ensure that care is taken.
+- [01:46:04.465 --> 01:46:07.405] And that's why I said the question whether one could plead
+- [01:46:07.445 --> 01:46:09.285] a negligence claim against the delegate
+- [01:46:09.865 --> 01:46:11.005] is actually an irrelevance.
+- [01:46:11.035 --> 01:46:12.485] It's my first answer to this point.
+- [01:46:13.705 --> 01:46:16.325] Um, the third point is, the majority considered
+- [01:46:16.325 --> 01:46:18.045] that acceptance of liability
+- [01:46:18.305 --> 01:46:21.085] for intentional wrongdoing was not necessary
+- [01:46:21.085 --> 01:46:23.845] to achieving the policy objects of compensation
+- [01:46:23.845 --> 01:46:28.045] or deterrence c paragraphs 36 and 2 6 7.
+- [01:46:28.825 --> 01:46:32.005] Um, but those objectives don't really explain nondelegable
+- [01:46:32.035 --> 01:46:33.165] duty per se.
+- [01:46:33.665 --> 01:46:37.765] Um, it's incoherent to rely on them, uh, as a basis for
+- [01:46:38.485 --> 01:46:42.045] limiting non duty cases to, uh,
+- [01:46:42.075 --> 01:46:44.005] exclude intentional wrongdoing.
+- [01:46:44.825 --> 01:46:48.845] Um, the, uh, there's a related difficulty that, um,
+- [01:46:49.445 --> 01:46:51.365] justices, Gummo and Hayne seemed to say,
+- [01:46:51.365 --> 01:46:52.485] well, it's terribly unfair.
+- [01:46:53.115 --> 01:46:54.765] Look at paragraph 2 67
+- [01:46:54.995 --> 01:46:58.325] because the state hasn't engaged in any negligence.
+- [01:46:58.865 --> 01:47:01.045] But that's, so for any nondelegable duty,
+- [01:47:01.305 --> 01:47:02.645] You would say in relation to that, that
+- [01:47:02.645 --> 01:47:04.885] that proceeds from a misunderstanding of the strict nature
+- [01:47:04.885 --> 01:47:07.405] of liability under nondelegable duty,
+- [01:47:07.465 --> 01:47:08.485] and that you don't have
+- [01:47:08.485 --> 01:47:10.125] to establish negligence on the part of the duty
+- [01:47:10.285 --> 01:47:12.885] Holder precisely whether the delegate was intentionally
+- [01:47:12.885 --> 01:47:15.485] negligent, uh, intentional wrongdoing or negligent.
+- [01:47:16.305 --> 01:47:18.925] The fourth point is that the majority seem to consider
+- [01:47:18.925 --> 01:47:20.565] that if non-eligible duty extended
+- [01:47:20.585 --> 01:47:21.645] to intentional wrongdoing,
+- [01:47:21.645 --> 01:47:23.965] it would out flank vicarious liability.
+- [01:47:24.465 --> 01:47:26.965] You see that particular paragraph 2 69,
+- [01:47:27.545 --> 01:47:29.005] but to some degree that could be said
+- [01:47:29.005 --> 01:47:31.965] of any nondelegable duty, um, even accepting
+- [01:47:31.965 --> 01:47:33.885] that a nondelegable duty, um,
+- [01:47:34.095 --> 01:47:35.925] can't be breached by intentional conduct.
+- [01:47:36.175 --> 01:47:37.285] There will be some cases
+- [01:47:37.695 --> 01:47:40.125] where a nondelegable duty claim succeeds,
+- [01:47:40.235 --> 01:47:43.605] even though a vicarious liability claim would fail in
+- [01:47:43.605 --> 01:47:46.845] others, both might succeed and in others both will fail.
+- [01:47:47.265 --> 01:47:49.045] That's just a feature of the fact
+- [01:47:49.045 --> 01:47:50.925] that there's a different legal doctrine,
+- [01:47:51.055 --> 01:47:54.005] which is not coincident with vicarious liability.
+- [01:47:54.385 --> 01:47:56.085] If, if your teacher was a contractor,
+- [01:47:57.525 --> 01:47:59.835] you'd probably be stuck with vivic, uh,
+- [01:47:59.835 --> 01:48:01.275] with a non-eligible duty, wouldn't you?
+- [01:48:01.615 --> 01:48:02.995] Yes. But that might succeed.
+- [01:48:03.245 --> 01:48:06.275] Where vicarious liability fails, it's not a problem.
+- [01:48:07.015 --> 01:48:09.915] And the fifth point is that it was said by the majority
+- [01:48:09.915 --> 01:48:11.875] that recognizing a nondelegable duty
+- [01:48:11.895 --> 01:48:15.395] for intentional wrongdoing would amount to an absolute duty
+- [01:48:15.415 --> 01:48:17.755] to protect every student against any kind of harm.
+- [01:48:18.215 --> 01:48:20.515] See, particularly the reasons of Chief Justice Gleason at
+- [01:48:20.515 --> 01:48:23.555] paragraph 32 and the reasons of Justice Scow
+- [01:48:23.555 --> 01:48:25.675] and Hayne at 2 6 2 to 2 6 3.
+- [01:48:26.335 --> 01:48:27.755] Now that fails to recognize
+- [01:48:27.755 --> 01:48:29.755] that even a nondelegable duty is not a
+- [01:48:29.755 --> 01:48:30.875] duty of unlimited scope.
+- [01:48:31.655 --> 01:48:34.515] Um, its scope is confined to the task
+- [01:48:34.655 --> 01:48:37.595] or relationship which generates it, and that will be so,
+- [01:48:38.695 --> 01:48:43.135] And the entrusting, Yes, but my point here is just
+- [01:48:43.135 --> 01:48:47.555] however you generate it, um, it, it will be limited
+- [01:48:47.895 --> 01:48:52.015] to the, um, scope that has been identified.
+- [01:48:52.075 --> 01:48:54.015] So to take a case which is not about entrusting,
+- [01:48:54.035 --> 01:48:56.735] for example, the non-eligible duty of adjoining landholders,
+- [01:48:57.365 --> 01:48:59.775] that that is a non delegatable duty,
+- [01:48:59.945 --> 01:49:03.375] which applies when one is doing work threatening support
+- [01:49:03.435 --> 01:49:04.495] to common walls.
+- [01:49:04.885 --> 01:49:06.255] It's not a nondelegable duty
+- [01:49:06.255 --> 01:49:08.575] that applies when you walk out your front door
+- [01:49:08.575 --> 01:49:10.695] walking your dog. So this, but
+- [01:49:10.725 --> 01:49:12.855] Your short point, it's not dealing with a trespasser,
+- [01:49:12.855 --> 01:49:14.295] it's dealing with a person who's had the
+- [01:49:14.295 --> 01:49:15.415] task delegated to them,
+- [01:49:15.815 --> 01:49:16.935] A a and there may be a whole series
+- [01:49:16.935 --> 01:49:19.135] of other things it's not dealing with as well.
+- [01:49:19.715 --> 01:49:22.455] Um, the point being that whether it covers intentional
+- [01:49:22.455 --> 01:49:23.615] or, uh, torts
+- [01:49:23.615 --> 01:49:25.735] or not isn't something that leads
+- [01:49:25.795 --> 01:49:27.935] to an absolute duty in all cases.
+- [01:49:28.675 --> 01:49:31.615] Um, if the priest in this case there'd been a sexual
+- [01:49:31.615 --> 01:49:34.295] assault of your client by the priest somewhere other than
+- [01:49:34.295 --> 01:49:37.135] the presbytery or the school would, would, is
+- [01:49:37.135 --> 01:49:38.375] that the territory would be in
+- [01:49:38.815 --> 01:49:39.815] Y Yes. So
+- [01:49:39.815 --> 01:49:44.415] it would depend on where, but conceptually, yes.
+- [01:49:45.755 --> 01:49:48.045] Um, can we make two other brief points?
+- [01:49:48.825 --> 01:49:50.445] Um, first, the decision of the majority
+- [01:49:50.445 --> 01:49:52.405] and Lapore produces perverse results.
+- [01:49:53.145 --> 01:49:55.405] It produces a perverse incentive on the part
+- [01:49:55.405 --> 01:49:58.005] of the defendant to allege the wrongdoers conduct was
+- [01:49:58.005 --> 01:50:00.285] intentional and on the part of the plaintiff
+- [01:50:00.285 --> 01:50:01.525] to say it was merely negligent
+- [01:50:02.505 --> 01:50:04.805] and more seriously than that, as the Supreme Court
+- [01:50:04.985 --> 01:50:09.045] of the United Kingdom INS identified, I won't,
+- [01:50:09.195 --> 01:50:11.725] I'll just give you honor as the reference in paragraph 51.
+- [01:50:12.225 --> 01:50:14.685] It, it has the consequence that, um,
+- [01:50:15.585 --> 01:50:18.605] if you have a nondelegable duty owed by someone,
+- [01:50:19.275 --> 01:50:21.725] they can only breach it by acting negligently.
+- [01:50:22.585 --> 01:50:25.685] But if they negligently entrust, say a child
+- [01:50:25.825 --> 01:50:30.005] to a third party who intentionally abuses that child,
+- [01:50:30.435 --> 01:50:31.565] then the delegate can
+- [01:50:31.565 --> 01:50:34.045] nonetheless be liable for Nondelegable breach
+- [01:50:34.045 --> 01:50:35.085] of nondelegable duty.
+- [01:50:35.345 --> 01:50:36.485] Is that the passage where the Lord
+- [01:50:36.485 --> 01:50:37.765] reads is that can hardly be right?
+- [01:50:37.865 --> 01:50:39.325] It is. It's paragraph 51.
+- [01:50:40.225 --> 01:50:42.525] Um, the Court of Appeal, uh,
+- [01:50:44.265 --> 01:50:46.085] really didn't engage with these issues
+- [01:50:46.085 --> 01:50:50.765] because they couldn't, their real point only was, uh,
+- [01:50:51.115 --> 01:50:54.165] that nondelegable duty is academically controversial
+- [01:50:54.945 --> 01:50:56.885] and uh, that may be so,
+- [01:50:57.145 --> 01:50:59.685] but while it's part of our law, it should be principled.
+- [01:50:59.825 --> 01:51:02.685] And uh, if it is principled, it extends
+- [01:51:02.685 --> 01:51:03.685] to intentional torts.
+- [01:51:04.025 --> 01:51:06.245] The other point, the Court of Appeal made was about section
+- [01:51:06.345 --> 01:51:07.805] six F of the Civil Liability Act,
+- [01:51:07.805 --> 01:51:09.125] which is the last point that I wanna make.
+- [01:51:09.335 --> 01:51:11.685] Would your honors take up Section six F please?
+- [01:51:19.105 --> 01:51:22.725] Um, your honors will see that it imposes a duty of care
+- [01:51:24.105 --> 01:51:25.845] and the content of the duty is
+- [01:51:25.845 --> 01:51:27.925] for an organization responsible for a child
+- [01:51:27.985 --> 01:51:32.245] to take reasonable precautions from an individual associated
+- [01:51:32.245 --> 01:51:34.925] with the organization from Perpe perpetrating child abuse.
+- [01:51:35.145 --> 01:51:37.125] And then there's a defense in subsection three.
+- [01:51:37.705 --> 01:51:40.445] If the organization establishes that, um,
+- [01:51:40.505 --> 01:51:45.325] it took reasonable precautions, um, this statute does not,
+- [01:51:45.545 --> 01:51:47.325] um, cover the field.
+- [01:51:48.035 --> 01:51:49.085] Your honors will see
+- [01:51:49.085 --> 01:51:52.085] that there's definitions in section six, capital D
+- [01:51:52.625 --> 01:51:57.125] and six, capital E, uh, which limit its ambit.
+- [01:51:58.265 --> 01:52:01.685] Uh, and what is even more limited is that
+- [01:52:01.685 --> 01:52:04.205] of course this is only about organizations
+- [01:52:04.205 --> 01:52:05.285] responsible for a child.
+- [01:52:05.285 --> 01:52:07.845] It's not about nondelegable duties generally.
+- [01:52:09.065 --> 01:52:12.005] And so this section creates a new liability
+- [01:52:12.035 --> 01:52:16.725] with its own defense in a particular and limited field.
+- [01:52:17.585 --> 01:52:19.205] Um, it is, uh, true
+- [01:52:19.715 --> 01:52:23.085] that a school authority might be liable under both section
+- [01:52:23.225 --> 01:52:25.285] six, capital F and the common law, even
+- [01:52:25.305 --> 01:52:27.845] as the common law stands now, um,
+- [01:52:29.035 --> 01:52:30.085] there's no problem with that.
+- [01:52:30.225 --> 01:52:33.765] You might succeed on one and fail on the other,
+- [01:52:34.425 --> 01:52:37.765] but it doesn't freeze the possibility of the development
+- [01:52:37.765 --> 01:52:42.405] of the law relating to non duty either in this field of care
+- [01:52:42.505 --> 01:52:44.885] for children, uh, or more generally.
+- [01:52:45.385 --> 01:52:48.765] It just produces a new cause of action,
+- [01:52:48.895 --> 01:52:51.485] which may be different from the common law
+- [01:52:51.545 --> 01:52:53.885] in a particular field. If Parliament. It's perspective
+- [01:52:53.885 --> 01:52:54.885] Only, isn't it?
+- [01:52:54.905 --> 01:52:56.445] It is from The date of the
+- [01:52:56.445 --> 01:52:58.205] Act 2018, I think is the date.
+- [01:52:58.545 --> 01:53:02.605] You're saying this is simply cumulative upon the common
+- [01:53:02.705 --> 01:53:03.705] Law? Yes. And if
+- [01:53:03.705 --> 01:53:05.485] Parliament had wanted it to be exhaustive,
+- [01:53:05.545 --> 01:53:06.845] it could have said so, but it
+- [01:53:06.845 --> 01:53:07.845] Didn't. Mr.
+- [01:53:07.845 --> 01:53:09.645] Hertzel subsection two.
+- [01:53:09.945 --> 01:53:13.245] In the case of let's say a school,
+- [01:53:15.145 --> 01:53:19.685] how would that be different to, if at all,
+- [01:53:19.705 --> 01:53:22.565] to a non delegate duty owed by a school?
+- [01:53:24.265 --> 01:53:27.645] If Lapore was overturned?
+- [01:53:27.985 --> 01:53:31.565] It would simply correct in your
+- [01:53:31.565 --> 01:53:33.405] terms, lapore, would it not?
+- [01:53:33.585 --> 01:53:36.125] Yes. And then three is a presumption.
+- [01:53:36.225 --> 01:53:38.325] Is is an evidentiary effect? It
+- [01:53:38.325 --> 01:53:41.685] It is, but it does give a defense to this statutory cause
+- [01:53:41.685 --> 01:53:43.605] of action, which would not be available
+- [01:53:43.905 --> 01:53:45.485] to a nondelegable duty claim,
+- [01:53:45.825 --> 01:53:46.885] but that is so already,
+- [01:53:51.085 --> 01:53:53.065] um, your honors, I've left Mr.
+- [01:53:53.185 --> 01:53:55.665] McCamish slightly less time than I think I'd promised,
+- [01:53:55.845 --> 01:53:57.785] but it is now, uh, his opportunity
+- [01:53:57.785 --> 01:53:59.785] to address the notice of contention.
+- [01:54:01.645 --> 01:54:03.065] Mr. So before you sit down,
+- [01:54:03.085 --> 01:54:04.945] and I know you haven't responded to my question,
+- [01:54:05.385 --> 01:54:07.745] I think it would be useful if you could prepare, um,
+- [01:54:08.525 --> 01:54:10.425] or I would find it useful if you could prepare
+- [01:54:10.425 --> 01:54:12.865] and provide us with just a list of the things that you would
+- [01:54:13.375 --> 01:54:14.905] want to say in response to my question.
+- [01:54:15.285 --> 01:54:17.345] Yes. If it's not already something that I can point
+- [01:54:17.345 --> 01:54:19.025] to in our written material, we will do that.
+- [01:54:19.115 --> 01:54:21.345] Thank you Mr. Mish.
+- [01:54:42.455 --> 01:54:44.435] Uh, thank you. Your honors, uh, I can be
+- [01:54:44.535 --> 01:54:45.755] as brief as possible.
+- [01:54:46.655 --> 01:54:49.235] Um, there are two matters in relation to the notice
+- [01:54:49.295 --> 01:54:51.315] of contention, which in my submission can be
+- [01:54:51.315 --> 01:54:52.355] cleared away fairly quickly.
+- [01:54:53.295 --> 01:54:55.995] The first is the faint contention in ground one,
+- [01:54:55.995 --> 01:54:59.715] that the Court of Appeal did itself reach a final conclusion
+- [01:54:59.715 --> 01:55:01.795] that the appellant had not been sexually assaulted,
+- [01:55:02.015 --> 01:55:04.155] as was found in my submission.
+- [01:55:04.155 --> 01:55:05.835] That's unsustainable precisely
+- [01:55:05.835 --> 01:55:07.995] because of the language of Chief Justice Bell
+- [01:55:08.615 --> 01:55:11.275] in paragraphs 13, 14 to 16.
+- [01:55:12.015 --> 01:55:15.075] And Justice Leming was equally explicit, uh,
+- [01:55:15.135 --> 01:55:19.435] in paragraphs 153 to 154 of the Court of appeal.
+- [01:55:20.295 --> 01:55:23.435] Namely that neither of their honors reached a positive final
+- [01:55:23.435 --> 01:55:26.315] conclusion to the country of the primary judge.
+- [01:55:27.895 --> 01:55:30.875] That's of course why item 11,
+- [01:55:30.875 --> 01:55:35.555] that the respondents disputed facts document is the fact
+- [01:55:35.575 --> 01:55:38.555] of whether the appellant was abused as was found at trial.
+- [01:55:39.025 --> 01:55:41.235] I'll of course come to develop why this court should not
+- [01:55:41.235 --> 01:55:42.835] itself make such a finding.
+- [01:55:43.505 --> 01:55:46.045] But did they, did they set aside or honor
+- [01:55:46.145 --> 01:55:48.445] or honors finding, but it didn't just leave it
+- [01:55:49.355 --> 01:55:50.605] hanging as it were?
+- [01:55:51.035 --> 01:55:53.885] Your Honor was expressly left hanging precisely
+- [01:55:53.885 --> 01:55:56.645] because of the express finding by both of their honors
+- [01:55:56.795 --> 01:55:58.605] that the case was to be decided on the
+- [01:55:58.605 --> 01:56:00.165] non-existence of the relevant duties.
+- [01:56:01.345 --> 01:56:04.805] And therefore then honors never came to a point
+- [01:56:05.025 --> 01:56:08.645] of conducting what they identified as a review, real review
+- [01:56:09.465 --> 01:56:11.005] to decide for themselves whether the
+- [01:56:11.005 --> 01:56:12.085] finding was to be sustained.
+- [01:56:12.085 --> 01:56:13.165] They never got to that point.
+- [01:56:13.825 --> 01:56:17.645] In in Chief Justice Bell's page 1 1 2 7 of the book,
+- [01:56:18.115 --> 01:56:22.925] paragraph 16 in the
+- [01:56:22.925 --> 01:56:25.445] third line, his honor refers
+- [01:56:25.445 --> 01:56:27.485] to the success of that challenge.
+- [01:56:28.715 --> 01:56:31.045] What success is he is his honor referring to,
+- [01:56:32.035 --> 01:56:34.015] Oh, with respect it's difficult to see.
+- [01:56:34.915 --> 01:56:38.375] The challenge might be viewed as being
+- [01:56:39.275 --> 01:56:42.535] an identify identification of something problematic
+- [01:56:44.115 --> 01:56:46.655] put by the respondent in the process of fact finding
+- [01:56:47.555 --> 01:56:49.775] as distinct from a challenge
+- [01:56:50.075 --> 01:56:52.175] to the finding made as a result of that process.
+- [01:56:54.555 --> 01:56:57.055] But precisely because he's honor the chief Justice is
+- [01:56:57.055 --> 01:56:58.455] referring to Justice Leming
+- [01:56:59.035 --> 01:57:01.015] and Justice Leming in the turn is explicit.
+- [01:57:01.015 --> 01:57:03.975] Paragraph a hundred fifty three, a hundred fifty four
+- [01:57:03.975 --> 01:57:08.175] that he did not need to go to make such a finding.
+- [01:57:10.305 --> 01:57:12.245] That's what the last sentence of 16 says,
+- [01:57:12.425 --> 01:57:15.325] but where, correct, where the Chief Justice says not only
+- [01:57:15.325 --> 01:57:19.445] there's success, which vitiated the primary judge's findings
+- [01:57:19.445 --> 01:57:20.965] in this regard, what does that mean?
+- [01:57:22.315 --> 01:57:24.445] It's difficult to understand your honors because,
+- [01:57:24.545 --> 01:57:25.845] and I need to develop this.
+- [01:57:26.585 --> 01:57:30.885] The challenge in the court below was explicitly to the fact
+- [01:57:30.885 --> 01:57:31.925] that abuse occurred.
+- [01:57:33.125 --> 01:57:35.625] It was not a process based challenge
+- [01:57:35.925 --> 01:57:38.145] or an inadequacy of reasons challenge.
+- [01:57:39.045 --> 01:57:40.745] And therefore, when, when it comes to the question
+- [01:57:40.745 --> 01:57:45.385] of whether the finding was ated, that must surely mean
+- [01:57:46.265 --> 01:57:48.305] a positive finding that the fact was wrong
+- [01:57:48.365 --> 01:57:50.145] or some different fact was to be found
+- [01:57:50.725 --> 01:57:53.385] and their honors in the majority never got to that point.
+- [01:57:56.805 --> 01:57:59.065] In my submission, the very circumstance
+- [01:57:59.065 --> 01:58:00.145] with which I'm discussing
+- [01:58:00.145 --> 01:58:02.705] with your honors is now manifest in this court.
+- [01:58:04.185 --> 01:58:05.705] I don't blame my opponents for this,
+- [01:58:05.765 --> 01:58:08.745] but there are 19 expressed disputes now raised
+- [01:58:10.735 --> 01:58:13.145] your honors will note in the disputed facts document
+- [01:58:13.145 --> 01:58:16.585] of one August, there's an item 12 A, so you get to 19
+- [01:58:17.335 --> 01:58:18.425] expressly raised facts
+- [01:58:18.425 --> 01:58:21.105] because of the fatal ambiguity in the passages I'm just
+- [01:58:21.105 --> 01:58:25.145] discussing, plus 67 other findings, the status
+- [01:58:25.245 --> 01:58:27.065] of which is now sought to be commented upon
+- [01:58:27.725 --> 01:58:29.345] in the document of five August.
+- [01:58:34.775 --> 01:58:36.555] Can I say then the second matter
+- [01:58:36.555 --> 01:58:38.795] that in my submission can be disposed of quickly,
+- [01:58:40.285 --> 01:58:42.765] is the suggestion that there ought be remitter
+- [01:58:42.765 --> 01:58:45.285] of these matters to the lower courts
+- [01:58:45.895 --> 01:58:47.485] given the circumstances known
+- [01:58:47.485 --> 01:58:50.605] to this court about why the matter has been expedited
+- [01:58:51.185 --> 01:58:53.445] in my submission, any further delay caused
+- [01:58:53.505 --> 01:58:55.925] by re remitter is much to be avoided if possible.
+- [01:58:57.155 --> 01:59:00.405] That then leaves of course the substance of, uh,
+- [01:59:00.665 --> 01:59:05.315] the contention raised in ground two in circumstances
+- [01:59:05.415 --> 01:59:07.755] of course, where the court of appeal declined
+- [01:59:08.905 --> 01:59:11.685] to determine those issues, namely the credit-based finding
+- [01:59:11.705 --> 01:59:14.365] of whether the appellant was abused as he claimed
+- [01:59:14.365 --> 01:59:15.685] and was found by the primary judge.
+- [01:59:16.665 --> 01:59:19.485] Second, the finding of the primary judge about breach.
+- [01:59:19.905 --> 01:59:21.125] And third, of course the finding
+- [01:59:21.125 --> 01:59:22.725] of the primary judge about causation.
+- [01:59:23.785 --> 01:59:25.205] Can I turn to the first of those,
+- [01:59:25.305 --> 01:59:26.525] the occurrence of the abuse.
+- [01:59:27.875 --> 01:59:32.205] It's important to recall as justice ball drew attention
+- [01:59:32.265 --> 01:59:35.045] to in the court of appeal what was agreed or found
+- [01:59:35.265 --> 01:59:37.565] and what remains undisputed in this court
+- [01:59:38.465 --> 01:59:40.165] rather than recite those matters.
+- [01:59:40.385 --> 01:59:43.765] Can I draw the court's attention in the status of facts,
+- [01:59:44.165 --> 01:59:46.325] document to items and your honors?
+- [01:59:46.325 --> 01:59:47.325] We'll see there are a lot of them.
+- [01:59:48.225 --> 01:59:53.225] 6, 16, 18, 20, 25, 37
+- [01:59:53.825 --> 01:59:57.725] to 40 50, 53 and 58.
+- [01:59:58.545 --> 01:59:59.965] In essence, those are the matters.
+- [02:00:00.525 --> 02:00:03.485] Engaging what justice ball in dissent in the court
+- [02:00:03.485 --> 02:00:07.245] of appeal point to namely the undisputed
+- [02:00:07.855 --> 02:00:11.445] engagement between the appellant Mr. Perry Father Picken,
+- [02:00:11.665 --> 02:00:14.325] the circumstances of them being at the presbytery together,
+- [02:00:15.105 --> 02:00:17.325] uh, and the circumstances of them being students
+- [02:00:17.325 --> 02:00:19.845] of religious instructions at the hands of Father Picken.
+- [02:00:21.845 --> 02:00:23.735] It's particularly important to remember in
+- [02:00:23.735 --> 02:00:24.815] that context that Mr.
+- [02:00:25.205 --> 02:00:27.295] Perry's statement was not made until
+- [02:00:27.385 --> 02:00:30.455] after the appellant had already pleaded his claim,
+- [02:00:30.805 --> 02:00:32.295] made two evidentiary statements
+- [02:00:32.315 --> 02:00:34.295] and being cross-examined upon them.
+- [02:00:36.045 --> 02:00:37.065] And critically Mr.
+- [02:00:37.335 --> 02:00:41.305] Perry's evidence corroborated many of the most surprising
+- [02:00:41.305 --> 02:00:46.245] and disturbing aspects of the appellant's case, particularly
+- [02:00:46.465 --> 02:00:50.525] of course their attendance at the presbytery, the fact
+- [02:00:50.525 --> 02:00:51.685] that they were applied with beer
+- [02:00:51.705 --> 02:00:55.405] and cigarettes, the fact rather unexpectedly
+- [02:00:55.405 --> 02:00:58.165] that Father Picken had a poker machine in the dressing room
+- [02:00:58.265 --> 02:01:01.245] of the presbytery, that he made it available to the boys
+- [02:01:01.265 --> 02:01:05.085] to play, uh, that the boys were invited to go on holidays
+- [02:01:05.085 --> 02:01:07.485] with him, for example, and pausing there even if nothing
+- [02:01:07.485 --> 02:01:09.845] else were known about Father Pickin's tendencies.
+- [02:01:10.675 --> 02:01:12.925] It's hard, as Justice Bull pointed out,
+- [02:01:12.985 --> 02:01:14.485] to see any wholesome reason
+- [02:01:15.275 --> 02:01:17.685] that Father Picken could have had for applying the boys
+- [02:01:17.685 --> 02:01:18.765] with alcohol and tobacco
+- [02:01:19.225 --> 02:01:21.245] or using the gambling machine in as a lu.
+- [02:01:23.175 --> 02:01:25.145] Turning then to the respects in which Mr.
+- [02:01:25.255 --> 02:01:28.835] Perry's account differed must be record,
+- [02:01:28.835 --> 02:01:31.235] that it was never put to Mr. Perry that he was a victim
+- [02:01:31.255 --> 02:01:34.595] of abuse, nor that he ever saw the abuse of the appellant.
+- [02:01:34.595 --> 02:01:35.835] That was never the appellant's case
+- [02:01:36.495 --> 02:01:37.915] and he was never said to have been an
+- [02:01:37.915 --> 02:01:39.035] eyewitness in that case.
+- [02:01:39.945 --> 02:01:41.565] His evidence was he couldn't recall the
+- [02:01:41.565 --> 02:01:42.685] layout of the presbytery.
+- [02:01:42.985 --> 02:01:45.325] He couldn't recall how many times they visited
+- [02:01:45.905 --> 02:01:48.125] nor the precise timing of those occasions.
+- [02:01:49.025 --> 02:01:52.805] His denial that he ever left the appellant alone was
+- [02:01:53.045 --> 02:01:57.885] specifically about his denial accepted by the primary judge.
+- [02:01:58.005 --> 02:02:01.405] I don't dispute that, that he was never physically absent
+- [02:02:01.405 --> 02:02:03.485] from the presbytery because he had been sent away
+- [02:02:03.485 --> 02:02:07.405] to the shops, But he couldn't say that he ever saw
+- [02:02:07.405 --> 02:02:08.765] that the appellant was ever in the bedroom
+- [02:02:08.985 --> 02:02:10.245] or playing the poker machine.
+- [02:02:10.865 --> 02:02:12.485] And he sensibly conceded
+- [02:02:12.835 --> 02:02:15.725] that he could not say definitively whether the appellant
+- [02:02:16.215 --> 02:02:18.525] might have been in a different part of the presbytery
+- [02:02:18.735 --> 02:02:21.365] where he, Mr. Perry was not present.
+- [02:02:22.065 --> 02:02:24.245] One ceased that in appellant's book
+- [02:02:24.245 --> 02:02:25.685] of further material volume two,
+- [02:02:25.715 --> 02:02:29.525] it's the transcript page 6 3, 8 to nine.
+- [02:02:30.225 --> 02:02:33.525] And in those circumstances, even if accepted in full, Mr.
+- [02:02:33.675 --> 02:02:36.485] Perry's evidence fell far short of evidence
+- [02:02:36.485 --> 02:02:37.565] that made the acceptance
+- [02:02:37.665 --> 02:02:39.925] of the appellant's account impossible
+- [02:02:39.925 --> 02:02:41.165] or incontrovertibly wrong.
+- [02:02:42.225 --> 02:02:43.605] As I've said, the appellant,
+- [02:02:43.665 --> 02:02:47.045] the the respondent Diocese challenge in the Court of Appeal
+- [02:02:48.065 --> 02:02:50.005] was expressly a frank challenge to the finding
+- [02:02:50.005 --> 02:02:52.765] that the abuse occurred was not put in the basis
+- [02:02:52.985 --> 02:02:54.165] of inadequacy of reasons.
+- [02:02:54.985 --> 02:02:57.205] And it was squarely put both at trial
+- [02:02:57.505 --> 02:03:00.725] and in the court of appeal that the appellant had lied.
+- [02:03:01.945 --> 02:03:03.885] It was not put that he was mistaken
+- [02:03:04.105 --> 02:03:07.045] or of unreliable memory about the occurrence of the abuse,
+- [02:03:09.585 --> 02:03:13.725] but Justice Leming did not decide matters on that basis.
+- [02:03:17.755 --> 02:03:21.735] In paragraph 154, justice Leming pointed to four matters
+- [02:03:21.875 --> 02:03:23.975] to cast doubt on the primary judge's finding
+- [02:03:27.285 --> 02:03:31.615] That was said to be, uh, in paragraph 154, the suggestion
+- [02:03:31.615 --> 02:03:33.215] by the primary judge that the removal
+- [02:03:33.215 --> 02:03:35.535] of limitation periods affected the evaluation
+- [02:03:35.535 --> 02:03:38.975] of the evidence, what was said to be a failure explicitly
+- [02:03:38.975 --> 02:03:41.415] to have regard to all uh,
+- [02:03:41.755 --> 02:03:45.055] inconsistencies in the appellant's account, what was said
+- [02:03:45.055 --> 02:03:47.775] to be an error in describing the appellant's account
+- [02:03:47.795 --> 02:03:52.295] as vivid, relying importantly only on the video recorded
+- [02:03:53.155 --> 02:03:55.175] aspect of his evidence taken on commission.
+- [02:03:56.195 --> 02:03:58.375] And finally what was said to be the impossibility
+- [02:03:58.395 --> 02:04:01.015] of excluding the possibility that the plaintiff
+- [02:04:01.835 --> 02:04:03.495] had recounted a sincerely held
+- [02:04:03.555 --> 02:04:07.255] but erroneous belief arising from the passage of time
+- [02:04:07.795 --> 02:04:09.615] his ill health and what was said
+- [02:04:09.615 --> 02:04:12.055] to be his sustained substance abuse. I'm sorry,
+- [02:04:12.055 --> 02:04:13.855] Could you just tell me what paragraph you're reading from
+- [02:04:14.235 --> 02:04:17.855] 154 of Justice Lehman's judgment in the Court of Appeal?
+- [02:04:20.015 --> 02:04:24.665] It's the matters enumerated A to D within that paragraph.
+- [02:04:26.505 --> 02:04:28.105] I I think I have a different No,
+- [02:04:28.625 --> 02:04:29.625] I do beg your were honors. Pardon?
+- [02:04:29.625 --> 02:04:30.625] Different
+- [02:04:30.625 --> 02:04:31.625] Version. You did you have 1 3 8?
+- [02:04:31.625 --> 02:04:32.425] I think so.
+- [02:04:33.505 --> 02:04:35.665] I do beg your honor this, pardon? It's 1 5 2.
+- [02:04:35.885 --> 02:04:40.085] I'm sorry, you honor. Paragraph 1 5 2. I've got
+- [02:04:40.085 --> 02:04:41.085] That. I see. Thank you. I'm
+- [02:04:41.085 --> 02:04:41.285] sorry,
+- [02:04:41.365 --> 02:04:42.365] I do beg your honor's. Pardon? And
+- [02:04:42.365 --> 02:04:43.325] your honors will see
+- [02:04:43.395 --> 02:04:46.805] what I've just listed are the enumerated sub causes A to D
+- [02:04:48.545 --> 02:04:51.805] taking that last matter, which seems to been the most
+- [02:04:51.805 --> 02:04:54.125] of concern to justice Leming, the failure
+- [02:04:54.185 --> 02:04:56.605] to exclude the possibility of a mistaken memory.
+- [02:04:57.465 --> 02:05:00.125] As I've said, that was not the way the trial was conducted
+- [02:05:00.125 --> 02:05:01.565] by the respondent diocese.
+- [02:05:03.865 --> 02:05:06.165] And in my submission, as justice ball points out,
+- [02:05:06.185 --> 02:05:07.285] it was hardly a matter
+- [02:05:07.285 --> 02:05:09.245] of which judicial notice could be taken
+- [02:05:10.065 --> 02:05:12.525] and certainly not in the absence of procedural fairness
+- [02:05:12.545 --> 02:05:15.245] to the appellant by having the point taken at trial.
+- [02:05:16.145 --> 02:05:18.125] One might have thought as justice ball did
+- [02:05:18.155 --> 02:05:19.645] that if the topic were relevant
+- [02:05:20.145 --> 02:05:22.245] and form part of the diocese's case,
+- [02:05:23.025 --> 02:05:24.485] it would've been canvased in Dr.
+- [02:05:24.855 --> 02:05:26.765] ALA's expert psychiatric report.
+- [02:05:26.765 --> 02:05:29.965] But it was not, that's of course the force of the point made
+- [02:05:29.965 --> 02:05:33.685] by justice ball in paragraph 268.
+- [02:05:34.825 --> 02:05:38.285] So what's the error in the primary judge relying on the
+- [02:05:38.285 --> 02:05:39.285] plaintiff's account as vivid
+- [02:05:41.075 --> 02:05:42.375] In my submission, it's not clear
+- [02:05:44.795 --> 02:05:47.975] The primary judge had the, the plaintiff came in
+- [02:05:47.975 --> 02:05:50.175] and gave oral some additional oral evidence
+- [02:05:51.945 --> 02:05:53.045] in court. Is that right?
+- [02:05:53.305 --> 02:05:55.405] That's so on the second day of the trial,
+- [02:05:55.855 --> 02:05:58.965] which was not video recorded on which he was cross examined
+- [02:05:59.075 --> 02:06:00.965] precisely on the occurrence of the abuse,
+- [02:06:01.465 --> 02:06:02.725] he maintained his account
+- [02:06:03.185 --> 02:06:06.125] and that was not available to be viewed by the Court
+- [02:06:06.125 --> 02:06:07.205] of appeal in a video form.
+- [02:06:07.955 --> 02:06:12.045] Justice Leming was mistaken in saying he had seen in the
+- [02:06:12.045 --> 02:06:15.005] form available to the trial judge the whole of the evidence
+- [02:06:15.685 --> 02:06:18.565] relevant to the credibility of the appellant's account.
+- [02:06:22.445 --> 02:06:24.305] Are you saying he did not see the same
+- [02:06:24.305 --> 02:06:25.385] recording as her honor?
+- [02:06:26.045 --> 02:06:27.225] He saw the same recording,
+- [02:06:27.645 --> 02:06:31.105] but only part of the appellant's evidence was recorded.
+- [02:06:32.165 --> 02:06:34.025] And Justice Lemming was mistaken
+- [02:06:34.165 --> 02:06:36.905] to think he was not examined upon the occurrence
+- [02:06:36.905 --> 02:06:39.745] of the abuse on the second occasion. The reason,
+- [02:06:40.165 --> 02:06:43.905] The good point is, is that AA gave additional evidence on
+- [02:06:43.905 --> 02:06:45.665] the second day of trial, which is the subject
+- [02:06:45.685 --> 02:06:46.825] of a transcript only.
+- [02:06:47.175 --> 02:06:50.345] Correct. And that's not referred to in paragraph 152.
+- [02:06:50.645 --> 02:06:53.625] No, it is not. It's as simple as that. Your honors,
+- [02:06:54.725 --> 02:06:57.665] In other words, the primary judge had some advantages
+- [02:06:57.665 --> 02:07:00.095] that Correct. Mr. Leming did not.
+- [02:07:00.645 --> 02:07:01.135] Correct.
+- [02:07:05.385 --> 02:07:08.315] There's an, there's the error of fact about what was
+- [02:07:08.315 --> 02:07:09.715] before the court of appeal.
+- [02:07:09.945 --> 02:07:11.595] There's an error of principle
+- [02:07:11.675 --> 02:07:14.235] because the court of appeal was squarely in Fox
+- [02:07:14.235 --> 02:07:15.435] and Percy territory,
+- [02:07:15.555 --> 02:07:17.995] a credibility based assessment in which the atmosphere
+- [02:07:17.995 --> 02:07:20.955] of trial and the totality of the evidence was an issue
+- [02:07:20.955 --> 02:07:22.995] and was not referred to by the Court of Appeal.
+- [02:07:23.815 --> 02:07:25.955] But there's thirdly an error of interpretation
+- [02:07:25.955 --> 02:07:27.555] and this might come to the point I think raised
+- [02:07:27.555 --> 02:07:28.675] by Justice Beach Jones.
+- [02:07:29.045 --> 02:07:32.315] Vivid means lifelike, powerful, clear,
+- [02:07:32.975 --> 02:07:36.085] and the appellant undoubtedly used graphic clear language
+- [02:07:36.185 --> 02:07:37.765] to describe what he experienced at the
+- [02:07:37.765 --> 02:07:38.805] hands of Father Picken.
+- [02:07:40.215 --> 02:07:43.315] Now in my submission, the judge's characterization of
+- [02:07:43.315 --> 02:07:46.675] that evidence as vivid, memorable, powerful lifelike
+- [02:07:48.255 --> 02:07:51.395] was aptly contrasted by her honor to the situation
+- [02:07:51.395 --> 02:07:55.915] of Mr. Perry again remembering who was never said
+- [02:07:55.915 --> 02:07:57.235] to have been the victim of abuse,
+- [02:07:57.975 --> 02:08:00.835] who never experienced any memorably traumatic event,
+- [02:08:01.495 --> 02:08:04.755] who had no particular reason to remember anything untoward
+- [02:08:04.755 --> 02:08:07.275] that happened to the appellant who was out
+- [02:08:07.275 --> 02:08:08.355] of sight of the critical moments.
+- [02:08:08.985 --> 02:08:10.195] That seems to be the force
+- [02:08:10.195 --> 02:08:12.075] of her honor's use of that language. I
+- [02:08:12.075 --> 02:08:14.515] Was gonna say, even if a appellate judge is unable
+- [02:08:14.515 --> 02:08:17.885] to perceive something that a trial judge, which is a matter
+- [02:08:17.905 --> 02:08:21.485] of such subjective Yes, I said I'm just not sure where
+- [02:08:21.485 --> 02:08:24.365] that feeds into error by the primary judge anyway.
+- [02:08:24.475 --> 02:08:26.965] Exactly. Fact That I can't perceive something as vivid
+- [02:08:27.105 --> 02:08:28.165] as either here nor there.
+- [02:08:28.225 --> 02:08:30.605] That's exactly So, and that's, that's the Fox
+- [02:08:30.605 --> 02:08:33.765] and Percy era of principle one can't simply say
+- [02:08:34.275 --> 02:08:39.165] perhaps I wouldn't have believed him in the absence
+- [02:08:39.165 --> 02:08:43.245] of other incontrovertible evidence or glaringly, improbable
+- [02:08:43.305 --> 02:08:44.645] or contrary to compelling inferences.
+- [02:08:44.745 --> 02:08:47.605] All of the usual things, plus other reasons
+- [02:08:47.605 --> 02:08:50.405] that a decision might be vitiated such as a denial
+- [02:08:50.405 --> 02:08:52.845] of procedural fairness or legal error, whatever it might be.
+- [02:08:54.575 --> 02:08:57.475] So your point is if you take 1, 5, 2, you are left with
+- [02:08:58.395 --> 02:09:01.455] and one takes out this reliance upon C and D.
+- [02:09:01.875 --> 02:09:06.475] Yes. Do we
+- [02:09:06.475 --> 02:09:07.515] need to address A and B?
+- [02:09:09.045 --> 02:09:12.305] Yes. Because each of them are equally erroneous.
+- [02:09:12.525 --> 02:09:15.625] Now, if Your Honor got to the point of accepting
+- [02:09:15.625 --> 02:09:18.225] what I've said about what are plainly the most material
+- [02:09:18.495 --> 02:09:21.625] aspects, namely an issue about memory
+- [02:09:21.655 --> 02:09:26.025] that was never an issue at trial, an issue about vividness,
+- [02:09:26.075 --> 02:09:28.745] which shows a defect in the appellate review
+- [02:09:28.745 --> 02:09:32.585] of the evidence at trial, it might very well be that A
+- [02:09:32.585 --> 02:09:34.345] and B are simply make weights.
+- [02:09:34.885 --> 02:09:36.945] But my submission is first that point A,
+- [02:09:36.955 --> 02:09:40.065] which is a reference to what this court decided in GLJ
+- [02:09:40.725 --> 02:09:44.115] and then subsequent to the judgment reaffirmed
+- [02:09:44.695 --> 02:09:49.655] and repressed in Wilmut was in my submission, not
+- [02:09:50.215 --> 02:09:52.695] a matter in which the primary judge urged.
+- [02:09:53.235 --> 02:09:55.535] She appropriately identified all of the techniques
+- [02:09:55.635 --> 02:09:58.495] by which evidence is to be assessed in cases of this kind
+- [02:09:58.495 --> 02:10:01.215] that is far distant in time to the moment of trial.
+- [02:10:01.955 --> 02:10:04.295] And in my submission was not to be criticized simply
+- [02:10:04.315 --> 02:10:06.095] for saying that by reason
+- [02:10:06.095 --> 02:10:10.095] of this court's decision in GLJ circumstances aro arose
+- [02:10:10.095 --> 02:10:12.335] that had to be taken into account as a consequence
+- [02:10:12.335 --> 02:10:13.815] of the lifting of the limitation views.
+- [02:10:13.905 --> 02:10:16.895] There was nothing objectionable in my submission about that.
+- [02:10:17.475 --> 02:10:20.215] That's why in my submission point A
+- [02:10:20.995 --> 02:10:22.535] is unsatisfactory on its own terms.
+- [02:10:23.865 --> 02:10:28.055] Point B of course depends
+- [02:10:28.665 --> 02:10:31.055] again on how the primary judge's decision is
+- [02:10:31.055 --> 02:10:32.455] to be characterized in which she
+- [02:10:32.455 --> 02:10:35.165] of course express due attention to problems in
+- [02:10:36.425 --> 02:10:37.805] the appellant's evidence.
+- [02:10:38.435 --> 02:10:42.805] They were evident. But it seems to be a requirement
+- [02:10:43.515 --> 02:10:47.845] that every alleged inconsistency perceived by Justice Leming
+- [02:10:48.545 --> 02:10:52.495] had to be addressed individually, ands, and a.
+- [02:10:52.495 --> 02:10:54.485] And in my submission, that's not what the process
+- [02:10:54.585 --> 02:10:55.685] of fact finding a trial
+- [02:10:56.065 --> 02:10:58.525] or appellate review of such fact finding requires.
+- [02:11:00.595 --> 02:11:03.655] Yes. So
+- [02:11:03.675 --> 02:11:08.175] that's why in my submission, justice LE's reasons for
+- [02:11:09.385 --> 02:11:12.975] disturbing but not o ultimately overruling
+- [02:11:13.235 --> 02:11:16.375] or forming a different view than the primary judge's
+- [02:11:16.375 --> 02:11:17.895] conclusion on a credit based finding.
+- [02:11:17.915 --> 02:11:20.215] Of fact, Mr. Would not be interviewed. Mr. Can
+- [02:11:20.215 --> 02:11:23.015] I ask you at 1 3 7 of Justice LE's reasons?
+- [02:11:23.915 --> 02:11:25.575] His Honor says in the second sentence
+- [02:11:25.575 --> 02:11:27.935] of the plaintiff was not cross-examined on the sexual
+- [02:11:28.015 --> 02:11:31.735] assaults when he was recalled at trial. Is that wrong?
+- [02:11:31.965 --> 02:11:33.175] That is wrong. Okay.
+- [02:11:33.525 --> 02:11:35.975] That is simply wrong. He was indeed
+- [02:11:35.975 --> 02:11:37.095] cross-examined about that.
+- [02:11:40.155 --> 02:11:40.375] Yes.
+- [02:11:45.155 --> 02:11:49.375] At your point about 1 3 8, I think in summary form is
+- [02:11:49.375 --> 02:11:51.655] that the trial judge was aware of all that, but
+- [02:11:51.655 --> 02:11:54.615] nonetheless it was open to the trial judge
+- [02:11:54.915 --> 02:11:55.935] to accept his evidence.
+- [02:11:57.985 --> 02:11:59.365] Yes, that's so, yes, I see.
+- [02:11:59.445 --> 02:12:03.085] Particularly in circumstances where, um,
+- [02:12:04.465 --> 02:12:07.565] the inconsistencies of those accounts perceived
+- [02:12:07.565 --> 02:12:09.925] by Justice Leming were for the reasons identified
+- [02:12:09.925 --> 02:12:13.445] by justice ball and for the reasons of the agreed facts.
+- [02:12:13.515 --> 02:12:15.005] Even in this court, to which I've drawn
+- [02:12:15.005 --> 02:12:17.445] to your honor's attention, were not material.
+- [02:12:18.115 --> 02:12:21.165] This was not a case where there was any doubt
+- [02:12:21.195 --> 02:12:24.045] that this man was in the presbytery with that priest
+- [02:12:25.305 --> 02:12:26.565] in those circumstances.
+- [02:12:28.275 --> 02:12:30.005] That went a long way to the, the finding.
+- [02:12:31.585 --> 02:12:33.325] Can I turn then to breach?
+- [02:12:36.015 --> 02:12:37.075] I'm sorry, conceded all of
+- [02:12:37.615 --> 02:12:40.435] Agreed. I'm, I'm,
+- [02:12:40.755 --> 02:12:42.115] I apologize to my Learned friend.
+- [02:12:42.625 --> 02:12:45.555] That being the case. I rely upon my written submissions.
+- [02:12:45.555 --> 02:12:46.955] If anything arises, I'll deal with it
+- [02:12:46.955 --> 02:12:48.475] and reply as the court pleases.
+- [02:12:49.975 --> 02:12:50.975] Please,
+- [02:12:55.625 --> 02:12:58.355] Your Honor, as our first proposition concerns a matter
+- [02:12:58.355 --> 02:13:00.355] which may now be common ground by reason of
+- [02:13:00.825 --> 02:13:03.835] what happened this morning, we pointed out in writing
+- [02:13:04.695 --> 02:13:07.675] at paragraph 12 by reference to authority of this court,
+- [02:13:08.545 --> 02:13:10.955] that unless an ordinary duty of care is owed,
+- [02:13:11.725 --> 02:13:15.595] there can be no question of the duty being nondelegable.
+- [02:13:16.415 --> 02:13:19.635] Uh, we understand that now to be common ground
+- [02:13:20.535 --> 02:13:23.435] and the authorities that we've given you are firstly Holson
+- [02:13:23.695 --> 02:13:28.515] bu, which is in volume three, tab 17,
+- [02:13:31.305 --> 02:13:36.005] uh, 2 0 7 CLR 21 at paragraph
+- [02:13:36.585 --> 02:13:39.805] 27 in the first two sentences.
+- [02:13:44.465 --> 02:13:47.525] Uh, The point is explained at some length
+- [02:13:47.545 --> 02:13:50.925] and correctly by Justice Giles in the New South Wales Court
+- [02:13:50.925 --> 02:13:53.085] of Appeal in Elliot and bicker staff,
+- [02:13:54.215 --> 02:13:55.645] which is in volume six,
+- [02:13:57.105 --> 02:14:02.055] tab 39 at paragraph 82, uh,
+- [02:14:02.325 --> 02:14:05.055] including discussing Chief Justice Brennan's statement in
+- [02:14:05.215 --> 02:14:07.255] Northern sandblasting in Harris to that effect.
+- [02:14:10.475 --> 02:14:13.615] And importantly, justice Giles correctly concluded
+- [02:14:13.615 --> 02:14:18.415] that paragraph by saying that, uh, the anterior question is
+- [02:14:18.965 --> 02:14:21.935] what is the scope of the duty of care which is already owed.
+- [02:14:23.395 --> 02:14:26.095] If there's no duty of care, there can be no delegatable,
+- [02:14:26.315 --> 02:14:27.815] no non-eligible duty of care,
+- [02:14:29.115 --> 02:14:31.735] and it follows that the care which the defendant must ensure
+- [02:14:31.735 --> 02:14:34.575] the third party exercises cannot be greater in scope
+- [02:14:35.325 --> 02:14:36.455] than would've been required
+- [02:14:36.455 --> 02:14:38.535] of the defendant if the defendant had been
+- [02:14:38.535 --> 02:14:39.895] fulfilling the duty of care.
+- [02:14:50.255 --> 02:14:51.755] Uh, for that reason, we will start
+- [02:14:51.895 --> 02:14:53.195] as the appellant has this morning
+- [02:14:53.195 --> 02:14:54.595] with the ordinary duty of care.
+- [02:14:56.015 --> 02:14:59.515] And our starting point is to take up, uh, some observations
+- [02:14:59.515 --> 02:15:04.195] of the court this morning, uh, consistently with
+- [02:15:05.235 --> 02:15:08.115] a matter which your honor, justice Jago raised in bird
+- [02:15:08.655 --> 02:15:11.755] around paragraphs 2 55 to six in relation
+- [02:15:11.755 --> 02:15:15.395] to the nondelegable duty that it's critical to define
+- [02:15:15.395 --> 02:15:19.515] with precision, uh, a number of aspects of the duty.
+- [02:15:20.575 --> 02:15:23.315] And could we take your honors to Brookfield Multiplex,
+- [02:15:23.395 --> 02:15:25.315] which is in our supplementary materials
+- [02:15:33.295 --> 02:15:38.155] At Case 1 2 54 CLR 180 5 at paragraph 19,
+- [02:15:41.725 --> 02:15:44.595] where your Honor, the Chief Justice said,
+- [02:15:46.895 --> 02:15:50.475] uh, picking up,
+- [02:15:52.975 --> 02:15:55.915] I'm sorry, paragraph 19 is Chief Justice French picking up
+- [02:15:55.915 --> 02:15:57.635] what the court said in Sullivan and Moody
+- [02:15:59.615 --> 02:16:02.875] and perhaps more, uh, clearly what Your Honor,
+- [02:16:02.875 --> 02:16:06.715] the Chief Justice said at paragraph 1 69 that the duty
+- [02:16:06.715 --> 02:16:09.275] of care at common law is a duty of a specified person
+- [02:16:09.775 --> 02:16:11.715] or person within a specified class
+- [02:16:13.135 --> 02:16:15.675] to exercise reasonable care within a specified area
+- [02:16:15.675 --> 02:16:19.555] of responsibility to avoid specified loss
+- [02:16:19.555 --> 02:16:20.795] to another specified person
+- [02:16:20.935 --> 02:16:23.035] or person within another specified class.
+- [02:16:23.255 --> 02:16:28.115] Now, if one applies that test, firstly
+- [02:16:28.115 --> 02:16:30.805] to the, to the pleading and to the duty that's been found,
+- [02:16:30.825 --> 02:16:33.645] and then secondly to this morning's reformulated duty,
+- [02:16:34.795 --> 02:16:36.445] your honors can observe these points.
+- [02:16:37.425 --> 02:16:38.285] The pleaded duty
+- [02:16:43.385 --> 02:16:48.205] is in at page 10 of the appellant's further materials,
+- [02:16:56.545 --> 02:16:57.845] and it suffered a number of
+- [02:16:58.515 --> 02:17:03.285] defects, uh, under that duty.
+- [02:17:04.465 --> 02:17:07.085] Uh, the duty o is the diocese.
+- [02:17:09.545 --> 02:17:11.965] The persons to whom the duty erode are the plaintiff
+- [02:17:13.075 --> 02:17:16.415] in a capacity as a child said to be in the care of one
+- [02:17:16.415 --> 02:17:17.815] of the priests of the diocese.
+- [02:17:21.425 --> 02:17:23.685] And then it's a duty to take reasonable care to avoid
+- [02:17:24.275 --> 02:17:25.925] plaintiff's suffering foreseeable
+- [02:17:25.965 --> 02:17:27.245] and not insignificant harm.
+- [02:17:27.265 --> 02:17:29.365] So the most obvious defect with that plead
+- [02:17:29.365 --> 02:17:33.605] of duty is there's no identification of the kind of harm,
+- [02:17:34.855 --> 02:17:36.285] which is the subject of the duty.
+- [02:17:38.335 --> 02:17:42.635] And there's also no clear identification of what is the, uh,
+- [02:17:42.785 --> 02:17:46.315] area of responsibility within which the duty is owed saved
+- [02:17:46.335 --> 02:17:48.315] for the reference to child in the care
+- [02:17:48.335 --> 02:17:50.035] of one of the priests.
+- [02:17:50.585 --> 02:17:54.235] None of those problems are solved by paragraphs 34
+- [02:17:54.495 --> 02:17:56.355] or 35.
+- [02:17:57.855 --> 02:18:01.515] And in turn, those problems flow through to the issue,
+- [02:18:01.515 --> 02:18:03.555] your honor, justice Edelman raised about the pleading
+- [02:18:03.555 --> 02:18:05.195] of this as a nondelegable duty,
+- [02:18:05.305 --> 02:18:08.315] because while 34 asserts
+- [02:18:08.315 --> 02:18:13.275] that the 33 duty was nondelegable, it doesn't frame it
+- [02:18:13.295 --> 02:18:15.075] as a duty to ensure that
+- [02:18:15.845 --> 02:18:19.395] reasonable care was taken in any identified respect.
+- [02:18:20.535 --> 02:18:24.995] And if your honors come to paragraphs, uh,
+- [02:18:25.895 --> 02:18:29.795] 36, that's about content of duty, 30 seven's about content
+- [02:18:29.855 --> 02:18:33.795] of duty, and 38 is about
+- [02:18:34.705 --> 02:18:36.355] what a reasonable person in the position
+- [02:18:36.355 --> 02:18:38.115] of the diocese would've done by way
+- [02:18:38.115 --> 02:18:39.715] of reasonable precautions.
+- [02:18:40.775 --> 02:18:45.555] And there's nothing alleged about what the delegate
+- [02:18:46.455 --> 02:18:48.875] did by way of an alleged failure of reasonable care,
+- [02:18:49.005 --> 02:18:53.035] which could have resulted in the diocese being in breach of
+- [02:18:54.035 --> 02:18:55.035] a non-eligible duty.
+- [02:18:55.545 --> 02:18:56.545] Well,
+- [02:18:56.875 --> 02:18:59.305] Apart from sexually assault the plaintiff,
+- [02:18:59.775 --> 02:19:01.705] that was the breach, sorry, your Honor.
+- [02:19:01.765 --> 02:19:03.385] On the, on the Nondelegable case,
+- [02:19:03.805 --> 02:19:05.945] the breach was sexually assaulting the plaintiff.
+- [02:19:06.135 --> 02:19:07.905] That is one of the, the problems
+- [02:19:07.905 --> 02:19:10.225] because a nondelegable duty is a duty to ensure
+- [02:19:10.225 --> 02:19:13.405] that reasonable care is taken, uh,
+- [02:19:13.705 --> 02:19:16.205] to avoid an identified harm.
+- [02:19:17.185 --> 02:19:21.715] Now, you cannot collapse that into saying a duty to ensure
+- [02:19:21.715 --> 02:19:23.435] that no sexual assault occurred,
+- [02:19:23.465 --> 02:19:25.155] because then you make the very error.
+- [02:19:25.255 --> 02:19:27.565] The Chief Justice Gleason pointed it out in Lapore
+- [02:19:28.035 --> 02:19:30.725] that you have turned it into a duty to achieve a result
+- [02:19:31.385 --> 02:19:33.115] that no sexual assault occurs.
+- [02:19:33.275 --> 02:19:34.395] I understand you're about scope,
+- [02:19:34.415 --> 02:19:36.755] but you said there was no breach ident, relevant breach,
+- [02:19:37.455 --> 02:19:39.595] and I thought in the area of non ible duty,
+- [02:19:39.735 --> 02:19:42.355] the breach is the very act. We're talking about
+- [02:19:42.665 --> 02:19:43.665] Your honors. That's one of
+- [02:19:43.665 --> 02:19:44.675] the fundamental problems
+- [02:19:44.675 --> 02:19:46.515] that hasn't been addressed this morning about the
+- [02:19:46.515 --> 02:19:47.635] Civil Liability Act.
+- [02:19:48.455 --> 02:19:51.275] Um, I, I'll mention the point now,
+- [02:19:51.275 --> 02:19:54.035] but develop it this afternoon, one of the critical features
+- [02:19:54.615 --> 02:19:57.635] of the original Civil Liability Act, part one A,
+- [02:19:57.635 --> 02:20:01.395] which was introduced in 2002, was that it
+- [02:20:02.065 --> 02:20:05.595] sharpened any doubt there may have been about the
+- [02:20:05.595 --> 02:20:10.035] distinction between intentional wrongs and negligence.
+- [02:20:10.375 --> 02:20:13.355] The whole of part one A is about negligence.
+- [02:20:14.165 --> 02:20:17.915] Negligence is defined in Section five as failure
+- [02:20:17.935 --> 02:20:19.755] to exercise reasonable care and skill.
+- [02:20:19.755 --> 02:20:21.795] Perhaps I'll ask you honor to go to it now,
+- [02:20:23.735 --> 02:20:28.315] but section three, capital B made perfectly clear
+- [02:20:29.825 --> 02:20:33.715] that, uh, the act does not apply
+- [02:20:34.175 --> 02:20:37.875] to civil liability in certain areas.
+- [02:20:38.015 --> 02:20:40.995] The first one, paragraph A being of a person in respect
+- [02:20:40.995 --> 02:20:45.155] of an intentional act that is done by the person with intent
+- [02:20:45.155 --> 02:20:49.155] to cause, uh, uh,
+- [02:20:50.935 --> 02:20:54.315] injury or death, or that is sexual assault
+- [02:20:55.155 --> 02:20:57.175] or other sexual assault,
+- [02:20:57.755 --> 02:21:00.535] the whole act does not apply other than part one B.
+- [02:21:01.045 --> 02:21:04.215] Part one B came in as part of the 2018 amendments.
+- [02:21:05.235 --> 02:21:09.895] So what was there from 2002 was the sharp distinction
+- [02:21:09.895 --> 02:21:13.255] between intentional wrongs,
+- [02:21:14.615 --> 02:21:17.325] which are not, uh, regulated.
+- [02:21:17.465 --> 02:21:20.165] And then part one A,
+- [02:21:20.695 --> 02:21:22.925] which is about the heading is negligence,
+- [02:21:24.305 --> 02:21:26.485] and it is about negligence in the sense of the failure
+- [02:21:26.485 --> 02:21:28.485] to exercise reasonable care and skill.
+- [02:21:29.705 --> 02:21:32.925] And part section five A makes clear, it applies
+- [02:21:32.925 --> 02:21:34.845] to claims in negligence, however framed,
+- [02:21:36.145 --> 02:21:40.645] and then part section five B, which is headed duty of care,
+- [02:21:41.195 --> 02:21:43.085] this court has pointed out that's a misnomer.
+- [02:21:43.085 --> 02:21:47.445] This is about breach A person is not negligent unless,
+- [02:21:47.865 --> 02:21:49.845] and then we have the statutory formulation
+- [02:21:49.845 --> 02:21:51.445] of Yang Shire Council and shirt.
+- [02:21:52.255 --> 02:21:56.795] So if a nondelegable duty is an aspect of, uh,
+- [02:21:57.135 --> 02:21:59.115] the tort of negligence, which we say it is,
+- [02:21:59.935 --> 02:22:04.815] the Civil Liability Act requires that the analysis
+- [02:22:05.275 --> 02:22:09.215] of that tort be done through the prism of part one A, where
+- [02:22:10.265 --> 02:22:11.725] the negligence stage
+- [02:22:11.725 --> 02:22:14.085] of the analysis will be done under the section five
+- [02:22:14.245 --> 02:22:15.365] B principles.
+- [02:22:15.585 --> 02:22:18.965] And everything else in this part will apply, including,
+- [02:22:19.025 --> 02:22:22.765] for example, uh, uh, five
+- [02:22:23.725 --> 02:22:25.405] QA
+- [02:22:25.405 --> 02:22:27.525] Non a non, I'm, I'm not sure what it means
+- [02:22:27.545 --> 02:22:30.045] to say a nondelegable duties an aspect
+- [02:22:30.105 --> 02:22:31.525] of the law of negligence.
+- [02:22:31.585 --> 02:22:34.205] The, the, the content of a nondelegable duty
+- [02:22:35.195 --> 02:22:38.245] must depend surely upon what it is that
+- [02:22:39.235 --> 02:22:41.085] what responsibility was assumed.
+- [02:22:41.585 --> 02:22:42.685] If the responsibility
+- [02:22:42.685 --> 02:22:45.285] that was assumed was an absolute responsibility,
+- [02:22:45.285 --> 02:22:49.725] irrespective of any failure of reasonable care by a priest
+- [02:22:49.865 --> 02:22:52.525] or any other person, then there's going to be liability
+- [02:22:52.525 --> 02:22:55.365] because that's the promise or the undertaking that's made.
+- [02:22:56.205 --> 02:22:57.485] I, I agree in part with Your Honor,
+- [02:22:57.545 --> 02:23:01.245] but importantly, not in part the concept
+- [02:23:01.385 --> 02:23:05.845] of a nondelegable duty is most commonly seen as part
+- [02:23:05.845 --> 02:23:06.965] of the tort of negligence,
+- [02:23:07.105 --> 02:23:09.365] but that is not the only place in which the concept
+- [02:23:09.465 --> 02:23:11.485] of non delegation may emerge.
+- [02:23:12.865 --> 02:23:15.245] So the court's referred to Morrison Martin, which is
+- [02:23:15.245 --> 02:23:19.245] where in the concept of bailment, it has some purchase.
+- [02:23:19.385 --> 02:23:21.885] And in the concept of bailment, the first step is
+- [02:23:21.995 --> 02:23:24.165] what is the scope of duty of the bail law?
+- [02:23:24.785 --> 02:23:27.685] And because the bail law's duty traditionally was not just
+- [02:23:27.685 --> 02:23:29.085] to exercise reasonable care,
+- [02:23:29.825 --> 02:23:31.605] but to protect the goods from theft
+- [02:23:31.665 --> 02:23:34.405] and depredation, that being the primary duty
+- [02:23:35.145 --> 02:23:36.805] one then asks, is it nondelegable?
+- [02:23:36.905 --> 02:23:40.925] And if it is, that then has consequences for the action
+- [02:23:40.925 --> 02:23:42.925] between Bailor and Bailee.
+- [02:23:43.025 --> 02:23:46.365] So Bailment is one area where it can have that purchase.
+- [02:23:46.365 --> 02:23:51.085] Another area might be occupier, an invitee onto property.
+- [02:23:51.905 --> 02:23:53.405] The case before your honors is about
+- [02:23:53.405 --> 02:23:56.685] how can non al duty be deployed in the tort of negligence.
+- [02:23:56.705 --> 02:23:58.365] And what I'm seeking to point out,
+- [02:23:58.615 --> 02:24:01.885] which has not been addressed, uh, by Lapore
+- [02:24:01.885 --> 02:24:03.805] because this came in effect
+- [02:24:03.805 --> 02:24:06.925] after Lapore, is that a provision like five Q
+- [02:24:07.945 --> 02:24:10.285] has expressly directed itself to this question.
+- [02:24:10.915 --> 02:24:12.885] Five Q is in the appellant's notice of appeal.
+- [02:24:13.745 --> 02:24:18.405] And what it says is that if the extent of liability in tort
+- [02:24:18.545 --> 02:24:21.565] of a person for a breach of a nondelegable duty to ensure
+- [02:24:21.565 --> 02:24:24.805] that reasonable care is taken in carrying out a task,
+- [02:24:24.805 --> 02:24:27.405] delegated, et cetera, is to be determined
+- [02:24:27.405 --> 02:24:29.925] as if the liability were the vicarious liability
+- [02:24:29.925 --> 02:24:32.565] of the defendant for the negligence
+- [02:24:32.565 --> 02:24:34.765] of the person in performance of the task.
+- [02:24:35.505 --> 02:24:37.485] And we'll, we'll give your honors
+- [02:24:37.485 --> 02:24:40.045] after lunch the extrinsic material where it was explained.
+- [02:24:40.595 --> 02:24:42.885] What this was trying to do, what it was trying to say was
+- [02:24:43.755 --> 02:24:47.605] because part one A is going to regulate the whole
+- [02:24:47.605 --> 02:24:50.805] of ne the tort of negligence from which intentional torts
+- [02:24:50.805 --> 02:24:52.565] have been excluded.
+- [02:24:53.785 --> 02:24:54.925] To the extent people wish
+- [02:24:54.925 --> 02:24:57.485] to use non delegatable duty within negligence,
+- [02:24:58.765 --> 02:25:00.335] this is the way they'll have to do it.
+- [02:25:00.475 --> 02:25:04.165] Namely, there will have to be negligence by the delegate,
+- [02:25:05.085 --> 02:25:07.005] measured by the Section five B principles,
+- [02:25:07.865 --> 02:25:10.485] and then the principle duty hour
+- [02:25:11.195 --> 02:25:13.205] will be rendered liable
+- [02:25:13.345 --> 02:25:15.485] as if it were vicariously liability
+- [02:25:15.945 --> 02:25:17.365] liable for that negligence.
+- [02:25:17.625 --> 02:25:18.645] So come back to you honor, justice
+- [02:25:18.645 --> 02:25:19.765] recent, can I just finish?
+- [02:25:20.235 --> 02:25:21.645] It's a, sorry, your Honor. It's a long way
+- [02:25:21.645 --> 02:25:23.365] of answering Justice B Jones' question
+- [02:25:23.995 --> 02:25:26.725] that if you're using non-eligible duty in tort,
+- [02:25:27.305 --> 02:25:30.605] you still need to identify the negligence of the delegate
+- [02:25:30.625 --> 02:25:32.645] for which you then have to say were treated
+- [02:25:32.665 --> 02:25:34.165] as if it were vicarious liability.
+- [02:25:34.475 --> 02:25:36.965] Well, I don't know that that's, that you started off
+- [02:25:36.965 --> 02:25:38.525] by saying that was common ground, that there had
+- [02:25:38.525 --> 02:25:40.165] to be an identification of the duty first.
+- [02:25:40.245 --> 02:25:41.405] I did not understand Mr.
+- [02:25:41.435 --> 02:25:43.725] Hertzfeld submissions to be put on that basis.
+- [02:25:43.785 --> 02:25:45.125] So that's the first thing I'd say.
+- [02:25:45.625 --> 02:25:46.805] And I may be wrong about that,
+- [02:25:46.865 --> 02:25:48.725] but that's not how I understood it to be put.
+- [02:25:49.365 --> 02:25:51.645] I understood there were two pathways to his argument,
+- [02:25:53.945 --> 02:25:55.725] But if, if, if that's not common ground,
+- [02:25:56.045 --> 02:25:57.605] I thought he agreed with that.
+- [02:25:57.605 --> 02:26:00.605] But if it, if it's not, I'd say to your honors
+- [02:26:00.605 --> 02:26:01.845] that the passage in Hollis
+- [02:26:01.845 --> 02:26:03.605] and bu of this court, I took you to
+- [02:26:04.135 --> 02:26:07.805] Chief Justice Brennan in Northern sandblasting, um,
+- [02:26:10.785 --> 02:26:12.725] new South Wales Court of Appeal, justice Giles,
+- [02:26:12.725 --> 02:26:13.965] and I'll take you to additional authorities
+- [02:26:13.965 --> 02:26:16.645] after lunch, establish that
+- [02:26:17.765 --> 02:26:22.005] a nondelegable duty is an aspect of the scope of a duty
+- [02:26:22.025 --> 02:26:24.325] of care which otherwise exists in accordance
+- [02:26:24.325 --> 02:26:25.365] with ordinary principles.
+- [02:26:25.955 --> 02:26:27.485] Well, that's a different proposition.
+- [02:26:27.545 --> 02:26:30.245] If you're saying in terms of determining what, whether
+- [02:26:30.245 --> 02:26:32.085] or not there's a nondelegable duty, one has
+- [02:26:32.085 --> 02:26:33.245] to identify, as I put to Mr.
+- [02:26:33.355 --> 02:26:37.485] Hertzfeld, both an entrustment of someone for some purpose,
+- [02:26:38.615 --> 02:26:42.495] IEI as a parent entrust my child to use the school
+- [02:26:44.175 --> 02:26:47.305] with the basis that they, you, you'll ensure care is taken.
+- [02:26:47.405 --> 02:26:50.025] And if care is not taken, then there's liability.
+- [02:26:51.005 --> 02:26:52.145] If that's nothing more than what
+- [02:26:52.145 --> 02:26:53.345] you're saying, then I understand that.
+- [02:26:53.365 --> 02:26:54.585] But if it's more than that, then I
+- [02:26:54.585 --> 02:26:55.705] don't understand it. Well,
+- [02:26:55.705 --> 02:26:56.705] It is more than that. I'm
+- [02:26:56.705 --> 02:26:59.505] saying certainly that to the extent we're in NDD,
+- [02:27:00.645 --> 02:27:02.545] you do need the two elements, your Honor put,
+- [02:27:02.965 --> 02:27:04.145] you need the entrustment
+- [02:27:05.095 --> 02:27:07.275] And the Acceptance to the duty and the acceptance.
+- [02:27:07.495 --> 02:27:10.555] And our short answer to the whole of NDD apart from report A
+- [02:27:11.095 --> 02:27:14.355] is you do not have findings of either that entrustment
+- [02:27:14.415 --> 02:27:16.635] or acceptance from the primary judge.
+- [02:27:17.135 --> 02:27:18.835] You don't have them from the Court of appeal.
+- [02:27:19.335 --> 02:27:22.555] You can't repurpose findings made for different reasons
+- [02:27:22.775 --> 02:27:23.835] to achieve that end.
+- [02:27:24.175 --> 02:27:26.675] And if you go to the evidence, it doesn't get there anyway.
+- [02:27:26.975 --> 02:27:28.675] So that's the reason why the NDD case,
+- [02:27:28.915 --> 02:27:30.835] I, I understand that that's one case submission,
+- [02:27:31.255 --> 02:27:32.755] But I'm putting the anterior submission,
+- [02:27:32.935 --> 02:27:34.955] The anterior submission I do not understand at the
+- [02:27:34.955 --> 02:27:35.955] Moment. Okay, so the anterior submission
+- [02:27:35.955 --> 02:27:38.475] is that a,
+- [02:27:38.635 --> 02:27:42.795] a nondelegable duty has been seen in the law
+- [02:27:43.975 --> 02:27:45.675] in respect to different torts.
+- [02:27:46.625 --> 02:27:48.795] It's most commonly seen in relation to the tort
+- [02:27:48.795 --> 02:27:52.955] of negligence, but it's also seen in relation to bailment.
+- [02:27:53.675 --> 02:27:57.335] And it has also been seen in, for example, the aspect
+- [02:27:57.335 --> 02:27:59.615] of an occupier invitee, I'll come to
+- [02:27:59.615 --> 02:28:01.215] that Bernie Shire Council,
+- [02:28:01.955 --> 02:28:06.335] but to the extent it is used in negligence, it is an aspect
+- [02:28:06.435 --> 02:28:11.175] of the scope of the duty of care which
+- [02:28:11.175 --> 02:28:12.335] otherwise exists.
+- [02:28:12.515 --> 02:28:16.215] And so the first question in negligence becomes, uh,
+- [02:28:16.595 --> 02:28:19.215] do you have the conditions for a duty of care?
+- [02:28:19.675 --> 02:28:22.105] If you don't, that's the end of the case.
+- [02:28:22.245 --> 02:28:25.465] If you do, then you ask whether those conditions
+- [02:28:26.175 --> 02:28:30.185] exhibit the additional features, the elevated features
+- [02:28:30.185 --> 02:28:31.665] of entrustment and acceptance
+- [02:28:31.665 --> 02:28:35.505] of responsibility in which event it becomes nondelegable.
+- [02:28:35.895 --> 02:28:38.025] Therefore, not just a duty to take care,
+- [02:28:38.125 --> 02:28:39.745] but to ensure care is taken.
+- [02:28:40.275 --> 02:28:41.945] Thank you. Now,
+- [02:28:43.285 --> 02:28:47.645] and so the link of that into section five Q is
+- [02:28:47.645 --> 02:28:51.005] that if we are using nondelegable duties in negligence,
+- [02:28:52.025 --> 02:28:54.445] the parliament has said the way
+- [02:28:54.445 --> 02:28:57.325] that it must be done in order to, to preserve the integrity
+- [02:28:57.385 --> 02:28:59.685] of the distinction between the tort of negligent
+- [02:28:59.685 --> 02:29:01.805] between negligence, however framed
+- [02:29:01.805 --> 02:29:05.405] and intentional wrongs, is that you look for negligence
+- [02:29:05.405 --> 02:29:09.125] of the delegate in the performance of the work under five B,
+- [02:29:09.865 --> 02:29:12.245] and then you treat it as if the,
+- [02:29:12.245 --> 02:29:14.405] the primary duty o ahead of a carist liability.
+- [02:29:14.905 --> 02:29:17.565] So your honor, justice speech Jones, to complete my answer
+- [02:29:17.565 --> 02:29:20.525] to the question, if you were to look at the notice
+- [02:29:20.625 --> 02:29:21.445] of intention,
+- [02:29:27.255 --> 02:29:29.965] which is in the core appeal book at
+- [02:29:32.435 --> 02:29:36.525] page 1 1 11 to 1 1 12, paragraphs two
+- [02:29:36.525 --> 02:29:39.925] and three were two of the notice of contention in the,
+- [02:29:39.945 --> 02:29:41.085] in the court of appeal.
+- [02:29:41.465 --> 02:29:46.445] Yes, they were the appellant's two attempts to frame
+- [02:29:46.595 --> 02:29:48.845] that the non-eligible duty, which
+- [02:29:49.945 --> 02:29:51.715] they said the primary judge should have found,
+- [02:29:52.735 --> 02:29:54.235] and we submit neither of them
+- [02:29:57.235 --> 02:30:00.125] adequately frames what could be a, uh,
+- [02:30:01.515 --> 02:30:03.845] potential non delegatable duty,
+- [02:30:03.915 --> 02:30:06.325] even assuming an ordinary duty of care had been assumed.
+- [02:30:06.665 --> 02:30:08.485] But we're now looking at the note
+- [02:30:08.485 --> 02:30:10.405] that we got this morning, and it seems pretty
+- [02:30:10.405 --> 02:30:11.645] clear that that's a negligence
+- [02:30:12.915 --> 02:30:13.915] Duty. And, and when
+- [02:30:13.915 --> 02:30:14.965] Your Honor comes to the note,
+- [02:30:15.035 --> 02:30:16.725] it's pretty clear it's a negligence duty.
+- [02:30:16.785 --> 02:30:19.165] And, and just before you adjourn, you'll see the shifts
+- [02:30:19.165 --> 02:30:21.445] that have occurred from the pleading
+- [02:30:21.505 --> 02:30:24.565] and from the primary judge's finding at paragraph 2, 2 4.
+- [02:30:25.475 --> 02:30:28.005] Firstly, it's any foreseeable personal injury.
+- [02:30:28.315 --> 02:30:30.805] It's not limited to sexual assault.
+- [02:30:31.025 --> 02:30:35.445] So in the pleading it was any injury, now it's any
+- [02:30:35.965 --> 02:30:38.645] personal injury, but that doesn't capture the kind of harm
+- [02:30:38.645 --> 02:30:40.725] that was an issue, which was sexual assaults.
+- [02:30:40.725 --> 02:30:42.885] That's the first problem with it. Well, it does capture it.
+- [02:30:42.885 --> 02:30:45.125] It's just wider. It's wider, yeah, it's wider.
+- [02:30:45.305 --> 02:30:46.405] And so you,
+- [02:30:46.405 --> 02:30:48.725] you've heard nothing this morning on reasonable
+- [02:30:48.725 --> 02:30:51.885] foreseeability in respect to injury of any kind.
+- [02:30:51.955 --> 02:30:55.245] What you've heard is injury about sexual assault so
+- [02:30:55.245 --> 02:30:56.725] that it's too wide in that respect.
+- [02:30:57.315 --> 02:31:00.245] Then it is two children, Mr.
+- [02:31:00.365 --> 02:31:03.245] Herzfeld confirmed in answer your Honor, justice Gleason,
+- [02:31:03.245 --> 02:31:05.725] that's children of any age, zero to 18.
+- [02:31:05.875 --> 02:31:10.205] He's also said it's children of the Catholic faith in full
+- [02:31:10.265 --> 02:31:13.485] or in part or other religions, or no religions at all.
+- [02:31:13.905 --> 02:31:15.845] So it's any children of any kind.
+- [02:31:16.875 --> 02:31:19.885] Then he says, invited onto diocese and premises.
+- [02:31:20.025 --> 02:31:21.565] So it's no longer
+- [02:31:21.625 --> 02:31:25.565] as per the pleading entrusted into the care without limit,
+- [02:31:25.675 --> 02:31:28.485] it's now become invited onto the esan premises.
+- [02:31:29.435 --> 02:31:33.005] Then it's caused by the conduct of priests at the premises.
+- [02:31:33.025 --> 02:31:34.525] So if we're narrowing it down in that way,
+- [02:31:35.545 --> 02:31:37.885] the scripture classes in the school
+- [02:31:39.255 --> 02:31:40.635] are not part of the duty.
+- [02:31:41.845 --> 02:31:44.895] Attending the mass, frequently
+- [02:31:44.955 --> 02:31:48.335] or not, is not part of the sphere of responsibility.
+- [02:31:48.335 --> 02:31:50.295] We're down to the invitation to the presbytery,
+- [02:31:51.155 --> 02:31:53.255] and we've got two major problems left with the duty,
+- [02:31:53.255 --> 02:31:54.375] which I'll deal with after lunch.
+- [02:31:54.605 --> 02:31:56.655] Firstly, the evidence did not support
+- [02:31:57.815 --> 02:32:01.655] a reasonably foreseeable risk of sexual assaults
+- [02:32:02.845 --> 02:32:06.615] occurring in the presbytery or otherwise.
+- [02:32:07.195 --> 02:32:10.215] But secondly, the concept of invited,
+- [02:32:10.215 --> 02:32:15.115] which is in paragraph two as explained this morning, is
+- [02:32:15.115 --> 02:32:19.885] that the diocese armed the, the parish priest
+- [02:32:19.985 --> 02:32:22.645] or a person in the position of a parish priest
+- [02:32:23.035 --> 02:32:25.525] with an unlimited authority to invite people
+- [02:32:26.665 --> 02:32:29.525] to the presbytery for any purpose
+- [02:32:29.755 --> 02:32:31.645] that the priest thought fit.
+- [02:32:32.835 --> 02:32:34.805] There's no finding to that effect.
+- [02:32:34.985 --> 02:32:38.245] And the evidence of Father Dylan was directly
+- [02:32:38.245 --> 02:32:40.525] to the contrary to that proposition.
+- [02:32:40.625 --> 02:32:42.685] And so finally, your honor, justice Gleason, all of
+- [02:32:42.685 --> 02:32:44.645] that is supposedly the ordinary duty of care.
+- [02:32:45.505 --> 02:32:47.845] As I heard Mr. Hertzfeld, what he said was that
+- [02:32:48.385 --> 02:32:52.285] you would then reframe this for the non-eligible duty
+- [02:32:52.305 --> 02:32:54.845] of care by changing some words in the first line,
+- [02:32:55.665 --> 02:32:59.005] but you would otherwise continue it on in the same fashion.
+- [02:33:01.405 --> 02:33:05.065] No, please court, Mr. We'll finish today, won't we?
+- [02:33:07.515 --> 02:33:08.865] We're doing everything we can to finish,
+- [02:33:09.025 --> 02:33:10.385] I think on the current agreement.
+- [02:33:10.605 --> 02:33:13.865] Mr. Hertz's got a not long in reply, but three minutes.
+- [02:33:14.095 --> 02:33:18.065] He's got three minutes. There's a lot to cover, your honor.
+- [02:33:19.325 --> 02:33:22.865] We, we will, we will resume at two o'clock and we'll finish
+- [02:33:24.245 --> 02:33:25.245] All stand.
+- [02:33:27.205 --> 02:33:30.265] The high court of Australia will resume sitting at 2:00 PM
+- [02:33:48.285 --> 02:33:49.735] Silence all stand.
+- [02:34:12.265 --> 02:34:14.325] The high court of Australia is now in session.
+- [02:34:14.665 --> 02:34:15.685] Please be seated.
+- [02:34:17.025 --> 02:34:20.205] Yes, Mr. Gleason, uh, you honor Justice Gordon in relation
+- [02:34:20.205 --> 02:34:23.685] to the question about proposition two on our outline,
+- [02:34:23.895 --> 02:34:26.165] apart from Holliston bu that we've cited
+- [02:34:26.745 --> 02:34:31.285] the footnotes in Holliston bu at paragraph 27,
+- [02:34:31.905 --> 02:34:33.365] uh, are important,
+- [02:34:33.425 --> 02:34:35.765] and they include a case we've given to your is Jones
+- [02:34:35.785 --> 02:34:39.485] and Bartlett, 2005 CR 1 66
+- [02:34:40.865 --> 02:34:44.125] at 2 2 8, paragraph 2 1 7, where
+- [02:34:45.525 --> 02:34:48.045] Justices, Gamo and Hane make the point that Hol
+- [02:34:48.065 --> 02:34:50.965] and Babu, uh, in turn makes.
+- [02:34:52.825 --> 02:34:55.325] Can I return then to paragraph three of our outline?
+- [02:34:55.985 --> 02:34:58.685] And I was at the stage of going through the elements of the
+- [02:35:00.315 --> 02:35:03.365] alleged duty as it's now been reformulated this morning,
+- [02:35:03.425 --> 02:35:07.005] and giving our response to the reformulated case.
+- [02:35:08.065 --> 02:35:13.045] And the first substantive response we have is that,
+- [02:35:13.905 --> 02:35:18.485] uh, the specified duty o must be the diocese
+- [02:35:18.485 --> 02:35:19.685] that is this diocese.
+- [02:35:20.705 --> 02:35:24.005] And we submit that the primary judge, uh,
+- [02:35:24.185 --> 02:35:26.405] and certainly the appellant in its written submissions,
+- [02:35:26.405 --> 02:35:29.045] perhaps less so today, alighted
+- [02:35:29.045 --> 02:35:30.765] between the diocese's knowledge
+- [02:35:31.225 --> 02:35:33.565] and that of clergy members generally.
+- [02:35:34.625 --> 02:35:38.405] If I can go to the primary judge to three
+- [02:35:39.765 --> 02:35:43.645] critical findings, which we say reveal the error
+- [02:35:43.645 --> 02:35:45.565] that the Court of Appeal correctly pointed out.
+- [02:35:45.585 --> 02:35:48.885] The first is paragraph 231
+- [02:35:49.875 --> 02:35:50.925] Core Appeal Book 60.
+- [02:35:54.145 --> 02:35:55.885] And in that paragraph, her honor said
+- [02:35:55.885 --> 02:35:58.885] that when certain matters were considered together with
+- [02:35:59.545 --> 02:36:01.925] Father Dylan's evidence about the awareness,
+- [02:36:01.935 --> 02:36:03.525] which bishops plural
+- [02:36:04.185 --> 02:36:08.815] and other senior members of the church, that's apparently
+- [02:36:09.795 --> 02:36:14.575] the Catholic church generally then that is in 1969,
+- [02:36:14.755 --> 02:36:19.125] had about risks, which its priests, uh, whose priests,
+- [02:36:19.325 --> 02:36:21.605] supposedly priests of the church generally could pose
+- [02:36:21.625 --> 02:36:26.005] to children given the complaints which they had received.
+- [02:36:26.515 --> 02:36:28.405] That is bishops
+- [02:36:28.405 --> 02:36:30.005] and senior members of the church generally
+- [02:36:30.985 --> 02:36:32.245] not widely known in the community.
+- [02:36:32.305 --> 02:36:35.325] I'm satisfied the diocese say the duty of care.
+- [02:36:35.585 --> 02:36:38.765] Now, there was an attempt this morning to say that, uh,
+- [02:36:38.825 --> 02:36:40.525] her honor didn't really mean what she said.
+- [02:36:40.525 --> 02:36:43.165] Literally what she meant was she was drawing an inference
+- [02:36:43.315 --> 02:36:45.925] that because Father Dylan had deposed
+- [02:36:45.925 --> 02:36:48.005] to generalized knowledge of high level people
+- [02:36:48.705 --> 02:36:50.245] across the Chap Catholic Church,
+- [02:36:50.265 --> 02:36:53.905] she was drawing an inference that Bishop Toy
+- [02:36:54.765 --> 02:36:58.585] in Maitland in 1969 had the relevant knowledge
+- [02:36:58.585 --> 02:37:01.705] that is simply not an available reading of that paragraph,
+- [02:37:02.725 --> 02:37:05.785] nor in the two places where her honor returns to this
+- [02:37:06.785 --> 02:37:10.945] critical theme, does her honor suggest she's engaging in any
+- [02:37:10.945 --> 02:37:14.625] such process of inference C paragraph 2, 4 9
+- [02:37:19.725 --> 02:37:23.705] and paragraph 2 5 1.
+- [02:37:24.915 --> 02:37:27.855] And so Justice Leming in the Court of Appeal
+- [02:37:27.955 --> 02:37:30.335] and agreed in by the Chief Justice
+- [02:37:30.355 --> 02:37:32.895] and Justice Ball were perfectly correct to say
+- [02:37:34.155 --> 02:37:35.655] at paragraph 200
+- [02:37:35.875 --> 02:37:39.335] and, Uh, three,
+- [02:37:40.915 --> 02:37:44.855] or sorry, perhaps 207, that
+- [02:37:45.515 --> 02:37:47.975] her honor was not confining her analysis of duty
+- [02:37:48.075 --> 02:37:52.535] to people within the geographical diocese of Maitland.
+- [02:37:52.765 --> 02:37:54.895] That was an app appealable error.
+- [02:37:55.915 --> 02:37:58.255] But can I come to the second aspect of it, which is,
+- [02:37:58.255 --> 02:38:00.415] what did Father Dylan's evidence stand for?
+- [02:38:01.405 --> 02:38:04.115] And you haven't been given all of
+- [02:38:04.115 --> 02:38:05.115] that evidence this morning,
+- [02:38:05.895 --> 02:38:08.515] and I want to take your honors to it in some detail.
+- [02:38:08.655 --> 02:38:11.635] So if you could go first to his reports,
+- [02:38:12.925 --> 02:38:15.635] which were in the appellants materials commencing at page
+- [02:38:15.905 --> 02:38:16.755] 4 38
+- [02:38:23.735 --> 02:38:26.435] at one point, picked up by the Court of Appeal,
+- [02:38:26.435 --> 02:38:29.915] but not her honor, apparently at 4 38,
+- [02:38:32.295 --> 02:38:34.635] uh, in terms of the experience of Father Dylan,
+- [02:38:37.085 --> 02:38:42.035] which he says is 55 years C Letter Q.
+- [02:38:42.735 --> 02:38:45.555] If one goes to his CV at page 4 44,
+- [02:38:47.815 --> 02:38:52.315] uh, he's, uh, clearly enough a Victoria, nothing wrong about
+- [02:38:52.315 --> 02:38:56.635] that, of course, uh, born in Victoria,
+- [02:38:56.635 --> 02:39:00.995] studied in Victoria, ordained in Victoria in 1969,
+- [02:39:01.135 --> 02:39:04.475] so right on the cusp of the alleged time
+- [02:39:04.615 --> 02:39:05.875] for which knowledge is critical.
+- [02:39:05.895 --> 02:39:10.035] And then as one might expect, he, uh,
+- [02:39:10.365 --> 02:39:11.915] spent 15 years
+- [02:39:12.015 --> 02:39:15.555] as an assistant priest in parishes in Victoria, graduated
+- [02:39:15.555 --> 02:39:18.035] to a parish priest in Victoria in 1985,
+- [02:39:19.185 --> 02:39:20.755] retired in 2002,
+- [02:39:20.755 --> 02:39:24.515] and continues to perform, um, certain important functions.
+- [02:39:25.455 --> 02:39:28.475] So what, uh, the Court of Appeal
+- [02:39:29.185 --> 02:39:31.035] correctly pointed out at paragraph
+- [02:39:32.415 --> 02:39:37.415] 210,
+- [02:39:44.355 --> 02:39:48.155] which is a glossed over by the appellant, is
+- [02:39:49.215 --> 02:39:51.275] his statement, which was expressed in terms
+- [02:39:51.295 --> 02:39:52.755] of a likely exception.
+- [02:39:52.815 --> 02:39:55.755] So it's a most hesitant expression of opinion
+- [02:39:58.055 --> 02:39:59.995] Was in respect to the knowledge of some people.
+- [02:40:00.095 --> 02:40:03.195] He never identified who in positions
+- [02:40:03.195 --> 02:40:04.635] of high authority in the church.
+- [02:40:04.895 --> 02:40:07.875] He never identified which positions in which part
+- [02:40:07.875 --> 02:40:09.555] of the church, in which state of Australia,
+- [02:40:10.655 --> 02:40:12.915] who he says would've been aware of complaints.
+- [02:40:13.665 --> 02:40:17.365] And as the Court of appeal correctly says at 208, he's not
+- [02:40:17.365 --> 02:40:20.645] to be regarded as an expressing an opinion about the actual
+- [02:40:20.665 --> 02:40:25.085] or even the likely knowledge of Bishop Toy in 1969
+- [02:40:25.105 --> 02:40:29.205] of complaints made concerning priests in Maitland.
+- [02:40:29.705 --> 02:40:31.165] He simply does not express that
+- [02:40:31.405 --> 02:40:34.685] because he cannot, if that's how his opinion were
+- [02:40:34.685 --> 02:40:36.525] to be read, it can be given very little weight.
+- [02:40:37.785 --> 02:40:39.005] Uh, he doesn't purport
+- [02:40:39.005 --> 02:40:41.565] to be expressing opinion about the knowledge of the Bishop
+- [02:40:41.625 --> 02:40:43.125] of Maitland or indeed,
+- [02:40:43.135 --> 02:40:44.845] other senior clergy in New South Wales.
+- [02:40:44.945 --> 02:40:46.605] And he didn't provide any reasons for his opinion.
+- [02:40:48.665 --> 02:40:52.645] So for that second reason, uh, that critical finding
+- [02:40:52.705 --> 02:40:56.695] of her honor, uh, at paragraph 231
+- [02:40:57.395 --> 02:41:00.895] was correctly found to be an error by the Court of appeal.
+- [02:41:02.995 --> 02:41:07.655] Now, just continuing then with, uh, father
+- [02:41:09.305 --> 02:41:12.895] Dylan on the other aspects of his evidence
+- [02:41:12.895 --> 02:41:16.535] that we're relied upon, and this particularly concerns a
+- [02:41:16.535 --> 02:41:20.575] submission put this morning, Uh,
+- [02:41:20.915 --> 02:41:25.015] in these terms, that there is a finding,
+- [02:41:25.115 --> 02:41:28.935] or you should find that as the parish priest
+- [02:41:29.075 --> 02:41:33.055] or functional equivalent on the unsatisfactory facts
+- [02:41:33.055 --> 02:41:35.695] of this case, he was given an authority.
+- [02:41:37.215 --> 02:41:40.705] This is how it was put in authority to determine, uh,
+- [02:41:41.165 --> 02:41:45.505] who attended the premises for whatever purpose he
+- [02:41:47.015 --> 02:41:48.025] thought appropriate.
+- [02:41:51.525 --> 02:41:54.345] And so it is said that when, uh,
+- [02:41:56.125 --> 02:41:58.585] the appellant was invited to the premises,
+- [02:41:58.585 --> 02:42:01.025] that was an invitation coming from the diocese,
+- [02:42:01.175 --> 02:42:03.705] whereas we would submit it was an invitation coming from,
+- [02:42:04.765 --> 02:42:06.425] uh, father Picken.
+- [02:42:07.285 --> 02:42:09.785] But let us look at this question of, did,
+- [02:42:09.845 --> 02:42:12.145] did the parish priest have an authority of
+- [02:42:12.145 --> 02:42:13.145] that unlimited character?
+- [02:42:13.165 --> 02:42:16.145] So if you want us go to page 4 46 first,
+- [02:42:16.145 --> 02:42:20.505] which is his second report, And you were taken
+- [02:42:20.525 --> 02:42:25.345] to letters I to l the Bishop is the ultimate authority
+- [02:42:25.375 --> 02:42:28.785] with regard to relevantly the use of premises.
+- [02:42:30.225 --> 02:42:31.665] A property cannot be used
+- [02:42:31.765 --> 02:42:35.465] for any purpose in any way contrary to the wishes
+- [02:42:36.455 --> 02:42:37.635] or the direction of the bishop.
+- [02:42:39.015 --> 02:42:40.635] And then for those activities
+- [02:42:40.635 --> 02:42:43.995] and uses that are directly part of the church's mission,
+- [02:42:44.255 --> 02:42:46.195] the parish priest authorization
+- [02:42:46.215 --> 02:42:49.045] and permission would normally be enough.
+- [02:42:50.225 --> 02:42:52.845] Uh, any doubt about the matter, you'd go
+- [02:42:52.845 --> 02:42:54.125] to the bishop and get his approval.
+- [02:42:55.425 --> 02:42:56.725] So a parish priest
+- [02:42:57.025 --> 02:43:00.765] or his functional equivalent did not have authority
+- [02:43:01.785 --> 02:43:05.805] within the system of the Catholic Church to invite people to
+- [02:43:06.625 --> 02:43:07.805] the presbytery for any
+- [02:43:08.185 --> 02:43:11.265] and every purpose that the priest thought sufficient.
+- [02:43:11.265 --> 02:43:14.755] It had to be something which could properly be considered
+- [02:43:14.755 --> 02:43:16.475] to be directly part
+- [02:43:16.475 --> 02:43:19.115] of the church's mission. So what do we get that?
+- [02:43:19.115 --> 02:43:22.355] Well, what we get is it can't be for something contrary
+- [02:43:22.375 --> 02:43:23.635] to the wishes or direction.
+- [02:43:24.295 --> 02:43:28.195] And the next sentence, uh, to the extent it's sufficient
+- [02:43:28.195 --> 02:43:30.475] to go to the priest, it's where it is an activity
+- [02:43:30.475 --> 02:43:31.835] that could reasonably regard it
+- [02:43:31.835 --> 02:43:33.435] as directly part of the church's mission.
+- [02:43:34.575 --> 02:43:35.995] And then on page four 40, but
+- [02:43:35.995 --> 02:43:37.955] Now, I mean, if, if we're talking about attribution,
+- [02:43:38.265 --> 02:43:39.755] this is just Jones and Plenty,
+- [02:43:40.565 --> 02:43:42.535] it's just being on the milk truck and
+- [02:43:42.755 --> 02:43:45.095] and delivering it in a way that might be prohibited.
+- [02:43:45.635 --> 02:43:47.375] No, your Honor, what I'm dealing with here is
+- [02:43:47.405 --> 02:43:49.215] that I'm responding to a submission.
+- [02:43:49.215 --> 02:43:51.335] The first time it's been clearly made is this morning.
+- [02:43:52.195 --> 02:43:56.495] Is that as an element of the ju the ordinary duty, it,
+- [02:43:56.555 --> 02:43:59.055] it should be seen that
+- [02:44:00.075 --> 02:44:02.695] the parish priest was given an unlimited authority
+- [02:44:03.075 --> 02:44:07.775] to use the presbytery for any purpose he thought fit,
+- [02:44:07.805 --> 02:44:09.415] including in respect to children.
+- [02:44:09.885 --> 02:44:11.095] That that's why it was put.
+- [02:44:11.095 --> 02:44:11.935] That's what I'm trying to,
+- [02:44:11.935 --> 02:44:13.015] that's what I'm trying to respond to.
+- [02:44:13.075 --> 02:44:14.575] I'm trying to say, if you look at Dylan,
+- [02:44:15.635 --> 02:44:16.935] and I've gotta take you to four
+- [02:44:16.935 --> 02:44:21.015] or five places, yes, this is the first bit that that's not
+- [02:44:21.045 --> 02:44:23.575] what a parish priest was given authority to do.
+- [02:44:23.915 --> 02:44:27.095] But I don't understand the submission to be suggesting,
+- [02:44:27.095 --> 02:44:29.095] and I don't think you are even suggesting the submission
+- [02:44:29.095 --> 02:44:31.695] saying that, um, the authority
+- [02:44:32.315 --> 02:44:36.095] of the parish priest involves abusing children, uh,
+- [02:44:36.375 --> 02:44:38.095] inviting children in to be abused. It,
+- [02:44:38.095 --> 02:44:39.815] It, it, it doesn't involve inviting 'em in to be abused.
+- [02:44:39.845 --> 02:44:41.455] That that's probably common ground.
+- [02:44:41.635 --> 02:44:45.335] But where we are differing is to say the parish priest
+- [02:44:46.115 --> 02:44:49.495] was not given an authority to choose
+- [02:44:49.555 --> 02:44:53.535] to conduct a social function, such as inviting children
+- [02:44:53.715 --> 02:44:57.615] for beer and cigarettes with no aspect of any church
+- [02:44:58.145 --> 02:45:00.015] event attached to it. What
+- [02:45:00.015 --> 02:45:01.535] What about inviting children in
+- [02:45:01.875 --> 02:45:03.655] for social functions generally?
+- [02:45:04.035 --> 02:45:06.615] No, because I'm if, if Your Honor will bear with me. Okay.
+- [02:45:06.615 --> 02:45:08.455] Sorry. Now I've gotta take you to five pieces
+- [02:45:08.455 --> 02:45:10.215] of this evidence, and you haven't been taken to it.
+- [02:45:10.215 --> 02:45:11.375] It's the problem of this case
+- [02:45:11.785 --> 02:45:13.455] where you don't have these findings of fact.
+- [02:45:13.555 --> 02:45:15.095] So that's plank one.
+- [02:45:15.475 --> 02:45:19.095] You then go to plank two, which is page 4 47, which is
+- [02:45:19.095 --> 02:45:22.095] where he says, to the extent that in the sixties
+- [02:45:22.195 --> 02:45:24.455] and the seventies, the presbytery might be used
+- [02:45:24.475 --> 02:45:28.775] for purposes other than the priest's residence.
+- [02:45:28.875 --> 02:45:33.445] The examples that he gives at letter I are
+- [02:45:33.985 --> 02:45:35.325] remote from the present case.
+- [02:45:35.355 --> 02:45:37.525] They're gatherings of groups of people,
+- [02:45:40.125 --> 02:45:43.905] and then one takes that together with his first report.
+- [02:45:45.195 --> 02:45:47.185] Sorry, social gatherings is one of those.
+- [02:45:48.925 --> 02:45:52.265] So social gatherings. But let me, this is plank two.
+- [02:45:52.445 --> 02:45:56.185] Mm-hmm. So let's look at the rest of what his evidence was.
+- [02:45:57.165 --> 02:46:00.905] Uh, and then when you come back to his, uh, first
+- [02:46:01.845 --> 02:46:05.585] report, uh, at,
+- [02:46:06.765 --> 02:46:09.725] uh, 4, 9, 7 question, I,
+- [02:46:11.425 --> 02:46:12.525] uh, what was that page answer?
+- [02:46:12.525 --> 02:46:15.805] You said four one, that's page four. 4 1, 4, 4, 1. What
+- [02:46:15.805 --> 02:46:17.205] We going back to 4, 4 1
+- [02:46:17.225 --> 02:46:19.925] Now 4, 4 1 and 4, 4 2 to his first report.
+- [02:46:20.905 --> 02:46:24.485] Uh, so he gives, in answer to question nine, question J,
+- [02:46:24.485 --> 02:46:28.925] it seems a common answer, uh, to,
+- [02:46:29.785 --> 02:46:34.485] uh, certain forms of expectation with young people
+- [02:46:34.865 --> 02:46:39.285] of the parish, which appear
+- [02:46:39.285 --> 02:46:40.965] to be group activities.
+- [02:46:41.065 --> 02:46:43.165] And then, so that's, that's the third plank.
+- [02:46:43.185 --> 02:46:46.965] And then getting more specific in answer to question K,
+- [02:46:48.905 --> 02:46:50.805] and I don't think you were taken to K this morning.
+- [02:46:50.825 --> 02:46:53.645] You may have been personal one-on-one instruction
+- [02:46:53.645 --> 02:46:56.165] of young people was not common in those days.
+- [02:46:56.505 --> 02:47:00.045] And even less so in the years since, uh,
+- [02:47:00.415 --> 02:47:03.285] one-on-one was seen as unwise or imp prudent.
+- [02:47:03.745 --> 02:47:05.765] And that's, that's irrespective of any question
+- [02:47:05.765 --> 02:47:08.445] of knowledge now about the risk of any form of abuse.
+- [02:47:09.265 --> 02:47:13.365] And then in question l, uh, was it permissible for priests
+- [02:47:13.365 --> 02:47:16.805] to have adults and children attending in their residences?
+- [02:47:17.265 --> 02:47:22.005] Uh, on rare occasions, individual instruction could be given
+- [02:47:22.825 --> 02:47:25.205] if a student was preparing for baptism and so on.
+- [02:47:25.205 --> 02:47:28.805] But even in the 1960s, having a number, even a small number
+- [02:47:28.805 --> 02:47:31.125] of children, bringing them together for a class was seen
+- [02:47:31.125 --> 02:47:32.805] as a much more effective way of doing it.
+- [02:47:33.395 --> 02:47:34.685] From my personal experience,
+- [02:47:34.765 --> 02:47:37.645] I cannot recall ever having an extended length of time
+- [02:47:37.645 --> 02:47:40.045] with any individual student for after hours lessons
+- [02:47:40.065 --> 02:47:41.965] or personal instructions.
+- [02:47:42.665 --> 02:47:44.405] Use of the priest's personal room
+- [02:47:44.405 --> 02:47:46.245] or rooms would've been unheard of.
+- [02:47:46.875 --> 02:47:50.885] Even in those innocent times, priest was seen if at all,
+- [02:47:51.345 --> 02:47:52.885] in a par near the front door.
+- [02:47:53.385 --> 02:47:57.205] So once you start to put that plank together, the concept
+- [02:47:57.345 --> 02:48:00.125] of the priest taking, uh,
+- [02:48:00.605 --> 02:48:04.645] a young person into the private room was completely unheard
+- [02:48:04.645 --> 02:48:06.125] of according to Father Dylan.
+- [02:48:06.265 --> 02:48:09.565] And then he went further in his cross-examination,
+- [02:48:11.025 --> 02:48:14.915] because if you could go please to pages, uh,
+- [02:48:15.065 --> 02:48:18.755] 5 6 0, uh,
+- [02:48:18.815 --> 02:48:22.795] to 5 6 1, uh,
+- [02:48:24.015 --> 02:48:26.795] at 5 6 0 line 35, he's asked about,
+- [02:48:27.785 --> 02:48:29.755] this is volume two of the Pel? Yes.
+- [02:48:29.805 --> 02:48:30.995] Sorry, what line are we, Mr.
+- [02:48:31.335 --> 02:48:33.475] Ner line 35, page five 60. This
+- [02:48:33.475 --> 02:48:34.595] Is what we were taken to this morning.
+- [02:48:34.935 --> 02:48:36.635] You were taken to part of it only. Thank you.
+- [02:48:37.625 --> 02:48:42.475] Line 35 is he's asked about
+- [02:48:42.495 --> 02:48:44.195] the social gatherings,
+- [02:48:44.195 --> 02:48:47.955] and there he explains they're with, uh, groups of people,
+- [02:48:48.455 --> 02:48:53.445] and then he's asked line 50, who were the types
+- [02:48:53.445 --> 02:48:55.845] of people who would be attending it gatherings.
+- [02:48:56.185 --> 02:48:58.325] And then over the page in the main,
+- [02:48:58.325 --> 02:49:01.325] it would certainly been adult people there for committees,
+- [02:49:02.225 --> 02:49:03.405] parish councils.
+- [02:49:03.825 --> 02:49:06.285] And then he's asked the specific question at line 14,
+- [02:49:06.315 --> 02:49:07.885] what about social gatherings?
+- [02:49:07.885 --> 02:49:10.605] Which involved only unsupervised children?
+- [02:49:12.115 --> 02:49:15.085] Well, from my recollection, in most cases with youth groups
+- [02:49:15.105 --> 02:49:16.605] and so on, there was certainly
+- [02:49:17.265 --> 02:49:18.885] in my early parishes in those years,
+- [02:49:18.885 --> 02:49:20.765] there would always be other people around.
+- [02:49:21.705 --> 02:49:24.365] Not so much in the sense of supervision for the reason
+- [02:49:24.365 --> 02:49:25.645] that we might put these days
+- [02:49:25.645 --> 02:49:27.285] because of scandals that have emerged,
+- [02:49:27.285 --> 02:49:29.325] but more from a perspective of dealing with young kids.
+- [02:49:29.355 --> 02:49:30.165] It's gonna be a handful
+- [02:49:30.735 --> 02:49:31.965] where there were more than two or three.
+- [02:49:31.965 --> 02:49:33.605] It was sensible to have volunteer parents
+- [02:49:33.745 --> 02:49:36.045] or others available to assist.
+- [02:49:36.445 --> 02:49:37.685] Question. So is this right, father,
+- [02:49:38.075 --> 02:49:39.885] that your expectation was in the 1960s
+- [02:49:39.905 --> 02:49:41.925] and seventies, if there were children at the presbytery,
+- [02:49:42.375 --> 02:49:43.765] there would be adults over
+- [02:49:43.765 --> 02:49:45.485] and above the priest in attendance?
+- [02:49:45.945 --> 02:49:47.925] Yes, that would be the case.
+- [02:49:48.505 --> 02:49:49.685] And then he is asked about whether
+- [02:49:49.685 --> 02:49:50.925] that would be an unwritten rule.
+- [02:49:51.585 --> 02:49:55.405] And then this is the final plank at line 44.
+- [02:49:55.515 --> 02:49:57.685] He's asked, what about a scenario in which alcohol
+- [02:49:57.685 --> 02:49:58.845] and cigarettes were supplied
+- [02:49:58.845 --> 02:50:00.125] to children within the presbytery?
+- [02:50:01.225 --> 02:50:04.005] Uh, he gives, um, a
+- [02:50:04.955 --> 02:50:06.285] Victorian answer
+- [02:50:06.825 --> 02:50:09.485] and then says, from the perspective of supplying alcohol
+- [02:50:09.485 --> 02:50:11.685] or even consuming alcohol in the presence of children,
+- [02:50:11.865 --> 02:50:13.005] let alone supplying it,
+- [02:50:13.305 --> 02:50:14.525] and ditto with cigarettes,
+- [02:50:14.525 --> 02:50:17.165] that would seem it would be totally full-hearted
+- [02:50:17.385 --> 02:50:18.565] and irresponsible.
+- [02:50:19.625 --> 02:50:23.445] Um, and then over on page 5 62 out of order
+- [02:50:23.505 --> 02:50:24.885] for a priest to engage in it.
+- [02:50:25.245 --> 02:50:27.885] Absolutely. Um, out
+- [02:50:27.885 --> 02:50:31.165] of order in every possible way. So, but,
+- [02:50:31.425 --> 02:50:33.085] But isn't it saying, yes, you have children,
+- [02:50:33.225 --> 02:50:34.725] but you should have other adults
+- [02:50:34.785 --> 02:50:37.325] and you shouldn't give them cigarette and alcohol, but
+- [02:50:37.505 --> 02:50:40.045] But isn't, That's just justice Edelman's
+- [02:50:40.045 --> 02:50:41.005] Point. No. Yes,
+- [02:50:41.005 --> 02:50:42.485] You do it, but not by this method.
+- [02:50:42.785 --> 02:50:45.725] No. What what it is saying is when you take those planks
+- [02:50:45.725 --> 02:50:49.445] down, what it, first of all, you do not have, contrary to
+- [02:50:49.445 --> 02:50:52.165] what you heard this morning, an unlimited authority
+- [02:50:52.185 --> 02:50:53.325] to invite people there
+- [02:50:53.345 --> 02:50:55.285] for any social gathering, you think useful.
+- [02:50:56.155 --> 02:50:59.445] Your authority is limited to things which can be regarded as
+- [02:51:00.485 --> 02:51:03.505] church business, church events, religious events.
+- [02:51:04.255 --> 02:51:07.945] Then when you make it more specific, what are church events?
+- [02:51:08.165 --> 02:51:10.985] Oh, well, matters that would involve an element of, um,
+- [02:51:11.905 --> 02:51:14.345] religious instructions, spiritual guidance, gathering
+- [02:51:14.345 --> 02:51:16.385] of a community as the church community,
+- [02:51:16.385 --> 02:51:18.585] there's a whole range of things within church events
+- [02:51:18.885 --> 02:51:20.705] and social gatherings and movie nights.
+- [02:51:21.245 --> 02:51:23.665] It that's in the list it within.
+- [02:51:24.655 --> 02:51:26.505] Then you come to the more specific point
+- [02:51:26.695 --> 02:51:29.625] that you're then within an environment where
+- [02:51:30.605 --> 02:51:33.185] as per children, it's perfectly clear.
+- [02:51:34.165 --> 02:51:38.825] You do not have an authority to invite children there
+- [02:51:38.925 --> 02:51:40.305] for any purpose you think fit.
+- [02:51:40.325 --> 02:51:41.585] You don't have an authority
+- [02:51:41.585 --> 02:51:43.225] to invite them into private spaces.
+- [02:51:43.845 --> 02:51:46.705] You don't have an authority to invite them there for
+- [02:51:47.345 --> 02:51:49.785] a function, which on no view could be considered
+- [02:51:49.785 --> 02:51:52.145] to be connected with any church purpose. Is
+- [02:51:52.145 --> 02:51:53.305] That, is that enough way
+- [02:51:53.305 --> 02:51:55.905] of saying if he had asked his bishop,
+- [02:51:57.185 --> 02:51:59.685] may I invite two boys in on Friday night
+- [02:51:59.685 --> 02:52:01.125] for a purely social occasion,
+- [02:52:01.775 --> 02:52:03.565] leave aside alcohol and cigarettes?
+- [02:52:03.565 --> 02:52:05.205] Yes. Just to purely say, the bishop
+- [02:52:05.395 --> 02:52:06.725] must invariably have said
+- [02:52:06.725 --> 02:52:08.005] No and must have said no.
+- [02:52:08.185 --> 02:52:09.845] And he knew the bishop would've said no,
+- [02:52:09.845 --> 02:52:11.125] but the bishop would've said, no.
+- [02:52:11.185 --> 02:52:13.565] That's, that's what this evidence was of Father Dylan.
+- [02:52:13.665 --> 02:52:14.885] And he's, he's their expert.
+- [02:52:15.065 --> 02:52:16.725] In your case, it is that this shows that,
+- [02:52:16.725 --> 02:52:19.045] that it took place beyond the authority of the diocese
+- [02:52:19.725 --> 02:52:21.125] Anywhere beyond the authority of the diocese.
+- [02:52:21.145 --> 02:52:23.805] And, and what it gets to is that, your honor,
+- [02:52:23.805 --> 02:52:25.605] justice Gleason asked about this,
+- [02:52:25.605 --> 02:52:27.765] this duty's gotta be about the relationship
+- [02:52:27.765 --> 02:52:31.965] between the diocese and, uh, and the appellant.
+- [02:52:32.675 --> 02:52:36.725] This interaction was an interaction with Father Picken.
+- [02:52:36.745 --> 02:52:39.205] It was not interaction with the diocese.
+- [02:52:41.665 --> 02:52:43.045] And the fact that it occurred on
+- [02:52:43.605 --> 02:52:47.925] diocesan premises merely meant that Father Picken had acted
+- [02:52:48.465 --> 02:52:51.245] beyond, far beyond any role.
+- [02:52:51.345 --> 02:52:53.845] He might have had to be a representative of the diocese.
+- [02:52:55.025 --> 02:52:58.165] It still seems a lot to me, like the classic attribution.
+- [02:52:58.375 --> 02:53:00.085] Rosen, plenty situation, children
+- [02:53:00.185 --> 02:53:02.805] and young persons must not under any circumstances,
+- [02:53:03.425 --> 02:53:05.725] be employed by you in the performance of your duties.
+- [02:53:06.045 --> 02:53:07.685] A child is taken on the milk truck.
+- [02:53:08.275 --> 02:53:10.285] It's still attributed to the employer,
+- [02:53:10.545 --> 02:53:13.005] But we're, we're not quite in an attribution situation.
+- [02:53:13.005 --> 02:53:15.445] Honor what we are in is a situation where they're attempting
+- [02:53:15.445 --> 02:53:20.405] to, to erect either an ordinary duty or a nondelegable duty.
+- [02:53:20.865 --> 02:53:23.205] And if for each of those, they're trying to say,
+- [02:53:23.835 --> 02:53:25.205] this was the diocese,
+- [02:53:25.825 --> 02:53:28.605] But because the scope of the authority Yes.
+- [02:53:28.745 --> 02:53:31.005] Of, um, father Picken
+- [02:53:32.085 --> 02:53:34.765] included generally social activities
+- [02:53:34.765 --> 02:53:38.445] or inviting people, even if children are forbidden from
+- [02:53:38.445 --> 02:53:39.685] that scope of authority.
+- [02:53:39.835 --> 02:53:42.765] Well, I, I would simply ask, your Honor, when you come
+- [02:53:42.765 --> 02:53:45.205] to reread this evidence, a as you will,
+- [02:53:45.225 --> 02:53:46.325] and you look at the report
+- [02:53:46.325 --> 02:53:47.845] and you look at the cross examination,
+- [02:53:48.025 --> 02:53:52.845] you could not get clearer evidence that inviting
+- [02:53:53.885 --> 02:53:57.605] children unsupervised to a private part of the presbytery
+- [02:53:57.825 --> 02:53:59.525] for a function that could have nothing to do
+- [02:53:59.525 --> 02:54:00.885] with baptism confirmation
+- [02:54:01.465 --> 02:54:04.845] and so on, could never be considered to be the diocese
+- [02:54:04.845 --> 02:54:07.885] of Maitland interacting with this person.
+- [02:54:09.185 --> 02:54:13.005] Now, can I show you then, uh, re related to that,
+- [02:54:13.865 --> 02:54:15.445] the evidence, and this comes back
+- [02:54:15.445 --> 02:54:17.005] to on Justice Gordon's question about
+- [02:54:17.595 --> 02:54:22.205] perhaps in entrustment, the, the evidence of, uh, how it was
+- [02:54:22.435 --> 02:54:23.645] that he came to be there.
+- [02:54:24.345 --> 02:54:29.285] Um, so in the same volume at page 5 0 5, um,
+- [02:54:30.385 --> 02:54:33.725] to, to six, um, sorry, what was the reference?
+- [02:54:33.875 --> 02:54:35.805] 5 0 5 to six. Thank you.
+- [02:54:36.425 --> 02:54:40.205] Um, at 5 0 5, line 35,
+- [02:54:40.225 --> 02:54:44.325] he was asked did he tell his parents why he was going there?
+- [02:54:45.145 --> 02:54:47.685] And he gave some answers about,
+- [02:54:47.905 --> 02:54:51.765] he told them something about a a, a youth club, um,
+- [02:54:52.345 --> 02:54:53.565] that's at the foot of that page.
+- [02:54:53.585 --> 02:54:56.565] But then the evidence changed on page 5 0 6
+- [02:54:57.345 --> 02:54:58.645] at lines 15 to 20.
+- [02:54:59.945 --> 02:55:02.485] Uh, did they ask why you were going to meet him?
+- [02:55:02.785 --> 02:55:05.525] No, he was a priest. And then lines 40
+- [02:55:05.985 --> 02:55:07.005] to the end of the page.
+- [02:55:07.825 --> 02:55:09.645] Did they ask why you were coming home so late?
+- [02:55:09.665 --> 02:55:11.325] No, it was Friday night. We're in high school.
+- [02:55:12.655 --> 02:55:16.475] So in other words, he was free to do
+- [02:55:16.475 --> 02:55:17.555] what he wished to you do on a Friday night.
+- [02:55:17.775 --> 02:55:18.875] Did they ask you anything about
+- [02:55:18.875 --> 02:55:20.355] what you've been doing at the Presbytery?
+- [02:55:20.415 --> 02:55:25.155] No, not really. So to the extent, um,
+- [02:55:25.295 --> 02:55:27.915] we are looking at the relationship between the parents
+- [02:55:28.215 --> 02:55:32.075] and the diocese, there was nothing in this evidence to,
+- [02:55:32.735 --> 02:55:34.075] uh, support it.
+- [02:55:34.575 --> 02:55:38.715] And in terms of, uh, what actually happened on the
+- [02:55:39.755 --> 02:55:42.635] commencement of the occasion, I'd refer you to page 4 82,
+- [02:55:43.645 --> 02:55:47.875] lines 15, uh, two 40,
+- [02:55:48.805 --> 02:55:53.755] where, uh, when he got there, the, the beer
+- [02:55:53.755 --> 02:55:55.795] and cigarettes were laid out on the table.
+- [02:56:00.015 --> 02:56:04.525] So your honors, the, the, the,
+- [02:56:04.525 --> 02:56:08.165] the point I've reached ho hopefully is this within our
+- [02:56:08.165 --> 02:56:13.125] paragraph three, that the primary judge err by, uh, not
+- [02:56:13.645 --> 02:56:15.645] focusing specifically on the knowledge of the diocese.
+- [02:56:15.665 --> 02:56:18.565] She focused more generally upon the, uh,
+- [02:56:18.835 --> 02:56:20.205] alleged knowledge of the priest.
+- [02:56:20.465 --> 02:56:23.085] She urged, because Father Dylan's evidence
+- [02:56:23.705 --> 02:56:27.205] did not provide any sound basis upon which that could, um,
+- [02:56:27.745 --> 02:56:29.085] be found.
+- [02:56:29.865 --> 02:56:31.685] And then the next point I wanna deal
+- [02:56:31.685 --> 02:56:33.365] with is the kind of harm issue.
+- [02:56:34.775 --> 02:56:37.235] So coming back to the appellant's note this morning,
+- [02:56:39.615 --> 02:56:41.995] Uh, it, it looks like,
+- [02:56:42.855 --> 02:56:44.835] and this comes back to your on Justice Beach Jones'
+- [02:56:44.995 --> 02:56:49.755] question, by generalizing from, uh, sexual assault
+- [02:56:49.935 --> 02:56:53.045] or, uh, assault
+- [02:56:53.045 --> 02:56:55.885] and battery into the risk being
+- [02:56:56.755 --> 02:56:58.205] foreseeable personal injury,
+- [02:57:01.695 --> 02:57:04.505] what this form of duty seems to do, we think
+- [02:57:05.325 --> 02:57:09.715] is ask you honors to find today a,
+- [02:57:09.835 --> 02:57:12.075] a duty existed in those general terms,
+- [02:57:13.095 --> 02:57:16.835] and then any question of the degree of foreseeability of
+- [02:57:17.915 --> 02:57:20.095] the kind of harm that was suffered, namely
+- [02:57:20.645 --> 02:57:24.535] intentional assault, would be delegated to the breach stage.
+- [02:57:27.315 --> 02:57:31.935] So they're seeking to define a duty where, uh, you hold
+- [02:57:32.085 --> 02:57:36.615] that, it's foreseeable that if a child is invited into the
+- [02:57:37.305 --> 02:57:40.255] presbytery personal injury
+- [02:57:40.595 --> 02:57:42.975] of any kind could occur.
+- [02:57:43.755 --> 02:57:47.555] And then once you've found that, there's then the question
+- [02:57:47.575 --> 02:57:50.525] of, uh, applying
+- [02:57:51.385 --> 02:57:55.645] the section five B factors to the harm in the form
+- [02:57:55.645 --> 02:58:00.205] of sexual assault now that we submit is,
+- [02:58:00.345 --> 02:58:02.725] is the very error which the court has
+- [02:58:03.355 --> 02:58:05.405] cautioned against in a series of cases.
+- [02:58:05.535 --> 02:58:08.005] We've referred to this in our written submissions,
+- [02:58:08.005 --> 02:58:09.445] but can I give you some of them?
+- [02:58:09.465 --> 02:58:10.685] The first of them is Tame
+- [02:58:10.705 --> 02:58:15.245] and New South Wales, which is in volume five, tab 29,
+- [02:58:16.185 --> 02:58:19.605] um, 211 CLR 3 1 7,
+- [02:58:23.585 --> 02:58:27.125] uh, in the Chief Justice's judgment
+- [02:58:27.185 --> 02:58:28.725] of paragraph 12,
+- [02:58:35.265 --> 02:58:38.805] uh, importantly in the judgment of Justice Gamo
+- [02:58:38.805 --> 02:58:40.925] and Kirby at paragraph 203,
+- [02:58:45.985 --> 02:58:48.445] in that case, it was necessary to identify the class
+- [02:58:48.465 --> 02:58:53.085] of injury as psychiatric illness, not just personal injury
+- [02:58:53.675 --> 02:58:54.725] more generally.
+- [02:58:55.545 --> 02:58:58.885] And in the judgment of Justice Hane at paragraph 2 49,
+- [02:59:01.265 --> 02:59:06.055] uh, uh, where his honor
+- [02:59:07.025 --> 02:59:10.535] cited Justice Brennan in Haman, that a postulated duty
+- [02:59:10.535 --> 02:59:13.255] of care must be stated in reference to the kind of damage
+- [02:59:13.255 --> 02:59:14.535] that a plaintiff has suffered,
+- [02:59:14.635 --> 02:59:17.215] and in reference to the plaintiff
+- [02:59:17.215 --> 02:59:20.855] or class, which the plaintiff is a member.
+- [02:59:22.235 --> 02:59:23.975] And so, so
+- [02:59:23.975 --> 02:59:26.575] Psychiatric harm there is used in contradistinction
+- [02:59:26.595 --> 02:59:28.215] to physical harm, as I
+- [02:59:28.215 --> 02:59:29.215] Understand it. Yes. Yes.
+- [02:59:29.215 --> 02:59:30.455] And what does sexual
+- [02:59:30.455 --> 02:59:31.895] Assault fall into?
+- [02:59:34.145 --> 02:59:37.075] Well, I'm responding to a formulation which says, per
+- [02:59:37.635 --> 02:59:39.955] personal injury, which would capture all sorts of things.
+- [02:59:40.295 --> 02:59:42.915] Indeed. Yeah. So we would say that any,
+- [02:59:43.055 --> 02:59:46.715] any acceptable formulation would have to either be the risk
+- [02:59:46.735 --> 02:59:50.675] of, uh, intentional infliction of harm by assault
+- [02:59:50.675 --> 02:59:54.635] and battery to the person or sexual assault.
+- [02:59:54.815 --> 02:59:57.475] Wow. Now, whether the harm then manifests in physical
+- [02:59:57.475 --> 02:59:58.875] injury, psychological injury,
+- [02:59:58.905 --> 03:00:01.155] that would still be within the kind of harm if,
+- [03:00:01.155 --> 03:00:04.875] If you drop a child at a daycare center, you don't expect
+- [03:00:04.905 --> 03:00:09.155] that the care will be limited to, um, sex,
+- [03:00:09.445 --> 03:00:10.795] preventing sexual assault.
+- [03:00:10.935 --> 03:00:14.915] You expect all physical, um, injury to be guarded against.
+- [03:00:15.575 --> 03:00:18.235] And, and, and, and what that shows, your Honor, is that
+- [03:00:18.815 --> 03:00:21.275] in, in each case, of course, where the duty is stated,
+- [03:00:21.655 --> 03:00:24.035] one is looking at the relationship between the
+- [03:00:24.915 --> 03:00:26.155] provider and the the person.
+- [03:00:26.695 --> 03:00:30.595] And, and one is bringing to account knowledge of
+- [03:00:31.495 --> 03:00:35.515] the way in which risks to safety tend to occur in
+- [03:00:35.515 --> 03:00:36.835] that environment.
+- [03:00:37.515 --> 03:00:38.675] Absolutely. I mean, there has, there has
+- [03:00:38.675 --> 03:00:41.395] to be an assumption of responsibility on the one hand and,
+- [03:00:41.575 --> 03:00:43.595] and the, the entrustment on the other.
+- [03:00:43.655 --> 03:00:47.155] But once you've got that, why would it be limited to,
+- [03:00:47.615 --> 03:00:49.715] um, sexual assault?
+- [03:00:50.185 --> 03:00:51.995] Well, the, the, because it,
+- [03:00:51.995 --> 03:00:54.395] it will link into reasonable foreseeability that I'm coming
+- [03:00:54.395 --> 03:00:56.275] to next, but, um,
+- [03:00:57.815 --> 03:00:59.980] and this is the point the court appeal correctly made.
+- [03:01:00.105 --> 03:01:02.845] We, we are looking at 1969, your honors are being asked
+- [03:01:02.845 --> 03:01:04.765] to find what was the assumption
+- [03:01:04.785 --> 03:01:08.445] of responsibility in 1969 based on knowledge of
+- [03:01:08.755 --> 03:01:10.965] what risks there might be dropping a child
+- [03:01:10.965 --> 03:01:13.605] to a childcare center in 1969. But
+- [03:01:13.605 --> 03:01:14.965] That's because we're starting to narrow.
+- [03:01:15.385 --> 03:01:18.685] You should be, if the, if, if it's a child,
+- [03:01:19.375 --> 03:01:23.445] isn't it just an assumption of a risk of physical,
+- [03:01:23.515 --> 03:01:24.965] some sort of physical harm?
+- [03:01:25.905 --> 03:01:28.045] And then you ask, you don't ask all the types
+- [03:01:28.065 --> 03:01:31.505] of physical harm, you just ask that, uh, it's
+- [03:01:31.505 --> 03:01:34.625] because the inquiries are much harder if you're talking
+- [03:01:34.625 --> 03:01:38.825] about sexual assault, that it kind of helps your case
+- [03:01:38.825 --> 03:01:42.225] because then that becomes a, particularly, the,
+- [03:01:42.225 --> 03:01:44.065] the foreseeability is much more difficult.
+- [03:01:44.485 --> 03:01:47.025] But to take Justice Edelman's case of a childcare center,
+- [03:01:47.325 --> 03:01:50.265] you would simply just ask all the various ways
+- [03:01:50.295 --> 03:01:52.745] that a child could suffer some sort
+- [03:01:52.745 --> 03:01:55.225] of physical harm in that environment.
+- [03:01:55.495 --> 03:01:57.625] Well, your Honor, and if you've got a couple, you don't have
+- [03:01:57.625 --> 03:01:59.705] to, you don't have to foresee all 20.
+- [03:02:00.485 --> 03:02:02.065] Why is that why that could happen?
+- [03:02:02.125 --> 03:02:04.345] You just have to have a, you just have a generalized con
+- [03:02:04.435 --> 03:02:05.705] conception of that, don't
+- [03:02:05.705 --> 03:02:06.705] You? What about psychiatric
+- [03:02:06.705 --> 03:02:06.985] harm?
+- [03:02:08.355 --> 03:02:11.665] Would there be a, a duty to take reasonable care
+- [03:02:11.885 --> 03:02:13.425] to avoid psychiatric harm
+- [03:02:14.125 --> 03:02:17.585] of a child at a childcare center back in 1969?
+- [03:02:18.775 --> 03:02:21.065] Well, it presumably would've been unheard of
+- [03:02:21.065 --> 03:02:23.745] that such such harm would be suffered in 1969.
+- [03:02:24.565 --> 03:02:26.345] So to state the duty 55 years
+- [03:02:26.345 --> 03:02:29.625] after the event, which was the Court of Appeals point,
+- [03:02:29.895 --> 03:02:33.065] with without carefully distinguishing
+- [03:02:33.655 --> 03:02:35.945] current day knowledge from knowledge at the time,
+- [03:02:36.905 --> 03:02:38.505] I i is an essential part of the process.
+- [03:02:38.605 --> 03:02:40.385] And at the stage of duty of care, of course,
+- [03:02:40.485 --> 03:02:42.145] you are stating a proposition of law,
+- [03:02:43.345 --> 03:02:46.165] not merely a proposition of, of fact at the breach stage
+- [03:02:46.465 --> 03:02:51.015] and in a different context, your honor's in mall land, uh,
+- [03:02:51.885 --> 03:02:55.415] That was economic loss Be because it was a novel case.
+- [03:02:55.795 --> 03:02:57.695] And, and your Honor said in Mallor land,
+- [03:02:57.695 --> 03:03:00.695] I'll just give the reference 98 a LJ R 9 56.
+- [03:03:01.365 --> 03:03:04.575] It's in the supplementary book at paragraph 1929.
+- [03:03:04.575 --> 03:03:06.975] An essential element of negligence is
+- [03:03:06.975 --> 03:03:09.295] that the defendant knows the plaintiff, plaintiff a duty
+- [03:03:09.315 --> 03:03:11.935] to take reasonable care when engaging in an activity
+- [03:03:12.035 --> 03:03:14.975] to avoid causing the plaintiff a particular type of damage
+- [03:03:14.995 --> 03:03:18.115] or loss that is reasonably foreseeable.
+- [03:03:18.335 --> 03:03:23.185] So at the stage of duty, particular type
+- [03:03:23.185 --> 03:03:25.585] of damage or loss that is reasonably foreseeable.
+- [03:03:25.585 --> 03:03:27.385] And that's why it's linked to the next question I'm coming
+- [03:03:27.385 --> 03:03:29.065] to, which is reasonable foreseeability.
+- [03:03:29.925 --> 03:03:30.985] But, um,
+- [03:03:32.125 --> 03:03:33.905] before I come to reasonable foreseeability,
+- [03:03:33.965 --> 03:03:35.105] so Your Honor understands
+- [03:03:36.195 --> 03:03:40.185] where we understand this appeal goes, if contrary
+- [03:03:40.185 --> 03:03:44.305] to our submissions you were to find there was a duty of care
+- [03:03:44.365 --> 03:03:49.305] as per this morning's note, which we urge you not to do
+- [03:03:49.365 --> 03:03:50.505] as a question of law.
+- [03:03:51.245 --> 03:03:52.665] Um, a couple of things follow.
+- [03:03:52.855 --> 03:03:54.945] Firstly, that is not the duty of care,
+- [03:03:55.595 --> 03:03:59.405] which the primary judge found at paragraph 224.
+- [03:04:02.505 --> 03:04:06.285] Uh, I'm not here taking a suter
+- [03:04:06.285 --> 03:04:08.205] and gun data point on this point,
+- [03:04:08.305 --> 03:04:09.845] but it is a different duty of care.
+- [03:04:10.705 --> 03:04:13.445] And the second thing is that the inquiry into breach
+- [03:04:13.465 --> 03:04:18.285] of the duty was never done by her honor with respect
+- [03:04:18.285 --> 03:04:19.445] to this morning's duty.
+- [03:04:20.145 --> 03:04:22.445] So that part of the case has not yet been finished.
+- [03:04:22.545 --> 03:04:23.885] And the third is that as Mr.
+- [03:04:23.885 --> 03:04:27.005] Sheller will show you, in any event,
+- [03:04:27.425 --> 03:04:29.165] we had arguments on breach of duty,
+- [03:04:29.775 --> 03:04:32.045] which were entertained in the Court of appeal
+- [03:04:32.045 --> 03:04:33.285] and have not yet been resolved.
+- [03:04:34.305 --> 03:04:38.205] So on any view, breach would have to be
+- [03:04:38.725 --> 03:04:40.205] remitted on the ordinary duty of care.
+- [03:04:41.385 --> 03:04:45.005] And we think that places us
+- [03:04:45.025 --> 03:04:47.405] and perhaps you in a slightly different difficult position
+- [03:04:47.405 --> 03:04:49.045] because the submissions I'm now going on
+- [03:04:49.045 --> 03:04:50.685] to make about reasonable foreseeability,
+- [03:04:51.145 --> 03:04:53.125] we submit a relevant to duty of care.
+- [03:04:55.705 --> 03:04:57.805] But I, if you were to adopt Mr.
+- [03:04:57.835 --> 03:05:00.725] Hertzfeld formulation of duty, you might delegate all that
+- [03:05:00.725 --> 03:05:05.605] and say, well, that's for, that's for breach of duty. Um,
+- [03:05:06.205 --> 03:05:10.765] I think I asked if there's a non duty, the breach is in
+- [03:05:11.465 --> 03:05:14.245] SEC and is in the sexual assault, isn't it?
+- [03:05:14.625 --> 03:05:16.845] That's the, it's the, that is the breach.
+- [03:05:17.755 --> 03:05:19.085] Well, If you're at that point
+- [03:05:21.315 --> 03:05:22.925] With respect, that oversimplifies it,
+- [03:05:22.925 --> 03:05:24.045] your Honor, that's how they put it.
+- [03:05:24.585 --> 03:05:26.525] We say it's not quite as simple as that
+- [03:05:26.525 --> 03:05:30.285] because you're still trying to work out what is the
+- [03:05:31.285 --> 03:05:33.885] insuring of reasonable care by the delegate,
+- [03:05:33.885 --> 03:05:36.645] which did not occur, which requires you to attend to
+- [03:05:36.645 --> 03:05:38.405] what the delegate did.
+- [03:05:39.225 --> 03:05:41.685] And you've got the question whether
+- [03:05:41.685 --> 03:05:42.965] sexual assault occurred, Mr.
+- [03:05:43.255 --> 03:05:45.205] Sheer is gonna deal with that, that should also be remitted.
+- [03:05:45.465 --> 03:05:49.615] But, um, I'll come to this on Lepore,
+- [03:05:49.615 --> 03:05:50.975] but there are grave problems.
+- [03:05:51.125 --> 03:05:54.135] This is what Chief Justice Gleason said in Lepore, uh,
+- [03:05:54.515 --> 03:05:56.855] an intentional assault is in one sense a failure
+- [03:05:56.875 --> 03:06:00.325] to take care, but it is far more
+- [03:06:00.325 --> 03:06:01.405] than a failure to take care.
+- [03:06:01.555 --> 03:06:02.805] It's an intentional invasion
+- [03:06:02.905 --> 03:06:05.245] of the other person's security and liberty in their body.
+- [03:06:06.475 --> 03:06:11.215] And to say that we will grapple with an intentional assault
+- [03:06:11.675 --> 03:06:14.695] and treat it as if it were just a failure
+- [03:06:14.715 --> 03:06:17.735] to exercise due care within the Civil Liability Act,
+- [03:06:17.835 --> 03:06:21.255] we submit, as Chief Justice Gleason said, is not to grapple
+- [03:06:21.255 --> 03:06:22.495] with the wrong, that is before you.
+- [03:06:22.515 --> 03:06:25.695] Now, I wanna come back to that, but you honor Justice Speech
+- [03:06:25.705 --> 03:06:28.735] Jones, there are still those questions,
+- [03:06:28.835 --> 03:06:30.455] but can I I think next, sorry,
+- [03:06:30.495 --> 03:06:31.495] I took you off. You were saying 2, 2 4
+- [03:06:31.495 --> 03:06:32.335] is different
+- [03:06:32.335 --> 03:06:34.015] to the duty as formulated. Yes.
+- [03:06:34.115 --> 03:06:36.975] Yep. Because 2, 2 4 says, I accept the, the Pleaded duty,
+- [03:06:36.995 --> 03:06:38.655] the pleaded duty had all the problems I started.
+- [03:06:39.235 --> 03:06:43.335] So the breach of the Today's duty
+- [03:06:44.235 --> 03:06:45.895] has not been found by the primary judge.
+- [03:06:45.915 --> 03:06:50.055] In any event, the whole of breach is still part
+- [03:06:50.055 --> 03:06:53.255] of the rehearing under Section 75 A where
+- [03:06:54.995 --> 03:06:57.085] because the Court of appeal hasn't yet had
+- [03:06:57.085 --> 03:06:59.125] to conclude its views on it.
+- [03:06:59.905 --> 03:07:02.405] Um, you, you really have to remit it.
+- [03:07:02.425 --> 03:07:05.125] Now, we have tried, given, we accept the force
+- [03:07:05.145 --> 03:07:07.765] of the Expedition argument, we have tried via the notice
+- [03:07:07.765 --> 03:07:09.965] of contention to say if it were possible for you
+- [03:07:09.965 --> 03:07:11.685] to finalize everything that would be in
+- [03:07:11.685 --> 03:07:12.805] the interest of the plaintiff.
+- [03:07:13.865 --> 03:07:15.285] And we've tried to cooperate with that.
+- [03:07:15.345 --> 03:07:18.085] But I have to tell you, frankly, we don't think you can deal
+- [03:07:18.085 --> 03:07:19.685] with all issues in this appeal.
+- [03:07:20.555 --> 03:07:24.215] Le leaving time aside, you, you don't have the advantages
+- [03:07:24.395 --> 03:07:26.615] of even the Court of appeal on some of these issues.
+- [03:07:26.625 --> 03:07:28.495] There hasn't been a full argument even on breach.
+- [03:07:29.555 --> 03:07:30.855] And if you were to drop Mr.
+- [03:07:31.065 --> 03:07:33.975] Hertz, Hertz Field's duty this morning, we,
+- [03:07:33.995 --> 03:07:36.455] we have an entire argument to give you about why that duty,
+- [03:07:36.995 --> 03:07:38.255] um, was not breached.
+- [03:07:38.405 --> 03:07:41.695] Because you've then gotta decide what was the true level
+- [03:07:41.695 --> 03:07:42.895] of reasonable foreseeability,
+- [03:07:43.075 --> 03:07:44.215] and you've then gotta decide
+- [03:07:44.215 --> 03:07:48.115] what were the reasonable precautions That the church should
+- [03:07:48.115 --> 03:07:49.675] have taken in 1969,
+- [03:07:49.695 --> 03:07:51.955] and you've then gotta decide if those precautions
+- [03:07:52.595 --> 03:07:56.035] would've made a difference to someone like Father Picken
+- [03:07:56.035 --> 03:07:58.995] who on this material was determined to treat the presbytery
+- [03:07:58.995 --> 03:08:00.675] as his own play thing.
+- [03:08:01.295 --> 03:08:03.915] Now, none of that. We've tried to do our best,
+- [03:08:03.915 --> 03:08:06.635] but none of that we think you can actually properly
+- [03:08:07.345 --> 03:08:10.155] determine within your appellate function.
+- [03:08:12.375 --> 03:08:14.235] Now, can I come to reasonable foreseeability,
+- [03:08:17.855 --> 03:08:19.435] uh, and I'll try and deal with it in the,
+- [03:08:19.435 --> 03:08:21.075] in the bite-sized pieces that Your Honor,
+- [03:08:21.075 --> 03:08:23.515] justice Gordon has, um, encouraged Mr.
+- [03:08:23.985 --> 03:08:26.715] Hertzfeld to frame his case in.
+- [03:08:26.745 --> 03:08:30.715] He's got his first case, which is, um, his,
+- [03:08:30.775 --> 03:08:33.675] his generalized case, that's his Father Picken case, sorry,
+- [03:08:33.675 --> 03:08:35.115] his Father Dylan Case.
+- [03:08:38.185 --> 03:08:39.485] And, and that I've already
+- [03:08:40.215 --> 03:08:42.605] given you some submissions on that.
+- [03:08:43.115 --> 03:08:44.485] Well, you attacked that by reference
+- [03:08:44.485 --> 03:08:46.005] to paragraph 2, 3 1, isn't it?
+- [03:08:47.185 --> 03:08:48.605] That's, that's the paragraph
+- [03:08:48.705 --> 03:08:53.705] 2 3 2 3 9 2 3 1.
+- [03:08:58.685 --> 03:09:00.365] Yes, your Honor is yeah, correct. 2, 3, 1.
+- [03:09:01.385 --> 03:09:04.805] Um, and then it's, it's repeated variously.
+- [03:09:04.805 --> 03:09:08.005] It's 2 4 9 2 5 1 and so on.
+- [03:09:08.225 --> 03:09:13.005] So on that case, uh, uh, on the proper reading
+- [03:09:13.025 --> 03:09:14.485] of, of what Her Honor has done,
+- [03:09:15.345 --> 03:09:19.965] she has not doing some process of inferring from this, uh,
+- [03:09:20.035 --> 03:09:23.125] extremely thin evidence of Father Dylan
+- [03:09:23.345 --> 03:09:25.085] to the knowledge of Bishop Toy.
+- [03:09:25.695 --> 03:09:27.725] She's just asking the wrong question.
+- [03:09:28.145 --> 03:09:31.005] If she were trying to engage in that inference without any,
+- [03:09:31.745 --> 03:09:35.805] uh, reasons expressed, justice Leming was perfectly correct
+- [03:09:35.865 --> 03:09:39.485] to regard it as not providing any satisfactory basis
+- [03:09:39.985 --> 03:09:43.205] for making findings about Bishop Toy in 1969.
+- [03:09:45.505 --> 03:09:46.845] So that's the first plank of it.
+- [03:09:49.705 --> 03:09:54.165] The second plank is, uh, father
+- [03:09:54.895 --> 03:09:58.885] Doran and the attribution argument.
+- [03:09:59.825 --> 03:10:04.235] Now, this is the evidence
+- [03:10:04.295 --> 03:10:06.605] of Mr.
+- [03:10:07.075 --> 03:10:11.805] McClung and it's
+- [03:10:11.805 --> 03:10:14.965] important that you, you, you have the evidence
+- [03:10:14.985 --> 03:10:16.525] of the actual report
+- [03:10:21.745 --> 03:10:22.685] to Father Doran.
+- [03:10:24.185 --> 03:10:28.085] So this is in, uh, appellants materials. It's page 3 56.
+- [03:10:30.435 --> 03:10:34.845] It's paragraphs nine through two. 17,
+- [03:10:40.525 --> 03:10:45.005] 17, Sorry, is that correct?
+- [03:10:45.025 --> 03:10:45.565] Was 17,
+- [03:10:49.715 --> 03:10:50.365] what was read?
+- [03:10:50.865 --> 03:10:53.525] Mr. Hertzfeld says 17 wasn't red, that can be checked.
+- [03:10:53.595 --> 03:10:56.285] 16 red. Okay. Subject
+- [03:10:56.305 --> 03:10:59.045] To a evidence Complaint.
+- [03:10:59.075 --> 03:11:02.445] Alright, so 16 was red as evidence that he made a complaint.
+- [03:11:03.405 --> 03:11:07.085] 17. Mr. Hertzfeld says, I accept 17 was not red.
+- [03:11:07.345 --> 03:11:10.485] So the highest the evidence went was a complaint
+- [03:11:11.105 --> 03:11:15.645] in these terms was made to Father Duran.
+- [03:11:16.945 --> 03:11:21.245] Um, so we then look at how Justice Lehman
+- [03:11:22.755 --> 03:11:27.605] most carefully analyzed the significance of
+- [03:11:27.605 --> 03:11:30.205] that evidence.
+- [03:11:31.785 --> 03:11:35.965] Um, and,
+- [03:11:36.025 --> 03:11:38.925] and this commences at page 2 1 9 of the Court of Appeal.
+- [03:11:41.585 --> 03:11:43.565] And, and, and I should highlight that on this point,
+- [03:11:45.545 --> 03:11:47.285] the present appellant does not currently
+- [03:11:47.285 --> 03:11:48.405] have a finding in its favor.
+- [03:11:48.585 --> 03:11:52.165] It was attempting to get a finding in the notice
+- [03:11:52.585 --> 03:11:53.805] of contention below.
+- [03:11:55.025 --> 03:11:57.005] So the primary judge rejected this point.
+- [03:11:58.105 --> 03:11:59.405] The Court of Appeal rejected it.
+- [03:11:59.405 --> 03:12:01.245] So at the moment, you've got both courts rejecting it.
+- [03:12:04.385 --> 03:12:08.165] So Justice Leming goes through, uh,
+- [03:12:09.945 --> 03:12:13.725] the nature of the, um, material.
+- [03:12:15.305 --> 03:12:18.205] Um, at 2 26, he records our submission.
+- [03:12:18.205 --> 03:12:20.845] It was not suggested that Father Doran was a senior member
+- [03:12:20.845 --> 03:12:24.165] of the clergy, let alone a trustee,
+- [03:12:25.305 --> 03:12:27.965] or that he in fact told anyone
+- [03:12:28.785 --> 03:12:30.645] 2, 2, 7 deals with an irrelevance.
+- [03:12:32.305 --> 03:12:35.925] And 2, 2 8 through two 200
+- [03:12:36.105 --> 03:12:40.845] and, uh, 40
+- [03:12:41.625 --> 03:12:45.365] are the operative reasons that the appellant needs
+- [03:12:45.365 --> 03:12:48.265] to find error in, um,
+- [03:12:48.975 --> 03:12:50.785] they can be summarized at 2 28.
+- [03:12:51.925 --> 03:12:54.085] A mere report to Father Doran did not amount
+- [03:12:54.085 --> 03:12:56.925] to an imputation of any knowledge to the diocese,
+- [03:12:57.825 --> 03:12:59.245] and secondly, was not established
+- [03:12:59.245 --> 03:13:01.125] that Father Doran was under any obligation
+- [03:13:01.125 --> 03:13:02.725] to report what Mr.
+- [03:13:02.875 --> 03:13:04.325] McClung told him.
+- [03:13:05.025 --> 03:13:07.445] So the following reasons of Justice Lehman
+- [03:13:08.475 --> 03:13:11.565] bear out those two propositions.
+- [03:13:12.345 --> 03:13:15.525] Uh, now, uh, his honor makes the point,
+- [03:13:15.525 --> 03:13:17.525] which has not been contradicted today,
+- [03:13:17.835 --> 03:13:21.045] that the Roman Catholic Church was and is hierarchical.
+- [03:13:21.265 --> 03:13:23.245] The knowledge of each and every priest is not taken
+- [03:13:23.865 --> 03:13:25.765] to be the knowledge of the institution as a whole.
+- [03:13:26.825 --> 03:13:29.285] So Mr. Zel said, that's the wrong question.
+- [03:13:29.475 --> 03:13:31.245] It's asked being asked at the wrong level.
+- [03:13:31.675 --> 03:13:33.565] It's the, it's part of the right question,
+- [03:13:33.915 --> 03:13:37.365] because what one is saying is if a report was made
+- [03:13:37.425 --> 03:13:41.485] to Father Doran as the parish priest, what does
+- [03:13:41.485 --> 03:13:43.645] that connote within the hierarchy of the Catholic Church?
+- [03:13:43.945 --> 03:13:48.325] And the point being made at two 30, which has not been, uh,
+- [03:13:48.925 --> 03:13:51.765] contradicted on the facts, is that,
+- [03:13:51.945 --> 03:13:54.525] and this is part of the answer, not the whole of it, Doran,
+- [03:13:55.305 --> 03:13:57.045] um, was not the bishop
+- [03:13:57.185 --> 03:13:59.125] and was not a senior member of the diocese.
+- [03:13:59.265 --> 03:14:00.405] Yes, he was a parish priest,
+- [03:14:00.425 --> 03:14:04.165] but no, he did not hold a position in any
+- [03:14:04.165 --> 03:14:06.325] of those senior diocese and roles.
+- [03:14:06.465 --> 03:14:09.245] So that's part of what we need to bring to account.
+- [03:14:09.625 --> 03:14:11.165] 2 31 says. So
+- [03:14:11.165 --> 03:14:13.925] Two 30 is, is a, is is the way they ran their case below.
+- [03:14:17.335 --> 03:14:20.125] YYY yes. They, they ran the case.
+- [03:14:20.195 --> 03:14:22.605] They, they had to establish knowledge by the bishop
+- [03:14:22.665 --> 03:14:24.045] or a senior member of the diocese.
+- [03:14:25.265 --> 03:14:28.745] Um, they did not attempt to say who they were,
+- [03:14:29.125 --> 03:14:30.945] but they certainly didn't suggest Father
+- [03:14:31.075 --> 03:14:32.305] Duran was amongst them.
+- [03:14:32.325 --> 03:14:33.905] So this doesn't answer the whole of their case,
+- [03:14:33.925 --> 03:14:36.625] but it, it eliminates one possible plank of it.
+- [03:14:37.045 --> 03:14:38.745] He holds none of those senior positions.
+- [03:14:38.745 --> 03:14:42.585] Then 2 31, even if he were an employee,
+- [03:14:43.915 --> 03:14:48.265] imputation of knowledge would be context specific.
+- [03:14:49.285 --> 03:14:54.025] And 2 32 parish priests are not employees.
+- [03:14:54.045 --> 03:14:56.745] So that respects what this court has held in Bird,
+- [03:14:57.765 --> 03:14:59.825] and there's no reason why in the absence of a duty
+- [03:14:59.825 --> 03:15:01.145] to communicate a complaint,
+- [03:15:02.055 --> 03:15:05.465] more senior priests should have the parish priests knowledge
+- [03:15:05.875 --> 03:15:07.225] attributed to them.
+- [03:15:07.325 --> 03:15:10.505] Now, that's critical to the reasoning that there is
+- [03:15:11.445 --> 03:15:14.705] an absence of a basis of a duty to communicate
+- [03:15:15.695 --> 03:15:19.185] from Doran to the more senior people in paragraph two 30.
+- [03:15:19.805 --> 03:15:23.705] Um, Mr. Gleason, just looking at paragraph 35 a
+- [03:15:23.725 --> 03:15:27.585] of the amended statement of P claim, it does seem that, um,
+- [03:15:27.805 --> 03:15:31.545] on Foreseeability the plaintiff was relying on, um,
+- [03:15:31.545 --> 03:15:34.105] knowledge of members of the clergy in the diocese.
+- [03:15:56.255 --> 03:15:57.705] Your Honor is correct. They have referred
+- [03:15:57.705 --> 03:15:59.865] to members of the clergy.
+- [03:16:00.805 --> 03:16:04.465] Uh, the, the point the court of appeals making is, um,
+- [03:16:06.835 --> 03:16:10.375] absent of duty to communicate from the level
+- [03:16:10.375 --> 03:16:13.455] of the parish priest to the bishop
+- [03:16:13.595 --> 03:16:15.855] or the senior priests, then they have failed
+- [03:16:15.855 --> 03:16:17.055] to make out that case.
+- [03:16:17.355 --> 03:16:22.095] And, uh, your Honor, justice b Jones asked this morning
+- [03:16:22.115 --> 03:16:24.855] how this, I think, how this attribution is occurring.
+- [03:16:24.995 --> 03:16:27.175] And two answers were given, one tentatively
+- [03:16:27.175 --> 03:16:28.975] and one more firmly.
+- [03:16:29.755 --> 03:16:33.535] Um, one answer seemed to be that any communication
+- [03:16:33.595 --> 03:16:35.095] to any parish priest
+- [03:16:37.315 --> 03:16:40.215] of any matter is deemed to be receipt by
+- [03:16:40.995 --> 03:16:42.895] the diocese without more, without any duty
+- [03:16:42.895 --> 03:16:43.975] to communicate higher,
+- [03:16:45.085 --> 03:16:49.135] that we submit at least on the material proven in this case,
+- [03:16:50.545 --> 03:16:52.255] would not respect the
+- [03:16:53.455 --> 03:16:55.735] hierarchical structure within the Catholic church.
+- [03:16:55.805 --> 03:17:00.175] That would mean that we'd have anything known by any one
+- [03:17:00.175 --> 03:17:01.935] of the 55 parish priests.
+- [03:17:02.955 --> 03:17:07.455] Uh, paragraph 2 32 would be taken to be the knowledge
+- [03:17:07.475 --> 03:17:09.095] of the diocese. Does
+- [03:17:09.095 --> 03:17:11.895] That mean that if it's a matter of fact, you would have
+- [03:17:11.895 --> 03:17:15.295] to lead evidence to prove what,
+- [03:17:16.005 --> 03:17:17.055] what, what's, what's missing?
+- [03:17:18.165 --> 03:17:22.655] What, what, what's missing is that within the structures
+- [03:17:22.655 --> 03:17:24.695] of the organization, there was a duty
+- [03:17:26.675 --> 03:17:29.615] on a parish priest to communicate any
+- [03:17:29.675 --> 03:17:34.335] and every complaint irrespective of, uh,
+- [03:17:36.095 --> 03:17:38.695] whatever assessment the parish priest may have made about
+- [03:17:38.755 --> 03:17:40.975] its insignificance at the time.
+- [03:17:41.795 --> 03:17:43.855] Mr. Gleason were the, all the people
+- [03:17:43.855 --> 03:17:47.735] that are listed in two 30, the diocese
+- [03:17:47.735 --> 03:17:50.575] and consultants, the chancellor, the CNO judges
+- [03:17:50.675 --> 03:17:55.015] and so on, are they all people that are within this diocese?
+- [03:17:57.035 --> 03:17:58.215] In other words, they're all people
+- [03:17:58.215 --> 03:18:00.935] that hold their appointments within Maitland, Newcastle.
+- [03:18:01.555 --> 03:18:02.555] Yes.
+- [03:18:06.275 --> 03:18:08.815] So I understand the yearbook that his honor is referring
+- [03:18:08.815 --> 03:18:12.895] to is the yearbook referencing this diocese. So
+- [03:18:12.965 --> 03:18:15.695] They're all effectively people who are more senior,
+- [03:18:16.125 --> 03:18:18.015] More senior in The organizational
+- [03:18:18.295 --> 03:18:19.415] structure to parish priests.
+- [03:18:19.595 --> 03:18:20.595] Yes. Thank You,
+- [03:18:25.605 --> 03:18:26.605] Mr. Gleason. One way
+- [03:18:26.605 --> 03:18:28.025] I, I understood the argument.
+- [03:18:28.025 --> 03:18:30.065] Perhaps the only way I understood
+- [03:18:30.065 --> 03:18:32.225] the argument being put by Mr. Herzfeld
+- [03:18:32.615 --> 03:18:35.945] This morning Was that this attribution arises
+- [03:18:35.945 --> 03:18:38.025] through the operation of Section six. Oh,
+- [03:18:38.845 --> 03:18:39.845] Yes. So
+- [03:18:39.845 --> 03:18:42.145] to, to deal with that.
+- [03:18:42.325 --> 03:18:43.785] Um, firstly,
+- [03:18:43.785 --> 03:18:46.625] we've checked the reference given this morning, his Honor is correct.
+- [03:18:46.685 --> 03:18:49.445] Six oh was not argued, but leave that aside.
+- [03:18:49.545 --> 03:18:50.685] It doesn't come through six.
+- [03:18:50.685 --> 03:18:52.485] Oh, because six, six oh is on
+- [03:18:55.965 --> 03:18:57.965] j Justice Leming in paragraph 2 32
+- [03:18:58.515 --> 03:19:00.605] said there was no argument at trial on six.
+- [03:19:00.605 --> 03:19:02.765] Oh, we've checked the reference given there was no argument.
+- [03:19:02.765 --> 03:19:04.805] So he was correct to say not,
+- [03:19:05.385 --> 03:19:09.685] but if, if he, he's also correct on six oh
+- [03:19:10.035 --> 03:19:13.365] Body one, Because six oh
+- [03:19:15.355 --> 03:19:19.365] does not have this purpose of attributing the knowledge of
+- [03:19:20.625 --> 03:19:24.205] people at various points within the
+- [03:19:24.205 --> 03:19:26.605] organization to the organization.
+- [03:19:26.605 --> 03:19:28.405] It, its purpose is, is far simpler.
+- [03:19:28.625 --> 03:19:30.205] The purpose is simply to say that
+- [03:19:30.815 --> 03:19:32.805] we've got an unincorporated association,
+- [03:19:33.685 --> 03:19:35.035] which under traditional law,
+- [03:19:35.035 --> 03:19:37.035] there may be difficulties suing.
+- [03:19:38.455 --> 03:19:41.955] We also may have difficulties in the Ellis world
+- [03:19:42.565 --> 03:19:43.635] where the assets
+- [03:19:44.815 --> 03:19:47.435] of the body are not in the unincorporated association.
+- [03:19:47.435 --> 03:19:50.675] They're in the, uh, the separate trustees.
+- [03:19:51.455 --> 03:19:52.555] So what we're going to do is
+- [03:19:52.555 --> 03:19:56.035] to create a procedural mechanism by which
+- [03:19:57.475 --> 03:20:01.245] a proper defendant can be appointed, who will be answerable
+- [03:20:01.265 --> 03:20:03.445] for the judgment, will be answerable for
+- [03:20:04.145 --> 03:20:07.685] the legal responsibility, will have its assets
+- [03:20:08.945 --> 03:20:13.605] at stake, but we will treat it as if
+- [03:20:16.465 --> 03:20:20.605] the unincorporated association had in fact been the
+- [03:20:20.605 --> 03:20:21.725] proper, proper defendant.
+- [03:20:21.785 --> 03:20:24.165] So it's not intended to change any principles of
+- [03:20:25.035 --> 03:20:27.765] attribution, which is justice Lemmings point. What about
+- [03:20:27.885 --> 03:20:28.885] B? Anything done
+- [03:20:28.885 --> 03:20:31.765] by the unincorporated organization is taken
+- [03:20:31.785 --> 03:20:33.245] to have been done by the proper defendant.
+- [03:20:33.635 --> 03:20:35.725] There's some attribution there, but, but
+- [03:20:35.725 --> 03:20:40.205] It, it, it's done by the unincorporated association.
+- [03:20:40.205 --> 03:20:42.205] It's, it's not the next step of altering the rules
+- [03:20:42.225 --> 03:20:46.045] by which something would be seen to be done by picken
+- [03:20:46.225 --> 03:20:48.605] as opposed to done by the unincorporated association.
+- [03:20:49.275 --> 03:20:53.485] What, what does the organization mean in this context?
+- [03:20:54.065 --> 03:20:57.405] Unincorporated organization means an organization
+- [03:20:57.405 --> 03:20:58.485] that is not incorporated.
+- [03:20:58.635 --> 03:21:00.885] Okay. What does organization mean here?
+- [03:21:03.845 --> 03:21:05.485] I mean, I know what Mr. Herzfeld say.
+- [03:21:05.485 --> 03:21:07.885] He'd say every single parish priest.
+- [03:21:08.705 --> 03:21:11.045] No, it, it, it's not that. Um,
+- [03:21:11.155 --> 03:21:14.545] Does it connote some kind of, um, uh,
+- [03:21:15.275 --> 03:21:17.705] leadership position within the organization like a board
+- [03:21:17.705 --> 03:21:19.465] of directors, for example? It, it,
+- [03:21:19.725 --> 03:21:21.905] It, it connotes the organized structure
+- [03:21:22.045 --> 03:21:26.065] by which the Catholic church in this geographical area,
+- [03:21:27.125 --> 03:21:29.265] um, fulfills its mission.
+- [03:21:29.445 --> 03:21:32.585] And so functionally, it's, it's the equivalent to finding
+- [03:21:33.005 --> 03:21:34.265] who are the board of directors.
+- [03:21:37.385 --> 03:21:39.845] So the people listed at two 30 would be
+- [03:21:39.845 --> 03:21:40.965] the organization that
+- [03:21:42.515 --> 03:21:45.525] They would be the people whose knowledge and,
+- [03:21:45.585 --> 03:21:47.085] and would be, would be, would be the knowledge
+- [03:21:47.085 --> 03:21:48.005] of the organization, would be the
+- [03:21:48.005 --> 03:21:48.765] knowledge of the organization.
+- [03:21:48.825 --> 03:21:52.485] But to the extent, as 2 32 says there are 55
+- [03:21:53.325 --> 03:21:55.525] parishes, there are 200 priests and nuns,
+- [03:21:55.525 --> 03:21:57.085] and there's 1200 square miles.
+- [03:21:57.945 --> 03:22:00.685] Um, and it's their knowledge, which is then attributed
+- [03:22:00.745 --> 03:22:02.085] to the defendant.
+- [03:22:02.835 --> 03:22:06.285] It's the two 30 people whose knowledge is attributed,
+- [03:22:06.425 --> 03:22:09.405] but it's not, um, where one strand
+- [03:22:09.405 --> 03:22:11.845] of the appellants argument goes that anyone within the
+- [03:22:12.455 --> 03:22:16.925] 55 parishes and 200 priests or nuns I is the organization,
+- [03:22:16.925 --> 03:22:20.285] and therefore its knowledge is
+- [03:22:21.515 --> 03:22:23.325] then the knowledge of the proper defendant.
+- [03:22:23.545 --> 03:22:26.205] So, your honor, chief justice, our short answer is six.
+- [03:22:26.225 --> 03:22:30.485] Oh, had it been run, uh, it would be pushed far
+- [03:22:30.485 --> 03:22:33.525] beyond its intended procedural purpose if it were to alter
+- [03:22:34.355 --> 03:22:35.525] established principles
+- [03:22:35.525 --> 03:22:38.725] by which attribution were to take place. It
+- [03:22:38.725 --> 03:22:40.485] It, it just picks up established principles.
+- [03:22:40.635 --> 03:22:44.245] It's, it, it in effect incorporates, um,
+- [03:22:44.745 --> 03:22:46.445] it incorporates the organization.
+- [03:22:46.765 --> 03:22:50.085] I mean, even, even the deeming may actually be an
+- [03:22:50.085 --> 03:22:52.485] incorporation as such a, a, a with a,
+- [03:22:52.485 --> 03:22:54.165] with a different person as profit defendant,
+- [03:22:54.475 --> 03:22:57.565] Well approach it as if it were incorporated.
+- [03:22:57.625 --> 03:22:59.965] And therefore, SHA Justice Stewart said, what,
+- [03:23:00.355 --> 03:23:02.205] what would we would be, we'd be thinking of
+- [03:23:02.205 --> 03:23:03.525] with an incorporated body.
+- [03:23:03.545 --> 03:23:07.525] We would immediately, um, not be saying anything
+- [03:23:08.615 --> 03:23:11.205] known to or done by a member of the general meeting
+- [03:23:12.105 --> 03:23:13.525] is known and done by the body.
+- [03:23:13.585 --> 03:23:17.285] One would be saying, if it has a hierarchy, which it does
+- [03:23:17.895 --> 03:23:21.605] under the Corporations Act, that will help inform whose acts
+- [03:23:21.625 --> 03:23:23.405] and whose mind we're looking at. And we
+- [03:23:23.405 --> 03:23:24.685] Might pick up some employees
+- [03:23:24.685 --> 03:23:26.125] depending on the scope of their duties.
+- [03:23:26.785 --> 03:23:30.115] We might a a, a managing director. Oh,
+- [03:23:30.245 --> 03:23:31.875] Lower a manager, a regional manager,
+- [03:23:32.665 --> 03:23:33.665] Yeah. Yes. I'm, I'm
+- [03:23:33.665 --> 03:23:34.475] not limiting it to that,
+- [03:23:34.495 --> 03:23:37.075] but yes, you'd be doing it by reason of their position,
+- [03:23:37.075 --> 03:23:38.555] their responsibility to the board.
+- [03:23:39.375 --> 03:23:41.955] Um, but what, and and their reporting obligations
+- [03:23:42.215 --> 03:23:44.555] and their reporting obligations and priests,
+- [03:23:44.615 --> 03:23:47.675] Parish priests start to look a lot like executives well
+- [03:23:47.705 --> 03:23:50.395] over, over such a broad, huge organization.
+- [03:23:51.305 --> 03:23:51.795] Well, well,
+- [03:23:56.295 --> 03:24:00.495] you, your honor, well, I'll give two answers.
+- [03:24:00.555 --> 03:24:02.895] The, the first is this is the difficulty of asking you
+- [03:24:02.895 --> 03:24:05.135] to make findings of fact for the first time in this court.
+- [03:24:05.565 --> 03:24:07.855] What, what you will see from the paragraphs I'm taking you
+- [03:24:07.855 --> 03:24:10.415] to, and I know there's been some criticism of some parts
+- [03:24:10.415 --> 03:24:13.775] of Justice Lehman, but in most of this judgment,
+- [03:24:14.475 --> 03:24:16.895] he has done the most thorough job attempting
+- [03:24:16.895 --> 03:24:18.295] as he could as an appellate judge.
+- [03:24:18.475 --> 03:24:20.255] And the other two judges have agreed with him
+- [03:24:20.875 --> 03:24:23.975] to make the best of this necessarily unsatisfactory record.
+- [03:24:25.435 --> 03:24:28.095] And he's looked at this, he's got a series of reasons.
+- [03:24:28.715 --> 03:24:33.195] And then, uh, the second part
+- [03:24:33.195 --> 03:24:34.955] of my answer is then what I was coming to,
+- [03:24:34.955 --> 03:24:39.195] which is paragraphs 2 34 through to 2 2 40,
+- [03:24:39.445 --> 03:24:40.915] which is, um,
+- [03:24:41.905 --> 03:24:43.405] This is of Justice Leming
+- [03:24:43.545 --> 03:24:47.165] Of Justice Leming, which, which is whether on the evidence
+- [03:24:47.825 --> 03:24:49.005] as led in this case
+- [03:24:52.095 --> 03:24:54.435] and within this organization,
+- [03:24:54.485 --> 03:24:56.155] there was a duty to pass it on.
+- [03:24:56.335 --> 03:24:59.075] So rather than pronouncing at a level
+- [03:24:59.845 --> 03:25:02.355] which is really not supported by the specificity
+- [03:25:02.355 --> 03:25:05.475] of the evidence of, is there a rule for all parish priests
+- [03:25:05.475 --> 03:25:09.155] as against diocese, his honor, look correctly
+- [03:25:10.015 --> 03:25:11.755] at the more specific evidence of
+- [03:25:11.755 --> 03:25:14.315] what a reasonable person in do position would've
+- [03:25:14.315 --> 03:25:15.395] done in 1969.
+- [03:25:16.615 --> 03:25:19.155] Um, the plaintiff did not reduce any evidence
+- [03:25:19.185 --> 03:25:23.715] that in response to the report of the abuse, father Doran
+- [03:25:24.015 --> 03:25:26.275] or some other parish priest would take the matter further.
+- [03:25:26.455 --> 03:25:31.275] So pausing there, although Dylan is their expert, um,
+- [03:25:32.795 --> 03:25:34.125] unqualified we'd say, but
+- [03:25:34.245 --> 03:25:36.165] although he's their expert, they didn't lead evidence from
+- [03:25:36.165 --> 03:25:38.005] him on this question, that it was the duty
+- [03:25:38.025 --> 03:25:40.605] of a parish priest to pass on.
+- [03:25:40.985 --> 03:25:42.365] To the extent he gave evidence,
+- [03:25:43.385 --> 03:25:44.525] the evidence doesn't help them.
+- [03:25:44.585 --> 03:25:46.045] You see that in 2 35.
+- [03:25:47.025 --> 03:25:48.845] Um, then goes into the facts further
+- [03:25:49.385 --> 03:25:52.645] and said, if you'd look at what we know as to what passed
+- [03:25:52.645 --> 03:25:54.045] between Dora and Mr.
+- [03:25:54.235 --> 03:25:58.885] McClung, um, he tended to confirm that,
+- [03:25:59.265 --> 03:26:02.925] um, McClung was not asking Father Doran to
+- [03:26:03.465 --> 03:26:05.885] expect any further steps to be taken.
+- [03:26:07.025 --> 03:26:10.605] And the observations of Lord Neuberger in MAGA
+- [03:26:10.605 --> 03:26:14.845] and the Birmingham Archdiocese in 2 37 have resonance
+- [03:26:15.025 --> 03:26:16.845] as his honor said.
+- [03:26:17.345 --> 03:26:21.125] And 2 39 brings the key issue together.
+- [03:26:22.025 --> 03:26:25.085] Now, this is, this is a causation point.
+- [03:26:25.805 --> 03:26:29.285] N no, this, this is, this, this is,
+- [03:26:29.585 --> 03:26:31.935] um, this is your duty point
+- [03:26:31.935 --> 03:26:32.935] About knowledge, knowledge.
+- [03:26:33.285 --> 03:26:35.495] This is knowledge as in, um,
+- [03:26:36.555 --> 03:26:37.775] So you raised two arguments.
+- [03:26:37.855 --> 03:26:39.335] I understand you say the knowledge
+- [03:26:39.995 --> 03:26:41.375] is not within the relevant group
+- [03:26:41.375 --> 03:26:45.135] of people identified in two 30, neither pleaded or proved.
+- [03:26:47.165 --> 03:26:49.145] Yes. So you narrow the group of people,
+- [03:26:49.205 --> 03:26:51.385] and in relation to those who fall outside that group,
+- [03:26:51.625 --> 03:26:53.825] I referenced these other paragraphs, you say,
+- [03:26:54.775 --> 03:26:56.825] even if they had the requisite knowledge,
+- [03:26:56.825 --> 03:26:57.985] they're not within the group.
+- [03:26:58.125 --> 03:26:59.425] And if they had the requisite knowledge,
+- [03:26:59.425 --> 03:27:00.545] they didn't pass it up the line
+- [03:27:01.085 --> 03:27:05.345] And, and were not required within the, the rules
+- [03:27:05.445 --> 03:27:09.225] and the circumstances of this organization in 1969 on this
+- [03:27:09.225 --> 03:27:11.025] body of evidence to pass it up the line.
+- [03:27:11.245 --> 03:27:12.265] That's what, so
+- [03:27:12.265 --> 03:27:13.985] If you step back from the facts of this case,
+- [03:27:14.005 --> 03:27:16.665] and once on your analysis, one would have to plead
+- [03:27:16.725 --> 03:27:19.405] and prove who,
+- [03:27:19.535 --> 03:27:23.645] which people held the positions you've identified, identify
+- [03:27:23.645 --> 03:27:25.165] what their knowledge was, if any,
+- [03:27:26.105 --> 03:27:28.125] and if others outside that group had knowledge,
+- [03:27:28.125 --> 03:27:30.325] you would have to prove that they had that knowledge.
+- [03:27:30.345 --> 03:27:32.845] And either they were obliged by reference to the rules
+- [03:27:32.865 --> 03:27:35.685] of the diocese or the church
+- [03:27:35.705 --> 03:27:40.525] or some other rule to pass that up, or they did pass it up
+- [03:27:40.765 --> 03:27:41.765] Regardless of the rule.
+- [03:27:42.145 --> 03:27:45.285] Yes. When we say knowledge, we mean knowledge
+- [03:27:45.345 --> 03:27:48.125] of the risk of sexual assault by a priest.
+- [03:27:48.215 --> 03:27:50.125] Thank you. Is that what you, is that what you mean
+- [03:27:51.585 --> 03:27:52.585] In this context? Yes.
+- [03:27:52.585 --> 03:27:54.845] Yes. Which, which we say goes to duty,
+- [03:27:56.685 --> 03:27:59.545] But in an alternative world will be an essential first step
+- [03:27:59.565 --> 03:28:03.385] in section five B on breach and causation and, and,
+- [03:28:03.405 --> 03:28:05.865] and thoroughly essential on causation.
+- [03:28:06.085 --> 03:28:08.825] And there was a strand in the criticism in writing
+- [03:28:08.855 --> 03:28:11.025] that has not been pressed today, that,
+- [03:28:11.375 --> 03:28:13.985] that justice leming focused only on knowledge
+- [03:28:13.985 --> 03:28:15.585] of a risk posed by picken.
+- [03:28:16.085 --> 03:28:17.905] That's unfair. Justice Leming
+- [03:28:18.965 --> 03:28:22.105] was saying you didn't establish on the evidence knowledge
+- [03:28:22.105 --> 03:28:24.105] of a risk posed by Picken
+- [03:28:24.805 --> 03:28:28.225] or, um, priest generally.
+- [03:28:28.435 --> 03:28:30.625] We've given you all the references in writing in that point.
+- [03:28:31.445 --> 03:28:33.865] But, but at this, the conclusion of this strand
+- [03:28:33.865 --> 03:28:36.145] of the judgment, which you see at two 40 to 2 41,
+- [03:28:36.205 --> 03:28:39.385] is they didn't prove knowledge that Father Picken
+- [03:28:40.235 --> 03:28:41.345] posed a risk to children.
+- [03:28:41.445 --> 03:28:45.545] And that's, um, framed in that particular way
+- [03:28:45.545 --> 03:28:48.185] because this is the answer to ground five of the notice
+- [03:28:48.205 --> 03:28:52.985] of contention that had started back at, uh, paragraph 219.
+- [03:28:59.165 --> 03:29:02.705] So I think that's the second piece of the
+- [03:29:03.215 --> 03:29:07.585] knowledge puzzle, which is Father Duran.
+- [03:29:08.205 --> 03:29:11.265] And then the third piece is, uh,
+- [03:29:11.645 --> 03:29:14.835] the 1954 report of
+- [03:29:16.295 --> 03:29:17.555] Father McDon.
+- [03:29:23.725 --> 03:29:25.345] So that's at
+- [03:29:25.855 --> 03:29:30.385] page 2 96 of the appellant's book.
+- [03:29:30.925 --> 03:29:32.425] And you, you read it
+- [03:29:33.365 --> 03:29:37.625] and the high point of it is page 2 97, between letters
+- [03:29:38.425 --> 03:29:42.825] G two I, It is, uh, uh,
+- [03:29:43.705 --> 03:29:47.585] a record that some complaint was made to Bishop Toy in 1954,
+- [03:29:49.525 --> 03:29:54.125] which caused there to be discussion between Bishop Toy
+- [03:29:54.145 --> 03:29:55.285] and Father Aldon.
+- [03:29:55.545 --> 03:30:00.285] Now, as that was put this morning correctly,
+- [03:30:00.285 --> 03:30:02.405] it was said that is proof
+- [03:30:02.405 --> 03:30:05.165] that an allegation was made in 1954.
+- [03:30:05.345 --> 03:30:08.525] One allegation about one priest to
+- [03:30:09.465 --> 03:30:10.605] Bishop Toy,
+- [03:30:11.465 --> 03:30:14.525] and nothing more is known about that event.
+- [03:30:16.605 --> 03:30:18.585] Now, whether taken on its own
+- [03:30:18.925 --> 03:30:21.625] or taken together with the other Slender Reads that I've
+- [03:30:22.855 --> 03:30:25.465] just analyzed, it is
+- [03:30:26.245 --> 03:30:30.245] we would submit unacceptable in principle to erect, uh,
+- [03:30:30.895 --> 03:30:34.405] reasonable foreseeability of risk of sexual assaults
+- [03:30:36.375 --> 03:30:39.370] in 19 69, 15 years later,
+- [03:30:39.975 --> 03:30:43.965] based on one allegation against one priest,
+- [03:30:44.315 --> 03:30:48.765] with no evidence of how that allegation was
+- [03:30:49.605 --> 03:30:53.085] resolved or what the bishop thought in response to it.
+- [03:30:53.705 --> 03:30:57.765] Now, we support what Justice Leming has
+- [03:30:58.315 --> 03:31:02.245] said about this at paragraphs 213 to
+- [03:31:02.245 --> 03:31:07.245] 218, 214.
+- [03:31:09.905 --> 03:31:12.125] Uh, we can infer there was a discussion between them.
+- [03:31:12.355 --> 03:31:16.245] It's not known what was alleged, not known
+- [03:31:16.285 --> 03:31:20.325] what was said reasonable to assume he denied a wrongdoing.
+- [03:31:21.705 --> 03:31:23.045] Um, two 15.
+- [03:31:23.955 --> 03:31:26.965] That single paragraph in the 1987 report doesn't establish
+- [03:31:26.965 --> 03:31:28.405] Bishop to he knew or believed
+- [03:31:28.405 --> 03:31:30.565] or suspected one of its priests was abusing children.
+- [03:31:32.425 --> 03:31:35.725] Um, and at two 17
+- [03:31:36.105 --> 03:31:40.325] and two 18, his honor was alive to the possibility
+- [03:31:40.325 --> 03:31:43.045] that you could have a case where, uh,
+- [03:31:43.105 --> 03:31:44.925] you had sufficient knowledge of a risk
+- [03:31:44.945 --> 03:31:48.525] of priests in general offending to give rise to a duty
+- [03:31:48.525 --> 03:31:50.125] of care or reasonable foreseeability.
+- [03:31:50.905 --> 03:31:55.205] But this evidence fell short as per paragraph two 18
+- [03:31:56.105 --> 03:31:58.645] of proving that a reasonable person in the position
+- [03:31:58.645 --> 03:32:00.565] of the bishop would've taken steps on the basis
+- [03:32:00.595 --> 03:32:03.085] that every priest was a potential child abuser.
+- [03:32:04.505 --> 03:32:08.725] Um, the instances that were given were too slender to reach
+- [03:32:08.725 --> 03:32:10.485] that conclusion in 1969.
+- [03:32:10.785 --> 03:32:12.885] Now, in circumstances where justice Ball
+- [03:32:12.885 --> 03:32:16.725] and the Chief Justice have carefully reviewed the same
+- [03:32:16.965 --> 03:32:18.445] material, come to the same conclusion,
+- [03:32:18.505 --> 03:32:20.925] we would submit there's no basis for the, for this court
+- [03:32:21.905 --> 03:32:24.165] on a question of fact to interfere
+- [03:32:24.165 --> 03:32:25.765] with what's in paragraph two 18.
+- [03:32:26.265 --> 03:32:28.125] And there's no error of principle in the way in which
+- [03:32:28.905 --> 03:32:30.725] the Court of appeal has approached it. Well,
+- [03:32:30.915 --> 03:32:32.565] When you're dealing with the, the question
+- [03:32:32.565 --> 03:32:36.765] of reasonable foreseeability, how do you, how, if at all,
+- [03:32:36.765 --> 03:32:40.245] do you take into account the unlikelihood of a,
+- [03:32:40.965 --> 03:32:42.605] a child being alone with a priest
+- [03:32:43.425 --> 03:32:48.205] or a child being invited into the Dyson premises? It
+- [03:32:48.305 --> 03:32:50.605] It, it's part of why a person in the bishop
+- [03:32:50.665 --> 03:32:53.125] or the senior clergy would not even, uh,
+- [03:32:53.375 --> 03:32:56.405] reasonably consider these to be serious risks that needed
+- [03:32:56.405 --> 03:32:58.405] to be guarded against because the rules are clear.
+- [03:32:58.725 --> 03:33:02.285] Children will never be taken into that form of, um,
+- [03:33:02.755 --> 03:33:04.205] private exposed environment.
+- [03:33:05.665 --> 03:33:09.605] So you have to assume, um, it's reasonably foreseeable
+- [03:33:09.605 --> 03:33:12.815] that priests will, um, deviate from that
+- [03:33:13.175 --> 03:33:14.375] DD deviate from that.
+- [03:33:15.195 --> 03:33:20.095] And, um, this body of evidence in 1969 didn't,
+- [03:33:20.115 --> 03:33:21.175] didn't go anywhere near that
+- [03:33:21.355 --> 03:33:23.335] Two ad is too highly pitched though, isn't it?
+- [03:33:23.595 --> 03:33:26.175] It doesn't have to be that the reasonable person in the
+- [03:33:26.255 --> 03:33:29.055] bishop would've taken steps on the basis that every priest
+- [03:33:29.635 --> 03:33:31.295] was a potential child abuser.
+- [03:33:32.115 --> 03:33:35.455] The Focus at the, at the duty stage is that much is,
+- [03:33:35.515 --> 03:33:39.605] is a reasonable, is the existence of a risk of
+- [03:33:40.805 --> 03:33:45.365] a priest or a, a proportion of priests.
+- [03:33:45.515 --> 03:33:46.845] Yeah, I I agree with that, your Honor.
+- [03:33:46.915 --> 03:33:49.205] Yeah, E every is rhetorical there.
+- [03:33:49.665 --> 03:33:50.665] It doesn't need to be every,
+- [03:33:53.355 --> 03:33:55.095] And it's not whether they would've taken steps.
+- [03:33:56.065 --> 03:33:57.905] It's they're aware of the risk.
+- [03:33:58.615 --> 03:34:01.185] Well, then I do defend Justice Leming.
+- [03:34:01.225 --> 03:34:06.185] I think what he's saying is that, that the risk of one
+- [03:34:06.185 --> 03:34:08.505] or more priests of a, of a sufficient number
+- [03:34:08.605 --> 03:34:11.745] to be concerned about doing it, were such
+- [03:34:11.745 --> 03:34:13.465] to establish reasonable foreseeability.
+- [03:34:14.095 --> 03:34:16.425] Therefore, you're into, into a duty.
+- [03:34:16.425 --> 03:34:17.665] That's what he's trying to convey.
+- [03:34:18.005 --> 03:34:19.985] We only need one, don't we? Well,
+- [03:34:20.685 --> 03:34:22.785] It might be the one that's been the subject of the claim,
+- [03:34:22.885 --> 03:34:24.065] but that's all you need.
+- [03:34:24.065 --> 03:34:25.065] You don't need more than that.
+- [03:34:26.015 --> 03:34:28.985] Well, One out of 55. One what?
+- [03:34:29.405 --> 03:34:33.385] One priest, one priest outta 55. She's got 55 parishes.
+- [03:34:33.775 --> 03:34:35.625] He's got one of an allegation.
+- [03:34:36.685 --> 03:34:40.305] That's, I I was gonna say to your honor, one, one,
+- [03:34:40.305 --> 03:34:42.905] what we, we've gotta be a little precise, of course, about
+- [03:34:42.905 --> 03:34:44.305] what it is in the present case,
+- [03:34:44.305 --> 03:34:46.345] which is why Justice Leming analyzed this.
+- [03:34:46.375 --> 03:34:48.945] It's no more than from what we know, an allegation.
+- [03:34:48.945 --> 03:34:52.865] And it's one allegation with no knowledge of
+- [03:34:53.055 --> 03:34:56.585] what then passed between Father McDon
+- [03:34:56.885 --> 03:34:58.265] and the Bishop.
+- [03:34:58.535 --> 03:35:01.065] Well, it's allegations 2, 9 7,
+- [03:35:02.485 --> 03:35:04.905] the first one occurring in 1954.
+- [03:35:08.745 --> 03:35:12.125] Uh, I don't, I don't think we can construe that as,
+- [03:35:12.185 --> 03:35:15.245] as a statute and say, we know that the allegations
+- [03:35:17.045 --> 03:35:19.455] continued between 1954 and 1969.
+- [03:35:19.455 --> 03:35:21.495] Oh, this is a document being written in 1987.
+- [03:35:21.765 --> 03:35:24.535] Well, I know I'm just dealing, but it could be, I mean,
+- [03:35:24.535 --> 03:35:25.735] you might be right in saying it's
+- [03:35:25.765 --> 03:35:28.055] allegations about one incident. You dunno,
+- [03:35:28.955 --> 03:35:30.975] It could be about one incident, but even if it's more than
+- [03:35:30.975 --> 03:35:33.775] one incident, all we know from that is that
+- [03:35:34.725 --> 03:35:38.055] something in 1954, we know nothing more about
+- [03:35:39.355 --> 03:35:42.335] the incident or about what passed between Bishop Toy
+- [03:35:42.555 --> 03:35:43.575] and Father McDon
+- [03:35:44.035 --> 03:35:48.255] before he left the diocese in 1969, paragraph 2 1 6.
+- [03:35:49.715 --> 03:35:54.495] So we would
+- [03:35:54.495 --> 03:35:55.855] submit that when the,
+- [03:35:55.955 --> 03:35:58.495] the Chief Justice cautioned at paragraph
+- [03:36:06.435 --> 03:36:09.685] 12, uh,
+- [03:36:11.795 --> 03:36:16.165] that the evidence here was simply too
+- [03:36:16.525 --> 03:36:18.205] exiguous and speculative
+- [03:36:19.985 --> 03:36:22.485] and not sufficiently strong as of 1969,
+- [03:36:22.955 --> 03:36:25.565] he's honor did not fall into error.
+- [03:36:27.105 --> 03:36:31.725] So your honors, in terms of our, our outline,
+- [03:36:32.265 --> 03:36:32.485] uh,
+- [03:36:44.465 --> 03:36:46.445] uh, so I've covered paragraph four
+- [03:36:50.945 --> 03:36:52.525] and I've covered paragraph five.
+- [03:37:01.135 --> 03:37:04.395] And so the concluding aspect of the ordinary duty
+- [03:37:04.395 --> 03:37:09.155] of care is, uh, where the evidence fell in respect to
+- [03:37:09.685 --> 03:37:12.595] other factors that is other than
+- [03:37:13.425 --> 03:37:14.855] reasonable foreseeability.
+- [03:37:16.515 --> 03:37:20.495] And, uh, our submission here is that
+- [03:37:23.535 --> 03:37:26.995] on the evidence, the relationship between the appellant
+- [03:37:26.995 --> 03:37:31.955] and the diocese was limited in character.
+- [03:37:32.975 --> 03:37:36.435] Um, firstly, there were the weekly scripture classes,
+- [03:37:38.335 --> 03:37:42.235] uh, but as the duty has developed this morning,
+- [03:37:42.335 --> 03:37:45.755] we would submit they are essentially collateral
+- [03:37:45.935 --> 03:37:47.275] to the alleged duty of care
+- [03:37:48.145 --> 03:37:50.195] because it's no longer a duty to take
+- [03:37:51.465 --> 03:37:53.955] care in an unlimited sense over the person.
+- [03:37:54.025 --> 03:37:55.955] It's care in respect to inviting someone
+- [03:37:57.105 --> 03:37:59.435] into the private aspect of the presbytery.
+- [03:38:00.375 --> 03:38:04.315] Um, in, in any event, on the, the school
+- [03:38:05.185 --> 03:38:09.675] side of it, we would support what Justice Leming, uh,
+- [03:38:10.905 --> 03:38:13.435] said at paragraph 205.
+- [03:38:15.295 --> 03:38:18.715] Um, the ultimate decision to,
+- [03:38:21.255 --> 03:38:25.395] Uh, allow any religious people into the schools
+- [03:38:26.575 --> 03:38:29.435] to give these 45 minute weekly classes lay
+- [03:38:29.435 --> 03:38:30.955] with the headmaster or mistress
+- [03:38:30.955 --> 03:38:32.075] or the Department of Education.
+- [03:38:33.015 --> 03:38:35.595] Um, we don't dispute Mr.
+- [03:38:35.595 --> 03:38:36.995] Hertzfeld point that the bishop,
+- [03:38:37.095 --> 03:38:39.235] of course has the ultimate control over which
+- [03:38:39.895 --> 03:38:41.235] person goes there.
+- [03:38:42.255 --> 03:38:46.795] But what that tells us is we are far removed from the types
+- [03:38:46.795 --> 03:38:49.715] of cases where a vulnerable person is brought into the
+- [03:38:49.715 --> 03:38:54.185] exclusive control of the alleged duty hour.
+- [03:38:54.645 --> 03:38:57.705] Uh, in the 45 minutes, the appellant
+- [03:38:57.705 --> 03:39:00.345] and Mr. Perry were in the control of the Department
+- [03:39:00.345 --> 03:39:04.425] of Education who had delegated a particular function to,
+- [03:39:05.405 --> 03:39:08.265] uh, this religious representative as well as of course,
+- [03:39:08.265 --> 03:39:09.945] many other religious representatives. So
+- [03:39:10.375 --> 03:39:13.985] Well, the, the, the plaintiff was in the temporary care
+- [03:39:14.085 --> 03:39:16.265] and control of the priest when he was
+- [03:39:16.405 --> 03:39:17.405] Yes. Don't know that.
+- [03:39:17.405 --> 03:39:18.545] I'm sorry.
+- [03:39:19.045 --> 03:39:23.265] In the presbytery, the child is in the temporary care
+- [03:39:23.445 --> 03:39:25.225] and control of the priest. Yeah,
+- [03:39:25.225 --> 03:39:26.825] Well, the, the presbytery is the only bit
+- [03:39:26.825 --> 03:39:29.025] that we think really matters left in this case
+- [03:39:29.085 --> 03:39:30.225] as it's been reformulated.
+- [03:39:30.225 --> 03:39:31.585] So I'm just trying to clear away the other,
+- [03:39:31.725 --> 03:39:32.865] I'm distinguishing the priest from
+- [03:39:32.865 --> 03:39:34.565] The diocese, You, the priest.
+- [03:39:34.625 --> 03:39:36.525] Yes. We, we say in the presbytery,
+- [03:39:36.555 --> 03:39:37.565] he's in the temporary care
+- [03:39:37.585 --> 03:39:39.725] and control of the priest, full stop.
+- [03:39:40.665 --> 03:39:45.565] Uh, and in that event, um, it's, it's distant from any
+- [03:39:45.565 --> 03:39:47.325] of the factors that would give rise
+- [03:39:47.345 --> 03:39:48.845] to the ordinary duty of care.
+- [03:39:49.065 --> 03:39:52.645] So I've mentioned the weekly scripture classes, um,
+- [03:39:53.425 --> 03:39:55.765] the intermittent attendance at mass, again, we think
+- [03:39:55.765 --> 03:39:58.845] that's largely irrelevant as the case is now being confined.
+- [03:39:59.705 --> 03:40:02.125] Our point is not that he attended occasionally as opposed
+- [03:40:02.125 --> 03:40:05.485] to having the pleasure of attending, um, every Sunday.
+- [03:40:05.945 --> 03:40:09.125] The point is that attendance is at mass, whatever they were,
+- [03:40:10.265 --> 03:40:13.645] uh, a, a collateral to the issue
+- [03:40:13.645 --> 03:40:15.685] that's now been joined about, um,
+- [03:40:16.375 --> 03:40:17.845] being under the temporary control
+- [03:40:17.845 --> 03:40:21.845] of the priest in the presbytery in any event, uh, again,
+- [03:40:21.945 --> 03:40:24.565] in an attendance at mass in the ordinary
+- [03:40:24.565 --> 03:40:25.925] circumstances there with his parents.
+- [03:40:26.065 --> 03:40:29.965] And so there's no sense in which the priest has, uh,
+- [03:40:30.145 --> 03:40:34.005] any form of exclusive control or access over the appellant.
+- [03:40:34.545 --> 03:40:39.405] Um, as well as that the evidence was ex exigent
+- [03:40:40.345 --> 03:40:43.205] as to whether he in fact came into any contact
+- [03:40:43.275 --> 03:40:45.205] with Father Picken on those occasions
+- [03:40:45.205 --> 03:40:46.245] when he attended at Mass.
+- [03:40:47.185 --> 03:40:51.485] So what that leaves is simply the, the issue
+- [03:40:51.485 --> 03:40:52.565] of the presbytery
+- [03:40:52.665 --> 03:40:55.685] and the proper characterization as to, uh,
+- [03:40:55.685 --> 03:40:57.605] whether he's there under the temporary control
+- [03:40:57.605 --> 03:40:59.085] of Father Picken, as we would put it,
+- [03:40:59.085 --> 03:41:02.685] or whether he's there, um, as it were
+- [03:41:03.295 --> 03:41:07.085] under the control of the diocese.
+- [03:41:07.905 --> 03:41:08.905] Now,
+- [03:41:09.305 --> 03:41:13.365] Um, So can I just put our concluding
+- [03:41:13.365 --> 03:41:14.725] submissions on that topic?
+- [03:41:15.145 --> 03:41:16.805] Um, and,
+- [03:41:18.345 --> 03:41:19.445] Uh, Uh,
+- [03:41:23.755 --> 03:41:26.205] this to some extent overlaps the entrustment question
+- [03:41:26.205 --> 03:41:28.965] that I'll come to shortly necessarily.
+- [03:41:29.465 --> 03:41:33.045] So in terms of the findings that were made on the topic,
+- [03:41:35.225 --> 03:41:38.285] we have the finding at paragraph, uh,
+- [03:41:38.465 --> 03:41:43.465] 218,
+- [03:41:50.585 --> 03:41:52.925] Uh, that the Friday nights father pick
+- [03:41:52.925 --> 03:41:55.445] and arrange were not church events.
+- [03:41:57.305 --> 03:41:59.285] Now you were, you were cross referred
+- [03:41:59.285 --> 03:42:01.325] to the submission at 190.
+- [03:42:01.545 --> 03:42:03.485] That's the submission our side made,
+- [03:42:03.485 --> 03:42:04.845] which her Honor accepted.
+- [03:42:06.255 --> 03:42:08.205] These are not church events.
+- [03:42:10.065 --> 03:42:13.485] And together with 218,
+- [03:42:13.955 --> 03:42:16.045] What do we get from the Exclamation marks?
+- [03:42:16.255 --> 03:42:17.685] Sorry, the quotation marks?
+- [03:42:19.865 --> 03:42:22.485] Uh, I, I think it's really there for emphasis
+- [03:42:22.485 --> 03:42:25.565] to say a church event could have a fairly wide ambit.
+- [03:42:26.235 --> 03:42:29.285] It's not, but it's an event which reasonably would be
+- [03:42:29.285 --> 03:42:31.605] understood objectively
+- [03:42:31.625 --> 03:42:34.165] and subjectively to be one associated with the mission
+- [03:42:34.165 --> 03:42:35.525] of the church as opposed to
+- [03:42:36.225 --> 03:42:40.845] Father Picken engaging in his private social events.
+- [03:42:41.265 --> 03:42:42.765] But it goes further than that
+- [03:42:42.765 --> 03:42:47.405] because if you take it together with, uh, paragraph, um,
+- [03:42:47.545 --> 03:42:49.045] 229,
+- [03:42:52.455 --> 03:42:55.805] which, which you were not referred to this morning, um,
+- [03:42:57.135 --> 03:42:58.485] there is no suggestion
+- [03:42:58.635 --> 03:43:01.325] that Father Picken invited the boys there
+- [03:43:01.345 --> 03:43:02.605] for religious instruction.
+- [03:43:09.065 --> 03:43:12.925] So in, in terms of the, the findings that you have
+- [03:43:14.065 --> 03:43:16.365] on this topic, uh,
+- [03:43:19.305 --> 03:43:22.045] and I should just indicate for completeness, um,
+- [03:43:22.265 --> 03:43:27.125] if you compare paragraph 141, um, which,
+- [03:43:27.135 --> 03:43:29.525] which is a statement of the plaintiff's evidence at
+- [03:43:29.525 --> 03:43:33.325] paragraph nine, her honor has clearly rejected that evidence
+- [03:43:33.325 --> 03:43:34.605] that was given by the plaintiff,
+- [03:43:37.585 --> 03:43:42.525] One Of the areas where she found, uh, problems with his
+- [03:43:43.105 --> 03:43:45.605] credit and
+- [03:43:50.235 --> 03:43:50.845] that topic.
+- [03:43:52.305 --> 03:43:53.485] So what was that paragraph? We,
+- [03:43:53.485 --> 03:43:54.765] your Honor, rejected his evidence?
+- [03:43:55.345 --> 03:44:00.005] Uh, paragraph 229. I see.
+- [03:44:03.865 --> 03:44:05.965] Uh, and that was a matter which Your Honor,
+- [03:44:11.305 --> 03:44:16.045] uh, had explored in argument with counsel at page 698
+- [03:44:16.145 --> 03:44:18.125] of the appellant's book.
+- [03:44:24.625 --> 03:44:26.045] So it was fully event, it would need
+- [03:44:26.045 --> 03:44:28.325] To be, it wouldn't need to be religious instruction.
+- [03:44:28.325 --> 03:44:29.405] It could be a youth group.
+- [03:44:30.185 --> 03:44:32.525] Ch church events is broader than religious instruction.
+- [03:44:32.705 --> 03:44:33.965] Yes. But so we've got both.
+- [03:44:34.145 --> 03:44:35.325] So I'm, I'm referring to both
+- [03:44:35.385 --> 03:44:39.005] and saying, uh, in, in terms of what was the character
+- [03:44:39.005 --> 03:44:43.105] of the event, both those findings would count
+- [03:44:43.775 --> 03:44:47.075] against the, uh, finding of a duty.
+- [03:44:47.655 --> 03:44:49.835] And then, uh,
+- [03:44:52.295 --> 03:44:53.715] as I put to your Honor this morning
+- [03:44:53.715 --> 03:44:55.915] before the adjournment, if, if you ask the questions
+- [03:44:55.915 --> 03:44:59.995] of entrustment and acceptance, you,
+- [03:45:00.055 --> 03:45:04.765] you have an absence of any positive findings
+- [03:45:04.765 --> 03:45:07.725] that the appellant would otherwise need from either court.
+- [03:45:07.745 --> 03:45:09.805] On those topics was, was there any
+- [03:45:09.835 --> 03:45:11.965] Finding made or was there any evidence about
+- [03:45:12.115 --> 03:45:15.045] what youth groups looked like in 1969?
+- [03:45:15.865 --> 03:45:20.125] Uh, we think not.
+- [03:45:20.185 --> 03:45:23.565] But um, perhaps for the reason
+- [03:45:23.565 --> 03:45:25.125] that whatever Father Doran was,
+- [03:45:27.345 --> 03:45:29.765] father Dylan was speaking of in 1969,
+- [03:45:29.765 --> 03:45:31.965] it brought no resemblance to, to this event.
+- [03:45:31.995 --> 03:45:33.765] This on no view could this be treated
+- [03:45:33.765 --> 03:45:35.365] to be as a youth group. When
+- [03:45:35.365 --> 03:45:36.605] You said in entrustment
+- [03:45:36.625 --> 03:45:38.365] and acceptance, do you mean entrustment
+- [03:45:38.365 --> 03:45:39.725] and assumption of responsibility?
+- [03:45:39.865 --> 03:45:43.335] Yes. Yes, yes. So this is the point at which,
+- [03:45:44.135 --> 03:45:46.055] although I'm trying to keep them separate, the ordinary duty
+- [03:45:46.055 --> 03:45:48.055] of care starts to blend into some
+- [03:45:48.055 --> 03:45:51.055] of the discussion under the nondelegable duty.
+- [03:45:51.235 --> 03:45:55.175] But what we've effectively got is we've got the findings
+- [03:45:55.175 --> 03:45:57.935] of not a church event, no religious instruction.
+- [03:45:58.545 --> 03:46:02.855] We've got the analysis of Father, uh, Dylan that I've been
+- [03:46:02.855 --> 03:46:04.055] to, and I won't repeat.
+- [03:46:05.155 --> 03:46:07.015] The appellant doesn't have the findings it,
+- [03:46:07.075 --> 03:46:08.375] it would need on this topic.
+- [03:46:08.595 --> 03:46:11.095] And for that reason, um, your honors
+- [03:46:12.185 --> 03:46:15.135] would confirm the conclusion of the court of appeal
+- [03:46:15.135 --> 03:46:19.175] that the ordinary duty of care, uh, was not established.
+- [03:46:21.995 --> 03:46:26.215] Um, now the only thing I wanna say on the question of, um,
+- [03:46:27.555 --> 03:46:31.655] parish priest or not parish priest, is in our submission,
+- [03:46:31.795 --> 03:46:33.935] it was neither determinative of the Court
+- [03:46:33.935 --> 03:46:37.455] of Appeals judgment and is not determinative of this appeal.
+- [03:46:38.355 --> 03:46:42.095] Uh, justice Lehman made clear that
+- [03:46:43.155 --> 03:46:46.735] his observations were not determinative
+- [03:46:46.735 --> 03:46:47.935] of the outcome litigation.
+- [03:46:47.935 --> 03:46:49.135] That's at paragraph 80.
+- [03:46:50.165 --> 03:46:51.375] What about the first sentence
+- [03:46:51.375 --> 03:46:53.135] of just Chief Justice Bell's judgment?
+- [03:46:53.135 --> 03:46:54.935] Paragraph 12 one through six.
+- [03:47:03.745 --> 03:47:06.825] YYY. So it's one of the reasons he's on a found error,
+- [03:47:07.165 --> 03:47:10.625] but it's not, uh, it, it was neither necessary
+- [03:47:10.725 --> 03:47:11.945] nor sufficient for the error
+- [03:47:11.945 --> 03:47:14.505] because what Chief Justice Bell is agreeing with
+- [03:47:15.245 --> 03:47:17.465] is effectively the whole of Justice Lehman's five
+- [03:47:17.465 --> 03:47:21.905] or six points which commence from paragraph 200
+- [03:47:22.085 --> 03:47:26.585] and uh, two.
+- [03:47:27.445 --> 03:47:30.545] And of those points, 203 is the parish priest point.
+- [03:47:31.845 --> 03:47:34.305] Uh, 205 is independent.
+- [03:47:35.205 --> 03:47:39.625] Um, 206 really doesn't take it very far.
+- [03:47:40.005 --> 03:47:41.745] 207 and following are the ones
+- [03:47:41.745 --> 03:47:43.065] that really matter, which is knowledge.
+- [03:47:43.165 --> 03:47:46.225] So, um, if we're correct that
+- [03:47:47.615 --> 03:47:49.305] they failed to prove the knowledge case,
+- [03:47:49.305 --> 03:47:50.985] that's a sufficient reason to interfere
+- [03:47:50.985 --> 03:47:53.025] with the primary judge's decision.
+- [03:47:53.845 --> 03:47:58.105] Um, another sufficient basis is
+- [03:47:58.175 --> 03:48:00.185] that looking, looking at the duty
+- [03:48:00.245 --> 03:48:01.745] as it's now been reformulated,
+- [03:48:02.375 --> 03:48:03.865] they don't have the findings they need
+- [03:48:03.885 --> 03:48:07.385] and such findings as are there are adverse to it.
+- [03:48:07.765 --> 03:48:11.625] And that leaves the question, uh, what
+- [03:48:12.415 --> 03:48:14.665] further needs to be done about the parish priest finding,
+- [03:48:15.405 --> 03:48:19.655] um, the way I've put it today,
+- [03:48:19.675 --> 03:48:23.415] or sought to put it, it wouldn't matter if he was on the
+- [03:48:23.415 --> 03:48:25.935] agreement of these parties contrary
+- [03:48:25.935 --> 03:48:27.405] to the fact the parish priest,
+- [03:48:27.555 --> 03:48:32.365] because that did not alter any of the questions
+- [03:48:32.365 --> 03:48:35.325] of authority attribution and so on.
+- [03:48:36.665 --> 03:48:38.005] That's the primary way I've put it.
+- [03:48:38.435 --> 03:48:40.725] What, so this table that you've provided us with,
+- [03:48:41.425 --> 03:48:43.445] We put, we put aside, that's now that's,
+- [03:48:43.445 --> 03:48:44.765] you can put aside because Mr.
+- [03:48:44.795 --> 03:48:47.725] Hertzfeld has candidly accepted that the finding
+- [03:48:47.725 --> 03:48:48.725] that his honor made
+- [03:48:50.815 --> 03:48:53.105] that he was not the parish priest is is the correct
+- [03:48:53.105 --> 03:48:54.545] finding on the evidence in the case? I
+- [03:48:54.545 --> 03:48:55.785] Don't think he made that concession. No, not
+- [03:48:55.785 --> 03:48:56.785] At all.
+- [03:48:56.965 --> 03:48:58.105] He just said he's not gonna argue
+- [03:48:58.125 --> 03:48:59.145] the toss 'cause we shouldn't
+- [03:48:59.145 --> 03:49:00.145] Be there. Alright, well, in that event,
+- [03:49:00.145 --> 03:49:00.505] your Honor,
+- [03:49:00.565 --> 03:49:01.985] please don't put the table aside,
+- [03:49:02.045 --> 03:49:03.345] put it the front of your folder if you would.
+- [03:49:03.775 --> 03:49:06.865] What, what the table is to show you is to the extent,
+- [03:49:07.045 --> 03:49:11.585] as a matter of fact, on the evidence, his honor found that,
+- [03:49:13.845 --> 03:49:16.345] uh, the, the true parish priest was O'Dwyer
+- [03:49:16.345 --> 03:49:18.465] and this man was the assistant priest, his honor,
+- [03:49:18.975 --> 03:49:20.625] correctly analyzed every document.
+- [03:49:20.955 --> 03:49:23.025] We've simply given you the references in the bundle,
+- [03:49:23.205 --> 03:49:24.785] but we accept that doesn't answer
+- [03:49:24.805 --> 03:49:26.945] the, the full point they're making. But the real
+- [03:49:26.945 --> 03:49:28.105] Point is why should we, why should
+- [03:49:28.105 --> 03:49:29.225] we even look at that document?
+- [03:49:29.495 --> 03:49:31.585] Well, can I come to that, your Honor?
+- [03:49:31.645 --> 03:49:32.985] But I was asked about the table
+- [03:49:33.165 --> 03:49:35.665] and I want to explain why the table's there,
+- [03:49:37.155 --> 03:49:38.295] and I wanna do this in three steps.
+- [03:49:38.295 --> 03:49:39.895] That's step one. Step two is
+- [03:49:40.315 --> 03:49:42.935] to the extent there's a challenge of procedural unfairness,
+- [03:49:43.225 --> 03:49:45.135] which is not raised in the notice of appeal,
+- [03:49:45.685 --> 03:49:47.215] your Honor should not entertain it
+- [03:49:48.035 --> 03:49:49.655] and your honors should reject it.
+- [03:49:50.355 --> 03:49:54.255] You were taken to one place this morning where, uh,
+- [03:49:55.795 --> 03:49:56.935] His honor, justice Lehman
+- [03:49:56.935 --> 03:49:58.295] raised the question with the parties.
+- [03:49:58.595 --> 03:50:00.815] If you're making a challenge of procedural unfairness,
+- [03:50:00.815 --> 03:50:02.095] particularly outside your notice
+- [03:50:02.095 --> 03:50:06.175] and appeal, it would serve you well to be fair to the judge.
+- [03:50:06.595 --> 03:50:07.655] Now, I don't wanna lose too much
+- [03:50:07.655 --> 03:50:09.975] of my time defending Justice Leming, I'm not his counsel,
+- [03:50:10.155 --> 03:50:14.135] et cetera, but the fact is he put this 0.4 times in
+- [03:50:14.375 --> 03:50:15.575] argument to the parties.
+- [03:50:15.765 --> 03:50:17.375] This is not a judge coming up
+- [03:50:17.375 --> 03:50:19.255] with a stray thought in chambers
+- [03:50:19.835 --> 03:50:21.255] and then it emerging in the judgment,
+- [03:50:21.715 --> 03:50:23.895] his honor put this to the parties.
+- [03:50:24.115 --> 03:50:26.935] So can I show you where his honor put the point?
+- [03:50:27.955 --> 03:50:29.015] It doesn't answer everything,
+- [03:50:29.035 --> 03:50:31.575] but it's unfair to accuse him
+- [03:50:31.575 --> 03:50:33.535] of unfairness when he's not being unfair.
+- [03:50:34.315 --> 03:50:37.135] Now, if you have the respondent's book of further materials,
+- [03:50:44.315 --> 03:50:47.055] and if you go first to page 1 56
+- [03:51:05.365 --> 03:51:06.175] foot of the page
+- [03:51:10.985 --> 03:51:14.085] And over the page, is it correct that Father Picken
+- [03:51:15.025 --> 03:51:16.085] is the parish priest?
+- [03:51:16.145 --> 03:51:18.045] Mr. Sheer is actually the assistant
+- [03:51:19.035 --> 03:51:22.375] and Justice Leming raises the difference between the two
+- [03:51:22.475 --> 03:51:23.895] and he raises some of the evidence.
+- [03:51:23.915 --> 03:51:28.325] So he's actually taking counsel to what's in the documents
+- [03:51:28.345 --> 03:51:33.165] and at line 28 says, the parish priest seems to be o
+- [03:51:34.335 --> 03:51:37.325] Dwyer and Justice Leming says, and Pickens the assistant.
+- [03:51:38.045 --> 03:51:40.145] Um, the reason I got to was
+- [03:51:40.145 --> 03:51:41.785] that I'd normally understood when you had an assistant
+- [03:51:41.785 --> 03:51:44.065] priest, they lived in the same house of the parish priest.
+- [03:51:44.725 --> 03:51:46.705] That's not the case though, as they understand it.
+- [03:51:46.805 --> 03:51:49.025] So his honor asks in the negative, trying
+- [03:51:49.025 --> 03:51:50.625] to seek clarification as to whether
+- [03:51:50.625 --> 03:51:51.785] what would normally be the case
+- [03:51:51.805 --> 03:51:52.985] for some reason was different.
+- [03:51:53.565 --> 03:51:57.145] And Mr. Sheer, um, may say to his credit,
+- [03:51:57.565 --> 03:51:59.625] was completely candid with the court as to
+- [03:51:59.625 --> 03:52:01.225] what evidence there was and there wasn't.
+- [03:52:01.965 --> 03:52:05.425] And the fact was that in a case being run 55 years
+- [03:52:05.425 --> 03:52:09.475] after the event, there was no evidence
+- [03:52:09.815 --> 03:52:11.595] of fact as to
+- [03:52:12.545 --> 03:52:15.475] whether someone else was resident.
+- [03:52:15.475 --> 03:52:18.355] Certainly no evidence that there was someone there.
+- [03:52:18.895 --> 03:52:21.555] So for our part, whether we can be criticized for it
+- [03:52:21.555 --> 03:52:24.315] or not, we said it,
+- [03:52:24.335 --> 03:52:26.315] it does look like he is the assistant priest
+- [03:52:26.315 --> 03:52:27.555] because of these documents,
+- [03:52:27.575 --> 03:52:30.435] but we cannot put an affirmative argument about someone else
+- [03:52:30.445 --> 03:52:33.035] being there at the relevant time
+- [03:52:33.035 --> 03:52:36.475] because this amount of time later we just don't have it.
+- [03:52:36.575 --> 03:52:37.995] So that's the first place.
+- [03:52:37.995 --> 03:52:41.915] Then if you go to page 1 75, um,
+- [03:52:44.535 --> 03:52:47.755] uh, it's not as if the point wasn't put
+- [03:52:47.755 --> 03:52:51.075] to the appellant at lines 20 to 37.
+- [03:52:54.665 --> 03:52:57.845] Um, justice Lehman says a great deal
+- [03:52:57.845 --> 03:52:59.885] of the evidence suggests there was another adult living in
+- [03:52:59.885 --> 03:53:01.805] the presbytery, the actual parish priests.
+- [03:53:02.545 --> 03:53:04.805] And Mr. Prince says, well, I think my friend accepts,
+- [03:53:05.555 --> 03:53:07.925] there's no evidence that the other parish priest was
+- [03:53:07.925 --> 03:53:09.005] present in the presbytery.
+- [03:53:09.005 --> 03:53:10.005] Certainly not the time the
+- [03:53:10.005 --> 03:53:11.165] assaults alleged to have occurred.
+- [03:53:12.545 --> 03:53:14.525] So that's about whether there when the assaults occurred.
+- [03:53:14.645 --> 03:53:16.845] I don't think anyone ever suggested there was another adult
+- [03:53:16.845 --> 03:53:18.805] in the presbytery at the time.
+- [03:53:19.305 --> 03:53:21.445] And he goes on to make some other points.
+- [03:53:22.065 --> 03:53:26.285] And then in that context, it's in reply that at page 190,
+- [03:53:27.185 --> 03:53:28.965] uh, you are taken to the passage this morning
+- [03:53:28.965 --> 03:53:30.965] between Justice Leming and Justice Sheer.
+- [03:53:30.965 --> 03:53:34.245] And that passage, Mr. Sheer correctly says, I'm bound
+- [03:53:34.265 --> 03:53:35.525] by the admission I've made.
+- [03:53:35.565 --> 03:53:37.765] And that's the basis upon which it should be conducted.
+- [03:53:37.865 --> 03:53:40.365] Yes. So, uh, this is my step two.
+- [03:53:40.395 --> 03:53:44.845] Step two is just to say I, if you're accusing Justice Leming
+- [03:53:44.845 --> 03:53:46.045] of a lack of procedural fairness,
+- [03:53:46.145 --> 03:53:48.125] you should at least look at the way in which
+- [03:53:48.665 --> 03:53:50.205] his honor was troubled by this point
+- [03:53:50.265 --> 03:53:52.365] as a judge properly would be troubled on a section
+- [03:53:52.365 --> 03:53:53.765] 75 a appeal.
+- [03:53:54.945 --> 03:53:57.725] All the documents pointed the other way he raised
+- [03:53:57.725 --> 03:54:00.405] with the parties, he was concerned about the question
+- [03:54:00.465 --> 03:54:02.565] and he raised what implication it had
+- [03:54:03.065 --> 03:54:04.565] for whether another priest was there.
+- [03:54:05.105 --> 03:54:08.645] And he did it in a context where it was a central plank
+- [03:54:08.645 --> 03:54:10.845] of her honor's findings on vicarious liability
+- [03:54:11.475 --> 03:54:13.925] that Picken was the parish priest. And,
+- [03:54:13.985 --> 03:54:17.125] And he, and he got the final word on the topic was
+- [03:54:17.715 --> 03:54:19.605] it's not an issue, we're stuck with it.
+- [03:54:19.705 --> 03:54:22.405] And it was left there and then his honor went
+- [03:54:22.405 --> 03:54:25.485] and Right wrote a judgment, completely upending it.
+- [03:54:25.555 --> 03:54:27.845] It's not a criticism of Mr. Sheer, but that
+- [03:54:28.745 --> 03:54:32.645] You can raise it, But if the final word was, was stuck
+- [03:54:32.645 --> 03:54:35.485] with the admission and everyone packs
+- [03:54:35.485 --> 03:54:36.925] up their books on that basis. Well, I
+- [03:54:37.045 --> 03:54:39.525] I I would simply put it this way, in, in defense of
+- [03:54:39.525 --> 03:54:41.725] what his Honor did, he has raised the 0.3 times,
+- [03:54:41.875 --> 03:54:43.645] he's raised it with counsel on both sides.
+- [03:54:43.795 --> 03:54:45.525] It's squarely in the ring
+- [03:54:45.545 --> 03:54:46.845] as a matter of troubling the court.
+- [03:54:47.705 --> 03:54:50.365] And it was a matter which his honor was then entitled
+- [03:54:50.425 --> 03:54:53.685] to compose his best reasons conscientiously resolving
+- [03:54:53.685 --> 03:54:54.725] the issues before the court.
+- [03:54:55.305 --> 03:54:57.045] And as I've shown you, this was not essential
+- [03:54:57.045 --> 03:54:58.365] to the ultimate decision.
+- [03:54:59.025 --> 03:55:00.885] And as I understand it, Mr. Mr.
+- [03:55:00.885 --> 03:55:03.645] Gleason, nor is it necessary for any part
+- [03:55:03.645 --> 03:55:05.245] of your argument in response no.
+- [03:55:05.305 --> 03:55:07.605] To Mr. Fel? No,
+- [03:55:08.275 --> 03:55:09.885] Just to complete the issue.
+- [03:55:09.965 --> 03:55:11.725] I dunno what the position is of New South Wales,
+- [03:55:11.745 --> 03:55:15.125] but in the Fed Report there is numerous authority that says
+- [03:55:15.825 --> 03:55:19.085] the judge is under a duty to ensure
+- [03:55:19.085 --> 03:55:20.725] that an agreed fact is also true.
+- [03:55:21.185 --> 03:55:22.445] Yes, yes.
+- [03:55:22.785 --> 03:55:24.605] And that's what he was saying to the parties.
+- [03:55:24.825 --> 03:55:29.405] Now, um, but
+- [03:55:29.605 --> 03:55:31.285] ultimately it's not just positive of this appeal,
+- [03:55:31.835 --> 03:55:35.005] your honors, can I come then to Lapore
+- [03:55:35.845 --> 03:55:38.085] W was there a third step in your argument?
+- [03:55:39.255 --> 03:55:43.955] Uh, If, if if there was the moment's probably passed?
+- [03:55:44.215 --> 03:55:45.315] The moment's passed. Alright,
+- [03:55:58.755 --> 03:56:01.155] O on the question about youth groups, I've already been
+- [03:56:01.175 --> 03:56:03.435] to page 5 6, 1 of the appellant's book,
+- [03:56:03.495 --> 03:56:06.835] but that's where Father Dylan confirmed
+- [03:56:06.835 --> 03:56:08.475] that there would always be adults
+- [03:56:08.505 --> 03:56:09.875] present if there were youth groups.
+- [03:56:12.015 --> 03:56:16.955] Now, So
+- [03:56:16.955 --> 03:56:18.075] the, the point we have reached,
+- [03:56:18.135 --> 03:56:21.155] at least on our analysis is if there's no ordinary duty
+- [03:56:21.175 --> 03:56:24.195] of care, the appeal should be dismissed.
+- [03:56:25.215 --> 03:56:29.315] If there is an ordinary duty of care, then there needs
+- [03:56:29.315 --> 03:56:31.635] to be a remitter to deal with the remaining questions
+- [03:56:31.635 --> 03:56:34.435] of breach and causation.
+- [03:56:35.375 --> 03:56:39.955] Uh, if there is an ordinary duty of care, then
+- [03:56:39.955 --> 03:56:42.515] unless Lapore is, as we would put it, reopen
+- [03:56:42.655 --> 03:56:46.275] and overruled the Nondelegable duty of care, uh,
+- [03:56:46.785 --> 03:56:48.155] case must fail.
+- [03:56:48.855 --> 03:56:50.995] And even if Lapore is reopened
+- [03:56:51.075 --> 03:56:54.515] and overruled, there was not a sufficient entrustment
+- [03:56:54.655 --> 03:56:58.795] and assumption of responsibility to create a type
+- [03:56:58.795 --> 03:57:01.995] of non-eligible duty of care that could possibly extend
+- [03:57:02.495 --> 03:57:05.475] to ensure that sexual assaults did not occur.
+- [03:57:05.655 --> 03:57:08.355] That's the structure of what we're putting your honors.
+- [03:57:08.815 --> 03:57:12.155] Can we, can I ask your honors to open Lapore?
+- [03:57:12.975 --> 03:57:17.315] Uh, and I realize Mr.
+- [03:57:17.665 --> 03:57:19.755] Hertzfeld was short on time when he came to it,
+- [03:57:19.815 --> 03:57:24.805] but it, it,
+- [03:57:24.865 --> 03:57:28.965] it does deserve significant attention.
+- [03:57:29.145 --> 03:57:32.805] Our, our first submission is, um, your Honor,
+- [03:57:32.805 --> 03:57:34.365] justice Settleman put something about the
+- [03:57:34.365 --> 03:57:35.445] point not being argued.
+- [03:57:35.705 --> 03:57:39.885] Uh, we think if you look at what Mr. Sexton put
+- [03:57:40.785 --> 03:57:43.325] at C LR five one, yes,
+- [03:57:43.325 --> 03:57:44.725] I've, I've, I've four to five back to
+- [03:57:44.725 --> 03:57:45.725] That. I think the point was argued,
+- [03:57:45.845 --> 03:57:48.365] Yeah, and, and just let me say Mr.
+- [03:57:48.515 --> 03:57:50.685] Keen, in his customary fashion,
+- [03:57:50.785 --> 03:57:53.445] put it a lot more succinctly than I could at, um,
+- [03:57:54.385 --> 03:57:58.845] at CLR 5 1 7 and, uh, Mr.
+- [03:57:58.945 --> 03:58:01.045] Mr. Sway, it was no slouch,
+- [03:58:01.065 --> 03:58:02.965] put it pretty well at 5 1 9 at the top.
+- [03:58:03.785 --> 03:58:05.485] And, uh, those on the, on Mr.
+- [03:58:05.485 --> 03:58:08.765] Hertzfeld side, they put the counter argument pretty clearly
+- [03:58:08.905 --> 03:58:13.085] at 5 22, 5 21.
+- [03:58:13.085 --> 03:58:16.845] So it's in the ring. We then come to Chief Justice Gleason
+- [03:58:17.425 --> 03:58:20.565] and we rely upon paragraphs two
+- [03:58:20.565 --> 03:58:23.965] and three as setting up the context of the case
+- [03:58:25.065 --> 03:58:29.005] and indeed this case absolutely squarely and correctly.
+- [03:58:29.005 --> 03:58:32.445] Because what his honor recognized was that
+- [03:58:32.995 --> 03:58:35.525] when you were dealing with the relationship
+- [03:58:35.525 --> 03:58:36.605] of the school authority
+- [03:58:36.625 --> 03:58:41.325] and the pupil, you were already in the territory
+- [03:58:41.525 --> 03:58:46.365] c footnote 61 Modbury, where the ordinary duty
+- [03:58:46.385 --> 03:58:48.525] of care required you to take care
+- [03:58:50.105 --> 03:58:51.485] or may require you to take care
+- [03:58:51.585 --> 03:58:53.845] to protect others from the wrongful behavior
+- [03:58:53.945 --> 03:58:56.005] of third parties, even if it's criminal.
+- [03:58:57.425 --> 03:59:01.765] So the ordinary duty of care could well respond to
+- [03:59:03.225 --> 03:59:06.525] the very situation we are dealing with if there was fault
+- [03:59:07.345 --> 03:59:10.165] on behalf of the primary duty owe.
+- [03:59:10.665 --> 03:59:13.845] Now, importantly, footnote 61 cites Modbury
+- [03:59:14.585 --> 03:59:19.125] at page 2 6 5 in Modbury at
+- [03:59:19.125 --> 03:59:23.335] 2 6 5, paragraph 26, 1
+- [03:59:23.335 --> 03:59:26.255] of the cases cited is Cha Minski.
+- [03:59:26.755 --> 03:59:27.935] That's the case that Mr.
+- [03:59:27.965 --> 03:59:30.215] Hertzfeld relied upon to say that Lapore
+- [03:59:30.835 --> 03:59:32.175] was always misguided
+- [03:59:32.175 --> 03:59:33.495] because there were earlier cases
+- [03:59:34.185 --> 03:59:38.695] where nondelegable liabilities were found in respect to,
+- [03:59:39.195 --> 03:59:40.655] uh, criminal acts.
+- [03:59:41.075 --> 03:59:42.695] Cha Minski is no such case.
+- [03:59:42.845 --> 03:59:45.375] It's a case which as Chief Justice Gleason says, is one
+- [03:59:45.375 --> 03:59:48.935] where the primary duty owe was, was at fault
+- [03:59:50.035 --> 03:59:52.815] for failing to take reasonable steps to prevent
+- [03:59:53.975 --> 03:59:56.175] criminal behavior by a third party.
+- [03:59:57.195 --> 03:59:59.135] So his honor says we're not in that territory,
+- [03:59:59.135 --> 04:00:03.735] paragraph three, and we're assuming we're not in the
+- [04:00:03.735 --> 04:00:04.895] carious liability territory.
+- [04:00:05.675 --> 04:00:07.815] So the question is, does the Nondelegable duty
+- [04:00:07.815 --> 04:00:09.055] of care provide
+- [04:00:09.755 --> 04:00:13.575] for a duty which is more strict than a carist liability?
+- [04:00:14.075 --> 04:00:16.935] It it would be very odd, wouldn't it, to have to be able
+- [04:00:16.935 --> 04:00:20.405] to say, well, an ordinary duty of care can extend
+- [04:00:20.465 --> 04:00:21.685] to criminal acts.
+- [04:00:22.425 --> 04:00:26.565] But if you assume a higher duty, you assume a duty to ensure
+- [04:00:27.115 --> 04:00:29.085] that can't extend to criminal acts.
+- [04:00:29.545 --> 04:00:31.245] No, your Honor, let me, let me tell you why.
+- [04:00:31.345 --> 04:00:36.245] Let me tell you why the very point Chief Justice Gleason is
+- [04:00:36.245 --> 04:00:41.165] making is with the ordinary duty of care in the realm
+- [04:00:41.165 --> 04:00:44.845] of negligence, we are concerned with fault in terms
+- [04:00:44.865 --> 04:00:47.845] of a failure to live up to the standard of reasonable care.
+- [04:00:48.305 --> 04:00:50.365] Now, can I just finish Your Honor, can I just finish,
+- [04:00:50.945 --> 04:00:55.365] if the risk that I reasonably foresee as in Cha Minski
+- [04:00:56.225 --> 04:00:59.445] as in Modbury, is that a third party,
+- [04:01:00.095 --> 04:01:02.465] whether they be my employee, my contractor
+- [04:01:03.005 --> 04:01:05.625] or an outsider, is, is likely
+- [04:01:05.685 --> 04:01:09.585] to engage in intentional criminal conduct, which is likely
+- [04:01:09.605 --> 04:01:11.945] to harm my neighbor.
+- [04:01:13.165 --> 04:01:14.825] If that's reasonably foreseeability.
+- [04:01:15.005 --> 04:01:17.265] And there are reasonable precautions available to me
+- [04:01:17.445 --> 04:01:19.425] to protect against that behavior,
+- [04:01:19.445 --> 04:01:21.745] and I don't take them negligence perfectly,
+- [04:01:21.745 --> 04:01:23.945] appropriately responds and holds me liable.
+- [04:01:24.205 --> 04:01:26.625] But it does that because it's made a finding
+- [04:01:26.625 --> 04:01:27.905] of reasonable foreseeability
+- [04:01:28.405 --> 04:01:30.145] and it's made a finding of reasonable
+- [04:01:30.815 --> 04:01:33.545] precautions in response to a case where
+- [04:01:34.255 --> 04:01:35.905] that is the known risk.
+- [04:01:36.125 --> 04:01:39.465] The point the chief justice is making is if we are in a case
+- [04:01:39.465 --> 04:01:43.225] whereas the primary duty oer, I am not at fault.
+- [04:01:43.415 --> 04:01:46.665] That is there is no risk that I reasonably could
+- [04:01:46.665 --> 04:01:47.705] or should have foreseen.
+- [04:01:48.155 --> 04:01:50.545] There are no reasonable precautions I
+- [04:01:50.545 --> 04:01:51.585] could or should have taken.
+- [04:01:51.925 --> 04:01:55.225] And yet someone who in some way is associated
+- [04:01:55.225 --> 04:01:59.525] with my enterprise, has committed an intentional wrong.
+- [04:02:01.075 --> 04:02:03.565] Does the law simply say no difference here
+- [04:02:03.565 --> 04:02:05.645] between being liable for intentional wrongs
+- [04:02:05.645 --> 04:02:06.685] and liable for lack of care?
+- [04:02:06.745 --> 04:02:11.045] Or does the law say we are actually responding to conduct
+- [04:02:11.185 --> 04:02:13.405] of a different kind qualitatively
+- [04:02:13.545 --> 04:02:18.085] and conduct Where to extend that liability is
+- [04:02:18.085 --> 04:02:21.845] to make a significant policy judgment.
+- [04:02:21.845 --> 04:02:23.565] Because if you're making that judgment,
+- [04:02:23.565 --> 04:02:26.405] you're not just making it for Maitland in 1969,
+- [04:02:27.025 --> 04:02:31.965] you are making it for all organizations in like situations
+- [04:02:32.705 --> 04:02:34.965] who may have people who are not employees,
+- [04:02:35.535 --> 04:02:40.125] where you are not at fault, where you now become in effect
+- [04:02:40.925 --> 04:02:43.125] strictly liable for their intentional torts.
+- [04:02:43.145 --> 04:02:47.685] Now, when he's on a, at paragraph, um, 20
+- [04:02:48.515 --> 04:02:53.125] paragraph, um, 36, if you could jump to
+- [04:02:53.125 --> 04:02:57.565] that correctly, said, if, if we adopt this principle,
+- [04:02:58.255 --> 04:03:01.085] we've gotta say what effect will this be happening on having
+- [04:03:01.145 --> 04:03:02.565] on daycare centers?
+- [04:03:02.835 --> 04:03:06.085] What effect on clubs providing recreational activities,
+- [04:03:06.915 --> 04:03:10.005] what effect on all sorts of other organizations, commercial,
+- [04:03:10.055 --> 04:03:13.285] charitable, large or small, religious or secular well funded
+- [04:03:13.385 --> 04:03:16.805] or mind, that is a fundamental difference
+- [04:03:17.795 --> 04:03:20.465] where one is extending the liability for
+- [04:03:20.465 --> 04:03:22.945] what the law normally does not hold you liable for,
+- [04:03:23.165 --> 04:03:24.985] for the intentional wrong of another person.
+- [04:03:25.375 --> 04:03:26.785] It's a big step to take.
+- [04:03:26.805 --> 04:03:30.065] Now, if his honor to recognize that we submit is not
+- [04:03:30.065 --> 04:03:32.825] to make a category error, it's not to make a logical error,
+- [04:03:33.135 --> 04:03:37.865] it's not to, uh, just miss what is steering you in the face.
+- [04:03:37.935 --> 04:03:42.105] It's for his honor to recognize a really significant policy
+- [04:03:42.335 --> 04:03:45.185] step, which I've gotta say this to your honor, which
+- [04:03:45.965 --> 04:03:49.025] if you open Fleming on torts, the 1965 version
+- [04:03:49.245 --> 04:03:50.905] or the earliest version in the 1970s,
+- [04:03:50.905 --> 04:03:52.185] your honor's got them all in chambers.
+- [04:03:52.185 --> 04:03:56.145] They're great books. You will not find, you will not find
+- [04:03:57.105 --> 04:04:01.665] a hint that the nondelegable duty in negligence is a means
+- [04:04:02.125 --> 04:04:03.545] to make a person liable
+- [04:04:03.645 --> 04:04:05.585] for the criminal acts of another person.
+- [04:04:06.045 --> 04:04:08.505] Now your honors are being asked to restate that law.
+- [04:04:08.505 --> 04:04:11.265] 55 years after the event, you're being asked
+- [04:04:11.265 --> 04:04:12.625] to reopen the pore.
+- [04:04:13.045 --> 04:04:16.345] You're being asked to, we would say, collapse a distinction
+- [04:04:16.345 --> 04:04:18.785] between intentional tort and negligent tort.
+- [04:04:19.365 --> 04:04:20.665] And you're being asked to do it.
+- [04:04:20.665 --> 04:04:21.665] Most importantly,
+- [04:04:21.805 --> 04:04:24.985] and this hasn't been confronted today, the parliaments
+- [04:04:24.985 --> 04:04:27.505] of this country following these terrible events
+- [04:04:27.505 --> 04:04:28.785] that emerged in the Royal Commission,
+- [04:04:29.295 --> 04:04:32.665] have all been grappling with as a matter of law reform,
+- [04:04:34.135 --> 04:04:35.665] what steps can
+- [04:04:35.665 --> 04:04:39.065] and should be taken, particularly going back into the past
+- [04:04:40.325 --> 04:04:41.425] to deal with this wrong.
+- [04:04:42.085 --> 04:04:43.105] Now, Mr.
+- [04:04:43.175 --> 04:04:46.305] Hertzfeld can say, don't worry about six F,
+- [04:04:46.365 --> 04:04:49.425] that's just another cumulative form of liability he told.
+- [04:04:49.425 --> 04:04:51.265] Your Honor, we wanna submit
+- [04:04:51.265 --> 04:04:54.305] that a fundamental reason why Lapore should not be touched
+- [04:04:55.485 --> 04:05:00.225] is that the parliaments in 2018 in partially similar
+- [04:05:00.885 --> 04:05:02.385] and partly different fashion,
+- [04:05:03.295 --> 04:05:07.705] have directly addressed the problem of Nondelegable duties
+- [04:05:08.125 --> 04:05:10.985] and they've chosen to solve it in a particular fashion.
+- [04:05:11.805 --> 04:05:15.185] And this court should be very slow to retrospectively
+- [04:05:15.835 --> 04:05:18.585] state the law 55 years ago,
+- [04:05:20.195 --> 04:05:22.915] inconsistent with the choice the parliament has made.
+- [04:05:23.135 --> 04:05:25.675] Now I'm jumping ahead, but time is short.
+- [04:05:25.735 --> 04:05:27.515] Can I ask your honors to go to the next part
+- [04:05:27.595 --> 04:05:28.755] of the Civil Liability Act?
+- [04:05:29.865 --> 04:05:32.755] This is, this is really important. What happened in 2018?
+- [04:05:33.995 --> 04:05:36.515] A a couple of things happen if, if you go to
+- [04:05:37.165 --> 04:05:38.435] apart from six oh
+- [04:05:38.435 --> 04:05:41.875] and the like, if you go to six
+- [04:05:43.555 --> 04:05:46.315] D to six F
+- [04:05:47.615 --> 04:05:51.835] and this provision is replicated in the Victorian Act,
+- [04:05:55.075 --> 04:05:56.485] What happened was in six D,
+- [04:05:57.465 --> 04:05:59.245] the Parliament created a statutory
+- [04:05:59.245 --> 04:06:00.645] concept of responsibility.
+- [04:06:02.885 --> 04:06:04.945] So it provided a definition of what it means
+- [04:06:04.945 --> 04:06:07.625] to be responsible, which has elements
+- [04:06:07.625 --> 04:06:10.845] of either exercising care, et cetera,
+- [04:06:10.845 --> 04:06:14.245] which is a factual inquiry reporting to exercise care.
+- [04:06:14.245 --> 04:06:18.525] That's a factual inquiry or is obliged by law to do so.
+- [04:06:19.105 --> 04:06:22.045] That's a legal inquiry law, of course,
+- [04:06:22.045 --> 04:06:23.925] meaning Australian law, not cannon law.
+- [04:06:24.865 --> 04:06:29.525] And if you then delegate any part of that responsibility,
+- [04:06:30.185 --> 04:06:31.685] you remain responsible.
+- [04:06:33.425 --> 04:06:36.765] And then six E extends the individuals associated
+- [04:06:36.765 --> 04:06:39.325] with you to a range of people.
+- [04:06:39.985 --> 04:06:44.125] And then what six F does is imposes a duty of care
+- [04:06:44.125 --> 04:06:46.805] that forms part of the cause of action in negligence.
+- [04:06:47.865 --> 04:06:51.965] So functionally it is the same thing as a nondelegable duty
+- [04:06:52.085 --> 04:06:54.285] because the scope of the primary duty
+- [04:06:56.495 --> 04:06:58.275] now includes this statutory duty.
+- [04:06:59.435 --> 04:07:03.415] And subsection two gives you a responsibility, uh,
+- [04:07:05.045 --> 04:07:06.425] if you've got a responsibility for a child,
+- [04:07:06.425 --> 04:07:08.505] you must take reasonable precautions to prevent
+- [04:07:09.485 --> 04:07:13.545] and individual from perpetrating child abuse in
+- [04:07:13.545 --> 04:07:14.665] connection with responsibility.
+- [04:07:15.365 --> 04:07:17.785] And then what the Parliament has done, this is the first
+- [04:07:17.805 --> 04:07:19.905] of the two critical choices in sub three,
+- [04:07:21.805 --> 04:07:23.145] is there's a reverse onus.
+- [04:07:23.695 --> 04:07:25.065] There's a presumption of breach
+- [04:07:25.805 --> 04:07:30.065] unless the organization can establish it took reasonable
+- [04:07:30.065 --> 04:07:31.705] precautions to prevent the child abuse.
+- [04:07:32.565 --> 04:07:35.505] Now, as Justice Leming recognized the paragraph 1 68,
+- [04:07:36.245 --> 04:07:40.985] if you restate the law in 1969, as the appellant seeks,
+- [04:07:42.085 --> 04:07:44.545] you'll be doing so inconsistently with six F
+- [04:07:44.545 --> 04:07:49.295] because instead of the organization having the chance to
+- [04:07:49.865 --> 04:07:52.415] raise the defense and defeat the presumption,
+- [04:07:53.435 --> 04:07:55.095] it will be liable anyway.
+- [04:07:55.555 --> 04:07:57.015] Now, parliament in New South Wales
+- [04:07:57.035 --> 04:07:59.295] and Victoria made that choice
+- [04:08:00.155 --> 04:08:01.655] and they combined with it a choice
+- [04:08:02.435 --> 04:08:05.895] for which they're responsible to the people, uh,
+- [04:08:05.905 --> 04:08:10.175] which you'll see in the schedule at,
+- [04:08:11.555 --> 04:08:15.975] uh, clause schedule one, clause 43,
+- [04:08:17.615 --> 04:08:20.825] that it is only in respect to child abuse going forward.
+- [04:08:21.565 --> 04:08:24.185] Now in an area where the parliament has grappled
+- [04:08:24.185 --> 04:08:28.945] with the very problem, has chosen to do it in a way which is
+- [04:08:29.885 --> 04:08:33.585] not as, uh, strict as an NDD
+- [04:08:33.845 --> 04:08:35.465] and where has deliberately said,
+- [04:08:36.205 --> 04:08:38.465] we make this change going forward, we submit,
+- [04:08:38.465 --> 04:08:40.225] there is the most compelling case for you
+- [04:08:40.805 --> 04:08:42.985] as the ultimate custodians of the common law.
+- [04:08:43.085 --> 04:08:44.145] Not to go back
+- [04:08:44.145 --> 04:08:48.145] and say, we will restate the law in 1969 in a way no one
+- [04:08:48.155 --> 04:08:49.865] could have known of in 1969,
+- [04:08:50.405 --> 04:08:52.585] but that's the first step of it.
+- [04:08:52.585 --> 04:08:55.105] The next step, which you haven't been taken to so far,
+- [04:08:55.925 --> 04:08:58.785] but is critically important, is six H.
+- [04:08:59.845 --> 04:09:03.465] Now your honors, I don't think were taken to six H in bird
+- [04:09:03.525 --> 04:09:05.025] for the good reason that in Victoria
+- [04:09:05.675 --> 04:09:07.785] there isn't at the moment a six H.
+- [04:09:09.245 --> 04:09:14.205] And what six
+- [04:09:14.765 --> 04:09:18.725] G and six H does is directly address the bird problem
+- [04:09:21.105 --> 04:09:25.965] by creating a statutory precarious
+- [04:09:25.965 --> 04:09:29.845] liability in addition to the common law, which extends
+- [04:09:30.985 --> 04:09:34.075] the liability from an employee to
+- [04:09:34.625 --> 04:09:36.195] individuals akin to an employee.
+- [04:09:36.215 --> 04:09:37.355] The very argument you heard
+- [04:09:37.355 --> 04:09:39.115] and rejected at common law in Bird,
+- [04:09:40.375 --> 04:09:43.275] and then six H imposes the vicarious liability.
+- [04:09:43.815 --> 04:09:45.155] And if you read the terms
+- [04:09:45.155 --> 04:09:49.155] of the vicarious liability in subsection one, um,
+- [04:09:50.385 --> 04:09:54.435] they are the very terms which are taken by the parliament
+- [04:09:54.945 --> 04:09:59.795] from this court's decision in Prince Alfred College, six G
+- [04:09:59.795 --> 04:10:03.875] and H six G and HSG, yeah, six G and six h and h.
+- [04:10:04.535 --> 04:10:07.275] The the terms of the vicarious liability are the Prince
+- [04:10:07.335 --> 04:10:10.395] Alfred College terms of vicarious liability.
+- [04:10:11.255 --> 04:10:13.075] And if I can take you to what Mr.
+- [04:10:13.115 --> 04:10:16.235] Speakman told the parliament they're attempting to do,
+- [04:10:16.925 --> 04:10:21.115] which is in volume nine, at, uh,
+- [04:10:23.295 --> 04:10:27.555] at page 2 3 5 0
+- [04:10:28.335 --> 04:10:29.915] to 2 3 5 2.
+- [04:10:30.385 --> 04:10:31.635] This is tab 55.
+- [04:10:31.895 --> 04:10:35.635] Yes, at the foot of 2 3 5 0, he explained
+- [04:10:37.055 --> 04:10:38.945] what six F was doing
+- [04:10:40.485 --> 04:10:42.425] and he explained this was recommending the Royal
+- [04:10:42.425 --> 04:10:45.585] Commission's recommendation to shift the onus.
+- [04:10:46.485 --> 04:10:50.985] Uh, but he said at the second last paragraph on
+- [04:10:51.535 --> 04:10:54.745] page 2, 3, 5, 1 in the middle that it was prospective only.
+- [04:10:54.885 --> 04:10:56.505] So that's the deliberate parliamentary
+- [04:10:56.505 --> 04:10:57.625] choice prospective only.
+- [04:10:57.725 --> 04:11:01.105] And then in the second half of that second half paragraph,
+- [04:11:01.125 --> 04:11:02.985] he switches to new division three.
+- [04:11:03.815 --> 04:11:06.665] That is what's now six G and six H.
+- [04:11:07.805 --> 04:11:10.545] And he says, it'll codify the common law
+- [04:11:10.545 --> 04:11:13.105] of vicarious liability for child abuse perpetrated
+- [04:11:13.125 --> 04:11:16.705] by employees, extend it to those who are akin to employees.
+- [04:11:17.555 --> 04:11:20.985] Again, its perspective only then he explains the history
+- [04:11:22.695 --> 04:11:25.315] and what he says is the New South Wales parliament was
+- [04:11:25.315 --> 04:11:28.995] expressly responding to that separate recommendation
+- [04:11:28.995 --> 04:11:31.235] of the Royal Commission that there be a nondelegable duty
+- [04:11:31.235 --> 04:11:32.435] of care on institutions.
+- [04:11:33.935 --> 04:11:35.115] No one has done it to date.
+- [04:11:36.135 --> 04:11:38.675] He says in at that time the carers liability in
+- [04:11:38.715 --> 04:11:39.795] NDD was unclear.
+- [04:11:40.805 --> 04:11:44.435] Since then, this court has decided Prince Alfred College,
+- [04:11:45.975 --> 04:11:47.675] the court outlined the correct approach
+- [04:11:47.695 --> 04:11:49.715] to an organization's vicarious liability
+- [04:11:49.775 --> 04:11:51.475] for child abuse by an MP employee.
+- [04:11:52.215 --> 04:11:54.915] The court provides a legally stable basis on which
+- [04:11:54.915 --> 04:11:56.235] to implement the intent
+- [04:11:56.855 --> 04:12:01.075] of the rural commission's nondelegable duty recommendation
+- [04:12:01.745 --> 04:12:05.235] that provides section six H six H
+- [04:12:06.105 --> 04:12:08.195] uses the language from Prince Alfred College
+- [04:12:09.015 --> 04:12:13.325] and extends it to those akin to employees
+- [04:12:13.385 --> 04:12:15.485] to close the, the loophole
+- [04:12:16.255 --> 04:12:18.925] which the court dealt within in bird.
+- [04:12:19.585 --> 04:12:22.885] So what has happened, you, you gi given
+- [04:12:22.915 --> 04:12:26.045] what this court has said in more recently about Nondelegable
+- [04:12:26.045 --> 04:12:28.405] duty, you might regard it as a, uh, uh,
+- [04:12:30.065 --> 04:12:32.165] and an impure way in which to recommend
+- [04:12:32.795 --> 04:12:34.845] implement an NDD recommendation.
+- [04:12:34.865 --> 04:12:38.045] But the choice of the New South Wales parliament is
+- [04:12:38.045 --> 04:12:42.305] that the way to grapple with the NDD problem is
+- [04:12:42.305 --> 04:12:43.585] through vicarious liability,
+- [04:12:43.645 --> 04:12:47.385] but extending it to persons akin to employees
+- [04:12:48.295 --> 04:12:51.965] using the Prince Alfred College formulation of what is
+- [04:12:52.585 --> 04:12:54.645] within the liability and what is without.
+- [04:12:55.465 --> 04:12:58.965] And to do that prospectively, now it's hard to think
+- [04:12:58.965 --> 04:13:01.045] of a case where this court has been asked not only
+- [04:13:01.045 --> 04:13:04.325] to overturn a case that stood for over 20 years
+- [04:13:05.465 --> 04:13:08.285] to alter fundamental distinctions between intentional
+- [04:13:08.345 --> 04:13:10.085] and negligent torts
+- [04:13:10.145 --> 04:13:13.485] to restate the law 55 years ago when you've got the
+- [04:13:13.485 --> 04:13:16.245] parliament grappling with the very problem
+- [04:13:17.015 --> 04:13:18.085] addressing the problem,
+- [04:13:18.425 --> 04:13:22.445] but doing it in what it considers to be the correct fashion.
+- [04:13:22.545 --> 04:13:25.685] So we would urge you to have the greatest of caution.
+- [04:13:26.025 --> 04:13:27.325] Can I just ask, uh,
+- [04:13:27.855 --> 04:13:29.805] these provisions replicated anywhere else?
+- [04:13:31.705 --> 04:13:33.165] That's, that's the next bit, your Honor.
+- [04:13:34.085 --> 04:13:37.085] Victoria did not have this provision in when you,
+- [04:13:37.155 --> 04:13:39.125] when you considered birth.
+- [04:13:39.545 --> 04:13:43.285] If you go to our, that is the respondent's supplementary
+- [04:13:43.925 --> 04:13:48.335] material, further booking material at tab,
+- [04:13:49.275 --> 04:13:49.495] uh,
+- [04:14:04.495 --> 04:14:05.315] at tab
+- [04:14:19.615 --> 04:14:22.635] at tab seven, there's a current bill
+- [04:14:22.635 --> 04:14:26.435] before the Victorian Parliament to
+- [04:14:28.305 --> 04:14:33.195] introduce an equivalent provision to six G and six H.
+- [04:14:35.225 --> 04:14:36.755] There's a proposal in that bill,
+- [04:14:40.185 --> 04:14:42.525] uh, in clause 93 H
+- [04:14:44.515 --> 04:14:48.605] that it would be retrospective unlimitedly.
+- [04:14:51.075 --> 04:14:53.685] That bill is still on the table
+- [04:14:53.685 --> 04:14:55.325] of the Parliament in New South Wales,
+- [04:14:56.345 --> 04:14:59.325] But That was, that has a retrospective operation
+- [04:14:59.345 --> 04:15:00.445] as well as prospective.
+- [04:15:00.625 --> 04:15:01.765] And, and my, that's my point.
+- [04:15:01.785 --> 04:15:05.325] What's happening is the parliaments, they've done
+- [04:15:05.325 --> 04:15:07.525] what they've done to date New South Wales, we would submit,
+- [04:15:07.585 --> 04:15:09.005] has, has taken two steps.
+- [04:15:09.445 --> 04:15:11.045] Victoria's taken one step at the moment.
+- [04:15:11.075 --> 04:15:13.645] Each of them are non retrospective, quite intentionally.
+- [04:15:14.505 --> 04:15:18.525] What's on the table for Victoria is potentially, uh,
+- [04:15:18.715 --> 04:15:21.165] that this one be retrospective to complete the picture
+- [04:15:21.225 --> 04:15:23.525] for New South Wales, which is tab eight.
+- [04:15:24.345 --> 04:15:25.725] So which, which book are you in
+- [04:15:25.915 --> 04:15:28.445] When you tab eight, which, uh, sorry, I,
+- [04:15:28.525 --> 04:15:30.685] I I'm in something called respondent's for the bundle
+- [04:15:30.685 --> 04:15:32.205] of Authorities not Materials.
+- [04:15:32.545 --> 04:15:34.445] Oh, I see. Sorry. That's the role.
+- [04:15:35.105 --> 04:15:36.765] So what's happening in New South Wales?
+- [04:15:36.835 --> 04:15:41.205] There's a bill tab eight, the effect of which would be
+- [04:15:41.205 --> 04:15:46.045] to amend the non retrospective clause i I told
+- [04:15:46.045 --> 04:15:49.205] you about, which would make New South Wales also,
+- [04:15:49.985 --> 04:15:52.765] uh, go back in time.
+- [04:15:52.785 --> 04:15:54.525] And then as to what's happening, you'll see
+- [04:15:54.525 --> 04:15:57.125] that best from tab nine, which is
+- [04:15:57.125 --> 04:15:59.565] that the New South Wales bill was introduced by the,
+- [04:16:00.585 --> 04:16:05.285] the government, But the government ended up
+- [04:16:05.475 --> 04:16:06.885] currently voting against it
+- [04:16:06.885 --> 04:16:08.605] for the reason given in the first paragraph
+- [04:16:08.605 --> 04:16:10.405] that there's ongoing work being conducted
+- [04:16:10.405 --> 04:16:12.565] through the Standing Council of Attorneys General
+- [04:16:13.785 --> 04:16:15.485] and they're wanting to, uh,
+- [04:16:16.105 --> 04:16:19.005] see if they can produce an Australia wide response.
+- [04:16:19.145 --> 04:16:21.885] So for that reason, the New South Wales bill on the last
+- [04:16:21.955 --> 04:16:26.285] page, um, was defeated on the second reading speech.
+- [04:16:26.425 --> 04:16:29.085] So the end result is you, you've got, you've,
+- [04:16:29.085 --> 04:16:31.565] you've got Parliament addressing the
+- [04:16:31.565 --> 04:16:32.845] problem in various ways.
+- [04:16:32.985 --> 04:16:35.725] You've got Parliament's currently looking at the problem,
+- [04:16:36.075 --> 04:16:37.885] including the very question of retrospective.
+- [04:16:38.185 --> 04:16:39.445] You are being asked to restate
+- [04:16:39.445 --> 04:16:41.925] what we would say is the law on the same topic
+- [04:16:42.545 --> 04:16:44.605] in a radically different fashion and you shouldn't do it.
+- [04:16:45.235 --> 04:16:49.765] What if, what if Parliament is responding to what is
+- [04:16:50.275 --> 04:16:54.285] presently, uh, the law on non delegatable duties
+- [04:16:54.945 --> 04:16:56.285] on a mistaken assumption
+- [04:16:56.835 --> 04:16:58.525] that it's narrower than it should be?
+- [04:16:59.465 --> 04:17:00.605] And, and, um,
+- [04:17:00.785 --> 04:17:04.885] and Parliament then narrows what ought
+- [04:17:04.885 --> 04:17:08.565] to be the law to create a position which, um,
+- [04:17:09.835 --> 04:17:13.245] Your Honor should not restate the law 55 years ago in a
+- [04:17:13.245 --> 04:17:15.325] way no one could have foreseen at the time on that sort
+- [04:17:15.325 --> 04:17:17.565] of reasoning I'd submit this is the most,
+- [04:17:17.945 --> 04:17:19.285] the most compelling case
+- [04:17:19.985 --> 04:17:23.165] to leave this matter where it belongs. Now this
+- [04:17:23.165 --> 04:17:25.925] Is all directed to one particular species of liability.
+- [04:17:26.015 --> 04:17:29.405] Child sexual abuse, Lepo
+- [04:17:29.465 --> 04:17:32.485] and Bird both have application beyond
+- [04:17:33.725 --> 04:17:35.325] a particular focus of these bills.
+- [04:17:35.825 --> 04:17:38.445] That's correct. Uh, so bird won't
+- [04:17:39.925 --> 04:17:42.085] whatever might be perceived to be the problem with bird, if
+- [04:17:42.085 --> 04:17:45.845] that's perceived to be a problem, that that's not a
+- [04:17:45.985 --> 04:17:49.525] beyond the particular context that won't be addressed
+- [04:17:50.425 --> 04:17:53.725] and whatever might be seen to be the problem with the poor
+- [04:17:53.945 --> 04:17:57.005] beyond this particular context won't be addressed
+- [04:17:57.025 --> 04:17:58.525] by these bills no matter what happens.
+- [04:17:58.545 --> 04:18:00.845] That's true because they're all, is that right? Yes.
+- [04:18:02.345 --> 04:18:07.325] So, but We, but we just sort of stay our hand and wait
+- [04:18:07.325 --> 04:18:09.525] and see how bills unfold over time.
+- [04:18:10.065 --> 04:18:11.845] No, your honor. I'm putting this
+- [04:18:11.845 --> 04:18:13.005] at the more fundamental level.
+- [04:18:13.705 --> 04:18:15.765] Um, you, you're being asked
+- [04:18:15.765 --> 04:18:18.205] to overturn a solid case that stood for a long time.
+- [04:18:18.205 --> 04:18:20.245] I've only got to the first two paragraphs of the case.
+- [04:18:20.745 --> 04:18:22.365] You've got all the John's factors as
+- [04:18:22.365 --> 04:18:24.125] to why you should exercise the greatest of caution.
+- [04:18:24.135 --> 04:18:25.445] We've put that in writing. There's no
+- [04:18:25.565 --> 04:18:26.685] time to develop that orally.
+- [04:18:27.225 --> 04:18:28.845] I'm just showing you extra material,
+- [04:18:28.895 --> 04:18:30.885] which is you're being asked to do it for a reason
+- [04:18:31.625 --> 04:18:32.685] in a particular context.
+- [04:18:33.465 --> 04:18:37.445] If someone wants to change the law of nondelegable duty
+- [04:18:38.065 --> 04:18:42.845] in a non-sexual assault context, you exercise your restraint
+- [04:18:43.225 --> 04:18:44.765] by waiting until that matter comes
+- [04:18:44.765 --> 04:18:47.215] before you, you don't do it
+- [04:18:47.215 --> 04:18:48.695] because this case, which is sexual
+- [04:18:48.725 --> 04:18:50.695] assault, gives an opportunity.
+- [04:18:51.275 --> 04:18:54.975] Now, can I just go to some other aspects of Lapore?
+- [04:18:55.515 --> 04:18:56.895] Um, I've dealt
+- [04:18:56.895 --> 04:19:00.015] with the way the chief justice set up the, the, the problem.
+- [04:19:01.275 --> 04:19:04.375] And if you could go to paragraph 22,
+- [04:19:07.155 --> 04:19:10.975] He, his honor said that the first step was
+- [04:19:10.975 --> 04:19:12.815] to identify the extent of the obligation
+- [04:19:12.815 --> 04:19:14.335] that arises outta the relationship.
+- [04:19:16.515 --> 04:19:17.975] Um, and the fact that it's,
+- [04:19:18.275 --> 04:19:21.295] it may be delegatable does not transform it into a duty
+- [04:19:21.395 --> 04:19:24.055] to keep workers free from all harm
+- [04:19:25.265 --> 04:19:27.295] makes the same point at the bottom of 23.
+- [04:19:28.885 --> 04:19:33.825] Uh, at 31, he makes the point that, uh, intra viney
+- [04:19:34.765 --> 04:19:37.425] was a case involving negligence by the delegate.
+- [04:19:38.285 --> 04:19:41.705] And he says, a responsibility to take care for the safety
+- [04:19:41.725 --> 04:19:45.865] of another or to see that reasonable care is taken
+- [04:19:45.925 --> 04:19:48.025] for the safety of another is substantially different
+- [04:19:48.025 --> 04:19:50.665] for an obligation to prevent any kind of harm.
+- [04:19:51.985 --> 04:19:53.665] Although it involves a failure to take care,
+- [04:19:54.085 --> 04:19:55.185] it involves more.
+- [04:19:56.085 --> 04:19:58.905] And if you are to extend liability, the court should face up
+- [04:19:58.905 --> 04:20:02.385] to the fact that is the consequence of what
+- [04:20:03.245 --> 04:20:04.905] is being sought.
+- [04:20:05.485 --> 04:20:07.665] Uh, I've taken you to 36
+- [04:20:08.605 --> 04:20:10.945] and then I wanna take you, if I might,
+- [04:20:10.965 --> 04:20:13.105] to Justices Gamo and Hane.
+- [04:20:19.045 --> 04:20:19.265] Now,
+- [04:20:24.055 --> 04:20:26.265] Importantly at, um,
+- [04:20:27.795 --> 04:20:31.495] 2, 2 4, 1,
+- [04:20:32.505 --> 04:20:37.055] their honors explain why Morrison Martin might be regarded
+- [04:20:37.055 --> 04:20:38.095] as a different sort of case.
+- [04:20:40.115 --> 04:20:43.575] We would say on Morrison Martin that it's been interpreted
+- [04:20:43.575 --> 04:20:47.175] by this court sometimes as vicarious liability, sometimes
+- [04:20:47.195 --> 04:20:48.215] as Nondelegable.
+- [04:20:48.355 --> 04:20:51.095] That's understandable because Lord Denning was more
+- [04:20:51.095 --> 04:20:52.535] of a nondelegable man,
+- [04:20:52.535 --> 04:20:54.055] and the other justices were more
+- [04:20:54.335 --> 04:20:56.015] of vicarious liability meant.
+- [04:20:56.015 --> 04:20:58.775] But our critical point is even if you're treated
+- [04:20:58.835 --> 04:21:01.895] as a Nondelegable case, what it is saying is that
+- [04:21:02.205 --> 04:21:05.325] because in Bailment there has always been the higher duty,
+- [04:21:05.995 --> 04:21:09.605] then the Nondelegable folds in behind that higher duty
+- [04:21:10.105 --> 04:21:12.205] to say that if you do have a duty
+- [04:21:12.265 --> 04:21:15.685] to protect the goods from theft, you cannot escape the duty
+- [04:21:15.825 --> 04:21:19.525] by giving the goods to a servant who chooses to steal them.
+- [04:21:19.525 --> 04:21:21.685] But that's a function not of its nondelegable.
+- [04:21:21.755 --> 04:21:24.245] It's a function of the higher duty which has
+- [04:21:24.245 --> 04:21:25.645] been recognized in Bailment.
+- [04:21:26.585 --> 04:21:29.885] Um, now if you look at paragraph 2 45,
+- [04:21:29.885 --> 04:21:32.645] their honors carefully distinguished between
+- [04:21:33.345 --> 04:21:35.805] the two different senses in which ensure reasonable
+- [04:21:35.805 --> 04:21:36.925] care might be understood.
+- [04:21:38.465 --> 04:21:42.765] Uh, and the, the lesser sense is the one we contend
+- [04:21:42.785 --> 04:21:45.605] for the higher sense, which was what was argued for, was it
+- [04:21:46.145 --> 04:21:49.365] was to ensure that the person was not harmed by any act
+- [04:21:49.365 --> 04:21:52.605] or omission of those who actually have charge
+- [04:21:52.625 --> 04:21:54.285] of the child, which is effective.
+- [04:21:54.285 --> 04:21:57.045] The way your honor, justice Peach Jones was putting
+- [04:21:57.045 --> 04:21:59.485] to me an argument the NDD would work,
+- [04:22:00.395 --> 04:22:04.445] then they trace the history of it,
+- [04:22:05.705 --> 04:22:07.445] uh, at 2 54.
+- [04:22:07.445 --> 04:22:10.205] They come to the cases in the high court on it, 2 55,
+- [04:22:10.205 --> 04:22:11.525] they identify the categories
+- [04:22:12.545 --> 04:22:15.205] and in 2 56 they make the important statement,
+- [04:22:15.295 --> 04:22:17.525] which has not been contradicted, which is
+- [04:22:17.525 --> 04:22:20.645] that in all the cases in which non-eligible duties have been
+- [04:22:20.805 --> 04:22:23.725] considered in this court, there've been cases in which the
+- [04:22:23.725 --> 04:22:26.245] plaintiff was injured as a result of negligence.
+- [04:22:27.865 --> 04:22:31.845] So this is important in understanding that lapore
+- [04:22:32.405 --> 04:22:36.905] historically is sound because all the non-eligible duty
+- [04:22:36.905 --> 04:22:39.305] cases have been ones in which the plaintiff was injured
+- [04:22:39.305 --> 04:22:40.865] as a result of negligence.
+- [04:22:41.595 --> 04:22:44.825] Which leads to the question at the end of 2 56, should you
+- [04:22:45.405 --> 04:22:48.905] use the NDD principle to extend liability
+- [04:22:49.005 --> 04:22:51.705] to deliberate criminal conduct of a teacher,
+- [04:22:51.705 --> 04:22:54.745] which constitutes a trespass.
+- [04:22:56.005 --> 04:23:00.385] And, uh, there's then some, um, further discussion.
+- [04:23:01.045 --> 04:23:03.945] But the court ultimately gives the judgment,
+- [04:23:04.345 --> 04:23:07.185] ultimately gives four reasons at 2 65
+- [04:23:07.205 --> 04:23:10.905] and following why the law should not be extended
+- [04:23:11.925 --> 04:23:15.625] to include responsibility for intentional defaults
+- [04:23:15.725 --> 04:23:17.185] by delegates.
+- [04:23:17.885 --> 04:23:19.825] Now, the the first reason is
+- [04:23:20.135 --> 04:23:22.505] that you would be converting the tort
+- [04:23:22.505 --> 04:23:26.945] of negligence into a duty to bring about a result, um,
+- [04:23:28.115 --> 04:23:32.725] that no person, uh, engaged to take steps connected
+- [04:23:32.725 --> 04:23:33.805] with the care of the plaintiff,
+- [04:23:33.805 --> 04:23:35.085] did anything to harm the plaintiff.
+- [04:23:35.985 --> 04:23:37.205] And as per over the page,
+- [04:23:37.205 --> 04:23:39.565] that would sever the duty from its roots in the law
+- [04:23:39.565 --> 04:23:42.085] of negligence, it would make the employer the insurer
+- [04:23:42.585 --> 04:23:43.605] in this circumstance.
+- [04:23:43.745 --> 04:23:47.525] Now, that first reason we would say is now strengthened
+- [04:23:47.985 --> 04:23:49.645] by the conceptual distinction in the
+- [04:23:49.645 --> 04:23:51.325] 2002 Civil Liability Act.
+- [04:23:51.325 --> 04:23:55.025] I've been to 2 6 7.
+- [04:23:55.085 --> 04:23:56.865] The second reason, it would remove any need
+- [04:23:56.865 --> 04:24:00.915] to consider whether, uh, the primary duty TO could
+- [04:24:00.915 --> 04:24:03.685] or should have done anything to avoid the harm.
+- [04:24:04.545 --> 04:24:09.325] Um, the third reason 2 6 9 is that it would, um,
+- [04:24:10.465 --> 04:24:12.605] jar with vicarious liability.
+- [04:24:13.585 --> 04:24:17.445] Now that third reason can now be strengthened by the 2008
+- [04:24:18.245 --> 04:24:21.285] 18 act that I have taking you to,
+- [04:24:21.905 --> 04:24:24.845] it can also be strengthened by this court's decision in Bird
+- [04:24:25.795 --> 04:24:29.325] because the effect of bird is that
+- [04:24:29.985 --> 04:24:34.045] if you are an employee, you may be you,
+- [04:24:34.825 --> 04:24:37.445] you may lead to vicarious liability within the limits
+- [04:24:37.445 --> 04:24:40.405] that the court has set in Prince Alfred College.
+- [04:24:40.665 --> 04:24:41.805] But if you're not an employee,
+- [04:24:41.935 --> 04:24:44.325] there will not be vicarious liability for the principal.
+- [04:24:44.915 --> 04:24:49.205] This new NDD principle effectively cuts across, across that
+- [04:24:49.945 --> 04:24:53.125] by extending what is in substance the same liability
+- [04:24:53.185 --> 04:24:57.885] to people who do not count as, uh, employees and,
+- [04:24:57.885 --> 04:25:00.565] and perhaps more troublingly, uh,
+- [04:25:01.265 --> 04:25:04.605] if a person is an employee, uh,
+- [04:25:06.255 --> 04:25:08.515] but they're acting outside the course of employment,
+- [04:25:11.005 --> 04:25:14.495] which was the issue dealt with by your I Justice Gleason in
+- [04:25:14.495 --> 04:25:16.695] that case, um, and
+- [04:25:16.695 --> 04:25:19.135] therefore not liable under vicarious liability,
+- [04:25:19.875 --> 04:25:21.815] the principle may now become liable
+- [04:25:22.085 --> 04:25:26.415] because of the larger scope of what non delegatable duty is.
+- [04:25:26.595 --> 04:25:28.055] So that's a conflict there.
+- [04:25:28.915 --> 04:25:31.215] Um, the fourth point, which is, sorry,
+- [04:25:31.215 --> 04:25:32.615] but wouldn't the course of their employment
+- [04:25:32.615 --> 04:25:33.695] define the scope of the duty?
+- [04:25:33.995 --> 04:25:37.455] No, no, that's, that, that, that's part of,
+- [04:25:37.635 --> 04:25:39.095] that's part of the problem.
+- [04:25:39.475 --> 04:25:42.455] The, the course of the employment is looking at the
+- [04:25:42.455 --> 04:25:44.615] relationship between the primary duty owner
+- [04:25:44.755 --> 04:25:46.375] and the employee.
+- [04:25:47.795 --> 04:25:50.735] If, if NDD is allowed to sit over the top of that,
+- [04:25:51.315 --> 04:25:55.935] we are looking at, in the first instance, the task assumed
+- [04:25:56.155 --> 04:25:58.935] by the primary duty owe to the beneficiary.
+- [04:25:59.595 --> 04:26:03.495] And we are then asking whether, uh, a relevant part of
+- [04:26:03.495 --> 04:26:04.815] that task was delegated.
+- [04:26:04.835 --> 04:26:07.415] And in the course of the delegation, um,
+- [04:26:08.615 --> 04:26:09.975] a relevant wrong occurred.
+- [04:26:09.975 --> 04:26:13.535] The two are not, the two are not co-terminus at all, but
+- [04:26:13.535 --> 04:26:16.175] You would expect that to be narrower, that,
+- [04:26:16.175 --> 04:26:18.655] that the boundaries of the nondelegable duty are the
+- [04:26:18.655 --> 04:26:19.855] task that's undertaken.
+- [04:26:20.125 --> 04:26:24.015] Whereas in the vicarious liability concept, you would extend
+- [04:26:24.155 --> 04:26:26.535] to torts that occurred in the course of the employment.
+- [04:26:27.125 --> 04:26:28.855] Your Honor, when we read Fleming in
+- [04:26:29.015 --> 04:26:30.535] 1965, he made that point.
+- [04:26:30.545 --> 04:26:33.615] You'd expect the NDD to be narrower in that way,
+- [04:26:33.955 --> 04:26:38.615] but it it may also be broader, particularly on,
+- [04:26:39.115 --> 04:26:42.455] um, depending how the facts of the case occur.
+- [04:26:42.515 --> 04:26:44.815] Our, our main point is that you,
+- [04:26:44.875 --> 04:26:46.935] you are creating the potential for a jarring with
+- [04:26:46.935 --> 04:26:48.495] that precarious liability there.
+- [04:26:48.495 --> 04:26:52.055] Honors final point is Williams and Milton,
+- [04:26:52.055 --> 04:26:54.255] and this is where they differ from Justice McHugh.
+- [04:26:54.635 --> 04:26:55.775] But on our reading of Williams
+- [04:26:55.835 --> 04:26:58.895] and Mullo, even under the old forms of action,
+- [04:26:59.475 --> 04:27:03.285] it does not authorize pleading a trespass as negligence,
+- [04:27:03.565 --> 04:27:04.965] although it may authorize the reverse.
+- [04:27:05.185 --> 04:27:07.845] But the critical thing now is the Civil Liability Act has
+- [04:27:08.635 --> 04:27:10.365] explained those distinctions are
+- [04:27:10.955 --> 04:27:13.565] even clearer than they might previously have been.
+- [04:27:14.545 --> 04:27:18.405] Uh, your honor's my final submission is, uh,
+- [04:27:18.405 --> 04:27:20.125] paragraph nine of the outline.
+- [04:27:20.905 --> 04:27:23.525] Um, which is that
+- [04:27:24.275 --> 04:27:27.165] even if Lapore was overturned, um,
+- [04:27:27.855 --> 04:27:30.685] based on the factual matters I've been to, uh,
+- [04:27:30.865 --> 04:27:33.125] you would not find that there was a relevant entrustment
+- [04:27:33.145 --> 04:27:36.805] and a relevant, uh, assumption of responsibility so as
+- [04:27:36.805 --> 04:27:38.925] to give rise to a nondelegable duty.
+- [04:27:39.795 --> 04:27:41.605] Your honors, can I hand over to Mr. Sheer? To
+- [04:27:41.705 --> 04:27:44.125] Mr can I ask you just quickly one question just about
+- [04:27:44.125 --> 04:27:45.245] what you first started with.
+- [04:27:47.145 --> 04:27:48.365] Are you submitting one way
+- [04:27:48.365 --> 04:27:50.765] or another whether this case
+- [04:27:51.345 --> 04:27:54.945] is falls within three B one A?
+- [04:27:55.095 --> 04:27:58.185] That is, it's a civil liability of a person in respect
+- [04:27:58.185 --> 04:28:02.265] of an intentional act so that it, it's it's not covered
+- [04:28:02.365 --> 04:28:06.895] by part one of the Civil Liability Act, but is by part one B
+- [04:28:07.075 --> 04:28:09.015] or is that, that's not part
+- [04:28:09.015 --> 04:28:10.375] of your case one way or another. Could
+- [04:28:10.375 --> 04:28:11.695] Could you just give me a moment so I can
+- [04:28:11.695 --> 04:28:12.775] be accurate on that?
+- [04:28:33.435 --> 04:28:34.965] Because I wasn't, I can't recall
+- [04:28:35.085 --> 04:28:36.805] 'cause I didn't look at damages, so I can't recall
+- [04:28:36.805 --> 04:28:38.805] how this was run at trial on that basis.
+- [04:28:41.505 --> 04:28:43.405] Can I just check that while Mr. S
+- [04:28:44.105 --> 04:28:45.105] Mr. Gleason, can I just
+- [04:28:45.105 --> 04:28:46.965] ask you one other related question?
+- [04:28:46.985 --> 04:28:50.885] And that is, is is part of your earlier submission to say
+- [04:28:50.885 --> 04:28:55.005] that the definition of negligence in section five
+- [04:28:55.105 --> 04:28:56.645] of the Civil Liability Act,
+- [04:28:57.785 --> 04:29:01.445] it it necessarily excludes a deliberate
+- [04:29:01.725 --> 04:29:02.645] Criminal act? Yes.
+- [04:29:03.385 --> 04:29:04.725] See, Can
+- [04:29:04.725 --> 04:29:07.325] I, can I just add one short Question to that,
+- [04:29:07.455 --> 04:29:08.845] Which is that, sorry.
+- [04:29:09.105 --> 04:29:11.765] The, the reason being part of the I reforms was designed
+- [04:29:11.765 --> 04:29:14.285] to say that we're gonna really tighten up
+- [04:29:15.055 --> 04:29:17.685] negligence in the sense of failure to exercise due care,
+- [04:29:18.395 --> 04:29:19.725] however it be pleaded,
+- [04:29:20.645 --> 04:29:22.145] but we are not, um,
+- [04:29:25.075 --> 04:29:28.865] we're not cutting across the more general law of, um,
+- [04:29:29.455 --> 04:29:32.995] intentional torts.
+- [04:29:33.135 --> 04:29:34.915] So I, I should have given an example,
+- [04:29:34.935 --> 04:29:36.795] but if you look at section 21,
+- [04:29:42.385 --> 04:29:45.195] what that says, if is if you in personal injury damages
+- [04:29:47.625 --> 04:29:49.355] That the action that caused the death
+- [04:29:49.355 --> 04:29:52.235] or injury was negligence, exemplary damages are gone.
+- [04:29:53.175 --> 04:29:56.035] So that the whole discussion in Gray's case has now been
+- [04:29:56.035 --> 04:29:57.635] overtaken by Section 21.
+- [04:29:58.695 --> 04:30:01.725] If, if the substance of your case, the pleading,
+- [04:30:01.725 --> 04:30:02.765] doesn't matter if the substance
+- [04:30:02.765 --> 04:30:04.405] of your case is a failure exercise due care
+- [04:30:04.405 --> 04:30:09.115] and skill, you cannot get exemplary
+- [04:30:09.705 --> 04:30:13.195] damages, but if the substance of your case is an intentional
+- [04:30:14.515 --> 04:30:17.395] trespass or assault, of course the Parliament has left
+- [04:30:17.395 --> 04:30:20.075] exemplary damages alone, which might be part
+- [04:30:20.075 --> 04:30:21.915] of the answer I was gonna give you on Justice speech, James,
+- [04:30:21.985 --> 04:30:24.425] that that's part of the divide. Can I,
+- [04:30:24.425 --> 04:30:26.625] Can I just ask, just ask very quickly, do you,
+- [04:30:26.645 --> 04:30:28.985] do you accept that negligence,
+- [04:30:29.215 --> 04:30:30.705] even in a personal injury case,
+- [04:30:30.765 --> 04:30:33.225] can arise in two quite different ways?
+- [04:30:33.565 --> 04:30:38.345] One way is quite imposition of a duty as a matter of law,
+- [04:30:38.555 --> 04:30:41.145] where it's reasonably foreseeable in the circumstances
+- [04:30:41.145 --> 04:30:42.505] that a class of that type
+- [04:30:42.505 --> 04:30:44.385] of person will suffer physical injury.
+- [04:30:44.685 --> 04:30:48.145] And another way is by an assumption of responsibility
+- [04:30:48.635 --> 04:30:53.145] where the defendant has assumed responsibility maybe for
+- [04:30:53.735 --> 04:30:57.545] that type of injury, maybe for a broader type of injury, um,
+- [04:30:58.165 --> 04:31:00.745] to, um, ensure, uh, that care is taken.
+- [04:31:01.865 --> 04:31:03.305] I, I don't think I can say yes, your honor,
+- [04:31:03.325 --> 04:31:04.945] for the reason the Chief Justice put to me
+- [04:31:04.945 --> 04:31:06.585] that under this act
+- [04:31:07.935 --> 04:31:10.685] negligence is a faded exercise, reasonable care and skills.
+- [04:31:10.705 --> 04:31:13.485] So however you, however you define the entry point,
+- [04:31:13.485 --> 04:31:16.085] it's gotta be something that's capable of being breached
+- [04:31:16.505 --> 04:31:18.845] by a failure to exercise reasonable care and skill.
+- [04:31:19.505 --> 04:31:23.085] But you have to align that with the, the definition
+- [04:31:23.085 --> 04:31:27.805] of negligence with section three B
+- [04:31:28.425 --> 04:31:32.005] one A one A.
+- [04:31:32.885 --> 04:31:36.565] I mean, it's deliberately saying yes,
+- [04:31:36.565 --> 04:31:38.565] generally it can't be an intentional act,
+- [04:31:38.585 --> 04:31:39.845] but not, not in the case
+- [04:31:39.905 --> 04:31:43.445] of child sexual abuse when it can be an intentional act.
+- [04:31:44.815 --> 04:31:45.955] You can't ignore
+- [04:31:45.955 --> 04:31:48.115] that when looking at the definition of negligence.
+- [04:31:48.295 --> 04:31:53.275] So that's what I would like you to think about. Mr. Gleason?
+- [04:31:53.375 --> 04:31:54.875] Yes. Can I just, I think you've
+- [04:31:54.875 --> 04:31:55.875] Now got it from three judges.
+- [04:32:05.015 --> 04:32:08.755] Um, your honors, the, uh, position of the respondents
+- [04:32:08.775 --> 04:32:11.195] as the, uh, sorry, position of the respondent is
+- [04:32:11.315 --> 04:32:15.315] that if in the event your honors find that, uh,
+- [04:32:15.575 --> 04:32:17.515] the respondent did owe the appellate of duty,
+- [04:32:17.515 --> 04:32:18.515] whether it's ordinary
+- [04:32:19.335 --> 04:32:23.155] or nondelegable, uh, there remain outstanding issues.
+- [04:32:23.655 --> 04:32:25.835] And those outstanding issues should be remitted
+- [04:32:26.535 --> 04:32:28.515] for finalization in the Court of appeal.
+- [04:32:30.175 --> 04:32:32.515] Uh, the first outstanding issue, obviously is
+- [04:32:32.515 --> 04:32:35.235] that captured in grounds one and two in the court of appeal,
+- [04:32:35.235 --> 04:32:39.235] and that is whether the, um, abuse, uh, occurred.
+- [04:32:40.335 --> 04:32:43.115] And if I could just, um, in that respect,
+- [04:32:43.225 --> 04:32:45.635] take your honors within the court appeal book
+- [04:32:47.415 --> 04:32:49.435] to the manner in which those grounds one
+- [04:32:49.435 --> 04:32:54.235] and two were, um, dealt with by, uh,
+- [04:32:54.235 --> 04:32:58.125] the Chief Justice, um, and his honor Justice Leming.
+- [04:32:59.065 --> 04:33:02.725] Um, if your honors go within the court court appeal book,
+- [04:33:03.705 --> 04:33:07.005] um, to paragraph 1 5 4
+- [04:33:09.745 --> 04:33:14.325] in the court of appeal judgment, which is, uh, page 1 7 5,
+- [04:33:17.555 --> 04:33:22.485] Your honors will see that it was a view of Justice Lehman
+- [04:33:23.635 --> 04:33:28.365] that, uh, if called upon to decide,
+- [04:33:29.345 --> 04:33:31.765] um, whether the abuse had occurred
+- [04:33:31.825 --> 04:33:34.965] or not, that is the Court of appeal had to decide it
+- [04:33:35.545 --> 04:33:37.725] or sent the matter back for the trial judge
+- [04:33:37.905 --> 04:33:39.285] to decide afresh.
+- [04:33:40.185 --> 04:33:43.685] The question would ultimately, uh, turn on what WA was
+- [04:33:43.685 --> 04:33:45.085] to be given to Mr.
+- [04:33:45.705 --> 04:33:49.205] Uh, Perry's evidence, um, on the one hand
+- [04:33:50.305 --> 04:33:52.685] and the appellant's evidence on the other.
+- [04:33:52.995 --> 04:33:56.005] That was the question, uh, which his honor envisage would,
+- [04:33:56.375 --> 04:33:58.885] would need to be, um, addressed.
+- [04:33:59.745 --> 04:34:02.165] Now, that's where his honor, where the matter rested
+- [04:34:02.755 --> 04:34:06.685] because, um, the view taken, uh,
+- [04:34:06.945 --> 04:34:11.485] by this point in time was that, um, there,
+- [04:34:11.565 --> 04:34:14.485] there being a duty owed the question
+- [04:34:14.485 --> 04:34:16.285] of whether the abuse occurred did not have
+- [04:34:16.285 --> 04:34:18.205] to be decided by the Court of Appeal.
+- [04:34:21.025 --> 04:34:24.045] Can I then take your honors back to what, uh,
+- [04:34:24.045 --> 04:34:25.165] the Chief Justice did?
+- [04:34:25.205 --> 04:34:27.165] I know this has been touched on already,
+- [04:34:28.465 --> 04:34:33.205] but just to reiterate, his honors view, uh,
+- [04:34:33.565 --> 04:34:37.805] captured particularly, um, in paragraphs 15
+- [04:34:37.905 --> 04:34:40.125] and 16, that's a court appeal book
+- [04:34:40.125 --> 04:34:44.965] 1 2 7 15.
+- [04:34:46.185 --> 04:34:48.765] Uh, the Chief Justice identifies that Justice Lemming has,
+- [04:34:49.105 --> 04:34:52.765] um, persuasively highlighted significant difficulties
+- [04:34:52.765 --> 04:34:55.485] with the trial judge's acceptance
+- [04:34:55.675 --> 04:34:57.045] that the assaults had occurred.
+- [04:34:58.305 --> 04:35:01.165] And those are, uh, identified in detail by his honor bear.
+- [04:35:01.915 --> 04:35:05.705] Then paragraph 16, he's honor as, uh,
+- [04:35:05.705 --> 04:35:07.465] justice Beach Jones has already referred
+- [04:35:07.465 --> 04:35:09.585] to talks about the success of that challenge.
+- [04:35:09.605 --> 04:35:13.145] That's success of the challenge made
+- [04:35:13.165 --> 04:35:17.665] by the present respondent in the appeal to the findings
+- [04:35:17.695 --> 04:35:22.385] that the sexual assault had occurred And in,
+- [04:35:22.525 --> 04:35:24.745] uh, his honors view were not for the decision
+- [04:35:24.745 --> 04:35:26.625] that there was no duty of care.
+- [04:35:27.885 --> 04:35:30.145] The question, factual questions about whether the abuse
+- [04:35:30.385 --> 04:35:33.945] occurred, had occurred at all, um, needed to be resolved.
+- [04:35:35.085 --> 04:35:37.865] So we say it's clear from at least, uh,
+- [04:35:38.095 --> 04:35:39.385] from these two judges that
+- [04:35:39.385 --> 04:35:40.945] that view was taken in the court of appeal.
+- [04:35:40.945 --> 04:35:43.865] That is the error had been demonstrated in the fact finding
+- [04:35:44.605 --> 04:35:47.625] on the question of whether the abuse had occurred such
+- [04:35:47.625 --> 04:35:50.185] that an intervention either by the court itself
+- [04:35:50.325 --> 04:35:53.865] or by sending the matter back, uh, was required.
+- [04:35:55.505 --> 04:35:57.395] Then if I could take your honors just to some
+- [04:35:57.395 --> 04:35:59.355] of the observations made by our learned friend, Mr.
+- [04:35:59.355 --> 04:36:02.795] McCamish, and in particular paragraph 137,
+- [04:36:03.365 --> 04:36:04.435] Sorry, you said there are some
+- [04:36:04.435 --> 04:36:05.715] outstanding issues to be remitted.
+- [04:36:05.775 --> 04:36:07.515] Are these some of the outstanding issues?
+- [04:36:07.515 --> 04:36:08.555] Are we moving to a different
+- [04:36:08.555 --> 04:36:09.555] Topic? These
+- [04:36:09.555 --> 04:36:11.595] are some of the outstanding matters to be remitted.
+- [04:36:11.595 --> 04:36:12.995] First, the question of whether the
+- [04:36:12.995 --> 04:36:14.275] abuse had occurred, thank you.
+- [04:36:15.375 --> 04:36:18.195] If the abuse, um, had occurred, uh,
+- [04:36:18.295 --> 04:36:21.915] was there relevant breach of the ordinary duty and,
+- [04:36:21.935 --> 04:36:24.995] and if there was breach depending on its form, whether was
+- [04:36:24.995 --> 04:36:28.275] that breach causative of loss?
+- [04:36:31.025 --> 04:36:33.445] Now, if we take your honors then to, uh, where
+- [04:36:33.825 --> 04:36:37.485] to paragraph 137 in Justice lemmings judgment court appeal
+- [04:36:37.485 --> 04:36:42.005] book 1 6 8, our friends criticize,
+- [04:36:42.465 --> 04:36:44.965] um, his honor here by saying
+- [04:36:44.965 --> 04:36:47.725] that his honor was wrong in saying in the second sentence
+- [04:36:48.275 --> 04:36:50.405] that the plaintiff was not cross-examined on the sexual
+- [04:36:50.405 --> 04:36:53.205] assaults when he was recalled at trial.
+- [04:36:53.905 --> 04:36:56.045] Can I just give your honors, um, some reference,
+- [04:36:56.045 --> 04:37:00.605] and this will also pick up, um, the relevant evidence which,
+- [04:37:00.785 --> 04:37:03.845] uh, her honor, the primary judge described as vivid.
+- [04:37:04.355 --> 04:37:07.005] Your honors have the, um, appellant book
+- [04:37:07.005 --> 04:37:07.845] of further materials
+- [04:37:12.225 --> 04:37:14.405] at page 488.
+- [04:37:16.745 --> 04:37:20.165] That's, Uh, your honors will recall that the,
+- [04:37:20.165 --> 04:37:22.725] the process of taking the evidence was a, a little uneven
+- [04:37:22.725 --> 04:37:25.845] because of expedition evidence first taken
+- [04:37:25.945 --> 04:37:27.045] on commission before Mr.
+- [04:37:27.435 --> 04:37:31.645] Kafu. Um, what we, um,
+- [04:37:31.785 --> 04:37:33.925] and this evidence recorded including by video,
+- [04:37:35.355 --> 04:37:38.005] what we think is the evidence, which to which
+- [04:37:38.585 --> 04:37:40.285] the empathetic vivid was attached
+- [04:37:41.385 --> 04:37:44.325] is starts at about page 488,
+- [04:37:46.635 --> 04:37:49.255] and that's where I was cross-examining, uh,
+- [04:37:49.255 --> 04:37:52.695] the appellant on some of the details of the alleged abuse.
+- [04:37:53.795 --> 04:37:57.775] And that continues through to about page 4 9 2
+- [04:37:59.995 --> 04:38:01.135] and just perhaps this is
+- [04:38:01.135 --> 04:38:03.415] what her honor had in mind when talking about, uh,
+- [04:38:03.415 --> 04:38:07.895] an example of, of vivid that page 490
+- [04:38:09.145 --> 04:38:13.525] at about line 32 and below, there's some specific detail
+- [04:38:14.185 --> 04:38:16.805] or some specific cross-examination about some of the detail
+- [04:38:17.065 --> 04:38:20.765] by reference to the evidentiary statement questions asked.
+- [04:38:20.765 --> 04:38:23.165] What, what was happening to which the answer was, are you
+- [04:38:23.185 --> 04:38:25.645] for real from the appellant?
+- [04:38:25.985 --> 04:38:27.925] And that that evidence continues in effect
+- [04:38:27.945 --> 04:38:29.285] to the bottom of 4 9 2.
+- [04:38:29.755 --> 04:38:31.645] That is the cross-examination
+- [04:38:32.545 --> 04:38:34.685] of the appellant about the abuse,
+- [04:38:35.505 --> 04:38:38.645] and that all happened on commission recorded by video,
+- [04:38:40.305 --> 04:38:43.605] and which understand
+- [04:38:43.785 --> 04:38:45.005] or assume that that's
+- [04:38:45.005 --> 04:38:46.925] what her honor's describing as the vivid evidence.
+- [04:38:48.035 --> 04:38:51.525] Then intervening before Mr.
+- [04:38:51.775 --> 04:38:53.045] Sorry, before the appellant is,
+- [04:38:53.070 --> 04:38:57.665] is recalled is evidence emerges, emerges from Mr.
+- [04:38:58.725 --> 04:39:00.505] Um, Perry
+- [04:39:01.285 --> 04:39:04.505] and the, the further hearing which took place before her honor.
+- [04:39:05.285 --> 04:39:08.305] If I can just identify, your honor, where that evidence is.
+- [04:39:10.245 --> 04:39:12.345] So this was where the opportunity for honor to see
+- [04:39:12.885 --> 04:39:17.065] the appellant, um, it's the cross-examination starts
+- [04:39:17.765 --> 04:39:19.945] at about still within the same, um,
+- [04:39:20.095 --> 04:39:21.625] appellant's further building, sorry,
+- [04:39:21.625 --> 04:39:24.465] further materials at page 5, 7, 6.
+- [04:39:25.975 --> 04:39:29.065] What, what, what are you seeking to draw from taking
+- [04:39:29.565 --> 04:39:31.705] Simply that the cross-examination
+- [04:39:32.605 --> 04:39:34.305] on the a on the abuse itself
+- [04:39:35.045 --> 04:39:38.065] is almost entirely captured in the evidence on commission,
+- [04:39:38.355 --> 04:39:40.945] which was then caught on video, which was then available
+- [04:39:41.005 --> 04:39:42.025] for her honor to see,
+- [04:39:42.285 --> 04:39:44.305] and then available for the court of appeal to see
+- [04:39:44.925 --> 04:39:49.825] the further hearing of, um, involving, um, the,
+- [04:39:49.845 --> 04:39:53.385] the plaintiff where her honor got to see him give evidence,
+- [04:39:54.045 --> 04:39:57.585] did not have, as its subject matter, the abuse itself,
+- [04:39:58.085 --> 04:40:01.585] but rather what had been said by Mr. Perry, it
+- [04:40:01.605 --> 04:40:03.705] Did at 5 99 At the very end, in,
+- [04:40:03.705 --> 04:40:04.985] in it's simply in a brown
+- [04:40:05.005 --> 04:40:06.865] and done series
+- [04:40:06.885 --> 04:40:09.665] of ques three questions asked at the very end. Well,
+- [04:40:09.665 --> 04:40:11.065] You might say that's a vivid answer,
+- [04:40:11.495 --> 04:40:14.065] Well, Just looking black and white on the page.
+- [04:40:14.725 --> 04:40:16.825] You know, I was the one that suffered, not him,
+- [04:40:17.445 --> 04:40:20.105] no one else pretty I you could call that vivid.
+- [04:40:20.775 --> 04:40:23.905] Well, the, the bulk of the evidence given on the question
+- [04:40:23.905 --> 04:40:27.425] of the abuse was that catch on camera, which, uh,
+- [04:40:27.525 --> 04:40:29.825] and then when, uh, well,
+- [04:40:29.825 --> 04:40:30.825] At least you had to be there.
+- [04:40:32.285 --> 04:40:36.465] Yes. And then, but what her honor was looking at
+- [04:40:36.465 --> 04:40:38.185] and was describing as, as vivid was
+- [04:40:38.185 --> 04:40:40.785] with respect from looking at the video, which was
+- [04:40:40.805 --> 04:40:43.945] of course then available, um, to the Court of appeal.
+- [04:40:45.325 --> 04:40:49.785] In terms of the, um, process though, um,
+- [04:40:49.915 --> 04:40:52.105] going back to what the Court of Appeal had to say
+- [04:40:52.685 --> 04:40:57.265] and what Justice Lenning had to say at 1 3 8 on page one,
+- [04:40:57.405 --> 04:41:01.745] um, six eight, uh, his honor refers to a,
+- [04:41:01.765 --> 04:41:04.785] or makes a finding that the account was demonstrably
+- [04:41:04.785 --> 04:41:08.625] unreliable, and there's no challenge in this court
+- [04:41:09.365 --> 04:41:12.345] by the appellant to his honors finding there.
+- [04:41:12.805 --> 04:41:17.225] And then that, uh, has five bases, um,
+- [04:41:17.245 --> 04:41:18.385] but continues for the balance of
+- [04:41:18.385 --> 04:41:19.625] that paragraph. I mean, they
+- [04:41:19.625 --> 04:41:20.625] Don't need to challenge it
+- [04:41:20.625 --> 04:41:21.745] because they've got the,
+- [04:41:22.445 --> 04:41:24.145] it doesn't overturn the primary judge.
+- [04:41:24.525 --> 04:41:27.705] Her finding, well, in, in our respectful submission, the,
+- [04:41:27.845 --> 04:41:31.345] the, the error in terms of the fact finding was,
+- [04:41:31.605 --> 04:41:35.865] was made out before their honors in the court of appeal,
+- [04:41:36.775 --> 04:41:38.625] such that their honor should be given that opportunity
+- [04:41:39.565 --> 04:41:42.905] to finish the task which they commenced,
+- [04:41:42.925 --> 04:41:44.385] but understand pulled up on.
+- [04:41:44.965 --> 04:41:46.905] So you're saying we've got this kind of position
+- [04:41:46.905 --> 04:41:49.665] where two judges have set the findings aside
+- [04:41:49.725 --> 04:41:53.005] but not made them, and one judge has said no,
+- [04:41:53.005 --> 04:41:54.965] the findings were right or affirmed
+- [04:41:54.965 --> 04:41:55.965] Them. Two judges
+- [04:41:55.965 --> 04:41:57.725] have set aside the, the finding
+- [04:41:58.035 --> 04:42:00.325] that the abuse had occurred without them going on
+- [04:42:00.325 --> 04:42:04.625] to either send the matter back for a finalization of
+- [04:42:04.625 --> 04:42:06.065] that finding or make the finding themselves,
+- [04:42:06.845 --> 04:42:10.665] and then the remaining judge himself, uh,
+- [04:42:10.835 --> 04:42:12.145] found error.
+- [04:42:12.205 --> 04:42:14.225] He doesn't specify what in the fact finding process,
+- [04:42:14.485 --> 04:42:19.105] but then goes on to find no ultimate error on the question
+- [04:42:19.105 --> 04:42:20.305] of whether the abuse had occurred.
+- [04:42:21.325 --> 04:42:24.385] So that's the, the situation we're left in, uh,
+- [04:42:24.405 --> 04:42:27.225] and in our, uh, respectful submission that by reference
+- [04:42:27.225 --> 04:42:29.025] to the notes of contention, we should be given
+- [04:42:29.025 --> 04:42:32.585] that opportunity as it were to have this matter,
+- [04:42:32.615 --> 04:42:34.825] this fundamental question of whether the abuse occurred
+- [04:42:34.825 --> 04:42:38.065] or not returned to the Court of appeal.
+- [04:42:38.795 --> 04:42:40.215] So it can finish that exercise.
+- [04:42:40.755 --> 04:42:43.255] And, and there were, um,
+- [04:42:43.275 --> 04:42:48.175] before as set out in paragraph 138 sound reasons
+- [04:42:49.715 --> 04:42:54.015] for, uh, the finding of, of error on the part
+- [04:42:54.015 --> 04:42:56.375] of the trial judge such that this was a real issue
+- [04:42:56.375 --> 04:42:57.975] that required determination.
+- [04:42:58.775 --> 04:43:01.675] And as I've shown your honors already by reference to 1 5 4,
+- [04:43:02.215 --> 04:43:05.515] really that question is by comparing these two
+- [04:43:06.265 --> 04:43:10.355] diametrically opposed accounts of events at the presbytery,
+- [04:43:11.175 --> 04:43:13.675] uh, on the one hand advanced by the appellant,
+- [04:43:13.675 --> 04:43:17.245] and on the other hand, advanced by Mr. Perry,
+- [04:43:18.295 --> 04:43:19.925] whose evidence was by
+- [04:43:19.925 --> 04:43:24.885] and large accepted even by, uh, justice Ball in his,
+- [04:43:25.105 --> 04:43:28.525] his differing view on the factual matters determined
+- [04:43:28.715 --> 04:43:31.805] that Mr. Perry was credible and
+- [04:43:31.825 --> 04:43:33.685] and fundamental
+- [04:43:34.705 --> 04:43:38.685] to the appellant's factual case about the abuse was
+- [04:43:38.685 --> 04:43:40.325] that he was alone in the company
+- [04:43:40.345 --> 04:43:41.845] of Father Picken at the presbytery.
+- [04:43:42.395 --> 04:43:44.215] That that was an essential part
+- [04:43:44.215 --> 04:43:47.175] of his case advanced throughout his evidentiary statements
+- [04:43:48.275 --> 04:43:51.395] in terms of at least the first evidentiary statement, uh,
+- [04:43:51.395 --> 04:43:54.275] accompanied by assertions that there were periods of, uh,
+- [04:43:54.275 --> 04:43:57.915] 20 minutes or 40 minutes in which Mr. Perry was away from
+- [04:43:57.915 --> 04:44:00.475] the presbytery when the abuse occurred, though those are,
+- [04:44:00.695 --> 04:44:04.875] uh, serious matters, uh, advanced on behalf of the appellant
+- [04:44:04.895 --> 04:44:09.715] to, uh, form a basis for an acceptance of his account
+- [04:44:09.715 --> 04:44:12.235] that he was abused, which the court didn't accept,
+- [04:44:12.685 --> 04:44:14.235] which the trial judge didn't accept,
+- [04:44:14.775 --> 04:44:16.115] and having not accepted it
+- [04:44:16.115 --> 04:44:20.675] nonetheless, um, didn't, um, bring that into account
+- [04:44:20.695 --> 04:44:22.435] and ultimately determining whether the abuse
+- [04:44:22.495 --> 04:44:23.795] had occurred. Mr.
+- [04:44:23.795 --> 04:44:26.355] Sheller, are we still leaving Mr. Hertzfeld three
+- [04:44:26.355 --> 04:44:27.355] Minutes? Yes. Um,
+- [04:44:27.355 --> 04:44:28.555] your Honor, um,
+- [04:44:28.555 --> 04:44:29.955] those are all the matters we wanted to say.
+- [04:44:29.955 --> 04:44:31.675] We other reli otherwise rely upon our
+- [04:44:31.675 --> 04:44:32.835] submissions on the question of breach and
+- [04:44:32.835 --> 04:44:33.835] Court. Mr. Shelley, you're the trial,
+- [04:44:33.835 --> 04:44:35.115] so you may know on, on my
+- [04:44:35.685 --> 04:44:38.475] quick reading of the pleadings in particulars and so forth.
+- [04:44:38.575 --> 04:44:40.715] It does look as though there was an acceptance
+- [04:44:41.255 --> 04:44:43.315] of the Civil Liability Act restrictions on
+- [04:44:43.315 --> 04:44:44.835] damages applied. Is that,
+- [04:44:45.415 --> 04:44:47.755] So there, there was on damages,
+- [04:44:48.135 --> 04:44:50.685] the trial judge allowed two, two different amounts.
+- [04:44:51.385 --> 04:44:54.685] Uh, one was predicated on vicarious liability, so
+- [04:44:54.685 --> 04:44:55.725] that can be put to one side.
+- [04:44:56.585 --> 04:44:58.965] The other was on no vicarious liability.
+- [04:44:59.585 --> 04:45:02.165] The restrictions under the Civil Liability Act were held
+- [04:45:02.165 --> 04:45:05.005] to apply because, uh, three
+- [04:45:05.645 --> 04:45:07.605] B does not click in
+- [04:45:07.605 --> 04:45:11.405] because the diocese is not the perpetrator
+- [04:45:11.425 --> 04:45:12.525] of the intentional tort.
+- [04:45:12.985 --> 04:45:15.165] So that's how it worked. That, that that was the basis.
+- [04:45:15.545 --> 04:45:18.325] Yes, yes. Thank you. Thank you, your Honor. Thank you.
+- [04:45:18.945 --> 04:45:22.285] Um, your Honor, I think I should have 18 minutes,
+- [04:45:22.285 --> 04:45:23.685] given there was 15 extra minutes,
+- [04:45:23.705 --> 04:45:25.045] but I'll try to do it in five.
+- [04:45:26.065 --> 04:45:29.205] Um, your Honor, the Chief Justice asked where the language
+- [04:45:29.205 --> 04:45:30.685] of church events came from.
+- [04:45:30.905 --> 04:45:33.325] It came from the respondent's closing submissions
+- [04:45:33.505 --> 04:45:36.045] to the primary Judge c respondent's book
+- [04:45:36.045 --> 04:45:40.565] of Further Materials, page 60 at paragraph 48, your Honor,
+- [04:45:40.565 --> 04:45:43.285] justice Edelman asked whether it was put in the Court
+- [04:45:43.285 --> 04:45:45.205] of appeal that the primary judge's reference
+- [04:45:45.205 --> 04:45:47.885] to the Canin report should be understood to be a reference
+- [04:45:47.885 --> 04:45:51.365] to the 1987 letter that was accepted by both sides
+- [04:45:52.045 --> 04:45:53.965] c respondent's book of further Materials,
+- [04:45:53.995 --> 04:45:57.365] page 1 7 2 at lines 34 to 41
+- [04:45:57.745 --> 04:46:01.725] and 1 8 9 lines 26 to 35, your Honor,
+- [04:46:01.725 --> 04:46:04.245] justice Gordon asked about the facts
+- [04:46:04.875 --> 04:46:07.685] that we particularly rely on for Nondelegable duty,
+- [04:46:07.685 --> 04:46:09.245] especially as to entrustment.
+- [04:46:09.545 --> 04:46:11.565] Can I give your honor, these references in our written
+- [04:46:11.565 --> 04:46:15.845] submissions in Chief paragraphs 25 to 29
+- [04:46:16.465 --> 04:46:21.205] and 38 to 40 in entrustment in particular is paragraph
+- [04:46:21.325 --> 04:46:25.365] 29, and in reply, paragraphs 14
+- [04:46:25.865 --> 04:46:28.445] to 19 entrustment is dealt with,
+- [04:46:28.445 --> 04:46:30.325] particularly at paragraph 17.
+- [04:46:31.065 --> 04:46:33.565] In addition, appellant's book of further materials,
+- [04:46:33.565 --> 04:46:36.605] volume two pages 5 0 5 to six
+- [04:46:38.025 --> 04:46:40.925] in relation to duty of care, there was an attack by Mr.
+- [04:46:40.955 --> 04:46:44.125] Gleason on the weight to be given to Father Di, to be given
+- [04:46:44.125 --> 04:46:47.525] to Father Dylan's evidence that evidence was unchallenged
+- [04:46:47.585 --> 04:46:48.885] and uncontradicted
+- [04:46:49.225 --> 04:46:51.925] by any competing evidence from the party best able
+- [04:46:51.925 --> 04:46:55.485] to lead it, namely the respondent, either on the question
+- [04:46:55.485 --> 04:46:56.925] of the role of a parish priest
+- [04:46:57.185 --> 04:47:00.805] or on the knowledge of, uh, bishops
+- [04:47:00.805 --> 04:47:03.165] and so on as to the risks of sexual abuse.
+- [04:47:04.025 --> 04:47:06.365] Mr. Gleason placed an emphasis on that part
+- [04:47:06.365 --> 04:47:10.005] of Father Dylan's report, referring to the power
+- [04:47:10.005 --> 04:47:13.205] of a parish priest to have events at the presbytery, quote,
+- [04:47:13.645 --> 04:47:15.805] directly part of the church's mission.
+- [04:47:16.345 --> 04:47:20.485] But when the whole of his evidence is read, it is explained
+- [04:47:20.505 --> 04:47:24.285] how broad that was thought to be really amounting to
+- [04:47:24.285 --> 04:47:27.245] that which was decided by the parish priest, uh,
+- [04:47:27.305 --> 04:47:30.045] to be suitable, including social activities.
+- [04:47:30.505 --> 04:47:33.765] Uh, it is irrelevant that there were some limits placed on
+- [04:47:34.345 --> 04:47:36.805] the parish priest's, uh, authority.
+- [04:47:37.385 --> 04:47:41.205] If the course of conduct was sufficiently broad to capture,
+- [04:47:41.705 --> 04:47:45.405] uh, the kind of task which was at issue, uh, here
+- [04:47:46.805 --> 04:47:48.345] relation to reasonable foreseeability.
+- [04:47:48.485 --> 04:47:51.945] In principle, it would be sufficient, uh, for a duty of care
+- [04:47:52.085 --> 04:47:54.625] and reasonable foreseeability to be tested
+- [04:47:55.365 --> 04:47:57.745] by asking simply about personal injury.
+- [04:47:57.745 --> 04:48:00.585] That is a kind of harm distinguished, for example,
+- [04:48:00.585 --> 04:48:01.745] from economic loss.
+- [04:48:02.285 --> 04:48:04.945] But we have, in any event, shown your honors
+- [04:48:05.065 --> 04:48:08.545] how sexual assault was reasonably foreseeable, either
+- [04:48:08.545 --> 04:48:10.665] because of the knowledge of the diocese
+- [04:48:11.045 --> 04:48:14.145] or that which it ought to have known in the circumstances,
+- [04:48:14.685 --> 04:48:18.065] and if that's so, the duty of care follows our priority
+- [04:48:18.405 --> 04:48:20.985] for other kinds of personal injury not caused
+- [04:48:21.005 --> 04:48:22.825] by intentional sexual abuse.
+- [04:48:23.725 --> 04:48:27.345] In this case, the breach, of course, was, um, failing
+- [04:48:27.445 --> 04:48:29.705] to prevent sexual abuse by the priest,
+- [04:48:30.045 --> 04:48:32.545] and that was what the primary judge's findings about
+- [04:48:32.545 --> 04:48:34.225] breach, uh, addressed.
+- [04:48:34.955 --> 04:48:37.865] Those findings were the correct findings to make.
+- [04:48:37.865 --> 04:48:39.785] However, the duty is framed,
+- [04:48:39.785 --> 04:48:43.625] because the facts in this case involved sexual assault
+- [04:48:44.485 --> 04:48:46.985] in relation to Father Doran, uh,
+- [04:48:47.285 --> 04:48:51.145] and in particular his duty to report, uh, a complaint.
+- [04:48:51.545 --> 04:48:54.265] I referred you in chief to the passages in O'Connor
+- [04:48:54.365 --> 04:48:58.225] and common solely in relation to paragraph 230
+- [04:48:58.325 --> 04:48:59.705] of Justice Lehman's reasons.
+- [04:49:00.115 --> 04:49:01.585] There was no evidence
+- [04:49:01.805 --> 04:49:04.145] before the court that the various people
+- [04:49:04.255 --> 04:49:07.305] that he mentioned on the various committees were senior
+- [04:49:07.445 --> 04:49:08.545] to parish priests.
+- [04:49:08.965 --> 04:49:11.065] The evidence from Father Dylan was
+- [04:49:11.065 --> 04:49:12.985] that parish priests in the hierarchy
+- [04:49:12.985 --> 04:49:14.465] were directly below the bishop.
+- [04:49:14.795 --> 04:49:17.425] Those other committees could have been off to the side.
+- [04:49:17.925 --> 04:49:20.545] The fact that there were such committees does not
+- [04:49:20.945 --> 04:49:24.105] demonstrate that they were more senior than parish priests.
+- [04:49:24.205 --> 04:49:27.785] And again, no evidence from the party one would've thought
+- [04:49:27.815 --> 04:49:30.745] best placed to controvert Father Dylan's evidence on
+- [04:49:30.745 --> 04:49:32.145] that point if they wish to do so.
+- [04:49:33.005 --> 04:49:34.945] In relation to Nondelegable duty, Mr.
+- [04:49:34.945 --> 04:49:37.305] Gleason sought to get something out of five Q.
+- [04:49:37.405 --> 04:49:40.945] In the other provisions of part one A, um, that doesn't work
+- [04:49:40.945 --> 04:49:43.265] for the reason, your Honor, justice Jago pointed out
+- [04:49:43.415 --> 04:49:46.345] that those parts are explicitly misapplied
+- [04:49:46.365 --> 04:49:47.945] by section three, capital B.
+- [04:49:47.965 --> 04:49:50.545] In a case of this kind, it was accepted that
+- [04:49:50.545 --> 04:49:54.305] that provision applied c the primary judge's reasons at
+- [04:49:54.305 --> 04:49:56.985] paragraph 2, 7 3, you
+- [04:49:57.105 --> 04:50:00.945] therefore get nothing out of, uh, those provisions.
+- [04:50:01.565 --> 04:50:05.785] We were criticized for our reference to Chasky.
+- [04:50:06.095 --> 04:50:08.905] That was a case about, uh, an employer's duty
+- [04:50:09.005 --> 04:50:10.825] to ensure the safe system of work.
+- [04:50:11.045 --> 04:50:14.785] And in that particular case, the uh, employer failed
+- [04:50:14.785 --> 04:50:17.265] to exercise reasonable care to prevent an attack
+- [04:50:17.485 --> 04:50:19.025] by, uh, third parties.
+- [04:50:19.645 --> 04:50:22.985] We now recognize that duty as a nondelegable one,
+- [04:50:23.285 --> 04:50:28.065] and if it were otherwise, an employer who leaves the safety
+- [04:50:28.125 --> 04:50:30.065] of their workplace to a contractor
+- [04:50:30.895 --> 04:50:33.345] will escape if one employee
+- [04:50:34.075 --> 04:50:36.345] while Sky Laking intentionally
+- [04:50:36.405 --> 04:50:40.625] and unlawfully injures another, um, in relation
+- [04:50:40.765 --> 04:50:45.485] to the Civil Liability Act reforms as a suggestion that, uh,
+- [04:50:45.485 --> 04:50:48.045] your Honor should not correct the error in Lapore
+- [04:50:48.425 --> 04:50:51.165] as your Honor, justice Bee Jones pointed out, um,
+- [04:50:51.195 --> 04:50:55.125] they are not on the same topic as was submitted by Mr.
+- [04:50:55.275 --> 04:50:57.485] Gleason. They're on a limited topic
+- [04:50:57.515 --> 04:50:59.485] that is child abuse proceedings.
+- [04:50:59.905 --> 04:51:03.765] Uh, whereas the holding in Lapore applies to any kind
+- [04:51:03.765 --> 04:51:05.205] of nondelegable duty,
+- [04:51:06.065 --> 04:51:09.325] and even if it was the case that it was limited
+- [04:51:09.425 --> 04:51:10.845] to child abuse proceedings,
+- [04:51:10.845 --> 04:51:13.605] there's no in indication in the text of the limit
+- [04:51:13.985 --> 04:51:15.725] of the text of the legislation
+- [04:51:16.105 --> 04:51:17.445] or the extrinsic material
+- [04:51:17.875 --> 04:51:20.325] that Parliament was doing anything other than supplying an
+- [04:51:20.325 --> 04:51:22.605] additional remedy to plaintiffs.
+- [04:51:23.195 --> 04:51:25.205] Finally, the cross-examination
+- [04:51:25.205 --> 04:51:29.085] before the primary judge about the assaults begins at
+- [04:51:29.085 --> 04:51:31.725] appellant book, uh, assault Rather.
+- [04:51:32.185 --> 04:51:33.725] Yes, the assaults begins at primary,
+- [04:51:33.985 --> 04:51:35.525] uh, let me start that again.
+- [04:51:35.585 --> 04:51:37.005] I'm trying to do this too quickly. I'm sorry.
+- [04:51:37.585 --> 04:51:38.925] The cross-examination
+- [04:51:39.505 --> 04:51:41.005] before the primary judge
+- [04:51:41.345 --> 04:51:45.085] of the appellant about the assaults begins at appellant's
+- [04:51:45.085 --> 04:51:48.125] book of further Materials volume two, page five 80,
+- [04:51:48.585 --> 04:51:50.885] and goes all the way through to the page that Your Honor,
+- [04:51:50.885 --> 04:51:52.405] justice Jago mentioned.
+- [04:51:52.745 --> 04:51:57.085] It was extensive. I think I'm two minutes behind. I'm sorry.
+- [04:51:57.365 --> 04:51:59.765] I did my best. Thank you.
+- [04:51:59.885 --> 04:52:01.885] I, I, and, and I think, I think Mr.
+- [04:52:01.955 --> 04:52:03.245] Gleason wants the last word.
+- [04:52:03.835 --> 04:52:05.925] Well, we did ask him a question, which is yet to answer.
+- [04:52:06.125 --> 04:52:07.805] I don't want the last word. Um,
+- [04:52:08.655 --> 04:52:11.125] there isn't a one line answer to the, to the question.
+- [04:52:11.865 --> 04:52:14.205] Mr. Hertzfeld just referred to paragraph 2 7 3,
+- [04:52:14.205 --> 04:52:18.485] the primary judge, which says
+- [04:52:18.485 --> 04:52:20.485] that at trial you honor Justice Beach Jones.
+- [04:52:20.945 --> 04:52:24.445] The parties agreed the damages were assessed at common law
+- [04:52:24.555 --> 04:52:25.645] when it was vicarious.
+- [04:52:25.995 --> 04:52:27.085] When it was vicarious.
+- [04:52:27.365 --> 04:52:30.525] I was wondering what's the position with non eligible and,
+- [04:52:30.625 --> 04:52:35.255] and what, what I'd been trying to say in chief was,
+- [04:52:35.435 --> 04:52:40.065] if you are running a negligence case,
+- [04:52:40.085 --> 04:52:41.585] you're within part one A
+- [04:52:43.235 --> 04:52:46.775] and negligence means failure to exercise reasonable care,
+- [04:52:48.265 --> 04:52:50.565] and, and then you're under the act.
+- [04:52:52.115 --> 04:52:54.975] But it has to be a negligence case.
+- [04:52:55.715 --> 04:52:57.875] You, you're running, um,
+- [04:53:00.785 --> 04:53:05.285] and I took you to five Q, which
+- [04:53:06.935 --> 04:53:08.525] can't be simply disa complied as Mr.
+- [04:53:08.525 --> 04:53:09.725] Hertzfeld said. If he's,
+- [04:53:09.745 --> 04:53:12.445] if his case is a case in negligence, in, in the tort
+- [04:53:12.445 --> 04:53:16.845] of negligence, he's caught by five A and
+- [04:53:16.865 --> 04:53:18.325] and five Q applies
+- [04:53:18.345 --> 04:53:21.605] and the damages would, would be capped under the act.
+- [04:53:21.785 --> 04:53:24.965] Now, um, apparently there's some New South Wales Court
+- [04:53:24.965 --> 04:53:29.045] of Appeal Authority, which says that three B so far
+- [04:53:29.045 --> 04:53:33.725] as it is directed to the primary offender, uh, calves
+- [04:53:33.725 --> 04:53:34.725] that out of the act.
+- [04:53:35.225 --> 04:53:39.085] And then the exception brings back in the limited provisions
+- [04:53:39.085 --> 04:53:42.065] of six F and six H and six O.
+- [04:53:43.105 --> 04:53:45.285] Um, Mr. So that's Mr. Gleason.
+- [04:53:46.285 --> 04:53:50.525] I think, uh, I think we need a note from you on this.
+- [04:53:50.745 --> 04:53:52.565] I'm sorry. I can't do it better than that, your Honor. Yes.
+- [04:53:52.585 --> 04:53:55.405] Can we do that? Uh, how long do you want?
+- [04:53:55.895 --> 04:53:57.165] We'll just do it, we'll do it two
+- [04:53:57.165 --> 04:53:58.285] days, your Honor, in two days.
+- [04:53:58.425 --> 04:53:59.485] Mr. Yes,
+- [04:53:59.485 --> 04:54:01.485] We, we'll need an opportunity to respond to this
+- [04:54:01.485 --> 04:54:04.485] because it has the quite radical consequence
+- [04:54:04.485 --> 04:54:06.085] that I think on the respondent's case.
+- [04:54:06.145 --> 04:54:09.605] Now, five Q is in play.
+- [04:54:10.025 --> 04:54:11.405] You can put this in writing. Mr.
+- [04:54:11.405 --> 04:54:12.605] Herzfeld, how long do you want?
+- [04:54:12.905 --> 04:54:15.245] Yes, we will need a week.
+- [04:54:16.955 --> 04:54:19.245] This is not a small issue, just relevant
+- [04:54:19.245 --> 04:54:20.965] to damages down the track. Well,
+- [04:54:20.985 --> 04:54:21.985] Mr. Peon, you put
+- [04:54:21.985 --> 04:54:24.365] in your note in two days, and Mr.
+- [04:54:25.555 --> 04:54:26.685] Feld, you have a week after
+- [04:54:26.685 --> 04:54:27.605] That. Thank you, your Honor.
+- [04:54:28.015 --> 04:54:29.965] Thank you. Um,
+- [04:54:30.265 --> 04:54:33.165] the court will consider its decision in this matter
+- [04:54:33.385 --> 04:54:36.605] and will adjourn until 10:00 AM Next Tuesday in Perth
+- [04:54:37.825 --> 04:54:42.685] All Stand, the High Court of Australia stands adjourned
+- [04:54:42.685 --> 04:54:45.525] to 10:00 AM on Tuesday, 12 August in Perth.

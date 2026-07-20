@@ -65,7 +65,7 @@ def _iter_sentences(doc: "Doc") -> Iterable["Span"]:
 def _serialize_token(token: "Token") -> Dict[str, Any]:
     end = token.idx + len(token.text)
     lemma = token.lemma_ if token.lemma_ else token.text
-    morph = {key: list(token.morph.get(key)) for key in token.morph}
+    morph = {key: list(token.morph.get(key)) for key in token.morph.to_dict()}
     return {
         "index": token.i,
         "text": token.text,

@@ -1,0 +1,104 @@
+{
+  "captions": [
+    {
+      "bytes": 444278,
+      "kind": "subtitles",
+      "lang": "en-x-autogen",
+      "segments_json": "SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.segments.json",
+      "transcript_md": "SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md",
+      "video_id": "1109898693",
+      "vtt": "SensibLaw/demo/ingest/hca_case_s942025/media/captions/vimeo_1109898693_en-x-autogen_subtitles.vtt"
+    }
+  ],
+  "errors": [
+    "vimeo_config_fetch_failed[1109898693]: HTTPError: HTTP Error 403: Forbidden"
+  ],
+  "oembed_urls": [
+    "https://www.hcourt.gov.au/media/oembed?url=https%3A//player.vimeo.com/video/1109898693%3Fbadge%3D0%26amp%3Bautopause%3D0%26amp%3Bplayer_id%3D0%26amp%3Bapp_id%3D58479&max_width=0&max_height=0&hash=UiKwDKPOgtPTwt3UcaJLTCFQ3sB8Vc7H85XT22FQCjQ"
+  ],
+  "ok": true,
+  "player_urls": [
+    "https://player.vimeo.com/video/1109898693?app_id=122963"
+  ],
+  "recording_page": "https://www.hcourt.gov.au/cases-and-judgments/hearings/av-recording/av-2025-08-07",
+  "recording_page_download": {
+    "bytes": 47783,
+    "content_type": "text/html; charset=UTF-8",
+    "final_url": "https://www.hcourt.gov.au/cases-and-judgments/hearings/av-recording/av-2025-08-07",
+    "path": "SensibLaw/demo/ingest/hca_case_s942025/raw/undated_Case_recording_page.html",
+    "url": "https://www.hcourt.gov.au/cases-and-judgments/hearings/av-recording/av-2025-08-07"
+  },
+  "stream_manifests": [
+    {
+      "bytes": 1845,
+      "cdn": "akfire_interconnect_quic",
+      "content_type": "application/x-mpegURL",
+      "kind": "url",
+      "path": "SensibLaw/demo/ingest/hca_case_s942025/media/video/vimeo_1109898693_01_hls_akfire_interconnect_quic_url.m3u8",
+      "protocol": "hls",
+      "url": "https://vod-adaptive-ak.vimeocdn.com/exp=1770860372~acl=%2F11721138-aa8b-4bc2-b8a6-1a31796d4904%2Fpsid%3D0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d%2F%2A~hmac=229b6d88564f2931503ca81287cd34ba4adf5bb9c021b4fbeec80aa47b8a948a/11721138-aa8b-4bc2-b8a6-1a31796d4904/psid=0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d/v2/playlist/av/primary/sub/247817806-en-x-autogen/prot/cXNyPTE/playlist.m3u8?ext-subs=1&locale=en&omit=av1-hevc-opus&pathsig=8c953e4f~rwIjnMyfLm7oYPg0OtRlwaIVohZHkENXvDZc0xs5EJU&qsr=1&r=dXM%3D&rh=3CtyCs&sf=ts"
+    },
+    {
+      "bytes": 1821,
+      "cdn": "fastly_skyfire",
+      "content_type": "application/vnd.apple.mpegurl",
+      "kind": "url",
+      "path": "SensibLaw/demo/ingest/hca_case_s942025/media/video/vimeo_1109898693_02_hls_fastly_skyfire_url.m3u8",
+      "protocol": "hls",
+      "url": "https://skyfire.vimeocdn.com/1770860372-0x9da686a2b3be3a481cdff6c4f7bd0eff492f0cdb/11721138-aa8b-4bc2-b8a6-1a31796d4904/psid=0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d/v2/playlist/av/primary/sub/247817806-en-x-autogen/prot/cXNyPTE/playlist.m3u8?ext-subs=1&locale=en&omit=av1-hevc-opus&pathsig=8c953e4f~rwIjnMyfLm7oYPg0OtRlwaIVohZHkENXvDZc0xs5EJU&qsr=1&r=dXM%3D&rh=3CtyCs&sf=ts"
+    },
+    {
+      "bytes": 5277448,
+      "cdn": "akfire_interconnect_quic",
+      "content_type": "application/json",
+      "kind": "url",
+      "path": "SensibLaw/demo/ingest/hca_case_s942025/media/video/vimeo_1109898693_03_dash_akfire_interconnect_quic_url.mpd",
+      "protocol": "dash",
+      "url": "https://vod-adaptive-ak.vimeocdn.com/exp=1770860372~acl=%2F11721138-aa8b-4bc2-b8a6-1a31796d4904%2Fpsid%3D0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d%2F%2A~hmac=229b6d88564f2931503ca81287cd34ba4adf5bb9c021b4fbeec80aa47b8a948a/11721138-aa8b-4bc2-b8a6-1a31796d4904/psid=0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d/v2/playlist/av/primary/prot/cXNyPTE/playlist.json?pathsig=8c953e4f~OLxvYtjFT8973rLXhupaNxA80f4YRjvQQ_UpdAZKjQk&qsr=1&r=dXM%3D&rh=3CtyCs"
+    },
+    {
+      "bytes": 5277448,
+      "cdn": "akfire_interconnect_quic",
+      "content_type": "application/json",
+      "kind": "avc_url",
+      "path": "SensibLaw/demo/ingest/hca_case_s942025/media/video/vimeo_1109898693_04_dash_akfire_interconnect_quic_avc_url.mpd",
+      "protocol": "dash",
+      "url": "https://vod-adaptive-ak.vimeocdn.com/exp=1770860372~acl=%2F11721138-aa8b-4bc2-b8a6-1a31796d4904%2Fpsid%3D0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d%2F%2A~hmac=229b6d88564f2931503ca81287cd34ba4adf5bb9c021b4fbeec80aa47b8a948a/11721138-aa8b-4bc2-b8a6-1a31796d4904/psid=0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d/v2/playlist/av/primary/prot/cXNyPTE/playlist.json?omit=av1-hevc&pathsig=8c953e4f~OLxvYtjFT8973rLXhupaNxA80f4YRjvQQ_UpdAZKjQk&qsr=1&r=dXM%3D&rh=3CtyCs"
+    },
+    {
+      "bytes": 5277448,
+      "cdn": "fastly_skyfire",
+      "content_type": "application/json",
+      "kind": "url",
+      "path": "SensibLaw/demo/ingest/hca_case_s942025/media/video/vimeo_1109898693_05_dash_fastly_skyfire_url.mpd",
+      "protocol": "dash",
+      "url": "https://skyfire.vimeocdn.com/1770860372-0x9da686a2b3be3a481cdff6c4f7bd0eff492f0cdb/11721138-aa8b-4bc2-b8a6-1a31796d4904/psid=0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d/v2/playlist/av/primary/prot/cXNyPTE/playlist.json?pathsig=8c953e4f~OLxvYtjFT8973rLXhupaNxA80f4YRjvQQ_UpdAZKjQk&qsr=1&r=dXM%3D&rh=3CtyCs"
+    },
+    {
+      "bytes": 5277448,
+      "cdn": "fastly_skyfire",
+      "content_type": "application/json",
+      "kind": "avc_url",
+      "path": "SensibLaw/demo/ingest/hca_case_s942025/media/video/vimeo_1109898693_06_dash_fastly_skyfire_avc_url.mpd",
+      "protocol": "dash",
+      "url": "https://skyfire.vimeocdn.com/1770860372-0x9da686a2b3be3a481cdff6c4f7bd0eff492f0cdb/11721138-aa8b-4bc2-b8a6-1a31796d4904/psid=0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d/v2/playlist/av/primary/prot/cXNyPTE/playlist.json?omit=av1-hevc&pathsig=8c953e4f~OLxvYtjFT8973rLXhupaNxA80f4YRjvQQ_UpdAZKjQk&qsr=1&r=dXM%3D&rh=3CtyCs"
+    }
+  ],
+  "transcript_links": [
+    {
+      "label": "Hearing",
+      "url": "https://www8.austlii.edu.au/cgi-bin/viewdoc/au/cases/cth/HCATrans/2025/53.html"
+    }
+  ],
+  "transcript_pages": [
+    {
+      "bytes": 288885,
+      "content_type": "text/html; charset=utf-8",
+      "label": "Hearing",
+      "path": "SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.html",
+      "text_path": "SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt",
+      "url": "https://www8.austlii.edu.au/cgi-bin/viewdoc/au/cases/cth/HCATrans/2025/53.html"
+    }
+  ],
+  "videos": []
+}

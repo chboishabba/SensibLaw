@@ -1,0 +1,40 @@
+{
+  "pack_id": "gwb_public_bios_v1",
+  "version": 1,
+  "scope": "George W. Bush biography sources (public web bios + local demo files). Support lane only.",
+  "provenance": {
+    "created_on": "2026-02-13",
+    "note": "Seeded from user-provided URL list + existing demo files under SensibLaw/demo/ingest/gwb."
+  },
+  "contracts": {
+    "truth_vs_view": "biography sources are support lanes; do not treat as authority anchors for legal reasoning",
+    "citation_follow": {
+      "mode": "bounded",
+      "max_depth_required": true,
+      "max_new_docs_required": true
+    }
+  },
+  "sources": [
+    {
+      "id": "gwb_public_bios_web",
+      "name": "Public biography pages",
+      "tier": "support_biography",
+      "kind": "biography_html",
+      "seed_urls": [
+        "https://georgewbush-whitehouse.archives.gov/president/biography.html",
+        "https://www.britannica.com/biography/George-W-Bush",
+        "https://www.whitehousehistory.org/bios/george-w-bush",
+        "https://www.georgewbushlibrary.gov/bush-family/george-w-bush",
+        "https://www.bushcenter.org/about-us/the-bush-family/george-w-bush",
+        "https://millercenter.org/president/gwbush/life-in-brief"
+      ],
+      "seed_paths": [
+        "SensibLaw/demo/ingest/gwb/Bush family._ Bush, George_ Bush, George Walker_ Bush, Jeb_ Bush - Jeb and the Bush crime family _ the inside story of an American dynasty (2016, Skyhorse Publishing, Inc.) - libgen.li.epub",
+        "SensibLaw/demo/ingest/gwb/Bush family._Bush, George_Bush, George Walker_Baker, Russ - Family of secrets_ the Bush dynasty, the powerful forces that put it in the White House, and what their influence means for Ame (2009, Bloomsbury Publishing Plc_Bloomsb - libgen.li.epub",
+        "SensibLaw/demo/ingest/gwb/Bush, George_Bush, George H._Nelson, Michael_Perry, Barbara Ann - 41 - Inside the Presidency of George H. W. Bush (2014, Cornell University Press, in association with the University of Virginia's Miller Center) - libgen.li.pdf"
+      ],
+      "preferred_fetch": "html"
+    }
+  ]
+}
+

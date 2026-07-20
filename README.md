@@ -1453,3 +1453,6 @@ SensibLaw is not:
 
 Its job is to make bounded structure and provenance easier to inspect, test,
 and hand off.
+
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/chboishabba/SensibLaw)

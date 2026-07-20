@@ -1,0 +1,92 @@
+{
+  "case_url": "https://www.hcourt.gov.au/cases-and-judgments/cases/decided/case-s942025",
+  "discovery": {},
+  "documents": [
+    {
+      "date": "undated",
+      "error": "URLError: <urlopen error [Errno -3] Temporary failure in name resolution>",
+      "label": "Case page",
+      "status": "error",
+      "url": "https://www.hcourt.gov.au/cases-and-judgments/cases/decided/case-s942025"
+    },
+    {
+      "date": "2025-06-17",
+      "label": "Hearing (SLA, Canberra)",
+      "status": "missing_url",
+      "url": null
+    },
+    {
+      "date": "2025-07-01",
+      "label": "Notice of appeal",
+      "status": "missing_url",
+      "url": null
+    },
+    {
+      "date": "2025-07-07",
+      "label": "Written submissions (Appellant)",
+      "status": "missing_url",
+      "url": null
+    },
+    {
+      "date": "2025-07-07",
+      "label": "Chronology (Appellant)",
+      "status": "missing_url",
+      "url": null
+    },
+    {
+      "date": "2025-07-18",
+      "label": "Written submissions (Respondent)",
+      "status": "missing_url",
+      "url": null
+    },
+    {
+      "date": "2025-07-23",
+      "label": "Reply",
+      "status": "missing_url",
+      "url": null
+    },
+    {
+      "date": "2025-08-07",
+      "label": "Hearing (Full Court, Canberra)",
+      "status": "missing_url",
+      "url": null
+    },
+    {
+      "date": "2025-08-07",
+      "label": "Outline of oral argument (Appellant)",
+      "status": "missing_url",
+      "url": null
+    },
+    {
+      "date": "2025-08-07",
+      "label": "Outline of oral argument (Respondent)",
+      "status": "missing_url",
+      "url": null
+    },
+    {
+      "date": "2026-02-11",
+      "label": "Judgment (Judgment Summary)",
+      "status": "missing_url",
+      "url": null
+    },
+    {
+      "date": "2025-08-01",
+      "error": "URLError: <urlopen error [Errno -3] Temporary failure in name resolution>",
+      "label": "Case summary (Canberra PDF)",
+      "status": "error",
+      "url": "https://www.hcourt.gov.au/sites/default/files/case-summaries/2025-08/SP%20August%202025%20-%20Canberra.pdf"
+    },
+    {
+      "date": "2025-08-07",
+      "label": "Case recording",
+      "status": "missing_url",
+      "url": null
+    }
+  ],
+  "generated_at": "2026-02-12T05:06:29+00:00",
+  "notes": [
+    "Second-pass case-page discovery used for missing URLs where possible.",
+    "Missing URLs remain listed for manual follow-up."
+  ],
+  "ok": true
+}

@@ -1,0 +1,1335 @@
+{
+  "events": [
+    {
+      "action": null,
+      "action_meta": null,
+      "action_surface": null,
+      "actors": [
+        {
+          "label": "Bush",
+          "resolved": "George W. Bush",
+          "role": "subject",
+          "source": "root_surname"
+        }
+      ],
+      "anchor": {
+        "day": 13,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-13",
+        "year": 2026
+      },
+      "attributions": [],
+      "chains": [],
+      "citations": [
+        {
+          "follow": [
+            {
+              "mode": "url",
+              "provider": "source_document",
+              "url": "https://georgewbush-whitehouse.archives.gov/president/biography.html"
+            }
+          ],
+          "follower_order": [
+            "source_document"
+          ],
+          "kind": "source_row",
+          "source_id": "gwb_public_bios_web",
+          "text": "Biography of President George W. Bush"
+        }
+      ],
+      "claim_bearing": false,
+      "claim_step_indices": [],
+      "entity_objects": [
+        "President George W. Bush"
+      ],
+      "event_id": "ev:0001",
+      "modifier_objects": [],
+      "numeric_claims": [],
+      "numeric_objects": [],
+      "objects": [
+        {
+          "source": "dep_object",
+          "title": "President George W. Bush"
+        }
+      ],
+      "purpose": null,
+      "section": "Public biography pages",
+      "span_candidates": [
+        {
+          "event_id": "ev:0001",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 1,
+            "view_score": 0.2
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 9,
+            "kind": "event_text",
+            "start": 0
+          },
+          "span_id": "span:ev:0001:0:9",
+          "span_type": "ABSTRACT",
+          "text": "Biography"
+        }
+      ],
+      "steps": [],
+      "text": "Biography of President George W. Bush",
+      "warnings": [
+        "no_action_match"
+      ]
+    },
+    {
+      "action": null,
+      "action_meta": null,
+      "action_surface": null,
+      "actors": [
+        {
+          "label": "Bush",
+          "resolved": "George W. Bush",
+          "role": "subject",
+          "source": "root_surname"
+        }
+      ],
+      "anchor": {
+        "day": 13,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-13",
+        "year": 2026
+      },
+      "attributions": [],
+      "chains": [],
+      "citations": [
+        {
+          "follow": [
+            {
+              "mode": "url",
+              "provider": "source_document",
+              "url": "https://www.britannica.com/biography/George-W-Bush"
+            }
+          ],
+          "follower_order": [
+            "source_document"
+          ],
+          "kind": "source_row",
+          "source_id": "gwb_public_bios_web",
+          "text": "George W. Bush | Biography, Presidency, & Facts | Britannica"
+        }
+      ],
+      "claim_bearing": false,
+      "claim_step_indices": [],
+      "entity_objects": [],
+      "event_id": "ev:0002",
+      "modifier_objects": [],
+      "numeric_claims": [],
+      "numeric_objects": [],
+      "objects": [],
+      "purpose": null,
+      "section": "Public biography pages",
+      "span_candidates": [
+        {
+          "event_id": "ev:0002",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 2,
+            "view_score": 0.75
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 26,
+            "kind": "event_text",
+            "start": 15
+          },
+          "span_id": "span:ev:0002:15:26",
+          "span_type": "ABSTRACT",
+          "text": "| Biography"
+        },
+        {
+          "event_id": "ev:0002",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 1,
+            "view_score": 0.4
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 38,
+            "kind": "event_text",
+            "start": 28
+          },
+          "span_id": "span:ev:0002:28:38",
+          "span_type": "ABSTRACT",
+          "text": "Presidency"
+        },
+        {
+          "event_id": "ev:0002",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 1,
+            "view_score": 0.4
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 47,
+            "kind": "event_text",
+            "start": 42
+          },
+          "span_id": "span:ev:0002:42:47",
+          "span_type": "ABSTRACT",
+          "text": "Facts"
+        },
+        {
+          "event_id": "ev:0002",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 2,
+            "view_score": 0.75
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 60,
+            "kind": "event_text",
+            "start": 48
+          },
+          "span_id": "span:ev:0002:48:60",
+          "span_type": "ABSTRACT",
+          "text": "| Britannica"
+        }
+      ],
+      "steps": [],
+      "text": "George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "warnings": [
+        "no_action_match",
+        "no_objects_extracted"
+      ]
+    },
+    {
+      "action": null,
+      "action_meta": null,
+      "action_surface": null,
+      "actors": [
+        {
+          "label": "Bush",
+          "resolved": "George W. Bush",
+          "role": "subject",
+          "source": "root_surname"
+        }
+      ],
+      "anchor": {
+        "day": 13,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-13",
+        "year": 2026
+      },
+      "attributions": [],
+      "chains": [],
+      "citations": [
+        {
+          "follow": [
+            {
+              "mode": "url",
+              "provider": "source_document",
+              "url": "https://www.whitehousehistory.org/bios/george-w-bush"
+            }
+          ],
+          "follower_order": [
+            "source_document"
+          ],
+          "kind": "source_row",
+          "source_id": "gwb_public_bios_web",
+          "text": "George W. Bush - White House Historical Association"
+        }
+      ],
+      "claim_bearing": false,
+      "claim_step_indices": [],
+      "entity_objects": [],
+      "event_id": "ev:0003",
+      "modifier_objects": [],
+      "numeric_claims": [],
+      "numeric_objects": [],
+      "objects": [],
+      "purpose": null,
+      "section": "Public biography pages",
+      "span_candidates": [],
+      "steps": [],
+      "text": "George W. Bush - White House Historical Association",
+      "warnings": [
+        "no_action_match",
+        "no_objects_extracted"
+      ]
+    },
+    {
+      "action": null,
+      "action_meta": null,
+      "action_surface": null,
+      "actors": [
+        {
+          "label": "Bush",
+          "resolved": "George W. Bush",
+          "role": "subject",
+          "source": "root_surname"
+        }
+      ],
+      "anchor": {
+        "day": 13,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-13",
+        "year": 2026
+      },
+      "attributions": [],
+      "chains": [],
+      "citations": [
+        {
+          "follow": [
+            {
+              "mode": "url",
+              "provider": "source_document",
+              "url": "https://www.georgewbushlibrary.gov/bush-family/george-w-bush"
+            }
+          ],
+          "follower_order": [
+            "source_document"
+          ],
+          "kind": "source_row",
+          "source_id": "gwb_public_bios_web",
+          "text": "George W. Bush Presidential Library"
+        }
+      ],
+      "claim_bearing": false,
+      "claim_step_indices": [],
+      "entity_objects": [],
+      "event_id": "ev:0004",
+      "modifier_objects": [],
+      "numeric_claims": [],
+      "numeric_objects": [],
+      "objects": [],
+      "purpose": null,
+      "section": "Public biography pages",
+      "span_candidates": [],
+      "steps": [],
+      "text": "George W. Bush Presidential Library",
+      "warnings": [
+        "no_action_match",
+        "no_objects_extracted"
+      ]
+    },
+    {
+      "action": null,
+      "action_meta": null,
+      "action_surface": null,
+      "actors": [
+        {
+          "label": "Bush",
+          "resolved": "George W. Bush",
+          "role": "subject",
+          "source": "root_surname"
+        }
+      ],
+      "anchor": {
+        "day": 13,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-13",
+        "year": 2026
+      },
+      "attributions": [],
+      "chains": [],
+      "citations": [
+        {
+          "follow": [
+            {
+              "mode": "url",
+              "provider": "source_document",
+              "url": "https://www.bushcenter.org/about-us/the-bush-family/george-w-bush"
+            }
+          ],
+          "follower_order": [
+            "source_document"
+          ],
+          "kind": "source_row",
+          "source_id": "gwb_public_bios_web",
+          "text": "George W. Bush | George W. Bush Presidential Center"
+        }
+      ],
+      "claim_bearing": false,
+      "claim_step_indices": [],
+      "entity_objects": [],
+      "event_id": "ev:0005",
+      "modifier_objects": [],
+      "numeric_claims": [],
+      "numeric_objects": [],
+      "objects": [],
+      "purpose": null,
+      "section": "Public biography pages",
+      "span_candidates": [],
+      "steps": [],
+      "text": "George W. Bush | George W. Bush Presidential Center",
+      "warnings": [
+        "no_action_match",
+        "no_objects_extracted"
+      ]
+    },
+    {
+      "action": null,
+      "action_meta": null,
+      "action_surface": null,
+      "actors": [
+        {
+          "label": "Bush",
+          "resolved": "George W. Bush",
+          "role": "subject",
+          "source": "root_surname"
+        }
+      ],
+      "anchor": {
+        "day": 13,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-13",
+        "year": 2026
+      },
+      "attributions": [],
+      "chains": [],
+      "citations": [
+        {
+          "follow": [
+            {
+              "mode": "url",
+              "provider": "source_document",
+              "url": "https://millercenter.org/president/gwbush/life-in-brief"
+            }
+          ],
+          "follower_order": [
+            "source_document"
+          ],
+          "kind": "source_row",
+          "source_id": "gwb_public_bios_web",
+          "text": "George W. Bush: Life in Brief | Miller Center"
+        }
+      ],
+      "claim_bearing": false,
+      "claim_step_indices": [],
+      "entity_objects": [],
+      "event_id": "ev:0006",
+      "modifier_objects": [
+        "Brief"
+      ],
+      "numeric_claims": [],
+      "numeric_objects": [],
+      "objects": [
+        {
+          "source": "dep_object",
+          "title": "Brief"
+        }
+      ],
+      "purpose": null,
+      "section": "Public biography pages",
+      "span_candidates": [
+        {
+          "event_id": "ev:0006",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 1,
+            "view_score": 0.2
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 20,
+            "kind": "event_text",
+            "start": 16
+          },
+          "span_id": "span:ev:0006:16:20",
+          "span_type": "ABSTRACT",
+          "text": "Life"
+        },
+        {
+          "event_id": "ev:0006",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 3,
+            "view_score": 0.75
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 45,
+            "kind": "event_text",
+            "start": 30
+          },
+          "span_id": "span:ev:0006:30:45",
+          "span_type": "ABSTRACT",
+          "text": "| Miller Center"
+        }
+      ],
+      "steps": [],
+      "text": "George W. Bush: Life in Brief | Miller Center",
+      "warnings": [
+        "no_action_match"
+      ]
+    },
+    {
+      "action": null,
+      "action_meta": null,
+      "action_surface": null,
+      "actors": [
+        {
+          "label": "Bush",
+          "resolved": "George W. Bush",
+          "role": "subject",
+          "source": "root_surname"
+        }
+      ],
+      "anchor": {
+        "day": 13,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-13",
+        "year": 2026
+      },
+      "attributions": [],
+      "chains": [],
+      "citations": [
+        {
+          "follow": [
+            {
+              "mode": "url",
+              "provider": "source_document",
+              "url": "SensibLaw/demo/ingest/gwb/Bush family._ Bush, George_ Bush, George Walker_ Bush, Jeb_ Bush - Jeb and the Bush crime family _ the inside story of an American dynasty (2016, Skyhorse Publishing, Inc.) - libgen.li.epub"
+            }
+          ],
+          "follower_order": [
+            "source_document"
+          ],
+          "kind": "source_row",
+          "source_id": "gwb_public_bios_web",
+          "text": "Bush family._ Bush, George_ Bush, George Walker_ Bush, Jeb_ Bush - Jeb and the Bush crime family _ the inside story of an American dynasty (2016, Skyhorse Publishing, Inc.) - libgen.li.epub"
+        }
+      ],
+      "claim_bearing": false,
+      "claim_step_indices": [],
+      "entity_objects": [],
+      "event_id": "ev:0007",
+      "modifier_objects": [
+        "an American dynasty"
+      ],
+      "numeric_claims": [],
+      "numeric_objects": [],
+      "objects": [
+        {
+          "source": "dep_object",
+          "title": "an American dynasty"
+        }
+      ],
+      "purpose": null,
+      "section": "Public biography pages",
+      "span_candidates": [
+        {
+          "event_id": "ev:0007",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 2,
+            "view_score": 0.75
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 47,
+            "kind": "event_text",
+            "start": 34
+          },
+          "span_id": "span:ev:0007:34:47",
+          "span_type": "ABSTRACT",
+          "text": "George Walker"
+        },
+        {
+          "event_id": "ev:0007",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 3,
+            "view_score": 0.55
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 115,
+            "kind": "event_text",
+            "start": 99
+          },
+          "span_id": "span:ev:0007:99:115",
+          "span_type": "ABSTRACT",
+          "text": "the inside story"
+        },
+        {
+          "event_id": "ev:0007",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 3,
+            "view_score": 0.75
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 171,
+            "kind": "event_text",
+            "start": 146
+          },
+          "span_id": "span:ev:0007:146:171",
+          "span_type": "ABSTRACT",
+          "text": "Skyhorse Publishing, Inc."
+        }
+      ],
+      "steps": [],
+      "text": "Bush family._ Bush, George_ Bush, George Walker_ Bush, Jeb_ Bush - Jeb and the Bush crime family _ the inside story of an American dynasty (2016, Skyhorse Publishing, Inc.) - libgen.li.epub",
+      "warnings": [
+        "no_action_match"
+      ]
+    },
+    {
+      "action": "put",
+      "action_meta": {
+        "aspect": "simple",
+        "modality": "asserted",
+        "mood": "unknown",
+        "source": "dep_lemma",
+        "surface": "put",
+        "tense": "past",
+        "verb_form": "finite",
+        "voice": "active"
+      },
+      "action_surface": null,
+      "actors": [
+        {
+          "label": "Bush",
+          "resolved": "George W. Bush",
+          "role": "subject",
+          "source": "root_surname"
+        }
+      ],
+      "anchor": {
+        "day": 13,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-13",
+        "year": 2026
+      },
+      "attributions": [],
+      "chains": [],
+      "citations": [
+        {
+          "follow": [
+            {
+              "mode": "url",
+              "provider": "source_document",
+              "url": "SensibLaw/demo/ingest/gwb/Bush family._Bush, George_Bush, George Walker_Baker, Russ - Family of secrets_ the Bush dynasty, the powerful forces that put it in the White House, and what their influence means for Ame (2009, Bloomsbury Publishing Plc_Bloomsb - libgen.li.epub"
+            }
+          ],
+          "follower_order": [
+            "source_document"
+          ],
+          "kind": "source_row",
+          "source_id": "gwb_public_bios_web",
+          "text": "Bush family._Bush, George_Bush, George Walker_Baker, Russ - Family of secrets_ the Bush dynasty, the powerful forces that put it in the White House, and what their influence means for Ame (2009, Bloomsbury Publishing Plc_Bloomsb - libgen.li.epub"
+        }
+      ],
+      "claim_bearing": false,
+      "claim_step_indices": [],
+      "entity_objects": [],
+      "event_id": "ev:0008",
+      "modifier_objects": [
+        "secrets",
+        "White House",
+        "Ame"
+      ],
+      "numeric_claims": [],
+      "numeric_objects": [],
+      "objects": [
+        {
+          "source": "dep_object",
+          "title": "secrets"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "near",
+              "lane": "candidate_title",
+              "score": 0.93,
+              "title": "Bush White House email controversy"
+            }
+          ],
+          "source": "dep_object",
+          "title": "White House"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "near",
+              "lane": "candidate_title",
+              "score": 0.93,
+              "title": "American Civil War"
+            },
+            {
+              "kind": "near",
+              "lane": "candidate_title",
+              "score": 0.93,
+              "title": "American conservatism"
+            },
+            {
+              "kind": "near",
+              "lane": "candidate_title",
+              "score": 0.93,
+              "title": "Americans"
+            }
+          ],
+          "source": "dep_object",
+          "title": "Ame"
+        }
+      ],
+      "purpose": null,
+      "section": "Public biography pages",
+      "span_candidates": [
+        {
+          "event_id": "ev:0008",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 2,
+            "view_score": 0.75
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 51,
+            "kind": "event_text",
+            "start": 32
+          },
+          "span_id": "span:ev:0008:32:51",
+          "span_type": "ABSTRACT",
+          "text": "George Walker_Baker"
+        },
+        {
+          "event_id": "ev:0008",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 3,
+            "view_score": 0.75
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 66,
+            "kind": "event_text",
+            "start": 53
+          },
+          "span_id": "span:ev:0008:53:66",
+          "span_type": "ABSTRACT",
+          "text": "Russ - Family"
+        },
+        {
+          "event_id": "ev:0008",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 3,
+            "view_score": 0.55
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 116,
+            "kind": "event_text",
+            "start": 97
+          },
+          "span_id": "span:ev:0008:97:116",
+          "span_type": "ABSTRACT",
+          "text": "the powerful forces"
+        },
+        {
+          "event_id": "ev:0008",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 2,
+            "view_score": 0.55
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 173,
+            "kind": "event_text",
+            "start": 158
+          },
+          "span_id": "span:ev:0008:158:173",
+          "span_type": "ABSTRACT",
+          "text": "their influence"
+        },
+        {
+          "event_id": "ev:0008",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 5,
+            "view_score": 0.75
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 245,
+            "kind": "event_text",
+            "start": 195
+          },
+          "span_id": "span:ev:0008:195:245",
+          "span_type": "ABSTRACT",
+          "text": "Bloomsbury Publishing Plc_Bloomsb - libgen.li.epub"
+        }
+      ],
+      "steps": [
+        {
+          "action": "put",
+          "action_meta": {
+            "aspect": "simple",
+            "modality": "asserted",
+            "mood": "unknown",
+            "source": "dep_lemma",
+            "surface": "put",
+            "tense": "past",
+            "verb_form": "finite",
+            "voice": "active"
+          },
+          "claim_bearing": false,
+          "classification_features": {
+            "deontic_lemma": false,
+            "has_clausal_complement": false,
+            "has_concrete_object": false,
+            "modal_detected": false,
+            "normative_text_pattern": false,
+            "procedural_lemma": false,
+            "score": {
+              "epistemic": 0.0,
+              "eventive": 1.0,
+              "normative": 0.0,
+              "procedural": 0.0
+            },
+            "token_lemma": "put",
+            "token_pos": "VERB",
+            "token_text": "put",
+            "wordnet_lexname": null
+          },
+          "entity_objects": [],
+          "modifier_objects": [
+            "it",
+            "secrets",
+            "White House",
+            "Ame"
+          ],
+          "modifiers": [],
+          "numeric_claims": [],
+          "numeric_objects": [],
+          "objects": [
+            "it",
+            "secrets",
+            "White House",
+            "Ame"
+          ],
+          "predicate_confidence": 1.0,
+          "predicate_type": "eventive",
+          "purpose": null,
+          "subjects": [
+            "George W. Bush"
+          ]
+        }
+      ],
+      "text": "Bush family._Bush, George_Bush, George Walker_Baker, Russ - Family of secrets_ the Bush dynasty, the powerful forces that put it in the White House, and what their influence means for Ame (2009, Bloomsbury Publishing Plc_Bloomsb - libgen.li.epub",
+      "warnings": [
+        "no_action_match",
+        "fallback_action_spacy"
+      ]
+    },
+    {
+      "action": null,
+      "action_meta": null,
+      "action_surface": null,
+      "actors": [
+        {
+          "label": "Bush",
+          "resolved": "George W. Bush",
+          "role": "subject",
+          "source": "root_surname"
+        },
+        {
+          "label": "Press",
+          "resolved": "Associated Press",
+          "role": "subject",
+          "source": "alias_map"
+        }
+      ],
+      "anchor": {
+        "day": 13,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-13",
+        "year": 2026
+      },
+      "attributions": [],
+      "chains": [],
+      "citations": [
+        {
+          "follow": [
+            {
+              "mode": "url",
+              "provider": "source_document",
+              "url": "SensibLaw/demo/ingest/gwb/Bush, George_Bush, George H._Nelson, Michael_Perry, Barbara Ann - 41 - Inside the Presidency of George H. W. Bush (2014, Cornell University Press, in association with the University of Virginia's Miller Center) - libgen.li.pdf"
+            }
+          ],
+          "follower_order": [
+            "source_document"
+          ],
+          "kind": "source_row",
+          "source_id": "gwb_public_bios_web",
+          "text": "Bush, George_Bush, George H._Nelson, Michael_Perry, Barbara Ann - 41 - Inside the Presidency of George H. W. Bush (2014, Cornell University Press, in association with the University of Virginia's Miller Center) - libgen.li.pdf"
+        }
+      ],
+      "claim_bearing": false,
+      "claim_step_indices": [],
+      "entity_objects": [
+        "George H. W. Bush"
+      ],
+      "event_id": "ev:0009",
+      "modifier_objects": [
+        "Presidency",
+        "association",
+        "Virginia"
+      ],
+      "numeric_claims": [],
+      "numeric_objects": [
+        "41"
+      ],
+      "objects": [
+        {
+          "source": "dep_object",
+          "title": "Presidency"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "near",
+              "lane": "candidate_title",
+              "score": 0.8,
+              "title": "Bibliography of George W. Bush"
+            }
+          ],
+          "source": "dep_object",
+          "title": "George H. W. Bush"
+        },
+        {
+          "source": "dep_object",
+          "title": "association"
+        },
+        {
+          "source": "dep_object",
+          "title": "Virginia"
+        }
+      ],
+      "purpose": null,
+      "section": "Public biography pages",
+      "span_candidates": [
+        {
+          "event_id": "ev:0009",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 2,
+            "view_score": 0.75
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 35,
+            "kind": "event_text",
+            "start": 19
+          },
+          "span_id": "span:ev:0009:19:35",
+          "span_type": "ABSTRACT",
+          "text": "George H._Nelson"
+        },
+        {
+          "event_id": "ev:0009",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 1,
+            "view_score": 0.4
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 50,
+            "kind": "event_text",
+            "start": 37
+          },
+          "span_id": "span:ev:0009:37:50",
+          "span_type": "ABSTRACT",
+          "text": "Michael_Perry"
+        },
+        {
+          "event_id": "ev:0009",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 2,
+            "view_score": 0.75
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 63,
+            "kind": "event_text",
+            "start": 52
+          },
+          "span_id": "span:ev:0009:52:63",
+          "span_type": "ABSTRACT",
+          "text": "Barbara Ann"
+        },
+        {
+          "event_id": "ev:0009",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 1,
+            "view_score": 0.2
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 226,
+            "kind": "event_text",
+            "start": 213
+          },
+          "span_id": "span:ev:0009:213:226",
+          "span_type": "ABSTRACT",
+          "text": "libgen.li.pdf"
+        }
+      ],
+      "steps": [],
+      "text": "Bush, George_Bush, George H._Nelson, Michael_Perry, Barbara Ann - 41 - Inside the Presidency of George H. W. Bush (2014, Cornell University Press, in association with the University of Virginia's Miller Center) - libgen.li.pdf",
+      "warnings": [
+        "no_action_match"
+      ]
+    }
+  ],
+  "extraction_profile": {
+    "action_classifier": "src.nlp.event_classifier",
+    "action_pattern_count": 46,
+    "babelnet_table_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "communication_chain": {
+      "attribution_modifier_key": "according_to",
+      "communication_verbs": [
+        "report",
+        "say",
+        "state",
+        "warn",
+        "caution",
+        "announce",
+        "hold",
+        "find",
+        "conclude",
+        "contend",
+        "argue",
+        "note",
+        "tell"
+      ],
+      "embedded_step_heads": [
+        "ROOT",
+        "conj"
+      ],
+      "embedded_step_limit": 2,
+      "embedded_subject_policy": "prefer_local_subject",
+      "emit_attribution_step": true,
+      "emit_embedded_steps": true
+    },
+    "epistemic_verbs": [
+      "report",
+      "say",
+      "state",
+      "warn",
+      "caution",
+      "announce",
+      "hold",
+      "find",
+      "conclude",
+      "contend",
+      "argue",
+      "note",
+      "tell"
+    ],
+    "error": null,
+    "loaded_from_file": true,
+    "modal_container_grammar": {
+      "be": {
+        "container_deps": [
+          "attr",
+          "acomp",
+          "oprd"
+        ],
+        "container_nouns": [
+          "able",
+          "likely",
+          "required"
+        ],
+        "promote": "xcomp",
+        "require_to": true
+      },
+      "have": {
+        "container_deps": [
+          "dobj",
+          "obj",
+          "attr"
+        ],
+        "container_nouns": [
+          "tendency",
+          "opportunity",
+          "ability",
+          "capacity",
+          "failure",
+          "requirement"
+        ],
+        "promote": "xcomp",
+        "require_to": true
+      }
+    },
+    "path": "SensibLaw/policies/wiki_timeline_aoo_profile_v1.json",
+    "predicate_classifier": "src.nlp.epistemic_classifier",
+    "profile_id": "wiki_timeline_aoo_v1",
+    "profile_version": "1.0.0",
+    "requester_title_labels": {
+      "president": "U.S. President"
+    },
+    "semantic_backbone": {
+      "deterministic": true,
+      "llm_enabled": false,
+      "resource": "none",
+      "wsd_policy": "none"
+    },
+    "semantic_version_pins": {},
+    "sha256": "91bd7660b33e098b3c664e404ca4a57176d11a53dd1711a7d141c47e0d53168e",
+    "synset_action_map_count": 0,
+    "synset_action_map_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "warnings": []
+  },
+  "extraction_record": {
+    "confidence_score": null,
+    "extraction_timestamp": "2026-02-13T12:33:35+00:00",
+    "id": "xrec:428dbc9cede1b0b1",
+    "parser_version": "wiki_timeline_aoo_extract@en_core_web_sm-3.8.0",
+    "source_entity_id": "source:c2d7e97764401373"
+  },
+  "generated_at": "2026-02-13T12:33:35+00:00",
+  "notes": [
+    "Sentence-local AAO extraction. Non-causal. Non-authoritative.",
+    "Actors are heuristic: requester/subject roles are dependency-first with regex fallback safety rails and alias maps.",
+    "Objects are primarily wikilinks from the timeline event with dependency/surface fallbacks; absence does not imply non-existence.",
+    "Non-wikilink objects may include resolver_hints against sentence links, paragraph links, and candidate titles.",
+    "Numeric mentions are emitted in dedicated numeric lanes (`numeric_objects` and step-scoped `numeric_claims` with role/alignment metadata).",
+    "Claim-bearing steps are tagged via profile-driven epistemic verbs, with event-scoped attribution attachments.",
+    "Actions are canonical verb labels; negation is stored separately under step.negation (no not_* action proliferation).",
+    "Span candidates are unresolved mentions (TextSpan-like) for view-layer surfacing/promotion; they are not entities."
+  ],
+  "ok": true,
+  "parser": {
+    "model": "en_core_web_sm",
+    "model_name": "core_web_sm",
+    "model_sha256": "46712831cf388295d68efc1c05c71bfeaad7a8328e7e3166c685024909ea6019",
+    "model_version": "3.8.0",
+    "name": "spacy",
+    "spacy_version": "3.8.11"
+  },
+  "requester_coverage": {
+    "missing_requester_event_ids": [],
+    "request_signal_events": 0,
+    "requester_events": 0,
+    "total_events": 9
+  },
+  "root_actor": {
+    "label": "George W. Bush",
+    "surname": "Bush"
+  },
+  "source_entity": {
+    "id": "source:c2d7e97764401373",
+    "publication_date": null,
+    "title": "Source Pack gwb_public_bios_v1",
+    "type": "wikipedia_article",
+    "url": null,
+    "version_hash": null
+  },
+  "source_timeline": {
+    "path": "SensibLaw/demo/ingest/gwb/public_bios_v1/wiki_timeline_gwb_public_bios_v1.json",
+    "snapshot": {
+      "revid": null,
+      "source_url": null,
+      "title": "Source Pack gwb_public_bios_v1",
+      "wiki": "source_pack"
+    }
+  }
+}

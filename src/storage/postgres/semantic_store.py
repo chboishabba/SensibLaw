@@ -5,14 +5,14 @@ from __future__ import annotations
 from typing import Any, Mapping, Sequence
 
 from src.policy.carriers.canonical import canonical_sha256
+from src.storage.postgres.factor_revision_store import (
+    factor_revision_payload,
+    factor_revision_ref,
+)
 
 
 def _sha(value: object) -> bytes:
     return bytes.fromhex(canonical_sha256(value))
-
-
-def _factor_revision_ref(factor: Mapping[str, Any]) -> str:
-    return f"factor-revision:{canonical_sha256(factor)}"
 
 
 def persist_pnf_graph(
@@ -46,7 +46,7 @@ def persist_pnf_graph(
     revisions: dict[str, str] = {}
     for factor in factors:
         factor_ref = str(factor["factor_ref"])
-        revision_ref = _factor_revision_ref(factor)
+        revision_ref = factor_revision_ref(factor)
         revisions[factor_ref] = revision_ref
         cursor.execute(
             """
@@ -64,7 +64,12 @@ def persist_pnf_graph(
             VALUES (%s, %s, %s, %s)
             ON CONFLICT (factor_revision_ref) DO NOTHING
             """,
-            (revision_ref, factor_ref, str(factor["closure_state"]), _sha(factor)),
+            (
+                revision_ref,
+                factor_ref,
+                str(factor["closure_state"]),
+                _sha(factor_revision_payload(factor)),
+            ),
         )
         cursor.execute(
             """
@@ -156,7 +161,8 @@ def persist_resolution_artifacts(
         for subject_ref in row.get("subject_refs") or ():
             cursor.execute(
                 """
-                INSERT INTO evidence.local_evidence_subject (evidence_ref, subject_ref)
+                INSERT INTO evidence.local_evidence_subject
+                    (evidence_ref, subject_ref)
                 VALUES (%s, %s) ON CONFLICT DO NOTHING
                 """,
                 (str(row["evidence_ref"]), str(subject_ref)),
@@ -165,6 +171,15 @@ def persist_resolution_artifacts(
         demand_ref = str(row["demand_ref"])
         factor_ref = str(row["factor_ref"])
         demand_refs.append(demand_ref)
+        scope_ref = str(
+            row.get("scope_ref")
+            or row.get("document_scope")
+            or row.get("document_ref")
+            or "document_local"
+        )
+        budget_class_ref = str(
+            row.get("budget_class") or row.get("budget") or "default"
+        )
         cursor.execute(
             """
             INSERT INTO resolution.demand
@@ -180,14 +195,18 @@ def persist_resolution_artifacts(
                 factor_revisions.get(factor_ref),
                 str(row.get("subject_kind") or row.get("factor_type") or "unknown"),
                 row.get("formal_role"),
-                str(row.get("scope_ref") or row.get("document_ref") or "document_local"),
+                scope_ref,
                 _sha(row.get("semantic_key") or row),
-                str(row.get("budget_class") or "default"),
+                budget_class_ref,
             ),
         )
         for facet in row.get("requested_facets") or ():
             cursor.execute(
-                "INSERT INTO resolution.demand_facet VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                """
+                INSERT INTO resolution.demand_facet
+                    (demand_ref, facet_ref)
+                VALUES (%s, %s) ON CONFLICT DO NOTHING
+                """,
                 (demand_ref, str(facet)),
             )
     for row in meets:
@@ -210,16 +229,19 @@ def persist_resolution_artifacts(
         )
         for evidence_ref in row.get("evidence_refs") or ():
             cursor.execute(
-                "INSERT INTO resolution.meet_evidence VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                """
+                INSERT INTO resolution.meet_evidence
+                    (meet_ref, evidence_ref)
+                VALUES (%s, %s) ON CONFLICT DO NOTHING
+                """,
                 (str(row["meet_ref"]), str(evidence_ref)),
             )
     for row in refinements:
         prior = row["prior_factor"]
         resulting = row["resulting_factor"]
         factor_ref = str(prior["factor_ref"])
-        prior_revision_ref = _factor_revision_ref(prior)
-        resulting_revision_ref = _factor_revision_ref(resulting)
-        # The resulting revision may be new even when factor identity is stable.
+        prior_revision_ref = factor_revision_ref(prior)
+        resulting_revision_ref = factor_revision_ref(resulting)
         cursor.execute(
             """
             INSERT INTO algebra.factor_revision
@@ -231,7 +253,7 @@ def persist_resolution_artifacts(
                 resulting_revision_ref,
                 factor_ref,
                 str(resulting["closure_state"]),
-                _sha(resulting),
+                _sha(factor_revision_payload(resulting)),
             ),
         )
         cursor.execute(

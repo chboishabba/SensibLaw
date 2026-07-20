@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" class="no-js">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Australian Treaties</title>
+
+  
+  <link media="screen" rel="stylesheet" href="css/screen.css" />
+  <link media="print" rel="stylesheet" href="css/print.css" />
+  
+
+  <meta name="theme-color" content="#ee3224">
+  <meta name="description" content="Australasian Legal Information Institute (AustLII), a joint facility of UTS and UNSW Faculties of Law.">
+  <link rel="icon" sizes="192x192" href="images/icon-192.png">
+  <link rel="apple-touch-icon-precomposed" href="images/icon-shortcut.png">
+  <meta name="msapplication-TileColor" content="#ee3224">
+  <meta name="msapplication-TileImage" content="images/icon/ms.png">
+  <script src="js/modernizr.min.js"></script>
+</head>
+<body class="database treaties">
+  <header id="page-header">
+    <div id="primary">
+      <a id="page-logo" href="/" tabindex="1">AustLII</a>
+      
+      <a class="go-search" href="#">Search</a>
+      
+
+      
+      <h1 id="page-title"><span>Australian Treaties</span></h1>
+      
+    </div>
+
+    <!-- Search box
+
+The search box at the top of most pages. Always visible unless the
+'search' variable is set to false, for pages where we don't want
+that box along the top, such as on Advanced Search & LawCite.
+
+'Results' is a class added to database pages, which exposes the ability
+to search just by that database.
+
+'Searchable' is a page variable which indicates the page has checkboxes
+on it - the search box has a radio button for selecting we only search
+the checked areas.
+
+'Extra search' is for those rare extra options found in pages like the
+Aviation Law Association library database.
+-->
+
+
+<form action="results-search.html">
+  <div id="page-search">
+    <h2 class="hide">Search AustLII</h2>
+    <div class="search-box">
+      <a class="search-dropdown" href="javascript:void(0);">&#9660;</a> 
+
+      <fieldset>
+        <legend>Search Options</legend>
+        <ul class="search-options">
+          
+
+          
+            <li><label for="database-selected">Selected databases <input type="radio" name="search-filter" checked tabindex="4"></label></li>
+            <li><label for="database-all">All databases <input type="radio" name="search-filter" id="database-all" tabindex="5"></label></li>
+          
+
+          <li><label for="database-full">Full text <input type="radio" name="search-text" id="database-full" checked tabindex="6"></label></li>
+          <li><label for="database-title">Titles only <input type="radio" name="search-text" id="database-title" tabindex="7"></label></li>
+
+          <li class="advanced-search"><a href="search.html" tabindex="8">Advanced Search…</a></li>
+        </ul>
+      </fieldset>
+
+      <label for="search-box" class="hide">Search term:</label>
+      
+      <input id="search-box" type="text" placeholder="Search selected databases" tabindex="9">
+      
+      <a href="javascript:void(0);" class="search-box-clear hide">&times;</a>
+      <input type="submit" value="Search" tabindex="9">
+
+      
+    </div>
+    <a class="go-primary" href="#">Close</a>
+  </div>
+</form>
+
+
+
+    <ul id="page-tertiary">
+      <li><a href="about.html">About</a></li>
+      <li><a href="contact.html">Contact</a></li>
+      <li><a href="copyright.html">Copyright &amp; Usage</a></li>
+      <li><a href="privacy.html">Privacy</a></li>
+      <li><a href="disclaimers.html">Disclaimers</a></li>
+      <li><a href="feedback.html">Feedback</a></li>
+      <li><a href="help.html">Help</a></li>
+    </ul>
+  </header>
+
+  <!-- Ribbons
+
+These are the red bars along the top of each page.
+
+Ribbon is a variable set on most pages; it defaults to an expanded view,
+and can be simplified using variables 'intro' (for home) and 'basic' (for
+search, about pages, etc.)
+-->
+
+<nav id="ribbon">
+  <div class="inner">
+    <ul>
+      
+      <li class="ribbon-type"><a href="#" tabindex="10">Type <span>Treaties</span></a></li>
+      
+
+      
+
+      
+
+      
+      <li class="ribbon-database"><a href="#">Database <span>Select a database</span></a></li>
+      
+    </ul>
+  </div>
+</nav>
+
+
+  <!-- Panels
+
+The Panel defaults to 'year' view, which is what the database pages all have,
+it's what search results have, etc.
+
+The selections within if statements below are to visualize the 'is-selected'
+class across the various mock pages in the prototype.
+
+When implementing this, pull out the if statements and simply apply 'is-selected'
+when it's appropriate to that particular page.
+
+The options for the panel include:
+* none: the panel doesn't render
+* closed: the panel is present, but closed, adds 'is-closed' class
+* jurisdiction: jurisdiction is open at page load, adds 'is-jurisdiction' class
+* letter: 'starts with' is open at page load, adds 'is-letter' class
+-->
+
+
+<div id="panels" class="is-closed">
+
+  <div class="inner">
+    <div id="panel-type">
+      <ul>
+        <li class="panel-type-all "><a href="database-all.html"><h5>All Databases</h5><p>Description goes here for selection.</p></a></li>
+        <li class="panel-type-all "><a href="database-cases.html"><h5>Cases &amp; Legislation</h5><p>Description goes here for selection.</p></a></li>
+        <li class="panel-type-all "><a href="database-journals.html"><h5>Journals &amp; Scholarship</h5><p>Description goes here for selection.</p></a></li>
+        <li class="panel-type-all is-selected"><a href="database-treaties.html"><h5>Treaties</h5><p>Description goes here for selection.</p></a></li>
+        <li class="panel-type-all "><a href="database-libraries.html"><h5>Libraries</h5><p>Description goes here for selection.</p></a></li>
+        <li class="panel-type-all"><a href="#"><h5>LawCite</h5><p>Description goes here for selection.</p></a></li>
+      </ul>
+    </div>
+
+    <div id="panel-jurisdiction">
+      <ul>
+        <li class="panel-type-all"><a href="database.html"><h5>Australia</h5></a></li>
+        <li class="panel-type-all"><a href="database.html"><h5>CTH</h5></a></li>
+        <li class="panel-type-all"><a href="database.html"><h5>ACT</h5></a></li>
+        <li class="panel-type-all "><a href="database.html"><h5>NSW</h5></a></li>
+        <li class="panel-type-all"><a href="database.html"><h5>NT</h5></a></li>
+        <li class="panel-type-all"><a href="database.html"><h5>QLD</h5></a></li>
+        <li class="panel-type-all"><a href="database.html"><h5>SA</h5></a></li>
+        <li class="panel-type-all"><a href="database.html"><h5>TAS</h5></a></li>
+        <li class="panel-type-all"><a href="database.html"><h5>VIC</h5></a></li>
+        <li class="panel-type-all"><a href="database.html"><h5>WA</h5></a></li>
+        <li class="panel-type-all"><a href="database.html"><h5>New Zealand</h5></a></li>
+      </ul>
+    </div>
+
+    <div id="panel-year">
+      <ul>
+        <li class="panel-type-specific">
+          <div>
+            <h5>Specific Year</h5>
+            <a href="#" class="year-specific-dropdown type-specific">2015</a>
+            <select class="type-specific">
+              <option>2015</option>
+            </select>
+          </div>
+        </li>
+        <li class="panel-type-range">
+          <div>
+            <h5>Year Range</h5>
+            <a href="#" class="year-range-dropdown-1 type-range-1">1970</a>
+            <select class="type-range-1">
+              <option>2015</option>
+            </select>
+            <a href="#" class="year-range-dropdown-2 type-range-2">2015</a>
+            <select class="type-range-2">
+              <option>2015</option>
+            </select>
+            <a href="results.html" class="button">Apply</a>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div id="panel-letter">
+      <ul>
+        <li class="panel-letter-any"><a href="#"><h5>Any</h5></a></li>
+        <li><a href="#"><h5>0</h5></a></li>
+        <li><a href="#"><h5>A</h5></a></li>
+        <li><a href="#"><h5>B</h5></a></li>
+        <li><a href="#"><h5>C</h5></a></li>
+        <li><a href="#"><h5>D</h5></a></li>
+        <li><a href="#"><h5>E</h5></a></li>
+        <li><a href="#"><h5>F</h5></a></li>
+        <li><a href="#"><h5>G</h5></a></li>
+        <li><a href="#"><h5>H</h5></a></li>
+        <li><a href="#"><h5>I</h5></a></li>
+        <li><a href="#"><h5>J</h5></a></li>
+        <li><a href="#"><h5>K</h5></a></li>
+        <li><a href="#"><h5>L</h5></a></li>
+        <li><a href="#"><h5>M</h5></a></li>
+        <li><a href="#"><h5>N</h5></a></li>
+        <li><a href="#"><h5>O</h5></a></li>
+        <li><a href="#"><h5>P</h5></a></li>
+        <li><a href="#"><h5>Q</h5></a></li>
+        <li><a href="#"><h5>R</h5></a></li>
+        <li><a href="#"><h5>S</h5></a></li>
+        <li><a href="#"><h5>T</h5></a></li>
+        <li><a href="#"><h5>U</h5></a></li>
+        <li><a href="#"><h5>V</h5></a></li>
+        <li><a href="#"><h5>W</h5></a></li>
+        <li><a href="#"><h5>X</h5></a></li>
+        <li><a href="#"><h5>Y</h5></a></li>
+        <li><a href="#"><h5>Z</h5></a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<!-- "Year" dropdowns
+
+These dropdowns should be generated with data as appropriate.
+The data you see here is for presentatioal purposes.
+-->
+
+<div class="year-options-list">
+  <div class="year-specific-options year-options">
+    <ul>
+      <li><h5><a href="results.html">Any</a></h5></li>
+      <li><h5><a href="results.html">2015</a></h5></li>
+      <li><h5><a href="results.html">2014</a></h5></li>
+      <li><h5><a href="results.html">2013</a></h5></li>
+      <li><h5><a href="results.html">2012</a></h5></li>
+      <li><h5><a href="results.html">2011</a></h5></li>
+      <li><h5><a href="results.html">2010</a></h5></li>
+      <li><h5><a href="results.html">2009</a></h5></li>
+      <li><h5><a href="results.html">2008</a></h5></li>
+      <li><h5><a href="results.html">2007</a></h5></li>
+      <li><h5><a href="results.html">2006</a></h5></li>
+      <li><h5><a href="results.html">2005</a></h5></li>
+      <li><h5><a href="results.html">2004</a></h5></li>
+      <li><h5><a href="results.html">2015</a></h5></li>
+      <li><h5><a href="results.html">2014</a></h5></li>
+      <li><h5><a href="results.html">2013</a></h5></li>
+      <li><h5><a href="results.html">2012</a></h5></li>
+      <li><h5><a href="results.html">2011</a></h5></li>
+      <li><h5><a href="results.html">2010</a></h5></li>
+      <li><h5><a href="results.html">2009</a></h5></li>
+      <li><h5><a href="results.html">2008</a></h5></li>
+      <li><h5><a href="results.html">2007</a></h5></li>
+      <li><h5><a href="results.html">2006</a></h5></li>
+      <li><h5><a href="results.html">2005</a></h5></li>
+      <li><h5><a href="results.html">2004</a></h5></li>
+      <li><h5><a href="results.html">2015</a></h5></li>
+      <li><h5><a href="results.html">2014</a></h5></li>
+      <li><h5><a href="results.html">2013</a></h5></li>
+      <li><h5><a href="results.html">2012</a></h5></li>
+      <li><h5><a href="results.html">2011</a></h5></li>
+      <li><h5><a href="results.html">2010</a></h5></li>
+      <li><h5><a href="results.html">2009</a></h5></li>
+      <li><h5><a href="results.html">2008</a></h5></li>
+      <li><h5><a href="results.html">2007</a></h5></li>
+      <li><h5><a href="results.html">2006</a></h5></li>
+      <li><h5><a href="results.html">2005</a></h5></li>
+      <li><h5><a href="results.html">2004</a></h5></li>
+      <li><h5><a href="results.html">2015</a></h5></li>
+      <li><h5><a href="results.html">2014</a></h5></li>
+      <li><h5><a href="results.html">2013</a></h5></li>
+      <li><h5><a href="results.html">2012</a></h5></li>
+      <li><h5><a href="results.html">2011</a></h5></li>
+      <li><h5><a href="results.html">2010</a></h5></li>
+      <li><h5><a href="results.html">2009</a></h5></li>
+      <li><h5><a href="results.html">2008</a></h5></li>
+      <li><h5><a href="results.html">2007</a></h5></li>
+      <li><h5><a href="results.html">2006</a></h5></li>
+      <li><h5><a href="results.html">2005</a></h5></li>
+      <li><h5><a href="results.html">2004</a></h5></li>
+    </ul>
+  </div>
+
+  <div class="year-range-1-options year-options">
+    <ul>
+      <li><h5><a href="#">2015</a></h5></li>
+      <li><h5><a href="#">2014</a></h5></li>
+      <li><h5><a href="#">2013</a></h5></li>
+      <li><h5><a href="#">2012</a></h5></li>
+      <li><h5><a href="#">2011</a></h5></li>
+      <li><h5><a href="#">2010</a></h5></li>
+      <li><h5><a href="#">2009</a></h5></li>
+      <li><h5><a href="#">2008</a></h5></li>
+      <li><h5><a href="#">2007</a></h5></li>
+      <li><h5><a href="#">2006</a></h5></li>
+      <li><h5><a href="#">2005</a></h5></li>
+      <li><h5><a href="#">2004</a></h5></li>
+      <li><h5><a href="#">2015</a></h5></li>
+      <li><h5><a href="#">2014</a></h5></li>
+      <li><h5><a href="#">2013</a></h5></li>
+      <li><h5><a href="#">2012</a></h5></li>
+      <li><h5><a href="#">2011</a></h5></li>
+      <li><h5><a href="#">2010</a></h5></li>
+      <li><h5><a href="#">2009</a></h5></li>
+      <li><h5><a href="#">2008</a></h5></li>
+      <li><h5><a href="#">2007</a></h5></li>
+      <li><h5><a href="#">2006</a></h5></li>
+      <li><h5><a href="#">2005</a></h5></li>
+      <li><h5><a href="#">2004</a></h5></li>
+      <li><h5><a href="#">2015</a></h5></li>
+      <li><h5><a href="#">2014</a></h5></li>
+      <li><h5><a href="#">2013</a></h5></li>
+      <li><h5><a href="#">2012</a></h5></li>
+      <li><h5><a href="#">2011</a></h5></li>
+      <li><h5><a href="#">2010</a></h5></li>
+      <li><h5><a href="#">2009</a></h5></li>
+      <li><h5><a href="#">2008</a></h5></li>
+      <li><h5><a href="#">2007</a></h5></li>
+      <li><h5><a href="#">2006</a></h5></li>
+      <li><h5><a href="#">2005</a></h5></li>
+      <li><h5><a href="#">2004</a></h5></li>
+      <li><h5><a href="#">2015</a></h5></li>
+      <li><h5><a href="#">2014</a></h5></li>
+      <li><h5><a href="#">2013</a></h5></li>
+      <li><h5><a href="#">2012</a></h5></li>
+      <li><h5><a href="#">2011</a></h5></li>
+      <li><h5><a href="#">2010</a></h5></li>
+      <li><h5><a href="#">2009</a></h5></li>
+      <li><h5><a href="#">2008</a></h5></li>
+      <li><h5><a href="#">2007</a></h5></li>
+      <li><h5><a href="#">2006</a></h5></li>
+      <li><h5><a href="#">2005</a></h5></li>
+      <li><h5><a href="#">2004</a></h5></li>
+    </ul>
+  </div>
+
+  <div class="year-range-2-options year-options">
+    <ul>
+      <li><h5><a href="#">2015</a></h5></li>
+      <li><h5><a href="#">2014</a></h5></li>
+      <li><h5><a href="#">2013</a></h5></li>
+      <li><h5><a href="#">2012</a></h5></li>
+      <li><h5><a href="#">2011</a></h5></li>
+      <li><h5><a href="#">2010</a></h5></li>
+      <li><h5><a href="#">2009</a></h5></li>
+      <li><h5><a href="#">2008</a></h5></li>
+      <li><h5><a href="#">2007</a></h5></li>
+      <li><h5><a href="#">2006</a></h5></li>
+      <li><h5><a href="#">2005</a></h5></li>
+      <li><h5><a href="#">2004</a></h5></li>
+      <li><h5><a href="#">2015</a></h5></li>
+      <li><h5><a href="#">2014</a></h5></li>
+      <li><h5><a href="#">2013</a></h5></li>
+      <li><h5><a href="#">2012</a></h5></li>
+      <li><h5><a href="#">2011</a></h5></li>
+      <li><h5><a href="#">2010</a></h5></li>
+      <li><h5><a href="#">2009</a></h5></li>
+      <li><h5><a href="#">2008</a></h5></li>
+      <li><h5><a href="#">2007</a></h5></li>
+      <li><h5><a href="#">2006</a></h5></li>
+      <li><h5><a href="#">2005</a></h5></li>
+      <li><h5><a href="#">2004</a></h5></li>
+      <li><h5><a href="#">2015</a></h5></li>
+      <li><h5><a href="#">2014</a></h5></li>
+      <li><h5><a href="#">2013</a></h5></li>
+      <li><h5><a href="#">2012</a></h5></li>
+      <li><h5><a href="#">2011</a></h5></li>
+      <li><h5><a href="#">2010</a></h5></li>
+      <li><h5><a href="#">2009</a></h5></li>
+      <li><h5><a href="#">2008</a></h5></li>
+      <li><h5><a href="#">2007</a></h5></li>
+      <li><h5><a href="#">2006</a></h5></li>
+      <li><h5><a href="#">2005</a></h5></li>
+      <li><h5><a href="#">2004</a></h5></li>
+      <li><h5><a href="#">2015</a></h5></li>
+      <li><h5><a href="#">2014</a></h5></li>
+      <li><h5><a href="#">2013</a></h5></li>
+      <li><h5><a href="#">2012</a></h5></li>
+      <li><h5><a href="#">2011</a></h5></li>
+      <li><h5><a href="#">2010</a></h5></li>
+      <li><h5><a href="#">2009</a></h5></li>
+      <li><h5><a href="#">2008</a></h5></li>
+      <li><h5><a href="#">2007</a></h5></li>
+      <li><h5><a href="#">2006</a></h5></li>
+      <li><h5><a href="#">2005</a></h5></li>
+      <li><h5><a href="#">2004</a></h5></li>
+    </ul>
+  </div>
+</div>
+
+
+
+
+  <div id="page-content">
+
+    <div id="page-main"> 
+      
+
+
+      
+      <div class="card-options">
+  <a href="#" class="card-options--toggle checked">Select / Clear All</a>
+</div>
+
+<div class="all-section" id="treaties">
+  <h2 class="card-title"><label><input type="checkbox" checked></label> All Australian Treaties</h2>
+
+  <div class="card card-checkboxes">
+    <ul>
+      <li><label><input type="checkbox" checked></label><a href="results-treaty.html">Australian Treaty Action - Monthly Updates (AustLII)</a></li>
+      <li><label><input type="checkbox" checked></label><a href="results-treaty.html">Australian Treaty Series (ATS) (AustLII)</a></li>
+      <li><label><input type="checkbox" checked></label><a href="results-treaty.html">Australian Minor Treaty Actions - Explanatory Statements (AMTAES) (AustLII)</a></li>
+      <li><label><input type="checkbox" checked></label><a href="results-treaty.html">Australian Treaties Not Yet In Force (ATNIF) (AustLII)</a></li>
+      <li><label><input type="checkbox" checked></label><a href="results-treaty.html">Joint Standing Committee on Treaties (JSCOT) Reports (AustLII)</a></li>
+      <li><label><input type="checkbox" checked></label><a href="results-treaty.html">Select Documents on International Affairs (ATSD) (AustLII)</a></li>
+      <li><label><input type="checkbox" checked></label><a href="results-treaty.html">Australian Treaty National Interest Analyses (ATNIA) (AustLII)</a></li>
+      <li><label><input type="checkbox" checked></label><a href="results-treaty.html">List of Multilateral Treaty Actions Under Negotiation or Consideration (AustLII)</a></li>
+      <li><label><input type="checkbox" checked></label><a href="results-treaty.html">Status Lists for Multilateral Treaties (AustLII)</a></li>
+      <li><label><input type="checkbox" checked></label><a href="results-treaty.html">Treaty Law Resources (AustLII)</a></li>
+    </ul>
+  </div>
+</div>
+
+      
+
+      
+
+    </div>
+    
+    
+
+
+
+
+
+
+
+
+<!-- Treaties Sidebar -->
+<div id="page-side">
+<div class="side-element side-about">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 20" enable-background="new 0 0 21 20"><path fill="#C3C3C3" d="M10.5 19.4c-5.3-.1-9.5-4.3-9.4-9.5C1.2 4.6 5.4.5 10.6.5c5.3 0 9.5 4.3 9.4 9.5 0 5.2-4.3 9.4-9.5 9.4zM7.8 9.3c.2-.1.5-.2.7-.2.7 0 .9.2.9.9 0 .4-.2.7-.2 1.1-.2.9-.5 1.8-.6 2.8-.2 1.1.4 1.9 1.5 1.8.6 0 1.3-.2 1.9-.4.4-.1.6-.4.6-.8-.1 0-.2 0-.4.1-1.1.3-1.5-.1-1.2-1.3 0-.1 0-.2.1-.2.3-1 .5-1.9.7-2.9.3-1.4-.5-2.3-1.8-2.2-.5 0-1.1.3-1.6.4-.5.1-.7.4-.6.9zm5.1-3.8c0-.8-.7-1.4-1.5-1.4s-1.5.6-1.5 1.4c0 .7.7 1.3 1.5 1.4.8 0 1.5-.7 1.5-1.4z"/></svg>
+  <h4>About the Treaties</h4>
+  <ul>
+    <li><a href="#">About the Australian Treaties Library</a></li>
+    <li><a href="#">Electronic Treaties Database</a></i>
+  </ul>
+  <br />
+  <h6>Acknowledgements</h6>
+  <p>AustLII thanks the Department of Foreign Affairs and Trade (DFAT) for its financial and organisational support, and provision of content, for the Treaties Library since 1996. We also thank the Joint Standing Committee on Treaties (JSCOT) for its reports, and the Australian Research Council (ARC) for financial support.</p>
+</div>
+
+<div class="side-element side-search">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 20" enable-background="new 0 0 21 20"><path fill="#C3C3C3" d="M4.7 12.3v.7c0 .1 0 .2-.1.3-.1.1-.2.1-.3.1h-.7c-.1 0-.2 0-.3-.1-.1-.1-.1-.2-.1-.3v-.7c0-.1 0-.2.1-.3.1-.1.2-.1.3-.1h.7c.1 0 .2 0 .3.1.1.1.1.2.1.3zm0-2.9v.7c0 .1 0 .2-.1.3-.1.1-.2.1-.3.1h-.7c-.1 0-.2 0-.3-.1-.1-.1-.1-.2-.1-.3v-.7c0-.1 0-.2.1-.3.1-.1.2-.1.3-.1h.7c.1 0 .2 0 .3.1.1.2.1.2.1.3zm0-2.8v.7c0 .1 0 .2-.1.3-.1 0-.2.1-.2.1h-.8c-.1 0-.2 0-.3-.1v-1c0-.1 0-.2.1-.3.1-.1.2-.1.3-.1h.7c.1 0 .2 0 .3.1v.3zm12.9 5.7v.7c0 .1 0 .2-.1.3-.1.1-.2.1-.3.1H6.5c-.1 0-.2 0-.3-.1s-.1-.2-.1-.3v-.7c0-.1 0-.2.1-.3.1-.1.2-.1.3-.1h10.7c.1 0 .2 0 .3.1.1.1.1.2.1.3zm0-2.9v.7c0 .1 0 .2-.1.3-.1.1-.2.1-.3.1H6.5c-.1 0-.2 0-.3-.1-.1-.1-.1-.2-.1-.3v-.7c0-.1 0-.2.1-.3.1-.1.2-.1.3-.1h10.7c.1 0 .2 0 .3.1.1.2.1.2.1.3zm0-2.8v.7c0 .1 0 .2-.1.3-.1.1-.2.1-.3.1H6.5c-.1 0-.2 0-.3-.1 0-.1-.1-.2-.1-.3v-.7c0-.1 0-.2.1-.3s.2-.1.3-.1h10.7c.1 0 .2 0 .3.1s.1.2.1.3zm1.4 7.9V5.2c0-.1 0-.2-.1-.3-.1-.1-.2-.1-.3-.1H2.2c-.1 0-.2 0-.2.1-.1.1-.2.2-.2.3v9.3c0 .1 0 .2.1.3.1.1.2.1.3.1h16.5c.1 0 .2 0 .3-.1s0-.2 0-.3zm1.5-12.2v12.2c0 .5-.2.9-.5 1.3-.4.4-.8.5-1.3.5H2.2c-.5 0-.9-.2-1.3-.5-.4-.4-.5-.8-.5-1.3V2.3c0-.5.2-.9.5-1.3S1.7.5 2.2.5h16.5c.5 0 .9.2 1.3.5.3.4.5.8.5 1.3z"/></svg>
+  <h4>Catalog and Websearch</h4>
+  <ul>
+    <li><a href="#">By Country</a></li>
+    <li><a href="#">By Subject</a></li>
+    <li><a href="#">International Organisations & Bodies</a></li>
+    <li><a href="#">Multi-National Collections</a></li>
+    <li><a href="#">Other Indexes</a></li>
+    <li><a href="#">Research Centres</a></li>
+    <li><a href="#">Status Lists</a></li>
+  </ul>
+</div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <footer class="closing">
+  <div class="inner">
+    
+    <!--<ul class="closing-primary">
+      <li><a href="database-all.html">All Databases</a></li>
+      <li><a href="database-cases.html">Cases &amp; Legislation</a></li>
+      <li><a href="database-journals.html">Journals &amp; Scholarships</a></li>
+      <li><a href="database-treaties.html">Treaties</a></li>
+      <li><a href="database-libraries.html">Libraries</a></li>
+      <li><a href="#">LawCite</a></li>
+    </ul>-->
+
+    <ul class="closing-tertiary">
+      <li><a href="about.html">About</a></li>
+      <li><a href="#">Copyright</a></li>
+      <li><a href="#">Privacy</a></li>
+      <li><a href="#">Disclaimers</a></li>
+      <li><a href="#">Help</a></li>
+    </ul>
+
+    <small>http://www.austlii.edu.au/database-treaties.html</small>
+    
+  </div>
+</footer>
+
+  </div>
+
+  <script src="js/production.min.js"></script>
+</body>
+</html>

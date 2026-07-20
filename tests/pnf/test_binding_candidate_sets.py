@@ -4,7 +4,8 @@ from src.pnf.binding_candidate_sets import compact_binding_artifacts
 
 
 ROOT = Path(__file__).resolve().parents[2]
-MIGRATION = ROOT / "database/postgres_migrations/008_binding_candidate_sets.sql"
+MIGRATION_008 = ROOT / "database/postgres_migrations/008_binding_candidate_sets.sql"
+MIGRATION_009 = ROOT / "database/postgres_migrations/009_structural_binding_index.sql"
 
 
 def _factor(factor_ref: str, *, reference: bool = False) -> dict[str, object]:
@@ -26,9 +27,9 @@ def _factor(factor_ref: str, *, reference: bool = False) -> dict[str, object]:
         "alternatives": alternatives,
         "constraints": [],
         "residuals": ["antecedent_unresolved"] if reference else [],
-        "closure_state": "requires_external_resolution"
-        if reference
-        else "locally_closed",
+        "closure_state": (
+            "requires_external_resolution" if reference else "locally_closed"
+        ),
         "metadata": {},
     }
 
@@ -58,7 +59,7 @@ def _binding_row(
     }
 
 
-def test_pairwise_binding_evidence_becomes_one_candidate_set() -> None:
+def test_pairwise_compatibility_carrier_becomes_one_candidate_set() -> None:
     reference = _factor("factor:reference", reference=True)
     candidate = _factor("factor:candidate")
     inaccessible = _factor("factor:inaccessible")
@@ -136,16 +137,19 @@ def test_pairwise_binding_evidence_becomes_one_candidate_set() -> None:
     }
 
     compact = compact_binding_artifacts(artifacts)
+    summary = compact["binding_compaction_summary"]
 
-    assert compact["binding_compaction_summary"] == {
-        "pairwise_binding_evidence_removed": 2,
-        "candidate_set_count": 1,
-        "candidate_member_count": 1,
-        "exclusion_summary_count": 1,
-        "accessibility_declaration_ref": "binding-accessibility:document-structural:v0_2",
-        "compatibility_declaration_ref": "binding-compatibility:pnf-kind-morphology:v0_2",
-        "authority": "diagnostic_only",
-    }
+    assert summary["generation_mode"] == "legacy_pairwise_compatibility"
+    assert summary["pairwise_binding_evidence_removed"] == 2
+    assert summary["candidate_set_count"] == 1
+    assert summary["candidate_member_count"] == 1
+    assert summary["exclusion_summary_count"] == 1
+    assert summary["accessibility_declaration_ref"] == (
+        "binding-accessibility:document-structural:v0_3"
+    )
+    assert summary["compatibility_declaration_ref"] == (
+        "binding-compatibility:pnf-kind-morphology:v0_3"
+    )
     candidate_set = compact["binding_candidate_sets"][0]
     assert candidate_set["member_count"] == 1
     assert candidate_set["members"][0]["candidate_factor_ref"] == "factor:candidate"
@@ -165,7 +169,7 @@ def test_pairwise_binding_evidence_becomes_one_candidate_set() -> None:
     )
 
 
-def test_empty_candidate_search_does_not_infer_expletivity() -> None:
+def test_empty_legacy_candidate_search_does_not_infer_expletivity() -> None:
     reference = _factor("factor:it", reference=True)
     reference["alternatives"].append(
         {
@@ -199,13 +203,24 @@ def test_compaction_is_idempotent() -> None:
     assert compact_binding_artifacts(once) == once
 
 
-def test_postgres_schema_is_normalized_and_indexed() -> None:
-    sql = MIGRATION.read_text(encoding="utf-8")
-    assert "resolution.binding_candidate_set" in sql
-    assert "resolution.binding_candidate_member" in sql
-    assert "resolution.binding_compatibility_assessment" in sql
-    assert "resolution.binding_exclusion_summary" in sql
-    assert "resolution.refinement_candidate_set" in sql
-    assert "factor_anchor_document_position_idx" in sql
-    assert "binding_candidate_member_candidate_idx" in sql
-    assert "candidate_payload JSONB" not in sql
+def test_postgres_schema_is_normalized_indexed_and_queryable() -> None:
+    migration_008 = MIGRATION_008.read_text(encoding="utf-8")
+    migration_009 = MIGRATION_009.read_text(encoding="utf-8")
+    assert "resolution.binding_candidate_set" in migration_008
+    assert "resolution.binding_candidate_member" in migration_008
+    assert "resolution.binding_compatibility_assessment" in migration_008
+    assert "resolution.binding_exclusion_summary" in migration_008
+    assert "resolution.refinement_candidate_set" in migration_008
+    assert "factor_anchor_document_position_idx" in migration_008
+    assert "binding_candidate_member_candidate_idx" in migration_008
+    assert "candidate_payload JSONB" not in migration_008
+
+    assert "pnf.factor_morphology" in migration_009
+    assert "execution.binding_candidate_set_build" in migration_009
+    assert "resolution.meet_candidate_set" in migration_009
+    assert "resolution.binding_referential_kind" in migration_009
+    assert "resolution.binding_accessibility_path" in migration_009
+    assert "resolution.query_binding_candidates" in migration_009
+    assert "factor_anchor_structural_accessibility_idx" in migration_009
+    assert "two_sentence" not in migration_009.casefold()
+    assert "candidate_payload JSONB" not in migration_009

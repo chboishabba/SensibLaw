@@ -1,0 +1,29 @@
+{
+  "aoo_events": 12,
+  "aoo_payload": "SensibLaw/.cache_local/wiki_timeline_hca_s942025_aoo.json",
+  "aoo_signal_counts": {
+    "artifact_status": 12
+  },
+  "captions_downloaded": 0,
+  "downloaded_total": 0,
+  "generated_at": "2026-02-12T05:06:29+00:00",
+  "graph_dot": "SensibLaw/demo/ingest/hca_case_s942025/graph/case_bundle.graph.dot",
+  "graph_edges": 0,
+  "graph_json": "SensibLaw/demo/ingest/hca_case_s942025/graph/case_bundle.graph.json",
+  "graph_nodes": 0,
+  "graph_svg": {
+    "dot_bin": null,
+    "status": "dot_not_found"
+  },
+  "ingest_report": "SensibLaw/demo/ingest/hca_case_s942025/ingest/ingest_report.json",
+  "ingested_total": 0,
+  "manifest": "SensibLaw/demo/ingest/hca_case_s942025/manifest.json",
+  "media_report": null,
+  "ok": true,
+  "out_dir": "SensibLaw/demo/ingest/hca_case_s942025",
+  "pdf_total": 0,
+  "sb_signal_total": 12,
+  "sb_signals": "SensibLaw/demo/ingest/hca_case_s942025/sb_signals.json",
+  "videos_downloaded": 0,
+  "vimeo_players": 0
+}

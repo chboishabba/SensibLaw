@@ -1,0 +1,163 @@
+{
+  "events": [
+    {
+      "anchor": {
+        "day": 13,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-13",
+        "year": 2026
+      },
+      "event_id": "ev:0001",
+      "links": [],
+      "section": "Public biography pages",
+      "source_id": "gwb_public_bios_web",
+      "text": "Biography of President George W. Bush",
+      "title": "Biography of President George W. Bush",
+      "url": "https://georgewbush-whitehouse.archives.gov/president/biography.html"
+    },
+    {
+      "anchor": {
+        "day": 13,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-13",
+        "year": 2026
+      },
+      "event_id": "ev:0002",
+      "links": [],
+      "section": "Public biography pages",
+      "source_id": "gwb_public_bios_web",
+      "text": "George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "title": "George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "url": "https://www.britannica.com/biography/George-W-Bush"
+    },
+    {
+      "anchor": {
+        "day": 13,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-13",
+        "year": 2026
+      },
+      "event_id": "ev:0003",
+      "links": [],
+      "section": "Public biography pages",
+      "source_id": "gwb_public_bios_web",
+      "text": "George W. Bush - White House Historical Association",
+      "title": "George W. Bush - White House Historical Association",
+      "url": "https://www.whitehousehistory.org/bios/george-w-bush"
+    },
+    {
+      "anchor": {
+        "day": 13,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-13",
+        "year": 2026
+      },
+      "event_id": "ev:0004",
+      "links": [],
+      "section": "Public biography pages",
+      "source_id": "gwb_public_bios_web",
+      "text": "George W. Bush Presidential Library",
+      "title": "George W. Bush Presidential Library",
+      "url": "https://www.georgewbushlibrary.gov/bush-family/george-w-bush"
+    },
+    {
+      "anchor": {
+        "day": 13,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-13",
+        "year": 2026
+      },
+      "event_id": "ev:0005",
+      "links": [],
+      "section": "Public biography pages",
+      "source_id": "gwb_public_bios_web",
+      "text": "George W. Bush | George W. Bush Presidential Center",
+      "title": "George W. Bush | George W. Bush Presidential Center",
+      "url": "https://www.bushcenter.org/about-us/the-bush-family/george-w-bush"
+    },
+    {
+      "anchor": {
+        "day": 13,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-13",
+        "year": 2026
+      },
+      "event_id": "ev:0006",
+      "links": [],
+      "section": "Public biography pages",
+      "source_id": "gwb_public_bios_web",
+      "text": "George W. Bush: Life in Brief | Miller Center",
+      "title": "George W. Bush: Life in Brief | Miller Center",
+      "url": "https://millercenter.org/president/gwbush/life-in-brief"
+    },
+    {
+      "anchor": {
+        "day": 13,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-13",
+        "year": 2026
+      },
+      "event_id": "ev:0007",
+      "links": [],
+      "section": "Public biography pages",
+      "source_id": "gwb_public_bios_web",
+      "text": "Bush family._ Bush, George_ Bush, George Walker_ Bush, Jeb_ Bush - Jeb and the Bush crime family _ the inside story of an American dynasty (2016, Skyhorse Publishing, Inc.) - libgen.li.epub",
+      "title": "Bush family._ Bush, George_ Bush, George Walker_ Bush, Jeb_ Bush - Jeb and the Bush crime family _ the inside story of an American dynasty (2016, Skyhorse Publishing, Inc.) - libgen.li.epub",
+      "url": "SensibLaw/demo/ingest/gwb/Bush family._ Bush, George_ Bush, George Walker_ Bush, Jeb_ Bush - Jeb and the Bush crime family _ the inside story of an American dynasty (2016, Skyhorse Publishing, Inc.) - libgen.li.epub"
+    },
+    {
+      "anchor": {
+        "day": 13,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-13",
+        "year": 2026
+      },
+      "event_id": "ev:0008",
+      "links": [],
+      "section": "Public biography pages",
+      "source_id": "gwb_public_bios_web",
+      "text": "Bush family._Bush, George_Bush, George Walker_Baker, Russ - Family of secrets_ the Bush dynasty, the powerful forces that put it in the White House, and what their influence means for Ame (2009, Bloomsbury Publishing Plc_Bloomsb - libgen.li.epub",
+      "title": "Bush family._Bush, George_Bush, George Walker_Baker, Russ - Family of secrets_ the Bush dynasty, the powerful forces that put it in the White House, and what their influence means for Ame (2009, Bloomsbury Publishing Plc_Bloomsb - libgen.li.epub",
+      "url": "SensibLaw/demo/ingest/gwb/Bush family._Bush, George_Bush, George Walker_Baker, Russ - Family of secrets_ the Bush dynasty, the powerful forces that put it in the White House, and what their influence means for Ame (2009, Bloomsbury Publishing Plc_Bloomsb - libgen.li.epub"
+    },
+    {
+      "anchor": {
+        "day": 13,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-13",
+        "year": 2026
+      },
+      "event_id": "ev:0009",
+      "links": [],
+      "section": "Public biography pages",
+      "source_id": "gwb_public_bios_web",
+      "text": "Bush, George_Bush, George H._Nelson, Michael_Perry, Barbara Ann - 41 - Inside the Presidency of George H. W. Bush (2014, Cornell University Press, in association with the University of Virginia's Miller Center) - libgen.li.pdf",
+      "title": "Bush, George_Bush, George H._Nelson, Michael_Perry, Barbara Ann - 41 - Inside the Presidency of George H. W. Bush (2014, Cornell University Press, in association with the University of Virginia's Miller Center) - libgen.li.pdf",
+      "url": "SensibLaw/demo/ingest/gwb/Bush, George_Bush, George H._Nelson, Michael_Perry, Barbara Ann - 41 - Inside the Presidency of George H. W. Bush (2014, Cornell University Press, in association with the University of Virginia's Miller Center) - libgen.li.pdf"
+    }
+  ],
+  "snapshot": {
+    "revid": null,
+    "source_url": null,
+    "title": "Source Pack gwb_public_bios_v1",
+    "wiki": "source_pack"
+  }
+}

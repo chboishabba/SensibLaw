@@ -1,0 +1,1063 @@
+{
+  "edges": [
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0001",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0001",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0001",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0002",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0002",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0002",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0003",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0003",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0003",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0004",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0004",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0004",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0005",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0005",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0005",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0006",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0006",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0006",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0007",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0007",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0007",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0008",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0008",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0008",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0009",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0009",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0009",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0010",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0010",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0010",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0011",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0011",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0011",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0012",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0012",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0012",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0013",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0013",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0013",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0014",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0014",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0014",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0015",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0015",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0015",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0016",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0016",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0016",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0017",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0017",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0017",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0018",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0018",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0018",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0019",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0019",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0019",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0020",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0020",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0020",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0021",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0021",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0021",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0022",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0022",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0022",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0023",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0023",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0023",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0024",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0024",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0024",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0025",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:1",
+      "to": "ev:ev:0025",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0025",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0026",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:2",
+      "to": "ev:ev:0026",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0026",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0027",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:2",
+      "to": "ev:ev:0027",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0027",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0028",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:2",
+      "to": "ev:ev:0028",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0028",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0029",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:2",
+      "to": "ev:ev:0029",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0029",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0030",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:2",
+      "to": "ev:ev:0030",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0030",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0031",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:2",
+      "to": "ev:ev:0031",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0031",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0032",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:2",
+      "to": "ev:ev:0032",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0032",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0033",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:2",
+      "to": "ev:ev:0033",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0033",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0034",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:2",
+      "to": "ev:ev:0034",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0034",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0035",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:2",
+      "to": "ev:ev:0035",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0035",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0036",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:2",
+      "to": "ev:ev:0036",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0036",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0037",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:2",
+      "to": "ev:ev:0037",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0037",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0038",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:2",
+      "to": "ev:ev:0038",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0038",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0039",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:2",
+      "to": "ev:ev:0039",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0039",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0040",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "depth:2",
+      "to": "ev:ev:0040",
+      "type": "DEPTH_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1_follow",
+      "to": "ev:ev:0040",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "ev:ev:0001",
+      "order": 1,
+      "to": "ev:ev:0002",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0002",
+      "order": 2,
+      "to": "ev:ev:0003",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0003",
+      "order": 3,
+      "to": "ev:ev:0004",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0004",
+      "order": 4,
+      "to": "ev:ev:0005",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0005",
+      "order": 5,
+      "to": "ev:ev:0006",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0006",
+      "order": 6,
+      "to": "ev:ev:0007",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0007",
+      "order": 7,
+      "to": "ev:ev:0008",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0008",
+      "order": 8,
+      "to": "ev:ev:0009",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0009",
+      "order": 9,
+      "to": "ev:ev:0010",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0010",
+      "order": 10,
+      "to": "ev:ev:0011",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0011",
+      "order": 11,
+      "to": "ev:ev:0012",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0012",
+      "order": 12,
+      "to": "ev:ev:0013",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0013",
+      "order": 13,
+      "to": "ev:ev:0014",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0014",
+      "order": 14,
+      "to": "ev:ev:0015",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0015",
+      "order": 15,
+      "to": "ev:ev:0016",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0016",
+      "order": 16,
+      "to": "ev:ev:0017",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0017",
+      "order": 17,
+      "to": "ev:ev:0018",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0018",
+      "order": 18,
+      "to": "ev:ev:0019",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0019",
+      "order": 19,
+      "to": "ev:ev:0020",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0020",
+      "order": 20,
+      "to": "ev:ev:0021",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0021",
+      "order": 21,
+      "to": "ev:ev:0022",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0022",
+      "order": 22,
+      "to": "ev:ev:0023",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0023",
+      "order": 23,
+      "to": "ev:ev:0024",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0024",
+      "order": 24,
+      "to": "ev:ev:0025",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0025",
+      "order": 25,
+      "to": "ev:ev:0026",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0026",
+      "order": 26,
+      "to": "ev:ev:0027",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0027",
+      "order": 27,
+      "to": "ev:ev:0028",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0028",
+      "order": 28,
+      "to": "ev:ev:0029",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0029",
+      "order": 29,
+      "to": "ev:ev:0030",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0030",
+      "order": 30,
+      "to": "ev:ev:0031",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0031",
+      "order": 31,
+      "to": "ev:ev:0032",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0032",
+      "order": 32,
+      "to": "ev:ev:0033",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0033",
+      "order": 33,
+      "to": "ev:ev:0034",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0034",
+      "order": 34,
+      "to": "ev:ev:0035",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0035",
+      "order": 35,
+      "to": "ev:ev:0036",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0036",
+      "order": 36,
+      "to": "ev:ev:0037",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0037",
+      "order": 37,
+      "to": "ev:ev:0038",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0038",
+      "order": 38,
+      "to": "ev:ev:0039",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0039",
+      "order": 39,
+      "to": "ev:ev:0040",
+      "type": "NEXT_CHRONO"
+    }
+  ],
+  "generated_at": "2026-02-11T07:04:24+00:00",
+  "graph_id": "source_pack_follow_timeline_legal_principles_au_v1_follow",
+  "nodes": [
+    {
+      "id": "pack:legal_principles_au_v1_follow",
+      "label": "legal_principles_au_v1_follow",
+      "type": "pack"
+    },
+    {
+      "id": "time:2026-02-11",
+      "label": "2026-02-11",
+      "type": "time_day"
+    },
+    {
+      "id": "depth:1",
+      "label": "depth 1",
+      "type": "depth"
+    },
+    {
+      "id": "ev:ev:0001",
+      "label": "Australasian Legal Information Institute",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0002",
+      "label": "All Databases",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0003",
+      "label": "Advanced Search",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0004",
+      "label": "Who We Are & What We Do",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0005",
+      "label": "Contacting AustLII",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0006",
+      "label": "AustLII Usage Policy",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0007",
+      "label": "Privacy Policy",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0008",
+      "label": "Disclaimers of Liability",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0009",
+      "label": "Feedback",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0010",
+      "label": "Help with AustLII",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0011",
+      "label": "AustLII - Australasian Legal Scholarship Library",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0012",
+      "label": "AustLII - Australian Treaties Library",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0013",
+      "label": "Libraries",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0014",
+      "label": "https://www.austlii.edu.au/lawcite/",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0015",
+      "label": "AustLII - Commonwealth Resources",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0016",
+      "label": "AustLII - Australian Capital Territory Resources",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0017",
+      "label": "AustLII - New South Wales Resources",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0018",
+      "label": "AustLII - Northern Territory Resources",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0019",
+      "label": "AustLII - Queensland Resources",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0020",
+      "label": "AustLII - South Australian Resources",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0021",
+      "label": "AustLII - Tasmanian Resources",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0022",
+      "label": "AustLII - Victorian Resources",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0023",
+      "label": "AustLII - Western Australian Resources",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0024",
+      "label": "Supreme Court of New South Wales",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0025",
+      "label": "BarNet Jade - Find recent Australian legal decisions, judgments, case summaries for legal professionals (Judgments And Decisions Enhanced)",
+      "type": "event"
+    },
+    {
+      "id": "depth:2",
+      "label": "depth 2",
+      "type": "depth"
+    },
+    {
+      "id": "ev:ev:0026",
+      "label": "AustLII Usage Policy",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0027",
+      "label": "AustLII - Australasian Legal Scholarship Library",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0028",
+      "label": "AustLII - Australasian Law Reform Library",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0029",
+      "label": "AustLII - Australian Treaties Library",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0030",
+      "label": "Libraries",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0031",
+      "label": "All Databases",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0032",
+      "label": "https://www.austlii.edu.au/database-cases.html",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0033",
+      "label": "Australian Treaties",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0034",
+      "label": "User Guides",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0035",
+      "label": "LawCite",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0036",
+      "label": "AustLII - Australian Treaties Library",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0037",
+      "label": "Advanced Search",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0038",
+      "label": "Australasian Legal Scholarship Library",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0039",
+      "label": "https://www.austlii.edu.au/au/journals/about.html",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0040",
+      "label": "https://www.austlii.edu.au/au/journals/contact.html",
+      "type": "event"
+    }
+  ],
+  "pack_id": "legal_principles_au_v1_follow"
+}

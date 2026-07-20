@@ -1,0 +1,252 @@
+{
+  "edges": [
+    {
+      "from": "pack:legal_principles_au_v1",
+      "to": "source:jcv_benchbooks_index",
+      "type": "HAS_SOURCE"
+    },
+    {
+      "from": "source:jcv_benchbooks_index",
+      "to": "ev:ev:0001",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0001",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "source:jcv_benchbooks_index",
+      "to": "ev:ev:0002",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0002",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1",
+      "to": "source:aija_benchbooks_index",
+      "type": "HAS_SOURCE"
+    },
+    {
+      "from": "source:aija_benchbooks_index",
+      "to": "ev:ev:0003",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0003",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "source:aija_benchbooks_index",
+      "to": "ev:ev:0004",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0004",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1",
+      "to": "source:fwc_benchbooks",
+      "type": "HAS_SOURCE"
+    },
+    {
+      "from": "source:fwc_benchbooks",
+      "to": "ev:ev:0005",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0005",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "source:fwc_benchbooks",
+      "to": "ev:ev:0006",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0006",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "source:fwc_benchbooks",
+      "to": "ev:ev:0007",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0007",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1",
+      "to": "source:austlii_databases",
+      "type": "HAS_SOURCE"
+    },
+    {
+      "from": "source:austlii_databases",
+      "to": "ev:ev:0008",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0008",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "pack:legal_principles_au_v1",
+      "to": "source:jade_registry",
+      "type": "HAS_SOURCE"
+    },
+    {
+      "from": "source:jade_registry",
+      "to": "ev:ev:0009",
+      "type": "HAS_EVENT"
+    },
+    {
+      "from": "time:2026-02-11",
+      "to": "ev:ev:0009",
+      "type": "TIME_BIN"
+    },
+    {
+      "from": "ev:ev:0001",
+      "order": 1,
+      "to": "ev:ev:0002",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0002",
+      "order": 2,
+      "to": "ev:ev:0003",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0003",
+      "order": 3,
+      "to": "ev:ev:0004",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0004",
+      "order": 4,
+      "to": "ev:ev:0005",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0005",
+      "order": 5,
+      "to": "ev:ev:0006",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0006",
+      "order": 6,
+      "to": "ev:ev:0007",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0007",
+      "order": 7,
+      "to": "ev:ev:0008",
+      "type": "NEXT_CHRONO"
+    },
+    {
+      "from": "ev:ev:0008",
+      "order": 8,
+      "to": "ev:ev:0009",
+      "type": "NEXT_CHRONO"
+    }
+  ],
+  "generated_at": "2026-02-11T06:48:02+00:00",
+  "graph_id": "source_pack_timeline_legal_principles_au_v1",
+  "nodes": [
+    {
+      "id": "pack:legal_principles_au_v1",
+      "label": "legal_principles_au_v1",
+      "type": "pack"
+    },
+    {
+      "id": "source:jcv_benchbooks_index",
+      "label": "jcv_benchbooks_index",
+      "type": "source"
+    },
+    {
+      "id": "time:2026-02-11",
+      "label": "2026-02-11",
+      "type": "time_day"
+    },
+    {
+      "id": "ev:ev:0001",
+      "label": "Bench books | Judicial College of Victoria",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0002",
+      "label": "Criminal Charge Book - BarNet Jade",
+      "type": "event"
+    },
+    {
+      "id": "source:aija_benchbooks_index",
+      "label": "aija_benchbooks_index",
+      "type": "source"
+    },
+    {
+      "id": "ev:ev:0003",
+      "label": "Bench Books Archives - Australasian Institute of Judicial Administration - Australasian Institute of Judicial Administration",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0004",
+      "label": "AIJA",
+      "type": "event"
+    },
+    {
+      "id": "source:fwc_benchbooks",
+      "label": "fwc_benchbooks",
+      "type": "source"
+    },
+    {
+      "id": "ev:ev:0005",
+      "label": "Case law benchbooks | Fair Work Commission",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0006",
+      "label": "Unfair dismissals benchbook | Fair Work Commission",
+      "type": "event"
+    },
+    {
+      "id": "ev:ev:0007",
+      "label": "https://www.fwc.gov.au/documents/benchbooks/unfair-dismissals-benchbook.pdf",
+      "type": "event"
+    },
+    {
+      "id": "source:austlii_databases",
+      "label": "austlii_databases",
+      "type": "source"
+    },
+    {
+      "id": "ev:ev:0008",
+      "label": "All Databases",
+      "type": "event"
+    },
+    {
+      "id": "source:jade_registry",
+      "label": "jade_registry",
+      "type": "source"
+    },
+    {
+      "id": "ev:ev:0009",
+      "label": "BarNet Jade - Find recent Australian legal decisions, judgments, case summaries for legal professionals (Judgments And Decisions Enhanced)",
+      "type": "event"
+    }
+  ],
+  "pack_id": "legal_principles_au_v1"
+}

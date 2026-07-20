@@ -1,0 +1,947 @@
+{
+  "events": [
+    {
+      "action": "|",
+      "actors": [],
+      "anchor": {
+        "day": 11,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-11",
+        "year": 2026
+      },
+      "chains": [],
+      "event_id": "ev:0001",
+      "objects": [
+        {
+          "source": "dep_object",
+          "title": "Victoria"
+        }
+      ],
+      "purpose": null,
+      "section": "Judicial College of Victoria Bench Books",
+      "span_candidates": [
+        {
+          "event_id": "ev:0001",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 2,
+            "view_score": 0.75
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 11,
+            "kind": "event_text",
+            "start": 0
+          },
+          "span_id": "span:ev:0001:0:11",
+          "span_type": "ABSTRACT",
+          "text": "Bench books"
+        },
+        {
+          "event_id": "ev:0001",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 3,
+            "view_score": 0.75
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 30,
+            "kind": "event_text",
+            "start": 12
+          },
+          "span_id": "span:ev:0001:12:30",
+          "span_type": "ABSTRACT",
+          "text": "| Judicial College"
+        }
+      ],
+      "steps": [
+        {
+          "action": "|",
+          "objects": [
+            "Victoria"
+          ],
+          "purpose": null,
+          "subjects": []
+        }
+      ],
+      "text": "Bench books | Judicial College of Victoria",
+      "warnings": [
+        "no_action_match",
+        "fallback_action_spacy",
+        "no_actors_extracted"
+      ]
+    },
+    {
+      "action": null,
+      "actors": [],
+      "anchor": {
+        "day": 11,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-11",
+        "year": 2026
+      },
+      "chains": [],
+      "event_id": "ev:0002",
+      "objects": [],
+      "purpose": null,
+      "section": "Judicial College of Victoria Bench Books",
+      "span_candidates": [
+        {
+          "event_id": "ev:0002",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 6,
+            "view_score": 0.75
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 34,
+            "kind": "event_text",
+            "start": 0
+          },
+          "span_id": "span:ev:0002:0:34",
+          "span_type": "ABSTRACT",
+          "text": "Criminal Charge Book - BarNet Jade"
+        }
+      ],
+      "steps": [],
+      "text": "Criminal Charge Book - BarNet Jade",
+      "warnings": [
+        "no_action_match",
+        "no_actors_extracted",
+        "no_objects_extracted"
+      ]
+    },
+    {
+      "action": null,
+      "actors": [],
+      "anchor": {
+        "day": 11,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-11",
+        "year": 2026
+      },
+      "chains": [],
+      "event_id": "ev:0003",
+      "objects": [
+        {
+          "source": "dep_object",
+          "title": "Judicial Administration - Australasian Institute"
+        },
+        {
+          "source": "dep_object",
+          "title": "Judicial Administration"
+        }
+      ],
+      "purpose": null,
+      "section": "AIJA Bench Books",
+      "span_candidates": [
+        {
+          "event_id": "ev:0003",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 1,
+            "view_score": 0.4
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 20,
+            "kind": "event_text",
+            "start": 12
+          },
+          "span_id": "span:ev:0003:12:20",
+          "span_type": "ABSTRACT",
+          "text": "Archives"
+        }
+      ],
+      "steps": [],
+      "text": "Bench Books Archives - Australasian Institute of Judicial Administration - Australasian Institute of Judicial Administration",
+      "warnings": [
+        "no_action_match",
+        "no_actors_extracted"
+      ]
+    },
+    {
+      "action": null,
+      "actors": [],
+      "anchor": {
+        "day": 11,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-11",
+        "year": 2026
+      },
+      "chains": [],
+      "event_id": "ev:0004",
+      "objects": [],
+      "purpose": null,
+      "section": "AIJA Bench Books",
+      "span_candidates": [
+        {
+          "event_id": "ev:0004",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 1,
+            "view_score": 0.4
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 4,
+            "kind": "event_text",
+            "start": 0
+          },
+          "span_id": "span:ev:0004:0:4",
+          "span_type": "ABSTRACT",
+          "text": "AIJA"
+        }
+      ],
+      "steps": [],
+      "text": "AIJA",
+      "warnings": [
+        "no_action_match",
+        "no_actors_extracted",
+        "no_objects_extracted"
+      ]
+    },
+    {
+      "action": null,
+      "actors": [],
+      "anchor": {
+        "day": 11,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-11",
+        "year": 2026
+      },
+      "chains": [],
+      "event_id": "ev:0005",
+      "objects": [],
+      "purpose": null,
+      "section": "Fair Work Commission Benchbooks",
+      "span_candidates": [
+        {
+          "event_id": "ev:0005",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 3,
+            "view_score": 0.55
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 19,
+            "kind": "event_text",
+            "start": 0
+          },
+          "span_id": "span:ev:0005:0:19",
+          "span_type": "ABSTRACT",
+          "text": "Case law benchbooks"
+        },
+        {
+          "event_id": "ev:0005",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 4,
+            "view_score": 0.75
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 42,
+            "kind": "event_text",
+            "start": 20
+          },
+          "span_id": "span:ev:0005:20:42",
+          "span_type": "ABSTRACT",
+          "text": "| Fair Work Commission"
+        }
+      ],
+      "steps": [],
+      "text": "Case law benchbooks | Fair Work Commission",
+      "warnings": [
+        "no_action_match",
+        "no_actors_extracted",
+        "no_objects_extracted"
+      ]
+    },
+    {
+      "action": "benchbook",
+      "actors": [
+        {
+          "label": "Unfair dismissals",
+          "resolved": "Unfair dismissals",
+          "role": "subject",
+          "source": "dep_subject"
+        }
+      ],
+      "anchor": {
+        "day": 11,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-11",
+        "year": 2026
+      },
+      "chains": [],
+      "event_id": "ev:0006",
+      "objects": [
+        {
+          "source": "dep_object",
+          "title": "| Fair Work Commission"
+        }
+      ],
+      "purpose": null,
+      "section": "Fair Work Commission Benchbooks",
+      "span_candidates": [],
+      "steps": [
+        {
+          "action": "benchbook",
+          "objects": [
+            "| Fair Work Commission"
+          ],
+          "purpose": null,
+          "subjects": [
+            "Unfair dismissals"
+          ]
+        }
+      ],
+      "text": "Unfair dismissals benchbook | Fair Work Commission",
+      "warnings": [
+        "no_action_match",
+        "fallback_action_spacy"
+      ]
+    },
+    {
+      "action": null,
+      "actors": [],
+      "anchor": {
+        "day": 11,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-11",
+        "year": 2026
+      },
+      "chains": [],
+      "event_id": "ev:0007",
+      "objects": [],
+      "purpose": null,
+      "section": "Fair Work Commission Benchbooks",
+      "span_candidates": [
+        {
+          "event_id": "ev:0007",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 1,
+            "view_score": 0.4
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 75,
+            "kind": "event_text",
+            "start": 0
+          },
+          "span_id": "span:ev:0007:0:75",
+          "span_type": "ABSTRACT",
+          "text": "https://www.fwc.gov.au/documents/benchbooks/unfair-dismissals-benchbook.pdf"
+        }
+      ],
+      "steps": [],
+      "text": "https://www.fwc.gov.au/documents/benchbooks/unfair-dismissals-benchbook.pdf",
+      "warnings": [
+        "no_action_match",
+        "no_actors_extracted",
+        "no_objects_extracted"
+      ]
+    },
+    {
+      "action": null,
+      "actors": [
+        {
+          "label": "Type All Databases",
+          "resolved": "Type All Databases",
+          "role": "subject",
+          "source": "wikilink_person"
+        },
+        {
+          "label": "TreatiesAustralian Treaties",
+          "resolved": "TreatiesAustralian Treaties",
+          "role": "subject",
+          "source": "wikilink_person"
+        }
+      ],
+      "anchor": {
+        "day": 11,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-11",
+        "year": 2026
+      },
+      "chains": [],
+      "event_id": "ev:0008",
+      "objects": [
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "AustLII"
+            }
+          ],
+          "source": "wikilink",
+          "title": "AustLII"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "Search"
+            }
+          ],
+          "source": "wikilink",
+          "title": "Search"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "Advanced Search\u2026"
+            }
+          ],
+          "source": "wikilink",
+          "title": "Advanced Search\u2026"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "Close"
+            }
+          ],
+          "source": "wikilink",
+          "title": "Close"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "About"
+            }
+          ],
+          "source": "wikilink",
+          "title": "About"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "Contact"
+            }
+          ],
+          "source": "wikilink",
+          "title": "Contact"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "Copyright & Usage"
+            }
+          ],
+          "source": "wikilink",
+          "title": "Copyright & Usage"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "Privacy"
+            }
+          ],
+          "source": "wikilink",
+          "title": "Privacy"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "Disclaimers"
+            }
+          ],
+          "source": "wikilink",
+          "title": "Disclaimers"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "Feedback"
+            }
+          ],
+          "source": "wikilink",
+          "title": "Feedback"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "Help"
+            }
+          ],
+          "source": "wikilink",
+          "title": "Help"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "Type All Databases"
+            }
+          ],
+          "source": "wikilink",
+          "title": "Type All Databases"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "Jurisdiction Select a Region"
+            }
+          ],
+          "source": "wikilink",
+          "title": "Jurisdiction Select a Region"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "Database Select a database"
+            }
+          ],
+          "source": "wikilink",
+          "title": "Database Select a database"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "All DatabasesComplete database listing"
+            }
+          ],
+          "source": "wikilink",
+          "title": "All DatabasesComplete database listing"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "Cases & LegislationPrimary sources of law"
+            }
+          ],
+          "source": "wikilink",
+          "title": "Cases & LegislationPrimary sources of law"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "Journals & ScholarshipAustralasian Legal Scholarship"
+            }
+          ],
+          "source": "wikilink",
+          "title": "Journals & ScholarshipAustralasian Legal Scholarship"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "TreatiesAustralian Treaties"
+            }
+          ],
+          "source": "wikilink",
+          "title": "TreatiesAustralian Treaties"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "LibrariesSubject-specifc libraries"
+            }
+          ],
+          "source": "wikilink",
+          "title": "LibrariesSubject-specifc libraries"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "LawCiteLaw citator with international scope"
+            }
+          ],
+          "source": "wikilink",
+          "title": "LawCiteLaw citator with international scope"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "Australia"
+            }
+          ],
+          "source": "wikilink",
+          "title": "Australia"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "CTH"
+            }
+          ],
+          "source": "wikilink",
+          "title": "CTH"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "ACT"
+            }
+          ],
+          "source": "wikilink",
+          "title": "ACT"
+        },
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "NSW"
+            }
+          ],
+          "source": "wikilink",
+          "title": "NSW"
+        }
+      ],
+      "purpose": null,
+      "section": "AustLII Databases Directory",
+      "span_candidates": [
+        {
+          "event_id": "ev:0008",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 2,
+            "view_score": 0.55
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 13,
+            "kind": "event_text",
+            "start": 0
+          },
+          "span_id": "span:ev:0008:0:13",
+          "span_type": "ABSTRACT",
+          "text": "All Databases"
+        }
+      ],
+      "steps": [],
+      "text": "All Databases",
+      "warnings": [
+        "no_action_match"
+      ]
+    },
+    {
+      "action": null,
+      "actors": [],
+      "anchor": {
+        "day": 11,
+        "kind": "ingest",
+        "month": 2,
+        "precision": "day",
+        "text": "2026-02-11",
+        "year": 2026
+      },
+      "chains": [],
+      "event_id": "ev:0009",
+      "objects": [
+        {
+          "resolver_hints": [
+            {
+              "kind": "exact",
+              "lane": "sentence_link",
+              "score": 1.0,
+              "title": "https://jade.io/#t=home"
+            }
+          ],
+          "source": "wikilink",
+          "title": "https://jade.io/#t=home"
+        },
+        {
+          "source": "dep_object",
+          "title": "recent Australian legal decisions"
+        },
+        {
+          "source": "dep_object",
+          "title": "judgments"
+        },
+        {
+          "source": "dep_object",
+          "title": "legal professionals"
+        }
+      ],
+      "purpose": null,
+      "section": "JADE Registry",
+      "span_candidates": [
+        {
+          "event_id": "ev:0009",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 4,
+            "view_score": 0.75
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 18,
+            "kind": "event_text",
+            "start": 0
+          },
+          "span_id": "span:ev:0009:0:18",
+          "span_type": "ABSTRACT",
+          "text": "BarNet Jade - Find"
+        },
+        {
+          "event_id": "ev:0009",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 2,
+            "view_score": 0.55
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 79,
+            "kind": "event_text",
+            "start": 65
+          },
+          "span_id": "span:ev:0009:65:79",
+          "span_type": "ABSTRACT",
+          "text": "case summaries"
+        },
+        {
+          "event_id": "ev:0009",
+          "hygiene": {
+            "is_time_expression": false,
+            "overlaps_resolved_entity": false,
+            "token_count": 1,
+            "view_score": 0.4
+          },
+          "recurrence": {
+            "seen_events": 1
+          },
+          "sources": [
+            {
+              "note": "noun_chunk",
+              "source": "dep_parse"
+            }
+          ],
+          "span": {
+            "end": 128,
+            "kind": "event_text",
+            "start": 119
+          },
+          "span_id": "span:ev:0009:119:128",
+          "span_type": "ABSTRACT",
+          "text": "Decisions"
+        }
+      ],
+      "steps": [],
+      "text": "BarNet Jade - Find recent Australian legal decisions, judgments, case summaries for legal professionals (Judgments And Decisions Enhanced)",
+      "warnings": [
+        "no_action_match",
+        "no_actors_extracted"
+      ]
+    }
+  ],
+  "generated_at": "2026-02-11T07:04:35+00:00",
+  "notes": [
+    "Sentence-local AAO extraction. Non-causal. Non-authoritative.",
+    "Actors are heuristic: requester/subject roles are extracted by simple patterns and alias maps.",
+    "Objects are primarily wikilinks from the timeline event with dependency/surface fallbacks; absence does not imply non-existence.",
+    "Non-wikilink objects may include resolver_hints against sentence links, paragraph links, and candidate titles.",
+    "Span candidates are unresolved mentions (TextSpan-like) for view-layer surfacing/promotion; they are not entities."
+  ],
+  "ok": true,
+  "parser": {
+    "model": "en_core_web_sm",
+    "model_name": "core_web_sm",
+    "model_sha256": "46712831cf388295d68efc1c05c71bfeaad7a8328e7e3166c685024909ea6019",
+    "model_version": "3.8.0",
+    "name": "spacy",
+    "spacy_version": "3.8.11"
+  },
+  "root_actor": {
+    "label": "Legal Principles Source Pack",
+    "surname": "__none__"
+  },
+  "source_timeline": {
+    "path": "SensibLaw/demo/ingest/legal_principles_au_v1/wiki_timeline_legal_principles_au_v1.json",
+    "snapshot": {
+      "revid": null,
+      "source_url": null,
+      "title": "Source Pack legal_principles_au_v1",
+      "wiki": "source_pack"
+    }
+  }
+}

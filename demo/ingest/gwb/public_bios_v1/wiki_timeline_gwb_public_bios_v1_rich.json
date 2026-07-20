@@ -1,0 +1,999 @@
+{
+  "events": [
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2001",
+        "year": 2001
+      },
+      "event_id": "ev:0001",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0001_gwb_public_bios_web_https_georgewbush-whitehouse.archives.gov_president_biography.html.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: Biography of President George W. Bush",
+      "source_id": "gwb_public_bios_web",
+      "text": "Since becoming President of the United States in 2001, President Bush has worked with the Congress to create an ownership society and build a future of security, prosperity, and opportunity for all Americans.",
+      "title": "Biography of President George W. Bush",
+      "url": "https://georgewbush-whitehouse.archives.gov/president/biography"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2001",
+        "year": 2001
+      },
+      "event_id": "ev:0002",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0001_gwb_public_bios_web_https_georgewbush-whitehouse.archives.gov_president_biography.html.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: Biography of President George W. Bush",
+      "source_id": "gwb_public_bios_web",
+      "text": "He signed into law tax relief that helps workers keep more of their hard-earned money, as well as the most comprehensive education reforms in a generation, the No Child Left Behind Act of 2001.",
+      "title": "Biography of President George W. Bush",
+      "url": "https://georgewbush-whitehouse.archives.gov/president/biography"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0003",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0001_gwb_public_bios_web_https_georgewbush-whitehouse.archives.gov_president_biography.html.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: Biography of President George W. Bush",
+      "source_id": "gwb_public_bios_web",
+      "text": "This legislation is ushering in a new era of accountability, flexibility, local control, and more choices for parents, affirming our Nation\u2019s fundamental belief in the promise of every child.",
+      "title": "Biography of President George W. Bush",
+      "url": "https://georgewbush-whitehouse.archives.gov/president/biography"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0004",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0001_gwb_public_bios_web_https_georgewbush-whitehouse.archives.gov_president_biography.html.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: Biography of President George W. Bush",
+      "source_id": "gwb_public_bios_web",
+      "text": "President Bush has also worked to improve healthcare and modernize Medicare, providing the first-ever prescription drug benefit for seniors; increase homeownership, especially among minorities; conserve our environment; and increase military strength, pay, and benefits.",
+      "title": "Biography of President George W. Bush",
+      "url": "https://georgewbush-whitehouse.archives.gov/president/biography"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0005",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0001_gwb_public_bios_web_https_georgewbush-whitehouse.archives.gov_president_biography.html.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: Biography of President George W. Bush",
+      "source_id": "gwb_public_bios_web",
+      "text": "Because President Bush believes the strength of America lies in the hearts and souls of our citizens, he has supported programs that encourage individuals to help their neighbors in need.",
+      "title": "Biography of President George W. Bush",
+      "url": "https://georgewbush-whitehouse.archives.gov/president/biography"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2001",
+        "year": 2001
+      },
+      "event_id": "ev:0006",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0002_gwb_public_bios_web_https_www.britannica.com_biography_George-W-Bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "source_id": "gwb_public_bios_web",
+      "text": "Bush is the 43rd president of the United States (2001\u201309), who led his country\u2019s response to the September 11 terrorist attacks in 2001 and initiated the Iraq War in 2003. He won the presidency in 2000 over Vice President Al Gore in one of the closest and most-controversial elections in American history.",
+      "title": "George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "url": "https://www.britannica.com/biography/George-W-Bush"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2001",
+        "year": 2001
+      },
+      "event_id": "ev:0007",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0002_gwb_public_bios_web_https_www.britannica.com_biography_George-W-Bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "source_id": "gwb_public_bios_web",
+      "text": "Bush initiated what he called the \u201c war on terrorism ,\u201d portrayed as an American-led global counterterrorism campaign launched in response to the terrorist attacks of September 11, 2001 . Included were the Afghanistan (2001\u201314) and Iraq (2003\u201311) wars. Also, his administration sponsored reforms of Medicare and the U.S. How September 11 and the Iraq War defined George W. Bush's presidency An overview of George W.",
+      "title": "George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "url": "https://www.britannica.com/biography/George-W-Bush"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2001",
+        "year": 2001
+      },
+      "event_id": "ev:0008",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0002_gwb_public_bios_web_https_www.britannica.com_biography_George-W-Bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "source_id": "gwb_public_bios_web",
+      "text": "(more) See all videos for this article Bush (born July 6, 1946, New Haven , Connecticut , U.S.) is the 43rd president of the United States (2001\u201309), who led his country\u2019s response to the September 11 terrorist attacks in 2001 and initiated the Iraq War in 2003. Narrowly winning the electoral college vote in 2000 over Vice Pres.",
+      "title": "George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "url": "https://www.britannica.com/biography/George-W-Bush"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "1995",
+        "year": 1995
+      },
+      "event_id": "ev:0009",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0002_gwb_public_bios_web_https_www.britannica.com_biography_George-W-Bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "source_id": "gwb_public_bios_web",
+      "text": "Al Gore in one of the closest and most-controversial elections in American history , George W. Bush became the first person since Benjamin Harrison in 1888 to be elected president despite having lost the nationwide popular vote . Before his election as president, Bush was a businessman and served as governor of Texas (1995\u20132000).",
+      "title": "George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "url": "https://www.britannica.com/biography/George-W-Bush"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0010",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0002_gwb_public_bios_web_https_www.britannica.com_biography_George-W-Bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "source_id": "gwb_public_bios_web",
+      "text": "In May 1968, two weeks before his graduation from Yale and the expiration of his student draft deferment, Bush applied as a pilot trainee in the Texas Air National Guard, whose members were less likely than regular soldiers to fight in the Vietnam War . Commissioned a second lieutenant in July 1968, he became a certified fighter pilot in June 1970.",
+      "title": "George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "url": "https://www.britannica.com/biography/George-W-Bush"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2004",
+        "year": 2004
+      },
+      "event_id": "ev:0011",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0002_gwb_public_bios_web_https_www.britannica.com_biography_George-W-Bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "source_id": "gwb_public_bios_web",
+      "text": "In the fall of 1970, he applied for admission to the University of Texas law school but was rejected. Although Bush apparently missed at least eight months of duty between May 1972 and May 1973, he was granted an early discharge so that he could start Harvard Business School in the fall of 1973. His spotty military record resurfaced as a campaign issue in both the 2000 and 2004 presidential elections.",
+      "title": "George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "url": "https://www.britannica.com/biography/George-W-Bush"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0012",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0002_gwb_public_bios_web_https_www.britannica.com_biography_George-W-Bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "source_id": "gwb_public_bios_web",
+      "text": "from Harvard in 1975, Bush returned to Midland, where he began working for a Bush family friend, an oil and gas attorney, and later started his own oil and gas firm. He married Laura Welch , a teacher and librarian, in Midland in 1977. After an unsuccessful run for Congress in 1978, Bush devoted himself to building his business.",
+      "title": "George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "url": "https://www.britannica.com/biography/George-W-Bush"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0013",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0002_gwb_public_bios_web_https_www.britannica.com_biography_George-W-Bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "source_id": "gwb_public_bios_web",
+      "text": "With help from his uncle, who was then raising funds for Bush\u2019s father\u2019s campaign for the Republican presidential nomination, Bush was able to attract numerous prominent investors. The company struggled through the early 1980s until the eventual collapse of oil prices in 1986, when it was purchased by the Harken Energy Corporation.",
+      "title": "George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "url": "https://www.britannica.com/biography/George-W-Bush"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "1992",
+        "year": 1992
+      },
+      "event_id": "ev:0014",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0002_gwb_public_bios_web_https_www.britannica.com_biography_George-W-Bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "source_id": "gwb_public_bios_web",
+      "text": "Bush received Harken stock, a job as a consultant to the company, and a seat on the company\u2019s board of directors. Bush (left) and his father, George H.W. Bush, walking on the South Lawn at the White House, 1992.",
+      "title": "George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "url": "https://www.britannica.com/biography/George-W-Bush"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "1994",
+        "year": 1994
+      },
+      "event_id": "ev:0015",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0003_gwb_public_bios_web_https_www.whitehousehistory.org_bios_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush - White House Historical Association",
+      "source_id": "gwb_public_bios_web",
+      "text": "Bush became the second presidential son (after John Quincy Adams) to assume office. Although initially focused on tax cuts and education reform, Bush'... Although initially focused on tax cuts and education reform, Bush's two terms became defined by... In 1994, Bush defeated incumbent Ann Richards to become governor of Texas. Extolling \"compassionate conservatism,\" he won the 2000 Republican presidential nomination.",
+      "title": "George W. Bush - White House Historical Association",
+      "url": "https://www.whitehousehistory.org/bios/george-w-bush"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0016",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0003_gwb_public_bios_web_https_www.whitehousehistory.org_bios_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush - White House Historical Association",
+      "source_id": "gwb_public_bios_web",
+      "text": "The general election result hinged on the state of Florida. Due to the closeness of the vote, a recount was conducted and was contested in federal court. In a controversial decision, the Supreme Court ordered Florida to stop a subsequent recount of the ballots. Bush won the Electoral College with 271 votes, although lost the popular vote to his opponent, Vice President Al Gore.",
+      "title": "George W. Bush - White House Historical Association",
+      "url": "https://www.whitehousehistory.org/bios/george-w-bush"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2001",
+        "year": 2001
+      },
+      "event_id": "ev:0017",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0003_gwb_public_bios_web_https_www.whitehousehistory.org_bios_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush - White House Historical Association",
+      "source_id": "gwb_public_bios_web",
+      "text": "On September 11, 2001, almost three thousand people were killed in an attack by the terrorist group Al-Qaeda on New York\u2019s World Trade Center and the Pentagon. Also, a hijacked commercial airplane headed for the United States Capitol was overtaken by passengers and crashed in Shanksville, Pennsylvania.",
+      "title": "George W. Bush - White House Historical Association",
+      "url": "https://www.whitehousehistory.org/bios/george-w-bush"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2004",
+        "year": 2004
+      },
+      "event_id": "ev:0018",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0003_gwb_public_bios_web_https_www.whitehousehistory.org_bios_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush - White House Historical Association",
+      "source_id": "gwb_public_bios_web",
+      "text": "Bush declared a worldwide \u201cwar on terrorism,\u201d took the nation into battle against the Taliban regime in Afghanistan, and waged war against the Iraqi dictatorship of Saddam Hussein. Bush's campaign for reelection in 2004 was jeopardized by the Iraq War's growing unpopularity and its connection to the larger global war on terror. But after a close race, Bush defeated Massachusetts Senator John Kerry.",
+      "title": "George W. Bush - White House Historical Association",
+      "url": "https://www.whitehousehistory.org/bios/george-w-bush"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2007",
+        "year": 2007
+      },
+      "event_id": "ev:0019",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0003_gwb_public_bios_web_https_www.whitehousehistory.org_bios_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush - White House Historical Association",
+      "source_id": "gwb_public_bios_web",
+      "text": "Bush\u2019s second term proved full of trial. He was criticized for being too slow to aid victims of Hurricane Katrina, which struck New Orleans and the Gulf Coast. Others complained that while pursuing terrorists, Bush had been too insensitive to civil liberties and American values. In 2007, the United States entered a deep recession, caused by a subprime mortgage crisis and slowed growth.",
+      "title": "George W. Bush - White House Historical Association",
+      "url": "https://www.whitehousehistory.org/bios/george-w-bush"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2008",
+        "year": 2008
+      },
+      "event_id": "ev:0020",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0003_gwb_public_bios_web_https_www.whitehousehistory.org_bios_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush - White House Historical Association",
+      "source_id": "gwb_public_bios_web",
+      "text": "After Congress failed to pass a bill to provide support to banks, the stock market crashed on September 29, 2008, with the Dow Jones falling 777 points in one day.",
+      "title": "George W. Bush - White House Historical Association",
+      "url": "https://www.whitehousehistory.org/bios/george-w-bush"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0021",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0004_gwb_public_bios_web_https_www.georgewbushlibrary.gov_bush-family_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "source_id": "gwb_public_bios_web",
+      "text": "Learn about the Bush Family\u2019s respected tradition of public service, famous Presidential places and symbols, and fun facts about popular First Pets Barney and Miss Beazley. These online exhibits and digital galleries explore some of the artifacts, archived photographs and videos, and historic documents housed in the George W.",
+      "title": "George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "url": "https://www.georgewbushlibrary.gov/bush-family/george-w-bush"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0022",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0004_gwb_public_bios_web_https_www.georgewbushlibrary.gov_bush-family_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "source_id": "gwb_public_bios_web",
+      "text": "Bush Presidential Library maintains over 47,000 artifacts, primarily foreign and domestic gifts given to the President and Mrs. Laura Bush, and other items obtained throughout the Presidency. and Laura Bush campaigned from the back of a pickup truck for the 1978 Congressional race in West Texas. Before beginning a career in politics, Bush worked in the Texas oil industry, founding Arbusto Energy in 1977.",
+      "title": "George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "url": "https://www.georgewbushlibrary.gov/bush-family/george-w-bush"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0023",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0004_gwb_public_bios_web_https_www.georgewbushlibrary.gov_bush-family_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "source_id": "gwb_public_bios_web",
+      "text": "In 1986, he underwent a recommitment to his Christian faith, which had a profound impact on his life. He moved his family to Washington D.C. in 1988, while serving as a campaign advisor and media liaison with his father\u2019s Presidential campaign. In 1989, he assembled a group of investors that purchased the Texas Rangers baseball team and served as their managing general partner for the next five years.",
+      "title": "George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "url": "https://www.georgewbushlibrary.gov/bush-family/george-w-bush"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2001",
+        "year": 2001
+      },
+      "event_id": "ev:0024",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0004_gwb_public_bios_web_https_www.georgewbushlibrary.gov_bush-family_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "source_id": "gwb_public_bios_web",
+      "text": "Bush announced his candidacy for the Presidency of the United States. His opponent in the 2000 election was Vice President Albert Gore. Though the Presidential election was held November 7, 2000, the final outcome was not known until December 12, 2000, when the Supreme Court decision Bush v. Gore certified Florida\u2019s electoral votes. Bush was inaugurated as the 43rd President of the United States on January 20, 2001.",
+      "title": "George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "url": "https://www.georgewbushlibrary.gov/bush-family/george-w-bush"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0025",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0004_gwb_public_bios_web_https_www.georgewbushlibrary.gov_bush-family_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "source_id": "gwb_public_bios_web",
+      "text": "Early decisions in the George W. Bush Administration focused on public education.",
+      "title": "George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "url": "https://www.georgewbushlibrary.gov/bush-family/george-w-bush"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2002",
+        "year": 2002
+      },
+      "event_id": "ev:0026",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0004_gwb_public_bios_web_https_www.georgewbushlibrary.gov_bush-family_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "source_id": "gwb_public_bios_web",
+      "text": "President Bush\u2019s first major initiative, the No Child Left Behind Act of 2002, created reforms that raised standards and improved test scores in the public education system.",
+      "title": "George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "url": "https://www.georgewbushlibrary.gov/bush-family/george-w-bush"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0027",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0004_gwb_public_bios_web_https_www.georgewbushlibrary.gov_bush-family_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "source_id": "gwb_public_bios_web",
+      "text": "President Bush increased the size of Pell Grants available to college students to an all-time high and also created the Helping America\u2019s Youth Initiative. Bush to help adults connect with at-risk children. Economically, President Bush created a tax relief package, which reduced individual income tax rates and doubled the child tax credit, in addition to other reforms.",
+      "title": "George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "url": "https://www.georgewbushlibrary.gov/bush-family/george-w-bush"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2003",
+        "year": 2003
+      },
+      "event_id": "ev:0028",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0004_gwb_public_bios_web_https_www.georgewbushlibrary.gov_bush-family_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "source_id": "gwb_public_bios_web",
+      "text": "Bush visited troops and served Thanksgiving Dinner at the Bob Hope Dining Facility, Baghdad International Airport, Iraq on November 27, 2003. (P36047-34) View in the National Archives Catalog In response to the September 11th terrorist attacks, President Bush declared a War on Terror, which became a wide-ranging assault on terrorists and those entities that support terrorism around the globe.",
+      "title": "George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "url": "https://www.georgewbushlibrary.gov/bush-family/george-w-bush"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2001",
+        "year": 2001
+      },
+      "event_id": "ev:0029",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0004_gwb_public_bios_web_https_www.georgewbushlibrary.gov_bush-family_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "source_id": "gwb_public_bios_web",
+      "text": "As part of this effort, the War in Afghanistan began in October 2001 and the War in Iraq in March 2003. President Bush initiated a reorganization of the federal government; established the National Counterterrorism Center, the Department of Homeland Security, and the Homeland Security Council; and created the position of Director of National Intelligence.",
+      "title": "George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "url": "https://www.georgewbushlibrary.gov/bush-family/george-w-bush"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2004",
+        "year": 2004
+      },
+      "event_id": "ev:0030",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0004_gwb_public_bios_web_https_www.georgewbushlibrary.gov_bush-family_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "source_id": "gwb_public_bios_web",
+      "text": "The USA Freedom Corps, also created following September 11th, aimed to inspire American citizens to serve humanitarian causes greater than themselves. In the 2004 election, President George W. Bush faced Senator John Kerry of Massachusetts. President Bush was re-elected for a second term, and inaugurated January 20, 2005. Iraq also held its elections \u2013 the first free elections in the country \u2013 in January 2005.",
+      "title": "George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "url": "https://www.georgewbushlibrary.gov/bush-family/george-w-bush"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2006",
+        "year": 2006
+      },
+      "event_id": "ev:0031",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0004_gwb_public_bios_web_https_www.georgewbushlibrary.gov_bush-family_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "source_id": "gwb_public_bios_web",
+      "text": "Laura Bush and guests looking on, President George W. Bush signed a proclamation to create the Northwestern Hawaiian Islands Marine National Monument at a ceremony on June 15, 2006 at the White House. During his second administration, President George W.",
+      "title": "George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "url": "https://www.georgewbushlibrary.gov/bush-family/george-w-bush"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0032",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0004_gwb_public_bios_web_https_www.georgewbushlibrary.gov_bush-family_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "source_id": "gwb_public_bios_web",
+      "text": "Bush continued the development of humanitarian aid programs including the President\u2019s Emergency Plan for AIDS Relief (PEPFAR) and the President\u2019s Malaria Initiative, to assist those suffering around the world. President Bush also led efforts to provide more than $3.3 billion to the Global Fund to Fight AIDS, Tuberculosis, and Malaria.",
+      "title": "George W. Bush | George W. Bush Library George W. Bush Presidential Library",
+      "url": "https://www.georgewbushlibrary.gov/bush-family/george-w-bush"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2001",
+        "year": 2001
+      },
+      "event_id": "ev:0033",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0005_gwb_public_bios_web_https_www.bushcenter.org_about-us_the-bush-family_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | George W. Bush Presidential Center",
+      "source_id": "gwb_public_bios_web",
+      "text": "Bush served as 43 rd President of the United States of America from 2001 to 2009. As Commander in Chief, President Bush worked to expand freedom, opportunity, and security at home and abroad. He entered office with a robust domestic agenda.",
+      "title": "George W. Bush | George W. Bush Presidential Center",
+      "url": "https://www.bushcenter.org/about-us/the-bush-family/george-w-bush"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0034",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0005_gwb_public_bios_web_https_www.bushcenter.org_about-us_the-bush-family_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | George W. Bush Presidential Center",
+      "source_id": "gwb_public_bios_web",
+      "text": "His first initiative as President was the No Child Left Behind Act, a bipartisan measure that raised standards in schools, insisted on accountability in return for federal dollars, and led to measurable g\u00adains in achievement \u2013 especially among minority students.",
+      "title": "George W. Bush | George W. Bush Presidential Center",
+      "url": "https://www.bushcenter.org/about-us/the-bush-family/george-w-bush"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0035",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0005_gwb_public_bios_web_https_www.bushcenter.org_about-us_the-bush-family_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | George W. Bush Presidential Center",
+      "source_id": "gwb_public_bios_web",
+      "text": "Faced with a recession when he took office, President Bush cut taxes for every federal income taxpayer, which helped lead to an unprecedented 52 straight months of job creation. New free trade agreements enacted by the Bush Administration opened up American goods and services to new markets of more than 130 million consumers.",
+      "title": "George W. Bush | George W. Bush Presidential Center",
+      "url": "https://www.bushcenter.org/about-us/the-bush-family/george-w-bush"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0036",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0005_gwb_public_bios_web_https_www.bushcenter.org_about-us_the-bush-family_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | George W. Bush Presidential Center",
+      "source_id": "gwb_public_bios_web",
+      "text": "Additionally, President Bush worked with Congress to modernize Medicare with a prescription drug benefit and introduced market forces to the healthcare system by establishing Health Savings Accounts. The Bush Administration also focused on a variety of environmental issues, including efforts to reduce emissions and create the world\u2019s largest marine protected area.",
+      "title": "George W. Bush | George W. Bush Presidential Center",
+      "url": "https://www.bushcenter.org/about-us/the-bush-family/george-w-bush"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2001",
+        "year": 2001
+      },
+      "event_id": "ev:0037",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0005_gwb_public_bios_web_https_www.bushcenter.org_about-us_the-bush-family_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | George W. Bush Presidential Center",
+      "source_id": "gwb_public_bios_web",
+      "text": "Following the terrorist attacks on September 11, 2001, President Bush responded with a comprehensive strategy to protect the American people and wage a global war on terror. His administration built global coalitions to remove violent regimes in Afghanistan and Iraq that threatened America, liberating more than 50 million people from tyranny.",
+      "title": "George W. Bush | George W. Bush Presidential Center",
+      "url": "https://www.bushcenter.org/about-us/the-bush-family/george-w-bush"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0038",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0005_gwb_public_bios_web_https_www.bushcenter.org_about-us_the-bush-family_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | George W. Bush Presidential Center",
+      "source_id": "gwb_public_bios_web",
+      "text": "Recognizing that liberty and hope are the best alternative to the extremist ideology of the terrorists, he provided unprecedented American support for young democracies and dissidents in the Middle East, Eastern Europe, Latin America, and elsewhere. President Bush also launched global HIV/AIDS and malaria initiatives that have saved millions of lives, particularly in sub-Saharan Africa.",
+      "title": "George W. Bush | George W. Bush Presidential Center",
+      "url": "https://www.bushcenter.org/about-us/the-bush-family/george-w-bush"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0039",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0005_gwb_public_bios_web_https_www.bushcenter.org_about-us_the-bush-family_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | George W. Bush Presidential Center",
+      "source_id": "gwb_public_bios_web",
+      "text": "After the Presidency, President and Mrs. Bush Presidential Center in Dallas, Texas. The Bush Center is home to the George W. Bush Presidential Library and Museum and the George W.",
+      "title": "George W. Bush | George W. Bush Presidential Center",
+      "url": "https://www.bushcenter.org/about-us/the-bush-family/george-w-bush"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0040",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0005_gwb_public_bios_web_https_www.bushcenter.org_about-us_the-bush-family_george-w-bush.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush | George W. Bush Presidential Center",
+      "source_id": "gwb_public_bios_web",
+      "text": "Bush Institute, a nonpartisan public policy and leadership development center that engages communities across the United States and around the world by developing leaders, advancing policy, and taking action to solve today\u2019s most pressing challenges.",
+      "title": "George W. Bush | George W. Bush Presidential Center",
+      "url": "https://www.bushcenter.org/about-us/the-bush-family/george-w-bush"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2001",
+        "year": 2001
+      },
+      "event_id": "ev:0041",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0006_gwb_public_bios_web_https_millercenter.org_president_gwbush_life-in-brief.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush: Life in Brief | Miller Center",
+      "source_id": "gwb_public_bios_web",
+      "text": "Bush, the 43rd President of the United States, led the country during a time of great challenge and change. The terrorist attacks of September 11, 2001, the global war on terror, the war in Iraq, and the economic downturn of 2008 are just some of the major events that Bush had to contend with during his time in office.",
+      "title": "George W. Bush: Life in Brief | Miller Center",
+      "url": "https://millercenter.org/president/gwbush/life-in-brief"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0042",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0006_gwb_public_bios_web_https_millercenter.org_president_gwbush_life-in-brief.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush: Life in Brief | Miller Center",
+      "source_id": "gwb_public_bios_web",
+      "text": "At different times, President Bush was both the most popular president and one of the least popular presidents in American history, and his administration sparked both passionate defenders and vehement critics. His presidency will continue to be studied and debated for years to come. Bush made his first run for public office in 1978, but failed to win the congressional seat he sought.",
+      "title": "George W. Bush: Life in Brief | Miller Center",
+      "url": "https://millercenter.org/president/gwbush/life-in-brief"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "1993",
+        "year": 1993
+      },
+      "event_id": "ev:0043",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0006_gwb_public_bios_web_https_millercenter.org_president_gwbush_life-in-brief.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush: Life in Brief | Miller Center",
+      "source_id": "gwb_public_bios_web",
+      "text": "He did not run for political office again until his father had left the presidency. In 1993, Bush challenged the popular Democratic governor of Texas, Ann Richards. Focusing on education, juvenile justice, welfare, and tort reform, Bush\u2019s victory stunned much of the nation. He won reelection for governor by a landslide in 1998, and that victory helped launch him into the 2000 race for the presidency.",
+      "title": "George W. Bush: Life in Brief | Miller Center",
+      "url": "https://millercenter.org/president/gwbush/life-in-brief"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0044",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0006_gwb_public_bios_web_https_millercenter.org_president_gwbush_life-in-brief.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush: Life in Brief | Miller Center",
+      "source_id": "gwb_public_bios_web",
+      "text": "Bush defeated Senator John McCain of Arizona for the Republican nomination and then went on to win a controversial and disputed victory over Vice President Al Gore in November. Although Gore won the popular vote nationwide by more than 500,000 ballots, Bush tallied the constitutionally required 270 Electoral College votes by winning a few hundred more popular votes in Florida after a contested recount.",
+      "title": "George W. Bush: Life in Brief | Miller Center",
+      "url": "https://millercenter.org/president/gwbush/life-in-brief"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0045",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0006_gwb_public_bios_web_https_millercenter.org_president_gwbush_life-in-brief.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush: Life in Brief | Miller Center",
+      "source_id": "gwb_public_bios_web",
+      "text": "The election spurred weeks of litigation, ultimately settled by the U.S. Supreme Court, making it one of the most controversial elections in American history. Bush launched his administration against one of the most polarized political landscapes in recent memory.",
+      "title": "George W. Bush: Life in Brief | Miller Center",
+      "url": "https://millercenter.org/president/gwbush/life-in-brief"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0046",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0006_gwb_public_bios_web_https_millercenter.org_president_gwbush_life-in-brief.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush: Life in Brief | Miller Center",
+      "source_id": "gwb_public_bios_web",
+      "text": "The Republicans were eager to reclaim the White House after eight years of the contentious Clinton administration, and many Democrats did not consider Bush to be a legitimately elected President. Bush\u2019s \u201ccompassionate conservative\u201d philosophy defined his approach to domestic policy.",
+      "title": "George W. Bush: Life in Brief | Miller Center",
+      "url": "https://millercenter.org/president/gwbush/life-in-brief"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0047",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0006_gwb_public_bios_web_https_millercenter.org_president_gwbush_life-in-brief.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush: Life in Brief | Miller Center",
+      "source_id": "gwb_public_bios_web",
+      "text": "It utilized traditional tenets of conservatism, such as small government and free market principles, to help people help themselves, and local groups such as churches to help those who could not help themselves. Among his initiatives, President Bush created the Office of Faith-Based and Community Initiatives to allow religious organizations to work with government to address social problems.",
+      "title": "George W. Bush: Life in Brief | Miller Center",
+      "url": "https://millercenter.org/president/gwbush/life-in-brief"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2001",
+        "year": 2001
+      },
+      "event_id": "ev:0048",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0006_gwb_public_bios_web_https_millercenter.org_president_gwbush_life-in-brief.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush: Life in Brief | Miller Center",
+      "source_id": "gwb_public_bios_web",
+      "text": "Among his top priorities, Bush succeeded in getting Congress to pass the No Child Left Behind Act in 2001 with bipartisan support.",
+      "title": "George W. Bush: Life in Brief | Miller Center",
+      "url": "https://millercenter.org/president/gwbush/life-in-brief"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2003",
+        "year": 2003
+      },
+      "event_id": "ev:0049",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0006_gwb_public_bios_web_https_millercenter.org_president_gwbush_life-in-brief.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush: Life in Brief | Miller Center",
+      "source_id": "gwb_public_bios_web",
+      "text": "The law raised national education standards and allocated funding according to test results but was not without its controversy because of its reliance on testing and the weakening of local autonomy. Bush\u2019s health care initiative, the Medicare Modernization Act of 2003, established prescription drug benefits for seniors and created health savings accounts.",
+      "title": "George W. Bush: Life in Brief | Miller Center",
+      "url": "https://millercenter.org/president/gwbush/life-in-brief"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2003",
+        "year": 2003
+      },
+      "event_id": "ev:0050",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0006_gwb_public_bios_web_https_millercenter.org_president_gwbush_life-in-brief.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush: Life in Brief | Miller Center",
+      "source_id": "gwb_public_bios_web",
+      "text": "It also sought to provide a more competitive market for Medicare services. Beginning in 2003, Bush began pursuing the partial privatization of the Social Security system, a controversial and ultimately unsuccessful initiative. President Bush\u2019s economic policy reflected hands-off conservative supply side theory.",
+      "title": "George W. Bush: Life in Brief | Miller Center",
+      "url": "https://millercenter.org/president/gwbush/life-in-brief"
+    },
+    {
+      "anchor": {
+        "day": 19,
+        "kind": "ingest",
+        "month": 7,
+        "precision": "day",
+        "text": "2026-07-19",
+        "year": 2026
+      },
+      "event_id": "ev:0051",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0006_gwb_public_bios_web_https_millercenter.org_president_gwbush_life-in-brief.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush: Life in Brief | Miller Center",
+      "source_id": "gwb_public_bios_web",
+      "text": "One of his major domestic accomplishments in his first term was garnering congressional support for $1.35 trillion in tax cuts but only at the expense of making them temporary rather than permanent in the tax code.",
+      "title": "George W. Bush: Life in Brief | Miller Center",
+      "url": "https://millercenter.org/president/gwbush/life-in-brief"
+    },
+    {
+      "anchor": {
+        "kind": "span_year",
+        "precision": "year",
+        "text": "2007",
+        "year": 2007
+      },
+      "event_id": "ev:0052",
+      "links": [],
+      "path": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0006_gwb_public_bios_web_https_millercenter.org_president_gwbush_life-in-brief.html",
+      "root_actor": "George W. Bush",
+      "root_surname": "Bush",
+      "section": "Public bio doc: George W. Bush: Life in Brief | Miller Center",
+      "source_id": "gwb_public_bios_web",
+      "text": "Although he inherited the beginnings of an economic slowdown, by 2007 the stock market topped 14,164, more than 6,000 points higher than it had been five years earlier, and unemployment fell to 4.7 percent.",
+      "title": "George W. Bush: Life in Brief | Miller Center",
+      "url": "https://millercenter.org/president/gwbush/life-in-brief"
+    }
+  ],
+  "generated_at": "2026-07-19T12:44:04.805612Z",
+  "notes": "Auto-built from local raw public-bios HTML. Events are cue-filtered snippet windows for broader GWB extraction.",
+  "raw_root": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/gwb/public_bios_v1/raw",
+  "snapshot": {
+    "revid": null,
+    "source_url": null,
+    "title": "GWB public bios v1 rich",
+    "wiki": "gwb_public_bios_v1_rich"
+  }
+}
