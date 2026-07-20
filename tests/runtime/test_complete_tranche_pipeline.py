@@ -154,6 +154,22 @@ def test_phase_contract_rejects_network_before_local_world() -> None:
         validate_phase_receipts(receipts)
 
 
+def test_legal_acquisition_requires_pnf_legal_demand_phase() -> None:
+    receipts = [
+        PhaseReceipt(TranchePhase.SOURCE_INVENTORY, "completed", (), (), {}),
+        PhaseReceipt(TranchePhase.SOURCE_ACQUISITION, "completed", (), (), {}),
+        PhaseReceipt(TranchePhase.CANONICAL_PROJECTION, "completed", (), (), {}),
+        PhaseReceipt(TranchePhase.LOCAL_PNF_COMPILATION, "completed", (), (), {}),
+        PhaseReceipt(TranchePhase.LOCAL_WORLD_PROJECTION, "completed", (), (), {}),
+        PhaseReceipt(TranchePhase.EXTERNAL_DEMAND_PLANNING, "completed", (), (), {}),
+        PhaseReceipt(TranchePhase.EXTERNAL_ACQUISITION, "completed", (), (), {}),
+        PhaseReceipt(TranchePhase.LEGAL_ADJUNCT_ACQUISITION, "completed", (), (), {}),
+    ]
+
+    with pytest.raises(ValueError, match="LEGAL_ADJUNCT_DEMAND_PLANNING"):
+        validate_phase_receipts(receipts)
+
+
 def test_checkpoint_preserves_authority_boundaries() -> None:
     profile = profile_for_tranche("GWB")
     receipts = [
@@ -162,10 +178,17 @@ def test_checkpoint_preserves_authority_boundaries() -> None:
     checkpoint = checkpoint_payload(profile=profile, receipts=receipts, artifacts={})
 
     assert checkpoint["authority_boundaries"] == {
+        "one_media_adapter": True,
+        "one_canonical_text_substrate": True,
+        "one_parser_spine": True,
+        "pnf_is_semantic_center": True,
+        "legal_ir_is_pnf_projection": True,
         "source_mentions_preserved": True,
         "external_candidates_are_not_identity": True,
+        "legal_relevance_is_not_applicability": True,
+        "applicability_is_not_violation": True,
         "local_compilation_network_independent": True,
         "world_entity_promotion_performed": False,
-        "review_required_for_identity_closure": True,
+        "review_required_for_identity_or_legal_closure": True,
     }
     json.dumps(checkpoint)
