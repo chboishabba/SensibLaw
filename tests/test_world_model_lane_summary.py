@@ -4,9 +4,6 @@ import json
 from pathlib import Path
 
 from scripts.build_gwb_broader_review import build_gwb_broader_review
-from SensibLaw.src.fact_intake.au_review_bundle import (
-    build_au_fact_review_bundle_world_model_report,
-)
 from SensibLaw.tests.test_au_fact_review_bundle import _prepare_au_fact_review_bundle_fixture
 from SensibLaw.src.ontology.wikidata_nat_cohort_b_operator_packet import (
     build_nat_cohort_b_operator_packet_world_model_report,
@@ -19,9 +16,10 @@ from SensibLaw.src.reporting.world_model_lane_summary import (
 from src.policy.gwb_broader_review_world_model import (
     build_gwb_broader_review_world_model_report,
 )
+from src.policy.au_world_model import build_report as build_au_world_model_report
 from SensibLaw.src.sources.national_archives.brexit_national_archives_lane import (
-    build_brexit_national_archives_world_model_report,
-    fetch_brexit_archive_records,
+    build_report,
+    fetch_records,
 )
 from src.ontology.wikidata_nat_automation_graduation import build_nat_claim_convergence_report
 
@@ -85,6 +83,34 @@ def test_build_lane_governance_snapshot_carries_legal_follow_pressure_when_prese
     assert snapshot["legal_follow_pressure"]["value"] == "high"
 
 
+def test_build_lane_governance_snapshot_prefers_shared_promotion_gate_when_present() -> None:
+    snapshot = build_lane_governance_snapshot(
+        {
+            "lane_id": "gwb_broader_review",
+            "summary": {
+                "claim_count": 3,
+                "must_review_count": 0,
+                "must_abstain_count": 0,
+            },
+            "claims": [],
+            "promotion_gate": {
+                "lane": "gwb",
+                "product_ref": "gwb_broader_review",
+                "decision": "audit",
+                "reason": "mixed_promote_review_or_abstain_pressure",
+                "evidence": {
+                    "promoted_count": 2,
+                    "review_count": 1,
+                    "abstained_count": 0,
+                    "product_roles": ["operator_review_summary"],
+                },
+            },
+        }
+    )
+
+    assert snapshot["promotion_gate_decision"] == "audit"
+
+
 def test_build_world_model_lane_summary_aggregates_rebound_lanes(monkeypatch, tmp_path: Path) -> None:
     def fake_get(_url: str, **_kwargs):
         raise RuntimeError("dialing blocked")
@@ -100,11 +126,11 @@ def test_build_world_model_lane_summary_aggregates_rebound_lanes(monkeypatch, tm
 
     nat_report = build_nat_claim_convergence_report(_load_nat_verification_runs_fixture())
     bundle, *_ = _prepare_au_fact_review_bundle_fixture(tmp_path)
-    au_report = build_au_fact_review_bundle_world_model_report(bundle)
+    au_report = build_au_world_model_report(bundle)
     gwb_result = build_gwb_broader_review(tmp_path / "gwb")
     gwb_payload = json.loads(Path(gwb_result["artifact_path"]).read_text(encoding="utf-8"))
     gwb_report = build_gwb_broader_review_world_model_report(gwb_payload)
-    brexit_report = build_brexit_national_archives_world_model_report(fetch_brexit_archive_records(limit=1))
+    brexit_report = build_report(fetch_records(limit=1))
     reviewer_report = build_nat_cohort_b_operator_packet_world_model_report(
         _load_cohort_b_operator_packet_fixture()
     )

@@ -1,5 +1,5 @@
 {
-  "_source_path": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10422059_t2_2445808770.json",
+  "_source_path": "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10422059_t2_2445808770.json",
   "_source_qid": "Q10422059",
   "_source_revision": 2445808770,
   "entities": {
@@ -4169,20 +4169,17 @@
         "dawiki": {
           "badges": [],
           "site": "dawiki",
-          "title": "Atrium Ljungberg",
-          "url": "https://da.wikipedia.org/wiki/Atrium_Ljungberg"
+          "title": "Atrium Ljungberg"
         },
         "enwiki": {
           "badges": [],
           "site": "enwiki",
-          "title": "Atrium Ljungberg",
-          "url": "https://en.wikipedia.org/wiki/Atrium_Ljungberg"
+          "title": "Atrium Ljungberg"
         },
         "svwiki": {
           "badges": [],
           "site": "svwiki",
-          "title": "Atrium Ljungberg",
-          "url": "https://sv.wikipedia.org/wiki/Atrium_Ljungberg"
+          "title": "Atrium Ljungberg"
         }
       },
       "title": "Q10422059",

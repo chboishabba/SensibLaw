@@ -1,0 +1,20 @@
+{
+  "authority": "candidate_review_only",
+  "canary": {
+    "maximum_statement_count": 25,
+    "selection_strategy": "round_robin_family_rank_reference_then_statement_ref",
+    "statement_refs": []
+  },
+  "contract_status": "diagnostic_only",
+  "execution_effect": "none",
+  "gate": {
+    "maximum_critical_misses": 0,
+    "minimum_precision": 0.95,
+    "minimum_reviewed_eligible": 5
+  },
+  "promotion_effect": "none",
+  "report_hash": "6a5c0abcc59843adeb5e04dbd3ecdcb6b223e351bf2aea4ee2b2a173c3a0abc5",
+  "schema_version": "sl.climate_ghg_contract_proposal.v1",
+  "selected_subtype": null,
+  "subtype_metrics": []
+}

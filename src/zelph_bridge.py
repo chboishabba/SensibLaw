@@ -341,7 +341,11 @@ def _apply_inferred_triples(workbench: Mapping[str, Any], triples: list[dict[str
         "version": ZELPH_BRIDGE_VERSION,
         "rule_status": "portable_ok" if inferred_by_fact_id else "portable_noop",
         "facts_serialized_count": len(serialized_fact_lines.splitlines()) if serialized_fact_lines else 0,
-        "inferred_fact_count": sum(1 for payload in inferred_by_fact_id.values() if payload.get("signal_classes")),
+        "inferred_fact_count": sum(
+            1
+            for payload in inferred_by_fact_id.values()
+            if payload.get("signal_classes") or payload.get("source_signal_classes")
+        ),
         "inferred_by_fact_id": inferred_by_fact_id,
         "active_packs": active_packs,
         "triples": triples,
@@ -367,13 +371,55 @@ def enrich_workbench_with_zelph(
         else:
             rule_status = str(engine_result["status"])
 
-    enriched = _apply_inferred_triples(workbench, _dedupe_triples(triples))
+    enriched = _apply_inferred_triples(workbench, _resolve_wiki_sentinel_bindings(_dedupe_triples(triples)))
     enriched["zelph"] = {
         **enriched["zelph"],
         "rule_status": rule_status,
         "engine": engine_result,
     }
     return enriched
+
+
+def _resolve_wiki_sentinel_bindings(triples: list[dict[str, str]]) -> list[dict[str, str]]:
+    reversion_subjects = {
+        str(triple.get("subject") or "").strip()
+        for triple in triples
+        if str(triple.get("predicate") or "") == "signal_class"
+        and str(triple.get("object") or "") == "reversion_edit"
+        and str(triple.get("subject") or "").strip()
+    }
+    bound_users = {
+        str(triple.get("object") or "").strip()
+        for triple in triples
+        if str(triple.get("predicate") or "") == "by user"
+        and str(triple.get("subject") or "").strip() in reversion_subjects
+        and str(triple.get("object") or "").strip()
+    }
+    if not bound_users:
+        return triples
+
+    resolved: list[dict[str, str]] = []
+    seen: set[tuple[str, str, str]] = set()
+    for triple in triples:
+        subject = str(triple.get("subject") or "").strip()
+        predicate = str(triple.get("predicate") or "").strip()
+        obj = str(triple.get("object") or "").strip()
+        if subject == "U" and predicate == "is" and obj == "wiki sentinel":
+            continue
+        key = (subject, predicate, obj)
+        if key in seen:
+            continue
+        seen.add(key)
+        resolved.append({"subject": subject, "predicate": predicate, "object": obj})
+
+    for user in sorted(bound_users):
+        key = (user, "is", "wiki sentinel")
+        if key in seen:
+            continue
+        seen.add(key)
+        resolved.append({"subject": user, "predicate": "is", "object": "wiki sentinel"})
+
+    return resolved
 
 
 def _dedupe_triples(triples: list[dict[str, str]]) -> list[dict[str, str]]:

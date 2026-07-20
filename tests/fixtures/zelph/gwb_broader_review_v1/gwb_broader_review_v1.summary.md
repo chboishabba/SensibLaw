@@ -1,26 +1,34 @@
 # GWB Broader Review
 
-- Review items: `13`
-- Source rows: `48`
-- Covered source rows: `37`
-- Missing-review source rows: `11`
-- Related review clusters: `6`
-- Candidate anchors: `144`
-- Provisional review rows: `38`
-- Provisional review bundles: `11`
+- Review items: `21`
+- Source rows: `53`
+- Covered source rows: `39`
+- Missing-review source rows: `14`
+- Related review clusters: `8`
+- Candidate anchors: `158`
+- Provisional review rows: `46`
+- Provisional review bundles: `13`
+- Debate edges captured: `7`
 
 ## Derived Legal-Linkage Graph
 
-- Nodes: `92`
-- Edges: `232`
-- Seed lanes: `13`
-- Source rows: `48`
-- Distinct source-row nodes: `48`
-- Source kinds: `merged_promoted_relation: 18, seed_family_support: 27, source_family_summary: 3`
-- Source families: `checked_handoff: 2, checked_handoff,corpus_book_timeline: 1, checked_handoff,public_bios_timeline,corpus_book_timeline: 1, corpus_book_timeline: 2, public_bios_timeline: 2`
-- Linkage kinds: `congressional_authority: 1, court_and_confirmation: 1, domestic_statute: 1, executive_proclamation: 1, institutional_anchor: 1, litigation_and_subpoena: 1, statute_and_litigation: 1`
+- Nodes: `136`
+- Edges: `281`
+- Seed lanes: `15`
+- Source rows: `53`
+- Distinct source-row nodes: `53`
+- Source kinds: `merged_promoted_relation: 18, parliamentary_statement: 2, seed_family_support: 28, source_family_summary: 3, uk_legislation_receipt: 2`
+- Source families: `EUR-Lex deterministic catalog: 1, checked_handoff: 2, checked_handoff,corpus_book_timeline: 1, checked_handoff,public_bios_timeline,corpus_book_timeline: 1, corpus_book_timeline: 2, iraqi_parliament: 2, public_bios_timeline: 2, uk_legislation: 2, uk_parliament: 2`
+- Linkage kinds: `congressional_authority: 1, court_and_confirmation: 1, domestic_statute: 1, executive_proclamation: 1, institutional_anchor: 1, legal_reference: 1, litigation_and_subpoena: 1, statute_and_litigation: 1`
 - Review statuses: `candidate_only: 1, matched: 1`
+
+## Parliamentary Control Boost
+
+- Boost score: `0.9`
+- Sources: `debate, committee_report`
 - Support kinds: `broad_cue: 1, direct: 1`
+- Followed legal-cite classes: `eur_lex: 3, general: 5, uk_legislation: 3`
+- Brexit-related follows: `6`
 
 ### Graph inspection
 
@@ -42,8 +50,8 @@
 
 ## Normalized Metrics
 
-- Review-item statuses: accepted `7`, review_required `6`, held `0`
-- Source statuses: accepted `37`, review_required `11`, held `0`
+- Review-item statuses: accepted `15`, review_required `4`, held `0`
+- Source statuses: accepted `39`, review_required `14`, held `0`
 - Dominant primary workload: `linkage_pressure`
 - Primary workload counts:
   - `structural_pressure` `0`
@@ -56,18 +64,18 @@
 - Workload presence counts:
   - `structural_pressure` `0`
   - `governance_pressure` `0`
-  - `linkage_pressure` `8`
+  - `linkage_pressure` `9`
   - `event_or_time_pressure` `3`
   - `evidence_pressure` `0`
   - `normalization_pressure` `0`
   - `queue_pressure` `0`
-- Review-required source ratio: `0.229167`
-- Candidate signal count: `38`
-- Candidate signal density: `3.454545`
-- Provisional queue rows: `38`
-- Provisional row density: `3.454545`
-- Provisional bundles: `11`
-- Provisional bundle density: `1.000000`
+- Review-required source ratio: `0.264151`
+- Candidate signal count: `46`
+- Candidate signal density: `3.285714`
+- Provisional queue rows: `46`
+- Provisional row density: `3.285714`
+- Provisional bundles: `13`
+- Provisional bundle density: `0.928571`
 
 ## Top Provisional Review Bundles
 

@@ -3,6 +3,17 @@
 Thesis: make the system legible to humans without letting humans (or UI) mutate
 meaning.
 
+## Current priority position
+- S9 is not a top-level execution driver while the current architecture P0s
+  remain open.
+- Keep these ahead of S9 widening:
+  - the cross-lane compiler normalization push
+  - shared cross-lane semantic surface extraction
+- S9 work should therefore stay bounded to:
+  - consuming normalized payloads already emitted by producer/runtime lanes
+  - validating read-only operator paths over those payloads
+  - avoiding new UI-first semantics or parallel truth layers
+
 ## Goals
 - Make Layer 0–3 understandable to users.
 - Reinforce trust and provenance visually.

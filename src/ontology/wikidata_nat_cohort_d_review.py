@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
 
+from src.policy.decision_surface import build_decision_surface
+
 
 WIKIDATA_NAT_COHORT_D_TYPE_PROBING_SURFACE_SCHEMA_VERSION = (
     "sl.wikidata_nat_cohort_d_type_probing_surface.v0_1"
@@ -197,37 +199,46 @@ def _build_operator_workflow_summary(
         "medium_priority_count": medium_priority_count,
         "unresolved_packet_ref_count": unresolved_packet_ref_count,
     }
-    if unresolved_packet_ref_count > 0 or readiness != "review_queue_ready":
-        return {
+    return build_decision_surface(
+        counts=counts,
+        promotion_gate={"decision": promotion_guard or "hold"},
+        rules=[
+            {
+                "count_key": "unresolved_packet_ref_count",
+                "stage": "inspect",
+                "title": "",
+                "recommended_view": "unresolved_packet_refs",
+                "reason_template": "{unresolved_packet_ref_count} packet reference(s) still need resolution before clean review.",
+            },
+            {
+                "count_key": "high_priority_count",
+                "stage": "follow_up",
+                "title": "",
+                "recommended_view": "operator_queue",
+                "reason_template": "{high_priority_count} high-priority typing check(s) should be reviewed first.",
+            },
+            {
+                "count_key": "queue_size",
+                "stage": "decide",
+                "title": "",
+                "recommended_view": "operator_queue",
+                "reason_template": "{queue_size} queued packet(s) remain for bounded review.",
+            },
+        ],
+        default_step={
+            "stage": "record",
+            "title": "",
+            "recommended_view": "summary",
+            "reason_template": "No queued packet review remains on this operator surface.",
+        }
+        if readiness == "review_queue_ready"
+        else {
             "stage": "inspect",
+            "title": "",
             "recommended_view": "unresolved_packet_refs",
-            "reason": f"{unresolved_packet_ref_count} packet reference(s) still need resolution before clean review.",
-            "counts": counts,
-            "promotion_gate": {"decision": promotion_guard or "hold"},
-        }
-    if high_priority_count > 0:
-        return {
-            "stage": "follow_up",
-            "recommended_view": "operator_queue",
-            "reason": f"{high_priority_count} high-priority typing check(s) should be reviewed first.",
-            "counts": counts,
-            "promotion_gate": {"decision": promotion_guard or "hold"},
-        }
-    if queue_size > 0:
-        return {
-            "stage": "decide",
-            "recommended_view": "operator_queue",
-            "reason": f"{queue_size} queued packet(s) remain for bounded review.",
-            "counts": counts,
-            "promotion_gate": {"decision": promotion_guard or "hold"},
-        }
-    return {
-        "stage": "record",
-        "recommended_view": "summary",
-        "reason": "No queued packet review remains on this operator surface.",
-        "counts": counts,
-        "promotion_gate": {"decision": promotion_guard or "hold"},
-    }
+            "reason_template": "{unresolved_packet_ref_count} packet reference(s) still need resolution before clean review.",
+        },
+    )
 
 
 def _build_control_index_workflow_summary(
@@ -245,32 +256,36 @@ def _build_control_index_workflow_summary(
         "total_queue_size": total_queue_size,
         "total_unresolved_packet_ref_count": total_unresolved_packet_ref_count,
     }
-    if total_unresolved_packet_ref_count > 0 or not all_batches_ready:
-        return {
-            "stage": "inspect",
-            "recommended_view": "batch_entries",
-            "reason": (
-                f"{total_unresolved_packet_ref_count} unresolved packet reference(s) and "
-                f"{batch_count} batch(es) still need readiness review."
+    return build_decision_surface(
+        counts=counts,
+        promotion_gate={"decision": promotion_guard or "hold"},
+        rules=[
+            {
+                "count_key": "total_unresolved_packet_ref_count",
+                "stage": "inspect",
+                "title": "",
+                "recommended_view": "batch_entries",
+                "reason_template": "{total_unresolved_packet_ref_count} unresolved packet reference(s) and {batch_count} batch(es) still need readiness review.",
+            },
+            {
+                "count_key": "total_queue_size",
+                "stage": "decide",
+                "title": "",
+                "recommended_view": "batch_entries",
+                "reason_template": "{total_queue_size} queued packet review item(s) remain across {case_count} case(s).",
+            },
+        ],
+        default_step={
+            "stage": "record" if all_batches_ready else "inspect",
+            "title": "",
+            "recommended_view": "summary" if all_batches_ready else "batch_entries",
+            "reason_template": (
+                "All tracked cohort-D batches are ready and no queued review work remains."
+                if all_batches_ready
+                else "{total_unresolved_packet_ref_count} unresolved packet reference(s) and {batch_count} batch(es) still need readiness review."
             ),
-            "counts": counts,
-            "promotion_gate": {"decision": promotion_guard or "hold"},
-        }
-    if total_queue_size > 0:
-        return {
-            "stage": "decide",
-            "recommended_view": "batch_entries",
-            "reason": f"{total_queue_size} queued packet review item(s) remain across {case_count} case(s).",
-            "counts": counts,
-            "promotion_gate": {"decision": promotion_guard or "hold"},
-        }
-    return {
-        "stage": "record",
-        "recommended_view": "summary",
-        "reason": "All tracked cohort-D batches are ready and no queued review work remains.",
-        "counts": counts,
-        "promotion_gate": {"decision": promotion_guard or "hold"},
-    }
+        },
+    )
 
 
 def build_wikidata_nat_cohort_d_operator_review_surface(

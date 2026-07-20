@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from .compiler_contract import normalize_promoted_outcomes
+from .compiler_contract import normalize_compiler_contract
 
 
 PRODUCT_GATE_SCHEMA_VERSION = "sl.product_gate.v0_1"
@@ -15,6 +15,31 @@ def _int(value: Any) -> int:
         return 0
 
 
+def normalize_product_gate(
+    value: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    mapping = value if isinstance(value, Mapping) else {}
+    evidence = mapping.get("evidence") if isinstance(mapping.get("evidence"), Mapping) else {}
+    product_roles = [
+        str(role).strip()
+        for role in evidence.get("product_roles", [])
+        if str(role).strip()
+    ]
+    return {
+        "schema_version": str(mapping.get("schema_version") or PRODUCT_GATE_SCHEMA_VERSION),
+        "lane": str(mapping.get("lane") or "").strip(),
+        "product_ref": str(mapping.get("product_ref") or "").strip(),
+        "decision": str(mapping.get("decision") or "").strip(),
+        "reason": str(mapping.get("reason") or "").strip(),
+        "evidence": {
+            "promoted_count": max(0, _int(evidence.get("promoted_count"))),
+            "review_count": max(0, _int(evidence.get("review_count"))),
+            "abstained_count": max(0, _int(evidence.get("abstained_count"))),
+            "product_roles": product_roles,
+        },
+    }
+
+
 def build_product_gate(
     *,
     lane: str,
@@ -24,16 +49,9 @@ def build_product_gate(
     # Product gate decisions are promotion postures over compiled products.
     # They are intentionally separate from proposition-resolution states such as
     # "hold" and "abstain" in `proposition_resolution_policy.py`.
-    promoted = normalize_promoted_outcomes(
-        compiler_contract.get("promoted_outcomes")
-        if isinstance(compiler_contract.get("promoted_outcomes"), Mapping)
-        else None
-    )
-    derived_products = (
-        compiler_contract.get("derived_products")
-        if isinstance(compiler_contract.get("derived_products"), list)
-        else []
-    )
+    normalized_contract = normalize_compiler_contract(compiler_contract)
+    promoted = normalized_contract["promoted_outcomes"]
+    derived_products = normalized_contract["derived_products"]
     promoted_count = _int(promoted.get("promoted_count"))
     review_count = _int(promoted.get("review_count"))
     abstained_count = _int(promoted.get("abstained_count"))
@@ -57,7 +75,7 @@ def build_product_gate(
         decision = "promote"
         reason = "promoted_outcomes_without_open_pressure"
 
-    return {
+    return normalize_product_gate({
         "schema_version": PRODUCT_GATE_SCHEMA_VERSION,
         "lane": str(lane),
         "product_ref": str(product_ref),
@@ -69,4 +87,4 @@ def build_product_gate(
             "abstained_count": abstained_count,
             "product_roles": product_roles,
         },
-    }
+    })

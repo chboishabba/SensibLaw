@@ -9,7 +9,207 @@ diagnostics such as the current Wikidata work.
 
 ## Public Interface Boundary
 
-The supported downstream import boundary is `sensiblaw.interfaces`.
+The supported downstream product boundary now includes a generic bounded
+world-model surface under `sensiblaw`:
+
+- `build_world_model(data)`
+- `project_report(world_model)`
+- `project_claim_table(world_model)`
+- `project_timeline(world_model)`
+- `project_review_surface(world_model)`
+- `project_linkage_case(world_model)`
+- `attach_receipt(projection_or_report)`
+
+This is the data-in/world-model-out boundary. Downstream callers should not
+need to know NAT, GWB, AU, Brexit, affidavit, or other historical lane names
+to use it.
+
+`attach_receipt(...)` consumes a linkage-case projection (or a report that
+contains one). Historical lane wrappers may preserve raw-artifact compatibility
+only by first using this same shared world-model and report path; raw bundles do
+not widen the generic receipt contract.
+
+The public boundary must not require lane selectors, scenario selectors, or
+adapter overrides such as `profile=...`, `kind=...`, or `adapter_hint=...`.
+Historical lane wrappers may still carry internal compatibility metadata, but
+that routing is not part of the product API.
+
+The older lane modules remain as demonstrations and compatibility shims. They
+must call the same generic product API rather than owning separate semantics.
+
+### External graph bridge boundary
+
+An external graph is a reviewable input to the generic world model, not an
+authority or a replacement for local candidates. The first current adapter
+consumes bounded Zelph/Wikidata slice views produced by ITIR transport, but the
+carrier is provider-neutral. It preserves graph-view coverage, external
+identity/event proposals and decisions, and structural-pressure diagnostics.
+
+The required posture is:
+
+```text
+local source candidate -> external bridge proposal -> review decision
+```
+
+The current Wikibase adapter accepts a caller-supplied, revision-pinned entity
+export and verifies its entity identifier/revision before emitting bounded
+label, alias, property, and statement observations. It does not resolve the
+local candidate or decide the bridge: those remain generic proposal and review
+records. Direct `P31` presence is usable diagnostic evidence; absence from an
+incomplete entity export remains an abstention, not a global missing-type claim.
+
+When an atomic candidate is confirmed only because a complete sibling/context
+set was inspected, generic review and invariant carriers retain both the
+candidate and a context witness. The contribution stays scoped to the selected
+candidate and is dependency-grouped, so several statements from one source
+family cannot be mistaken for independent cohort observations. This supports
+governed learning and later dry-run migration-rule coverage; it does not
+authorize edits or broad automation.
+
+Nat's current implementation sprint couples transformation-rule calibration
+to progressively wider live dry-run coverage. Candidate A1/A2/A3 contracts are
+evaluated with predicate-level reason codes and dependency-group preservation;
+legacy A-E classifier labels remain review projections rather than rule
+matches. Incomplete or conflicting family context must abstain, and no
+candidate rule produces an edit or execution manifest.
+
+The pinned company-direct climate replay also has a derived-only orthogonal V2
+assessment contract. It separates family geometry, slot integrity, component
+coverage, statement semantics, and candidate-review eligibility while leaving
+the legacy A1-A5/H4 artifacts unchanged. See
+`docs/planning/climate_ghg_orthogonal_assessment_v2_20260717.md`.
+The follow-on evidence/governance reports are materialized offline with
+`scripts/materialize_climate_ghg_evidence_governance.py` under the sibling
+`derived/orthogonal_v2/evidence_governance/` directory. The JSON adjudication
+sidecar is review input only; a pending sample produces no contract or canary.
+The next bounded step is the offline policy-resolution dry run described in
+`docs/planning/climate_ghg_policy_resolution_dry_run_20260717.md`; fiscal
+normalization is explicitly separated from scope-ambiguous cases.
+Suite-wide sequencing across GWB, AU, and Nat/Wikidata is recorded in
+`docs/planning/itir_broader_todo_priority_20260717.md`.
+
+The updated P0 compiler spine now begins before review-target selection:
+
+```text
+canonical spans -> shared annotations -> locally typed world fragment
+-> partial PNF -> coverage/closure demands -> resolution broker
+-> bounded registry evidence -> typed reconciliation
+-> refined PNF alternatives -> claim/target selection -> promotion gate
+```
+
+The complete meaningful-span space remains recoverable, but candidates are
+instantiated lazily. Coverage pressure tries to type every meaningful entity,
+relation, quantity, role, and eventuality; closure pressure prioritizes deeper
+work that reduces PNF residuals. Ordinary nouns and phrases may contribute
+instance, class, property, role, event-type, literal, or document-local
+candidates. Candidate identity, resolved identity, and promoted fact remain
+separate authority states. Parsers stay registry-blind; a generic cache-aware
+scheduler may interleave local work with deduplicated, rate-limited backend
+microbatches. Wikidata and WorldMonitor are optional revisioned evidence
+backends, never canonical identity, event ontology, or mandatory mediation.
+Event occurrences, observations, clusters, forecasts, reports, alerts, and
+rolling states remain distinct and reconcile through typed meets rather than a
+single confidence score. GWB proves narrative/coreference ambiguity, AU proves
+typed legal constraints, and Nat/WorldMonitor supply registry evidence. See
+`docs/planning/pnf_driven_entity_resolution_spine_20260717.md`.
+
+The first P0a parser consolidation slice is implemented: canonical parsing,
+rule extraction, and structural-node construction now live in
+`src.ingestion.section_parser`; `src.section_parser` is a compatibility
+projection that retains historical `Provision` trees and simple section JSON.
+This removes the reverse parser dependency while preserving existing legacy
+callers. Span-only internal storage, one-pass annotation views, and cache keys
+remain subsequent P0a work.
+
+The first P0b carrier slice is also implemented in
+`src.policy.entity_resolution`. It validates and deterministically serializes
+span-anchored `MentionSpan`, candidate-only `EntityCandidateSet`, and
+document-local `CoreferenceCluster` records. It has no resolver, registry
+lookup, PNF mutation, promotion, or cross-document identity-join path.
+
+P0b.1 now also implements backend-free lazy mention licensing in that shared
+module. It consumes the public parser/reducer interfaces once, materializes
+non-structural lexical spans, numeric spans, maximal name-shaped phrases, and
+adapter-annotated eventualities, and receipts the complete recoverable token
+span lattice plus structural suppression. A license is not resolution or even
+candidate acceptance: alias/grammar expansion, candidate retrieval, and
+generated-mention coreference remain pending.
+
+P0b.2 adds a separate backend-free document-local recurrence receipt over
+generated mentions. It groups only repeated case-folded, whitespace-normalized
+surfaces within one document; recurrence is neither cross-surface aliasing nor
+coreference, and it cannot create candidates, resolve identity, alter PNF, or
+promote a claim.
+
+P0b.3 adds bounded expansion requests over the recoverable token lattice.
+Alias hints, structural grammar, and future PNF work can request a verified
+canonical token interval without asserting that an alias, interpretation, or
+identity is correct. The resulting mention/license remains candidate-only;
+structural-grammar production, PNF construction, and registry retrieval remain
+separate later stages.
+
+P0b.4 adds a backend-free alias-index input adapter. Caller-supplied,
+provenance-bearing canonical token sequences produce exact `alias_hint`
+expansion requests only: they carry no QID, selected candidate, registry
+lookup, identity assertion, PNF mutation, or promotion effect. Thus `9 / 11`
+can remain a reviewable surface span without being silently treated as `911`
+or as any particular event.
+
+P0b.5 adds a parser-interface-only structural-grammar adapter. It emits
+maximal annotated nominal phrases as bounded `grammar_phrase` requests, with
+their profile and context, but makes no entity/role/PNF decision and no
+registry call. Missing annotation produces no invented phrase boundary.
+
+P0b.6 adds offline bounded candidate retrieval. It compares anchored mention
+surfaces with a caller-supplied, provenance-bearing catalog in the canonical
+token space and preserves explicit zero/one/many candidate alternatives. It
+does not rank or resolve an identity, call a registry, change PNF, or promote a
+claim; in particular, `9 / 11` remains distinct from `911`.
+
+P0b.7 adds a generic form-relation layer before semantic typing and registry
+retrieval. It preserves surface, token, numeric, date-shaped, abbreviation,
+and profile-derived alternatives as `FormCandidate` records linked by declared
+`FormRelation` algebra. No form list or deterministic serialization order is a
+semantic preference: PNF/context must later establish any entity, event, or
+metonymic relation.
+
+P0b.8 turns those alternatives into a candidate-only local type fragment and
+an independent coverage receipt. Generic structural reductions identify numeric
+quantities, abbreviations, calendar expressions, and parser-annotated
+linguistic eventualities; provenance-bearing profiles may add entity, relation,
+role, class, or property alternatives. This still cannot choose an external
+identity, create PNF closure, query a registry, or promote a fact.
+
+P0c.1 now factorizes document-bounded `PartialPNF` slots over compatible local
+type alternatives and independently receipts each closure obligation. It never
+combines alternatives, issues a lookup/demand, selects an identity, or asserts
+a claim; the next stage turns only explicit closure states into budgeted
+registry-neutral demands.
+
+P0c.2 now projects only unresolved closure states into source-anchored,
+facet-specific, budget-labelled `ResolutionDemand` records. A demand is a
+backend-free evidence plan, not a request execution, candidate selection, PNF
+mutation, or promotion decision.
+
+P0c.3/P0c.4 now add typed resolution subjects before scheduling. Entity, event
+type, event occurrence, event artifact, document-local cluster, and property/
+relation targets remain distinct; event artifacts preserve observation,
+cluster, forecast, report, alert, and rolling-state roles. Demand-equivalence
+receipts use those roles, local types, PNF role, typed constraints, requested
+facets, and document scope—not surface text. They only identify potentially
+coalescible work; the next boundary is the append-only cache/scheduler.
+
+An incomplete graph view is candidate-only and cannot support an exhaustive
+claim. A completeness-certified view must name its coverage policy, revision,
+selected graph coverage, and receipt. External identity neither replaces a
+local entity/event nor grants legal, evidentiary, or promotion authority.
+
+See `docs/external_graph_bridge.md` for the carrier contract and
+`../docs/planning/itir_wd_zelph_sensiblaw_flatness_optimisation_roadmap_20260702.md`
+for the implementation sequence.
+
+The supported downstream import boundary for the older evidence/extraction
+surface remains `sensiblaw.interfaces`.
 
 Implemented public surface now:
 - canonical text adaptation through `build_canonical_conversation_text(...)`
@@ -46,6 +246,9 @@ SensibLaw currently provides:
 - deterministic review/report surfaces instead of free-form narrative output
 - provenance-backed JSON artifacts and handoff bundles
 - bounded Wikidata diagnostics over pinned slices
+- typed claim reconciliation for affidavit-style proposition/response rows,
+  object-type assertions, and Wikidata statement rows, with relation labels
+  separated from proof promotion
 - a first deterministic semantic-memory helper that turns supplied atoms,
   grounding rows, and ontology closure paths into private retrieval records
   with explanation paths
@@ -54,13 +257,53 @@ SensibLaw currently provides:
 - export/handoff paths into downstream reasoning and review layers such as
   Zelph
 
+## Typed Claim Reconciliation Boundary
+
+The current typed reconciliation slice is documented in
+`docs/planning/affidavit_wikidata_typed_reconciliation_contract_20260606.md`
+and implemented in `src/fact_intake/typed_claim_reconciliation.py`.
+
+It exists to keep the affidavit/Wikidata lane aligned with the DASHI formal
+objects without importing theorem or truth authority. Its finite relation
+labels are the affidavit-style labels:
+
+- `exact_support`
+- `equivalent_support`
+- `explicit_dispute`
+- `implicit_dispute`
+- `partial_overlap`
+- `adjacent_event`
+- `substitution`
+- `procedural_nonanswer`
+- `unrelated`
+
+The practical examples are intentionally small:
+
+- `Alex walked the dog` versus `Alex did not walk the dog` reduces to
+  `explicit_dispute`, root `invalidates`, bucket `disputed`, with no proof
+  promotion and no truth decision.
+- `6 is a 1-morphism` is an object-type assertion, not a relation proof. It
+  remains `typing_context_missing` / `witness_pending` unless a named category
+  or bicategory context and typing rule are supplied.
+- Wikidata rows are QID/PID/value evidence carriers. Rank and deprecation are
+  operational metadata only; rows explicitly carry `truth_claimed = false`,
+  `live_edit_authority = false`, and non-promoting `promotion_state`.
+
+Caller-supplied relation hints are permitted as evidence metadata, but they are
+machine-marked with `relation_derivation = caller_hint` so they cannot be
+mistaken for derived reconciliation.
+
 ## Observation Substrate Doctrine
 
-OpenRecall and WorldMonitor should be treated as two observation sources in
-the same ingestion substrate, not as separate semantic planes.
+OpenRecall and WorldMonitor can both contribute observations through the same
+ingestion substrate, not as separate semantic planes. That existing import
+role is only one WorldMonitor projection: the P0 entity/event-resolution plan
+also treats a pinned WorldMonitor world-model record as a resolvable external
+identity/event snapshot.
 
 - WorldMonitor:
-  external observation source
+  external observations plus an optional resolvable world-model snapshot
+  backend
 - OpenRecall:
   internal observation source
 - SensibLaw:
@@ -73,6 +316,13 @@ The current bounded rule is:
 - normalize WM and OpenRecall into the same observation-style substrate
 - feed that substrate into the existing relation/equivalence path
 - keep the result derived-only and operator-facing first
+
+The existing bridge below implements the observation projection only. It does
+not yet implement the planned registry-neutral snapshot adapter,
+cross-registry event meet, or identity resolution path. Future resolution must
+preserve whether a WorldMonitor record is an occurrence, observation, cluster,
+forecast, report, alert, or rolling state rather than flattening every record
+into an observation or occurrence.
 
 For WorldMonitor specifically, the supported bridge is:
 
@@ -377,6 +627,7 @@ interpretation.
 The practical doctrine is:
 
 - normalize shared primitives now
+- establish the shared mention/entity/PNF-resolution spine before targeting
 - normalize the targeting kernel before emitted alignment semantics
 - keep emitted structural targeting results weak and descriptive
 - hold composite alignment surfaces until semantics converge
@@ -390,6 +641,8 @@ The renewed targeting/alignment formalism is:
   - `review_candidate`
 - current bounded carrier:
   - `selection_basis`
+- prerequisite shared method layer:
+  - PNF-driven entity-resolution controller
 - next shared method layer:
   - `TargetingKernel`
 - next shared structural layer:

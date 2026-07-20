@@ -77,6 +77,12 @@ This lets lanes ask narrower questions:
 - did a role value or polarity contradict the comparison target?
 - what provenance supports the comparison?
 
+PNF also matters for flatness. The relevant doctrine is not "does the graph
+look dense?" but "did the system preserve inspectable typed linkage depth
+between a local anchor and the higher-order review/authority surface?" See:
+
+- `../../docs/planning/itir_flatness_doctrine_20260703.md`
+
 ## Residual Lattice
 
 The residual lattice is the comparison surface for explicit PNF carriers. It is
@@ -222,6 +228,43 @@ For example, `I walked the dog` may project to:
   "wrapper": {"status": "structural_projection", "evidence_only": true}
 }
 ```
+
+Important accuracy boundary:
+
+- the implementation should be understood as generic typed role/filler
+  structure, not a named lexical frame object like `WalkFrame`
+- labels such as "walk event" are explanatory shorthand only
+- the canonical object is still a generic `PredicatePNF` with roles,
+  qualifiers, provenance, and optional soft ontology candidates
+
+That matters for flatness because the failure is often role erasure, not merely
+low node count.
+
+Bad/flat:
+
+```text
+dog -> sentence
+dog -> WD
+```
+
+Better:
+
+```text
+dog-word / dog-mention
+-> token
+-> lexical WD candidate (soft)
+-> span within sentence/document
+-> sentence:PNF
+-> role/filler in generic PNF carrier
+-> document:PNF
+-> entity/topic candidate
+-> WD semantic/authority candidate
+-> review packet / tranche
+```
+
+So a lexical WD link may appear early, but only as a weak stitch. It cannot
+promote until the PNF/document/review path preserves what role the mention
+actually plays.
 
 `I did not walk the dog` projects to the same support coordinates with
 `polarity: negative` and negation provenance. Those carriers have the same

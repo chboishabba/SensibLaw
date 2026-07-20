@@ -2,11 +2,21 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
 
-from src.models.action_policy import ACTION_POLICY_SCHEMA_VERSION, build_action_policy_record
-from src.models.convergence import CONVERGENCE_SCHEMA_VERSION, build_convergence_record
-from src.models.conflict import CONFLICT_SCHEMA_VERSION, build_conflict_set
-from src.models.nat_claim import NAT_CLAIM_SCHEMA_VERSION, build_nat_claim_dict
-from src.models.temporal import TEMPORAL_SCHEMA_VERSION, build_temporal_envelope
+from src.policy.compiler_contract import normalize_compiler_contract
+from src.policy.operator_workflow_surface import build_operator_workflow_surface
+from src.policy.product_gate import normalize_product_gate
+from src.policy.world_model import build_world_model as _build_world_model
+from src.policy.world_model_adapters import (
+    ACTION_POLICY_SCHEMA_VERSION,
+    CONFLICT_SCHEMA_VERSION,
+    CONVERGENCE_SCHEMA_VERSION,
+    NAT_CLAIM_SCHEMA_VERSION,
+    TEMPORAL_SCHEMA_VERSION,
+    ReviewClaimRecordMapping,
+    build_review_claim_records,
+    build_review_inputs,
+)
+from src.policy.world_model_projections import project_report as _project_report
 
 
 BREXIT_REVIEW_WORLD_MODEL_SCHEMA_VERSION = "sl.brexit_review_world_model.v0_1"
@@ -93,102 +103,20 @@ def _qualifiers_for_archive_row(row: Mapping[str, Any]) -> dict[str, Any]:
 
 def _provenance_chain(
     artifact_id: str,
-    promotion_gate: Mapping[str, Any],
-    workflow_summary: Mapping[str, Any],
+    operator_workflow_surface: Mapping[str, Any],
     source_ref: str,
 ) -> dict[str, Any]:
     return {
         "artifact_id": artifact_id,
-        "lane": _as_text(promotion_gate.get("lane")),
-        "promotion_decision": _as_text(promotion_gate.get("decision")),
-        "workflow_stage": _as_text(workflow_summary.get("stage")),
-        "recommended_view": _as_text(workflow_summary.get("recommended_view")),
+        "lane": _as_text(operator_workflow_surface.get("lane")),
+        "promotion_decision": _as_text(operator_workflow_surface.get("summary", {}).get("gate_decision")),
+        "workflow_stage": _as_text(operator_workflow_surface.get("stage")),
+        "recommended_view": _as_text(operator_workflow_surface.get("recommended_view")),
         "source_ref": source_ref,
     }
 
 
-def _build_claim(
-    *,
-    claim_id: str,
-    artifact_id: str,
-    source_family: str,
-    authority_level: str,
-    claim_status: str,
-    canonical_form: Mapping[str, Any],
-    provenance_chain: Mapping[str, Any],
-    evidence_status: str,
-) -> dict[str, Any]:
-    evidence_paths = [
-        {
-            "evidence_path_id": f"{claim_id}:{artifact_id}",
-            "run_id": artifact_id,
-            "root_artifact_id": artifact_id,
-            "source_unit_id": claim_id,
-            "source_family": source_family,
-            "authority_level": authority_level,
-            "verification_status": evidence_status,
-            "provenance_chain": dict(provenance_chain),
-        }
-    ]
-    root_artifact_ids = [artifact_id]
-    claim = {
-        "claim_id": claim_id,
-        "candidate_id": claim_id,
-        "family_id": BREXIT_REVIEW_FAMILY_ID,
-        "cohort_id": artifact_id,
-        "status": claim_status,
-        "canonical_form": dict(canonical_form),
-        "evidence_paths": evidence_paths,
-        "independent_root_artifact_ids": root_artifact_ids,
-        "evidence_count": 1,
-    }
-    claim["nat_claim"] = build_nat_claim_dict(
-        claim_id=claim_id,
-        family_id=BREXIT_REVIEW_FAMILY_ID,
-        cohort_id=artifact_id,
-        candidate_id=claim_id,
-        canonical_form=canonical_form,
-        source_property="brexit_review",
-        target_property=_as_text(canonical_form.get("property")),
-        state="review_claim",
-        state_basis="brexit_artifact",
-        root_artifact_id=artifact_id,
-        provenance={"source_family": source_family, **dict(provenance_chain)},
-        evidence_status=evidence_status,
-    )
-    claim["convergence"] = build_convergence_record(
-        claim_id=claim_id,
-        evidence_paths=evidence_paths,
-        independent_root_artifact_ids=root_artifact_ids,
-        claim_status=claim_status,
-    )
-    claim["temporal"] = build_temporal_envelope(
-        claim_id=claim_id,
-        evidence_paths=evidence_paths,
-        independent_root_artifact_ids=root_artifact_ids,
-    )
-    claim["conflict_set"] = build_conflict_set(
-        claim_id=claim_id,
-        candidate_ids=[claim_id],
-        evidence_rows=[
-            {
-                "run_id": artifact_id,
-                "root_artifact_id": artifact_id,
-                "canonical_form": canonical_form,
-            }
-        ],
-    )
-    claim["action_policy"] = build_action_policy_record(
-        claim_id=claim_id,
-        claim_status=claim_status,
-        convergence=claim["convergence"],
-        temporal=claim["temporal"],
-        conflict_set=claim["conflict_set"],
-    )
-    return claim
-
-
-def build_brexit_review_world_model_report(payload: Mapping[str, Any]) -> dict[str, Any]:
+def build_world_model(payload: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(payload, Mapping):
         raise ValueError("Brexit world-model adapter requires broader review payload")
     if _as_text(payload.get("fixture_kind")) != "gwb_broader_review":
@@ -201,55 +129,85 @@ def build_brexit_review_world_model_report(payload: Mapping[str, Any]) -> dict[s
     if not artifact_id:
         raise ValueError("Brexit world-model adapter requires artifact_id")
 
-    promotion_gate = payload.get("promotion_gate") if isinstance(payload.get("promotion_gate"), Mapping) else {}
+    compiler_contract = normalize_compiler_contract(
+        payload.get("compiler_contract") if isinstance(payload.get("compiler_contract"), Mapping) else None
+    )
+    promotion_gate = normalize_product_gate(
+        payload.get("promotion_gate") if isinstance(payload.get("promotion_gate"), Mapping) else None
+    )
     workflow_summary = payload.get("workflow_summary") if isinstance(payload.get("workflow_summary"), Mapping) else {}
+    operator_workflow_surface = build_operator_workflow_surface(
+        compiler_contract=compiler_contract,
+        promotion_gate=promotion_gate,
+        workflow_summary=workflow_summary,
+    )
 
-    claims: list[dict[str, Any]] = []
-    for row in _review_rows(payload):
-        source_ref = _as_text(row.get("source_row_id"))
-        review_status = _as_text(row.get("review_status"))
-        claim_id = f"brexit-review:{source_ref}"
-        canonical_form = {
-            "subject": source_ref,
-            "property": "review_status",
-            "value": review_status,
-            "qualifiers": _qualifiers_for_review_row(row),
-            "references": [],
-        }
-        claims.append(
-            _build_claim(
-                claim_id=claim_id,
-                artifact_id=artifact_id,
-                source_family=_as_text(row.get("source_family")) or "brexit_review_row",
-                authority_level=_as_text(row.get("source_kind")) or "brexit_review_row",
-                claim_status=_claim_status(review_status),
-                canonical_form=canonical_form,
-                provenance_chain=_provenance_chain(artifact_id, promotion_gate, workflow_summary, source_ref),
-                evidence_status=review_status or "review_required",
-            )
+    context = {
+        "artifact_id": artifact_id,
+        "operator_workflow_surface": dict(operator_workflow_surface),
+    }
+    claims = build_review_claim_records(
+        _review_rows(payload),
+        family_id=BREXIT_REVIEW_FAMILY_ID,
+        context=context,
+        mapping=ReviewClaimRecordMapping(
+            claim_id=lambda row, _context: f"brexit-review:{_as_text(row.get('source_row_id'))}",
+            candidate_id=lambda row, _context: f"brexit-review:{_as_text(row.get('source_row_id'))}",
+            cohort_id=lambda _row, context: context.get("artifact_id"),
+            root_artifact_id=lambda _row, context: context.get("artifact_id"),
+            source_family=lambda row, _context: _as_text(row.get("source_family")) or "brexit_review_row",
+            authority_level=lambda row, _context: _as_text(row.get("source_kind")) or "brexit_review_row",
+            claim_status=lambda row, _context: _claim_status(_as_text(row.get("review_status"))),
+            evidence_status=lambda row, _context: _as_text(row.get("review_status")) or "review_required",
+            source_property=lambda _row, _context: "brexit_review",
+            target_property=lambda _row, _context: "review_status",
+            state_basis=lambda _row, _context: "brexit_artifact",
+            provenance_chain=lambda row, context: _provenance_chain(
+                _as_text(context.get("artifact_id")),
+                context.get("operator_workflow_surface", {}),
+                _as_text(row.get("source_row_id")),
+            ),
+            canonical_form=lambda row, _context: {
+                "subject": _as_text(row.get("source_row_id")),
+                "property": "review_status",
+                "value": _as_text(row.get("review_status")),
+                "qualifiers": _qualifiers_for_review_row(row),
+                "references": [],
+            },
+        ),
+    )
+    claims.extend(
+        build_review_claim_records(
+            _archive_rows(payload),
+            family_id=BREXIT_REVIEW_FAMILY_ID,
+            context=context,
+            mapping=ReviewClaimRecordMapping(
+                claim_id=lambda row, _context: f"brexit-archive:{_as_text(row.get('doc_id'))}",
+                candidate_id=lambda row, _context: f"brexit-archive:{_as_text(row.get('doc_id'))}",
+                cohort_id=lambda _row, context: context.get("artifact_id"),
+                root_artifact_id=lambda _row, context: context.get("artifact_id"),
+                source_family=lambda _row, _context: "brexit_national_archives",
+                authority_level=lambda _row, _context: "national_archive_record",
+                claim_status=lambda _row, _context: "REVIEW",
+                evidence_status=lambda row, _context: "archive_follow_live" if row.get("live_fetch") else "archive_follow_fixture",
+                source_property=lambda _row, _context: "brexit_review",
+                target_property=lambda _row, _context: "archive_follow_title",
+                state_basis=lambda _row, _context: "brexit_artifact",
+                provenance_chain=lambda row, context: _provenance_chain(
+                    _as_text(context.get("artifact_id")),
+                    context.get("operator_workflow_surface", {}),
+                    _as_text(row.get("doc_id")),
+                ),
+                canonical_form=lambda row, _context: {
+                    "subject": _as_text(row.get("doc_id")),
+                    "property": "archive_follow_title",
+                    "value": _as_text(row.get("title")),
+                    "qualifiers": _qualifiers_for_archive_row(row),
+                    "references": [],
+                },
+            ),
         )
-
-    for row in _archive_rows(payload):
-        doc_id = _as_text(row.get("doc_id"))
-        canonical_form = {
-            "subject": doc_id,
-            "property": "archive_follow_title",
-            "value": _as_text(row.get("title")),
-            "qualifiers": _qualifiers_for_archive_row(row),
-            "references": [],
-        }
-        claims.append(
-            _build_claim(
-                claim_id=f"brexit-archive:{doc_id}",
-                artifact_id=artifact_id,
-                source_family="brexit_national_archives",
-                authority_level="national_archive_record",
-                claim_status="REVIEW",
-                canonical_form=canonical_form,
-                provenance_chain=_provenance_chain(artifact_id, promotion_gate, workflow_summary, doc_id),
-                evidence_status="archive_follow_live" if row.get("live_fetch") else "archive_follow_fixture",
-            )
-        )
+    )
 
     summary = {
         "claim_count": len(claims),
@@ -263,23 +221,95 @@ def build_brexit_review_world_model_report(payload: Mapping[str, Any]) -> dict[s
         ),
     }
 
-    return {
-        "schema_version": BREXIT_REVIEW_WORLD_MODEL_SCHEMA_VERSION,
-        "claim_schema_version": NAT_CLAIM_SCHEMA_VERSION,
-        "convergence_schema_version": CONVERGENCE_SCHEMA_VERSION,
-        "temporal_schema_version": TEMPORAL_SCHEMA_VERSION,
-        "conflict_schema_version": CONFLICT_SCHEMA_VERSION,
-        "action_policy_schema_version": ACTION_POLICY_SCHEMA_VERSION,
-        "artifact_id": artifact_id,
-        "lane_id": _as_text(promotion_gate.get("lane") or "gwb"),
-        "family_id": BREXIT_REVIEW_FAMILY_ID,
-        "decision": _as_text(promotion_gate.get("decision")),
-        "claims": claims,
-        "summary": summary,
-    }
+    return _build_world_model(
+        model_id=artifact_id,
+        lane_family=BREXIT_REVIEW_FAMILY_ID,
+        model_status="candidate",
+        source_mode="gwb_broader_review_payload",
+        claims=claims,
+        authority_surfaces=[
+            {
+                "authority_surface_id": f"operator_workflow_surface:{artifact_id}",
+                "authority_kind": "operator_workflow_surface",
+                "status": "reviewed",
+                "lane_id": _as_text(operator_workflow_surface.get("lane") or "gwb"),
+                "decision": _as_text(operator_workflow_surface.get("summary", {}).get("gate_decision")),
+                "workflow_stage": _as_text(operator_workflow_surface.get("stage")),
+            }
+        ],
+        provenance_graph=[
+            {
+                "source_payload_kind": _as_text(payload.get("fixture_kind")),
+                "artifact_id": artifact_id,
+                "archive_row_count": len(_archive_rows(payload)),
+            }
+        ],
+        summary=summary,
+        metadata={
+            "artifact_id": artifact_id,
+            "lane_id": _as_text(operator_workflow_surface.get("lane") or "gwb"),
+            "decision": _as_text(operator_workflow_surface.get("summary", {}).get("gate_decision")),
+            "compiler_contract": compiler_contract,
+            "promotion_gate": promotion_gate,
+            "workflow_summary": dict(workflow_summary),
+            "operator_workflow_surface": operator_workflow_surface,
+            "claim_schema_version": NAT_CLAIM_SCHEMA_VERSION,
+            "convergence_schema_version": CONVERGENCE_SCHEMA_VERSION,
+            "temporal_schema_version": TEMPORAL_SCHEMA_VERSION,
+            "conflict_schema_version": CONFLICT_SCHEMA_VERSION,
+            "action_policy_schema_version": ACTION_POLICY_SCHEMA_VERSION,
+            "adapter_stack": ["review_claim_records", "review_inputs"],
+            "linkage_inputs": build_review_inputs(
+                payload,
+                field_names=("source_review_rows", "archive_follow_rows", "review_claim_records", "operator_views"),
+                extra_fields={
+                    "fixture_kind": _as_text(payload.get("fixture_kind")),
+                    "normalized_metrics_v1": dict(normalized_metrics),
+                    "workflow_summary": dict(workflow_summary),
+                    "promotion_gate": dict(promotion_gate),
+                    "compiler_contract": dict(compiler_contract),
+                    "operator_workflow_surface": dict(operator_workflow_surface),
+                },
+            ),
+        },
+    )
+
+
+def project_report(world_model: Mapping[str, Any]) -> dict[str, Any]:
+    model = dict(world_model)
+    metadata = model.get("metadata") if isinstance(model.get("metadata"), Mapping) else {}
+    return _project_report(
+        world_model=model,
+        schema_version=BREXIT_REVIEW_WORLD_MODEL_SCHEMA_VERSION,
+        artifact_id=_as_text(metadata.get("artifact_id")) or _as_text(model.get("model_id")),
+        lane_id=_as_text(metadata.get("lane_id")) or "gwb",
+        family_id=_as_text(model.get("lane_family")) or BREXIT_REVIEW_FAMILY_ID,
+        compiler_contract=metadata.get("compiler_contract") if isinstance(metadata.get("compiler_contract"), Mapping) else None,
+        promotion_gate=metadata.get("promotion_gate") if isinstance(metadata.get("promotion_gate"), Mapping) else None,
+        workflow_summary=metadata.get("workflow_summary") if isinstance(metadata.get("workflow_summary"), Mapping) else None,
+        operator_workflow_surface=metadata.get("operator_workflow_surface")
+        if isinstance(metadata.get("operator_workflow_surface"), Mapping)
+        else None,
+        claims=model.get("claims") if isinstance(model.get("claims"), Sequence) else None,
+        summary=model.get("summary") if isinstance(model.get("summary"), Mapping) else None,
+        extra_fields={
+            "claim_schema_version": _as_text(metadata.get("claim_schema_version")),
+            "convergence_schema_version": _as_text(metadata.get("convergence_schema_version")),
+            "temporal_schema_version": _as_text(metadata.get("temporal_schema_version")),
+            "conflict_schema_version": _as_text(metadata.get("conflict_schema_version")),
+            "action_policy_schema_version": _as_text(metadata.get("action_policy_schema_version")),
+            "decision": _as_text(metadata.get("decision")),
+        },
+    )
+
+
+def build_report(payload: Mapping[str, Any]) -> dict[str, Any]:
+    return project_report(build_world_model(payload))
 
 
 __all__ = [
     "BREXIT_REVIEW_WORLD_MODEL_SCHEMA_VERSION",
-    "build_brexit_review_world_model_report",
+    "build_report",
+    "build_world_model",
+    "project_report",
 ]

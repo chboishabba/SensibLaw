@@ -103,11 +103,11 @@ except ModuleNotFoundError:
     from policy.suite_normalized_artifact import build_gwb_broader_review_normalized_artifact
 try:
     from SensibLaw.src.sources.national_archives.brexit_national_archives_lane import (
-        fetch_brexit_archive_records,
+        fetch_records,
     )
 except ModuleNotFoundError:
     from src.sources.national_archives.brexit_national_archives_lane import (
-        fetch_brexit_archive_records,
+        fetch_records,
     )
 
 ARTIFACT_VERSION = "gwb_broader_review_v1"
@@ -354,6 +354,49 @@ def _family_row(
     }
 
 
+def _relation_lineage_summary(relation: dict[str, Any]) -> tuple[list[str], list[str], list[str], list[str], list[str], list[dict[str, Any]]]:
+    lineage_rows = relation.get("lineage_records") if isinstance(relation.get("lineage_records"), list) else []
+    event_ids: list[str] = []
+    source_ids: list[str] = []
+    source_paths: list[str] = []
+    source_urls: list[str] = []
+    source_spans: list[str] = []
+    citation_refs: list[dict[str, Any]] = []
+    seen_citation_keys: set[tuple[str, str, str]] = set()
+    for row in lineage_rows:
+        if not isinstance(row, dict):
+            continue
+        for value, bucket in (
+            (str(row.get("event_id") or "").strip(), event_ids),
+            (str(row.get("source_id") or "").strip(), source_ids),
+            (str(row.get("source_path") or "").strip(), source_paths),
+            (str(row.get("source_url") or "").strip(), source_urls),
+            (str(row.get("source_span") or "").strip(), source_spans),
+        ):
+            if value and value not in bucket:
+                bucket.append(value)
+        for citation in row.get("citation_refs", []):
+            if not isinstance(citation, dict):
+                continue
+            citation_key = (
+                str(citation.get("kind") or "").strip(),
+                str(citation.get("text") or "").strip(),
+                str(citation.get("source_id") or "").strip(),
+            )
+            if citation_key in seen_citation_keys:
+                continue
+            seen_citation_keys.add(citation_key)
+            citation_refs.append(
+                {
+                    "kind": citation_key[0],
+                    "text": citation_key[1],
+                    "source_id": citation_key[2],
+                    "follow": list(citation.get("follow") or []),
+                }
+            )
+    return event_ids, source_ids, source_paths, source_urls, source_spans, citation_refs
+
+
 def _build_source_review_rows(slice_payload: dict[str, Any]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for lane in slice_payload.get("merged_seed_lanes", []):
@@ -377,6 +420,13 @@ def _build_source_review_rows(slice_payload: dict[str, Any]) -> list[dict[str, A
         obj = relation.get("object", {})
         predicate = relation.get("predicate_key")
         source_families = list(relation.get("source_families", []))
+        event_ids, source_ids, source_paths, source_urls, source_spans, citation_refs = _relation_lineage_summary(relation)
+        relation_id = (
+            f"relation:{subject.get('canonical_key')}:{predicate}:{obj.get('canonical_key')}"
+        )
+        relation_receipts: list[dict[str, Any]] = []
+        for source_url in source_urls:
+            relation_receipts.append({"kind": "source_url", "source_url": source_url, "label": source_url})
         rows.append(
             {
                 "source_row_id": f"relation:{index}",
@@ -389,6 +439,30 @@ def _build_source_review_rows(slice_payload: dict[str, Any]) -> list[dict[str, A
                 "text": (
                     f"{subject.get('canonical_label')} {predicate} {obj.get('canonical_label')}"
                 ),
+                "event_ids": event_ids,
+                "source_ids": source_ids,
+                "source_paths": source_paths,
+                "source_urls": source_urls,
+                "citation_refs": citation_refs,
+                "merged_event_ids": list(relation.get("merged_event_ids", [])),
+                "ordering_edge_ids": list(relation.get("ordering_edge_ids", [])),
+                "braid_support_basis": list(relation.get("braid_support_basis", [])),
+                "braid_candidate_link_ids": list(relation.get("braid_candidate_link_ids", [])),
+                "support_kinds": ["merged_promoted_relation"],
+                "receipts": relation_receipts,
+                "metadata": {
+                    "promoted_relation_id": relation_id,
+                    "relation_id": relation_id,
+                    "lineage_record_count": len(relation.get("lineage_records", [])),
+                    "source_spans": source_spans,
+                    "event_lineage_depth": "complete" if event_ids and (source_paths or source_urls or citation_refs) else "partial",
+                    "merged_event_ids": list(relation.get("merged_event_ids", [])),
+                    "ordering_edge_ids": list(relation.get("ordering_edge_ids", [])),
+                    "braid_support_basis": list(relation.get("braid_support_basis", [])),
+                    "braid_candidate_link_ids": list(relation.get("braid_candidate_link_ids", [])),
+                    "cross_source_braid_depth": str(relation.get("cross_source_braid_depth") or "missing"),
+                    "candidate_vs_promoted_visibility": True,
+                },
                 "candidate_anchors": [
                     {"anchor_kind": "predicate", "anchor_label": str(predicate), "anchor_value": predicate},
                     *[
@@ -584,7 +658,7 @@ def build_gwb_broader_review(
     provisional_review_rows = _build_provisional_rows(source_review_rows)
     provisional_review_bundles = _build_bundles(provisional_review_rows)
 
-    archive_follow_rows = fetch_brexit_archive_records(limit=1)
+    archive_follow_rows = fetch_records(limit=1)
     archive_live_rows = [row for row in archive_follow_rows if row.get("live_fetch")]
     if archive_live_rows:
         source_review_rows.append(
@@ -647,6 +721,7 @@ def build_gwb_broader_review(
         "provisional_review_rows": provisional_review_rows,
         "provisional_review_bundles": provisional_review_bundles,
         "archive_follow_rows": archive_follow_rows,
+        "cross_source_event_braid": slice_payload.get("cross_source_event_braid", {}),
     }
     payload["parliamentary_control"] = compute_parliamentary_weight(
         ["debate", "committee_report"]

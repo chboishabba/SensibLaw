@@ -3,10 +3,9 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from src.ingestion.media_adapter import CanonicalUnit, ParsedEnvelope
-from src.models.review_claim_record import (
-    build_review_candidate_dict,
-    build_review_claim_record_dict,
-)
+from src.models.review_claim_record import build_review_claim_record_dict
+from src.policy.candidate_surface import build_candidate_surface
+from src.policy.text_surface import build_text_surface
 
 
 LEGAL_REVIEW_SCHEMA_VERSION = "sl.legal_review_extract.v0_1"
@@ -23,36 +22,6 @@ def _unit_text_ref(parsed_envelope: ParsedEnvelope, unit: CanonicalUnit) -> dict
         "unit_id": unit.unit_id,
         "envelope_id": parsed_envelope.envelope_id,
     }
-
-
-def _build_review_text(
-    *,
-    text: str,
-    source_kind: str,
-    text_role: str,
-    anchor_refs: Mapping[str, Any],
-    text_ref: Mapping[str, Any],
-) -> dict[str, Any]:
-    payload: dict[str, Any] = {
-        "text": text,
-        "text_role": text_role,
-        "source_kind": source_kind,
-    }
-    clean_anchor_refs = {
-        str(key): value
-        for key, value in anchor_refs.items()
-        if value not in (None, "", [], {})
-    }
-    if clean_anchor_refs:
-        payload["anchor_refs"] = clean_anchor_refs
-    clean_text_ref = {
-        str(key): value
-        for key, value in text_ref.items()
-        if value not in (None, "", [], {})
-    }
-    if clean_text_ref:
-        payload["text_ref"] = clean_text_ref
-    return payload
 
 
 def build_legal_review_extract(
@@ -84,7 +53,7 @@ def build_legal_review_extract(
             "parse_profile": parsed_envelope.parse_profile,
         }
         claim_id = f"{parsed_envelope.canonical_text.text_id}:review_claim:{unit.unit_id}"
-        review_text = _build_review_text(
+        review_text = build_text_surface(
             text=text,
             source_kind=source_kind_value,
             text_role="parsed_unit_text",
@@ -96,7 +65,7 @@ def build_legal_review_extract(
             candidate_id = _clean_text(singleton_target_hint.get("candidate_id"))
             candidate_kind = _clean_text(singleton_target_hint.get("candidate_kind"))
             if candidate_id and candidate_kind:
-                review_candidate = build_review_candidate_dict(
+                review_candidate = build_candidate_surface(
                     candidate_id=candidate_id,
                     candidate_kind=candidate_kind,
                     source_kind=source_kind_value,

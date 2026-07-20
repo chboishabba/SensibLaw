@@ -1,0 +1,3626 @@
+{
+  "authority": "diagnostic_aggregation_only",
+  "execution_effect": "none",
+  "hold_statement_count": 366,
+  "overlapping_reason_counts": {
+    "incompatible_method": 12,
+    "incompatible_unit": 3,
+    "target_semantics_not_established": 316,
+    "unresolved_annual_period": 309,
+    "unresolved_enterprise_subject": 21,
+    "unresolved_reference_adequacy": 4,
+    "unresolved_semantic_slot": 341,
+    "unsupported_statement_shape": 35
+  },
+  "primary_reason_counts": {
+    "unresolved_enterprise_subject": 21,
+    "unresolved_reference_adequacy": 4,
+    "unresolved_semantic_slot": 341
+  },
+  "rows": [
+    {
+      "family_ref": "Q10398203|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10398203$08CEEB83-5421-4C44-9804-25DB40169C39"
+    },
+    {
+      "family_ref": "Q10398203|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10398203$7079ECAB-63BA-4261-9D20-305C737630A8"
+    },
+    {
+      "family_ref": "Q10398203|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10398203$B1B284DB-9E53-4DD1-9735-10030933779F"
+    },
+    {
+      "family_ref": "Q10398203|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10398203$C6464663-67BF-482C-B03D-5475ABAEC34B"
+    },
+    {
+      "family_ref": "Q10398203|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10398203$D03CFA71-A5D5-4E5D-AD4B-722497918284"
+    },
+    {
+      "family_ref": "Q10398203|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10398203$DEAEADE6-3248-4437-AADA-CB7C9771431E"
+    },
+    {
+      "family_ref": "Q10398203|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10398203$E9423E40-22A8-478A-82B2-E3BDBD02BF01"
+    },
+    {
+      "family_ref": "Q10423854|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10423854$19489D89-59E6-449F-98EC-E805239911FB"
+    },
+    {
+      "family_ref": "Q10423854|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10423854$698815AE-4D38-4E49-A175-988D7A931E3C"
+    },
+    {
+      "family_ref": "Q10423854|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10423854$7A4B1487-7A93-4C26-BAB3-341ACA656DFE"
+    },
+    {
+      "family_ref": "Q10423854|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10423854$A5F9FFAA-7456-43AC-9DA9-45F733B2F1D8"
+    },
+    {
+      "family_ref": "Q10423854|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10423854$AEBABF6B-AE36-41D0-854A-F1A212FF7A22"
+    },
+    {
+      "family_ref": "Q10423854|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10423854$DA1E6AFE-0703-4A0E-A5B8-530F94E44A50"
+    },
+    {
+      "family_ref": "Q10521828|P5991",
+      "overlapping_reasons": [
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10521828$76029259-E79A-48EA-BBA2-F68CEC35EFC9"
+    },
+    {
+      "family_ref": "Q10521828|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10521828$B803333E-6019-430D-9654-9DD1332FD113"
+    },
+    {
+      "family_ref": "Q10521828|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10521828$C5AD2F51-6020-4701-8084-3945EE589CDF"
+    },
+    {
+      "family_ref": "Q10658096|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10658096$03B62E07-5AB8-4CA3-8341-F6CC1A85F14A"
+    },
+    {
+      "family_ref": "Q10658096|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10658096$0A68250D-F8B6-4A04-B1DB-94E7274A457A"
+    },
+    {
+      "family_ref": "Q10658096|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10658096$2D81F32B-F0F8-4303-837F-79E65C8957E3"
+    },
+    {
+      "family_ref": "Q10658096|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10658096$49EF7DB2-D561-4120-80C9-49771BADA866"
+    },
+    {
+      "family_ref": "Q10658096|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10658096$6650A37C-5BFC-4B02-99CD-CDEF3C7DDEE6"
+    },
+    {
+      "family_ref": "Q10658096|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10658096$69E2DB72-C03E-4329-8321-58CB9BC12D18"
+    },
+    {
+      "family_ref": "Q10658096|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10658096$719B133C-250C-4191-9332-335ABA59F0AF"
+    },
+    {
+      "family_ref": "Q10658096|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10658096$75444A17-2358-4B6F-87E7-750E976956FA"
+    },
+    {
+      "family_ref": "Q10658096|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10658096$7827D3D5-A82A-4EA9-B0E5-D56E8B3D354F"
+    },
+    {
+      "family_ref": "Q10658096|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10658096$7DC8F988-A7A4-4617-807F-4557FF3FB70E"
+    },
+    {
+      "family_ref": "Q10658096|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10658096$B6EF6AFF-2201-4C18-B021-A1F8C327EA98"
+    },
+    {
+      "family_ref": "Q10658096|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10658096$CB0640B5-9B9F-4B3A-BE99-6B1940D7D18A"
+    },
+    {
+      "family_ref": "Q10658096|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10658096$D938CE8A-15BE-4BFF-9150-FC4167BFBBFC"
+    },
+    {
+      "family_ref": "Q10658096|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10658096$E7F8CDE3-79AE-44B1-8352-E270244C76BB"
+    },
+    {
+      "family_ref": "Q10658096|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10658096$F3732843-A39C-42C8-9CCA-4F929E567735"
+    },
+    {
+      "family_ref": "Q10658096|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10658096$F4E4B199-1CEB-4B9B-AA67-A9EFFFD61241"
+    },
+    {
+      "family_ref": "Q10658096|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q10658096$F81B8AA6-3B72-451B-88E1-704EADF40535"
+    },
+    {
+      "family_ref": "Q1068745|P5991",
+      "overlapping_reasons": [
+        "incompatible_method",
+        "incompatible_unit",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1068745$376955a4-43b4-63c1-4c34-728fdd1085af"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1141671$09DFB7A4-E5C7-4D20-8B5A-BE41E812868D"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1141671$15BD982D-20DE-4F98-A450-7D110C63614E"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1141671$33CCACAD-0D08-4AE2-AE92-574640E6141B"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1141671$3934118C-E79C-4B86-BE3B-D094B961547C"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1141671$45871673-1680-41DE-BA22-B91C916189A7"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1141671$6BD7FA16-AF47-40CD-AFDD-488F4C09FC94"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1141671$6C374766-EE3C-4F03-B144-3B5136F6014F"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1141671$6DFD884E-3A4D-441B-A023-8DB23D3EBEFB"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1141671$75DC197C-8080-4F93-88A6-EE5F7F6BD99B"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1141671$8FCF063C-F129-483F-B6B1-CACA9307D68F"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1141671$A02FB8FA-98F2-4D8B-9B62-85276A36F754"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1141671$A9EDF460-BFB3-47BF-A2E2-9780B7DBCD60"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1141671$B6349FC0-22AC-47D4-97D2-8ED3F5215B36"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1141671$BE2A97E4-9175-4A49-9D1F-A032FA9CCCC3"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1141671$C37F8AB7-DE4A-4215-8C8D-C8FF1339E48B"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1141671$CA35584F-5702-4ED0-AC34-AF3DE89C3BED"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1141671$CF9815FE-AE76-4787-9B64-93E62182ACF7"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1141671$D130913A-856F-4D5D-A8B6-DD54D4842C20"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1141671$E4A70C1D-C540-430F-99D6-2604DECD0C2C"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1141671$EE1A1A26-A8CB-42FD-AE4B-A1648BDEBB0E"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1141671$EE407D63-4A46-42AD-BC2D-4323C5221992"
+    },
+    {
+      "family_ref": "Q1141671|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1141671$F497E551-A797-4099-956B-00319D91F838"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q126366693$051B54DA-4310-4381-AAC7-41C9BC665CA2"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q126366693$09CB913C-1A7A-4738-BCCD-E5E1457C6DDE"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q126366693$0DD37547-A67E-436A-AD87-47F6140187BB"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q126366693$334EF1F7-064D-4ACA-8EB7-DD7BEEEE09F0"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q126366693$3F8C1245-B625-4EFB-A0AC-E8C4052BCC5A"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q126366693$40EB646A-D8A6-44F7-862F-94B8E2BB4ACE"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q126366693$4BBDF7CC-E0C2-447D-A5E3-04B3F70D04E6"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q126366693$594F4F48-43DE-4F04-9E9A-05F60DE0E86A"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q126366693$6A0EA342-A346-46BB-9B3D-148EDEC61612"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q126366693$6A5851BF-AAE6-4817-8185-130C93873EE2"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q126366693$78257415-F7FF-4F62-8DCD-B2589A4A4476"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q126366693$8015F894-F1B1-486D-B778-C61916760B60"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q126366693$84EDE9F8-37E7-4F2A-BD35-3C52952517FA"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q126366693$954A3698-F5AA-47C6-B1C9-9724538B6B9A"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q126366693$A7DAB105-1C79-4D1E-A577-6981BE74A6D5"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q126366693$B2318E4B-9865-4696-B9B5-27BF7BE8E018"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q126366693$B68A6644-1496-4ACD-AE5D-29DECEA175E3"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q126366693$BD2450A9-64AF-42F8-B624-CCB39971A321"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q126366693$C93C3AF8-7F38-40D2-8048-FBCE6231AAA4"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q126366693$DAE85902-0E2E-4D85-ADF4-A0D6A7CF9E45"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q126366693$E977D76B-EF37-4BA0-A017-0F942E27841D"
+    },
+    {
+      "family_ref": "Q126366693|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q126366693$ED50394F-6E8D-47CF-B0F6-EF374F281466"
+    },
+    {
+      "family_ref": "Q130367275|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q130367275$0A6BEBB5-7CE1-4BC3-A506-DB0CFF0645DF"
+    },
+    {
+      "family_ref": "Q130367275|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q130367275$199C1503-875B-462D-9367-8B0024083613"
+    },
+    {
+      "family_ref": "Q130367275|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q130367275$1CF2DEAE-EEF8-4B3D-BF0A-E85442DC4B77"
+    },
+    {
+      "family_ref": "Q130367275|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q130367275$3608FB9C-D140-4D47-B3C5-B57B2687DD50"
+    },
+    {
+      "family_ref": "Q130367275|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q130367275$544DA52A-5BB3-4C98-9459-B9AEB2554D0F"
+    },
+    {
+      "family_ref": "Q130367275|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q130367275$630A6684-157D-4B42-BCE5-7B96A1A46B6A"
+    },
+    {
+      "family_ref": "Q130367275|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q130367275$69ACAB01-4702-495F-BFB7-DCD635654A72"
+    },
+    {
+      "family_ref": "Q130367275|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q130367275$71746C11-BA16-49FB-A302-69F0A19AC79F"
+    },
+    {
+      "family_ref": "Q130367275|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q130367275$A84B2400-6D70-4E90-98E7-2C402CBF4E9D"
+    },
+    {
+      "family_ref": "Q130367275|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q130367275$AC96F89F-5416-4198-8CD2-0ED59A4C25FB"
+    },
+    {
+      "family_ref": "Q130367275|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q130367275$BCEBCF43-A1B3-4F84-8A7D-E63B86C77AD0"
+    },
+    {
+      "family_ref": "Q130367275|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q130367275$C47C4724-97E4-4781-B819-400984093400"
+    },
+    {
+      "family_ref": "Q130367275|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q130367275$C84645EB-8A3F-4CF2-BA2E-EE6CBEACE98A"
+    },
+    {
+      "family_ref": "Q130367275|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q130367275$D3EB7B9C-88DF-44A5-B681-7C21DD32D49A"
+    },
+    {
+      "family_ref": "Q130367275|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q130367275$E492B715-5F93-4FB6-A0B3-6344248D6B8D"
+    },
+    {
+      "family_ref": "Q130367275|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q130367275$E4B8D992-7303-4D4E-A5E1-C284D7E7DA51"
+    },
+    {
+      "family_ref": "Q130367275|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q130367275$E6B59C29-F7BE-4A8A-BCAA-F3C6EE604E9C"
+    },
+    {
+      "family_ref": "Q130367275|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q130367275$E6FEAC1D-C680-458A-B3BC-0FA0FD22E85C"
+    },
+    {
+      "family_ref": "Q140366264|P5991",
+      "overlapping_reasons": [
+        "incompatible_method",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q140366264$0c8fba99-4fa8-9bf8-1646-89240a0b4668"
+    },
+    {
+      "family_ref": "Q1467848|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1467848$7A153358-B366-4512-A5BB-5C08832D32CB"
+    },
+    {
+      "family_ref": "Q1476113|P5991",
+      "overlapping_reasons": [
+        "unresolved_reference_adequacy"
+      ],
+      "primary_reason": "unresolved_reference_adequacy",
+      "statement_ref": "Q1476113$2F1AA61E-A854-4985-B9AA-6D25C0EA0141"
+    },
+    {
+      "family_ref": "Q1476113|P5991",
+      "overlapping_reasons": [
+        "unresolved_reference_adequacy"
+      ],
+      "primary_reason": "unresolved_reference_adequacy",
+      "statement_ref": "Q1476113$7F2FF665-F0E2-47F5-B82F-C8ED72E6D35D"
+    },
+    {
+      "family_ref": "Q1476113|P5991",
+      "overlapping_reasons": [
+        "unresolved_reference_adequacy"
+      ],
+      "primary_reason": "unresolved_reference_adequacy",
+      "statement_ref": "Q1476113$CD0ED2B2-4EF6-48CB-B911-4AF153601E39"
+    },
+    {
+      "family_ref": "Q1476113|P5991",
+      "overlapping_reasons": [
+        "unresolved_reference_adequacy"
+      ],
+      "primary_reason": "unresolved_reference_adequacy",
+      "statement_ref": "Q1476113$FB576A8C-1779-424F-B319-55DB1A214832"
+    },
+    {
+      "family_ref": "Q1489170|P5991",
+      "overlapping_reasons": [
+        "incompatible_method",
+        "incompatible_unit",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q1489170$c3d7ffb4-4875-387b-0e68-829e1caed658"
+    },
+    {
+      "family_ref": "Q188326|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q188326$04B367C7-6756-4D6A-93EE-DFB57455B435"
+    },
+    {
+      "family_ref": "Q188326|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q188326$05EEDBBC-812A-463B-AFA8-1E22BC17A324"
+    },
+    {
+      "family_ref": "Q188326|P5991",
+      "overlapping_reasons": [
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q188326$09AD6DAF-E173-4CE1-90E7-86CE2919559F"
+    },
+    {
+      "family_ref": "Q188326|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q188326$1F549146-3CC1-43C8-BC4C-FE5555DCDF4A"
+    },
+    {
+      "family_ref": "Q188326|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q188326$2B1AC3B9-F275-4394-9B50-9552E0B0B53D"
+    },
+    {
+      "family_ref": "Q188326|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q188326$35ECAAE8-8232-4B68-AAF1-140D519A18C3"
+    },
+    {
+      "family_ref": "Q188326|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q188326$4153CFD3-F3A0-4162-974A-F9504E860207"
+    },
+    {
+      "family_ref": "Q188326|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q188326$463E1B76-4D72-4C2F-BFD9-4D48F38BF94E"
+    },
+    {
+      "family_ref": "Q188326|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q188326$514DD75C-59D7-4891-85BF-390A21992BA5"
+    },
+    {
+      "family_ref": "Q188326|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q188326$54572D83-C641-4D06-B277-0A819558B79B"
+    },
+    {
+      "family_ref": "Q188326|P5991",
+      "overlapping_reasons": [
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q188326$55F6B2DF-4571-477F-9DE1-E24432D72F5C"
+    },
+    {
+      "family_ref": "Q188326|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q188326$57E5BF5A-59EE-48B6-95CE-62F73106C95C"
+    },
+    {
+      "family_ref": "Q188326|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q188326$6021ED2C-8404-44CA-9A81-3BB862920D98"
+    },
+    {
+      "family_ref": "Q188326|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q188326$608A8A14-F10D-4C52-9A53-D73213FD89B2"
+    },
+    {
+      "family_ref": "Q188326|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q188326$6DF80840-9DE7-4620-98BC-FDE522249F46"
+    },
+    {
+      "family_ref": "Q188326|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q188326$7BF31592-C9EA-42E9-935E-DB52FADF6319"
+    },
+    {
+      "family_ref": "Q188326|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q188326$893B973E-6802-40C1-8730-1742F8258546"
+    },
+    {
+      "family_ref": "Q188326|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q188326$90F0C253-3571-4D80-8994-A3092C9E371A"
+    },
+    {
+      "family_ref": "Q188326|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q188326$95B3824B-EA31-4F2A-BFEE-9F42DA9D41DE"
+    },
+    {
+      "family_ref": "Q188326|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q188326$9BB62C9B-EE2B-40B0-AD21-B6305C5926E5"
+    },
+    {
+      "family_ref": "Q188326|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q188326$F9293119-BF9D-4614-AB76-A921D4B55F38"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$06FBC36D-3E5A-4D30-B7F0-FA4C59F3DBD2"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$0B7FB2F5-CA15-4FDE-9E38-9968D60AE1FE"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$0F84CB08-B1B4-4D79-9DCE-84D3ED15B7E2"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$23DE7F27-8FA3-4BB8-AA6A-6D52F6B5D9F7"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$2ED767CF-31AC-4FC9-A36A-E583DE1455D3"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$38FFB691-DD59-43A0-A8CA-0C570A40224D"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$3AA4DBB4-56AC-4496-B86B-3D0502FE639F"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$3C179D21-6E65-4E85-A0A4-8B65C5BB9A50"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$42F057B0-9344-4EB7-BCC9-B72CF2DCE2FD"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$47B5F27B-1EC1-4839-A3B3-948FDB372078"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$4AE05CDA-F2D3-45F3-ADF3-602E47072D29"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$4EB4FD83-A626-4578-B472-FCD3F9A3BF3B"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$54F13DEC-1B69-43B9-8047-56A58CC227E1"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$57F238C0-ECFC-41BD-A6B8-F870175640FA"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$5ADCECBA-B81C-4B44-AC86-30BB25778A3B"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$625EEFD1-F68B-43C3-AB83-F3C62D8CFE47"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$6278F07C-E9B0-40DC-AC40-2D0F04DFD175"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$636C7023-0FC6-40B1-B2DA-BCDC2AAB60B2"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$6DDACDCA-9A79-49FB-8AD1-5806D4CD121D"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$770FE95C-8F86-405D-AB02-666C55B7CAB4"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$7BD7EF12-50C2-4E0D-833C-8CB2EBD83482"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$7E1FDAF1-AA54-4243-AA81-B77E5197EFC3"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$7EFD8BA2-A705-4CA1-AE36-4509EC525695"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$903C0E8A-7900-4823-AEF0-1C3D513F370A"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$917FAA6E-DD82-4151-B420-BDD629A1D45F"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$9450828C-9BD7-4BCC-9F55-9778E9321EA3"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$9DBFF626-F0A7-4CCA-A182-6BC49E64758B"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$A402BF4C-AC21-400F-AE2A-AA294C52BAD5"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$A4C1FF4D-CFF4-4220-BBCF-5621DA18C7BF"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$AC0ADC02-D37C-463C-BD05-22B78C602318"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$B6B322C3-EAC2-4A88-86BA-C6CB1D8428AD"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$B951ADEC-A400-4F68-B2E2-694077CB4FB0"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$BE284E01-87C6-4E2E-AEFE-C95E2BFCC46A"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$C2B4E6F7-6CBE-4644-9900-78485CC49CEE"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$C7699645-73D8-4CE4-9B7D-7C3E6EEC250B"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$F060609E-7D11-4CEF-AD07-A3249528ABD9"
+    },
+    {
+      "family_ref": "Q2084093|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2084093$FC5BB9B7-ED8E-466B-A292-4BA8A09A7ACD"
+    },
+    {
+      "family_ref": "Q234021|P5991",
+      "overlapping_reasons": [
+        "incompatible_method",
+        "incompatible_unit",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q234021$3eb1c0fd-40bb-3758-1f2d-b889e69380f8"
+    },
+    {
+      "family_ref": "Q234021|P5991",
+      "overlapping_reasons": [
+        "incompatible_method",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q234021$4cd50481-4dda-5bc4-0a74-92a5f4b30445"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$012C04AD-8F2F-4C3E-87C4-73F5913D10C1"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$0499BD5E-A230-4A64-880E-F8A67B5D458D"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$12C23EC7-D848-4939-9695-AF4231D0C7ED"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$1E792137-4D01-41B4-9570-A2B24897830E"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$2A957549-3FC2-4718-A959-5C976A058449"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$31F7A4DA-8BE8-4974-B97C-CC1211B1791C"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$32940CA1-6D2F-4CF2-9D46-A04ECC01C44A"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$341662D5-1CB9-41DF-A117-FFD8328F6933"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$43C3C90D-8188-482A-B9E2-813E048F7FEC"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$479D44FC-1219-4DCA-ACE4-BCEC0BDFC67D"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$4DA5D3F8-BD43-4876-AB99-6D4AEF347D21"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$4F366293-BC76-48B0-BECE-6D30F267DCBF"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$596AD43D-77D4-4DAE-8C20-EBA94EB2D0E2"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$5EDECA4D-19E4-4B52-8739-C07AB0F87885"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$826414F0-91A3-49EC-8CA4-0D8CE6881691"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$8B853FE0-85EE-4C8F-877F-A41F8DEFFAEF"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$97E158E3-CED9-409F-8CCC-4ECB91E4888B"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$9ECD9920-0E0E-47E2-AF84-9980B9F93109"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$A9AC6595-3786-4C8C-B789-5DDDECB33BD6"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$BC667B95-5D67-44F6-97E8-153C5B8546CF"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$C1E5F311-5220-4C56-B7CB-B8E281CE8F7A"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$C7513BE3-41F0-4491-8392-44E874B5A6AC"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$F8344E2E-71CC-481F-B799-60046494013D"
+    },
+    {
+      "family_ref": "Q2789310|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q2789310$FAF5A493-F326-4F00-A392-28F64BB7DD2C"
+    },
+    {
+      "family_ref": "Q30938280|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q30938280$B24B69F4-FBFA-4BC4-A1B8-BB6B2ED4B12E"
+    },
+    {
+      "family_ref": "Q310207|P5991",
+      "overlapping_reasons": [
+        "incompatible_method",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q310207$002ff43a-4506-511f-115b-ebf9de35e544"
+    },
+    {
+      "family_ref": "Q310207|P5991",
+      "overlapping_reasons": [
+        "incompatible_method",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q310207$3f53b6b8-47be-8e9c-fda9-465d21802160"
+    },
+    {
+      "family_ref": "Q310207|P5991",
+      "overlapping_reasons": [
+        "incompatible_method",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q310207$3f9e2d63-477e-d7ac-8097-07734f76caba"
+    },
+    {
+      "family_ref": "Q310207|P5991",
+      "overlapping_reasons": [
+        "incompatible_method",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q310207$cdeb25f2-49d8-a6ff-ceb6-871e49a0de9a"
+    },
+    {
+      "family_ref": "Q310207|P5991",
+      "overlapping_reasons": [
+        "incompatible_method",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q310207$d305992e-4822-04f0-68a7-e2098e7ce804"
+    },
+    {
+      "family_ref": "Q310207|P5991",
+      "overlapping_reasons": [
+        "incompatible_method",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q310207$f5e2e60c-4a2d-98a2-8e22-b60c899e3636"
+    },
+    {
+      "family_ref": "Q310207|P5991",
+      "overlapping_reasons": [
+        "incompatible_method",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q310207$fac6137a-48fa-f8c1-b540-20eb4580ad18"
+    },
+    {
+      "family_ref": "Q3270281|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3270281$099DB349-4F46-45C8-B243-3412313161A8"
+    },
+    {
+      "family_ref": "Q3270281|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3270281$0FC38226-CB60-494D-976A-4EC00F805E63"
+    },
+    {
+      "family_ref": "Q3270281|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3270281$1C21CB86-7F8C-4A88-94F6-E3D6CA9DB480"
+    },
+    {
+      "family_ref": "Q3270281|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3270281$20BAB46D-DFDC-4E49-BDAC-2277D66C3822"
+    },
+    {
+      "family_ref": "Q3270281|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3270281$36DB150D-88C7-41C3-A2FB-8B1851514AE4"
+    },
+    {
+      "family_ref": "Q3270281|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3270281$4F7715B5-768A-4F05-A3CB-ABDE8867806D"
+    },
+    {
+      "family_ref": "Q3270281|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3270281$5B98C2BE-D4F2-417A-A490-75B708E29E75"
+    },
+    {
+      "family_ref": "Q3270281|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3270281$5BCCB196-30A7-45FE-9831-8BEAEF64653C"
+    },
+    {
+      "family_ref": "Q3270281|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3270281$67034AF6-E796-488F-AC4B-88C76E1AA851"
+    },
+    {
+      "family_ref": "Q3270281|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3270281$7E43804A-4EA9-4CD1-B171-D2A5FC5C5E85"
+    },
+    {
+      "family_ref": "Q3270281|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3270281$8361B73B-9242-411D-9B2D-DF8127B40FBE"
+    },
+    {
+      "family_ref": "Q3270281|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3270281$9F2FDEC2-E063-4172-93D3-FDE5D70ACD36"
+    },
+    {
+      "family_ref": "Q3270281|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3270281$BCEC5BBE-FA14-4709-AE04-1F4851404B40"
+    },
+    {
+      "family_ref": "Q3270281|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3270281$F3009CEC-EFC7-4014-8320-E27FB94CE105"
+    },
+    {
+      "family_ref": "Q3270281|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3270281$FC95F1FA-3B6D-42B4-BE9D-F91BD43B294F"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$0D73B0A3-94A9-43FE-9445-355C35EF3029"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$2092EEF4-8CE1-4AB9-B083-13DB9562EB1E"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$237CDD94-BDEB-46AC-AF74-8BAB5EC51451"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$2637807C-71F7-4B36-823F-C6F4685E933F"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$2ADE4322-D210-4F8A-80CB-E67572C44645"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$2BB847B1-4622-40A8-AF95-CB673B4A61BC"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$35A3EA02-A80D-4853-B6E8-0F7167754D8E"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$3AC08DC4-87B1-41FA-B13F-5515AF3D97A1"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$4EB811AD-AC3A-4F30-B666-E71FC2473508"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$4FA3ECA6-1114-46EF-B92D-4A7B67CC8810"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$55DCBC20-C338-4D17-977C-2CC05444C980"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$57E268BD-3D67-4F6B-BA93-4C492D81472C"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$58967FFF-C317-45B7-AE6B-DDF90E54B872"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$58B9DA52-A15D-40DA-B959-D56F053245E6"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$8F827B85-28A2-4FB8-B413-6923E4FF3390"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$9A5F1BE8-811D-424C-AD04-9A1135D8CEB5"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$A478816A-7B25-4967-8697-6AAC08F8BD6F"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$ACEA51A4-3477-4928-8DAE-4B5FE59F033D"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$B157FDC9-DCA2-49B2-9513-F3ACAC392D23"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$C4A3A499-C93B-4223-823D-9059F91FA248"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$CE1E6D17-35E0-43DB-8C08-B3D25ECBE335"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$E115EF35-4EDB-46E5-87AC-5D023BAA5081"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$E9DC132B-772B-4C52-8047-F3ABC5440673"
+    },
+    {
+      "family_ref": "Q3356220|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q3356220$FED1E54D-8233-4DE5-AC54-B2049EA7C13D"
+    },
+    {
+      "family_ref": "Q4573584|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q4573584$082BD012-3046-429A-8C20-57351EA937E6"
+    },
+    {
+      "family_ref": "Q4573584|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q4573584$1B706950-8B5B-48C4-B29B-E61FE9CD49B9"
+    },
+    {
+      "family_ref": "Q4573584|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q4573584$1E035CFA-0FA1-44D7-AF2D-CA5E95203C78"
+    },
+    {
+      "family_ref": "Q4573584|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q4573584$27D7ACE9-0974-4740-8A8C-D7B04DE2BFA1"
+    },
+    {
+      "family_ref": "Q4573584|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q4573584$2B1AECD9-7372-42AA-9861-B7E97E336D9F"
+    },
+    {
+      "family_ref": "Q4573584|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q4573584$2DE9D5F2-A9C0-427B-89BB-22F77BFD6664"
+    },
+    {
+      "family_ref": "Q4573584|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q4573584$37DBE506-9A16-46DB-BDC0-A8F4EDBEC337"
+    },
+    {
+      "family_ref": "Q4573584|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q4573584$4A8AB0D8-9FC0-4155-9F04-B6B41E30BAEE"
+    },
+    {
+      "family_ref": "Q4573584|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q4573584$52C63159-9AC9-4E8A-B71E-523525399028"
+    },
+    {
+      "family_ref": "Q4573584|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q4573584$7904E2EA-9355-48FB-8239-CCCB8E095F57"
+    },
+    {
+      "family_ref": "Q4573584|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q4573584$938BD1EB-A31B-4017-8158-71C9089B88EC"
+    },
+    {
+      "family_ref": "Q4573584|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q4573584$A72DDBD4-CD37-4E36-B6DC-F18F4133A3DF"
+    },
+    {
+      "family_ref": "Q4573584|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q4573584$D4055514-5C5E-4FC7-B0C1-F48E6DCCDF31"
+    },
+    {
+      "family_ref": "Q4573584|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q4573584$D976E024-5CFE-4B8C-81AF-0ABD3B47D5F2"
+    },
+    {
+      "family_ref": "Q4573584|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q4573584$E2D05BCE-8C31-44ED-8F53-A082FEAB8DE5"
+    },
+    {
+      "family_ref": "Q4573584|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q4573584$E605F76C-B022-484F-B85B-663AD5A21F1D"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$00AEC8C3-3E25-41A3-9C03-692FCF66EA15"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$01C8929D-0C47-412D-90CF-C544D539C475"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$0FDBADD0-8042-46E0-A771-06EBA7C4DFC7"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$31D428E1-D819-4922-B3D2-6A931C212F39"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$382BA463-9BD0-472A-9F49-D4CA2FF717D2"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$38320144-A502-460C-8E23-C01DC6B0E210"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$383B1BD9-03F9-45DD-AC05-90DDF4EF2E81"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$38DC0B41-FB50-4ED7-8B3D-D0DFCF7180CA"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$3AB7B3CE-5B4F-4132-8876-9F9FC7FB776B"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$3EE27407-3D56-45F7-8816-15C2043D4449"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$476D61B1-AC52-4947-9607-F684C2A557D6"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$4C4DDFDF-BFF3-4F6B-89EA-6B6AF04A7E32"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$4FB4D779-CBE0-4A52-B778-552F224D064B"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$546AABBF-8DD3-47A0-97C3-448AF443D334"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$75920FF5-1723-4EE2-A4C8-94D07720D30E"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$774196AD-0244-4A7A-A450-6C8DE2D88799"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$90677B38-5B0D-4DAE-B343-B39620E68C52"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$986BC2AF-8C15-414A-B48E-C0C3CD41CB9B"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$9E3E61CA-A074-4281-AC21-7ABFE67430D4"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$9E7E6ADD-826D-4F74-B249-51F07C67B383"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$A6EEE588-A00B-477F-990A-8D4BCBE40974"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$AA6F827F-F742-4A49-8908-32B60C47D18E"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$AEA205B1-16AC-4EC4-A258-4D71AA46C125"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$B4476DB4-7D9C-4BBB-8D72-76166183C563"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$C69AE7E5-27B4-43DE-A2C3-FF2ABF68E11A"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$C8CF5940-39F2-4CA8-A107-DDC45266E3B4"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$D0888BCE-A150-40E2-BE90-D5EDA5A241CF"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$D6D8D11F-1A11-402A-88FB-08100EFB089C"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$E0EC2DBB-4018-4BE5-A598-21C26B8AC5EE"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$E4EBB58F-76E0-4E7C-B235-F210859D2A95"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$EFFC3571-26BB-4305-B3A2-7DFED3EE5B16"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$F2EA9EB8-953B-41F4-8367-0AE92C462EFC"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$F4D5AEEE-6E04-47A1-A70B-9EB5098239E0"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$F9BEB3C6-B36B-43C5-A35A-BF1153BF4167"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$FA49FD87-D25E-4951-BA50-764CF888A3F0"
+    },
+    {
+      "family_ref": "Q47508289|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q47508289$FBD36596-4E30-4519-8670-D45168B7D493"
+    },
+    {
+      "family_ref": "Q4827724|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q4827724$4846B457-FE1B-470A-AA76-7B79A2AB9BD5"
+    },
+    {
+      "family_ref": "Q4994121|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q4994121$447C25F6-7A32-4EE9-BC6B-22B03A371856"
+    },
+    {
+      "family_ref": "Q4994121|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q4994121$77080EC8-FED2-4E29-A198-767BBF5FEC1A"
+    },
+    {
+      "family_ref": "Q52579|P5991",
+      "overlapping_reasons": [
+        "unresolved_enterprise_subject"
+      ],
+      "primary_reason": "unresolved_enterprise_subject",
+      "statement_ref": "Q52579$04BA835F-26D1-4D0C-9092-61D770226C4F"
+    },
+    {
+      "family_ref": "Q52579|P5991",
+      "overlapping_reasons": [
+        "unresolved_enterprise_subject"
+      ],
+      "primary_reason": "unresolved_enterprise_subject",
+      "statement_ref": "Q52579$35ACE902-32C7-40A2-9C55-3415056E34F6"
+    },
+    {
+      "family_ref": "Q52579|P5991",
+      "overlapping_reasons": [
+        "unresolved_enterprise_subject"
+      ],
+      "primary_reason": "unresolved_enterprise_subject",
+      "statement_ref": "Q52579$387E0515-46C7-40E6-A85A-9EB156DE3343"
+    },
+    {
+      "family_ref": "Q52579|P5991",
+      "overlapping_reasons": [
+        "unresolved_enterprise_subject"
+      ],
+      "primary_reason": "unresolved_enterprise_subject",
+      "statement_ref": "Q52579$58078542-7678-40CE-9C1C-F77DA44073BD"
+    },
+    {
+      "family_ref": "Q52579|P5991",
+      "overlapping_reasons": [
+        "unresolved_enterprise_subject"
+      ],
+      "primary_reason": "unresolved_enterprise_subject",
+      "statement_ref": "Q52579$661A4818-919C-44A5-8EA8-38DD59C39E3A"
+    },
+    {
+      "family_ref": "Q52579|P5991",
+      "overlapping_reasons": [
+        "unresolved_enterprise_subject"
+      ],
+      "primary_reason": "unresolved_enterprise_subject",
+      "statement_ref": "Q52579$67FE32AF-2EC2-42E1-A78B-7BF431A8FBCE"
+    },
+    {
+      "family_ref": "Q52579|P5991",
+      "overlapping_reasons": [
+        "unresolved_enterprise_subject"
+      ],
+      "primary_reason": "unresolved_enterprise_subject",
+      "statement_ref": "Q52579$752F8BAD-21D0-4351-88DC-A091DAB8C51E"
+    },
+    {
+      "family_ref": "Q52579|P5991",
+      "overlapping_reasons": [
+        "unresolved_enterprise_subject"
+      ],
+      "primary_reason": "unresolved_enterprise_subject",
+      "statement_ref": "Q52579$7570516A-BBD8-452A-B420-FA95A9497AB6"
+    },
+    {
+      "family_ref": "Q52579|P5991",
+      "overlapping_reasons": [
+        "unresolved_enterprise_subject"
+      ],
+      "primary_reason": "unresolved_enterprise_subject",
+      "statement_ref": "Q52579$7A6C0AB3-8D1B-4E19-BDCE-618AB7B0F686"
+    },
+    {
+      "family_ref": "Q52579|P5991",
+      "overlapping_reasons": [
+        "unresolved_enterprise_subject"
+      ],
+      "primary_reason": "unresolved_enterprise_subject",
+      "statement_ref": "Q52579$7D0F41BE-2AA4-42B2-81BF-E807B7702C89"
+    },
+    {
+      "family_ref": "Q52579|P5991",
+      "overlapping_reasons": [
+        "unresolved_enterprise_subject"
+      ],
+      "primary_reason": "unresolved_enterprise_subject",
+      "statement_ref": "Q52579$951D082F-8BC5-4ED2-B7BA-DDA452AE8305"
+    },
+    {
+      "family_ref": "Q52579|P5991",
+      "overlapping_reasons": [
+        "unresolved_enterprise_subject"
+      ],
+      "primary_reason": "unresolved_enterprise_subject",
+      "statement_ref": "Q52579$AB0DC85C-C6A0-440D-A1B7-04B726325765"
+    },
+    {
+      "family_ref": "Q52579|P5991",
+      "overlapping_reasons": [
+        "unresolved_enterprise_subject"
+      ],
+      "primary_reason": "unresolved_enterprise_subject",
+      "statement_ref": "Q52579$AEED283C-0439-4C2F-8C56-277247BD9B8A"
+    },
+    {
+      "family_ref": "Q52579|P5991",
+      "overlapping_reasons": [
+        "unresolved_enterprise_subject"
+      ],
+      "primary_reason": "unresolved_enterprise_subject",
+      "statement_ref": "Q52579$CF37E5EC-230D-42CA-9D91-96BE15DC27B5"
+    },
+    {
+      "family_ref": "Q52579|P5991",
+      "overlapping_reasons": [
+        "unresolved_enterprise_subject"
+      ],
+      "primary_reason": "unresolved_enterprise_subject",
+      "statement_ref": "Q52579$D37B2FB0-98CB-4359-823F-10E33A713794"
+    },
+    {
+      "family_ref": "Q52579|P5991",
+      "overlapping_reasons": [
+        "unresolved_enterprise_subject"
+      ],
+      "primary_reason": "unresolved_enterprise_subject",
+      "statement_ref": "Q52579$D4A48AFA-6B59-483D-8FC9-F7CDFBA77A23"
+    },
+    {
+      "family_ref": "Q52579|P5991",
+      "overlapping_reasons": [
+        "unresolved_enterprise_subject"
+      ],
+      "primary_reason": "unresolved_enterprise_subject",
+      "statement_ref": "Q52579$E0A7689C-61FD-47FB-99E8-4B1BB53E983F"
+    },
+    {
+      "family_ref": "Q52579|P5991",
+      "overlapping_reasons": [
+        "unresolved_enterprise_subject"
+      ],
+      "primary_reason": "unresolved_enterprise_subject",
+      "statement_ref": "Q52579$E2FD2104-8473-47D0-8885-14046C6560DC"
+    },
+    {
+      "family_ref": "Q52579|P5991",
+      "overlapping_reasons": [
+        "unresolved_enterprise_subject"
+      ],
+      "primary_reason": "unresolved_enterprise_subject",
+      "statement_ref": "Q52579$E5D87BCC-4853-41D4-99A9-B1EECB2D465A"
+    },
+    {
+      "family_ref": "Q52579|P5991",
+      "overlapping_reasons": [
+        "unresolved_enterprise_subject"
+      ],
+      "primary_reason": "unresolved_enterprise_subject",
+      "statement_ref": "Q52579$EF42773A-2D57-4C5C-82DE-EC8AD69706C6"
+    },
+    {
+      "family_ref": "Q52579|P5991",
+      "overlapping_reasons": [
+        "unresolved_enterprise_subject"
+      ],
+      "primary_reason": "unresolved_enterprise_subject",
+      "statement_ref": "Q52579$F5B12DF4-ABB5-40C3-A9FE-CE3E269FD1A8"
+    },
+    {
+      "family_ref": "Q558699|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q558699$57829E21-DB3E-465B-B85B-75216681F5E2"
+    },
+    {
+      "family_ref": "Q63993633|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q63993633$20ACE182-CECB-4261-AFB1-E0E39A33BC8A"
+    },
+    {
+      "family_ref": "Q63993633|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q63993633$66A6FB0E-42ED-4F5D-BE77-9DD3EA168EE7"
+    },
+    {
+      "family_ref": "Q63993633|P5991",
+      "overlapping_reasons": [
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q63993633$7A5A717F-D025-47CC-920A-A812647544AC"
+    },
+    {
+      "family_ref": "Q63993633|P5991",
+      "overlapping_reasons": [
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q63993633$988C968E-2CE8-44D0-8C90-B14669EBC73F"
+    },
+    {
+      "family_ref": "Q63993633|P5991",
+      "overlapping_reasons": [
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q63993633$C5BCAC7B-C2D5-42BE-9882-CB3A3FB51739"
+    },
+    {
+      "family_ref": "Q63993633|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q63993633$D13E2396-874D-4EF1-AD1A-ACD5A461F18E"
+    },
+    {
+      "family_ref": "Q63993633|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q63993633$E02BE104-A7A0-4C81-9F5A-90CFE39BF977"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q65083539$093D8DA1-A40A-49B6-85D3-FF23A48F12AE"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q65083539$0C4B6CE6-D946-4B47-88E4-4FB9808E8075"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q65083539$1A2107A5-C67A-49D8-A0E8-61FCED7B73BA"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q65083539$1BC83193-E9A5-4CFD-98ED-0D60B4FC44E1"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "overlapping_reasons": [
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q65083539$262CAE04-AAB3-4068-95D6-B17F1539FE3C"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "overlapping_reasons": [
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q65083539$2A6C8723-6236-4331-AD43-DF73401BCF99"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q65083539$2DB765D2-69F5-4BB6-8F81-E854EF14AF63"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q65083539$3312995A-9C3B-458E-92F4-48576E627CD0"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q65083539$3318F768-9664-4255-AAF9-E76050505F75"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q65083539$3555A610-1126-41E4-BEA3-248A279C1BDC"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q65083539$439CF15A-0B2E-4C61-A8E6-C499E0A76BA2"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "overlapping_reasons": [
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q65083539$48824773-C4E5-42B6-BB0D-0E53AF6DE837"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q65083539$51B4DD2F-4E1B-4097-B51C-0394BCDF5761"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q65083539$6C982207-738A-4933-B09A-0C7259B5FDBC"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q65083539$85E3A670-73CD-499E-9993-4D542F3B15BB"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q65083539$95A2E65C-E915-4C85-B11B-7B140D726B03"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "overlapping_reasons": [
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q65083539$AA1312C6-B090-4EC1-AD65-862E778ABF3A"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q65083539$C05E674D-EC65-491A-80FF-21C8586D5149"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q65083539$C09C6ABE-E4A8-48E8-B8AC-485B7F62B789"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q65083539$D05C81C0-3DAE-4FED-A45A-90FBA10A96A6"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q65083539$D4FC7177-E2BF-45EB-89CF-007234B5F5D4"
+    },
+    {
+      "family_ref": "Q65083539|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q65083539$E62D1C5D-4A67-4E9F-9672-402FE452C867"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$0C5F2695-1DCD-4166-A56B-423ECBDB9064"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$3652F365-4220-4937-B9A4-776473246B32"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$3A000B07-E5F8-4471-8D61-75C9C1F1CF82"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$4CC98B2E-DE09-48C8-B41E-F69F58EE83C0"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$4CD0B4AF-A2CF-4271-AA95-CF8BAC4315A2"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$52B68782-9571-415A-AC17-0466090509E8"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$56EA2623-5311-4C76-813F-A86F7F593621"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$61112F30-B445-4D02-82A1-F30CBB7AF7D2"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$73BA095C-3DE9-451D-9AD9-D68F4B2495C2"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$79395CFF-300A-4C59-8BBA-B4CC38DFA6B1"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$79A3A286-45E8-4557-8DF3-9E5944A4B697"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$80AE414B-84AF-4E4C-952A-1E49FC803D7A"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$8986347B-C42A-4102-8AAA-91F19828CD7D"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$B231F661-4FC7-4877-9912-CC18D2D6EEEF"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$BAF71D7D-F992-4D72-BFE7-7277FF0F2D91"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$BFAC9F6F-95DC-4D2F-BF95-3B43685B0CF8"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$C8B0EFD0-4A4B-4BFD-A897-1BD33758153C"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$D06F5EEB-483B-44A4-8B51-702CD1E2F6D3"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$D1E2D81D-60AB-4CE0-9F51-09AE6528F6ED"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$DCAD5324-41FF-46CA-AD1E-437EE22A72B3"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$DE92C0E5-4C71-4DE7-9664-11A395B7B0E9"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot",
+        "unsupported_statement_shape"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$E7AAA23E-196F-4ECE-8139-F8CA162E7947"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$EE399EB7-C176-4A49-9A8E-7363778C4CED"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$EFECE470-6353-46A6-ABDC-0E07F5117B86"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$F774B086-DC1C-4E6A-A9A9-8ED7BBC755FC"
+    },
+    {
+      "family_ref": "Q830608|P5991",
+      "overlapping_reasons": [
+        "target_semantics_not_established",
+        "unresolved_annual_period",
+        "unresolved_semantic_slot"
+      ],
+      "primary_reason": "unresolved_semantic_slot",
+      "statement_ref": "Q830608$F8C6C3A0-22CD-48F2-A4D2-2547593F4D3B"
+    }
+  ],
+  "schema_version": "sl.climate_ghg_hold_reason_inventory.v1"
+}

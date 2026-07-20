@@ -10,6 +10,31 @@ If you need the practical start-to-finish README for the current documented
 Wikidata task stories, start with:
 - `wikidata/README.md`
 
+If you need one machine-runnable snapshot of the current executable Wikidata
+lanes, start with:
+- `../.venv/bin/python -m cli.__main__ wikidata lane-status`
+- `../.venv/bin/python -m cli.__main__ wikidata lane-bundle --lane disjointness_report`
+- `../.venv/bin/python -m cli.__main__ wikidata lane-graph --lane disjointness_report`
+- `../.venv/bin/python -m cli.__main__ wikidata lane-flatness`
+- `../.venv/bin/python -m cli.__main__ wikidata linkage-depth`
+- `../.venv/bin/python -m cli.__main__ wikidata lane-plan --lane climate_review_demonstrator`
+- `../.venv/bin/python -m cli.__main__ wikidata lane-plan --lane nat_live_follow_preflight`
+- `../.venv/bin/python -m cli.__main__ wikidata lane-proof --lane disjointness_report`
+- `../../docs/planning/wikidata_lane_architecture_and_roadmap_20260703.md`
+- `../../docs/planning/wikidata_lanes_zelph_096_status_20260703.md`
+
+Current flatness definition boundary:
+
+- treat flatness first as a linkage-depth preservation question, not a visual
+  density complaint
+- distinguish `linkage flatness` from `render flatness`
+- canonical doctrine note:
+  `../../docs/planning/itir_flatness_doctrine_20260703.md`
+- executable PNF x Zelph/WD linkage-depth contract:
+  `../../docs/planning/pnf_zelph_wd_linkage_depth_contract_20260703.md`
+- keep `itir-svelte` rendering work deferred unless the emitted graph already
+  preserves the expected intermediate typed layers
+
 If you need one short plain-language handoff that also works for the Zelph
 developer, start with:
 - `../../docs/planning/wikidata_combined_assist_handoff_20260401.md`

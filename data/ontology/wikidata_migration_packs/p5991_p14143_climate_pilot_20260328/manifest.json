@@ -1,5 +1,37 @@
 {
-  "migration_pack": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/migration_pack.json",
+  "climate_observation_claim": null,
+  "climate_text_source": null,
+  "discovery": null,
+  "h4_collision_report": "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/h4_collision_report.json",
+  "migration_pack": "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/migration_pack.json",
+  "openrefine_csv": null,
+  "qid_rows": [
+    {
+      "label": "Q56404383",
+      "qid": "Q56404383",
+      "source": "explicit"
+    },
+    {
+      "label": "Q10651551",
+      "qid": "Q10651551",
+      "source": "explicit"
+    },
+    {
+      "label": "Q10416948",
+      "qid": "Q10416948",
+      "source": "explicit"
+    },
+    {
+      "label": "Q10403939",
+      "qid": "Q10403939",
+      "source": "explicit"
+    },
+    {
+      "label": "Q10422059",
+      "qid": "Q10422059",
+      "source": "explicit"
+    }
+  ],
   "qids": [
     "Q56404383",
     "Q10651551",
@@ -7,79 +39,94 @@
     "Q10403939",
     "Q10422059"
   ],
+  "residual_graph": null,
+  "review_packets": null,
   "revision_pairs": [
     {
-      "newer_entity_export": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q56404383_t2_2469553955.json",
+      "label": "Q56404383",
+      "newer_entity_export": "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q56404383_t2_2469553955.json",
       "newer_revision": {
         "revid": 2469553955,
         "timestamp": "2026-03-05T10:00:51Z"
       },
-      "older_entity_export": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q56404383_t1_2242857994.json",
+      "older_entity_export": "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q56404383_t1_2242857994.json",
       "older_revision": {
         "revid": 2242857994,
         "timestamp": "2024-09-03T16:45:41Z"
       },
-      "qid": "Q56404383"
+      "qid": "Q56404383",
+      "qid_source": "explicit"
     },
     {
-      "newer_entity_export": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10651551_t2_2435181075.json",
+      "label": "Q10651551",
+      "newer_entity_export": "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10651551_t2_2435181075.json",
       "newer_revision": {
         "revid": 2435181075,
         "timestamp": "2025-11-28T14:47:13Z"
       },
-      "older_entity_export": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10651551_t1_2435181070.json",
+      "older_entity_export": "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10651551_t1_2435181070.json",
       "older_revision": {
         "revid": 2435181070,
         "timestamp": "2025-11-28T14:47:12Z"
       },
-      "qid": "Q10651551"
+      "qid": "Q10651551",
+      "qid_source": "explicit"
     },
     {
-      "newer_entity_export": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10416948_t2_2450591037.json",
+      "label": "Q10416948",
+      "newer_entity_export": "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10416948_t2_2450591037.json",
       "newer_revision": {
         "revid": 2450591037,
         "timestamp": "2026-01-02T16:40:58Z"
       },
-      "older_entity_export": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10416948_t1_2435184169.json",
+      "older_entity_export": "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10416948_t1_2435184169.json",
       "older_revision": {
         "revid": 2435184169,
         "timestamp": "2025-11-28T14:52:24Z"
       },
-      "qid": "Q10416948"
+      "qid": "Q10416948",
+      "qid_source": "explicit"
     },
     {
-      "newer_entity_export": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10403939_t2_2419926147.json",
+      "label": "Q10403939",
+      "newer_entity_export": "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10403939_t2_2419926147.json",
       "newer_revision": {
         "revid": 2419926147,
         "timestamp": "2025-10-21T13:17:20Z"
       },
-      "older_entity_export": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10403939_t1_2413111410.json",
+      "older_entity_export": "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10403939_t1_2413111410.json",
       "older_revision": {
         "revid": 2413111410,
         "timestamp": "2025-10-06T02:31:57Z"
       },
-      "qid": "Q10403939"
+      "qid": "Q10403939",
+      "qid_source": "explicit"
     },
     {
-      "newer_entity_export": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10422059_t2_2445808770.json",
+      "label": "Q10422059",
+      "newer_entity_export": "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10422059_t2_2445808770.json",
       "newer_revision": {
         "revid": 2445808770,
         "timestamp": "2025-12-23T01:56:05Z"
       },
-      "older_entity_export": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10422059_t1_2442261799.json",
+      "older_entity_export": "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10422059_t1_2442261799.json",
       "older_revision": {
         "revid": 2442261799,
         "timestamp": "2025-12-14T10:43:07Z"
       },
-      "qid": "Q10422059"
+      "qid": "Q10422059",
+      "qid_source": "explicit"
     }
   ],
+  "rule_coverage": "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/rule_coverage.json",
   "schema_version": "sl.wikidata_migration_pack.materialization.v0",
-  "slice": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/slice.json",
+  "slice": "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/slice.json",
   "source_property": "P5991",
   "summary": {
     "abstained": [],
-    "ambiguous": [
+    "ambiguous": [],
+    "candidate_count": 57,
+    "checked_safe_subset": [
       "Q10403939|P5991|1",
       "Q10403939|P5991|2",
       "Q10403939|P5991|3",
@@ -134,17 +181,21 @@
       "Q10422059|P5991|26",
       "Q10422059|P5991|27",
       "Q10422059|P5991|28",
-      "Q10422059|P5991|29"
-    ],
-    "candidate_count": 57,
-    "checked_safe_subset": [
-      "Q10651551|P5991|1"
+      "Q10422059|P5991|29",
+      "Q10651551|P5991|1",
+      "Q56404383|P5991|1"
     ],
     "counts_by_bucket": {
-      "ambiguous_semantics": 55,
-      "safe_with_reference_transfer": 1
+      "safe_with_reference_transfer": 57
     },
-    "requires_review_count": 55
+    "family_summary": {
+      "A": 20,
+      "B": 0,
+      "C": 3,
+      "D": 34,
+      "E": 0
+    },
+    "requires_review_count": 0
   },
   "target_property": "P14143"
 }

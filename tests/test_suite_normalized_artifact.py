@@ -118,3 +118,35 @@ def test_build_affidavit_coverage_review_normalized_artifact_omits_text_ref_when
     )
 
     assert "text_ref" not in artifact
+
+
+def test_build_gwb_public_review_normalized_artifact_uses_normalized_compiler_contract() -> None:
+    artifact = build_gwb_public_review_normalized_artifact(
+        artifact_id="fixture",
+        compiler_contract={
+            "lane": " gwb ",
+            "evidence_bundle": {
+                "source_family": None,
+                "item_label": " source_row ",
+                "source_count": "bad",
+                "item_count": "5",
+            },
+            "promoted_outcomes": {
+                "promoted_count": "3",
+                "review_count": object(),
+                "abstained_count": "-2",
+            },
+        },
+        promotion_gate=_promotion_gate(),
+        source_input={"path": "tests/fixtures/example.json"},
+        workflow_summary={"stage": "record", "recommended_view": "summary"},
+    )
+
+    assert artifact["summary"]["lane"] == "gwb"
+    assert artifact["summary"]["source_family"] == "gwb_public_review"
+    assert artifact["summary"]["item_label"] == "source_row"
+    assert artifact["summary"]["source_count"] == 0
+    assert artifact["summary"]["item_count"] == 5
+    assert artifact["summary"]["promoted_count"] == 3
+    assert artifact["summary"]["review_count"] == 0
+    assert artifact["summary"]["abstained_count"] == 0

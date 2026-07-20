@@ -477,7 +477,10 @@ except Exception:  # pragma: no cover - optional dependency
 else:  # pragma: no cover - only executed when import succeeds
     _ROOT_SECTION_PARSER_IMPORT_FAILED = False
 
-section_parser = _root_section_parser or _ingestion_section_parser  # type: ignore
+# PDF ingestion consumes canonical parsed nodes.  The root parser remains a
+# compatibility projection for callers that need legacy Provision/simple-JSON
+# shapes, not the primary ingestion implementation.
+section_parser = _ingestion_section_parser or _root_section_parser  # type: ignore
 
 
 def _clean_page_line(line: str) -> Optional[str]:

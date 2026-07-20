@@ -13,4 +13,30 @@ if _runtime_pkg.exists():
     __path__ = pkgutil.extend_path(__path__, __name__)
     __path__.append(str(_runtime_pkg))
 
-__all__: list[str] = []
+from src.policy.world_model_inputs import (  # noqa: E402
+    WORLD_MODEL_INPUT_ENVELOPE_SCHEMA_VERSION,
+    build_input_envelope,
+    normalize_input_envelope,
+)
+from src.policy.world_model_runtime import (  # noqa: E402
+    attach_receipt,
+    build_world_model,
+    project_claim_table,
+    project_linkage_case,
+    project_report,
+    project_review_surface,
+    project_timeline,
+)
+
+__all__ = [
+    "WORLD_MODEL_INPUT_ENVELOPE_SCHEMA_VERSION",
+    "attach_receipt",
+    "build_input_envelope",
+    "build_world_model",
+    "normalize_input_envelope",
+    "project_claim_table",
+    "project_linkage_case",
+    "project_report",
+    "project_review_surface",
+    "project_timeline",
+]

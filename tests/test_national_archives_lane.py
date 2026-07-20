@@ -5,15 +5,16 @@ from typing import Mapping
 from SensibLaw.src.sources.national_archives.brexit_national_archives_lane import (
     ACTION_POLICY_SCHEMA_VERSION,
     BREXIT_NATIONAL_ARCHIVES_WORLD_MODEL_SCHEMA_VERSION,
-    build_brexit_national_archives_manifest,
-    build_brexit_national_archives_world_model_report,
-    fetch_brexit_archive_records,
-    normalized_archive_records,
+    build_manifest,
+    build_report,
+    build_world_model,
+    fetch_records,
+    load_records,
 )
 
 
 def test_manifest_contains_expected_fields() -> None:
-    manifest = build_brexit_national_archives_manifest()
+    manifest = build_manifest()
     assert manifest["lane_id"].startswith("brexit_national_archives")
     assert "search_constraints" in manifest
     assert manifest["policy_role"].startswith("derived-only")
@@ -25,7 +26,7 @@ def test_manifest_contains_expected_fields() -> None:
 
 
 def test_normalized_records_schema() -> None:
-    records = normalized_archive_records()
+    records = load_records()
     assert len(records) == 2
     for record in records:
         assert record["schema_version"].startswith("brexit.national_archives.record")
@@ -51,7 +52,7 @@ def test_fetch_records_uses_live_response(monkeypatch) -> None:
         return _StubResponse(url + "?live=1", "Live archive text sample.")
 
     monkeypatch.setattr("SensibLaw.src.sources.national_archives.brexit_national_archives_lane.requests.get", fake_get)
-    records = fetch_brexit_archive_records()
+    records = fetch_records()
     assert records[0]["document_text"] == "Live archive text sample."
     assert "?live=1" in records[0]["url"]
 
@@ -61,7 +62,7 @@ def test_fetch_records_falls_back_to_fixture(monkeypatch) -> None:
         raise RuntimeError("dialing blocked")
 
     monkeypatch.setattr("SensibLaw.src.sources.national_archives.brexit_national_archives_lane.requests.get", fake_get)
-    records = fetch_brexit_archive_records()
+    records = fetch_records()
     assert records[0]["text_excerpt"].startswith("The Cabinet resolved")
     assert records[0]["provenance"].get("fixture")
 
@@ -71,13 +72,19 @@ def test_brexit_world_model_report_rebinds_records_into_shared_substrate(monkeyp
         raise RuntimeError("dialing blocked")
 
     monkeypatch.setattr("SensibLaw.src.sources.national_archives.brexit_national_archives_lane.requests.get", fake_get)
-    records = fetch_brexit_archive_records(limit=1)
-    report = build_brexit_national_archives_world_model_report(records)
+    records = fetch_records(limit=1)
+    world_model = build_world_model(records)
+    report = build_report(records)
 
     assert report["schema_version"] == BREXIT_NATIONAL_ARCHIVES_WORLD_MODEL_SCHEMA_VERSION
     assert report["action_policy_schema_version"] == ACTION_POLICY_SCHEMA_VERSION
     assert report["summary"]["claim_count"] == 1
     assert report["summary"]["must_review_count"] == 1
+    assert world_model["metadata"]["adapter_stack"] == [
+        "claim_state_records",
+        "authority_surface_rows",
+        "review_inputs",
+    ]
 
     claim = report["claims"][0]
     assert claim["status"] == "REVIEW_ONLY"

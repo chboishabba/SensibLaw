@@ -1,0 +1,14 @@
+{
+  "completed_export_count": 232,
+  "current_qid": null,
+  "current_revision": null,
+  "elapsed_seconds": 439.617,
+  "estimated_remaining_seconds": 0.0,
+  "exports_per_second": 0.527733,
+  "phase": "completed",
+  "remaining_export_count": 0,
+  "safe_resume_command": "/home/c/Documents/code/ITIR-suite/SensibLaw/../.venv/bin/python scripts/materialize_wikidata_migration_pack.py --discover-company-direct --candidate-limit 5000 --source-property P5991 --target-property P14143 --out-dir data/ontology/wikidata_migration_packs/p5991_p14143_company_direct_replay_20260717 --query-timeout 60 --request-delay-ms 500 --request-retries 6 --rule-coverage-output data/ontology/wikidata_migration_packs/p5991_p14143_company_direct_replay_20260717/rule_coverage.json --h4-collision-output data/ontology/wikidata_migration_packs/p5991_p14143_company_direct_replay_20260717/h4_collision_report.json --resume",
+  "schema_version": "sl.wikidata_migration_pack.progress.v1",
+  "terminal": true,
+  "total_export_count": 232
+}

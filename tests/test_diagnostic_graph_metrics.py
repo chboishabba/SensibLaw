@@ -58,6 +58,18 @@ def test_build_graph_diagnostics_is_deterministic_and_isolated() -> None:
         "giant_component_ratio": 0.75,
         "branching_factor": 0.5,
     }
+    assert left["distributions"] == {
+        "node_kind_counts": {
+            "followed_source": 1,
+            "seed_lane": 1,
+            "source_family": 1,
+            "source_row": 1,
+        },
+        "edge_kind_counts": {
+            "follows_source": 1,
+            "supports_source_row": 1,
+        },
+    }
     assert "promotion_gate" not in left
     assert "gate_decision" not in left["metrics"]
     assert left["cone"]["schema_version"] == GRAPH_CONE_SCHEMA_VERSION

@@ -275,9 +275,18 @@ def build_public_bios_timeline(
         doc_url = _doc_url(doc.path)
         for snippet in snippets:
             ev_i += 1
+            event_anchor = anchor
+            years = re.findall(r"\b(200[1-9]|199\d)\b", snippet)
+            if years:
+                event_anchor = {
+                    "year": int(years[0]),
+                    "precision": "year",
+                    "text": str(years[0]),
+                    "kind": "span_year",
+                }
             row: dict[str, object] = {
                 "event_id": f"ev:{ev_i:04d}",
-                "anchor": anchor,
+                "anchor": event_anchor,
                 "section": f"Public bio doc: {title}",
                 "text": snippet,
                 "links": [],

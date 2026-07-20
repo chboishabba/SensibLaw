@@ -1,5 +1,490 @@
 # SensibLaw TODO
 
+# 2026-07-17 broader priority checkpoint
+
+- [P0a] Consolidate the canonical parser/span substrate described in
+  `docs/planning/pnf_driven_entity_resolution_spine_20260717.md`:
+  - DONE: converge `src/section_parser.py` and
+    `src/ingestion/section_parser.py` on one implementation plus a
+    compatibility projection. Canonical parsing/rule extraction/node formation
+    live in `src.ingestion.section_parser`; the root module retains historical
+    `Provision` and simple-JSON outputs.
+  - retain one canonical character-coordinate system and immutable text/blob
+  - tokenize/annotate once per versioned profile and expose span views
+  - preserve verbose text-bearing JSON as a compatibility projection
+  - add content/profile/version cache keys before large-corpus resolution
+- [P0b] Add generic, receipt-free mention/entity carriers:
+  - DONE: `MentionSpan`, `EntityCandidateSet`, and `CoreferenceCluster` in
+    `src.policy.entity_resolution`, including deterministic validation,
+    ordering, serialization, provenance references, candidate-only authority,
+    and document-boundary enforcement
+  - NEXT: lazy candidate instantiation over a recoverable meaningful-span
+    lattice, using public parser/reducer outputs rather than raw parser calls
+  - DONE: P0b.1 baseline licensing profile materializes non-structural
+    lexical tokens, numeric literals, maximal name-shaped phrases, and
+    adapter-identified eventuality predicates; receipt the complete span-lattice
+    cardinality and structural-token suppressions without any lookup or
+    resolution
+  - DONE: P0b.2 document-local recurrence groups retain repeated generated
+    surfaces by case-folded whitespace-normalized form within one document;
+    they are evidence only, not aliases, coreference, candidate sets, or
+    identity decisions
+  - DONE: P0b.3 bounded expansion requests can license a source-anchored token
+    interval because of an alias hint, grammar phrase, or future PNF demand,
+    without treating the request as an alias, identity, PNF, or candidate
+    decision
+  - DONE: P0b.4 caller-supplied, provenance-bearing alias token sequences emit
+    exact `alias_hint` requests only; no QID, candidate selection, registry
+    lookup, identity decision, PNF mutation, or promotion is permitted
+  - DONE: P0b.5 public parser/token annotations emit maximal nominal-phrase
+    `grammar_phrase` requests only; parser evidence does not establish an
+    entity, identity, PNF role, candidate set, or promotion
+  - DONE: P0b.6 bounded candidate retrieval matches caller-supplied,
+    provenance-bearing catalogs in canonical token space; it preserves
+    explicit zero/one/many alternatives without ranking, resolution, or
+    network access
+  - DONE: P0b.7 form derivation keeps source-anchored surface, token, numeric,
+    date-shaped, abbreviation, and declaratively profile-derived alternatives
+    separate from entity candidates. Form relations are explicit; deterministic
+    serialization cannot encode semantic preference or alias truth; every
+    compatible declared composition path remains an explicit alternative.
+  - DONE: P0b.8 locally types form-derived quantities, abbreviations and
+    calendar expressions plus parser-annotated linguistic eventualities; a
+    provenance-bearing profile may add entity/relation/role/class/property
+    alternatives without external identity. Every mention receives independent
+    `typed`/`weakly_typed`/`untyped` coverage pressure; no PNF closure,
+    resolution, registry access, or promotion is possible.
+  - DONE: P0c.1 factorizes document-bounded `PartialPNF` slots over compatible
+    local type references and receipts one closure state per declared slot;
+    it does not combine alternatives, issue a demand, select an identity, or
+    create promotion authority.
+  - DONE: P0c.2 projects only unresolved P0c.1 slots into generic, source-
+    anchored, facet-specific, budget-labelled `ResolutionDemand` records;
+    demand construction remains backend-free and cannot alter PNF or identity.
+  - DONE: P0c.3 defines typed resolution subjects before scheduler work:
+    entity, event type, event occurrence, event artifact, document-local
+    cluster, and property/relation; preserve occurrence/observation/cluster/
+    forecast/report/alert/rolling-state roles explicitly
+  - DONE: P0c.4 derives semantic demand-equivalence keys and deduplication
+    receipts from typed subject, PNF role, local types, typed constraints,
+    requested facets, and document scope; never from surface text alone
+  - NEXT: define the registry-neutral append-only cache/microbatch scheduler
+    and its explicit cache/unavailable/budget outcomes; keep it side-effect-free
+    and identity-blind, consuming semantic demand-equivalence groups only
+- [P0c] Add the bounded PNF-driven resolution loop:
+  - `PartialPNF`
+  - `ResolutionDemand`
+  - `ResolutionAssessment`
+  - `PNFRefinement`
+  - `EventualityCandidate`, `EventObservation`,
+    `ExternalIdentityCandidate`, and `EventMeetAssessment`
+  - typed role/type/time/relation constraints, coverage/closure pressure,
+    evaluation budgets, residual widening, cache signatures, and explicit
+    stopping states
+  - factorized alternatives rather than duplicated full PNF graphs
+  - typed resolution subjects and formal event roles before scheduler design
+  - semantic demand equivalence before cache/in-flight deduplication
+  - registry-neutral broker: local/cache first, then deduplicated backend
+    microbatches with rate limits, retries, negative caching, and cancellation
+  - pinned Wikidata snapshot adapter followed by a current-schema-verified
+    WorldMonitor snapshot adapter; neither may leak into parser semantics
+  - typed event meets across temporal, spatial, participant, type, mention,
+    lineage, and observation/occurrence coordinates; scalar scores may order
+    review only and may not close identity
+- [P0d] Extract generic targeting semantics from the transitional
+  `GWBTargetingCandidate` / `GWBTargetingResult` surface and make targeting
+  consume resolved or explicitly ambiguous PNF/entity alternatives above
+  `review_text` / `review_candidate`. Keep shared emitted alignment held until
+  the readiness oracle can promote it.
+- [P0] Re-express the measured GWB public `28 singleton / 42 unresolved` and
+  broader `14 singleton / 13 unresolved` inventories as separate:
+  - mention/entity ambiguity
+  - claim/target ambiguity
+  - document-local coreference clusters
+  - factorized PNF alternatives and final readiness states
+  Include George W. Bush name/role recurrence and `9/11` event-vs-literal
+  fixtures. Prioritize books/memoir and official-record source families before
+  affidavit-shaped expansion.
+- [P1] Normalize AU onto the same entity-resolution/PNF/targeting spine, then
+  move the AU fact-review/legal-follow surface into the first operator-grade
+  workflow.
+- [P1] Continue Nat/Wikidata as a bounded, revision-pinned diagnostic and
+  optional external-entity evidence backend: run the climate policy dry run,
+  measure full-backlog rule coverage, and review near misses before any
+  migration-rule proposal.
+- [P2] Finish the narrow external-graph Apoteket isolation/replay handoff,
+  then consider graph expansion, spectral pressure, shard optimization, and
+  hard ontology remainders. Keep live migration, broad ontology automation,
+  and shared emitted alignment out of scope.
+
+Acceptance for P0a-P0d:
+
+- every mention/candidate/PNF slot traces to canonical spans;
+- one, many, or zero surviving candidates are explicit and deterministic;
+- deterministic carrier order is an encoding invariant, never a semantic
+  rank, preference, or resolution decision;
+- ordinary nouns and labelled phrases can contribute typed candidates without
+  requiring every token to have a QID;
+- meaningful eventualities receive local semantic typing even when no external
+  event identity is available;
+- coverage pressure and PNF closure pressure remain independently inspectable;
+- external calls are cache-aware, deduplicated, rate-limited, and microbatched
+  without making parser code backend-aware;
+- event observations, occurrences, clusters, forecasts, reports, alerts, and
+  rolling states remain distinct objects connected by explicit relations;
+- ambiguity, rejected alternatives, incomplete coverage, and budget exhaustion
+  remain visible;
+- candidate identity, resolved identity, and promoted fact never collapse;
+- cross-context joins remain explicit, opt-in, reviewable, and reversible;
+- at least GWB and AU consume the same generic carriers/controller before a
+  stronger shared alignment primitive is reconsidered.
+
+- [P0] Run the climate-GHG policy-resolution dry run from
+  `docs/planning/climate_ghg_policy_resolution_dry_run_20260717.md`:
+  - obtain and version the exact-12-month fiscal-period policy decision
+  - test the 132 fiscal-only transitions without releasing the 176
+    fiscal-plus-ambiguous-scope statements
+  - apply one Q52579 subject adjudication and one Q1476113 reference review
+  - test the concentrated 12 method and 3 unit mappings
+  - emit per-statement transition receipts and exclusive outcome partitions
+  - preserve the original V2/replay artifacts and all non-authoritative gates
+
+- [P1] Complete the climate-GHG V2 evidence/governance tranche from
+  `docs/planning/climate_ghg_orthogonal_assessment_v2_20260717.md`:
+  - add versioned JSON adjudications for the deterministic 15-family sample
+  - emit primary and overlapping hold-reason inventories
+  - subdivide unknown component coverage and explain strict A4 attrition
+  - calculate subtype precision and apply the five-positive / 95% / zero
+    critical-miss contract gate
+  - emit a review-only canary of at most 25 statements when a subtype qualifies
+  - defer CSV/OpenRefine export and all migration/edit execution
+
+- [P2] Investigate the structurally hard climate-GHG remainder only after the
+  policy-resolution dry run: 176 fiscal-plus-ambiguous-scope statements, 6
+  additional ambiguous scopes, 1 ambiguous category, 1 missing-time statement,
+  and remaining unsupported semantic shapes. Do not fold these into fiscal-year
+  policy or a first governed canary.
+
+- [P0] Implement the first generic external-graph bridge tranche.
+  - contract: `docs/external_graph_bridge.md`
+  - roadmap: `../docs/planning/itir_wd_zelph_sensiblaw_flatness_optimisation_roadmap_20260702.md`
+  - DONE: define provider-neutral graph-view, bridge-candidate/decision, and
+    pressure-result carrier semantics before implementation
+  - DONE: consume ITIR-MCP's revision-bound remote manifest/slice view;
+    bounded graph-slice planning fetches manifest metadata only and records
+    selected sections/chunks/bytes without a full-graph read
+  - DONE: expose `itir.shard.bounded_graph_slice_plan` before any payload fetch;
+    it reports selected sections, logical chunks, and declared payload bytes.
+    Current coarse chunks make this cost disclosure, not a promise of a small
+    transfer
+  - DONE: distinguish incomplete from completeness-certified views and fail
+    closed when complete coverage lacks policy, closure, or receipt evidence
+  - DONE: project coverage, bridge, pressure, and provenance on the shared
+    world-model/review/linkage/receipt surfaces
+  - DONE: keep legacy AU raw-bundle receipt compatibility in the thin wrapper;
+    it materializes the shared report/linkage projection before the strict
+    generic receipt boundary
+  - DONE: pin one entity and one event attachment fixture plus one bounded
+    expected-shape pressure diagnostic
+  - DONE: replay existing Nat Cohort D `Q1785637@2443793937` packet evidence
+    through a generic local entity linkage case, graph revision, review
+    decision, source anchors, direct-`P31` pressure diagnostic, review/linkage
+    projections, and receipt
+  - DONE: make incomplete coverage return `abstain` plus a
+    `coverage_limited_absence` residual when a required property is observed
+    absent; the generic evaluator is also tested with organisation and city
+    expectation profiles
+  - DONE: add the generic revision-pinned Wikibase entity-export adapter. It
+    validates requested QID/revision against the supplied entity document and
+    emits observed labels, aliases, properties, and statement references, not
+    a lane-specific resolver. `Q1785637@2443793937` now produces direct-`P31`
+    presence evidence and a compatible diagnostic, while the pre-existing
+    incomplete-coverage absence fixture still abstains.
+  - DONE: attach the same bounded observation to a local entity and a local
+    event through generic bridge candidates. The entity decision is explicit;
+    the event relation remains review-required and neither inherits authority.
+  - DONE: add a bounded direct-`P31`/`P279` closure profile with named
+    entity-export coverage. `Q1785637@2443793937` directly types as
+    `Q4830453`/`Q61676930`; revision-pinned `P279` observations include
+    `Q4830453 -> Q43229`. The profile reports that positive compatible path
+    only and abstains for missing closure evidence in incomplete coverage. A
+    selected Zelph payload later becomes an alternate provider of the same
+    generic observations.
+  - NEXT: isolate the completed Apoteket implementation in a narrow WD-only
+    commit/worktree without committing, stashing, or rewriting unrelated user
+    changes; record fixture revisions, commands, focused test counts, and
+    lint/format results
+  - DONE: make the existing Nat climate-model comparison emit the first
+    generic, policy-anchored `DomainPressureAssessment`. It retains distinct
+    target-model, subject-type, qualifier, reference, temporal, split, and
+    peer-cohort residuals when mapping `P5991 -> P14143` rows to Family A/B/C/D/E.
+    The A--E bucket remains a review-disposition projection; the assessment is
+    diagnostic-only with no promotion effect, and peer evidence remains
+    explicitly unresolved until trusted-cohort admission exists.
+  - DONE: materialize a deterministic, bounded live `company_direct` discovery
+    manifest for `P5991 -> P14143`: statement GUID, rank, direct P31 stratum,
+    target-property coexistence, query/version/hash, timestamp, ordering, and
+    cursor. Reconcile each row against a current revision-pinned entity export
+    before classification. Only `statement_reconciled` rows enter the existing
+    Family A--E / `DomainPressureAssessment` path; changed, missing, or
+    unpinnable statements remain explicit non-classified outcomes. This is
+    discovery and review intake, never migration or edit authority.
+  - DONE: implement the bounded `--discover-company-direct` materializer path.
+    It writes a statement-level discovery manifest, pins current entity
+    exports, reconciles the exact source claim GUID, filters the classifier
+    input to reconciled statements only, and retains changed/missing/unpinnable
+    rows as explicit non-classified outcomes. The initial three-statement live
+    smoke page at `Q101416961@2419927005` exposed a classifier error: it
+    selected only three of four sibling source claims and misread normal family
+    multiplicity as per-GUID overload. Its review packets are preserved as
+    rejected classifier evidence, not as Family-B cases or an automated change.
+  - DONE: repair the generic atomic-statement/family-context boundary. The
+    shared `statement_family_context` carrier keeps page-selected GUIDs atomic
+    while hydrating every pinned sibling source claim; it records scope
+    partition, duplicate/overlap, total/component reconciliation, and complete
+    coverage separately. Q101416961 is the regression: three scoped components
+    plus total reconcile exactly, same-year `P580`/`P582` ranges remain annual
+    statements, and no split plan is emitted. The corrected live three-GUID
+    page now yields three Family-A `safe_with_reference_transfer` candidates,
+    zero review packets, and an empty diagnostic graph.
+  - DONE: add governed trusted-cohort admission and versioned invariant
+    refinement for policy-anchored DSP. `DomainInvariantSnapshot`,
+    `TrustedConformingMember`, `InvariantContributionReceipt`, and
+    `InvariantRevisionReceipt` must preserve policy requirements, empirically
+    confirmed regularities, conditional variation, exceptions, coverage, and
+    reviewer authority. Only independently confirmed conformant dispositions
+    train the invariant; held, unresolved, ambiguous, manual-reconstruction,
+    and coverage-incomplete cases do not.
+  - DONE: implement the shared `domain_invariants` carrier with
+    fail-closed trusted-member admission, deterministic policy/empirical/
+    conditional/noise snapshot aggregation, contribution receipts, and
+    revision receipts. Nat supplies climate-policy references and reviewer
+    records only; classifier Family A/B/C output alone must remain insufficient
+    for admission.
+  - DONE: add a generic review-confirmation artifact that references an
+    existing candidate/packet and an explicit reviewer decision. It must be the
+    only runtime bridge from an approved Family-B split (or confirmed A/C row)
+    to a trusted-invariant contribution; it remains non-promoting and
+    non-editing.
+  - DONE: project reconciled Family-B rows into compact, deterministic review
+    packets from the same generic `TypedResidualProfile` used by topology.
+    Packets must show source GUID/revision, statement family, years/scopes/
+    methods, split boundaries, target decomposition, qualifier/reference carry
+    plan, coverage, and confirmation choices. They are evidence for a later
+    explicit review confirmation, never a decision or invariant contribution.
+    The bounded live three-row page emitted three review-only packets at
+    `Q101416961@2419927005`; its Family-B split axes remained explicit. The
+    corresponding three-edge graph is correctly `unknown_due_to_coverage`
+    because peer-cohort pressure is unresolved before trusted admission.
+  - DONE: add the generic `TypedResidualProfile` carrier and deterministic
+    residual-graph construction. The graph preserves positive similarity,
+    negative incompatibility, masked analogy, and coverage/context unknown as
+    distinct edges. It deliberately does not cluster, spectralize, assign
+    classes, revise invariants, or propose edits.
+  - DONE: emit compact generic packets for every reconciled candidate in the
+    corrected 25-GUID page: 9 model-conformance candidates, 9 scope-overlap
+    holds, and 7 total/period-conflict holds. A hold packet must identify the
+    affected GUIDs, family relation, numeric/period evidence, coverage, repair
+    interpretations, and counterevidence; it is not a disguised split plan.
+  - IN PROGRESS: materialize the first explicit reviewer-confirmed conforming result
+    from a compact live packet. It may be a genuine Family-A substitution, a
+    repaired C row, or an approved Family-B split. Carry only the resulting
+    conforming target-statement features through `TrustedConformingMember` and
+    an invariant contribution receipt. Build `I1` as a new
+    `DomainInvariantSnapshot` and replay the remaining profiles against it
+    through a generic immutable replay receipt:
+    preserve every `I0` assessment/profile/graph, require the same candidate
+    and pinned source revision, and make every changed or still-unknown graph
+    relation explicit. The generic replay carrier validates supplied
+    reassessments; the climate profile, not the carrier, decides whether a
+    trusted member grounds a peer-cohort residual.
+    The reviewer has approved `Q101416961|P5991|1` at
+    `Q101416961@2419927005` as `confirmed_model_conformant` under
+    `reviewer:GPTofJohl`. Materialize only its trusted-member, contribution,
+    `I0 -> I1`, and immutable replay artifacts; no edit, promotion, or
+    migration execution is authorized. Preserve it as one selected statement
+    under a complete reconciled-family witness: record generic context and
+    dependency references so sibling GUIDs from one report are not silently
+    counted as independent cohort observations. DONE: the witness-aware reissue
+    is at `/tmp/nat-packets-live-25/invariant_i1_family_witness/`, with a
+    new I1 snapshot and an immutable replay of the remaining 24 rows. The old
+    temporary `invariant_i1/` directory remains historical only.
+  - NEXT: turn reviewed structural families into versioned migration-rule
+    candidates with deterministic applicability detectors. Measure the full
+    backlog by exactly-one-rule, review/repair-rule, conflicting-rule, no-rule,
+    and incomplete-coverage outcomes before execution is considered. Rule
+    approval requires reviewed positives and near misses, stratified validation,
+    revision-pinned manifests, and bounded canary/postflight checks; resemblance
+    alone never authorizes a migration.
+  - DONE: add generic dry-run `TransformationRule` and `RuleCoverageReport`
+    carriers. Profiles supply deterministic detector outcomes; the core records
+    exactly-one, review/repair, conflicting, no-rule, and incomplete-coverage
+    partitions without constructing an execution manifest or edit. Nat still
+    needs concrete rule candidates, a full-backlog dry run, and rule-level
+    review approval.
+  - IN PROGRESS: run Nat contract discovery and cumulative backlog coverage as
+    one sprint. DONE: candidate A1 atomic-total, A2 coherent scoped-component,
+    and A3 already-separated annual-series profiles now emit generic detector
+    results with predicate reason codes, dependency groups, explicit
+    counterexamples, and coverage abstention. Continue exercising refinements against
+    progressively wider revision-pinned pages rather than finalizing rules
+    before population measurement. A legacy Family-A label is not a rule
+    match. B1 split, C1 repair, and D/E exclusion contracts follow as bounded
+    evidence becomes available.
+  - NEXT: produce cumulative dry-run inventory counts by candidate rule,
+    dependency group, subject type, family shape, qualifier/year/method/unit/
+    reference pattern, and conflict type. Require exclusive explainable
+    matches before submitting any rule for rule-level review; then generate a
+    non-executing bounded canary manifest only after explicit rule approval.
+  - DONE: make wider online discovery rate-limit aware. Respect bounded
+    `Retry-After`/backoff and optional request pacing; never count a partially
+    revision-pinned page as dry-run coverage.
+  - DONE: make exhaustive `company_direct` replays two-phase and resumable:
+    pin the complete discovery population and revision map before export,
+    isolate WDQS/Action API/entity-export pacing, pin revisions independently
+    where the Action API requires it, and retain only sanitized transport
+    receipts. Preserve the review-only,
+    non-editing migration-pack boundary.
+  - DONE: expose atomic live replay progress after pinning and each export,
+    including counts, throughput, ETA, current pinned item, and safe resume
+    command without persisting credentials or contact identity.
+  - DONE: reuse the shared terminal progress callback for Phase A pinning and
+    Phase B exports, with human, JSON-lines, and TTY bar formats.
+  - DONE: replace QID-only statement discovery pagination with a
+    composite QID + statement-GUID cursor. Record the next cursor in each
+    discovery manifest and treat earlier QID-only pages as bounded samples,
+    not a lossless cumulative backlog inventory.
+  - DONE: combine composite-cursor pages through the generic cumulative
+    coverage carrier; reject cursor gaps and duplicate candidates, preserve
+    page report refs, and keep `population_exhausted=false` until the terminal
+    page is observed. The initial selected-row-only pass had 400 unique
+    candidates across 28 dependency groups, with 4 candidate-rule matches, 115
+    no-rule rows, and 281 coverage abstentions; that historic baseline exposed
+    the family-member evidence gap.
+  - DONE: hydrate selected discovery candidates from all sibling statements in
+    the existing revision-pinned entity exports. The same first two composite
+    pages now have 4 candidate matches, 396 complete no-rule/hold rows, and 0
+    coverage abstentions across 28 dependency groups; this is evidence-boundary
+    closure, not migration eligibility. Generic reports now include incomplete,
+    exclusion, and deduplicated no-rule reason histograms. NEXT: partition the
+    complete no-rule reasons into explicit exclusions or typed H/E holds, then
+    continue contiguous pages until a terminal short page proves exhaustion.
+  - NEXT: emit a dependency-group/family-geometry inventory for the hydrated
+    400-row prefix before adding B1/C1. Keep the generic coverage layer
+    responsible for grouping profile-supplied residual/action assessments;
+    keep climate annuality, scope, total, and statement-semantic interpretation
+    in the profile. Require a deterministic primary obstruction plus secondary
+    evidence and affected GUID subset per family. Refine the broad annual
+    partition reason into normalized supplied period shapes, and make sibling
+    dependency explicit: independently migratable, blocked by overlap or
+    contradiction, blocked pending sibling handling, or family reconstruction.
+    This remains diagnostic-only and must not widen A1/A2/A3 eligibility.
+  - DONE: generic coverage now preserves profile-supplied dependency-group
+    assessments and emits one deterministic inventory row per family. The
+    climate profile supplies normalized period shapes and an F1--F8 primary
+    geometry/action; the 400-row live prefix yielded F1=1, F4=16 and F5=11.
+    Q101416961 is the F1 control: same-year reconciled components are not a
+    period-overlap conflict. NEXT: inspect F4 into genuine source-GUID
+    overload versus valid partition, then turn F5 into typed total-conflict
+    evidence before creating B1/C1 or any member-independence policy.
+  - NEXT: feed bounded packet-derived candidate populations into the typed
+    residual graph and generate only reviewable nearby-class, split, merge,
+    disjointness, bridge-class, exception, or new-abstraction candidates. A
+    raw resemblance that fails entity-kind, domain/range, temporal,
+    source/PNF, superclass, or disjointness gates is an analogy, never an
+    ontology assignment.
+  - NEXT: generate review-only class-split, class-merge, disjointness,
+    bridge-superclass, nearby-class, new-abstraction, exception, and
+    misclassified-member
+    candidates from the typed residual graph. Every proposal must retain its
+    supporting population, counterevidence, coverage limits, and masked
+    analogies; Nat's organisation-level versus product/intensity/mixed-scope
+    distinction is the first meaningful split boundary. A direct merge must
+    additionally retain normative compatibility, conditional-distinction,
+    relation-substitutability, downstream-impact, and provenance-transfer
+    evidence; geometry convergence alone is a non-reviewable signal. Failing
+    merge gates must surface shared-superclass, bridge, conditional, alias,
+    held, blocked, or insufficient-coverage alternatives rather than a
+    redirect/edit.
+  - NEXT: emit comparable residual receipts and a runtime spectral-pressure
+    projection only for admitted exact/partial/no-typed-meet residuals. Keep
+    `scope_exceeded`/`unresolved` as typed abstentions; align output with
+    DASHI's `WikidataSpectralPressureBridge` and
+    `ExternalContextSafetyBoundary`, including incomplete/uninspected/invalid
+    observation abstention and no role, truth, authority, edit, repair, or
+    promotion consequence without explicit policy.
+  - NEXT: add one shared external-context application operation and replay the
+    mature generic context through GWB, AU, Brexit, and Affidavit fixtures.
+    Wrappers may supply only local candidate refs, anchors, workflow metadata,
+    and outward receipt context; add normalized parity and no-role/no-authority
+    inheritance tests.
+  - NEXT: normalize supplied revision-pinned observation inputs across local
+    exports, captured API responses, checked fixtures, and later routed Zelph
+    views. The semantic adapter validates supplied evidence and never refetches.
+  - NEXT: replace the one-hop proof profile with a bounded,
+    frontier-explicit `TypeClosureRequest`/`ObservedTypeClosure` contract.
+    Use `compatible_within_observed_closure`,
+    `contradictory_within_observed_closure`, `closure_incomplete`,
+    `profile_not_applicable`, and `invalid_observation`; never turn a path
+    beyond the frontier into a global negative claim.
+  - NEXT: induce `ComparisonCohort` and `DomainStructuralSignature` from
+    comparable, revision/coverage-qualified members as a second DSP source.
+    Implement typed field observation states, reciprocal cohort/member pressure,
+    and diagnostic-only `DomainPressureResult`; begin generic cohort induction
+    with the city/capital proving set, not a hand-authored pharmacy-chain
+    definition or the policy-anchored climate pilot.
+  - NEXT: add multi-view pressure adapters from article/simplification,
+    Abstract Wikipedia, translation alignment, and domain cohorts. They must
+    predict expected shape rather than copy peer values or collapse views into
+    a truth oracle.
+  - later federation seam: bind graph/bridge/pressure receipts into a
+    versioned basis manifest with fork lineage and attestations, then project
+    channels from selected bases under local trust policy
+  - no-go list:
+    - no external graph identity replaces local candidates;
+    - no partial slice supports exhaustive or promotion claims;
+    - no external identity grants local role, legal, or evidentiary authority;
+    - no diagnostic mutates local PNF/source state;
+    - no lane-specific public bridge API.
+  - deferred after this tranche: asynchronous join planning, route indexes,
+    smaller query-oriented shards, and workload-based shard-size optimisation.
+  - governing programme:
+    `../docs/planning/generic_world_model_compiler_convergence_20260716.md`
+
+- [P0] Keep the affidavit/Wikidata typed reconciliation slice aligned with the
+  DASHI formal object grammar.
+  - DONE: add the first operational contract at
+    `docs/planning/affidavit_wikidata_typed_reconciliation_contract_20260606.md`
+  - DONE: land `src/fact_intake/typed_claim_reconciliation.py` with canonical
+    affidavit relation labels, root projection, bucket projection, evidence
+    state, and separate non-promoting `promotion_state`
+  - DONE: pin the `walked the dog` / `did not walk the dog` fixture as
+    `explicit_dispute`, root `invalidates`, bucket `disputed`, without
+    deciding truth
+  - DONE: normalize object-type assertions such as `6 is a 1-morphism` with
+    `witness_status`, `review_status`, witness metadata, and non-promoting
+    `promotion_state`
+  - DONE: materialize Wikidata row negative-authority fields:
+    `truth_claimed = false` and `live_edit_authority = false`
+  - DONE: mark caller-supplied relation hints with
+    `relation_derivation = caller_hint`
+  - current no-go list:
+    - no Wikidata row becomes truth, contradiction, proof, edit authority, or
+      promotion merely by rank
+    - no object-type claim becomes a morphism classification without a named
+      category/bicategory context and typing rule
+    - no relation bucket decides legal sufficiency or real-world truth
+    - no runtime Python contract is treated as an Agda proof
+  - next honest implementation seams:
+    - add first-class revision-window/statement-id fields for Wikidata rows
+      when an importer supplies them
+    - thread typed reconciliation envelopes into the persisted affidavit
+      read-model only after the storage contract is explicit
+    - add fixture coverage for `explicit_exclusion_witness=True` on
+      different positive object-type claims
+    - add a direct bridge test that compares a Python row envelope against the
+      documented DASHI field grammar
+
 - [P0] Keep the Wikidata ontology-repair lane honest as it moves from bounded
   candidate comparison toward the global structural-coherence roadmap.
   - DONE: land the first review-only `ChangeReviewPacket` harness:
@@ -310,6 +795,8 @@
         review-queue row -> event-target subset
     - doctrine:
       - normalize shared primitives first
+      - establish the shared mention/entity/PNF-resolution spine before
+        targeting
       - normalize the targeting kernel before emitted alignment semantics
       - treat weak targeting result as the next structural layer, not a shared
         semantic verdict
@@ -997,6 +1484,15 @@
   - guided next-step workflow clarity through `itir-svelte`
   - a real annotation / QA workbench slice
   - more direct user-feedback evidence beyond proxy/story notes
+- [x] Freeze the current priority correction over the post-substrate user-story
+  read:
+  - guided `itir-svelte` workflow clarity and annotation/QA remain real gaps,
+    but they are no longer co-equal with the architecture lanes
+  - before more UI/workbench widening, keep these two P0s ahead:
+    - the cross-lane compiler normalization push
+    - shared cross-lane semantic surface extraction
+  - treat UI/workbench work as validation/consumption of those normalized
+    products unless a narrow operator blocker forces an earlier slice
 - [ ] Push the next reusable judgment-architecture split above the now-settled
   substrate layer:
   - use `../docs/planning/judgment_architecture_lane_split_20260402.md` as the
@@ -1836,3 +2332,14 @@
   into a shared DB-backed lexical-rule substrate only if multiple
   jurisdictions/extractors need the same runtime shape. Do not widen semantic
   schema or ontology tables for cue storage.
+# Climate-GHG orthogonal assessment V2 (2026-07-17)
+
+- [x] Specify the generic carrier/profile ownership boundary and immutable
+  replay posture.
+- [x] Implement generic orthogonal validation and aggregate reporting.
+- [x] Implement climate V2 geometry, integrity, coverage, semantics,
+  predicates, outcomes, and compatibility projections.
+- [x] Add the offline atomic materializer and deterministic review sampler.
+- [x] Add focused policy/CLI tests and run the pinned 232/3,562 derivation.
+- [x] Reconcile legacy A4/A5/H4 acceptance values and record the completed
+  behavior in the changelog.

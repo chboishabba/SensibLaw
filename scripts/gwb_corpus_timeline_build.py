@@ -451,9 +451,18 @@ def build_corpus_timeline(
             snip = snips[i]
             root_actor, root_surname = _root_actor_for_doc_title(d.title)
             ev_i += 1
+            event_anchor = anchor
+            years = re.findall(r"\b(200[1-9]|199\d)\b", snip)
+            if years:
+                event_anchor = {
+                    "year": int(years[0]),
+                    "precision": "year",
+                    "text": str(years[0]),
+                    "kind": "span_year",
+                }
             row = {
                 "event_id": f"ev:{ev_i:04d}",
-                "anchor": anchor,
+                "anchor": event_anchor,
                 "section": f"Corpus doc: {d.title}",
                 "text": snip,
                 "links": [],

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from .compiler_contract import normalize_promoted_outcomes
+from .compiler_contract import normalize_compiler_contract
 
 
 REASONER_INPUT_ARTIFACT_SCHEMA_VERSION = "sl.reasoner_input.v0_1"
@@ -22,16 +22,13 @@ def build_reasoner_input_artifact(
     compiler_contract: Mapping[str, Any],
     promotion_gate: Mapping[str, Any],
 ) -> dict[str, Any]:
-    promoted_outcomes = normalize_promoted_outcomes(
-        compiler_contract.get("promoted_outcomes")
-        if isinstance(compiler_contract.get("promoted_outcomes"), Mapping)
-        else None
-    )
+    normalized_contract = normalize_compiler_contract(compiler_contract)
+    promoted_outcomes = normalized_contract["promoted_outcomes"]
 
     return {
         "schema_version": REASONER_INPUT_ARTIFACT_SCHEMA_VERSION,
         "source_system": str(source_system),
-        "source_lane": str(compiler_contract.get("lane") or ""),
+        "source_lane": str(normalized_contract.get("lane") or ""),
         "source_artifact_ref": str(suite_normalized_artifact.get("artifact_id") or ""),
         "artifact_role": str(suite_normalized_artifact.get("artifact_role") or ""),
         "reasoner_scope": {
@@ -50,7 +47,7 @@ def build_reasoner_input_artifact(
             ],
         },
         "normalized_artifact": dict(suite_normalized_artifact),
-        "compiler_contract": dict(compiler_contract),
+        "compiler_contract": normalized_contract,
         "promotion_gate": dict(promotion_gate),
         "summary": {
             "gate_decision": str(promotion_gate.get("decision") or ""),

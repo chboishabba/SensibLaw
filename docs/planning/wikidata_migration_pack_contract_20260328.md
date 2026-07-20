@@ -1,5 +1,10 @@
 # Wikidata Migration Pack Contract (2026-03-28)
 
+Derived climate assessment note: the immutable company-direct replay may be
+consumed by the offline, read-only orthogonal V2 assessment defined in
+`climate_ghg_orthogonal_assessment_v2_20260717.md`. That derivation does not
+change this migration-pack contract or grant edit/execution authority.
+
 ## Purpose
 Define the first executable contract for a bounded property-migration review
 artifact in the Wikidata lane.
@@ -32,6 +37,129 @@ instead:
 cd SensibLaw
 ../.venv/bin/python -m cli.__main__ wikidata build-migration-pack --help
 ```
+
+## Bounded live discovery and reconciliation
+
+Live discovery is a separate, statement-level intake step.  It is not a
+property-renaming operation and it does not itself create a migration
+candidate.  For the current climate profile the source property is broad
+(`P5991`), whereas the target (`P14143`) is annual, entity-level greenhouse-gas
+emissions.  A discovery page therefore records a typed stratum before any
+classification is attempted.
+
+The first live stratum is deliberately narrow:
+
+```text
+direct P31 company/business/enterprise
++ source P5991 statement
++ no existing target P14143 statement on the subject
+```
+
+Direct `P31` membership is only a bounded discovery filter.  It is not a
+complete type closure and it does not by itself make a row migration-safe.
+Subsequent strata may include bounded-superclass company membership, product,
+person, event, non-enterprise organisation, unclear subject, and
+already-targeted rows, each with their own review policy.
+
+### Discovery manifest
+
+Every live page must persist a deterministic discovery manifest before entity
+retrieval.  The manifest contains:
+
+- schema and query version plus query hash;
+- endpoint, execution timestamp, deterministic ordering, page size, and
+  cursor;
+- source and target properties, selected subject-type stratum, and observed
+  row count;
+- per-row subject QID, source statement GUID, rank, direct P31 values, and
+  whether the subject already has the target property;
+- the raw WDQS response reference or content hash; and
+- an explicit declaration that discovery has no promotion or edit authority.
+
+### Revision-pinned reconciliation
+
+Discovery and entity retrieval happen at different times.  For every row in a
+bounded page, the materializer must retrieve a current revision-pinned entity
+export and reconcile the discovered statement GUID against that export before
+classification.  It records exactly one of:
+
+```text
+statement_reconciled
+statement_changed_since_discovery
+statement_missing
+entity_revision_unavailable
+```
+
+Only `statement_reconciled` rows may enter the climate classifier.  The
+classifier evaluates the complete statement family on that entity, rather than
+only an isolated statement, so temporal/scope splits and target-property
+coexistence remain visible.
+
+### Resumable live replay transport
+
+A wide discovery replay is a two-phase, read-only evidence operation:
+
+```text
+Phase A: discover every cursor page and pin the selected revision for each QID
+Phase B: fetch or validate exactly those pinned entity exports
+```
+
+Before Phase B, the materializer writes an atomic `run-state.json` containing
+the discovery/query contract hash, cursor bounds, population-exhaustion state,
+ordered QIDs, and per-QID revision IDs/timestamps. A resume reuses that state
+and never asks for a newer revision for an already pinned QID. Exports are
+immutable `QID + revision` evidence files; an existing file is reused only
+after its embedded QID/revision and content hash validate.
+
+Alongside durable run state, the materializer writes atomic `progress.json`
+after revision pinning and after each export. It exposes only operational
+status: phase, total/completed/reused/downloaded export counts, current
+QID/revision, elapsed time, throughput, estimated remaining time, and the
+safe `--resume` command. It contains no credentials or contact identity. A
+process may be stopped between updates and resumed from the pinned run state.
+The same updates are emitted to stderr through the repository's shared terminal
+progress callback: human, JSON-lines, or an interactive progress bar. Terminal
+output covers both Phase A revision pinning and Phase B exports.
+
+WDQS discovery, Action API revision lookup, and revision-pinned entity export
+share one HTTP session and identity, but retain independent pacing and backoff
+state. Each starts serially at a 500 ms interval. A `429` follows
+`Retry-After`; missing retry guidance or a `503` uses bounded exponential
+backoff with jitter for only the affected service. Non-interactive Action API
+calls include `maxlag=5`.
+
+The default User-Agent identifies the SensibLaw project URL. Operators may add
+contact information and an OAuth token through process environment variables.
+Contact identity is not authentication, and authentication's rate tier depends
+on the account's standing. Tokens, contact values, and authorization headers
+never enter state, receipts, manifests, or diagnostics.
+
+Copy `.env.example` to a local ignored `.env`, set values there, and source it
+in the invoking shell. The repository never writes a local `.env`. Wikimedia's
+published current limits distinguish identified anonymous/new authenticated
+clients from established authenticated editors; use a contact-bearing
+User-Agent, serial requests, and the service response rather than treating a
+token as a promise of a higher rate.
+
+The resulting classifier input records the source statement GUID, quantity
+unit, rank, `P585` time, `P459` method, `P3831` role, `P518` part,
+statement-specific references, sibling source statements, and target-property
+coexistence.  Missing inspection remains an abstention, never evidence of an
+absent qualifier or reference.
+
+Implemented CLI path:
+
+```bash
+python scripts/materialize_wikidata_migration_pack.py \
+  --discover-company-direct --candidate-limit 25 \
+  --source-property P5991 --target-property P14143 \
+  --out-dir /tmp/nat-company-direct-page
+```
+
+It writes `manifest.json`, pinned current entity exports, a filtered current
+slice, and the existing review-first migration pack. The discovery section of
+the manifest is non-authoritative and records reconciliation outcomes even
+when no row is eligible to enter classification.
 
 ## How this produces recommendations
 
@@ -128,6 +256,22 @@ Current `v0.1` interpretation:
 ## Candidate contract
 Each candidate row represents one current-window source-property statement
 bundle.
+
+### Atomic candidates and family context
+
+A candidate is one statement GUID. Other current claims with the same
+subject/property are retained as `statement_family_context`; they do not turn
+an atomic candidate into a multi-value statement. The context may report scope
+partitioning, duplicate/overlap signals, total/component reconciliation, and
+whether all sibling source claims were supplied.
+
+`split_required` is permitted only for an overloaded or otherwise ambiguous
+source statement (or a documented climate-model condition on that statement),
+not solely because siblings contain different values, years, or scopes. A
+complete family of separately stated scoped components and total is assessed
+as separate claims with `existing_partition_preserved`. A partial page must
+hydrate complete sibling context from the pinned export or abstain from
+family-level inference.
 
 Required fields:
 - `candidate_id`

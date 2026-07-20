@@ -5,25 +5,38 @@ from pathlib import Path
 
 from src.sources.national_archives.brexit_world_model_adapter import (
     BREXIT_REVIEW_WORLD_MODEL_SCHEMA_VERSION,
-    build_brexit_review_world_model_report,
+    build_report,
+    build_world_model,
 )
 
 
-def test_build_brexit_review_world_model_report() -> None:
+def test_build_report() -> None:
     payload = json.loads(
         Path("SensibLaw/tmp_out/gwb_broader_review_v1.json").read_text(encoding="utf-8")
     )
 
-    report = build_brexit_review_world_model_report(payload)
+    world_model = build_world_model(payload)
+    report = build_report(payload)
 
     assert report["schema_version"] == BREXIT_REVIEW_WORLD_MODEL_SCHEMA_VERSION
+    assert world_model["model_id"] == payload["normalized_metrics_v1"]["artifact_id"]
+    assert report["world_model_ref"]["model_id"] == world_model["model_id"]
+    assert report["projection"]["projection_kind"] == "report"
     assert report["artifact_id"] == payload["normalized_metrics_v1"]["artifact_id"]
     assert report["lane_id"] == payload["promotion_gate"]["lane"]
     assert report["decision"] == payload["promotion_gate"]["decision"]
+    assert report["promotion_gate"] == payload["promotion_gate"]
+    assert report["compiler_contract"] == payload["compiler_contract"]
+    assert report["operator_workflow_surface"]["summary"]["gate_decision"] == payload["promotion_gate"]["decision"]
+    assert report["operator_workflow_surface"]["summary"]["review_count"] == payload["compiler_contract"]["promoted_outcomes"]["review_count"]
     assert report["summary"]["claim_count"] == len(report["claims"])
     assert report["summary"]["archive_claim_count"] == len(payload["archive_follow_rows"])
     assert report["summary"]["review_row_claim_count"] >= 1
     assert report["summary"]["must_review_count"] >= 1
+    assert world_model["metadata"]["adapter_stack"] == [
+        "review_claim_records",
+        "review_inputs",
+    ]
 
     review_claim = next(
         claim for claim in report["claims"] if claim["claim_id"].startswith("brexit-review:")

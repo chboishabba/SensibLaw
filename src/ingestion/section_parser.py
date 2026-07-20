@@ -199,7 +199,9 @@ def _finalise_logic_doc(doc: Doc) -> Doc:
 
 
 def _expand_condition_scopes(doc: Doc) -> None:
-    indices = [i for i, token in enumerate(doc) if token._.class_ == LogicTokenClass.CONDITION]
+    indices = [
+        i for i, token in enumerate(doc) if token._.class_ == LogicTokenClass.CONDITION
+    ]
     for index in indices:
         position = index + 1
         while position < len(doc):
@@ -231,7 +233,9 @@ def _expand_condition_scopes(doc: Doc) -> None:
 
 
 def _label_actor_and_action(doc: Doc) -> None:
-    modality_indices = [i for i, token in enumerate(doc) if token._.class_ == LogicTokenClass.MODALITY]
+    modality_indices = [
+        i for i, token in enumerate(doc) if token._.class_ == LogicTokenClass.MODALITY
+    ]
     if not modality_indices:
         return
 
@@ -414,7 +418,9 @@ def _build_reference(
     )
 
 
-def _extract_reference_matches(text: str) -> List[Tuple[RuleReference, Tuple[int, int]]]:
+def _extract_reference_matches(
+    text: str,
+) -> List[Tuple[RuleReference, Tuple[int, int]]]:
     matches: List[Tuple[RuleReference, Tuple[int, int]]] = []
     spans: List[Tuple[int, int]] = []
 
@@ -511,7 +517,9 @@ def _extract_rule_tokens(text: str) -> Dict[str, object]:
 
     return {
         "modality": _humanise_modality(summary.primary_modality),
-        "conditions": [_humanise_condition(condition) for condition in summary.conditions],
+        "conditions": [
+            _humanise_condition(condition) for condition in summary.conditions
+        ],
         "references": references,
         "token_classes": _serialise_logic_tokens(doc),
     }
@@ -553,9 +561,7 @@ class ParsedNode:
                     for ref in self.rule_tokens.get("references", [])
                 ],
                 "token_classes": [
-                    dict(token)
-                    if isinstance(token, dict)
-                    else token
+                    dict(token) if isinstance(token, dict) else token
                     for token in self.rule_tokens.get("token_classes", [])
                 ],
             },
@@ -765,23 +771,13 @@ def parse_sections(text: str) -> List[ParsedNode]:
 
 
 __all__ = [
+    "LogicTokenClass",
     "ParsedNode",
+    "Section",
+    "annotate_logic_tokens",
     "parse_sections",
     "parse_html_section",
     "parse_canonical_section",
     "fetch_section",
     "TOKEN_RE",
 ]
-"""Compatibility re-export for :mod:`section_parser` without overriding new APIs."""
-
-try:  # pragma: no cover - optional legacy dependency
-    import section_parser as _legacy_section_parser  # type: ignore
-except ModuleNotFoundError:  # pragma: no cover - legacy module absent
-    _legacy_section_parser = None
-else:  # pragma: no cover - thin compatibility bridge
-    legacy_exports = getattr(_legacy_section_parser, "__all__", [])
-    for name in legacy_exports:
-        if name not in globals():
-            globals()[name] = getattr(_legacy_section_parser, name)
-        if name not in __all__:
-            __all__.append(name)

@@ -1,0 +1,59 @@
+{
+  "events": {
+    "family_a:A": {
+      "event_id": "A",
+      "source_family": "family_a",
+      "source_path": "/tmp/doc_a.txt",
+      "source_span": "Bush signed the education act",
+      "event_quality_status": "promotable_event",
+      "event_quality_score": 1.0,
+      "event_time_anchor_status": "none",
+      "resolved_historical_date": null,
+      "human_event_like": "yes",
+      "human_actor_correct": "yes",
+      "human_action_correct": "yes",
+      "human_object_correct": "yes",
+      "human_date_correct": "unclear",
+      "human_order_correct": "yes",
+      "recommended_status": "promote",
+      "notes": "Verified high-quality event extraction of Bush signing NCLBA."
+    },
+    "family_a:B": {
+      "event_id": "B",
+      "source_family": "family_a",
+      "source_path": "/tmp/doc_a.txt",
+      "source_span": "Table of Contents: Bush traveled to Texas",
+      "event_quality_status": "rejected_noise",
+      "event_quality_score": 0.0,
+      "event_time_anchor_status": "none",
+      "resolved_historical_date": null,
+      "human_event_like": "no",
+      "human_actor_correct": "yes",
+      "human_action_correct": "no",
+      "human_object_correct": "no",
+      "human_date_correct": "unclear",
+      "human_order_correct": "no",
+      "recommended_status": "block",
+      "notes": "Frontmatter debris incorrectly parsed as event."
+    },
+    "family_b:C": {
+      "event_id": "C",
+      "source_family": "family_b",
+      "source_path": "/tmp/doc_b.txt",
+      "source_span": "It was reported that Bush met a senator",
+      "event_quality_status": "weak_candidate",
+      "event_quality_score": 0.7,
+      "event_time_anchor_status": "none",
+      "resolved_historical_date": null,
+      "human_event_like": "yes",
+      "human_actor_correct": "yes",
+      "human_action_correct": "yes",
+      "human_object_correct": "yes",
+      "human_date_correct": "unclear",
+      "human_order_correct": "unclear",
+      "recommended_status": "candidate",
+      "notes": "Fallback verb met, keep as candidate context."
+    }
+  },
+  "edges": {}
+}

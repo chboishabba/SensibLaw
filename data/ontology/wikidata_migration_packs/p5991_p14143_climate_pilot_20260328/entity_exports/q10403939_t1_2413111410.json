@@ -1,5 +1,5 @@
 {
-  "_source_path": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10403939_t1_2413111410.json",
+  "_source_path": "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10403939_t1_2413111410.json",
   "_source_qid": "Q10403939",
   "_source_revision": 2413111410,
   "entities": {
@@ -3658,26 +3658,22 @@
         "arwiki": {
           "badges": [],
           "site": "arwiki",
-          "title": "أكاديميسكا هوس",
-          "url": "https://ar.wikipedia.org/wiki/%D8%A3%D9%83%D8%A7%D8%AF%D9%8A%D9%85%D9%8A%D8%B3%D9%83%D8%A7_%D9%87%D9%88%D8%B3"
+          "title": "أكاديميسكا هوس"
         },
         "commonswiki": {
           "badges": [],
           "site": "commonswiki",
-          "title": "Category:Akademiska hus",
-          "url": "https://commons.wikimedia.org/wiki/Category:Akademiska_hus"
+          "title": "Category:Akademiska hus"
         },
         "enwiki": {
           "badges": [],
           "site": "enwiki",
-          "title": "Akademiska Hus",
-          "url": "https://en.wikipedia.org/wiki/Akademiska_Hus"
+          "title": "Akademiska Hus"
         },
         "svwiki": {
           "badges": [],
           "site": "svwiki",
-          "title": "Akademiska Hus",
-          "url": "https://sv.wikipedia.org/wiki/Akademiska_Hus"
+          "title": "Akademiska Hus"
         }
       },
       "title": "Q10403939",

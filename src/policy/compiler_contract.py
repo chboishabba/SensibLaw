@@ -48,6 +48,21 @@ def _labels(values: Iterable[str]) -> tuple[str, ...]:
     return tuple(seen)
 
 
+def normalize_evidence_bundle(
+    value: Mapping[str, Any] | EvidenceBundleContract | None,
+) -> dict[str, Any]:
+    if isinstance(value, EvidenceBundleContract):
+        return asdict(value)
+    mapping = value if isinstance(value, Mapping) else {}
+    return {
+        "bundle_kind": str(mapping.get("bundle_kind") or "").strip(),
+        "source_family": str(mapping.get("source_family") or "").strip(),
+        "source_count": max(0, _int(mapping.get("source_count"))),
+        "item_count": max(0, _int(mapping.get("item_count"))),
+        "item_label": str(mapping.get("item_label") or "").strip(),
+    }
+
+
 def normalize_promoted_outcomes(
     value: Mapping[str, Any] | PromotedOutcomeContract | None,
 ) -> dict[str, Any]:
@@ -59,10 +74,62 @@ def normalize_promoted_outcomes(
     mapping = value if isinstance(value, Mapping) else {}
     return {
         "outcome_family": str(mapping.get("outcome_family") or "").strip(),
-        "promoted_count": _int(mapping.get("promoted_count")),
-        "review_count": _int(mapping.get("review_count")),
-        "abstained_count": _int(mapping.get("abstained_count")),
+        "promoted_count": max(0, _int(mapping.get("promoted_count"))),
+        "review_count": max(0, _int(mapping.get("review_count"))),
+        "abstained_count": max(0, _int(mapping.get("abstained_count"))),
         "outcome_labels": list(_labels(mapping.get("outcome_labels", []))),
+    }
+
+
+def normalize_derived_products(
+    values: Sequence[Mapping[str, Any] | DerivedProductContract] | None,
+) -> list[dict[str, Any]]:
+    normalized: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, bool]] = set()
+    for value in values or ():
+        if isinstance(value, DerivedProductContract):
+            row = asdict(value)
+            has_product_kind = True
+        elif isinstance(value, Mapping):
+            has_product_kind = "product_kind" in value
+            row = {
+                "product_kind": str(value.get("product_kind") or "").strip(),
+                "role": str(value.get("role") or "").strip(),
+                "default_surface": bool(value.get("default_surface")),
+            }
+        else:
+            continue
+        if not row["product_kind"] and not row["role"]:
+            continue
+        if has_product_kind and not row["product_kind"]:
+            continue
+        key = (row["product_kind"], row["role"], row["default_surface"])
+        if key in seen:
+            continue
+        seen.add(key)
+        normalized.append(row)
+    return normalized
+
+
+def normalize_compiler_contract(
+    value: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    mapping = value if isinstance(value, Mapping) else {}
+    return {
+        "schema_version": str(mapping.get("schema_version") or COMPILER_CONTRACT_SCHEMA_VERSION),
+        "lane": str(mapping.get("lane") or "").strip(),
+        "evidence_bundle": normalize_evidence_bundle(
+            mapping.get("evidence_bundle")
+        ),
+        "promoted_outcomes": normalize_promoted_outcomes(
+            mapping.get("promoted_outcomes")
+        ),
+        "derived_products": normalize_derived_products(
+            mapping.get("derived_products")
+            if isinstance(mapping.get("derived_products"), Sequence)
+            and not isinstance(mapping.get("derived_products"), (str, bytes, bytearray))
+            else None
+        ),
     }
 
 
@@ -73,13 +140,15 @@ def build_compiler_contract_payload(
     promoted_outcomes: PromotedOutcomeContract,
     derived_products: Sequence[DerivedProductContract],
 ) -> dict[str, Any]:
-    return {
-        "schema_version": COMPILER_CONTRACT_SCHEMA_VERSION,
-        "lane": str(lane),
-        "evidence_bundle": asdict(evidence_bundle),
-        "promoted_outcomes": normalize_promoted_outcomes(promoted_outcomes),
-        "derived_products": [asdict(product) for product in derived_products],
-    }
+    return normalize_compiler_contract(
+        {
+            "schema_version": COMPILER_CONTRACT_SCHEMA_VERSION,
+            "lane": lane,
+            "evidence_bundle": evidence_bundle,
+            "promoted_outcomes": promoted_outcomes,
+            "derived_products": derived_products,
+        }
+    )
 
 
 def build_au_public_handoff_contract(slice_payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -392,5 +461,8 @@ __all__ = [
     "build_gwb_public_handoff_contract",
     "build_gwb_public_review_contract",
     "build_wikidata_migration_pack_contract",
+    "normalize_compiler_contract",
+    "normalize_derived_products",
+    "normalize_evidence_bundle",
     "normalize_promoted_outcomes",
 ]

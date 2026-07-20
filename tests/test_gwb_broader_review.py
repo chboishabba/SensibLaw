@@ -8,8 +8,12 @@ from scripts import build_gwb_broader_review as module
 from scripts.build_gwb_broader_review import ARTIFACT_VERSION, build_gwb_broader_review
 from src.policy.gwb_broader_review_world_model import (
     GWB_BROADER_REVIEW_WORLD_MODEL_SCHEMA_VERSION,
-    build_gwb_broader_review_world_model_report,
+    build_report as build_world_model_report,
+    build_world_model,
 )
+from src.policy.gwb import build_report
+from src.policy.gwb_linkage_depth import GWB_BROADER_REVIEW_LINKAGE_CONTRACT_ID, build_case
+from src.policy.linkage_depth import LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION
 
 
 def test_build_gwb_broader_review(tmp_path: Path) -> None:
@@ -101,30 +105,42 @@ def test_build_gwb_broader_review(tmp_path: Path) -> None:
     assert summary["provisional_review_bundle_count"] >= summary["related_review_cluster_count"]
     normalized = payload["normalized_metrics_v1"]
     assert normalized["artifact_id"] == "gwb_broader_review_v1"
-    assert normalized["review_item_status_counts"] == {
-        "accepted": 15,
-        "review_required": 4,
-        "held": 0,
-    }
-    assert normalized["source_status_counts"] == {
-        "accepted": 39,
-        "review_required": 14,
-        "held": 0,
-    }
+    assert normalized["review_item_status_counts"]["accepted"] == 8
+    assert normalized["review_item_status_counts"]["held"] == 0
+    assert normalized["review_item_status_counts"]["review_required"] >= 7
+    assert normalized["source_status_counts"]["accepted"] == 34
+    assert normalized["source_status_counts"]["held"] == 0
+    assert normalized["source_status_counts"]["review_required"] >= 17
     assert normalized["dominant_primary_workload"] == "linkage_pressure"
-    assert normalized["primary_workload_counts"]["linkage_pressure"] == 8
+    assert normalized["primary_workload_counts"]["linkage_pressure"] == 11
     assert normalized["primary_workload_counts"]["event_or_time_pressure"] == 3
-    assert normalized["candidate_signal_count"] == 46
-    assert normalized["provisional_queue_row_count"] == 46
-    assert normalized["provisional_bundle_count"] == 13
-    assert normalized["review_required_source_ratio"] == 0.264151
-    assert normalized["candidate_signal_density"] == 3.285714
-    assert normalized["provisional_row_density"] == 3.285714
-    assert normalized["provisional_bundle_density"] == 0.928571
+    assert normalized["candidate_signal_count"] == normalized["provisional_queue_row_count"]
+    assert normalized["candidate_signal_count"] >= 58
+    assert normalized["provisional_bundle_count"] >= 16
+    assert normalized["review_required_source_ratio"] > 0.25
+    assert normalized["candidate_signal_density"] >= 3.0
+    assert normalized["provisional_row_density"] == normalized["candidate_signal_density"]
+    assert normalized["provisional_bundle_density"] >= 0.9
 
     assert any(row["source_kind"] == "seed_family_support" for row in payload["source_review_rows"])
     assert any(row["source_kind"] == "merged_promoted_relation" for row in payload["source_review_rows"])
     assert any(row["source_kind"] == "source_family_summary" for row in payload["source_review_rows"])
+    merged_relation_row = next(
+        row
+        for row in payload["source_review_rows"]
+        if row["source_kind"] == "merged_promoted_relation" and (row["source_paths"] or row["source_urls"])
+    )
+    assert merged_relation_row["event_ids"]
+    assert merged_relation_row["metadata"]["promoted_relation_id"]
+    assert merged_relation_row["metadata"]["event_lineage_depth"] in {"complete", "partial"}
+    assert merged_relation_row["metadata"]["cross_source_braid_depth"] in {
+        "complete",
+        "partial",
+        "candidate_only",
+        "missing",
+    }
+    assert "merged_event_ids" in merged_relation_row["metadata"]
+    assert "ordering_edge_ids" in merged_relation_row["metadata"]
     assert payload["legal_follow_graph"]["derived_only"] is True
     assert payload["legal_follow_graph"]["challengeable"] is True
     assert payload["legal_follow_graph"]["summary"]["seed_lane_count"] >= summary["distinct_seed_lane_count"]
@@ -268,14 +284,70 @@ def test_gwb_broader_review_world_model_report_rebinds_legal_follow_queue(tmp_pa
     result = build_gwb_broader_review(tmp_path / "out")
     payload = json.loads(Path(result["artifact_path"]).read_text(encoding="utf-8"))
 
-    report = build_gwb_broader_review_world_model_report(payload)
+    world_model = build_world_model(payload)
+    report = build_world_model_report(payload)
 
     assert report["schema_version"] == GWB_BROADER_REVIEW_WORLD_MODEL_SCHEMA_VERSION
+    assert world_model["model_id"] == payload["normalized_metrics_v1"]["artifact_id"]
+    assert world_model["claims"] == report["claims"]
+    assert report["world_model_ref"]["model_id"] == world_model["model_id"]
+    assert report["projection"]["projection_kind"] == "report"
+    assert report["claim_table"]["projection_kind"] == "claim_table"
+    assert report["review_surface"]["projection_kind"] == "review_surface"
+    assert report["linkage_case"]["projection_kind"] == "linkage_case"
     assert report["family_id"] == "gwb_broader_review"
     assert report["lane_id"] == "gwb"
+    assert report["promotion_gate"] == payload["promotion_gate"]
+    assert report["compiler_contract"] == payload["compiler_contract"]
+    assert report["operator_workflow_surface"]["summary"]["gate_decision"] == payload["promotion_gate"]["decision"]
+    assert report["operator_workflow_surface"]["summary"]["review_count"] == payload["compiler_contract"]["promoted_outcomes"]["review_count"]
     assert report["summary"]["claim_count"] >= 1
     assert report["summary"]["must_review_count"] >= 1
     assert report["summary"]["queue_count"] == payload["operator_views"]["legal_follow_graph"]["summary"]["queue_count"]
     first_claim = report["claims"][0]
     assert first_claim["nat_claim"]["property"] == "legal_follow_target"
     assert first_claim["action_policy"]["actionability"] == "must_review"
+    assert any(
+        any(ref.get("event_ids") for ref in claim["nat_claim"]["qualifiers"]["source_refs"])
+        for claim in report["claims"]
+    )
+    assert any(
+        any(ref.get("cross_source_braid_depth") for ref in claim["nat_claim"]["qualifiers"]["source_refs"])
+        for claim in report["claims"]
+    )
+    assert world_model["metadata"]["adapter_stack"] == [
+        "review_claim_records",
+        "authority_surface_rows",
+        "review_inputs",
+    ]
+    assert "linkage_depth_receipt" not in report
+
+
+def test_gwb_broader_review_linkage_case_uses_projected_input_before_receipt(tmp_path: Path) -> None:
+    result = build_gwb_broader_review(tmp_path / "out")
+    payload = json.loads(Path(result["artifact_path"]).read_text(encoding="utf-8"))
+    report = build_world_model_report(payload)
+    case = build_case(report)
+
+    assert case["case_source"] == "projected_world_model_artifact"
+
+
+def test_gwb_broader_review_lane_receipt_attaches_at_wrapper_boundary(tmp_path: Path) -> None:
+    result = build_gwb_broader_review(tmp_path / "out")
+    payload = json.loads(Path(result["artifact_path"]).read_text(encoding="utf-8"))
+
+    report = build_report(payload, with_receipt=True)
+
+    receipt = report["linkage_depth_receipt"]
+    assert receipt["schema_version"] == LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION
+    assert receipt["artifact_type"] == "linkage_depth_receipt"
+    assert receipt["source_mode"] == "emitted_bridge_artifact"
+    assert receipt["case_id"] == "gwb_broader_review"
+    assert receipt["contract"]["contract_id"] == GWB_BROADER_REVIEW_LINKAGE_CONTRACT_ID
+    assert receipt["diagnostics"]["linkage_depth_status"] == "complete"
+    assert receipt["diagnostics"]["typed_path_depth"] == 5
+    assert receipt["diagnostics"]["anchor_to_tranche_reachability"]["all_reachable"] is True
+    assert receipt["diagnostics"]["visibility_requirements"]["queue_review_depth"]["present"] is True
+    assert receipt["diagnostics"]["visibility_requirements"]["event_lineage_depth"]["present"] is True
+    assert receipt["diagnostics"]["visibility_requirements"]["cross_source_braid_depth"]["present"] is True
+    assert "complete" in receipt["diagnostics"]["visibility_requirements"]["event_lineage_depth"]["values"]

@@ -85,8 +85,38 @@ def _seed_support_kind(row: dict[str, Any]) -> str:
 
 
 def _build_slice(linkage_report: dict[str, Any], semantic_report: dict[str, Any], *, timeline_payload: dict[str, Any]) -> dict[str, Any]:
+    events_by_id = {
+        str(row.get("event_id") or "").strip(): row
+        for row in timeline_payload.get("events", [])
+        if isinstance(row, dict) and str(row.get("event_id") or "").strip()
+    }
     selected_relations = []
     for row in semantic_report.get("promoted_relations", []):
+        event_id = str(row.get("event_id") or "").strip()
+        event_row = events_by_id.get(event_id) or {}
+        citations = event_row.get("citations") if isinstance(event_row.get("citations"), list) else []
+        source_path = str(event_row.get("path") or "").strip()
+        source_url = str(event_row.get("url") or "").strip()
+        source_id = str(event_row.get("source_id") or "").strip()
+        lineage = {
+            "event_id": event_id,
+            "source_id": source_id,
+            "source_path": source_path,
+            "source_url": source_url,
+            "source_title": str(event_row.get("title") or "").strip(),
+            "source_section": str(event_row.get("section") or "").strip(),
+            "source_text": str(event_row.get("text") or "").strip(),
+            "citation_refs": [
+                {
+                    "kind": str(citation.get("kind") or "").strip(),
+                    "text": str(citation.get("text") or "").strip(),
+                    "source_id": str(citation.get("source_id") or "").strip(),
+                    "follow": list(citation.get("follow") or []),
+                }
+                for citation in citations
+                if isinstance(citation, dict)
+            ],
+        }
         selected_relations.append({
             "event_id": row.get("event_id"),
             "predicate_key": row.get("predicate_key"),
@@ -94,6 +124,7 @@ def _build_slice(linkage_report: dict[str, Any], semantic_report: dict[str, Any]
             "subject": row.get("subject"),
             "object": row.get("object"),
             "receipts": row.get("receipts", []),
+            "event_lineage": lineage,
         })
 
     seed_lookup = {str(row.get("seed_id")): row for row in linkage_report.get("per_seed", [])}

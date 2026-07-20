@@ -1,5 +1,5 @@
 {
-  "_source_path": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10416948_t1_2435184169.json",
+  "_source_path": "data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10416948_t1_2435184169.json",
   "_source_qid": "Q10416948",
   "_source_revision": 2435184169,
   "entities": {
@@ -2216,14 +2216,12 @@
         "enwiki": {
           "badges": [],
           "site": "enwiki",
-          "title": "Swedish Agency for Government Employers",
-          "url": "https://en.wikipedia.org/wiki/Swedish_Agency_for_Government_Employers"
+          "title": "Swedish Agency for Government Employers"
         },
         "svwiki": {
           "badges": [],
           "site": "svwiki",
-          "title": "Arbetsgivarverket",
-          "url": "https://sv.wikipedia.org/wiki/Arbetsgivarverket"
+          "title": "Arbetsgivarverket"
         }
       },
       "title": "Q10416948",

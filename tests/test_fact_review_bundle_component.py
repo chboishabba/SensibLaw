@@ -6,6 +6,7 @@ from src.fact_intake.review_bundle import (
     build_event_chronology,
     build_fact_review_bundle_payload,
 )
+from src.policy.product_gate import PRODUCT_GATE_SCHEMA_VERSION
 from src.policy.review_workflow_summary import build_count_priority_workflow_summary
 
 
@@ -183,6 +184,74 @@ def test_build_fact_review_bundle_payload_shapes_shared_envelope() -> None:
     assert bundle["review_claim_records"][0]["review_text"]["text"] == "Transcript fact 1"
 
 
+def test_build_fact_review_bundle_payload_normalizes_compiler_contract_and_gate() -> None:
+    bundle = build_fact_review_bundle_payload(
+        fact_report={
+            "run": {
+                "run_id": "factrun:123",
+                "source_label": "au_semantic:abc",
+                "created_at": "2026-03-31T00:00:00Z",
+                "workflow_link": {"workflow_kind": "au_semantic"},
+            },
+            "summary": {"event_count": 0},
+            "sources": [],
+            "excerpts": [],
+            "statements": [],
+            "observations": [],
+            "events": [],
+            "facts": [],
+        },
+        review_summary={
+            "chronology_groups": {},
+            "review_queue": [],
+            "contested_summary": {},
+            "chronology_summary": {},
+        },
+        semantic_run_id="semantic:1",
+        source_documents=[],
+        chronology=[],
+        abstentions={
+            "statement_ids": [],
+            "observation_ids": [],
+            "fact_ids": [],
+            "counts": {
+                "statement_abstentions": 0,
+                "observation_abstentions": 0,
+                "fact_abstentions": 0,
+            },
+        },
+        operator_views={},
+        semantic_context={
+            "compiler_contract": {
+                "lane": " au ",
+                "evidence_bundle": {
+                    "source_family": None,
+                    "item_label": " fact ",
+                    "source_count": "bad",
+                    "item_count": "2",
+                },
+            },
+            "promotion_gate": {
+                "decision": " audit ",
+                "product_ref": " au_fact_review_bundle ",
+                "evidence": {"review_count": "3", "product_roles": [" operator_handoff ", ""]},
+            },
+        },
+    )
+
+    assert bundle["compiler_contract"]["lane"] == "au"
+    assert bundle["compiler_contract"]["evidence_bundle"]["source_count"] == 0
+    assert bundle["compiler_contract"]["evidence_bundle"]["item_count"] == 2
+    assert bundle["compiler_contract"]["evidence_bundle"]["item_label"] == "fact"
+    assert bundle["promotion_gate"]["schema_version"] == PRODUCT_GATE_SCHEMA_VERSION
+    assert bundle["promotion_gate"]["decision"] == "audit"
+    assert bundle["promotion_gate"]["product_ref"] == "au_fact_review_bundle"
+    assert bundle["promotion_gate"]["evidence"]["review_count"] == 3
+    assert bundle["promotion_gate"]["evidence"]["product_roles"] == ["operator_handoff"]
+    assert bundle["semantic_context"]["compiler_contract"] == bundle["compiler_contract"]
+    assert bundle["semantic_context"]["promotion_gate"] == bundle["promotion_gate"]
+
+
 def test_build_bundle_workflow_summary_prefers_authority_follow() -> None:
     summary = build_bundle_workflow_summary(
         review_summary={
@@ -205,6 +274,29 @@ def test_build_bundle_workflow_summary_prefers_authority_follow() -> None:
     assert summary["recommended_view"] == "authority_follow"
     assert summary["focus_fact_id"] == "fact:1"
     assert summary["promotion_gate"]["decision"] == "audit"
+
+
+def test_build_bundle_workflow_summary_normalizes_promotion_gate() -> None:
+    summary = build_bundle_workflow_summary(
+        review_summary={
+            "summary": {"review_queue_count": 1},
+            "contested_summary": {"needs_followup_count": 0},
+            "chronology_summary": {"undated_event_count": 0, "no_event_fact_count": 0},
+        },
+        operator_views={},
+        promotion_gate={
+            "decision": " audit ",
+            "product_ref": " au_fact_review_bundle ",
+            "evidence": {"review_count": "1"},
+        },
+        default_fact_id="fact:1",
+    )
+
+    assert summary["stage"] == "decide"
+    assert summary["promotion_gate"]["schema_version"] == PRODUCT_GATE_SCHEMA_VERSION
+    assert summary["promotion_gate"]["decision"] == "audit"
+    assert summary["promotion_gate"]["product_ref"] == "au_fact_review_bundle"
+    assert summary["promotion_gate"]["evidence"]["review_count"] == 1
 
 
 def test_build_count_priority_workflow_summary_uses_first_matching_rule() -> None:

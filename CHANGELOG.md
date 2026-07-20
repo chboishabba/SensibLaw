@@ -1,3 +1,146 @@
+# 2026-07-17
+
+- Implement P0c.5's registry-neutral evidence-control-plane carrier. Immutable
+  cache metadata, typed backend capabilities, explicit cache/unavailable/
+  budget outcomes, and deterministic rate-limit-aware microbatch plans now sit
+  after semantic demand equivalence. This is plan-only: it performs no I/O,
+  selects no identity, reconciles no event, and mutates no PNF.
+
+- Implement P0c.3/P0c.4 typed resolution subjects and semantic demand-
+  equivalence receipts before scheduler work. Entity/event/property/local-
+  cluster subjects and formal event roles remain distinct; equivalent demands
+  retain every member and are only marked coalescible, with no backend, cache,
+  retrieval, resolution, PNF, or promotion effect.
+- Implement P0c.2's generic backend-free ResolutionDemand projection. Only
+  unresolved closure obligations now produce source-anchored, facet-specific,
+  budget-labelled evidence plans; no backend selection, request, resolution,
+  or PNF mutation occurs.
+- Implement P0c.1's generic factorized PartialPNF carrier and independent
+  closure-pressure receipt. Document-bounded slots now retain compatible local
+  type alternatives without combining them, making a registry request,
+  resolving identity, or asserting a claim.
+- Implement P0b.8's generic candidate-only local typing and coverage-pressure
+  carrier. Form and parser evidence can now produce explicit local semantic
+  alternatives and per-mention coverage states without selecting identity,
+  constructing PNF, contacting a registry, or promoting a fact.
+- Correct P0b.7 form composition so every compatible declared component path
+  is emitted; input and serialization order can no longer suppress a form
+  alternative.
+- Implement P0b.7's generic candidate-only form derivation carrier. Anchored
+  source forms now produce explicit surface, token, numeric, abbreviation, and
+  profile-derived alternatives plus declared form relations, before entity
+  retrieval or PNF interpretation. Deterministic encoding order is explicitly
+  non-semantic; no alias truth, event identity, metonymy, resolution, or
+  promotion is introduced.
+- Implement P0b.6's generic offline bounded candidate retrieval. Anchored
+  mentions now match caller-supplied, provenance-bearing catalog entries by
+  exact canonical token sequence, preserving explicit zero/one/many candidate
+  alternatives with no ranking, resolution, registry request, PNF mutation,
+  or promotion effect.
+- Implement P0b.5's parser-interface-only structural-grammar producer. The
+  initial nominal-phrase profile emits deterministic bounded `grammar_phrase`
+  requests while preserving a candidate-only boundary: no candidate set,
+  registry access, identity/PNF decision, or promotion.
+- Implement P0b.4's generic alias-index request producer. Provenance-bearing
+  canonical token sequences now emit deterministic exact `alias_hint` expansion
+  requests without carrying a QID, registry lookup, candidate selection,
+  identity resolution, PNF mutation, or promotion authority.
+- Implement P0b.3's generic bounded mention-expansion carrier. Explicit alias
+  hints, grammar phrases, and future PNF demands can license verified canonical
+  token intervals, reusing existing spans or creating source-anchored new ones
+  deterministically. Requests remain candidate-only context, not alias,
+  identity, PNF, candidate-set, registry, promotion, or execution decisions.
+- Implement P0b.2's generic document-local mention-recurrence carrier. It
+  deterministically groups only repeated case-folded, whitespace-normalized
+  generated surfaces within one document. Recurrence remains candidate-only
+  evidence, not aliasing, coreference, identity resolution, PNF mutation,
+  registry lookup, promotion, or execution.
+- Implement P0b.1's generic backend-free mention-licensing carrier. It uses
+  the public parser/reducer interfaces to materialize non-structural lexical
+  spans, numeric spans, maximal name-shaped phrases, and adapter-annotated
+  eventualities; it records the complete recoverable token-span lattice and
+  structural suppression deterministically. Licensing is candidate-only and
+  introduces no registry lookup, identity resolution, PNF mutation, promotion,
+  or cross-document join.
+- Refine the PNF/entity-resolution architecture so coverage pressure types all
+  meaningful local entities and eventualities while closure pressure controls
+  deeper evaluation. Document a registry-neutral, cache-aware microbatch
+  scheduler; Wikidata and WorldMonitor as optional snapshot backends; and
+  cross-registry event reconciliation through typed temporal, spatial,
+  participant, type, lineage, and observation/occurrence meets. This is a
+  documentation and implementation-sequencing correction only; no resolver,
+  network scheduler, WorldMonitor adapter, identity decision, or promotion path
+  has been implemented.
+- Add the first generic entity-resolution carrier slice. Anchored mentions,
+  typed local/external candidates, candidate sets, and document-local
+  coreference clusters now validate and serialize deterministically under a
+  candidate-only authority boundary. The carrier rejects cross-document joins
+  and promotion authority; it deliberately performs no lookup, resolution,
+  PNF mutation, or claim promotion.
+- Consolidate the section parser behind `src.ingestion.section_parser`. The
+  historical `src.section_parser` module now projects canonical nodes into its
+  legacy `Provision` tree and simple section JSON shapes, instead of carrying
+  a second parser/rule-extraction implementation. Existing parser-facing
+  callers retain their output shapes; span-storage and cache optimization are
+  still pending P0a work.
+- Reframe P0 around a shared PNF-driven entity-resolution spine before
+  targeting. The canonical plan now covers a recoverable lazy mention lattice,
+  generic candidate/coreference/resolution carriers, factorized PNF refinement,
+  parser/span consolidation prerequisites, GWB and AU proving tranches, and
+  Nat/Wikidata as an optional pinned evidence backend. Candidate identity,
+  resolved identity, and promoted fact remain separate; cross-context identity
+  joining remains explicit and opt-in. This is a documentation and sequencing
+  change only; no resolver runtime or promotion behavior has been implemented.
+- Record a suite-wide TODO priority checkpoint: shared compiler/targeting
+  first, GWB/affidavit as the ambiguity-heavy proving lane, AU as the next
+  targeting adopter, Nat/Wikidata as bounded diagnostics, and graph expansion
+  or hard ontology work afterward. Shared emitted alignment and live migration
+  remain held.
+- Document the next bounded climate-GHG policy-resolution dry run. It
+  separates 132 fiscal-only holds, 21 Q52579 subject holds, 4 Q1476113
+  reference holds, and concentrated method/unit cases from the 176
+  fiscal-plus-ambiguous-scope statements. The planned output is an offline,
+  diagnostic transition receipt partition with no migration or edit authority.
+- Add the derived climate-GHG evidence/governance tranche above the immutable
+  V2 assessment: a provenance-bound JSON review sidecar, exclusive and
+  overlapping hold-reason inventory, unknown-coverage explanation, 14-family /
+  218-statement A4 attrition explanation, and a five-positive / 95%-precision /
+  zero-critical-miss contract gate with a review-only 25-statement canary.
+  The current pending sample remains diagnostic-only; CSV/OpenRefine and all
+  migration/edit execution remain deferred.
+- Add the derived-only climate-GHG orthogonal V2 assessment over the immutable
+  232-family / 3,562-statement company-direct replay. A generic shared carrier
+  validates five-axis cardinality, references, authority, ordering, hashes,
+  outcomes, and aggregate counts; the climate profile supplies geometry, slot
+  identity, coverage, semantic subtypes, eligibility predicates, and legacy
+  A1-A5/H4 projections.
+- Add an offline atomic materializer with six-file SHA-256 provenance,
+  target-collision evidence checks, byte-identical output reuse, deterministic
+  15-family review sampling, and no network/edit/execution path. The comparison
+  artifact reconciles legacy A4 124/2,416 against strict 110/2,198 with the
+  14-family/218-statement attrition identified, legacy A5 90/830 against zero
+  strict matches, and H4 5 families/25 groups/50 members against 2/15 strict.
+
+- Add candidate-only A1 atomic-total, A2 coherent scoped-component, and A3
+  separated-annual-series climate transformation profiles over the generic
+  rule carrier. Detector results retain predicate states, reason codes,
+  dependency groups, target-domain state, and explicit abstention; legacy A-E
+  labels cannot act as rule matches.
+- Add rate-limit-aware live discovery, composite QID/statement-GUID pagination,
+  and generic cumulative rule-coverage aggregation with cursor-gap and
+  duplicate-candidate rejection. The first two contiguous pages cover 400
+  revision-pinned statements across 28 dependency groups: 4 candidate-rule
+  matches, 115 no-rule rows, and 281 incomplete rows. The population is not
+  exhausted and no rule, edit, or execution manifest is approved.
+- Add generic family-member evidence hydration for period partition and
+  independently assessed member conformance. The climate profile supplies
+  normalized WD values, while the shared carrier preserves missing-member
+  abstention and computes family states. Generic page/cumulative coverage now
+  reports incomplete-evidence, exclusion, and deduplicated no-rule reason
+  histograms. Re-running the same 400 revision-pinned rows closed the omitted
+  sibling-assessment frontier: 4 candidate matches and 396 complete no-rule
+  holds across 28 dependency groups, with no approved rule or edit.
+
 # 2026-04-19
 
 - document the legal-follow pressure ownership split across `README.md`,
@@ -16,7 +159,261 @@
 
 # Changelog
 
+## 2026-07-17
+
+- Make live Wikidata migration-pack materialization resumable and
+  revision-pinned before export. The materializer now persists an atomic run
+  state, pins Action API revisions independently where required, reuses only
+  QID/revision-validated
+  exports, and records sanitized transport telemetry. WDQS, Action API, and
+  revision-export traffic retain independent polite backoff state; the workflow
+  remains read-only and review-only.
+- Add atomic live `progress.json` updates for pinned replays. Operators can
+  inspect phase, current pinned export, completed/reused/downloaded work,
+  throughput, ETA, and the safe resume command while a long run proceeds.
+- Reuse the shared CLI progress callback so revision pinning and export
+  acquisition also report to the terminal as human text, JSON-lines, or a TTY
+  progress bar.
+
+- Added generic dependency-group inventory support to transformation-rule
+  coverage. Profiles can now supply one deterministic primary obstruction,
+  secondary evidence, affected members, geometry, and a non-executing action;
+  coverage validates agreement across sibling rows and reports one family
+  record rather than inflating row-level reason counts.
+- Added normalized, profile-supplied period shapes to the generic statement
+  family carrier. An exactly reconciled, already-partitioned same-year
+  component family is now represented as
+  `same_annual_period_component_partition`, rather than as a period conflict.
+- Replayed the first two live composite discovery pages: 400 pinned statements
+  / 28 families remain a dry run with 4 candidate matches and no coverage
+  abstentions. The family inventory yields one coherent control family, 16
+  scope-partition families, and 11 total-reconciliation families; no rule,
+  edit, or execution authority changed.
+
 ## Unreleased
+
+- Strengthen generic governed-invariant receipts for context-dependent
+  approvals. A trusted contribution may now retain a deterministic statement
+  family conformance witness, selected-candidate-only scope, and dependency
+  group. Empirical feature rows separately count confirmed members and
+  independent dependency groups, so multiple statements from one report cannot
+  silently inflate cohort evidence. This remains diagnostic/review-governed and
+  authorizes no edit, promotion, or migration execution.
+
+- Add generic dry-run transformation-rule and coverage-report carriers. Domain
+  profiles can supply versioned structural rules and deterministic detector
+  outcomes; the shared policy layer reports exactly-one, review/repair,
+  conflicting, no-rule, and incomplete-coverage partitions while retaining no
+  execution-manifest, promotion, or edit authority.
+
+- Reissue the first Nat I1 contribution with its complete statement-family
+  conformance witness and dependency group, preserving the original I0 records
+  and replaying the remaining 24 candidates without residual changes. Run a
+  revision-pinned, non-editing 100-statement `company_direct` discovery page:
+  all 100 GUIDs reconciled; 78 compact conformance packets and 22 conflict
+  holds were emitted; all 4,950 peer edges correctly remained
+  `unknown_due_to_coverage`.
+
+- Record the first explicit, review-only model-conformance approval for the
+  revision-pinned `Q101416961|P5991|1` packet. The approved annual 2024
+  explicitly scoped component statement within a four-statement reconciled
+  family is eligible to create one trusted conforming member,
+  contribution receipt, and `I1` invariant snapshot; the approval explicitly
+  authorizes neither a Wikidata edit nor migration/promotion execution. The
+  remaining bounded-page rows will be replayed as new immutable assessments
+  rather than rewriting their `I0` evidence.
+
+- Widen the generic compact review-packet projection from split-only intake to
+  all reconciled candidates. Model-conformance packets, decomposition packets,
+  and family-conflict hold packets now have distinct review choices while
+  sharing the same typed residual profile. The climate materializer now emits
+  all 25 corrected live-page packets: 9 conformance candidates and 16 conflict
+  holds. Family overlap, component/total contradiction, multi-year period, and
+  unknown partition evidence are explicit residuals rather than hidden behind
+  a coarse A--E label. Packets remain review-only; no confirmation, invariant
+  contribution, promotion, or edit is created.
+
+- Correct statement-family classification for bounded Wikidata discovery.
+  `statement_family_context` now preserves GUID-level candidates while
+  recording complete sibling coverage, scope partitioning, overlap/duplicate
+  signals, and total/component reconciliation. The Q101416961 regression keeps
+  three scoped emissions components plus a matching total as separate annual
+  statements; it emits no false split plan or review packet. Same-year
+  `P580`/`P582` reporting ranges are one annual shape, while true multi-year,
+  partial, mixed, or multi-valued time remains reviewable.
+
+- Add generic immutable invariant replay: caller-supplied reassessments can be
+  checked against a named revised snapshot, projected to new residual profiles
+  and graph edges, and compared with retained source profiles without
+  retroactively changing an earlier review state.
+
+- Update the generic external-graph and Nat planning surfaces so ontology-class
+  merge is a conservative, review-only residual-topology proposal alongside
+  split and disjointness. A merge needs independent normative,
+  substitutability, conditionality, impact, provenance, and coverage evidence;
+  residual geometry alone cannot redirect classes, revise an invariant, or
+  edit Wikidata. Runtime merge proposal generation remains pending.
+
+- Add generic `TypedResidualProfile`, compact review-packet projection, and
+  deterministic typed residual-graph carriers. The same coverage-qualified
+  profile now drives both review and topology surfaces, preserving admissible
+  similarity, typed incompatibility, masked analogy, and coverage/context
+  unknown as distinct non-authoritative edges. The Nat materializer can emit
+  packets only for reconciled split-required rows; a live three-row page at
+  `Q101416961@2419927005` produced three review-only Family-B packets with no
+  confirmation, invariant contribution, promotion, or edit effect. Their
+  three graph edges correctly remain coverage-unknown until trusted cohort
+  evidence exists.
+
+- Add a generic review-confirmation artifact and explicit conversion to a
+  trusted invariant member. Confirmed split dispositions require an approved
+  split-plan reference; packets and classifier family labels remain evidence,
+  not reviewer decisions. Confirmations have no promotion or edit effect.
+
+- Add generic governed domain-invariant carriers. Independently reviewed,
+  revision-pinned, fully observed members can now produce deterministic
+  contribution and invariant-revision receipts; classifier dispositions alone,
+  held rows, and incomplete coverage fail admission. The carrier is
+  diagnostic/review-governed and does not promote or edit anything.
+
+- Add a bounded live `company_direct` discovery path for the `P5991 -> P14143`
+  review workflow. It persists deterministic WDQS query metadata and
+  statement-level rows, pins current entity exports, reconciles claim GUIDs,
+  and sends only reconciled source statements to the existing diagnostic
+  classifier. Discovery remains review-only and has no edit or promotion
+  authority.
+
+- Added generic `DomainPressureAssessment` carrier support and adapted Nat's
+  `P5991 -> P14143` climate profile to emit separately receipted target-model,
+  subject-type, qualifier, reference, temporal, split, and peer-cohort
+  residuals. The existing A--E migration family is preserved as a
+  review-disposition projection; assessments are diagnostic-only with no
+  promotion effect, and peer-cohort pressure remains unresolved until governed
+  cohort admission exists. Updated the migration-pack schema and focused tests.
+- Added a revision-pinned Wikibase entity-export adapter that validates the
+  requested entity/revision and emits bounded generic label, alias, property,
+  and statement observations. The first `Q1785637@2443793937` slice drives
+  generic local entity/event bridge candidates and direct-`P31` pressure,
+  without turning the export into local authority or an exhaustive graph view.
+- Added a generic bounded direct-type/superclass pressure evaluator. It reports
+  only supplied `P31`/`P279` paths, retains incomplete-coverage abstention for
+  missing closure evidence, and validates the first observed
+  `Q4830453 -> Q43229` organisation path without asserting global closure.
+- Added a generic expected-property pressure evaluator for bounded external
+  graph views. Incomplete coverage now turns observed absence of a required
+  property into an explicit abstention/residual rather than a global missing
+  type claim. The first deterministic adopter is Nat Cohort D `Q1785637`.
+- fix the AU compatibility receipt wrapper so legacy fact-review bundles are
+  first converted through the shared world-model/report projection before
+  receipt attachment. The generic `attach_receipt(...)` contract remains
+  linkage-projection-only, preventing raw lane bundles from widening it.
+- add the first provider-neutral external graph bridge carrier. Shared world
+  models now retain revision-bound graph views, external bridge proposals and
+  decisions, and pressure diagnostics; generic review, linkage, and receipt
+  projections preserve them without granting external identity, graph coverage,
+  or pressure results local authority or promotion.
+- add graph-view coverage validation: incomplete views remain candidate-only;
+  completeness-certified views require a policy, no unresolved coverage, and a
+  receipt reference. The first fixture covers a bounded transport view, local
+  entity/event attachments, a reviewed decision, and an expected-shape warning.
+- add the missing generic artifact-to-world-model adapter layer in
+  `src/policy/world_model_adapters.py`. The shared adapter kit now owns
+  reusable claim/event/timeline/review-input normalization instead of leaving
+  that semantics inside lane-local world-model wrappers
+- add a generic candidate world-model control-plane in
+  `src/policy/world_model.py` and `src/policy/world_model_projections.py`,
+  treating world models as receipt-free latent carriers and reports as
+  projections over them
+- widen the shared projection family with generic claim-table, timeline,
+  review-surface, and linkage-case projections, and add
+  `src/policy/world_model_profiles.py` so lane/profile configuration stays
+  outside the audit core
+- migrate the NAT `q43229_superclass_pressure` profile onto the same
+  carrier/projection stack. `src/ontology/nat.py` now exposes
+  `build_world_model(profile=...)`, `src/ontology/wikidata_superclass_linkage.py`
+  now builds a shared candidate world model plus report/review/claim/linkage
+  projections, and the receipt path consumes the explicit `linkage_case`
+  projection instead of scraping bespoke report internals
+- migrate AU onto the same carrier/projection split through
+  `src/policy/au_world_model.py` and `src/policy/au.py`, keeping
+  `build_world_model(...) -> project_report(...) -> attach_receipt(...)`
+  visible at the lane boundary while storing linkage inputs on the projection
+  instead of scraping a bespoke lane artifact. AU claim packing now routes
+  through the generic review-claim adapter instead of hand-building
+  review-claim world-model records in the lane wrapper
+- rebind GWB broader review and Brexit archive/review world-model modules onto
+  the shared world-model builder/projection split while keeping linkage receipt
+  attachment at the lane boundary
+- normalize the public lane wrappers around generic verbs and `profile`
+  selectors. `src/policy/gwb.py` now routes narrative receipts through
+  `profile="narrative_timeline"` rather than `kind=...`, `src/policy/brexit.py`
+  now exposes `build_world_model(...)` and `load_records()`, and tests now
+  guard against lane-encoded wrapper exports
+- harden the generic product boundary so `build_input_envelope(...)` and
+  `build_world_model(...)` no longer accept public lane/scenario selector
+  leakage such as `adapter_hint=...`. Historical lane routing now stays behind
+  internal compatibility metadata inside demo wrappers instead of the exported
+  data-in/world-model-out API
+- Tightened the linkage/public naming surface around the shared adapter core.
+  New lane-prefill modules now expose generic verbs instead of lane-encoded
+  callable names:
+  - `src/ontology/nat.py`
+  - `src/policy/brexit.py`
+  - `src/policy/au.py`
+  - `src/policy/gwb.py`
+  Backing helpers now route through `src/policy/linkage_workflows.py`, while
+  deleted `*_lane_receipts.py` wrappers no longer carry public lane-specific
+  method names. Added `docs/implementation_style_guide.md` and updated
+  `AGENTS.md` so agents must read the ITIR/SensibLaw style rules before coding.
+- Extended the generic linkage-adapter tranche so adapters can now emit
+  lane-local projection and collection fragments without widening the shared
+  audit core. The same adapter kit now powers
+  `src/ontology/wikidata_superclass_linkage.py` for the `Q43229`
+  superclass-pressure lane and `src/policy/brexit_linkage.py` for the bounded
+  Brexit archive/policy-intent lane, while receipt attachment stays at
+  `src/ontology/wikidata_lane_receipts.py` and
+  `src/sources/national_archives/brexit_lane_receipts.py`. Underlying report
+  builders remain receipt-free.
+- Added the first generic linkage-adapter kit in
+  `src/policy/linkage_adapters.py` and used it to land
+  `src/policy/gwb_narrative_linkage.py` as the first adapter-composition proof.
+  The new GWB narrative/timeline receipt composes source, document, parse,
+  candidate, coalescence, authority, external-bridge, and tranche fragments
+  over the shared `src/policy/linkage_depth.py` audit core while keeping
+  `build_gwb_semantic_report(...)` receipt-free and attaching the receipt only
+  in `src/policy/gwb_lane_receipts.py`. The matching
+  `src/policy/gwb_narrative_world_model.py` path now uses generic claim/event/
+  timeline adapters rather than lane-owned world-model packing logic.
+- Added the Phase G.1 AU linkage-depth adopter on top of the shared
+  `src/policy/linkage_depth.py` control-plane. The new
+  `src/policy/au_linkage_depth.py` and `src/policy/au_lane_receipts.py` keep
+  `build_au_fact_review_bundle(...)` receipt-free while attaching the lane
+  receipt at the wrapper boundary, and the AU contract now proves
+  source/event/legal-ref -> parsed support -> claim candidate -> authority ->
+  review bundle -> tranche depth with additive open-string visibility
+  diagnostics for authority boundaries, instrument/jurisdiction visibility, and
+  candidate-vs-promoted visibility.
+- Extracted the shared linkage-depth control-plane into
+  `src/policy/linkage_depth.py` and moved WD-specific geometry back behind thin
+  compatibility wrappers in `src/ontology/wikidata_linkage_depth.py` and
+  `src/ontology/wikidata_lane_receipts.py`. The same tranche also lands
+  `gwb_broader_review` as the first non-WD adopter through
+  `src/policy/gwb_linkage_depth.py` and `src/policy/gwb_lane_receipts.py`,
+  keeping the underlying world-model builder receipt-free while attaching the
+  lane receipt at the wrapper boundary. Planning docs now freeze the next AU
+  legal authority contract and the later affidavit reconciliation/coverage
+  contract family so the extracted core stays broader than WD geometry.
+- Added and formalism-reviewed the affidavit/Wikidata typed reconciliation
+  slice. The new contract and helper normalize proposition/response rows,
+  object-type assertions, and Wikidata statement rows under the canonical
+  affidavit relation vocabulary while keeping relation labels, roots, buckets,
+  evidence state, and proof promotion separate. The pinned examples cover
+  `walked the dog` versus `did not walk the dog` as `explicit_dispute`,
+  `6 is a 1-morphism` as witness/context pending unless a typing context and
+  rule are supplied, and Wikidata rows as provenance carriers with
+  `truth_claimed = false`, `live_edit_authority = false`, and non-promoting
+  `promotion_state`. Caller-supplied relation hints are marked
+  `relation_derivation = caller_hint`.
 - Added a suite-wide story PNF fanout boundary note documenting how the planned
   `collect_canonical_story_pnf_receipts(...)` helper should reuse the existing
   regex authority contract, utterance latent-fibre evidence layer, observer

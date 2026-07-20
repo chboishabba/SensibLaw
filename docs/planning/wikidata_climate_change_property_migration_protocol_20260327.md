@@ -52,6 +52,29 @@ Key risk:
 - some may require qualifier transfer/remapping
 - some may remain legitimately modeled with the old property
 
+## Domain-specific pressure reading
+
+The migration is a climate-domain structural-pressure comparison, not a
+property-name substitution and not merely a peer-frequency exercise:
+
+```text
+documented P14143 target model + migration policy
++ subject typing + value/unit + qualifiers/references + temporal/scope shape
+-> expected statement structure
+-> residual pressure -> migrate / split / repair / review / abstain
+```
+
+Comparable revision-pinned statements may add peer-cohort pressure, for
+example a recurrent determination-method qualifier or a common separation of
+scope rows. That evidence must remain distinct from the authoritative target
+model. It can refine diagnosis but cannot redefine whether a statement is safe
+to migrate.
+
+The initial five-entity pack is therefore a policy-anchored migration proving
+pack, not a generic company ontology cohort. It tests subject eligibility,
+target-model alignment, qualifier/reference preservation, temporal/multi-value
+ambiguity, and split necessity.
+
 ## What the WikiProject page changes
 The WikiProject page does not give a migration protocol, but it does sharpen
 what a useful repo-facing protocol must respect:

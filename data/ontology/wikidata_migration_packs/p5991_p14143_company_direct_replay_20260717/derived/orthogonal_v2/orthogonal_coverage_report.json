@@ -1,0 +1,118 @@
+{
+  "assessment_ref": "orthogonal-assessment:0cdd2aa0cd40c15df71b4b465e0963911e1c9cc5e8fbd85fed3f5fb8c39c50b5",
+  "authority": "diagnostic_aggregation_only",
+  "execution_effect": "none",
+  "family_count": 232,
+  "family_counts": {
+    "component_coverage": {
+      "exhaustive": 7,
+      "not_applicable": 5,
+      "partial": 91,
+      "unknown": 129
+    },
+    "geometry_state": {
+      "annual_series": 1,
+      "atomic": 3,
+      "multidimensional_matrix": 228
+    },
+    "geometry_subtype": {
+      "atomic": 3,
+      "other": 1,
+      "total_scope": 40,
+      "total_scope_category": 187,
+      "total_series": 1
+    },
+    "slot_integrity": {
+      "coherent": 205,
+      "unresolved": 27
+    }
+  },
+  "legacy_projection_counts": {
+    "A1": 346,
+    "A2": 3181,
+    "A4": 3082,
+    "A5": 864,
+    "H4": 341
+  },
+  "legacy_projection_intersections": {
+    "A1": 12,
+    "A1+A4": 233,
+    "A1+A4+A5": 86,
+    "A1+H4": 15,
+    "A2": 114,
+    "A2+A4": 2074,
+    "A2+A4+A5": 689,
+    "A2+A5": 13,
+    "A2+A5+H4": 71,
+    "A2+H4": 220,
+    "A5+H4": 5,
+    "H4": 30
+  },
+  "predicate_attrition": {
+    "compatible_method": {
+      "true": 3550,
+      "unresolved": 12
+    },
+    "compatible_unit": {
+      "false": 3,
+      "true": 3559
+    },
+    "enterprise_subject": {
+      "true": 3541,
+      "unresolved": 21
+    },
+    "exact_annual_period": {
+      "true": 3253,
+      "unresolved": 309
+    },
+    "no_target_collision": {
+      "true": 3562
+    },
+    "structurally_adequate_reference": {
+      "true": 3558,
+      "unresolved": 4
+    },
+    "supported_statement_shape": {
+      "true": 3527,
+      "unresolved": 35
+    },
+    "target_semantics_fit": {
+      "false": 317,
+      "true": 3245
+    },
+    "unique_semantic_slot": {
+      "true": 3221,
+      "unresolved": 341
+    }
+  },
+  "report_hash": "dfabfd349d25365334e226095624450033fd1c1910e4bcf57474c0d6a3474350",
+  "schema_version": "sl.orthogonal_coverage_report.v1",
+  "statement_axis_counts": {
+    "component_coverage": {
+      "exhaustive": 21,
+      "not_applicable": 12,
+      "partial": 864,
+      "unknown": 2665
+    },
+    "execution_outcome": {
+      "eligible": 3195,
+      "hold": 366,
+      "no_rule": 1
+    },
+    "family_geometry": {
+      "annual_series": 7,
+      "atomic": 3,
+      "multidimensional_matrix": 3552
+    },
+    "slot_integrity": {
+      "coherent": 3221,
+      "unresolved": 341
+    },
+    "statement_semantics": {
+      "A1_total": 346,
+      "A2_component": 3181,
+      "unresolved": 35
+    }
+  },
+  "statement_count": 3562
+}

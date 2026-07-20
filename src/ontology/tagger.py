@@ -24,7 +24,20 @@ def _load_ontology(path: Path) -> Dict[str, List[str]]:
     # Unwrap a single top-level key if present
     if isinstance(data, dict) and len(data) == 1:
         data = next(iter(data.values()))
-    return data
+    if not isinstance(data, dict):
+        return {}
+
+    normalized: Dict[str, List[str]] = {}
+    for tag, keywords in data.items():
+        if not isinstance(tag, str):
+            continue
+        if isinstance(keywords, list):
+            entries = [kw.strip() for kw in keywords if isinstance(kw, str) and kw.strip()]
+        else:
+            entries = []
+        if entries:
+            normalized[tag] = entries
+    return normalized
 
 
 # Load all ontology definitions at import time.
@@ -38,8 +51,14 @@ for file in ONTOLOGY_DIR.glob("*.json"):
 
 def _match_terms(text: str, mapping: Dict[str, List[str]]) -> List[str]:
     """Return tags whose associated keywords appear in the text."""
+    if not isinstance(text, str):
+        return []
     lower = text.lower()
-    return [tag for tag, kws in mapping.items() if any(kw.lower() in lower for kw in kws)]
+    return [
+        tag
+        for tag, kws in mapping.items()
+        if any(isinstance(kw, str) and kw.lower() in lower for kw in kws)
+    ]
 
 
 def tag_provision(provision: Provision) -> Dict[str, List[str]]:

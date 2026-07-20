@@ -31,11 +31,11 @@ def test_workbench_to_zelph_facts_basic():
     }
     
     facts_str = workbench_to_zelph_facts(workbench)
-    assert '"fact_f1" "fact_id" "f1".' in facts_str
-    assert '"fact_f1" "source_type" "wiki_article".' in facts_str
-    assert '"fact_f1" "signal_class" "volatility_signal".' in facts_str
+    assert 'fact_f1 "fact_id" "f1"' in facts_str
+    assert 'fact_f1 "source_type" "wiki_article"' in facts_str
+    assert 'fact_f1 "signal_class" "volatility_signal"' in facts_str
     # Check lexical projection (wiki_revision pack should be active)
-    assert '"fact_f1" "lexical pack" "wiki_revision".' in facts_str
+    assert 'fact_f1 "lexical pack" "wiki_revision"' in facts_str
 
 def test_native_rule_triples_wiki():
     workbench = {
