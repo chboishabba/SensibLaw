@@ -1,5 +1,22 @@
 # 2026-07-19
 
+- Add the first operational external PNF enrichment phase. Local compilation
+  remains deterministic and network-free; a later planner selects externally
+  scoped entity and lexical demands for bounded Wikidata/Wiktionary
+  microbatches. Provider results remain candidate-only, preserve distinct
+  mention/demand identities even when aliases share a QID, and emit explicit
+  residual and before/after pressure receipts without closing identity or the
+  underlying demand. Add normalized PostgreSQL persistence with fail-closed
+  authority checks, positive/negative cache TTLs, request budgets, batched
+  detail retrieval, and reusable progress events.
+
+- Add shared policy-gated URL fetch and bounded link-follow runtimes. Raw bytes
+  remain source evidence, HTML is normalized through the canonical media
+  adapter, and every failure prints and receipts the URL instead of silently
+  substituting content. AU, GB, and US legal-source profiles now use the same
+  capability contract. Add a Brexit v2 lane over real official legislation and
+  case-law targets with no synthetic live-fetch fallback.
+
 - Advance the PostgreSQL operational document compiler to v0.8 and make the
   declared media adapter own the canonical text coordinate system. Raw HTML
   remains immutable source evidence, while adapter-produced text now supplies
