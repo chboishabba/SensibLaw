@@ -107,8 +107,74 @@ def load_legal_source_plans(
     )
 
 
+def load_legal_pnf_rows(
+    cursor: Any,
+    *,
+    corpus_ref: str,
+) -> tuple[dict[str, Any], ...]:
+    """Load only PNF factors already typed as legal for Legal IR projection."""
+
+    cursor.execute(
+        """
+        SELECT
+            factor.factor_ref,
+            revision.factor_revision_ref,
+            factor.factor_type_ref,
+            COALESCE(
+                ARRAY_AGG(DISTINCT alternative.type_ref)
+                    FILTER (WHERE alternative.type_ref IS NOT NULL),
+                ARRAY[]::TEXT[]
+            ) AS alternative_types
+        FROM algebra.factor AS factor
+        JOIN algebra.factor_revision AS revision
+          ON revision.factor_ref = factor.factor_ref
+        LEFT JOIN algebra.factor_revision_alternative AS link
+          ON link.factor_revision_ref = revision.factor_revision_ref
+        LEFT JOIN algebra.alternative AS alternative
+          ON alternative.alternative_ref = link.alternative_ref
+        WHERE EXISTS (
+            SELECT 1
+            FROM corpus.document_occurrence AS occurrence
+            WHERE occurrence.corpus_ref = %s
+              AND occurrence.document_ref = factor.document_ref
+        )
+          AND (
+              left(factor.factor_type_ref, length('semantic.legal.')) = 'semantic.legal.'
+              OR factor.factor_type_ref IN (
+                  'semantic.normative_relation',
+                  'semantic.legal_condition',
+                  'semantic.legal_exception',
+                  'semantic.legal_burden',
+                  'semantic.legal_authority',
+                  'semantic.legal_transition',
+                  'semantic.judicial_treatment'
+              )
+          )
+        GROUP BY factor.factor_ref, revision.factor_revision_ref, factor.factor_type_ref
+        ORDER BY factor.factor_ref, revision.factor_revision_ref
+        """,
+        (corpus_ref,),
+    )
+    return tuple(
+        {
+            "factor_ref": str(factor_ref),
+            "factor_revision_ref": str(revision_ref),
+            "factor_type_ref": str(factor_type),
+            "structural_signature_ref": "pnf-signature:" + str(factor_type),
+            "predicate_ref": str(factor_type),
+            "role_bindings": {},
+            "qualifier_state": {"alternative_type_refs": list(alternative_types or ())},
+            "wrapper_state": {"source_corpus_ref": corpus_ref},
+            "provenance_refs": (str(revision_ref), corpus_ref),
+            "residual_refs": ("legal_role_binding_unresolved",),
+        }
+        for factor_ref, revision_ref, factor_type, alternative_types in cursor.fetchall()
+    )
+
+
 __all__ = [
     "POSTGRES_LEGAL_ADJUNCT_PLAN_REF",
+    "load_legal_pnf_rows",
     "load_legal_source_plans",
     "load_normative_interaction_demands",
 ]
