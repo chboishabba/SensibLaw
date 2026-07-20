@@ -3,6 +3,10 @@
 The contract is shared by GWB, AU and Brexit. Profiles may supply different
 source families and authority providers, but they cannot reorder the semantic
 phases or let network enrichment block deterministic local compilation.
+
+Parser doctrine is fixed: one media adapter, one canonical text substrate, one
+parser spine, then PNF. Legal IR and legal acquisition are downstream PNF
+operations; they are not source-family parser profiles.
 """
 
 from __future__ import annotations
@@ -15,7 +19,7 @@ from typing import Any, Mapping, Sequence
 from src.ontology.external_enrichment import canonical_sha256
 
 
-TRANCHE_PIPELINE_CONTRACT = "complete-tranche-pipeline:v0_1"
+TRANCHE_PIPELINE_CONTRACT = "complete-tranche-pipeline:v0_2"
 
 
 class TranchePhase(IntEnum):
@@ -25,14 +29,18 @@ class TranchePhase(IntEnum):
     LOCAL_PNF_COMPILATION = 40
     LOCAL_WORLD_PROJECTION = 50
     EXTERNAL_DEMAND_PLANNING = 60
+    LEGAL_ADJUNCT_DEMAND_PLANNING = 65
     EXTERNAL_ACQUISITION = 70
+    LEGAL_ADJUNCT_ACQUISITION = 75
+    LEGAL_ADJUNCT_PNF_COMPILATION = 77
+    LEGAL_IR_PROJECTION = 78
     TYPED_RECONCILIATION = 80
     REVIEW_PACKET = 90
     CHECKPOINT = 100
 
     @property
     def phase_ref(self) -> str:
-        return f"tranche-phase:{self.name.lower()}:v0_1"
+        return f"tranche-phase:{self.name.lower()}:v0_2"
 
 
 _PHASE_DEPENDENCIES: Mapping[TranchePhase, tuple[TranchePhase, ...]] = {
@@ -48,8 +56,26 @@ _PHASE_DEPENDENCIES: Mapping[TranchePhase, tuple[TranchePhase, ...]] = {
         TranchePhase.LOCAL_PNF_COMPILATION,
         TranchePhase.LOCAL_WORLD_PROJECTION,
     ),
+    TranchePhase.LEGAL_ADJUNCT_DEMAND_PLANNING: (
+        TranchePhase.LOCAL_PNF_COMPILATION,
+        TranchePhase.LOCAL_WORLD_PROJECTION,
+        TranchePhase.EXTERNAL_DEMAND_PLANNING,
+    ),
     TranchePhase.EXTERNAL_ACQUISITION: (TranchePhase.EXTERNAL_DEMAND_PLANNING,),
-    TranchePhase.TYPED_RECONCILIATION: (TranchePhase.EXTERNAL_ACQUISITION,),
+    TranchePhase.LEGAL_ADJUNCT_ACQUISITION: (
+        TranchePhase.LEGAL_ADJUNCT_DEMAND_PLANNING,
+        TranchePhase.EXTERNAL_ACQUISITION,
+    ),
+    TranchePhase.LEGAL_ADJUNCT_PNF_COMPILATION: (
+        TranchePhase.LEGAL_ADJUNCT_ACQUISITION,
+    ),
+    TranchePhase.LEGAL_IR_PROJECTION: (
+        TranchePhase.LEGAL_ADJUNCT_PNF_COMPILATION,
+    ),
+    TranchePhase.TYPED_RECONCILIATION: (
+        TranchePhase.EXTERNAL_ACQUISITION,
+        TranchePhase.LEGAL_IR_PROJECTION,
+    ),
     TranchePhase.REVIEW_PACKET: (TranchePhase.TYPED_RECONCILIATION,),
     TranchePhase.CHECKPOINT: (TranchePhase.REVIEW_PACKET,),
 }
@@ -223,8 +249,7 @@ def ordered_phases(*, include_network: bool = True) -> tuple[TranchePhase, ...]:
         if phase
         not in {
             TranchePhase.EXTERNAL_ACQUISITION,
-            TranchePhase.TYPED_RECONCILIATION,
-            TranchePhase.REVIEW_PACKET,
+            TranchePhase.LEGAL_ADJUNCT_ACQUISITION,
         }
     )
 
@@ -290,17 +315,24 @@ def checkpoint_payload(
 ) -> dict[str, Any]:
     validate_phase_receipts(receipts)
     return {
-        "schema_version": "sl.complete_tranche_checkpoint.v0_1",
+        "schema_version": "sl.complete_tranche_checkpoint.v0_2",
         "contract_ref": TRANCHE_PIPELINE_CONTRACT,
         "profile": profile.to_dict(),
         "phase_receipts": [row.to_dict() for row in receipts],
         "artifacts": dict(artifacts),
         "authority_boundaries": {
+            "one_media_adapter": True,
+            "one_canonical_text_substrate": True,
+            "one_parser_spine": True,
+            "pnf_is_semantic_center": True,
+            "legal_ir_is_pnf_projection": True,
             "source_mentions_preserved": True,
             "external_candidates_are_not_identity": True,
+            "legal_relevance_is_not_applicability": True,
+            "applicability_is_not_violation": True,
             "local_compilation_network_independent": True,
             "world_entity_promotion_performed": False,
-            "review_required_for_identity_closure": True,
+            "review_required_for_identity_or_legal_closure": True,
         },
     }
 
