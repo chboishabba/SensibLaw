@@ -7,6 +7,11 @@ from src.ontology.external_enrichment import (
     group_lookup_demands,
 )
 from src.pnf.external_enrichment_projection import project_external_lookup_demands
+from src.pnf.legal_adjunct import project_legal_ir
+from src.pnf.legal_probe import (
+    legal_entity_lookup_demands,
+    plan_legal_entity_resolution,
+)
 
 
 def _qid_candidate() -> ExternalCandidate:
@@ -187,3 +192,76 @@ def test_projector_selects_external_named_mentions_but_not_pronouns() -> None:
     assert [row.surface for row in demands] == ["the United States"]
     assert demands[0].demand_kind == "entity_identity"
     assert demands[0].subject_ref == "factor:usa"
+
+
+def test_legal_materiality_warrants_only_blocking_entity_lookup() -> None:
+    factors = (
+        {
+            "factor_ref": "factor:minister",
+            "factor_type": "semantic.mention_identity",
+            "metadata": {
+                "mention_ref": "mention:minister",
+                "factor_revision_ref": "revision:minister",
+            },
+            "alternatives": (
+                {
+                    "type_ref": "semantic.person_candidate",
+                    "value": {"semantic_family": "entity"},
+                },
+            ),
+            "residuals": ("external_identity_unresolved",),
+        },
+        {
+            "factor_ref": "factor:brisbane",
+            "factor_type": "semantic.mention_identity",
+            "metadata": {
+                "mention_ref": "mention:brisbane",
+                "factor_revision_ref": "revision:brisbane",
+            },
+            "alternatives": (
+                {
+                    "type_ref": "semantic.location_candidate",
+                    "value": {"semantic_family": "entity"},
+                },
+            ),
+            "residuals": ("external_identity_unresolved",),
+        },
+        {
+            "factor_ref": "factor:power",
+            "factor_revision_ref": "revision:power",
+            "factor_type_ref": "semantic.normative_relation",
+            "structural_signature_ref": "signature:grant-power",
+            "predicate_ref": "normative.power",
+            "role_bindings": {
+                "bearer": "factor:minister",
+                "conduct": "factor:grant",
+            },
+            "qualifier_state": {"modality": "power"},
+            "wrapper_state": {"authority_class": "legislation"},
+            "provenance_refs": ("span:power",),
+            "residual_refs": ("bearer_identity_unresolved",),
+        },
+    )
+    artifacts = {
+        "licensing": {
+            "mentions": (
+                {
+                    "mention_ref": "mention:minister",
+                    "canonical_surface": "Minister for Health",
+                },
+                {
+                    "mention_ref": "mention:brisbane",
+                    "canonical_surface": "Brisbane",
+                },
+            )
+        },
+        "refined_pnf_graph": {"factors": factors},
+    }
+    legal_ir = project_legal_ir(factors)
+
+    decisions = plan_legal_entity_resolution(artifacts, legal_ir)
+    demands = legal_entity_lookup_demands(decisions)
+
+    assert [row.subject_ref for row in demands] == ["factor:minister"]
+    assert demands[0].surface == "Minister for Health"
+    assert all(row.to_dict()["identity_closed"] is False for row in decisions)
