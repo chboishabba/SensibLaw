@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 import sys
 from time import monotonic_ns
+from threading import Event, Lock, Thread
 from typing import Any, Iterator, Mapping, TextIO
 
 
@@ -51,9 +52,11 @@ class PhaseRecorder:
     stream: TextIO | None = None
     json_lines: bool = False
     events: list[dict[str, Any]] = field(default_factory=list)
+    _lock: Lock = field(default_factory=Lock, init=False, repr=False)
 
     def emit(self, event: ProgressEvent) -> None:
-        self.events.append(event.to_dict())
+        with self._lock:
+            self.events.append(event.to_dict())
         emit_progress(event, stream=self.stream, json_lines=self.json_lines)
 
     @contextmanager
@@ -66,6 +69,7 @@ class PhaseRecorder:
         message: str = "",
         worker: str | None = None,
         details: Mapping[str, Any] | None = None,
+        heartbeat_seconds: float | None = 30.0,
     ) -> Iterator["PhaseHandle"]:
         handle = PhaseHandle(
             recorder=self,
@@ -75,6 +79,7 @@ class PhaseRecorder:
             message=message,
             worker=worker,
             details=dict(details or {}),
+            heartbeat_seconds=heartbeat_seconds,
         )
         handle.start()
         try:
@@ -120,6 +125,9 @@ class PhaseHandle:
     _started_at: str | None = None
     _started_ns: int | None = None
     _finished: bool = False
+    heartbeat_seconds: float | None = 30.0
+    _heartbeat_stop: Event = field(default_factory=Event, init=False, repr=False)
+    _heartbeat_thread: Thread | None = field(default=None, init=False, repr=False)
 
     def start(self) -> None:
         self._started_at = _utc_now()
@@ -135,6 +143,38 @@ class PhaseHandle:
                 details=self.details or None,
                 started_at=self._started_at,
                 worker=self.worker,
+            )
+        )
+        if self.heartbeat_seconds is not None and self.heartbeat_seconds > 0:
+            self._heartbeat_thread = Thread(
+                target=self._run_heartbeat,
+                name=f"progress-{self.phase}",
+                daemon=True,
+            )
+            self._heartbeat_thread.start()
+
+    def _run_heartbeat(self) -> None:
+        assert self.heartbeat_seconds is not None
+        while not self._heartbeat_stop.wait(self.heartbeat_seconds):
+            self.heartbeat()
+
+    def heartbeat(self) -> None:
+        if self._finished:
+            return
+        elapsed_ms = self.elapsed_ms
+        self.recorder.emit(
+            ProgressEvent(
+                phase=self.phase,
+                state="heartbeat",
+                completed=self.completed,
+                total=self.total,
+                message=self.message,
+                subject_ref=self.subject_ref,
+                details={**self.details, "heartbeat": True} or None,
+                started_at=self._started_at,
+                elapsed_ms=elapsed_ms,
+                worker=self.worker,
+                **self._estimate(elapsed_ms),
             )
         )
 
@@ -192,6 +232,9 @@ class PhaseHandle:
         if self._finished:
             return
         self._finished = True
+        self._heartbeat_stop.set()
+        if self._heartbeat_thread is not None:
+            self._heartbeat_thread.join(timeout=0.1)
         merged_details = {**self.details, **dict(details or {}), "reused_units": self.reused}
         self.recorder.emit(
             ProgressEvent(

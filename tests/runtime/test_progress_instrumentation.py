@@ -51,3 +51,14 @@ def test_failed_phase_records_error_without_hiding_exception() -> None:
     assert event["state"] == "failed"
     assert event["details"]["error_type"] == "ValueError"
     assert recorder.to_dict()["phase_summary"]["project_legal_ir"]["failed"] == 1
+
+
+def test_phase_heartbeat_reports_estimate_while_no_units_finish() -> None:
+    recorder = PhaseRecorder(stream=StringIO(), json_lines=True)
+    with recorder.phase("compile_pnf", total=2, heartbeat_seconds=0.001) as phase:
+        phase.advance(subject_ref="document:a")
+        sleep(0.003)
+
+    heartbeat = next(event for event in recorder.events if event["state"] == "heartbeat")
+    assert heartbeat["completed"] == 1
+    assert heartbeat["estimated_remaining_ms"] >= 0
