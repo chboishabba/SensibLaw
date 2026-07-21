@@ -204,7 +204,7 @@ def main() -> int:
             context=default_compiler_context(),
             database_url=args.database_url,
             workers=args.compile_workers,
-            execution_phase="legal_catalogue_build",
+            execution_phase="demand_planning",
             progress=phase,
         )
     _write_json(
