@@ -104,4 +104,51 @@ CREATE TABLE IF NOT EXISTS semantic_build_phase_event (
 CREATE INDEX IF NOT EXISTS semantic_build_phase_event_phase_idx
     ON semantic_build_phase_event (build_ref, phase, elapsed_ms DESC NULLS LAST);
 
+CREATE TABLE IF NOT EXISTS semantic_review_coordinate (
+    coordinate_ref TEXT PRIMARY KEY,
+    target_kind TEXT NOT NULL,
+    target_ref TEXT NOT NULL,
+    document_refs JSONB NOT NULL DEFAULT '[]'::jsonb,
+    coordinate_refs JSONB NOT NULL DEFAULT '[]'::jsonb,
+    review_dimension TEXT NOT NULL,
+    residuals JSONB NOT NULL DEFAULT '[]'::jsonb,
+    semantic_state_mutated BOOLEAN NOT NULL DEFAULT FALSE
+        CHECK (semantic_state_mutated = FALSE),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CHECK (target_kind IN (
+        'factor_proposal',
+        'reduced_factor',
+        'cross_document_relation',
+        'subgraph',
+        'semantic_build'
+    ))
+);
+
+CREATE TABLE IF NOT EXISTS semantic_review_assessment (
+    assessment_ref TEXT PRIMARY KEY,
+    coordinate_ref TEXT NOT NULL
+        REFERENCES semantic_review_coordinate(coordinate_ref) ON DELETE CASCADE,
+    reviewer_credential_ref TEXT NOT NULL,
+    institution_ref TEXT NOT NULL,
+    review_state TEXT NOT NULL,
+    rationale_refs JSONB NOT NULL DEFAULT '[]'::jsonb,
+    residuals JSONB NOT NULL DEFAULT '[]'::jsonb,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    truth_closed BOOLEAN NOT NULL DEFAULT FALSE CHECK (truth_closed = FALSE),
+    semantic_state_promoted BOOLEAN NOT NULL DEFAULT FALSE
+        CHECK (semantic_state_promoted = FALSE),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CHECK (review_state IN (
+        'supported',
+        'supported_with_residuals',
+        'unsupported',
+        'contested',
+        'unresolved',
+        'not_reviewed'
+    ))
+);
+
+CREATE INDEX IF NOT EXISTS semantic_review_assessment_coordinate_idx
+    ON semantic_review_assessment (coordinate_ref, institution_ref, review_state);
+
 COMMIT;
