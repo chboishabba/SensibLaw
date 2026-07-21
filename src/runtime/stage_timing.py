@@ -10,8 +10,8 @@ from typing import Any, Iterator, Mapping
 from src.policy.carriers.canonical import canonical_sha256
 
 
-STAGE_TIMING_SCHEMA_VERSION = "sl.semantic_stage_timing.v0_1"
-STAGE_TIMING_LEDGER_SCHEMA_VERSION = "sl.semantic_stage_timing_ledger.v0_1"
+STAGE_TIMING_SCHEMA_VERSION = "sl.semantic_stage_timing.v0_2"
+STAGE_TIMING_LEDGER_SCHEMA_VERSION = "sl.semantic_stage_timing_ledger.v0_2"
 
 
 @dataclass(frozen=True)
@@ -35,7 +35,9 @@ class StageTiming:
 
     @property
     def timing_ref(self) -> str:
-        return "semantic-stage-timing:" + canonical_sha256(self.to_dict(include_ref=False))
+        return "semantic-stage-timing:" + canonical_sha256(
+            self.to_dict(include_ref=False)
+        )
 
     @property
     def tokens_per_second(self) -> float | None:
@@ -45,13 +47,24 @@ class StageTiming:
 
     @property
     def reduction_ratio(self) -> float | None:
-        if self.input_edges is None or self.output_edges is None or self.input_edges <= 0:
+        if (
+            self.input_edges is None
+            or self.output_edges is None
+            or self.input_edges <= 0
+        ):
             return None
-        return max(0.0, (self.input_edges - self.output_edges) / self.input_edges)
+        return max(
+            0.0,
+            (self.input_edges - self.output_edges) / self.input_edges,
+        )
 
     @property
     def reduction_efficiency_edges_per_second(self) -> float | None:
-        if self.input_edges is None or self.output_edges is None or self.elapsed_ms <= 0:
+        if (
+            self.input_edges is None
+            or self.output_edges is None
+            or self.elapsed_ms <= 0
+        ):
             return None
         return (self.input_edges - self.output_edges) / (self.elapsed_ms / 1000.0)
 
@@ -78,9 +91,13 @@ class StageTiming:
             "tokens_processed": self.tokens_processed,
             "tokens_per_second": self.tokens_per_second,
             "reduction_ratio": self.reduction_ratio,
-            "reduction_efficiency_edges_per_second": self.reduction_efficiency_edges_per_second,
+            "reduction_efficiency_edges_per_second": (
+                self.reduction_efficiency_edges_per_second
+            ),
         }
-        payload.update({key: value for key, value in optional.items() if value is not None})
+        payload.update(
+            {key: value for key, value in optional.items() if value is not None}
+        )
         if include_ref:
             payload["timing_ref"] = self.timing_ref
         return payload
@@ -96,36 +113,83 @@ class StageHandle:
     _metrics: dict[str, Any] = field(default_factory=dict)
 
     def record(self, **metrics: Any) -> None:
-        self._metrics.update({key: value for key, value in metrics.items() if value is not None})
+        self._metrics.update(
+            {key: value for key, value in metrics.items() if value is not None}
+        )
 
     def finish(self) -> StageTiming:
-        elapsed_ms = max(0, (monotonic_ns() - self._started_ns) // 1_000_000)
-        timing = StageTiming(
-            document_ref=self.ledger.document_ref,
+        elapsed_ms = max(
+            0,
+            (monotonic_ns() - self._started_ns) // 1_000_000,
+        )
+        return self.ledger.append(
             stage=self.stage,
-            ordinal=len(self.ledger.timings),
             elapsed_ms=elapsed_ms,
             backend_ref=self.backend_ref,
-            input_nodes=self._metrics.get("input_nodes"),
-            output_nodes=self._metrics.get("output_nodes"),
-            input_edges=self._metrics.get("input_edges"),
-            output_edges=self._metrics.get("output_edges"),
-            proposals_generated=self._metrics.get("proposals_generated"),
-            duplicates_collapsed=self._metrics.get("duplicates_collapsed"),
-            invalid_rejected=self._metrics.get("invalid_rejected"),
-            alternatives_retained=self._metrics.get("alternatives_retained"),
-            residuals_emitted=self._metrics.get("residuals_emitted"),
-            tokens_processed=self._metrics.get("tokens_processed"),
             details={**self.details, **dict(self._metrics.get("details") or {})},
+            **{
+                key: self._metrics.get(key)
+                for key in (
+                    "input_nodes",
+                    "output_nodes",
+                    "input_edges",
+                    "output_edges",
+                    "proposals_generated",
+                    "duplicates_collapsed",
+                    "invalid_rejected",
+                    "alternatives_retained",
+                    "residuals_emitted",
+                    "tokens_processed",
+                )
+            },
         )
-        self.ledger.timings.append(timing)
-        return timing
 
 
 @dataclass
 class StageTimingLedger:
     document_ref: str
     timings: list[StageTiming] = field(default_factory=list)
+
+    def append(
+        self,
+        *,
+        stage: str,
+        elapsed_ms: int,
+        backend_ref: str | None = None,
+        input_nodes: int | None = None,
+        output_nodes: int | None = None,
+        input_edges: int | None = None,
+        output_edges: int | None = None,
+        proposals_generated: int | None = None,
+        duplicates_collapsed: int | None = None,
+        invalid_rejected: int | None = None,
+        alternatives_retained: int | None = None,
+        residuals_emitted: int | None = None,
+        tokens_processed: int | None = None,
+        details: Mapping[str, Any] | None = None,
+    ) -> StageTiming:
+        if elapsed_ms < 0:
+            raise ValueError("elapsed_ms must be non-negative")
+        timing = StageTiming(
+            document_ref=self.document_ref,
+            stage=stage,
+            ordinal=len(self.timings),
+            elapsed_ms=elapsed_ms,
+            backend_ref=backend_ref,
+            input_nodes=input_nodes,
+            output_nodes=output_nodes,
+            input_edges=input_edges,
+            output_edges=output_edges,
+            proposals_generated=proposals_generated,
+            duplicates_collapsed=duplicates_collapsed,
+            invalid_rejected=invalid_rejected,
+            alternatives_retained=alternatives_retained,
+            residuals_emitted=residuals_emitted,
+            tokens_processed=tokens_processed,
+            details=dict(details or {}),
+        )
+        self.timings.append(timing)
+        return timing
 
     @contextmanager
     def stage(
@@ -148,16 +212,22 @@ class StageTimingLedger:
 
     @property
     def ledger_ref(self) -> str:
-        return "semantic-stage-ledger:" + canonical_sha256(self.to_dict(include_ref=False))
+        return "semantic-stage-ledger:" + canonical_sha256(
+            self.to_dict(include_ref=False)
+        )
 
     def to_dict(self, *, include_ref: bool = True) -> dict[str, Any]:
         stage_totals: dict[str, int] = {}
         for timing in self.timings:
-            stage_totals[timing.stage] = stage_totals.get(timing.stage, 0) + timing.elapsed_ms
-        payload = {
+            stage_totals[timing.stage] = (
+                stage_totals.get(timing.stage, 0) + timing.elapsed_ms
+            )
+        payload: dict[str, Any] = {
             "schema_version": STAGE_TIMING_LEDGER_SCHEMA_VERSION,
             "document_ref": self.document_ref,
-            "stage_totals_ms": {key: stage_totals[key] for key in sorted(stage_totals)},
+            "stage_totals_ms": {
+                key: stage_totals[key] for key in sorted(stage_totals)
+            },
             "timings": [row.to_dict() for row in self.timings],
         }
         if include_ref:
