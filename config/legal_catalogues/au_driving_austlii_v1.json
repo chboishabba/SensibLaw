@@ -1,0 +1,43 @@
+{
+  "schema_version": "sl.legal_catalogue.v0_1",
+  "catalogue_ref": "legal-catalogue:au-driving:austlii:v1",
+  "provider": {
+    "endpoint_ref": "au:austlii",
+    "base_url": "https://www.austlii.edu.au/",
+    "search_url_template": "https://www.austlii.edu.au/cgi-bin/sinosrch.cgi?query={query}&method=auto&meta=%2Fau",
+    "source_role": "research_index",
+    "authority_level": "supporting"
+  },
+  "request_policy": {
+    "allowed_hosts": ["www.austlii.edu.au", "austlii.edu.au"],
+    "minimum_interval_seconds": 1.5,
+    "maximum_attempts": 3,
+    "backoff_seconds": 2.0,
+    "request_budget": 80,
+    "max_documents": 40,
+    "max_depth": 1
+  },
+  "persisted_source_families": [
+    {
+      "family_ref": "source-family:au-legal-principles:v1",
+      "path": "demo/ingest/legal_principles_au_v1"
+    },
+    {
+      "family_ref": "source-family:hca-s942025:v1",
+      "path": "demo/ingest/hca_case_s942025"
+    }
+  ],
+  "search_terms": [
+    {"jurisdiction": "AU.QLD", "query": "Transport Operations Road Use Management Act Queensland"},
+    {"jurisdiction": "AU.QLD", "query": "Transport Operations Road Use Management Road Rules Regulation Queensland"},
+    {"jurisdiction": "AU.QLD", "query": "Transport Operations Road Use Management Driver Licensing Regulation Queensland"},
+    {"jurisdiction": "AU.QLD", "query": "Transport Operations Road Use Management Vehicle Registration Regulation Queensland"},
+    {"jurisdiction": "AU.QLD", "query": "Queensland drink driving drug driving legislation"},
+    {"jurisdiction": "AU.QLD", "query": "Queensland dangerous operation vehicle Criminal Code"},
+    {"jurisdiction": "AU", "query": "Road Vehicle Standards Act 2018"},
+    {"jurisdiction": "AU", "query": "Road Vehicle Standards Rules 2019"},
+    {"jurisdiction": "AU", "query": "Interstate Road Transport Act 1985"},
+    {"jurisdiction": "AU", "query": "Australian Design Rules motor vehicle standards legislation"}
+  ],
+  "authority": "catalogue_acquisition_coordinates_only"
+}

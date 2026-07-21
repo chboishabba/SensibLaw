@@ -1,0 +1,173 @@
+name: Build Legal IR catalogue
+
+on:
+  workflow_dispatch:
+    inputs:
+      offline:
+        description: Rebuild from checked-in source catalogue without network fetches
+        required: false
+        default: false
+        type: boolean
+      force_refetch:
+        description: Replace persisted AustLII source bytes even when paths already exist
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: legal-ir-catalogue-au-driving
+  cancel-in-progress: false
+
+jobs:
+  build-catalogue:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sensiblaw_legal_catalogue
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sensiblaw_legal_catalogue"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sensiblaw_legal_catalogue
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: sensiblaw_legal_catalogue
+      CATALOGUE_BRANCH: catalogue/au-driving-v1
+      CATALOGUE_ROOT: .catalogue-state/au-driving-v1
+    steps:
+      - name: Checkout compiler branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout persisted catalogue state
+        shell: bash
+        run: |
+          git fetch origin "$CATALOGUE_BRANCH" || true
+          rm -rf "$CATALOGUE_ROOT"
+          mkdir -p "$CATALOGUE_ROOT"
+          if git show-ref --verify --quiet "refs/remotes/origin/$CATALOGUE_BRANCH"; then
+            git worktree add --detach "$CATALOGUE_ROOT" "origin/$CATALOGUE_BRANCH"
+          else
+            git worktree add --detach "$CATALOGUE_ROOT" HEAD
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install environment
+        run: |
+          python -m pip install --upgrade pip uv
+          uv sync --frozen --extra test --extra dev
+
+      - name: Restore persisted PostgreSQL catalogue
+        shell: bash
+        run: |
+          if [ -f "$CATALOGUE_ROOT/catalogue/au-driving-v1/postgres.dump" ]; then
+            pg_restore --clean --if-exists --no-owner --dbname "$DATABASE_URL" \
+              "$CATALOGUE_ROOT/catalogue/au-driving-v1/postgres.dump"
+          fi
+          bash scripts/apply_pg_migrations.sh
+
+      - name: Restore persisted source and Legal IR catalogue
+        shell: bash
+        run: |
+          mkdir -p build/legal-ir-catalogue
+          if [ -d "$CATALOGUE_ROOT/catalogue/au-driving-v1/state" ]; then
+            cp -a "$CATALOGUE_ROOT/catalogue/au-driving-v1/state/." build/legal-ir-catalogue/
+          fi
+
+      - name: Build incremental AU legal catalogue
+        shell: bash
+        run: |
+          args=(
+            --catalogue config/legal_catalogues/au_driving_austlii_v1.json
+            --output-root build/legal-ir-catalogue
+            --database-url "$DATABASE_URL"
+          )
+          if [ "${{ inputs.offline }}" = "true" ]; then args+=(--offline); fi
+          if [ "${{ inputs.force_refetch }}" = "true" ]; then args+=(--force-refetch); fi
+          uv run python scripts/build_legal_ir_catalogue.py "${args[@]}"
+
+      - name: Focused validation
+        shell: bash
+        run: |
+          uv run ruff check \
+            src/runtime/request_governor.py \
+            scripts/build_legal_ir_catalogue.py
+          test -s build/legal-ir-catalogue/catalogue_build_manifest.json
+          test -d build/legal-ir-catalogue/legal_pnf_probe
+
+      - name: Produce persistent PostgreSQL snapshot
+        shell: bash
+        run: |
+          mkdir -p build/catalogue-publish/state
+          pg_dump --format=custom --no-owner --file build/catalogue-publish/postgres.dump "$DATABASE_URL"
+          cp -a build/legal-ir-catalogue/. build/catalogue-publish/state/
+          sha256sum build/catalogue-publish/postgres.dump > build/catalogue-publish/SHA256SUMS
+          find build/catalogue-publish/state -type f -print0 | sort -z | xargs -0 sha256sum >> build/catalogue-publish/SHA256SUMS
+
+      - name: Write Actions summary
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          manifest = json.loads(Path('build/legal-ir-catalogue/catalogue_build_manifest.json').read_text())
+          summary = Path(__import__('os').environ['GITHUB_STEP_SUMMARY'])
+          summary.write_text(
+              '# AU driving Legal IR catalogue\n\n'
+              f"- Catalogue: `{manifest['catalogue_ref']}`\n"
+              f"- Existing tranche files retained: {manifest['existing_tranche_file_count']}\n"
+              f"- AustLII documents fetched: {manifest['fetched_document_count']}\n"
+              f"- PostgreSQL corpus: `{manifest['corpus_ref']}`\n"
+              f"- PNF documents: {len(manifest['document_refs'])}\n"
+              f"- Compilation failures: {len(manifest['failure_refs'])}\n"
+              '- Identity promoted: false\n'
+              '- Legal truth closed: false\n'
+          )
+          PY
+
+      - name: Publish stable catalogue branch
+        shell: bash
+        run: |
+          rm -rf "$CATALOGUE_ROOT/catalogue/au-driving-v1"
+          mkdir -p "$CATALOGUE_ROOT/catalogue/au-driving-v1"
+          cp -a build/catalogue-publish/. "$CATALOGUE_ROOT/catalogue/au-driving-v1/"
+          cd "$CATALOGUE_ROOT"
+          git switch -C "$CATALOGUE_BRANCH"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add catalogue/au-driving-v1
+          if git diff --cached --quiet; then
+            echo "Catalogue unchanged"
+          else
+            git commit -m "Refresh AU driving Legal IR catalogue"
+            git push origin "$CATALOGUE_BRANCH"
+          fi
+
+      - name: Upload build evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: au-driving-legal-ir-catalogue-build
+          path: |
+            build/legal-ir-catalogue/catalogue_build_manifest.json
+            build/legal-ir-catalogue/legal_pnf_probe/**
+            build/catalogue-publish/SHA256SUMS
+          if-no-files-found: warn
+          retention-days: 30
