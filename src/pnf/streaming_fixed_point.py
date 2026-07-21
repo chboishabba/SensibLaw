@@ -1,11 +1,10 @@
 """Streaming, convergent document-local semantic fixed-point execution.
 
-The append-only observation/proposal ledger is the convergence substrate.  Workers may
-compute revision-bound jobs concurrently, but they return immutable receipts rather than
-mutating a graph.  Keyed owners admit those receipts, maintain affected-group indexes,
-and materialise deterministic reduced views.  Positive candidate facts may stream before
-coverage closes; absence, uniqueness, exhaustion, and local closure require explicit
-coverage barriers and an empty local work frontier.
+Workers may parse or solve concurrently, but they return immutable deltas and receipts
+rather than mutating a shared graph.  A logical owner for each keyed semantic coordinate
+admits those deltas, updates affected indexes, and materialises deterministic reduced
+views.  Positive candidates may stream before coverage closes; absence, uniqueness,
+exhaustion, and closure require explicit coverage barriers and an empty local frontier.
 """
 
 from __future__ import annotations
@@ -25,25 +24,27 @@ from src.policy.carriers.canonical import canonical_sha256
 
 
 STREAMING_DELTA_SCHEMA_VERSION = "sl.pnf.observation_delta.v0_1"
-STREAMING_LEDGER_SCHEMA_VERSION = "sl.pnf.convergent_ledger.v0_1"
+STREAMING_LEDGER_SCHEMA_VERSION = "sl.pnf.convergent_ledger.v0_2"
 STREAMING_JOB_SCHEMA_VERSION = "sl.pnf.solver_job.v0_1"
 STREAMING_RECEIPT_SCHEMA_VERSION = "sl.pnf.solver_receipt.v0_1"
-STREAMING_STATE_DELTA_SCHEMA_VERSION = "sl.pnf.state_delta.v0_1"
+STREAMING_STATE_DELTA_SCHEMA_VERSION = "sl.pnf.state_delta.v0_2"
 STREAMING_FIXED_POINT_SCHEMA_VERSION = "sl.pnf.fixed_point_certificate.v0_1"
 STREAMING_BOUNDARY_SCHEMA_VERSION = "sl.pnf.region_boundary_summary.v0_1"
 
 _COVERAGE_BARRIERS = ("token_batch", "sentence", "section", "document")
 _COVERAGE_STATES = {"open", "complete"}
 _PROPOSAL_STAGES = {"base", "composition", "constraint"}
-_FINALISING_CLAIMS = {"absence", "unique", "exhausted", "closed", "all_alternatives_enumerated"}
+_FINALISING_CLAIMS = {
+    "absence",
+    "unique",
+    "exhausted",
+    "closed",
+    "all_alternatives_enumerated",
+}
 
 
 def _refs(values: Iterable[str]) -> tuple[str, ...]:
     return tuple(sorted({str(value) for value in values if str(value)}))
-
-
-def _json_mapping(value: Mapping[str, Any] | None) -> dict[str, Any]:
-    return dict(value or {})
 
 
 @dataclass(frozen=True, order=True)
@@ -102,8 +103,10 @@ class ObservationDelta:
             raise ValueError("observation token_count disagrees with token interval")
         if self.coverage_barrier not in _COVERAGE_BARRIERS:
             raise ValueError("unsupported observation coverage barrier")
-        if len(_refs(self.observation_refs)) != len(self.observation_refs):
-            raise ValueError("observation references must be unique and canonically ordered")
+        if self.observation_refs != _refs(self.observation_refs):
+            raise ValueError(
+                "observation references must be unique and canonically ordered"
+            )
 
     @property
     def delta_ref(self) -> str:
@@ -152,10 +155,12 @@ class CoverageNotice:
 
     @property
     def notice_ref(self) -> str:
-        return "coverage-notice:" + canonical_sha256(self.to_dict(include_ref=False))
+        return "coverage-notice:" + canonical_sha256(
+            self.to_dict(include_ref=False)
+        )
 
     def to_dict(self, *, include_ref: bool = True) -> dict[str, Any]:
-        payload = {
+        payload: dict[str, Any] = {
             "document_ref": self.document_ref,
             "scope_ref": self.scope_ref,
             "barrier": self.barrier,
@@ -265,7 +270,10 @@ class SolverReceipt:
             "input_revision": self.input_revision,
             "input_refs": list(_refs(self.input_refs)),
             "rule_set_revision": self.rule_set_revision,
-            "proposal_refs": [row.proposal_ref for row in sorted(self.proposals, key=lambda row: row.proposal_ref)],
+            "proposal_refs": [
+                row.proposal_ref
+                for row in sorted(self.proposals, key=lambda item: item.proposal_ref)
+            ],
             "residuals": list(_refs(self.residuals)),
             "assumptions": list(_refs(self.assumptions)),
             "coverage_requirements": list(_refs(self.coverage_requirements)),
@@ -278,7 +286,10 @@ class SolverReceipt:
             "schema_version": STREAMING_RECEIPT_SCHEMA_VERSION,
             "receipt_ref": self.receipt_ref,
             **self.identity_payload(),
-            "proposals": [row.to_dict() for row in sorted(self.proposals, key=lambda row: row.proposal_ref)],
+            "proposals": [
+                row.to_dict()
+                for row in sorted(self.proposals, key=lambda item: item.proposal_ref)
+            ],
             "semantic_state_promoted": False,
         }
 
@@ -295,17 +306,23 @@ class RegionBoundarySummary:
 
     @property
     def summary_ref(self) -> str:
-        return "region-boundary:" + canonical_sha256(self.to_dict(include_ref=False))
+        return "region-boundary:" + canonical_sha256(
+            self.to_dict(include_ref=False)
+        )
 
     def to_dict(self, *, include_ref: bool = True) -> dict[str, Any]:
-        payload = {
+        payload: dict[str, Any] = {
             "schema_version": STREAMING_BOUNDARY_SCHEMA_VERSION,
             "document_ref": self.document_ref,
             "scope_ref": self.scope_ref,
             "stable_factor_refs": list(_refs(self.stable_factor_refs)),
             "unresolved_external_refs": list(_refs(self.unresolved_external_refs)),
-            "possible_cross_scope_hosts": list(_refs(self.possible_cross_scope_hosts)),
-            "definition_scope_obligations": list(_refs(self.definition_scope_obligations)),
+            "possible_cross_scope_hosts": list(
+                _refs(self.possible_cross_scope_hosts)
+            ),
+            "definition_scope_obligations": list(
+                _refs(self.definition_scope_obligations)
+            ),
             "coverage_notice_refs": list(_refs(self.coverage_notice_refs)),
         }
         if include_ref:
@@ -324,12 +341,24 @@ class ConvergentLedger:
     residual_refs: tuple[str, ...] = ()
 
     def join(self, other: "ConvergentLedger") -> "ConvergentLedger":
-        observations = {row.delta_ref: row for row in (*self.observation_deltas, *other.observation_deltas)}
-        proposals = {row.proposal_ref: row for row in (*self.proposals, *other.proposals)}
-        receipts = {row.receipt_ref: row for row in (*self.receipts, *other.receipts)}
-        notices = {row.notice_ref: row for row in (*self.coverage_notices, *other.coverage_notices)}
+        observations = {
+            row.delta_ref: row
+            for row in (*self.observation_deltas, *other.observation_deltas)
+        }
+        proposals = {
+            row.proposal_ref: row for row in (*self.proposals, *other.proposals)
+        }
+        receipts = {
+            row.receipt_ref: row for row in (*self.receipts, *other.receipts)
+        }
+        notices = {
+            row.notice_ref: row
+            for row in (*self.coverage_notices, *other.coverage_notices)
+        }
         return ConvergentLedger(
-            observation_deltas=tuple(observations[key] for key in sorted(observations)),
+            observation_deltas=tuple(
+                observations[key] for key in sorted(observations)
+            ),
             proposals=tuple(proposals[key] for key in sorted(proposals)),
             receipts=tuple(receipts[key] for key in sorted(receipts)),
             coverage_notices=tuple(notices[key] for key in sorted(notices)),
@@ -338,15 +367,21 @@ class ConvergentLedger:
 
     @property
     def ledger_ref(self) -> str:
-        return "semantic-ledger:" + canonical_sha256(self.to_dict(include_ref=False))
+        return "semantic-ledger:" + canonical_sha256(
+            self.to_dict(include_ref=False)
+        )
 
     def to_dict(self, *, include_ref: bool = True) -> dict[str, Any]:
-        payload = {
+        payload: dict[str, Any] = {
             "schema_version": STREAMING_LEDGER_SCHEMA_VERSION,
-            "observation_delta_refs": [row.delta_ref for row in self.observation_deltas],
+            "observation_delta_refs": [
+                row.delta_ref for row in self.observation_deltas
+            ],
             "proposal_refs": [row.proposal_ref for row in self.proposals],
             "receipt_refs": [row.receipt_ref for row in self.receipts],
-            "coverage_notice_refs": [row.notice_ref for row in self.coverage_notices],
+            "coverage_notice_refs": [
+                row.notice_ref for row in self.coverage_notices
+            ],
             "residual_refs": list(self.residual_refs),
             "merge_properties": ["associative", "commutative", "idempotent"],
         }
@@ -414,23 +449,33 @@ class DocumentFixedPointCertificate:
 
     @property
     def certificate_ref(self) -> str:
-        return "semantic-fixed-point:" + canonical_sha256(self.to_dict(include_ref=False))
+        return "semantic-fixed-point:" + canonical_sha256(
+            self.to_dict(include_ref=False)
+        )
 
     def to_dict(self, *, include_ref: bool = True) -> dict[str, Any]:
-        payload = {
+        payload: dict[str, Any] = {
             "schema_version": STREAMING_FIXED_POINT_SCHEMA_VERSION,
             "document_ref": self.document_ref,
             "revision": self.revision,
             "ledger_ref": self.ledger_ref,
             "materialized_graph_ref": self.materialized_graph_ref,
-            "local_fixed_point": "reached" if self.local_fixed_point_reached else "not_reached",
+            "local_fixed_point": (
+                "reached" if self.local_fixed_point_reached else "not_reached"
+            ),
             "unconsumed_observation_deltas": self.unconsumed_observation_deltas,
             "dirty_reduction_groups": self.dirty_reduction_groups,
             "pending_jobs": self.pending_jobs,
             "in_flight_jobs": self.in_flight_jobs,
-            "unresolved_local_boundary_obligations": self.unresolved_local_boundary_obligations,
-            "open_required_coverage_barriers": self.open_required_coverage_barriers,
-            "unresolved_external_residuals": list(_refs(self.unresolved_external_residuals)),
+            "unresolved_local_boundary_obligations": (
+                self.unresolved_local_boundary_obligations
+            ),
+            "open_required_coverage_barriers": (
+                self.open_required_coverage_barriers
+            ),
+            "unresolved_external_residuals": list(
+                _refs(self.unresolved_external_residuals)
+            ),
             "resource_limit_reached": self.resource_limit_reached,
             "identity_promoted": False,
             "legal_truth_closed": False,
@@ -447,18 +492,28 @@ class ClosureExecutor(Protocol):
 
 
 class PythonClosureExecutor:
-    """Pure revision-bound closure execution over registered declaration handlers."""
+    """Pure revision-bound closure execution over registered handlers."""
 
     backend_ref = "python-worklist:v0_1"
 
-    def __init__(self, handlers: Mapping[str, Callable[[SolverJob], Sequence[FactorProposal]]]):
+    def __init__(
+        self,
+        handlers: Mapping[
+            str,
+            Callable[[SolverJob], Sequence[FactorProposal]],
+        ],
+    ):
         self._handlers = dict(handlers)
 
     def execute(self, job: SolverJob) -> SolverReceipt:
         handler = self._handlers.get(job.declaration_ref)
         if handler is None:
-            raise ValueError(f"no Python closure handler for {job.declaration_ref}")
-        proposals = tuple(sorted(handler(job), key=lambda row: row.proposal_ref))
+            raise ValueError(
+                f"no Python closure handler for {job.declaration_ref}"
+            )
+        proposals = tuple(
+            sorted(handler(job), key=lambda row: row.proposal_ref)
+        )
         return SolverReceipt(
             job_ref=job.job_ref,
             owner_key=job.owner_key,
@@ -469,7 +524,10 @@ class PythonClosureExecutor:
             residuals=(),
             assumptions=job.assumptions,
             coverage_requirements=job.coverage_requirements,
-            metrics={"input_ref_count": len(job.input_refs), "derived_proposal_count": len(proposals)},
+            metrics={
+                "input_ref_count": len(job.input_refs),
+                "derived_proposal_count": len(proposals),
+            },
             backend_ref=self.backend_ref,
         )
 
@@ -490,6 +548,7 @@ class StreamingSemanticOwner:
         self._receipts: dict[str, SolverReceipt] = {}
         self._coverage_notices: dict[str, CoverageNotice] = {}
         self._declarations: dict[str, StreamingDeclaration] = {}
+        self._jobs: dict[str, SolverJob] = {}
         self._pending_jobs: dict[str, SolverJob] = {}
         self._in_flight_jobs: dict[str, SolverJob] = {}
         self._completed_job_signatures: set[str] = set()
@@ -500,10 +559,20 @@ class StreamingSemanticOwner:
 
     @staticmethod
     def proposal_owner_key(proposal: FactorProposal) -> OwnerKey:
-        scope_ref = min(proposal.source_span_refs) if proposal.source_span_refs else "document-global"
-        return OwnerKey(proposal.document_ref, scope_ref, proposal.factor_type_ref)
+        scope_ref = (
+            min(proposal.source_span_refs)
+            if proposal.source_span_refs
+            else "document-global"
+        )
+        return OwnerKey(
+            proposal.document_ref,
+            scope_ref,
+            proposal.factor_type_ref,
+        )
 
-    def register_declarations(self, declarations: Iterable[StreamingDeclaration]) -> None:
+    def register_declarations(
+        self, declarations: Iterable[StreamingDeclaration]
+    ) -> None:
         for declaration in declarations:
             self._declarations[declaration.declaration_ref] = declaration
 
@@ -519,16 +588,22 @@ class StreamingSemanticOwner:
         dirty_owners: Iterable[str] = (),
         jobs: Iterable[str] = (),
     ) -> StateDelta:
+        observation_refs = _refs(observations)
+        proposal_refs = _refs(proposals)
+        factor_refs = _refs(changed_factors)
+        introduced_refs = _refs(introduced_residuals)
+        discharged_refs = _refs(discharged_residuals)
+        owner_refs = _refs(dirty_owners)
+        job_refs = _refs(jobs)
         changed = any(
-            tuple(values)
-            for values in (
-                observations,
-                proposals,
-                changed_factors,
-                introduced_residuals,
-                discharged_residuals,
-                dirty_owners,
-                jobs,
+            (
+                observation_refs,
+                proposal_refs,
+                factor_refs,
+                introduced_refs,
+                discharged_refs,
+                owner_refs,
+                job_refs,
             )
         )
         if changed:
@@ -537,15 +612,16 @@ class StreamingSemanticOwner:
             document_ref=self.document_ref,
             prior_revision=prior_revision,
             resulting_revision=self.revision,
-            accepted_observation_refs=_refs(observations),
-            accepted_proposal_refs=_refs(proposals),
-            changed_factor_refs=_refs(changed_factors),
-            introduced_residual_refs=_refs(introduced_residuals),
-            discharged_residual_refs=_refs(discharged_residuals),
-            dirty_owner_refs=_refs(dirty_owners),
-            emitted_job_refs=_refs(jobs),
+            accepted_observation_refs=observation_refs,
+            accepted_proposal_refs=proposal_refs,
+            changed_factor_refs=factor_refs,
+            introduced_residual_refs=introduced_refs,
+            discharged_residual_refs=discharged_refs,
+            dirty_owner_refs=owner_refs,
+            emitted_job_refs=job_refs,
         )
-        self._state_deltas.append(delta)
+        if changed:
+            self._state_deltas.append(delta)
         return delta
 
     def admit_observation_delta(self, delta: ObservationDelta) -> StateDelta:
@@ -584,26 +660,45 @@ class StreamingSemanticOwner:
         for delta in self._observation_deltas.values():
             if delta.scope_ref == notice.scope_ref:
                 jobs.extend(self._activate_declarations_for_delta(delta))
-        return self._advance(prior_revision=prior, jobs=(job.job_ref for job in jobs))
+        return self._advance(
+            prior_revision=prior,
+            jobs=(job.job_ref for job in jobs),
+        )
 
-    def _coverage_complete(self, *, scope_ref: str, barrier: str) -> bool:
+    def coverage_complete(self, *, scope_ref: str, barrier: str) -> bool:
         return any(
-            row.scope_ref == scope_ref and row.barrier == barrier and row.state == "complete"
+            row.scope_ref == scope_ref
+            and row.barrier == barrier
+            and row.state == "complete"
             for row in self._coverage_notices.values()
         )
 
-    def _activate_declarations_for_delta(self, delta: ObservationDelta) -> tuple[SolverJob, ...]:
+    def _activate_declarations_for_delta(
+        self, delta: ObservationDelta
+    ) -> tuple[SolverJob, ...]:
         observation_types = {
             str(row.get("observation_type") or row.get("type_ref") or "")
             for row in delta.observations
         }
         emitted: list[SolverJob] = []
-        for declaration in sorted(self._declarations.values(), key=lambda row: (row.priority, row.declaration_ref)):
-            if declaration.requires and not set(declaration.requires).intersection(observation_types):
+        for declaration in sorted(
+            self._declarations.values(),
+            key=lambda row: (row.priority, row.declaration_ref),
+        ):
+            if declaration.requires and not set(declaration.requires).intersection(
+                observation_types
+            ):
                 continue
-            if not self._coverage_complete(scope_ref=delta.scope_ref, barrier=declaration.coverage_barrier):
+            if not self.coverage_complete(
+                scope_ref=delta.scope_ref,
+                barrier=declaration.coverage_barrier,
+            ):
                 continue
-            owner_key = OwnerKey(self.document_ref, delta.scope_ref, declaration.affected_index)
+            owner_key = OwnerKey(
+                self.document_ref,
+                delta.scope_ref,
+                declaration.affected_index,
+            )
             input_refs = _refs(delta.observation_refs)
             signature = canonical_sha256(
                 {
@@ -624,13 +719,26 @@ class StreamingSemanticOwner:
                 coverage_requirements=(declaration.coverage_barrier,),
                 priority=declaration.priority,
             )
-            if job.job_ref not in self._pending_jobs and job.job_ref not in self._in_flight_jobs:
+            self._jobs.setdefault(job.job_ref, job)
+            if (
+                job.job_ref not in self._pending_jobs
+                and job.job_ref not in self._in_flight_jobs
+                and not any(
+                    receipt.job_ref == job.job_ref
+                    for receipt in self._receipts.values()
+                )
+            ):
                 self._pending_jobs[job.job_ref] = job
                 emitted.append(job)
         return tuple(emitted)
 
-    def drain_ready_jobs(self, *, limit: int | None = None) -> tuple[SolverJob, ...]:
-        ordered = sorted(self._pending_jobs.values(), key=lambda row: (row.priority, row.job_ref))
+    def drain_ready_jobs(
+        self, *, limit: int | None = None
+    ) -> tuple[SolverJob, ...]:
+        ordered = sorted(
+            self._pending_jobs.values(),
+            key=lambda row: (row.priority, row.job_ref),
+        )
         if limit is not None:
             ordered = ordered[:limit]
         for job in ordered:
@@ -638,7 +746,12 @@ class StreamingSemanticOwner:
             self._in_flight_jobs[job.job_ref] = job
         return tuple(ordered)
 
-    def admit_proposals(self, proposals: Iterable[FactorProposal], *, stage: str) -> StateDelta:
+    def admit_proposals(
+        self,
+        proposals: Iterable[FactorProposal],
+        *,
+        stage: str,
+    ) -> StateDelta:
         if stage not in _PROPOSAL_STAGES:
             raise ValueError("unsupported proposal stage")
         prior = self.revision
@@ -663,17 +776,22 @@ class StreamingSemanticOwner:
     def admit_solver_receipt(self, receipt: SolverReceipt) -> StateDelta:
         if receipt.owner_key.document_ref != self.document_ref:
             raise ValueError("cross-document solver receipt supplied to owner")
+        prior = self.revision
         job = self._in_flight_jobs.pop(receipt.job_ref, None)
         if job is None:
             if receipt.receipt_ref in self._receipts:
-                return self._advance(prior_revision=self.revision)
+                return self._advance(prior_revision=prior)
             raise ValueError("solver receipt does not match an in-flight job")
-        if receipt.input_refs != job.input_refs or receipt.rule_set_revision != job.rule_set_revision:
+        if (
+            receipt.input_refs != job.input_refs
+            or receipt.rule_set_revision != job.rule_set_revision
+        ):
             raise ValueError("solver receipt input contract disagrees with job")
         missing_inputs = set(receipt.input_refs) - self._observation_refs
         if missing_inputs:
-            raise ValueError("solver receipt refers to unavailable or superseded inputs")
-        prior = self.revision
+            raise ValueError(
+                "solver receipt refers to unavailable or superseded inputs"
+            )
         self._receipts[receipt.receipt_ref] = receipt
         signature = canonical_sha256(
             {
@@ -683,18 +801,24 @@ class StreamingSemanticOwner:
             }
         )
         self._completed_job_signatures.add(signature)
-        proposal_delta = self.admit_proposals(receipt.proposals, stage="composition")
-        return StateDelta(
-            document_ref=self.document_ref,
+
+        accepted: list[str] = []
+        dirty: set[OwnerKey] = set()
+        for proposal in receipt.proposals:
+            if proposal.document_ref != self.document_ref:
+                raise ValueError("cross-document proposal supplied to owner")
+            if proposal.proposal_ref in self._proposals:
+                continue
+            self._proposals[proposal.proposal_ref] = proposal
+            self._proposal_stage[proposal.proposal_ref] = "composition"
+            accepted.append(proposal.proposal_ref)
+            dirty.add(self.proposal_owner_key(proposal))
+        self._dirty_groups.update(dirty)
+        return self._advance(
             prior_revision=prior,
-            resulting_revision=self.revision,
-            accepted_observation_refs=(),
-            accepted_proposal_refs=proposal_delta.accepted_proposal_refs,
-            changed_factor_refs=(),
-            introduced_residual_refs=_refs(receipt.residuals),
-            discharged_residual_refs=(),
-            dirty_owner_refs=proposal_delta.dirty_owner_refs,
-            emitted_job_refs=(),
+            proposals=accepted,
+            introduced_residuals=receipt.residuals,
+            dirty_owners=(key.owner_ref for key in dirty),
         )
 
     def reduce_dirty_groups(self) -> StateDelta:
@@ -702,8 +826,7 @@ class StreamingSemanticOwner:
         changed_factors: set[str] = set()
         introduced: set[str] = set()
         discharged: set[str] = set()
-        dirty = sorted(self._dirty_groups)
-        for key in dirty:
+        for key in sorted(self._dirty_groups):
             group = tuple(
                 proposal
                 for proposal in self._proposals.values()
@@ -714,13 +837,23 @@ class StreamingSemanticOwner:
                 document_ref=self.document_ref,
                 proposals=group,
                 known_observation_refs=self._observation_refs,
-                known_dependency_refs={factor.factor_ref for row in self._reductions.values() for factor in row.factors},
+                known_dependency_refs={
+                    factor.factor_ref
+                    for row in self._reductions.values()
+                    for factor in row.factors
+                },
             )
             self._reductions[key] = reduction
-            before_factors = {row.factor_ref for row in before.factors} if before else set()
+            before_factors = (
+                {row.factor_ref for row in before.factors} if before else set()
+            )
             after_factors = {row.factor_ref for row in reduction.factors}
             changed_factors.update(before_factors.symmetric_difference(after_factors))
-            before_residuals = {row.residual_ref for row in before.residuals} if before else set()
+            before_residuals = (
+                {row.residual_ref for row in before.residuals}
+                if before
+                else set()
+            )
             after_residuals = {row.residual_ref for row in reduction.residuals}
             introduced.update(after_residuals - before_residuals)
             discharged.update(before_residuals - after_residuals)
@@ -731,6 +864,10 @@ class StreamingSemanticOwner:
             introduced_residuals=introduced,
             discharged_residuals=discharged,
         )
+
+    @property
+    def all_jobs(self) -> tuple[SolverJob, ...]:
+        return tuple(self._jobs[key] for key in sorted(self._jobs))
 
     @property
     def materialized_reduction(self) -> ProposalReduction:
@@ -750,13 +887,25 @@ class StreamingSemanticOwner:
     @property
     def ledger(self) -> ConvergentLedger:
         residual_refs = {
-            row.residual_ref for reduction in self._reductions.values() for row in reduction.residuals
+            row.residual_ref
+            for reduction in self._reductions.values()
+            for row in reduction.residuals
         }
         return ConvergentLedger(
-            observation_deltas=tuple(self._observation_deltas[key] for key in sorted(self._observation_deltas)),
-            proposals=tuple(self._proposals[key] for key in sorted(self._proposals)),
-            receipts=tuple(self._receipts[key] for key in sorted(self._receipts)),
-            coverage_notices=tuple(self._coverage_notices[key] for key in sorted(self._coverage_notices)),
+            observation_deltas=tuple(
+                self._observation_deltas[key]
+                for key in sorted(self._observation_deltas)
+            ),
+            proposals=tuple(
+                self._proposals[key] for key in sorted(self._proposals)
+            ),
+            receipts=tuple(
+                self._receipts[key] for key in sorted(self._receipts)
+            ),
+            coverage_notices=tuple(
+                self._coverage_notices[key]
+                for key in sorted(self._coverage_notices)
+            ),
             residual_refs=_refs(residual_refs),
         )
 
@@ -779,16 +928,24 @@ class StreamingSemanticOwner:
             if key.scope_ref == scope_ref
             for residual in reduction.residuals
         ]
-        notices = [row.notice_ref for row in self._coverage_notices.values() if row.scope_ref == scope_ref]
+        notices = [
+            row.notice_ref
+            for row in self._coverage_notices.values()
+            if row.scope_ref == scope_ref
+        ]
         return RegionBoundarySummary(
             document_ref=self.document_ref,
             scope_ref=scope_ref,
             stable_factor_refs=tuple(row.factor_ref for row in factors),
             unresolved_external_refs=tuple(
-                row.residual_ref for row in residuals if row.residual_type == "missing_reduction_input"
+                row.residual_ref
+                for row in residuals
+                if row.residual_type == "missing_reduction_input"
             ),
             possible_cross_scope_hosts=tuple(
-                row.residual_ref for row in residuals if row.residual_type == "incompatible_alternatives"
+                row.residual_ref
+                for row in residuals
+                if row.residual_type == "incompatible_alternatives"
             ),
             definition_scope_obligations=tuple(
                 ref for ref in self._boundary_obligations if scope_ref in ref
@@ -796,7 +953,9 @@ class StreamingSemanticOwner:
             coverage_notice_refs=tuple(notices),
         )
 
-    def fixed_point_certificate(self, *, resource_limit_reached: bool = False) -> DocumentFixedPointCertificate:
+    def fixed_point_certificate(
+        self, *, resource_limit_reached: bool = False
+    ) -> DocumentFixedPointCertificate:
         required_barriers = {
             (delta.scope_ref, declaration.coverage_barrier)
             for delta in self._observation_deltas.values()
@@ -804,20 +963,24 @@ class StreamingSemanticOwner:
             if not declaration.requires
             or set(declaration.requires).intersection(
                 {
-                    str(row.get("observation_type") or row.get("type_ref") or "")
+                    str(
+                        row.get("observation_type")
+                        or row.get("type_ref")
+                        or ""
+                    )
                     for row in delta.observations
                 }
             )
         }
         open_barriers = sum(
-            not self._coverage_complete(scope_ref=scope_ref, barrier=barrier)
+            not self.coverage_complete(scope_ref=scope_ref, barrier=barrier)
             for scope_ref, barrier in required_barriers
         )
         reduction = self.materialized_reduction
         external = tuple(
             row.residual_ref
             for row in reduction.residuals
-            if row.residual_type not in {"missing_reduction_input"}
+            if row.residual_type != "missing_reduction_input"
         )
         return DocumentFixedPointCertificate(
             document_ref=self.document_ref,
@@ -828,7 +991,9 @@ class StreamingSemanticOwner:
             dirty_reduction_groups=len(self._dirty_groups),
             pending_jobs=len(self._pending_jobs),
             in_flight_jobs=len(self._in_flight_jobs),
-            unresolved_local_boundary_obligations=len(self._boundary_obligations),
+            unresolved_local_boundary_obligations=len(
+                self._boundary_obligations
+            ),
             open_required_coverage_barriers=open_barriers,
             unresolved_external_residuals=external,
             resource_limit_reached=resource_limit_reached,
@@ -840,10 +1005,21 @@ class StreamingSemanticOwner:
             "revision": self.revision,
             "partition_count": self.partition_count,
             "ledger": self.ledger.to_dict(),
+            "observation_deltas": [
+                row.to_dict() for row in self.ledger.observation_deltas
+            ],
+            "coverage_notices": [
+                row.to_dict() for row in self.ledger.coverage_notices
+            ],
+            "proposals": [row.to_dict() for row in self.ledger.proposals],
+            "solver_jobs": [row.to_dict() for row in self.all_jobs],
+            "solver_receipts": [
+                row.to_dict() for row in self.ledger.receipts
+            ],
             "materialized_reduction": self.materialized_reduction.to_dict(),
             "state_deltas": [row.to_dict() for row in self._state_deltas],
-            "pending_jobs": [row.to_dict() for row in sorted(self._pending_jobs.values(), key=lambda row: row.job_ref)],
-            "in_flight_jobs": [row.to_dict() for row in sorted(self._in_flight_jobs.values(), key=lambda row: row.job_ref)],
+            "pending_job_refs": sorted(self._pending_jobs),
+            "in_flight_job_refs": sorted(self._in_flight_jobs),
             "fixed_point_certificate": self.fixed_point_certificate().to_dict(),
             "shared_graph_mutation": False,
             "last_writer_wins": False,
@@ -856,7 +1032,7 @@ def execute_ready_jobs(
     *,
     workers: int = 1,
 ) -> tuple[SolverReceipt, ...]:
-    """Execute all currently ready jobs concurrently and stream receipts to the owner."""
+    """Execute ready jobs concurrently and stream each receipt to its owner."""
 
     if workers < 1:
         raise ValueError("workers must be positive")
@@ -864,7 +1040,10 @@ def execute_ready_jobs(
     if not jobs:
         return ()
     receipts: list[SolverReceipt] = []
-    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="semantic-closure") as pool:
+    with ThreadPoolExecutor(
+        max_workers=workers,
+        thread_name_prefix="semantic-closure",
+    ) as pool:
         futures: dict[Future[SolverReceipt], str] = {
             pool.submit(executor.execute, job): job.job_ref for job in jobs
         }
@@ -877,17 +1056,29 @@ def execute_ready_jobs(
 
 
 def assert_finalising_claim_allowed(
-    *, claim: str, scope_ref: str, barrier: str, owner: StreamingSemanticOwner
+    *,
+    claim: str,
+    scope_ref: str,
+    barrier: str,
+    owner: StreamingSemanticOwner,
 ) -> None:
-    """Reject absence/uniqueness/closure claims until their coverage barrier closes."""
+    """Reject absence/uniqueness/closure until the declared scope is complete."""
 
     if claim not in _FINALISING_CLAIMS:
         return
-    if not owner._coverage_complete(scope_ref=scope_ref, barrier=barrier):
-        raise ValueError(f"finalising claim {claim} requires closed {barrier} coverage")
+    if not owner.coverage_complete(scope_ref=scope_ref, barrier=barrier):
+        raise ValueError(
+            f"finalising claim {claim} requires closed {barrier} coverage"
+        )
     certificate = owner.fixed_point_certificate()
-    if claim in {"closed", "exhausted", "all_alternatives_enumerated"} and not certificate.local_fixed_point_reached:
-        raise ValueError(f"finalising claim {claim} requires a local fixed point")
+    if claim in {
+        "closed",
+        "exhausted",
+        "all_alternatives_enumerated",
+    } and not certificate.local_fixed_point_reached:
+        raise ValueError(
+            f"finalising claim {claim} requires a local fixed point"
+        )
 
 
 __all__ = [
