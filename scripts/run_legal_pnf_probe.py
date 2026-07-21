@@ -3,8 +3,8 @@
 
 The probe preserves source/canonical coordinates, records parser observations and
 PNF graphs, projects Legal IR only from legal PNF factors, compares the legacy
-obligation lane as a diagnostic oracle, and optionally performs candidate-only
-Wikidata lookups that the legal entity-resolution policy warrants.
+obligation lane as a diagnostic oracle, emits a unified LegalSemanticBuild, and
+optionally performs candidate-only Wikidata lookups warranted by legal materiality.
 """
 
 from __future__ import annotations
@@ -22,19 +22,14 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.ingestion.corpus_source_projection import project_source_families  # noqa: E402
-from src.obligations import (  # noqa: E402
-    extract_obligations_from_text,
-    obligation_to_dict,
-)
+from src.obligations import extract_obligations_from_text, obligation_to_dict  # noqa: E402
 from src.ontology.wikimedia_providers import (  # noqa: E402
     WikidataProvider,
     WikimediaMicrobatchRunner,
 )
 from src.pnf.legal_probe import build_legal_pnf_probe  # noqa: E402
-from src.policy.corpus_compilation import (  # noqa: E402
-    compile_document,
-    default_compiler_context,
-)
+from src.pnf.legal_semantic_build import build_legal_semantic_build  # noqa: E402
+from src.policy.corpus_compilation import compile_document, default_compiler_context  # noqa: E402
 
 
 def _parse_args() -> argparse.Namespace:
@@ -56,7 +51,6 @@ def _parse_args() -> argparse.Namespace:
     if args.max_file_bytes < 1:
         parser.error("--max-file-bytes must be positive")
     if args.run_wikidata and not args.compare_legacy:
-        # Not semantically required, but keeps live probes deliberately explicit.
         parser.error("--run-wikidata requires --compare-legacy for an auditable probe")
     return args
 
@@ -70,7 +64,7 @@ def _write_json(path: Path, value: Mapping[str, Any] | list[Any]) -> None:
 
 
 def _document_ref(canonical_sha256: str) -> str:
-    payload = f"legal-pnf-probe|{canonical_sha256}".encode("utf-8")
+    payload = f"legal-pnf-probe|{canonical_sha256}".encode()
     return "document:" + hashlib.sha256(payload).hexdigest()
 
 
@@ -116,21 +110,38 @@ def main() -> int:
     _write_json(projection_root / "manifest.json", manifest.to_dict())
 
     probe_rows: list[dict[str, Any]] = []
-    wikidata_demands = []
+    wikidata_demands: list[dict[str, Any]] = []
     for index, row in enumerate(manifest.documents, start=1):
         compilation = _compile_projection_row(row, projection_root)
-        canonical_text = str((compilation.get("artifacts") or {}).get("canonical_text") or "")
+        artifacts = compilation.get("artifacts") or {}
+        canonical_text = str(artifacts.get("canonical_text") or "")
         legacy = _legacy_rows(canonical_text) if args.compare_legacy else []
         probe = build_legal_pnf_probe(compilation, legacy_rows=legacy)
+
+        # The probe owns discovery; the build owns the typed, versioned merge surface.
+        from src.pnf.legal_adjunct import project_legal_ir
+
+        refined_graph = artifacts.get("refined_pnf_graph") or artifacts.get("pnf_graph") or {}
+        legal_ir_objects = project_legal_ir(refined_graph.get("factors") or ())
+        semantic_build = build_legal_semantic_build(
+            compilation=compilation,
+            legal_ir=legal_ir_objects,
+            legacy_rows=legacy,
+            declaration_revision_refs=artifacts.get("semantic_reduction_refs") or (),
+        )
+
         document_dir = output_dir / "documents" / f"{index:04d}_{row.canonical_sha256[:12]}"
-        artifacts = compilation.get("artifacts") or {}
         _write_json(document_dir / "compilation.json", compilation)
         _write_json(document_dir / "parser_observations.json", probe["parser_observations"])
         _write_json(document_dir / "pnf_graph.json", probe["pnf_graph"])
         _write_json(document_dir / "refined_pnf_graph.json", probe["refined_pnf_graph"])
         _write_json(document_dir / "legal_ir.json", probe["legal_ir"])
         _write_json(document_dir / "legacy_obligations.json", probe["legacy_observations"])
-        _write_json(document_dir / "comparison_ledger.json", probe["comparison_ledger"])
+        _write_json(document_dir / "legacy_witnesses.json", semantic_build["legacy_witnesses"])
+        _write_json(document_dir / "comparison_ledger.json", semantic_build["comparison_ledger"])
+        _write_json(document_dir / "pnf_coverage_demands.json", semantic_build["coverage_demands"])
+        _write_json(document_dir / "legal_ir_projection.json", semantic_build["legal_ir_projection"])
+        _write_json(document_dir / "legal_semantic_build.json", semantic_build)
         _write_json(
             document_dir / "entity_resolution_decisions.json",
             probe["entity_resolution_decisions"],
@@ -142,7 +153,8 @@ def main() -> int:
                 "source_ref": row.source_ref,
                 "document_ref": compilation.get("document_ref"),
                 "probe_ref": probe["probe_ref"],
-                "summary": probe["summary"],
+                "legal_semantic_build_ref": semantic_build["build"]["build_ref"],
+                "summary": {**probe["summary"], **semantic_build["summary"]},
                 "document_output_dir": str(document_dir),
                 "parser_receipt": artifacts.get("parser_receipt") or {},
             }
@@ -156,7 +168,6 @@ def main() -> int:
         "results": [],
     }
     if args.run_wikidata and wikidata_demands:
-        # Reconstruct typed demand objects from each probe to avoid broad lookups.
         from src.ontology.external_enrichment import ExternalLookupDemand
 
         demands = tuple(
@@ -187,7 +198,7 @@ def main() -> int:
     _write_json(output_dir / "wikidata_results.json", wikidata_output)
 
     summary = {
-        "schema_version": "sl.legal_pnf_probe_run.v0_1",
+        "schema_version": "sl.legal_pnf_probe_run.v0_2",
         "source_projection": str(projection_root / "manifest.json"),
         "documents": probe_rows,
         "document_count": len(probe_rows),
@@ -198,11 +209,14 @@ def main() -> int:
         "coverage_gap_count": sum(
             int(row["summary"]["coverage_gap_count"]) for row in probe_rows
         ),
+        "coverage_demand_count": sum(
+            int(row["summary"]["coverage_demand_count"]) for row in probe_rows
+        ),
         "wikidata_lookup_demand_count": len(wikidata_demands),
         "wikidata_network_performed": wikidata_output["network_performed"],
         "identity_closure_count": 0,
         "legal_conclusion_promotion_count": 0,
-        "authority": "diagnostic_only",
+        "authority": "diagnostic_build_index",
     }
     _write_json(output_dir / "coverage_scorecard.json", summary)
     print(json.dumps(summary, sort_keys=True))
