@@ -1,9 +1,9 @@
 """Apply generic operator composition to an existing document compilation.
 
 The bridge reconstructs the public parser token record from the stored annotation
-layer.  It never reparses text.  This makes the probe exercise the same parser
-observations while the composition phase is being validated for direct inclusion
-in the compiler pipeline.
+layer.  It never reparses text.  Composition first emits immutable proposals and a
+deterministic document-local reduction ledger; the compatibility graph projection is
+then populated from the existing Factor carrier without allowing shared graph mutation.
 """
 
 from __future__ import annotations
@@ -12,10 +12,11 @@ from copy import deepcopy
 from typing import Any, Mapping
 
 from src.language.operator_composition import compose_operator_factors
+from src.pnf.factor_proposals import FactorProposal, reduce_factor_proposals
 from src.policy.carriers.canonical import canonical_sha256
 
 
-OPERATOR_COMPOSITION_BRIDGE_CONTRACT = "pnf-operator-composition-bridge:v0_1"
+OPERATOR_COMPOSITION_BRIDGE_CONTRACT = "pnf-operator-composition-bridge:v0_2"
 
 
 def _parsed_document_from_layer(layer: Mapping[str, Any]) -> dict[str, Any]:
@@ -29,7 +30,6 @@ def _parsed_document_from_layer(layer: Mapping[str, Any]) -> dict[str, Any]:
             continue
         values.setdefault(index, {})[annotation_type.removeprefix("parser.")] = row.get("value")
 
-    spans_by_ref: dict[str, Mapping[str, Any]] = {}
     token_ref_by_index: dict[int, str] = {}
     for row in layer.get("span_annotations") or ():
         if str(row.get("annotation_type") or "") != "parser_token":
@@ -38,7 +38,6 @@ def _parsed_document_from_layer(layer: Mapping[str, Any]) -> dict[str, Any]:
         if index < 0:
             continue
         span_ref = str(row.get("span_ref") or "")
-        spans_by_ref[span_ref] = row
         token_ref_by_index[index] = span_ref
         payload = row.get("value") or {}
         values.setdefault(index, {}).update(
@@ -108,10 +107,38 @@ def _projection_ready_factor(row: Mapping[str, Any]) -> dict[str, Any]:
     return value
 
 
+def _proposal_from_factor(*, document_ref: str, row: Mapping[str, Any]) -> FactorProposal:
+    metadata = dict(row.get("metadata") or {})
+    provenance_refs = tuple(str(ref) for ref in metadata.get("provenance_refs") or ())
+    alternatives = tuple(row.get("alternatives") or ())
+    candidate_payload = {
+        "factor_ref": str(row.get("factor_ref") or ""),
+        "alternatives": [dict(item) for item in alternatives if isinstance(item, Mapping)],
+        "predicate_ref": str(metadata.get("predicate_ref") or row.get("factor_type") or ""),
+    }
+    return FactorProposal(
+        document_ref=document_ref,
+        source_revision_ref="source-revision:" + canonical_sha256(
+            {"document_ref": document_ref, "provenance_refs": sorted(provenance_refs)}
+        ),
+        factor_type_ref=str(row.get("factor_type") or ""),
+        source_span_refs=provenance_refs,
+        input_observation_refs=provenance_refs,
+        dependency_factor_refs=(),
+        structural_signature=str(metadata.get("structural_signature_ref") or ""),
+        role_bindings=dict(metadata.get("role_bindings") or {}),
+        qualifier_state=dict(metadata.get("qualifier_state") or {}),
+        producer_contract=str(metadata.get("composition_contract_ref") or OPERATOR_COMPOSITION_BRIDGE_CONTRACT),
+        declaration_revision="v0_1",
+        candidate_payload=candidate_payload,
+        residuals=tuple(str(value) for value in row.get("residuals") or ()),
+    )
+
+
 def apply_operator_composition_to_compilation(
     compilation: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """Return a compilation with operator factors added to both PNF graph views."""
+    """Return a compilation with proposals, reduction, and operator factors."""
 
     result = deepcopy(dict(compilation))
     artifacts = deepcopy(dict(result.get("artifacts") or {}))
@@ -123,6 +150,17 @@ def apply_operator_composition_to_compilation(
         parsed_document=parsed_document,
     )
     factor_rows = tuple(_projection_ready_factor(row.to_dict()) for row in factors)
+    proposals = tuple(
+        _proposal_from_factor(document_ref=document_ref, row=row.to_dict()) for row in factors
+    )
+    known_observations = tuple(
+        sorted({ref for proposal in proposals for ref in proposal.input_observation_refs})
+    )
+    reduction = reduce_factor_proposals(
+        document_ref=document_ref,
+        proposals=proposals,
+        known_observation_refs=known_observations,
+    )
 
     for graph_name in ("pnf_graph", "refined_pnf_graph"):
         graph = deepcopy(dict(artifacts.get(graph_name) or {}))
@@ -138,6 +176,7 @@ def apply_operator_composition_to_compilation(
             {
                 "prior_graph_ref": graph.get("graph_ref"),
                 "contract": OPERATOR_COMPOSITION_BRIDGE_CONTRACT,
+                "proposal_reduction_ref": reduction.graph_ref,
                 "factor_refs": sorted(existing),
             }
         )
@@ -149,6 +188,9 @@ def apply_operator_composition_to_compilation(
         "reparsed": False,
         "factor_refs": [row.factor_ref for row in factors],
         "factor_count": len(factors),
+        "factor_proposals": [row.to_dict() for row in proposals],
+        "proposal_reduction": reduction.to_dict(),
+        "shared_graph_mutation": False,
         "authority": "candidate_pnf_only",
     }
     result["artifacts"] = artifacts
