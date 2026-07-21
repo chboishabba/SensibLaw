@@ -69,13 +69,19 @@ def _safe_name(index: int, url: str, suffix: str) -> str:
     return f"{index:04d}_{digest}{suffix}"
 
 
-def _source_file_plan(source: Path, target: Path) -> tuple[tuple[Path, Path], ...]:
+def _source_file_plan(
+    source: Path,
+    target: Path,
+    *,
+    max_file_bytes: int | None = None,
+) -> tuple[tuple[Path, Path], ...]:
     if not source.exists():
         return ()
     return tuple(
         (path, target / path.relative_to(source))
         for path in sorted(source.rglob("*"))
         if path.is_file()
+        and (max_file_bytes is None or path.stat().st_size <= max_file_bytes)
     )
 
 
@@ -103,10 +109,12 @@ def main() -> int:
 
     copy_plan: list[tuple[Path, Path]] = []
     for family in catalogue.get("persisted_source_families", []):
+        max_file_bytes = family.get("max_file_bytes")
         copy_plan.extend(
             _source_file_plan(
                 ROOT / family["path"],
                 existing_root / family["family_ref"].replace(":", "_"),
+                max_file_bytes=(int(max_file_bytes) if max_file_bytes is not None else None),
             )
         )
     with recorder.phase(
