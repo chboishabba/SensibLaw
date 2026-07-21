@@ -24,6 +24,9 @@ def test_binding_migrations_repair_active_document_authority_and_add_reuse() -> 
     migration_014 = (
         MIGRATIONS / "014_external_pnf_enrichment.sql"
     ).read_text(encoding="utf-8")
+    migration_015 = (
+        MIGRATIONS / "015_legal_ir_federation.sql"
+    ).read_text(encoding="utf-8")
 
     assert "REFERENCES compiler_document(document_ref)" in migration_008
     assert "DROP CONSTRAINT IF EXISTS factor_anchor_document_ref_fkey" in (
@@ -60,3 +63,16 @@ def test_binding_migrations_repair_active_document_authority_and_add_reuse() -> 
     assert "candidate_payload JSONB" not in (
         migration_010 + migration_011 + migration_012 + migration_013 + migration_014
     )
+
+    assert "CREATE SCHEMA IF NOT EXISTS legal_ir" in migration_015
+    assert "legal_ir.semantic_build" in migration_015
+    assert "diagnostic.legacy_witness" in migration_015
+    assert "diagnostic.semantic_comparison" in migration_015
+    assert "diagnostic.pnf_coverage_demand" in migration_015
+    assert "legal_ir.graph_revision" in migration_015
+    assert "legal_ir.review_attestation" in migration_015
+    assert "legal_ir.trust_projection" in migration_015
+    assert "CHECK (truth_closed = FALSE)" in migration_015
+    assert "CHECK (anonymous_consensus = FALSE)" in migration_015
+    assert "CHECK (disagreement_preserved = TRUE)" in migration_015
+    assert "direct_factor_creation_allowed = FALSE" in migration_015
