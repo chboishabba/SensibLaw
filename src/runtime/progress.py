@@ -36,6 +36,8 @@ class ProgressEvent:
     throughput_units_per_second: float | None = None
     estimated_remaining_ms: int | None = None
     estimated_completion_at: str | None = None
+    processed_tokens: int | None = None
+    tokens_per_second: float | None = None
     worker: str | None = None
     reused: bool | None = None
 
@@ -122,6 +124,7 @@ class PhaseHandle:
     details: dict[str, Any] = field(default_factory=dict)
     completed: int = 0
     reused: int = 0
+    processed_tokens: int = 0
     _started_at: str | None = None
     _started_ns: int | None = None
     _finished: bool = False
@@ -175,6 +178,12 @@ class PhaseHandle:
                 elapsed_ms=elapsed_ms,
                 worker=self.worker,
                 **self._estimate(elapsed_ms),
+                processed_tokens=self.processed_tokens or None,
+                tokens_per_second=(
+                    round(self.processed_tokens / (elapsed_ms / 1_000), 3)
+                    if self.processed_tokens and elapsed_ms > 0
+                    else None
+                ),
             )
         )
 
@@ -186,10 +195,12 @@ class PhaseHandle:
         message: str = "",
         reused: bool | None = None,
         details: Mapping[str, Any] | None = None,
+        processed_tokens: int = 0,
     ) -> None:
         self.completed += amount
         if reused:
             self.reused += amount
+        self.processed_tokens += max(0, processed_tokens)
         elapsed_ms = self.elapsed_ms
         estimate = self._estimate(elapsed_ms)
         self.recorder.emit(
@@ -205,6 +216,12 @@ class PhaseHandle:
                 elapsed_ms=elapsed_ms,
                 worker=self.worker,
                 reused=reused,
+                processed_tokens=self.processed_tokens or None,
+                tokens_per_second=(
+                    round(self.processed_tokens / (elapsed_ms / 1_000), 3)
+                    if self.processed_tokens and elapsed_ms > 0
+                    else None
+                ),
                 **estimate,
             )
         )

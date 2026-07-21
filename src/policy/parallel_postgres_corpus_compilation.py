@@ -36,6 +36,7 @@ class DocumentCompilationOutcome:
     demand_refs: tuple[str, ...] = ()
     failure_ref: str | None = None
     elapsed_ms: int = 0
+    canonical_token_count: int = 0
     worker: str = ""
 
     def to_dict(self) -> dict[str, Any]:
@@ -47,6 +48,7 @@ class DocumentCompilationOutcome:
             "demand_refs": list(self.demand_refs),
             "failure_ref": self.failure_ref,
             "elapsed_ms": self.elapsed_ms,
+            "canonical_token_count": self.canonical_token_count,
             "worker": self.worker,
         }
 
@@ -98,12 +100,18 @@ def _compile_one(
             source_text=source_text,
             context=context,
         )
+        with store.transaction() as cursor:
+            canonical_token_count = store.count_persisted_tokens(
+                cursor,
+                document_ref=document_ref,
+            )
         return DocumentCompilationOutcome(
             document_ref=document_ref,
             relative_path=relative_path,
             state="reused" if cached is not None else "compiled",
             demand_refs=tuple(sorted(set(demand_refs))),
             elapsed_ms=max(0, (monotonic_ns() - started) // 1_000_000),
+            canonical_token_count=canonical_token_count,
             worker=worker,
         )
     except (OSError, UnicodeDecodeError, ValueError, RuntimeError) as error:
@@ -237,7 +245,9 @@ def compile_directory_postgres_parallel(
                         "worker": outcome.worker,
                         "relative_path": outcome.relative_path,
                         "failure_ref": outcome.failure_ref,
+                        "canonical_token_count": outcome.canonical_token_count,
                     },
+                    processed_tokens=outcome.canonical_token_count,
                 )
 
     ordered = tuple(
