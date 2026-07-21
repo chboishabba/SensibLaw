@@ -1,8 +1,8 @@
 """Bounded document-level PostgreSQL compilation with deterministic reduction.
 
-Corpus admission and the final result ordering remain serialized. Each worker owns a
-short-lived PostgreSQL connection and compiles exactly one immutable document build.
-No worker mutates a shared graph object or a mutable corpus pointer.
+Corpus admission and final result ordering remain serialized.  Each process compiles one
+immutable document, while its internal parser deltas and closure jobs stream through
+keyed logical owners.  No process mutates a shared graph or mutable corpus pointer.
 """
 
 from __future__ import annotations
@@ -19,14 +19,17 @@ from src.policy.operational_corpus_compilation import OPERATIONAL_COMPILER_CONTR
 from src.policy.postgres_corpus_compilation import (
     _operational_build_key,
     _prepare_operational_manifest,
-    persist_document_compilation,
+)
+from src.policy.streaming_postgres_corpus_compilation import (
+    persist_streaming_document_compilation,
 )
 from src.runtime.progress import PhaseHandle
 from src.storage.postgres import PersistedCompilation, PostgresCompilerStore
 from src.storage.postgres.operational_build_store import load_completed_operational_build
+from src.storage.postgres.streaming_semantic_store import load_stage_timings
 
 
-PARALLEL_COMPILATION_SCHEMA_VERSION = "sl.parallel_postgres_compilation.v0_1"
+PARALLEL_COMPILATION_SCHEMA_VERSION = "sl.parallel_postgres_compilation.v0_2"
 
 
 @dataclass(frozen=True)
@@ -39,6 +42,9 @@ class DocumentCompilationOutcome:
     elapsed_ms: int = 0
     canonical_token_count: int = 0
     worker: str = ""
+    stage_timings: tuple[Mapping[str, Any], ...] = ()
+    fixed_point_certificate_ref: str | None = None
+    local_fixed_point: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -51,6 +57,9 @@ class DocumentCompilationOutcome:
             "elapsed_ms": self.elapsed_ms,
             "canonical_token_count": self.canonical_token_count,
             "worker": self.worker,
+            "stage_timings": [dict(row) for row in self.stage_timings],
+            "fixed_point_certificate_ref": self.fixed_point_certificate_ref,
+            "local_fixed_point": self.local_fixed_point,
         }
 
 
@@ -62,6 +71,25 @@ def _build_key(entry: Mapping[str, Any], context: CompilerContext) -> str:
         media_adapter_ref=str(entry["media_adapter_ref"]),
         context=context,
     )
+
+
+def _fixed_point_status(
+    cursor: Any, *, document_ref: str
+) -> tuple[str | None, str | None]:
+    cursor.execute(
+        """
+        SELECT certificate_ref, local_fixed_point
+        FROM semantic_fixed_point_certificate
+        WHERE document_ref = %s
+        ORDER BY revision DESC, created_at DESC
+        LIMIT 1
+        """,
+        (document_ref,),
+    )
+    row = cursor.fetchone()
+    if row is None:
+        return None, None
+    return str(row[0]), str(row[1])
 
 
 def _compile_one(
@@ -92,7 +120,7 @@ def _compile_one(
             source_text = source_bytes.decode("utf-8")
         else:
             source_bytes, source_text = prepared_source
-        demand_refs = persist_document_compilation(
+        demand_refs = persist_streaming_document_compilation(
             store=store,
             corpus_ref=corpus_ref,
             relative_path=relative_path,
@@ -106,6 +134,14 @@ def _compile_one(
                 cursor,
                 document_ref=document_ref,
             )
+            stage_timings = load_stage_timings(
+                cursor,
+                document_ref=document_ref,
+            )
+            certificate_ref, local_fixed_point = _fixed_point_status(
+                cursor,
+                document_ref=document_ref,
+            )
         return DocumentCompilationOutcome(
             document_ref=document_ref,
             relative_path=relative_path,
@@ -114,6 +150,9 @@ def _compile_one(
             elapsed_ms=max(0, (monotonic_ns() - started) // 1_000_000),
             canonical_token_count=canonical_token_count,
             worker=worker,
+            stage_timings=stage_timings,
+            fixed_point_certificate_ref=certificate_ref,
+            local_fixed_point=local_fixed_point,
         )
     except (OSError, UnicodeDecodeError, ValueError, RuntimeError) as error:
         with store.transaction() as cursor:
@@ -152,12 +191,7 @@ def compile_directory_postgres_parallel(
     progress: PhaseHandle | None = None,
     outcome_sink: Callable[[DocumentCompilationOutcome], None] | None = None,
 ) -> tuple[PersistedCompilation, tuple[DocumentCompilationOutcome, ...]]:
-    """Compile distinct canonical documents concurrently and reduce stably.
-
-    Duplicate-content occurrences are admitted serially. Workers use independent
-    database connections. Returned document, demand, failure, and timing rows are
-    sorted by stable references rather than completion order.
-    """
+    """Compile distinct canonical documents concurrently and reduce stably."""
 
     phases = {"inventory", "local", "demand_planning", "legal_catalogue_build"}
     if execution_phase not in phases:
@@ -211,14 +245,16 @@ def compile_directory_postgres_parallel(
     if progress is not None:
         progress.total = len(admitted)
         progress.total_tokens = sum(
-            len(tokenize_canonical_with_spans(prepared_sources[str(entry["relative_path"])][1]))
+            len(
+                tokenize_canonical_with_spans(
+                    prepared_sources[str(entry["relative_path"])][1]
+                )
+            )
             for entry in admitted
         )
 
     outcomes: list[DocumentCompilationOutcome] = []
-    with ProcessPoolExecutor(
-        max_workers=workers,
-    ) as executor:
+    with ProcessPoolExecutor(max_workers=workers) as executor:
         future_map: dict[Future[DocumentCompilationOutcome], str] = {}
         for index, entry in enumerate(admitted):
             relative_path = str(entry["relative_path"])
@@ -251,6 +287,12 @@ def compile_directory_postgres_parallel(
                         "relative_path": outcome.relative_path,
                         "failure_ref": outcome.failure_ref,
                         "canonical_token_count": outcome.canonical_token_count,
+                        "local_fixed_point": outcome.local_fixed_point,
+                        "fixed_point_certificate_ref": outcome.fixed_point_certificate_ref,
+                        "stage_totals_ms": {
+                            str(row["stage"]): int(row["elapsed_ms"])
+                            for row in outcome.stage_timings
+                        },
                     },
                     processed_tokens=outcome.canonical_token_count,
                 )
