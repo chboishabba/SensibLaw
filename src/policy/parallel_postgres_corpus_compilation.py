@@ -13,6 +13,7 @@ from pathlib import Path
 from time import monotonic_ns
 from typing import Any, Callable, Mapping, Sequence
 
+from src.sensiblaw.interfaces import tokenize_canonical_with_spans
 from src.policy.corpus_compilation import CompilerContext, build_corpus_manifest
 from src.policy.operational_corpus_compilation import OPERATIONAL_COMPILER_CONTRACT
 from src.policy.postgres_corpus_compilation import (
@@ -209,6 +210,10 @@ def compile_directory_postgres_parallel(
 
     if progress is not None:
         progress.total = len(admitted)
+        progress.total_tokens = sum(
+            len(tokenize_canonical_with_spans(prepared_sources[str(entry["relative_path"])][1]))
+            for entry in admitted
+        )
 
     outcomes: list[DocumentCompilationOutcome] = []
     with ProcessPoolExecutor(

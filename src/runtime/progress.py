@@ -37,6 +37,7 @@ class ProgressEvent:
     estimated_remaining_ms: int | None = None
     estimated_completion_at: str | None = None
     processed_tokens: int | None = None
+    total_tokens: int | None = None
     tokens_per_second: float | None = None
     worker: str | None = None
     reused: bool | None = None
@@ -125,6 +126,7 @@ class PhaseHandle:
     completed: int = 0
     reused: int = 0
     processed_tokens: int = 0
+    total_tokens: int | None = None
     _started_at: str | None = None
     _started_ns: int | None = None
     _finished: bool = False
@@ -179,6 +181,7 @@ class PhaseHandle:
                 worker=self.worker,
                 **self._estimate(elapsed_ms),
                 processed_tokens=self.processed_tokens or None,
+                total_tokens=self.total_tokens,
                 tokens_per_second=(
                     round(self.processed_tokens / (elapsed_ms / 1_000), 3)
                     if self.processed_tokens and elapsed_ms > 0
@@ -217,6 +220,7 @@ class PhaseHandle:
                 worker=self.worker,
                 reused=reused,
                 processed_tokens=self.processed_tokens or None,
+                total_tokens=self.total_tokens,
                 tokens_per_second=(
                     round(self.processed_tokens / (elapsed_ms / 1_000), 3)
                     if self.processed_tokens and elapsed_ms > 0
