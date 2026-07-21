@@ -7,7 +7,7 @@ No worker mutates a shared graph object or a mutable corpus pointer.
 
 from __future__ import annotations
 
-from concurrent.futures import Future, ThreadPoolExecutor, as_completed
+from concurrent.futures import Future, ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from time import monotonic_ns
@@ -203,9 +203,8 @@ def compile_directory_postgres_parallel(
         progress.total = len(admitted)
 
     outcomes: list[DocumentCompilationOutcome] = []
-    with ThreadPoolExecutor(
+    with ProcessPoolExecutor(
         max_workers=workers,
-        thread_name_prefix="pnf-document",
     ) as executor:
         future_map: dict[Future[DocumentCompilationOutcome], str] = {}
         for index, entry in enumerate(admitted):
