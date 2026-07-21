@@ -180,7 +180,17 @@ cython_debug/
 .cache_local/messenger_export*/
 .cache_local/openrecall_handoff/
 .cache_local/openrecall_handoff*/
-demo/ingest/
+# Approved corpus material is versioned for reproducible GWB and AU runs.
+# Keep unrelated ingest workspaces local by default, and retain the oversized
+# HCA video in licensed artifact storage rather than ordinary Git.
+demo/ingest/*
+!demo/ingest/gwb/
+!demo/ingest/gwb/**
+!demo/ingest/legal_principles_au_v1/
+!demo/ingest/legal_principles_au_v1/**
+!demo/ingest/hca_case_s942025/
+!demo/ingest/hca_case_s942025/**
+demo/ingest/hca_case_s942025/media/video/hca_case_s942025.mp4
 
 # PyPI configuration file
 .pypirc
@@ -225,3 +235,10 @@ codex_history*.sqlite*-shm
 # Local artifacts
 artifacts_generic/*.sqlite
 generic_text_demo.sqlite
+
+# Immutable local Wikidata replay payloads.  The committed compiler artifacts
+# retain source hashes and provenance; these bulk exports stay local.
+data/ontology/wikidata_migration_packs/p5991_p14143_company_direct_replay_20260717/entity_exports/
+data/ontology/wikidata_migration_packs/p5991_p14143_company_direct_replay_20260717/export-receipts/
+data/ontology/wikidata_migration_packs/p5991_p14143_company_direct_replay_20260717/migration_pack.json
+data/ontology/wikidata_migration_packs/p5991_p14143_company_direct_replay_20260717/rule_coverage.json

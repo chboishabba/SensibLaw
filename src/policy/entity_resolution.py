@@ -79,9 +79,12 @@ _LOCAL_SEMANTIC_FAMILIES = frozenset(
     {
         "entity",
         "relation",
+        "time",
+        "location",
         "quantity",
         "role",
         "eventuality",
+        "proposition",
         "class",
         "property",
         "literal",
@@ -2598,15 +2601,17 @@ def build_local_typing_carrier(
     mentions: Sequence[MentionSpan | Mapping[str, Any]],
     forms: Sequence[FormCandidate | Mapping[str, Any]],
     typing_rules: Sequence[LocalTypingRule | Mapping[str, Any]] = (),
+    structural_hypotheses: Sequence[Mapping[str, Any]] = (),
     authority: str = ENTITY_RESOLUTION_AUTHORITY,
 ) -> dict[str, Any]:
     """Build candidate-only local types and independent coverage pressure.
 
     Built-in reductions type numeric forms as quantities, abbreviation-shaped
     forms as literals, and parser-annotated eventuality mentions as linguistic
-    eventualities. Caller-supplied rules may reduce a form type to another
-    local semantic family, but never name an external identity, resolve a
-    candidate, construct PNF, or promote a fact.
+    eventualities. Public structural annotations may add provenance-bearing
+    role/type hypotheses. Caller-supplied rules may reduce a form type to
+    another local semantic family, but none of these inputs may name an
+    external identity, resolve a candidate, construct PNF, or promote a fact.
     """
 
     if authority != ENTITY_RESOLUTION_AUTHORITY:
@@ -2640,11 +2645,43 @@ def build_local_typing_carrier(
     if len(rule_refs) != len(set(rule_refs)):
         raise ValueError("local typing rule references must be unique")
 
+    structural_rows: list[dict[str, Any]] = []
+    for hypothesis in structural_hypotheses:
+        mention_ref = _text(hypothesis.get("mention_ref"), "structural mention_ref")
+        if mention_ref not in mention_by_ref:
+            raise ValueError("structural hypotheses reference unknown mentions")
+        semantic_family = _text(
+            hypothesis.get("semantic_family"), "structural semantic_family"
+        )
+        if semantic_family not in _LOCAL_SEMANTIC_FAMILIES:
+            raise ValueError(f"unsupported local semantic family: {semantic_family}")
+        evidence_refs = _refs(hypothesis.get("evidence_refs") or ())
+        if not evidence_refs:
+            raise ValueError("structural hypotheses require evidence references")
+        structural_rows.append(
+            {
+                "mention_ref": mention_ref,
+                "semantic_family": semantic_family,
+                "local_type": _text(
+                    hypothesis.get("local_type"), "structural local_type"
+                ),
+                "derivation_basis": _text(
+                    hypothesis.get("derivation_basis"), "structural derivation_basis"
+                ),
+                "evidence_refs": evidence_refs,
+            }
+        )
+
     form_by_mention: dict[str, list[dict[str, Any]]] = {
         mention_ref: [] for mention_ref in mention_by_ref
     }
     for form in form_rows:
         form_by_mention[form["mention_ref"]].append(form)
+    structural_by_mention: dict[str, list[dict[str, Any]]] = {
+        mention_ref: [] for mention_ref in mention_by_ref
+    }
+    for hypothesis in structural_rows:
+        structural_by_mention[str(hypothesis["mention_ref"])].append(hypothesis)
 
     alternative_rows: list[dict[str, Any]] = []
     for mention_ref, mention in mention_by_ref.items():
@@ -2693,6 +2730,17 @@ def build_local_typing_carrier(
                     ).to_dict()
                 )
 
+        for hypothesis in structural_by_mention[mention_ref]:
+            alternative_rows.append(
+                _local_type_alternative(
+                    mention_ref=mention_ref,
+                    semantic_family=str(hypothesis["semantic_family"]),
+                    local_type=str(hypothesis["local_type"]),
+                    derivation_basis=str(hypothesis["derivation_basis"]),
+                    evidence_refs=tuple(hypothesis["evidence_refs"]),
+                ).to_dict()
+            )
+
     alternative_rows.sort(key=lambda alternative: alternative["type_ref"])
     if len({row["type_ref"] for row in alternative_rows}) != len(alternative_rows):
         raise ValueError("local typing emitted duplicate alternative references")
@@ -2733,6 +2781,7 @@ def build_local_typing_carrier(
         "mentions": mention_rows,
         "forms": form_rows,
         "typing_rules": rule_rows,
+        "structural_hypotheses": structural_rows,
         "local_type_alternatives": alternative_rows,
         "coverage_pressure": coverage_rows,
         "serialization_order": "reference_nonsemantic",
@@ -2748,6 +2797,7 @@ def build_local_typing_carrier(
             "mention_count": len(mention_rows),
             "form_count": len(form_rows),
             "typing_rule_count": len(rule_rows),
+            "structural_hypothesis_count": len(structural_rows),
             "local_type_alternative_count": len(alternative_rows),
             "coverage_state_counts": {
                 state: sum(row["coverage_state"] == state for row in coverage_rows)
@@ -3700,6 +3750,7 @@ def build_mention_licensing_carrier(
     source_ref: str,
     document_ref: str,
     context_refs: Sequence[str] = (),
+    parsed_document: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build deterministic, backend-free licenses over a recoverable span lattice.
 
@@ -3716,7 +3767,13 @@ def build_mention_licensing_carrier(
     document = _text(document_ref, "document_ref")
     canonical_context_refs = _refs(context_refs)
     tokens = tokenize_canonical_with_spans(text)
-    parsed = parse_canonical_text(text)
+    parsed = (
+        dict(parsed_document)
+        if parsed_document is not None
+        else parse_canonical_text(text)
+    )
+    if parsed_document is not None and str(parsed.get("text") or "") != text:
+        raise ValueError("parsed_document text must equal canonical_text")
     annotations = _annotation_by_span(parsed)
 
     proposed: dict[

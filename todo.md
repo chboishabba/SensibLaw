@@ -1,5 +1,10 @@
 # SensibLaw TODO
 
+- [P0] Validate the merged set-valued PNF binding tranche against the focused
+  compiler suite, migration application, GWB proper, and AU proof corpus.
+  Candidate sets must remain candidate-only; no antecedent, identity, truth,
+  occurrence, readiness, or promotion closure is permitted.
+
 # 2026-07-17 broader priority checkpoint
 
 - [P0a] Consolidate the canonical parser/span substrate described in
@@ -68,9 +73,9 @@
   - DONE: P0c.4 derives semantic demand-equivalence keys and deduplication
     receipts from typed subject, PNF role, local types, typed constraints,
     requested facets, and document scope; never from surface text alone
-  - NEXT: define the registry-neutral append-only cache/microbatch scheduler
-    and its explicit cache/unavailable/budget outcomes; keep it side-effect-free
-    and identity-blind, consuming semantic demand-equivalence groups only
+  - DONE: registry-neutral append-only cache/microbatch scheduling receipts
+    carry explicit cache/unavailable/budget outcomes while remaining
+    side-effect-free and identity-blind
 - [P0c] Add the bounded PNF-driven resolution loop:
   - `PartialPNF`
   - `ResolutionDemand`
@@ -91,6 +96,116 @@
   - typed event meets across temporal, spatial, participant, type, mention,
     lineage, and observation/occurrence coordinates; scalar scores may order
     review only and may not close identity
+- [P0 corpus] Add the generic directory compilation kernel described in
+  `docs/planning/directory_compilation_kernel_20260718.md`:
+  - implement immutable corpus/document manifests and bounded capability-aware
+    inventory with deterministic path/exclusion/failure receipts
+  - implement shared `compile_document(document_input, compiler_context)` and
+    thin `compile_directory(...)` orchestration; no corpus/profile selector
+  - persist content-addressed phase-0/1/2 artifacts with idempotent reuse
+  - compile local evidence, typed local meets, factor-local refinement receipts,
+    and unresolved demand inventory without network or cross-document closure
+  - add a generic tiny fixture directory plus deterministic rerun, resume,
+    duplicate-occurrence, unsupported-media, and failure-isolation tests
+  - NEXT after local-only proof: explicit cross-document candidate indexes,
+    then separately approved evidence acquisition/refinement phases
+- [P0 semantic compiler] Implement the PostgreSQL semantic-compiler contract
+  in `docs/planning/postgres_semantic_compiler_p0_20260718.md`:
+  - persist immutable generic declarations and build/dependency keys;
+  - reduce one shared annotation graph into predicate, argument, eventuality,
+    temporal, spatial, quantity, attribution, coordination, and embedded-
+    proposition factors without corpus-specific reducers;
+  - plan sparse document-local typed meets, apply real immutable factor
+    refinements, then derive precise unresolved external demands;
+  - prove the same engine against GWB and AU fixtures before any external
+    snapshot acquisition or readiness work.
+  - IMPLEMENTED FIRST SLICE: additive migration `007`, direct PostgreSQL
+    store, immutable declaration/build/dependency persistence, relational
+    semantic reductions, sparse local meet plans, factor-local recurrence
+    revisions, refined demand projection, and tiny GWB/AU proof fixtures.
+  - LIVE CHECKPOINT: migration `007` is applied to the persistent local
+    PostgreSQL 18 development cluster. `gwb-mini` persists 3 documents, 40 PNF
+    factors, and 29 unresolved demands; a rerun adds no demand-projection
+    builds.
+  - REMAINING ACCEPTANCE: run the full proof suite against PostgreSQL, broaden
+    generic annotation relations where the shared public parser exposes them,
+    and measure build reuse on a non-fixture corpus.
+  - NEXT BASELINE: add shared `text/html` canonicalisation and compile the raw
+    GWB public-bios collection locally into PostgreSQL. Record only generic
+    source-normalisation and semantic receipts; EPUB/PDF books and external
+    evidence remain separate later capabilities.
+  - BASELINE COMPLETE: six raw GWB public-bios HTML sources compiled locally
+    with 11,676 factors, 8,719 unresolved demands, and 5,012 compatible local
+    typed meets. The identical rerun added no demand-projection builds. Next:
+    inspect the high-volume generic local-type/demand distribution before
+    admitting EPUB/PDF sources or any external evidence backend.
+  - ACTIVE LOCAL-QUALITY SLICE: project public annotation/relation structure
+    into generic, branch-preserving local type hypotheses for predicate roles,
+    temporal/spatial anchors, nominal structure, coordination, and composition.
+    Measure the change in generic local-type pressure and unresolved demand
+    shape on the same HTML baseline. Do not add corpus labels, infer external
+    identity, or admit EPUB/PDF/external evidence in this slice.
+  - LOCAL-QUALITY COMPLETE: the same six-document HTML baseline emitted 5,317
+    provenance-backed structural hypotheses and reduced
+    `local_type_unresolved` from 7,355 to 3,824. Unresolved demand count moved
+    from 8,719 to 8,817 because newly typed entity-/role-shaped alternatives
+    now retain explicit external-identity obligations instead of a generic
+    local-type residual. Next: inspect the remaining local-type distribution
+    and optimise generic annotation/reduction coverage before new media or
+    external evidence.
+  - ACTIVE STRUCTURAL-SEMANTICS SLICE: emit a deterministic diagnostic
+    partition of the remaining locally untyped mentions by public annotation
+    shape, missing reduction capability, and PNF impact; then replace
+    hard-coded role-to-type projection with immutable generic reduction
+    declarations. Start nominal-description, predication, syntactic-argument,
+    and clause/composition factors and constraints. Preserve branches and
+    residual-specific closure; do not add lexical catalogs, external identity,
+    EPUB/PDF, external evidence, or corpus-specific grammar.
+  - ACTIVE CONSTRAINT-EMISSION SLICE: exploit the high-impact syntactic
+    argument partition by emitting explicit declaration-owned factor/graph
+    constraints. Keep syntactic and semantic roles separate, decompose
+    nominal head/modifier structure, preserve reporting event versus
+    proposition content, and make refinements close only justified residuals.
+    Split annotation-missing diagnostics into actionable alignment, boundary,
+    projection, markup/function, and weak-span causes; do not resolve identity,
+    event occurrence, attachment, or truth.
+  - ACTIVE PARSER-OBSERVATION SLICE: make one public parser pass the canonical
+    `AnnotationGraph` input. Preserve token offsets, sentence membership, POS,
+    lemma, morphology, dependency/head, entity-span observations, and a parser
+    capability/model receipt; derive the legacy relational bundle from that
+    graph rather than parsing again. Generalise predicate observations beyond
+    direct-object clauses, then reduce them into branch-preserving
+    predicate/argument/reference, eventuality/state, inflection, and
+    clause/proposition PNF factors. Pronominal arguments must be parser-
+    constrained unresolved PNF variables, never an English lexical list.
+    Replace the invalid `parser_annotation_missing`/`markup_fragment` baseline
+    with an evidence-flow diagnostic: capability -> observation -> projection
+    -> declaration -> reduction -> PNF output.
+  - IMPLEMENTED FIRST v0.5 PARSER SEAM: a public spaCy parse is now shared by
+    compiler licensing and relational projection; it receipts model/capability
+    state and projects parser token/span/dependency observations into the
+    annotation graph. Predicate projection retains subject-only, oblique and
+    complement structures, while generic reductions create parser-derived
+    pronominal reference branches and predicate-inflection factors without
+    resolving an antecedent or semantic role. Generic clausal complements now
+    emit host/content composition constraints and preserve
+    `proposition_truth_not_evaluated`. NEXT: make factor revisions close only
+    the precise local structural residuals. IMPLEMENTED FIRST v0.6 REFINEMENT:
+    bounded same-document antecedent candidates, parser-supported role meets,
+    immutable constraint assessments, and revision-linked local/external demand
+    separation now consume the PNF graph. Candidate bindings retain
+    entity/eventuality/proposition distinctions; passive subjects do not gain
+    agent branches; expletive-compatible arguments remain non-identifying.
+    NEXT: decompose nominal descriptions and modifier scope from the same
+    observation graph, then extend binding candidates through clause/
+    coordination accessibility. The completed design was to derive bounded
+    same-document antecedent candidates for unresolved reference factors and
+    parser-supported semantic-role meets from syntax/voice/morphology, emit
+    separate constraint assessments, and create immutable revision receipts.
+    Candidate bindings retain entity/eventuality/proposition distinctions;
+    expletive-compatible subjects must not create entity demands; passive
+    subjects must not become agents by default. Demand projection consumes the
+    resulting factor revision.
 - [P0d] Extract generic targeting semantics from the transitional
   `GWBTargetingCandidate` / `GWBTargetingResult` surface and make targeting
   consume resolved or explicitly ambiguous PNF/entity alternatives above

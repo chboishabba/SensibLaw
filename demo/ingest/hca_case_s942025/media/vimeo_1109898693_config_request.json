@@ -1,0 +1,212 @@
+{
+  "ab_tests": {
+    "cross_origin_texttracks": {
+      "data": null,
+      "group": "variant",
+      "track": false
+    }
+  },
+  "ai_widget_signature": "3f8317e06f8b3957ffec0f9221898aae10817e3b4f8cd7fb5a772c4d4246aca4_1770793168",
+  "atid": "1772498233.1770789568",
+  "build": {
+    "backend": "64fcef3",
+    "js": "4.46.28"
+  },
+  "client": {
+    "ip": "103.196.243.212"
+  },
+  "config_refresh_url": "https://player.vimeo.com/video/1109898693/config/request?atid=1772498233.1770789568&expires=70804&referrer=https%3A%2F%2Fwww.hcourt.gov.au%2Fcases-and-judgments%2Fcases%2Fdecided%2Fcase-s942025&session=baebdfb8568c9636b90c4ac2f5c1a4ea7ea5e29a1770789568&signature=64aecbb0df5e22effe0c0cfd95219060&time=1770789568&v=1",
+  "cookie": {
+    "audio_kind": null,
+    "audio_language": null,
+    "captions": null,
+    "captions_styles": {
+      "bgColor": null,
+      "bgOpacity": null,
+      "color": null,
+      "edgeStyle": null,
+      "fontFamily": null,
+      "fontOpacity": null,
+      "fontSize": null,
+      "windowColor": null,
+      "windowOpacity": null
+    },
+    "hd": 0,
+    "qoe_survey_vote": 0,
+    "quality": null,
+    "transcript": null,
+    "volume": 1
+  },
+  "cookie_domain": ".vimeo.com",
+  "country": "AU",
+  "currency": "AUD",
+  "expires": 70804,
+  "file_codecs": {
+    "av1": [],
+    "avc": [
+      "3185d3ac-5ac3-456c-92cb-86e855929ae9",
+      "b8fe3574-1257-4a60-b0ae-efe90f6b98fa",
+      "f311b3f0-c155-494c-9e85-67ef2e9fe29a",
+      "22178ff1-4d80-4aa1-8114-b8f96c07e2da"
+    ],
+    "hevc": {
+      "dvh1": [],
+      "hdr": [],
+      "sdr": []
+    }
+  },
+  "files": {
+    "dash": {
+      "cdns": {
+        "akfire_interconnect_quic": {
+          "avc_url": "https://vod-adaptive-ak.vimeocdn.com/exp=1770860372~acl=%2F11721138-aa8b-4bc2-b8a6-1a31796d4904%2Fpsid%3D0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d%2F%2A~hmac=229b6d88564f2931503ca81287cd34ba4adf5bb9c021b4fbeec80aa47b8a948a/11721138-aa8b-4bc2-b8a6-1a31796d4904/psid=0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d/v2/playlist/av/primary/prot/cXNyPTE/playlist.json?omit=av1-hevc&pathsig=8c953e4f~OLxvYtjFT8973rLXhupaNxA80f4YRjvQQ_UpdAZKjQk&qsr=1&r=dXM%3D&rh=3CtyCs",
+          "origin": "gcs",
+          "url": "https://vod-adaptive-ak.vimeocdn.com/exp=1770860372~acl=%2F11721138-aa8b-4bc2-b8a6-1a31796d4904%2Fpsid%3D0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d%2F%2A~hmac=229b6d88564f2931503ca81287cd34ba4adf5bb9c021b4fbeec80aa47b8a948a/11721138-aa8b-4bc2-b8a6-1a31796d4904/psid=0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d/v2/playlist/av/primary/prot/cXNyPTE/playlist.json?pathsig=8c953e4f~OLxvYtjFT8973rLXhupaNxA80f4YRjvQQ_UpdAZKjQk&qsr=1&r=dXM%3D&rh=3CtyCs"
+        },
+        "fastly_skyfire": {
+          "avc_url": "https://skyfire.vimeocdn.com/1770860372-0x9da686a2b3be3a481cdff6c4f7bd0eff492f0cdb/11721138-aa8b-4bc2-b8a6-1a31796d4904/psid=0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d/v2/playlist/av/primary/prot/cXNyPTE/playlist.json?omit=av1-hevc&pathsig=8c953e4f~OLxvYtjFT8973rLXhupaNxA80f4YRjvQQ_UpdAZKjQk&qsr=1&r=dXM%3D&rh=3CtyCs",
+          "origin": "gcs",
+          "url": "https://skyfire.vimeocdn.com/1770860372-0x9da686a2b3be3a481cdff6c4f7bd0eff492f0cdb/11721138-aa8b-4bc2-b8a6-1a31796d4904/psid=0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d/v2/playlist/av/primary/prot/cXNyPTE/playlist.json?pathsig=8c953e4f~OLxvYtjFT8973rLXhupaNxA80f4YRjvQQ_UpdAZKjQk&qsr=1&r=dXM%3D&rh=3CtyCs"
+        }
+      },
+      "default_cdn": "akfire_interconnect_quic",
+      "separate_av": true,
+      "streams": [
+        {
+          "fps": 30,
+          "id": "3185d3ac-5ac3-456c-92cb-86e855929ae9",
+          "profile": "d0b41bac-2bf2-4310-8113-df764d486192",
+          "quality": "240p"
+        },
+        {
+          "fps": 30,
+          "id": "b8fe3574-1257-4a60-b0ae-efe90f6b98fa",
+          "profile": "f9e4a5d7-8043-4af3-b231-641ca735a130",
+          "quality": "540p"
+        },
+        {
+          "fps": 30,
+          "id": "f311b3f0-c155-494c-9e85-67ef2e9fe29a",
+          "profile": "f3f6f5f0-2e6b-4e90-994e-842d1feeabc0",
+          "quality": "720p"
+        },
+        {
+          "fps": 30,
+          "id": "22178ff1-4d80-4aa1-8114-b8f96c07e2da",
+          "profile": "c3347cdf-6c91-4ab3-8d56-737128e7a65f",
+          "quality": "360p"
+        }
+      ],
+      "streams_avc": [
+        {
+          "fps": 30,
+          "id": "3185d3ac-5ac3-456c-92cb-86e855929ae9",
+          "profile": "d0b41bac-2bf2-4310-8113-df764d486192",
+          "quality": "240p"
+        },
+        {
+          "fps": 30,
+          "id": "b8fe3574-1257-4a60-b0ae-efe90f6b98fa",
+          "profile": "f9e4a5d7-8043-4af3-b231-641ca735a130",
+          "quality": "540p"
+        },
+        {
+          "fps": 30,
+          "id": "f311b3f0-c155-494c-9e85-67ef2e9fe29a",
+          "profile": "f3f6f5f0-2e6b-4e90-994e-842d1feeabc0",
+          "quality": "720p"
+        },
+        {
+          "fps": 30,
+          "id": "22178ff1-4d80-4aa1-8114-b8f96c07e2da",
+          "profile": "c3347cdf-6c91-4ab3-8d56-737128e7a65f",
+          "quality": "360p"
+        }
+      ]
+    },
+    "hls": {
+      "captions": "https://vod-adaptive-ak.vimeocdn.com/exp=1770860372~acl=%2F11721138-aa8b-4bc2-b8a6-1a31796d4904%2Fpsid%3D0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d%2F%2A~hmac=229b6d88564f2931503ca81287cd34ba4adf5bb9c021b4fbeec80aa47b8a948a/11721138-aa8b-4bc2-b8a6-1a31796d4904/psid=0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d/v2/playlist/av/primary/sub/247817806-en-x-autogen/prot/cXNyPTE/playlist.m3u8?ext-subs=1&locale=en&omit=av1-hevc-opus&pathsig=8c953e4f~rwIjnMyfLm7oYPg0OtRlwaIVohZHkENXvDZc0xs5EJU&qsr=1&r=dXM%3D&rh=3CtyCs&sf=ts",
+      "cdns": {
+        "akfire_interconnect_quic": {
+          "avc_url": "https://vod-adaptive-ak.vimeocdn.com/exp=1770860372~acl=%2F11721138-aa8b-4bc2-b8a6-1a31796d4904%2Fpsid%3D0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d%2F%2A~hmac=229b6d88564f2931503ca81287cd34ba4adf5bb9c021b4fbeec80aa47b8a948a/11721138-aa8b-4bc2-b8a6-1a31796d4904/psid=0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d/v2/playlist/av/primary/sub/247817806-en-x-autogen/prot/cXNyPTE/playlist.m3u8?ext-subs=1&locale=en&omit=av1-hevc-opus&pathsig=8c953e4f~rwIjnMyfLm7oYPg0OtRlwaIVohZHkENXvDZc0xs5EJU&qsr=1&r=dXM%3D&rh=3CtyCs&sf=ts",
+          "captions": "https://vod-adaptive-ak.vimeocdn.com/exp=1770860372~acl=%2F11721138-aa8b-4bc2-b8a6-1a31796d4904%2Fpsid%3D0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d%2F%2A~hmac=229b6d88564f2931503ca81287cd34ba4adf5bb9c021b4fbeec80aa47b8a948a/11721138-aa8b-4bc2-b8a6-1a31796d4904/psid=0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d/v2/playlist/av/primary/sub/247817806-en-x-autogen/prot/cXNyPTE/playlist.m3u8?ext-subs=1&locale=en&omit=av1-hevc-opus&pathsig=8c953e4f~rwIjnMyfLm7oYPg0OtRlwaIVohZHkENXvDZc0xs5EJU&qsr=1&r=dXM%3D&rh=3CtyCs&sf=ts",
+          "origin": "gcs",
+          "url": "https://vod-adaptive-ak.vimeocdn.com/exp=1770860372~acl=%2F11721138-aa8b-4bc2-b8a6-1a31796d4904%2Fpsid%3D0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d%2F%2A~hmac=229b6d88564f2931503ca81287cd34ba4adf5bb9c021b4fbeec80aa47b8a948a/11721138-aa8b-4bc2-b8a6-1a31796d4904/psid=0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d/v2/playlist/av/primary/sub/247817806-en-x-autogen/prot/cXNyPTE/playlist.m3u8?ext-subs=1&locale=en&omit=av1-hevc-opus&pathsig=8c953e4f~rwIjnMyfLm7oYPg0OtRlwaIVohZHkENXvDZc0xs5EJU&qsr=1&r=dXM%3D&rh=3CtyCs&sf=ts"
+        },
+        "fastly_skyfire": {
+          "avc_url": "https://skyfire.vimeocdn.com/1770860372-0x9da686a2b3be3a481cdff6c4f7bd0eff492f0cdb/11721138-aa8b-4bc2-b8a6-1a31796d4904/psid=0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d/v2/playlist/av/primary/sub/247817806-en-x-autogen/prot/cXNyPTE/playlist.m3u8?ext-subs=1&locale=en&omit=av1-hevc-opus&pathsig=8c953e4f~rwIjnMyfLm7oYPg0OtRlwaIVohZHkENXvDZc0xs5EJU&qsr=1&r=dXM%3D&rh=3CtyCs&sf=ts",
+          "captions": "https://skyfire.vimeocdn.com/1770860372-0x9da686a2b3be3a481cdff6c4f7bd0eff492f0cdb/11721138-aa8b-4bc2-b8a6-1a31796d4904/psid=0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d/v2/playlist/av/primary/sub/247817806-en-x-autogen/prot/cXNyPTE/playlist.m3u8?ext-subs=1&locale=en&omit=av1-hevc-opus&pathsig=8c953e4f~rwIjnMyfLm7oYPg0OtRlwaIVohZHkENXvDZc0xs5EJU&qsr=1&r=dXM%3D&rh=3CtyCs&sf=ts",
+          "origin": "gcs",
+          "url": "https://skyfire.vimeocdn.com/1770860372-0x9da686a2b3be3a481cdff6c4f7bd0eff492f0cdb/11721138-aa8b-4bc2-b8a6-1a31796d4904/psid=0dee9297cfea517368325cc58bf52117f1bf6137e55abc5651c8548d27cda69d/v2/playlist/av/primary/sub/247817806-en-x-autogen/prot/cXNyPTE/playlist.m3u8?ext-subs=1&locale=en&omit=av1-hevc-opus&pathsig=8c953e4f~rwIjnMyfLm7oYPg0OtRlwaIVohZHkENXvDZc0xs5EJU&qsr=1&r=dXM%3D&rh=3CtyCs&sf=ts"
+        }
+      },
+      "default_cdn": "akfire_interconnect_quic",
+      "separate_av": true
+    }
+  },
+  "flags": {
+    "ai_widget": 0,
+    "autohide_controls": 0,
+    "check_clip_skipping_forward": 0,
+    "disable_mms": 0,
+    "dnt": 0,
+    "ecdn_delta_updates": 0,
+    "plays": 1,
+    "preload_video": "metadata_on_hover",
+    "qoe_survey_forced": 0
+  },
+  "lang": "en",
+  "referrer": "https://www.hcourt.gov.au/cases-and-judgments/cases/decided/case-s942025",
+  "session": "baebdfb8568c9636b90c4ac2f5c1a4ea7ea5e29a1770789568",
+  "signature": "64aecbb0df5e22effe0c0cfd95219060",
+  "text_tracks": [
+    {
+      "default": true,
+      "id": 247817806,
+      "kind": "subtitles",
+      "label": "English (auto-generated)",
+      "lang": "en-x-autogen",
+      "provenance": "ai_generated",
+      "url": "https://captions.vimeo.com/captions/247817806.vtt?expires=1770860372&sig=6dc0845535014b7124c9d7e159af91c526372bae"
+    }
+  ],
+  "thumb_preview": {
+    "columns": 11,
+    "frame_height": 240,
+    "frame_width": 426,
+    "frames": 120,
+    "height": 2640,
+    "url": "https://videoapi-sprites.vimeocdn.com/video-sprites/image/64414d99-58e3-4e56-a1f1-3d4269adb8b7.0.jpeg?ClientID=sulu&Expires=1770792366&Signature=fc09ae9a83b59db71eabb30ffd5fba1da9b47156",
+    "width": 4686
+  },
+  "timestamp": 1770789568,
+  "urls": {
+    "ambisonics_js": "https://f.vimeocdn.com/p/external/ambisonics.min.js",
+    "barebone_js": "https://f.vimeocdn.com/p/4.46.28/js/barebone.js",
+    "chromeless_css": "https://f.vimeocdn.com/p/4.46.28/css/chromeless.css",
+    "chromeless_js": "https://f.vimeocdn.com/p/4.46.28/js/chromeless.js",
+    "css": "https://f.vimeocdn.com/p/4.46.28/css/player.css",
+    "fresnel": "https://arclight.vimeo.com/add/player-stats",
+    "hive_interceptor": "https://f.vimeocdn.com/p/external/hive-interceptor.js",
+    "hive_sdk": "https://f.vimeocdn.com/p/external/hive-sdk.js",
+    "js": "https://f.vimeocdn.com/p/4.46.28/js/player.js",
+    "js_base": "https://f.vimeocdn.com/p/4.46.28/js",
+    "js_module": "https://f.vimeocdn.com/p/4.46.28/js/player.module.js",
+    "js_vendor_module": "https://f.vimeocdn.com/p/4.46.28/js/vendor.module.js",
+    "locales_js": {
+      "de-DE": "https://f.vimeocdn.com/p/4.46.28/js/player.de-DE.js",
+      "en": "https://f.vimeocdn.com/p/4.46.28/js/player.js",
+      "es": "https://f.vimeocdn.com/p/4.46.28/js/player.es.js",
+      "fr-FR": "https://f.vimeocdn.com/p/4.46.28/js/player.fr-FR.js",
+      "ja-JP": "https://f.vimeocdn.com/p/4.46.28/js/player.ja-JP.js",
+      "ko-KR": "https://f.vimeocdn.com/p/4.46.28/js/player.ko-KR.js",
+      "pt-BR": "https://f.vimeocdn.com/p/4.46.28/js/player.pt-BR.js",
+      "zh-CN": "https://f.vimeocdn.com/p/4.46.28/js/player.zh-CN.js"
+    },
+    "player_telemetry_url": "https://arclight.vimeo.com/player-events",
+    "proxy": "https://player.vimeo.com/static/proxy.html",
+    "telemetry_base": "https://lensflare.vimeo.com",
+    "three_js": "https://f.vimeocdn.com/p/external/three.rvimeo.min.js",
+    "vuid_js": "https://f.vimeocdn.com/js_opt/modules/utils/vuid.min.js"
+  }
+}

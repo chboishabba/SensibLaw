@@ -65,10 +65,7 @@ def _iter_sentences(doc: "Doc") -> Iterable["Span"]:
 def _serialize_token(token: "Token") -> Dict[str, Any]:
     end = token.idx + len(token.text)
     lemma = token.lemma_ if token.lemma_ else token.text
-    morph = {
-        key: list(token.morph.get(key))
-        for key in token.morph
-    }
+    morph = {key: list(token.morph.get(key)) for key in token.morph.to_dict()}
     return {
         "index": token.i,
         "text": token.text,
@@ -107,4 +104,29 @@ def parse(text: str, *, nlp: Optional["Language"] = None) -> Dict[str, Any]:
             }
         )
 
-    return {"text": text, "sents": sentences}
+    pipe_names = tuple(pipeline.pipe_names)
+    capabilities = {
+        "tokenization": True,
+        "sentence_segmentation": bool(
+            "parser" in pipe_names
+            or "senter" in pipe_names
+            or "sentencizer" in pipe_names
+        ),
+        "part_of_speech": "tagger" in pipe_names or "morphologizer" in pipe_names,
+        "morphology": "tagger" in pipe_names or "morphologizer" in pipe_names,
+        "dependencies": "parser" in pipe_names,
+        "named_entity_spans": "ner" in pipe_names,
+        "coreference_candidates": False,
+    }
+    return {
+        "text": text,
+        "sents": sentences,
+        "parser_receipt": {
+            "backend_ref": "parser:spacy",
+            "model_name": str(pipeline.meta.get("name") or "unknown"),
+            "model_version": str(pipeline.meta.get("version") or "unknown"),
+            "pipeline": list(pipe_names),
+            "capabilities": capabilities,
+            "authority": "parser_observation_only",
+        },
+    }

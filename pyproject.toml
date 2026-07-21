@@ -19,10 +19,10 @@ dependencies = [
     "pyyaml",
     "graphviz",
     "networkx",
-    "spacy>=3.5,<4",
+    "spacy>=3.7,<4",
     "streamlit>=1.30",
     "pandas>=1.5",
-    "spacy>=3.7,<4",
+    "psycopg[binary]>=3.1,<4",
 ]
 
 [project.optional-dependencies]
@@ -37,6 +37,9 @@ test = [
     "pytest",
     "hypothesis",
     "networkx",
+]
+postgres = [
+    "psycopg[binary]>=3.1,<4",
 ]
 graph = [
     "torch>=2.1,<3",

@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" class="no-js">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advanced Search</title>
+
+  <link media="all" rel="stylesheet" href="css/screen.css" />
+
+  <meta name="theme-color" content="#ee3224">
+  <meta name="description" content="Australasian Legal Information Institute, a joint facility of UTY & NUSW Faculties of Law.">
+  <link rel="icon" sizes="192x192" href="images/icon-192.png">
+  <link rel="apple-touch-icon-precomposed" href="images/icon-shortcut.png">
+  <meta name="msapplication-TileColor" content="#ee3224">
+  <meta name="msapplication-TileImage" content="images/icon/ms.png">
+  <script src="js/modernizr.min.js"></script>
+</head>
+<body class="search no-js">
+  <header id="page-header">
+    <div id="primary">
+      
+      <a id="page-logo" href="/" tabindex="1">
+        <img src="images/logo.svg" alt="AustLII">
+        <span class="title-main">AustLII</span>
+      </a>
+      
+      
+      
+
+      
+      <h1 id="page-title"><span>Advanced Search</span></h1>
+      
+    </div>
+  
+    <!-- Search box
+
+The search box at the top of most pages. Always visible unless the
+'search' variable is set to false, for pages where we don't want
+that box along the top, such as on Advanced Search & LawCite.
+
+'Results' is a class added to database pages, which exposes the ability
+to search just by that database.
+
+'Searchable' is a page variable which indicates the page has checkboxes
+on it - the search box has a radio button for selecting we only search
+the checked areas.
+
+'Extra search' is for those rare extra options found in pages like the
+Aviation Law Association library database.
+-->
+
+
+
+
+    <ul id="page-tertiary">
+      <li><a href="about.html">About</a></li>
+      <li><a href="contact.html">Contact</a></li>
+      <li><a href="copyright.html">Copyright &amp; Usage</a></li>
+      <li><a href="privacy.html">Privacy</a></li>
+      <li><a href="disclaimers.html">Disclaimers</a></li>
+      <li><a href="feedback.html">Feedback</a></li>
+      <li><a href="help.html">Help</a></li>
+    </ul>
+  
+  </header>
+
+  <!-- Ribbons
+
+These are the red bars along the top of each page.
+
+Ribbon is a variable set on most pages; it defaults to an expanded view,
+and can be simplified using variables 'intro' (for home) and 'basic' (for
+search, about pages, etc.)
+-->
+
+
+<div class="home about">
+  <nav id="ribbon">
+    <div class="inner">
+      <ul>
+        <li class="ribbon-home-databases"><a href="/databases.html" tabindex="10">All Databases</a></li>
+        <li class="ribbon-home-cases"><a href="/databases.html" tabindex="11">Cases &amp; Legislation</a></li>
+        <li class="ribbon-home-journals"><a href="/au/special/journals/" tabindex="12">Journals &amp; Scholarship</a></li>
+        <li class="ribbon-home-treaties"><a href="/au/other/dfat/" tabindex="13">Treaties</a></li>
+        <li class="ribbon-home-libraries"><a href="database-libraries.html" tabindex="14">Libraries</a></li>
+        <li class="ribbon-home-lawcite"><a href="/lawcite/" tabindex="15">LawCite</a></li> 
+      </ul>
+    </div>
+  </nav>
+</div>
+
+
+
+  <!-- Panels
+
+The Panel defaults to 'year' view, which is what the database pages all have,
+it's what search results have, etc.
+
+The selections within if statements below are to visualize the 'is-selected'
+class across the various mock pages in the prototype.
+
+When implementing this, pull out the if statements and simply apply 'is-selected'
+when it's appropriate to that particular page.
+
+The options for the panel include:
+* none: the panel doesn't render
+* closed: the panel is present, but closed, adds 'is-closed' class
+* jurisdiction: jurisdiction is open at page load, adds 'is-jurisdiction' class
+* letter: 'starts with' is open at page load, adds 'is-letter' class
+-->
+
+
+
+
+  <div id="page-content">
+
+    <div id="page-main">
+      
+      <form id="search-tabbed" action="https://www.austlii.edu.au/cgi-bin/sinosrch.cgi">
+  
+  <div id="page-sort"  class="tabs-block sort-tabs">
+    <ul>
+      <li class="sort-item query-type selected" data-type-name="auto" role="tab" aria-selected="true">Auto Search</li>
+      <li class="sort-item query-type" data-type-name="boolean" role="tab" aria-selected="false">Boolean Query</li>
+      <li class="sort-item query-type" data-type-name="any" role="tab" aria-selected="false">Any of these words</li>
+      <li class="sort-item query-type" data-type-name="all" role="tab" aria-selected="false">All of these words</li>
+      <li class="sort-item query-type" data-type-name="phrase" role="tab" aria-selected="false">Exact Phrase</li>
+      <li class="sort-item query-type" data-type-name="title" role="tab" aria-selected="false">Document Title</li>
+    </ul>
+  </div>
+  <div class="no-js-search-method">
+    <input type="radio" name="method" value="auto" checked>
+    <label for="auto">Auto Search</label>
+    <input type="radio" name="method" value="boolean">
+    <label for="boolean">Boolean Query</label>
+    <input type="radio" name="method" value="any">
+    <label for="any">Any of these words</label>
+    <input type="radio" name="method" value="all">
+    <label for="all">All of these words</label>
+    <input type="radio" name="method" value="phrase">
+    <label for="phrase">Exact Phrase</label>
+    <input type="radio" name="method" value="title">
+    <label for="title">Document Title</label>
+  </div>
+
+  <div class="card">
+    <ul>
+      <li class="multi">
+        <h6><span class="hide-s">Enter your </span>search<span class="hide-s" term</span></h6>
+        <div class="input">
+          <input type="text" name="query" placeholder="e.g. consumer near protection">
+        </div>
+      </li>
+      <li class="multi">
+        <h6><span class="hide-s">Select your </span>From date</h6>
+          <div class="input">
+            <input type="text" name="day1" class="day" value="" placeholder="1">
+            <div class="month">
+              <select name="month1">
+              <option value="">Month</option>
+                <option value="01">January</option>
+                <option value="02">February</option>
+                <option value="03">March</option>
+                <option value="04">April</option>
+                <option value="05">May</option>
+                <option value="06">June</option>
+                <option value="07">July</option>
+                <option value="08">August</option>
+                <option value="09">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+              </select>
+            </div>
+            <input type="text" class="year" name="year1" value="" placeholder="1788">
+          </div>
+        </li>
+      <li class="multi">
+        <h6><span class="hide-s">Select your </span>To date</h6>
+        <div class="input">
+          <input type="text" class="day" name="day2" value="" placeholder="1">
+          <div class="month">
+            <select name="month2">
+              <option value="">Month</option>
+                <option value="01">January</option>
+                <option value="02">February</option>
+                <option value="03">March</option>
+                <option value="04">April</option>
+                <option value="05">May</option>
+                <option value="06">June</option>
+                <option value="07">July</option>
+                <option value="08">August</option>
+                <option value="09">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+            </select>
+          </div>
+          <input type="text" class="year" name="year2" value="" placeholder="2017">
+        </div>
+      </li>
+<!--
+      <li class="multi">
+        <h6 class="hide-s">Search options</h6>
+        <span class="check-inblock"><label class="checkbox checked="><input type="checkbox" name="include-synonyms" value="true" checked="true"></label>Include synonyms</span>
+        <span class="check-inblock"><label class="checkbox checked"><input type="checkbox" name="include-derivatives" value="true" checked="true"></label>Include word derivatives</span>
+      </li>
+-->
+    </ul>
+  </div>
+
+  <div class="row">
+    <div class="card-options">
+      <a href="#" class="card-options--expand" id="show-databases">Show all</a>
+    </div>
+
+    <h2 class="card-title card-title-large">
+      <label><input type="checkbox"></label> Select the database(s) to search...
+    </h2>
+
+    <div class="card card-checkboxes is-collapsed" data-items-shown="8">
+      <ul>
+        <li><label><input type="checkbox" name="mask_path" value="" checked></label><a href="javascript:void(0);">All AustLII Databases</a></li>
+        <li><label><input type="checkbox" name="mask_path" value="au/legis" ></label><a href="javascript:void(0);">All Legislation Databases</a></li>
+        <li><label><input type="checkbox" name="mask_path" value="au/cases" ></label><a href="javascript:void(0);">All Case Law Databases</a></li>
+        <li><label><input type="checkbox" name="mask_path" value="au/journals" ></label><a href="javascript:void(0);">All Law Journals Databases</a></li>
+        <li><label><input type="checkbox" name="mask_path" value="au/journals+au/other" ></label><a href="javascript:void(0);">All Secondary Materials Databases (includes journals)</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth au/legis/cth"></label><a href="javascript:void(0);">Commonwealth: All Primary Materials</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/cth"></label><a href="javascript:void(0);">Commonwealth: All Legislation</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth"></label><a href="javascript:void(0);">Commonwealth: All Cases</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/cth/bill"></label><a href="javascript:void(0);">Commonwealth: Bills</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/cth/bill_em"></label><a href="javascript:void(0);">Commonwealth: Bills Explanatory Memoranda</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/cth/digest"></label><a href="javascript:void(0);">Commonwealth: Bills Digests</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/cth/consol_act"></label><a href="javascript:void(0);">Commonwealth: Consolidated Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/cth/consol_reg"></label><a href="javascript:void(0);">Commonwealth: Consolidated Regulations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/cth/table"></label><a href="javascript:void(0);">Commonwealth: Legislation Tables</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/cth/num_act"></label><a href="javascript:void(0);">Commonwealth: Numbered Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/cth/num_reg"></label><a href="javascript:void(0);">Commonwealth: Numbered Regulations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/cth/num_reg_es"></label><a href="javascript:void(0);">Commonwealth: Numbered Regulations Explanatory Statements</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/cth/repealed_act"></label><a href="javascript:void(0);">Commonwealth: Repealed Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/cth/repealed_reg"></label><a href="javascript:void(0);">Commonwealth: Repealed Regulations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/AATA"></label><a href="javascript:void(0);">Commonwealth: Administrative Appeals Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/ARTA"></label><a href="javascript:void(0);">Commonwealth: Administrative Review Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/ACIndT"></label><a href="javascript:void(0);">Commonwealth: Australian Coal Industry Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/ACompT"></label><a href="javascript:void(0);">Commonwealth: Australian Competition Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/AIRC"></label><a href="javascript:void(0);">Commonwealth: Australian Industrial Relations Commission</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/AIRCFB"></label><a href="javascript:void(0);">Commonwealth: Australian Industrial Relations Commission - Full Bench</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/AICmr"></label><a href="javascript:void(0);">Commonwealth: Australian Information Commissioner</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/AICmrCN"></label><a href="javascript:void(0);">Commonwealth: Australian Information Commissioner Case Notes</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/ATP"></label><a href="javascript:void(0);">Commonwealth: Australian Takeovers Panel</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/ACopyT"></label><a href="javascript:void(0);">Commonwealth: Copyright Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/ADFDAT"></label><a href="javascript:void(0);">Commonwealth: Defence Force Discipline Appeal Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/FWA au/cases/cth/FWAA au/cases/FWAFB"></label><a href="javascript:void(0);">Commonwealth: Fair Work Australia (all)</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/FWC au/cases/cth/FWCFB au/cases/FWCD"></label><a href="javascript:void(0);">Commonwealth: Fair Work Commission (all)</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/FamCA"></label><a href="javascript:void(0);">Commonwealth: Family Court of Australia</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/FamCAFC"></label><a href="javascript:void(0);">Commonwealth: Family Court of Australia (Full Court)</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/FedCFamC1A"></label><a href="javascript:void(0);">Commonwealth: Federal Circuit and Family Court of Australia - Division 1 Appellate Jurisdiction</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/FedCFamC1F"></label><a href="javascript:void(0);">Commonwealth: Federal Circuit and Family Court of Australia - Division 1 First Instance</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/FedCFamC2F"></label><a href="javascript:void(0);">Commonwealth: Federal Circuit and Family Court of Australia - Division 2 Family Law</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/FedCFamC2G"></label><a href="javascript:void(0);">Commonwealth: Federal Circuit and Family Court of Australia - Division 2 General Federal Law</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/FCCA"></label><a href="javascript:void(0);">Commonwealth: Federal Circuit Court of Australia</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/FCA"></label><a href="javascript:void(0);">Commonwealth: Federal Court of Australia</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/FCAFC"></label><a href="javascript:void(0);">Commonwealth: Federal Court of Australia - Full Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/FMCA"></label><a href="javascript:void(0);">Commonwealth: Federal Magistrates Court of Australia</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/FMCAfam"></label><a href="javascript:void(0);">Commonwealth: Federal Magistrates Court of Australia - Family Law</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/HCA"></label><a href="javascript:void(0);">Commonwealth: High Court of Australia</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/HCATrans"></label><a href="javascript:void(0);">Commonwealth: High Court of Australia Transcripts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/HCASL"></label><a href="javascript:void(0);">Commonwealth: High Court of Australia Special Leave Dispositions</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/other/hca/bulletin"></label><a href="javascript:void(0);">Commonwealth: High Court of Australia Bulletins</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/other/HCAASP"></label><a href="javascript:void(0);">Commonwealth: High Court of Australia Appeal Short Particulars</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/HREOCA"></label><a href="javascript:void(0);">Commonwealth: Human Rights and Equal Opportunity Commission</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/IRTA"></label><a href="javascript:void(0);">Commonwealth: Immigration Review Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/IRCA"></label><a href="javascript:void(0);">Commonwealth: Industrial Relations Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/ADO"></label><a href="javascript:void(0);">Commonwealth: IP Australia - Australian Designs Office</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/APO"></label><a href="javascript:void(0);">Commonwealth: IP Australia - Australian Patent Office</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/ATMO"></label><a href="javascript:void(0);">Commonwealth: IP Australia - Australian Trade Marks Office</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/ATMOGI"></label><a href="javascript:void(0);">Commonwealth: IP Australia - Australian Trade Marks Office - Geographical Indication</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/MRTA"></label><a href="javascript:void(0);">Commonwealth: Migration Review Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/NNTTA"></label><a href="javascript:void(0);">Commonwealth: National Native Title Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/rrt au/cases/cth/RRTA"></label><a href="javascript:void(0);">Commonwealth: Refugee Review Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/SSATACSA"></label><a href="javascript:void(0);">Commonwealth: Social Security Appeals Tribunal - Review of Child Support Agency Decisions</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/cth/SCTA"></label><a href="javascript:void(0);">Commonwealth: Superannuation Complaints Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/other/rulings/ato"></label><a href="javascript:void(0);">Commonwealth: Australian Taxation Office -  All Materials</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/other/rulings/ato/ATOCR au/other/rulings/ato/ATOFGRR au/other/rulings/ato/ATOFTR au/other/rulings/ato/ATOGSTR au/other/rulings/ato/ATOITR au/other/rulings/ato/ATOMTR au/other/rulings/ato/ATOMTROS au/other/rulings/ato/ATOPGBR au/other/rulings/ato/ATOPR au/other/rulings/ato/ATOPRP au/other/rulings/ato/ATOSCR au/other/rulings/ato/ATOSGR au/other/rulings/ato/ATOSMSFPR au/other/rulings/ato/ATOSMSFR au/other/rulings/ato/ATOSTR au/other/rulings/ato/ATOSTRNS au/other/rulings/ato/ATOTGR au/other/rulings/ato/ATOTR au/other/rulings/ato/ATOWETR"></label><a href="javascript:void(0);">Commonwealth: Australian Taxation Office -  All Final Rulings</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/other/rulings/ato/ATOFTD au/other/rulings/ato/ATOGSTA au/other/rulings/ato/ATOGSTD au/other/rulings/ato/ATOLCTD au/other/rulings/ato/ATOSCD au/other/rulings/ato/ATOSD au/other/rulings/ato/ATOSGD au/other/rulings/ato/ATOSMSFD au/other/rulings/ato/ATOSTD au/other/rulings/ato/ATOTD au/other/rulings/ato/ATOTGD"></label><a href="javascript:void(0);">Commonwealth: Australian Taxation Office -  All Final Determinations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/other/rulings/ato/ATODFGRR au/other/rulings/ato/ATODFTR au/other/rulings/ato/ATODGSTR au/other/rulings/ato/ATODMTR au/other/rulings/ato/ATODPGBR au/other/rulings/ato/ATODSCR au/other/rulings/ato/ATODSGR au/other/rulings/ato/ATODSMSFR au/other/rulings/ato/ATODTR au/other/rulings/ato/ATODWETR au/other/rulings/ato/ATODLCTD"></label><a href="javascript:void(0);">Commonwealth: Australian Taxation Office -  All Draft Rulings</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/other/rulings/ato/ATODGSTD au/other/rulings/ato/ATODSCD au/other/rulings/ato/ATODSD au/other/rulings/ato/ATODSGD au/other/rulings/ato/ATODSMSFD au/other/rulings/ato/ATODSTD au/other/rulings/ato/ATODTD au/other/rulings/ato/ATODTGD au/other/rulings/ato/ATODWETD"></label><a href="javascript:void(0);">Commonwealth: Australian Taxation Office -  All Draft Determinations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/act au/legis/act"></label><a href="javascript:void(0);">Australian Capital Territory: All Primary Materials</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/act"></label><a href="javascript:void(0);">Australian Capital Territory: All Legislation</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/act"></label><a href="javascript:void(0);">Australian Capital Territory: All Cases</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/act/bill"></label><a href="javascript:void(0);">Australian Capital Territory: Bills</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/act/bill_es"></label><a href="javascript:void(0);">Australian Capital Territory: Bills Explanatory Statements</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/act/consol_act"></label><a href="javascript:void(0);">Australian Capital Territory: Current Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/act/consol_reg"></label><a href="javascript:void(0);">Australian Capital Territory: Current Regulations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/act/num_act"></label><a href="javascript:void(0);">Australian Capital Territory: Numbered Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/act/num_ord"></label><a href="javascript:void(0);">Australian Capital Territory: Numbered Ordinances</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/act/num_reg"></label><a href="javascript:void(0);">Australian Capital Territory: Numbered Regulations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/act/num_reg_es"></label><a href="javascript:void(0);">Australian Capital Territory: Numbered Regulations Explanatory Statements</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/act/repealed_act"></label><a href="javascript:void(0);">Australian Capital Territory: Repealed Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/act/repealed_reg"></label><a href="javascript:void(0);">Australian Capital Territory: Repealed Regulations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/act/ACTAAT"></label><a href="javascript:void(0);">Australian Capital Territory: Administrative Appeals Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/act/ACAT"></label><a href="javascript:void(0);">Australian Capital Territory: Civil and Administrative Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/act/ACTCA"></label><a href="javascript:void(0);">Australian Capital Territory: Court of Appeal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/act/ACTDT"></label><a href="javascript:void(0);">Australian Capital Territory: Discrimination Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/act/ACTHPT"></label><a href="javascript:void(0);">Australian Capital Territory: Health Professions Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/act/ACTMBPSP"></label><a href="javascript:void(0);">Australian Capital Territory: Medical Board - Professional Standards Panel</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/act/ACTRTT au/cases/act/ACTTT"></label><a href="javascript:void(0);">Australian Capital Territory: Residential Tenancies Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/act/ACTSC"></label><a href="javascript:void(0);">Australian Capital Territory: Supreme Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/act/ACTTT"></label><a href="javascript:void(0);">Australian Capital Territory: Tenancy Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/other/ACTOmbIRp"></label><a href="javascript:void(0);">Australian Capital Territory: Ombudsman's Investigation Reports</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw au/legis/nsw"></label><a href="javascript:void(0);">New South Wales: All Primary Materials</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/nsw"></label><a href="javascript:void(0);">New South Wales: All Legislation</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw"></label><a href="javascript:void(0);">New South Wales: All Cases</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/nsw/bill"></label><a href="javascript:void(0);">New South Wales: Bills</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/nsw/bill_en"></label><a href="javascript:void(0);">New South Wales: Bills Explanatory Notes</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/nsw/consol_act"></label><a href="javascript:void(0);">New South Wales: Consolidated Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/nsw/consol_reg"></label><a href="javascript:void(0);">New South Wales: Consolidated Regulations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/nsw/num_act"></label><a href="javascript:void(0);">New South Wales: Numbered Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/nsw/num_reg"></label><a href="javascript:void(0);">New South Wales: Numbered Regulations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/nsw/num_epi"></label><a href="javascript:void(0);">New South Wales: Numbered Environmental Planning Instruments</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/nsw/repealed_act"></label><a href="javascript:void(0);">New South Wales: Repealed Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/nsw/repealed_reg"></label><a href="javascript:void(0);">New South Wales: Repealed Regulations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWADT"></label><a href="javascript:void(0);">New South Wales: Administrative Decisions Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWADTAP"></label><a href="javascript:void(0);">New South Wales: Administrative Decisions Tribunal Appeal Panel</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWCIMC"></label><a href="javascript:void(0);">New South Wales: Chief Industrial Magistrate's Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWCHT"></label><a href="javascript:void(0);">New South Wales: Chiropractors Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWCATAD"></label><a href="javascript:void(0);">New South Wales: Civil and Administrative Tribunal - Administrative and Equal Opportunity</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWCATAP"></label><a href="javascript:void(0);">New South Wales: Civil and Administrative Tribunal - Appeal Panel</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWCATCD"></label><a href="javascript:void(0);">New South Wales: Civil and Administrative Tribunal - Consumer and Commercial</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWCATGD"></label><a href="javascript:void(0);">New South Wales: Civil and Administrative Tribunal - Guardianship </a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWCATOD"></label><a href="javascript:void(0);">New South Wales: Civil and Administrative Tribunal - Occupational </a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/csat"></label><a href="javascript:void(0);">New South Wales: Community Services Appeals Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWCC"></label><a href="javascript:void(0);">New South Wales: Compensation Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWCTTT"></label><a href="javascript:void(0);">New South Wales: Consumer, Trader and Tenancy Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWDT"></label><a href="javascript:void(0);">New South Wales: Dental Tribunal </a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWDC"></label><a href="javascript:void(0);">New South Wales: District Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWDRGC"></label><a href="javascript:void(0);">New South Wales: Drug Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWDDT"></label><a href="javascript:void(0);">New South Wales: Dust Diseases Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWFTT"></label><a href="javascript:void(0);">New South Wales: Fair Trading Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWGT"></label><a href="javascript:void(0);">New South Wales: Guardianship Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWIRComm"></label><a href="javascript:void(0);">New South Wales: Industrial Relations Commission</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWLEC"></label><a href="javascript:void(0);">New South Wales: Land and Environment Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWLawRp"></label><a href="javascript:void(0);">New South Wales: Law Reports</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWMPSC"></label><a href="javascript:void(0);">New South Wales: Medical Professional Standards Committee</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWMT"></label><a href="javascript:void(0);">New South Wales: Medical Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWNMT"></label><a href="javascript:void(0);">New South Wales: Nurses and Midwives Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWNMPSC"></label><a href="javascript:void(0);">New South Wales: Nursing and Midwifery Professional Standards Committee</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWOPT"></label><a href="javascript:void(0);">New South Wales: Optometry Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWPB"></label><a href="javascript:void(0);">New South Wales: Pharmacy Board</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWPYT"></label><a href="javascript:void(0);">New South Wales: Physiotherapists Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWPrivCmr"></label><a href="javascript:void(0);">New South Wales: Privacy Commissioner Cases</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWPST"></label><a href="javascript:void(0);">New South Wales: Psychologists Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWRT"></label><a href="javascript:void(0);">New South Wales: Residential Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWStRp"></label><a href="javascript:void(0);">New South Wales: State Reports</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWSSB"></label><a href="javascript:void(0);">New South Wales: Strata Schemes Board </a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWSC"></label><a href="javascript:void(0);">New South Wales: Supreme Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWCA"></label><a href="javascript:void(0);">New South Wales: Supreme Court - Court of Appeal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWCCA"></label><a href="javascript:void(0);">New South Wales: Supreme Court - Court of Criminal Appeal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nsw/NSWWCCPD"></label><a href="javascript:void(0);">New South Wales: Workers Compensation Commission - Presidential Decisions</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nt au/legis/nt"></label><a href="javascript:void(0);">Northern Territory: All Primary Materials</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/nt"></label><a href="javascript:void(0);">Northern Territory: All Legislation</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nt"></label><a href="javascript:void(0);">Northern Territory: All Cases</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/nt/bill"></label><a href="javascript:void(0);">Northern Territory: Bills</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/nt/bill_es"></label><a href="javascript:void(0);">Northern Territory: Bills Explanatory Statements</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/nt/bill_srs"></label><a href="javascript:void(0);">Northern Territory: Bills Second Reading Speeches</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/nt/consol_act"></label><a href="javascript:void(0);">Northern Territory: Consolidated Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/nt/consol_reg"></label><a href="javascript:void(0);">Northern Territory: Consolidated Regulations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/nt/num_act"></label><a href="javascript:void(0);">Northern Territory: Numbered Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/nt/num_ord"></label><a href="javascript:void(0);">Northern Territory: Numbered Ordinances</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/nt/num_reg"></label><a href="javascript:void(0);">Northern Territory: Numbered Regulations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nt/NTADC"></label><a href="javascript:void(0);">Northern Territory: Anti-Discrimination Commission</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nt/NTHPRT"></label><a href="javascript:void(0);">Northern Territory: Health Professional Review Tribunal </a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nt/NTRTCmr"></label><a href="javascript:void(0);">Northern Territory: Residential Tenancies Commissioner</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nt/NTSC"></label><a href="javascript:void(0);">Northern Territory: Supreme Court </a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nt/NTCA"></label><a href="javascript:void(0);">Northern Territory: Supreme Court - Court of Appeal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/nt/NTCCA"></label><a href="javascript:void(0);">Northern Territory: Supreme Court - Court of Criminal Appeal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld au/legis/qld"></label><a href="javascript:void(0);">Queensland: All Primary Materials</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/qld"></label><a href="javascript:void(0);">Queensland: All Legislation</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld"></label><a href="javascript:void(0);">Queensland: All Cases</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/qld/bill"></label><a href="javascript:void(0);">Queensland: Bills</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/qld/bill_en"></label><a href="javascript:void(0);">Queensland: Bills Explanatory Notes</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/qld/consol_act"></label><a href="javascript:void(0);">Queensland: Consolidated Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/qld/consol_reg"></label><a href="javascript:void(0);">Queensland: Consolidated Regulations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/qld/hist_act"></label><a href="javascript:void(0);">Queensland: Historical Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/qld/num_act"></label><a href="javascript:void(0);">Queensland: Numbered Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QADT"></label><a href="javascript:void(0);">Queensland: Anti-Discrimination Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QBCCMCmr"></label><a href="javascript:void(0);">Queensland: Body Corporate and Community Management Commissioner - Adjudicators Orders </a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QBT"></label><a href="javascript:void(0);">Queensland: Building Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QCST"></label><a href="javascript:void(0);">Queensland: Children Services Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QCAT"></label><a href="javascript:void(0);">Queensland: Civil and Administrative Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QCATA"></label><a href="javascript:void(0);">Queensland: Civil and Administrative Tribunal Appeals</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QCCTA au/cases/qld/QCCTBCCM au/cases/qld/QCCTB au/cases/qld/QCCTE au/cases/qld/QCCTG au/cases/qld/QCCTL au/cases/qld/QCCTMH au/cases/qld/QCCTPD au/cases/qld/QCCTPAMD au/cases/qld/QCCTRV"></label><a href="javascript:void(0);">Queensland: Commercial and Consumer Tribunal - All Lists</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QDC"></label><a href="javascript:void(0);">Queensland: District Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QGAAT"></label><a href="javascript:void(0);">Queensland: Guardianship and Administration Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QIC"></label><a href="javascript:void(0);">Queensland: Industrial Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QIRComm"></label><a href="javascript:void(0);">Queensland: Industrial Relations Commission</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QICmr"></label><a href="javascript:void(0);">Queensland: Information Commissioner </a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QLRT"></label><a href="javascript:void(0);">Queensland: Land and Resources Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QLC"></label><a href="javascript:void(0);">Queensland: Land Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QLAC"></label><a href="javascript:void(0);">Queensland: Land Appeal Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QLAT"></label><a href="javascript:void(0);">Queensland: Liquor Appeals Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QMHC"></label><a href="javascript:void(0);">Queensland: Mental Health Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QMW"></label><a href="javascript:void(0);">Queensland: Mining Wardens</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QNT"></label><a href="javascript:void(0);">Queensland: Nursing Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QPEC"></label><a href="javascript:void(0);">Queensland: Planning and Environment Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QPAMDT"></label><a href="javascript:void(0);">Queensland: Property Agents and Motor Dealers Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QRAA"></label><a href="javascript:void(0);">Queensland: Racing Appeals Authority</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QRAT"></label><a href="javascript:void(0);">Queensland: Racing Appeals Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QRVT"></label><a href="javascript:void(0);">Queensland: Retirement Villages Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QSC"></label><a href="javascript:void(0);">Queensland: Supreme Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/qld/QCA"></label><a href="javascript:void(0);">Queensland: Supreme Court - Court of Appeal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa au/legis/sa"></label><a href="javascript:void(0);">South Australia: All Primary Materials</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/sa"></label><a href="javascript:void(0);">South Australia: All Legislation</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa"></label><a href="javascript:void(0);">South Australia: All Cases</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/sa/bill"></label><a href="javascript:void(0);">South Australia: Bills</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/sa/consol_act"></label><a href="javascript:void(0);">South Australia: Current Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/sa/consol_reg"></label><a href="javascript:void(0);">South Australia: Current Regulations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/sa/num_act"></label><a href="javascript:void(0);">South Australia: Numbered Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/sa/num_reg"></label><a href="javascript:void(0);">South Australia: Numbered Regulations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/sa/proc"></label><a href="javascript:void(0);">South Australia: Proclamations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SACHOSBCP"></label><a href="javascript:void(0);">South Australia: Chiropractic and Osteopathy Board - Court Prosecutions</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SACHOSB"></label><a href="javascript:void(0);">South Australia: Chiropractic and Osteopathy Board - Disciplinary</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SACAT"></label><a href="javascript:void(0);">South Australia: Civil and Administrative Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SADB"></label><a href="javascript:void(0);">South Australia: Dental Board</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SADPCT"></label><a href="javascript:void(0);">South Australia: Dental Professional Conduct Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SADC"></label><a href="javascript:void(0);">South Australia: District Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SAERDC"></label><a href="javascript:void(0);">South Australia: Environmental Resources and Development Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SAEOT"></label><a href="javascript:void(0);">South Australia: Equal Opportunity Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SAIRComm"></label><a href="javascript:void(0);">South Australia: Industrial Relations Commission</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SAIRC"></label><a href="javascript:void(0);">South Australia: Industrial Relations Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SALC"></label><a href="javascript:void(0);">South Australia: Licensing Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SALGCmr"></label><a href="javascript:void(0);">South Australia: Liquor and Gambling Commissioner</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SAMB"></label><a href="javascript:void(0);">South Australia: Medical Board</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SAPHB"></label><a href="javascript:void(0);">South Australia: Pharmacy Board</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SAPDB"></label><a href="javascript:void(0);">South Australia: Podiatry Board</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SAPSBCP"></label><a href="javascript:void(0);">South Australia: Psychological Board - Court Prosecutions</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SAPSB"></label><a href="javascript:void(0);">South Australia: Psychological Board - Disciplinary</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SARTT"></label><a href="javascript:void(0);">South Australia: Residential Tenancies Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SALawRp"></label><a href="javascript:void(0);">South Australia: South Australian Law Reports</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SAStRp"></label><a href="javascript:void(0);">South Australia: State Reports</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SASC"></label><a href="javascript:void(0);">South Australia: Supreme Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SASCFC"></label><a href="javascript:void(0);">South Australia: Supreme Court - Full Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SAWC"></label><a href="javascript:void(0);">South Australia: Wardens Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SAWLRP"></label><a href="javascript:void(0);">South Australia: WorkCover Levy Review Panel</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SAWPRP"></label><a href="javascript:void(0);">South Australia: WorkCover Premium Review Panel</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SAWCAT"></label><a href="javascript:void(0);">South Australia: Workers Compensation Appeal Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/sa/SAWCT"></label><a href="javascript:void(0);">South Australia: Workers Compensation Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/other/sa_gazette"></label><a href="javascript:void(0);">South Australia: South Australian Government Gazettes</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/other/SAOmbRp"></label><a href="javascript:void(0);">South Australia: Ombudsman Reports</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/other/SAOmbFOI"></label><a href="javascript:void(0);">South Australia: Ombudsman FOI Determinations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/tas au/legis/tas"></label><a href="javascript:void(0);">Tasmania: All Primary Materials</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/tas"></label><a href="javascript:void(0);">Tasmania: All Legislation</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/tas"></label><a href="javascript:void(0);">Tasmania: All Cases</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/tas/bill"></label><a href="javascript:void(0);">Tasmania: Bills</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/tas/bill_fs"></label><a href="javascript:void(0);">Tasmania: Bills Fact Sheets</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/tas/consol_act"></label><a href="javascript:void(0);">Tasmania: Consolidated Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/tas/consol_reg"></label><a href="javascript:void(0);">Tasmania: Consolidated Regulations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/tas/num_act"></label><a href="javascript:void(0);">Tasmania: Numbered Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/tas/num_reg"></label><a href="javascript:void(0);">Tasmania: Numbered Regulations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/tas/TASADT"></label><a href="javascript:void(0);">Tasmania: Anti-Discrimination Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/tas/TASFPT"></label><a href="javascript:void(0);">Tasmania: Forest Practices Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/tas/TASPComm"></label><a href="javascript:void(0);">Tasmania: Planning Commission</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/tas/TASRMPAT"></label><a href="javascript:void(0);">Tasmania: Resource Management and Planning Appeal Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/tas/TASRPDComm"></label><a href="javascript:void(0);">Tasmania: Resource Planning and Development Commission</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/tas/TASStRp"></label><a href="javascript:void(0);">Tasmania: State Reports</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/tas/TASSC"></label><a href="javascript:void(0);">Tasmania: Supreme Court </a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/tas/TASFC"></label><a href="javascript:void(0);">Tasmania: Supreme Court - Full Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/tas/TASCCA"></label><a href="javascript:void(0);">Tasmania: Supreme Court - Court of Criminal Appeal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/tas/TASLawRp"></label><a href="javascript:void(0);">Tasmania: Tasmanian Law Reports</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/tas/TASRp"></label><a href="javascript:void(0);">Tasmania: Tasmanian Reports</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/tas/TASGAB"></label><a href="javascript:void(0);">Tasmania: Guardianship and Administration Board  </a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/tas/TASWRCT"></label><a href="javascript:void(0);">Tasmania: Workers Rehabilitation and Compensation Tribunal  </a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic au/legis/vic"></label><a href="javascript:void(0);">Victoria: All Primary Materials</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/vic"></label><a href="javascript:void(0);">Victoria: All Legislation</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic"></label><a href="javascript:void(0);">Victoria: All Cases</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/vic/anglican"></label><a href="javascript:void(0);">Victoria: Anglican Church Legislation</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/vic/bill"></label><a href="javascript:void(0);">Victoria: Bills</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/vic/bill_em"></label><a href="javascript:void(0);">Victoria: Bills Explanatory Memoranda</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/vic/consol_act"></label><a href="javascript:void(0);">Victoria: Current Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/vic/consol_reg"></label><a href="javascript:void(0);">Victoria: Current Regulations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/vic/hist_act"></label><a href="javascript:void(0);">Victoria: Historical Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/vic/num_act"></label><a href="javascript:void(0);">Victoria: Numbered Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/vic/num_reg"></label><a href="javascript:void(0);">Victoria: Numbered Regulations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/vic/rep_reg"></label><a href="javascript:void(0);">Victoria: Repealed Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/vic/rep_reg"></label><a href="javascript:void(0);">Victoria: Repealed Regulations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic/VICCAT"></label><a href="javascript:void(0);">Victoria: Administrative Appeals Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic/VCAT"></label><a href="javascript:void(0);">Victoria: Civil and Administrative Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic/VDPB"></label><a href="javascript:void(0);">Victoria: Dental Practice Board</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic/VCC"></label><a href="javascript:void(0);">Victoria: County Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic/VDBT"></label><a href="javascript:void(0);">Victoria: Domestic Building Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic/VHerCl"></label><a href="javascript:void(0);">Victoria: Heritage Council</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic/VLPT"></label><a href="javascript:void(0);">Victoria: Legal Profession Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic/VMC"></label><a href="javascript:void(0);">Victoria: Magistrates' Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic/VMPB"></label><a href="javascript:void(0);">Victoria: Medical Practitioners Board</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic/VMPBPSP"></label><a href="javascript:void(0);">Victoria: Medical Practitioners Board - Professional Standards Panel</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic/VMHRB"></label><a href="javascript:void(0);">Victoria: Mental Health Review Board</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic/VMHT"></label><a href="javascript:void(0);">Victoria: Mental Health Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic/VPrivCmr"></label><a href="javascript:void(0);">Victoria: Office of the Privacy Commissioner Case Notes</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic/VPYRB"></label><a href="javascript:void(0);">Victoria: Physiotherapists Registration Board</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic/VPSRB"></label><a href="javascript:void(0);">Victoria: Psychologists Registration Board</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic/PPV"></label><a href="javascript:void(0);">Victoria: Planning Panels</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic/VRAT"></label><a href="javascript:void(0);">Victoria: Racing Appeals Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic/VSC"></label><a href="javascript:void(0);">Victoria: Supreme Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic/VSCA"></label><a href="javascript:void(0);">Victoria: Supreme Court - Court of Appeal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic/VicLawRp"></label><a href="javascript:void(0);">Victoria: Victorian Law Reports</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/vic/VicRp"></label><a href="javascript:void(0);">Victoria: Victorian Reports</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/other/vic_gazette"></label><a href="javascript:void(0);">Victoria: Government Gazette</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/other/rulings/vicsro/VICSROBF au/other/rulings/vicsro/VICSRODT au/other/rulings/vicsro/VICSROFHOG au/other/rulings/vicsro/VICSRODA au/other/rulings/vicsro/VICSROFID au/other/rulings/vicsro/VICSROGEN au/other/rulings/vicsro/VICSROLT au/other/rulings/vicsro/VICSROLTA au/other/rulings/vicsro/VICSROPT au/other/rulings/vicsro/VICSROPTA au/other/rulings/vicsro/VICSROSD au/other/rulings/vicsro/VICSROTAA"></label><a href="javascript:void(0);">Victoria: State Revenue Office Rulings</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/wa"></label><a href="javascript:void(0);">Western Australia: All Legislation</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/wa"></label><a href="javascript:void(0);">Western Australia: All Cases</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/wa au/cases/wa"></label><a href="javascript:void(0);">Western Australia: All Primary Materials</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/wa/bill"></label><a href="javascript:void(0);">Western Australia: Bills</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/wa/bill_em"></label><a href="javascript:void(0);">Western Australia: Bills Explanatory Memoranda</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/wa/consol_act"></label><a href="javascript:void(0);">Western Australia: Consolidated Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/wa/consol_reg"></label><a href="javascript:void(0);">Western Australia: Consolidated Regulations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/wa/num_act"></label><a href="javascript:void(0);">Western Australia: Numbered Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/wa/rep_act"></label><a href="javascript:void(0);">Western Australia: Repealed Acts</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/legis/wa/rep_reg"></label><a href="javascript:void(0);">Western Australia: Repealed Regulations</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/wa/WACIC"></label><a href="javascript:void(0);">Western Australia: Criminal Injuries Compensation Assessor</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/wa/WADC"></label><a href="javascript:void(0);">Western Australia: District Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/wa/FCWA"></label><a href="javascript:void(0);">Western Australia: Family Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/wa/FCWAM"></label><a href="javascript:void(0);">Western Australia: Family Court - Magistrates</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/wa/WAGAB"></label><a href="javascript:void(0);">Western Australia: Guardianship and Administration Board</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/wa/WAICmr"></label><a href="javascript:void(0);">Western Australia: Information Commissioner </a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/wa/WAIRComm"></label><a href="javascript:void(0);">Western Australia: Industrial Relations Commission</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/wa/WAMB"></label><a href="javascript:void(0);">Western Australia: Medical Board</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/wa/WASAT"></label><a href="javascript:void(0);">Western Australia: State Administrative Tribunal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/wa/WASTR"></label><a href="javascript:void(0);">Western Australia: Strata Titles Referee</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/wa/WASC"></label><a href="javascript:void(0);">Western Australia: Supreme Court</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/wa/WASCA"></label><a href="javascript:void(0);">Western Australia: Supreme Court - Court of Appeal</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/wa/WATPAT"></label><a href="javascript:void(0);">Western Australia: Town Planning Appeal Tribunal </a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/wa/WALawRp"></label><a href="javascript:void(0);">Western Australia: Western Australian Law Reports </a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/journals nz/journals"></label><a href="javascript:void(0);">Australasian Legal Scholarship Library</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/other/ahric"></label><a href="javascript:void(0);">Australian Human Rights Information Centre</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/other/IndigLRes"></label><a href="javascript:void(0);">Australian Indigenous Law Library</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/other/dfat"></label><a href="javascript:void(0);">Australian Treaties Library</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/cases/act/ACAT+au/cases/act/ACTAAT+au/cases/nsw/NSWLEC+au/cases/qld/QLAC+au/cases/qld/QLC+au/cases/qld/QPEC+au/cases/qld/QLRT+au/cases/qld/QBT+au/cases/qld/QCCTB+au/cases/sa/SAERDC+au/cases/tas/TASRMPAT+au/cases/tas/TASRPDComm+au/cases/tas/TASPComm+au/cases/vic/VCAT+au/cases/vic/PPV+au/cases/wa/WASAT+au/cases/wa/WATPAT"></label><a href="javascript:void(0);">Australian Planning and Development Law Library</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/other/dfat/treaties/ATS"></label><a href="javascript:void(0);">Australian Treaty Series</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/other/dfat/treaties/AMTAES"></label><a href="javascript:void(0);">Australian Minor Treaty Actions - Explanatory Statements</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/other/dfat/treaties/ATNIF"></label><a href="javascript:void(0);">Australian Treaties - not in force</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/other/adminrc au/other/actlrc au/other/alrc au/other/clrc au/other/nswlrc nz/other/nzlc au/other/ntlrc au/other/qlrc au/other/taslri au/other/vlrc au/other/walrc au/other/lawreform"></label><a href="javascript:void(0);">Australasian Law Reform Library</a></li>
+	<li><label><input type="checkbox" name="mask_path" value="au/other/car"></label><a href="javascript:void(0);">Council for Aboriginal Reconciliation</a></li>
+
+      </ul>
+    </div>
+  </div>
+
+  <input type="submit" class="button" value="Advanced Search"> <input id="search-reset" type="reset" class="button gray" value="Reset">
+</form>
+
+      
+
+      
+
+    </div>
+    
+    
+<!-- Advanded Search Sidebar -->
+<div id="page-side">
+  <div class="side-element side-about">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 20" enable-background="new 0 0 21 20"><path fill="#C3C3C3" d="M10.5 19.4c-5.3-.1-9.5-4.3-9.4-9.5C1.2 4.6 5.4.5 10.6.5c5.3 0 9.5 4.3 9.4 9.5 0 5.2-4.3 9.4-9.5 9.4zM7.8 9.3c.2-.1.5-.2.7-.2.7 0 .9.2.9.9 0 .4-.2.7-.2 1.1-.2.9-.5 1.8-.6 2.8-.2 1.1.4 1.9 1.5 1.8.6 0 1.3-.2 1.9-.4.4-.1.6-.4.6-.8-.1 0-.2 0-.4.1-1.1.3-1.5-.1-1.2-1.3 0-.1 0-.2.1-.2.3-1 .5-1.9.7-2.9.3-1.4-.5-2.3-1.8-2.2-.5 0-1.1.3-1.6.4-.5.1-.7.4-.6.9zm5.1-3.8c0-.8-.7-1.4-1.5-1.4s-1.5.6-1.5 1.4c0 .7.7 1.3 1.5 1.4.8 0 1.5-.7 1.5-1.4z"/></svg>
+    <h4>About Advanced Search</h4>
+<p>You can select a different search method by clicking on the different tabs. Default is 'Auto Search'.</p>
+    <p>You can limit the date periods applied to your search by specifying the 'From' and/or 'To' dates.</p>
+    <p>You can search multiple databases at once by clicking the database name for each database you want to include in your search.</p>
+    <p>While not every database is individually listed, every database is included in one or more group listings (eg Commonwealth: All Cases).</p>
+  </div>
+
+  <div class="side-element side-download">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 20" enable-background="new 0 0 21 20"><g fill="#C3C3C3"><path d="M15.6 19.6h-10c-.6-.2-1-.6-1-1.3v-3.5H2.2c-.7 0-1.2-.5-1.2-1.2V5.3C1 4.5 1.5 4 2.2 4H4.6V1.6c0-.6.3-1 .9-1.2h10.2c.6.2.9.6.9 1.3V4H19c.5 0 .9.3 1.1.8 0 .1 0 .1.1.2v8.9c-.2.6-.6.9-1.3.9H16.6v3.6c0 .5-.4 1-.9 1.2h-.1zm3.4-6V5.2H2.2v8.4h2.4v-1.2H4c-.3 0-.5-.1-.5-.4-.2-.4.1-.8.6-.8h13.1c.4 0 .6.3.6.6s-.3.6-.6.6h-.6v1.2H19zm-3.6-1.2H5.8v6h9.6v-6zm0-10.8H5.8V4h9.6V1.6zM15.4 8.2c0-.3.3-.6.6-.6s.6.3.6.6-.3.6-.6.6-.6-.3-.6-.6zM10.6 13.6h3c.3 0 .6.2.6.5s-.2.6-.5.7H7.6c-.4 0-.7-.3-.7-.6s.3-.6.7-.6h3zM10.6 17.2H7.7c-.4 0-.7-.2-.7-.6 0-.3.3-.6.7-.6h5.9c.4 0 .7.2.7.6 0 .4-.3.6-.7.6h-3z"/></g></svg>
+  <h4>Print</h4>
+  <ul>
+  	<li><a class="print-webview" href="javascript:void(0);">Print (web view)</a></li>
+    
+    <li><a class="print-minimal" href="javascript:void(0);">Print (eco-friendly)</a></li>
+  </ul>
+</div>
+
+  <div class="side-element side-tools">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 20" enable-background="new 0 0 21 20"><path fill="#C3C3C3" d="M3.5 19.3c-.1 0-.1 0 0 0h-.2c-.3 0-.5-.1-.7-.3l-.9-.9c-.5-.5-.4-1.3.1-1.7.1-.1.2-.1.2-.2 1.6-1.4 3.2-2.9 4.8-4.3.4-.4.8-.7 1.2-1.1l-.2-.2c-.5-.5-1-1-1.4-1.5h-.1c-.7.2-1.4.3-2.1.2C2.6 9 1.5 8 1 6.5c-.1-.3-.1-.6-.1-.9v-.7c.1-.3.4-.3.6-.1l1.7 1.7.2.2h.1c.6-.2 1.3-.3 1.9-.5.1 0 .1 0 .1-.1.2-.6.3-1.2.5-1.8v-.2c-.7-.6-1.3-1.3-1.9-1.9-.2-.1-.2-.2-.2-.4.1-.1.2-.2.4-.2h.4c1.2 0 2.2.5 3 1.4.6.7.9 1.5 1 2.4 0 .6 0 1.1-.2 1.6v.1c.5.5 1 1 1.5 1.4l.4.4c1.3-1.3 2.5-2.6 3.7-3.9 0-.1-.1-.1-.1-.2-.1-.2 0-.5.1-.7.1-.1.1-.2.2-.2.2-.3.2-.7 0-1-.2-.5-.5-.9-1-1.1-.6-.4-1.2-.6-1.8-.7-.2 0-.3-.1-.5-.1 0 0-.1 0-.1-.1 0 0 0-.1.1-.1s.2-.1.3-.1c.2-.1.5-.1.7-.1h.6c.6.1 1.2.2 1.8.5.8.4 1.5.9 2.1 1.4.5.4.9.8 1.3 1.2.2.5.5.9.7 1.3.1.2.1.4.1.6v.1c.1.3.3.5.4.7.1-.1.1-.2.2-.2.1-.1.1-.1.2-.1.2-.1.5 0 .7.2.2.2.2.5-.1.7l-1.3 1.3c-.2.2-.6.2-.8 0-.2-.2-.2-.6 0-.8.1 0 .1-.1.2-.1-.3-.2-.5-.4-.8-.6-.2-.1-.3-.2-.5-.3-.1-.1-.3-.1-.4 0-.2.1-.4.1-.7 0-.1-.1-.2-.1-.4-.2-1.2 1.3-2.5 2.5-3.7 3.8l.3.3c1.2 1.1 2.4 2.2 3.5 3.3.8.7 1.5 1.4 2.3 2.1.2.2.5.4.6.7.2.4.4.8.3 1.2-.1.7-.5 1.1-1.1 1.3-.2.1-.4.1-.6.1h-.1c-.5 0-1-.3-1.4-.7-.4-.5-.9-.9-1.3-1.4-.8-.8-1.6-1.6-2.3-2.4-.5-.5-1-1.1-1.6-1.6-.1-.2-.3-.3-.5-.4l-.2.2-5.4 6c0 .2-.1.3-.2.4-.1 0-.3 0-.4.1zm13.4-1.1c.4 0 .7-.3.7-.7 0-.4-.3-.7-.7-.7-.4 0-.7.3-.7.7-.1.4.3.7.7.7z"/></svg>
+  <h4>Tools &amp; Guides</h4>
+  <ul>
+    <li><a href="guides.html">User Guides</a></li>
+    <li><a href="lawcite-search.html">LawCite</a></li>
+    <li><a href="#">Subscribe to RSS</a></li>
+    <li><a href="help.html">More</a></li>
+  </ul>
+</div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <footer class="closing">
+  <div class="inner">
+    
+    <!--<ul class="closing-primary">
+      <li><a href="database-all.html">All Databases</a></li>
+      <li><a href="database-cases.html">Cases &amp; Legislation</a></li>
+      <li><a href="database-journals.html">Journals &amp; Scholarships</a></li>
+      <li><a href="database-treaties.html">Treaties</a></li>
+      <li><a href="database-libraries.html">Libraries</a></li>
+      <li><a href="#">LawCite</a></li>
+    </ul>-->
+
+    <ul class="closing-tertiary">
+      <li><a href="about.html">About</a></li>
+      <li><a href="#">Copyright</a></li>
+      <li><a href="#">Privacy</a></li>
+      <li><a href="#">Disclaimers</a></li>
+      <li><a href="#">Help</a></li>
+    </ul>
+
+    <small>http://www.austlii.edu.au/search-tabbed</small>
+    
+    
+  </div>
+</footer>
+
+    
+  </div>
+
+  <script src="js/production-1.min.js"></script>
+</body>
+</html>

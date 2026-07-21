@@ -1,0 +1,267 @@
+name: Reference binding
+
+on:
+  push:
+    paths:
+      - "src/pnf/**"
+      - "src/policy/*corpus_compilation.py"
+      - "src/policy/algebra/**"
+      - "src/storage/postgres/**"
+      - "database/postgres_migrations/**"
+      - "scripts/*binding*.py"
+      - "tests/pnf/**"
+      - "tests/policy/test_operational_corpus_compilation.py"
+      - "tests/storage/test_*binding*.py"
+      - "tests/storage/test_factor_revision_identity.py"
+      - "tests/storage/test_operational_build_store.py"
+      - ".github/workflows/reference-binding.yml"
+  pull_request:
+    paths:
+      - "src/pnf/**"
+      - "src/policy/*corpus_compilation.py"
+      - "src/policy/algebra/**"
+      - "src/storage/postgres/**"
+      - "database/postgres_migrations/**"
+      - "scripts/*binding*.py"
+      - "tests/pnf/**"
+      - "tests/policy/test_operational_corpus_compilation.py"
+      - "tests/storage/test_*binding*.py"
+      - "tests/storage/test_factor_revision_identity.py"
+      - "tests/storage/test_operational_build_store.py"
+      - ".github/workflows/reference-binding.yml"
+
+jobs:
+  focused-proof:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sensiblaw_compiler_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sensiblaw_compiler_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sensiblaw_compiler_ci
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: sensiblaw_compiler_ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install environment
+        run: |
+          python -m pip install --upgrade pip uv
+          uv sync --frozen --extra test --extra dev
+          uv run python -m spacy download en_core_web_sm
+      - name: Apply immutable migrations
+        run: bash scripts/apply_pg_migrations.sh
+      - name: Ruff
+        run: |
+          uv run ruff check \
+            src/pnf \
+            src/policy/operational_corpus_compilation.py \
+            src/policy/postgres_corpus_compilation.py \
+            src/policy/algebra/revision_identity.py \
+            src/storage/postgres/binding_candidate_store.py \
+            src/storage/postgres/factor_revision_store.py \
+            src/storage/postgres/operational_build_store.py \
+            src/storage/postgres/semantic_store.py \
+            scripts/benchmark_binding_candidate_sets.py \
+            scripts/inspect_gwb_sqlite.py \
+            scripts/inspect_reference_binding_case.py \
+            scripts/report_binding_candidate_storage.py \
+            scripts/run_gwb_binding_baseline.py \
+            tests/pnf \
+            tests/policy/test_operational_corpus_compilation.py \
+            tests/storage/test_binding_candidate_store.py \
+            tests/storage/test_binding_migration_chain.py \
+            tests/storage/test_factor_revision_identity.py \
+            tests/storage/test_operational_build_store.py \
+            tests/storage/test_postgres_reference_binding_live.py
+      - name: Legacy compaction compatibility
+        run: |
+          mkdir -p test-results
+          set -o pipefail
+          uv run pytest -x -vv tests/pnf/test_binding_candidate_sets.py \
+            2>&1 | tee test-results/legacy-compaction.log
+      - name: Inspect morphology candidate case
+        run: |
+          mkdir -p test-results
+          uv run python scripts/inspect_reference_binding_case.py \
+            "Engineers arrived. She spoke." \
+            > test-results/morphology-candidate-case.json
+      - name: Generic reference-binding corpus
+        run: |
+          mkdir -p test-results
+          set -o pipefail
+          uv run pytest -x -vv tests/pnf/test_reference_binding_corpus.py \
+            2>&1 | tee test-results/reference-corpus.log
+      - name: Pairwise-free operational compiler
+        run: |
+          mkdir -p test-results
+          set -o pipefail
+          uv run pytest -x -vv tests/policy/test_operational_corpus_compilation.py \
+            2>&1 | tee test-results/operational-compiler.log
+      - name: Revision and persistence invariants
+        run: |
+          mkdir -p test-results
+          set -o pipefail
+          uv run pytest -x -vv \
+            tests/storage/test_binding_candidate_store.py \
+            tests/storage/test_binding_migration_chain.py \
+            tests/storage/test_factor_revision_identity.py \
+            tests/storage/test_operational_build_store.py \
+            2>&1 | tee test-results/revision-persistence.log
+      - name: Existing compiler regressions
+        run: |
+          mkdir -p test-results
+          set -o pipefail
+          uv run pytest -x -vv \
+            tests/language/test_semantic_reductions.py \
+            tests/policy/test_corpus_compilation.py \
+            tests/storage/test_postgres_compiler.py \
+            tests/storage/test_postgres_generic_compiler_runtime.py \
+            2>&1 | tee test-results/compiler-regressions.log
+      - name: Live PostgreSQL proofs
+        run: |
+          mkdir -p test-results
+          set -o pipefail
+          uv run pytest -x -vv \
+            tests/storage/test_postgres_compiler_live.py \
+            tests/storage/test_postgres_reference_binding_live.py \
+            2>&1 | tee test-results/live-postgres.log
+      - name: Upload focused proof transcripts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reference-binding-proof-logs
+          path: |
+            test-results/*.log
+            test-results/*.json
+          if-no-files-found: ignore
+
+  gwb-proof:
+    needs: focused-proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sensiblaw_gwb_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sensiblaw_gwb_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sensiblaw_gwb_ci
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: sensiblaw_gwb_ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install GWB proof environment
+        run: |
+          python -m pip install --upgrade pip uv
+          uv sync --frozen --extra test --extra dev
+          uv run python -m spacy download en_core_web_sm
+      - name: Apply immutable migrations
+        run: bash scripts/apply_pg_migrations.sh
+      - name: Inventory tracked GWB corpus surfaces
+        run: |
+          mkdir -p test-results
+          find . -type f \( -iname '*gwb*' -o -path '*/gwb/*' \) \
+            -not -path './.git/*' | sort | tee test-results/gwb-corpus-inventory.txt
+          if [ -f .tmp_phi_gwb.sqlite ]; then
+            uv run python scripts/inspect_gwb_sqlite.py .tmp_phi_gwb.sqlite \
+              --output test-results/gwb-sqlite-inventory.json \
+              > test-results/gwb-sqlite-inventory.log
+          fi
+          GWB_ROOT="$(find . -type d -path '*/gwb/public_bios_v1/raw' \
+            -not -path './.git/*' | sort | head -n 1)"
+          if [ -z "$GWB_ROOT" ]; then
+            echo "GWB_CORPUS_AVAILABLE=false" >> "$GITHUB_ENV"
+            echo "No tracked full GWB public-bios raw corpus was found." \
+              | tee -a test-results/gwb-corpus-inventory.txt
+            python - <<'PY'
+          import json
+          from pathlib import Path
+
+          receipt = {
+              "proof": "full-gwb-local-pnf-binding-baseline:v0_1",
+              "status": "source_corpus_unavailable_in_checkout",
+              "compiled": False,
+              "expected_document_count": 6,
+              "expected_local_path": "demo/ingest/gwb/public_bios_v1/raw",
+              "tracked_sqlite_is_source_corpus": False,
+              "tracked_sqlite_role": "derived semantic/linkage store",
+              "authority_boundary": {
+                  "no_full_gwb_success_claim": True,
+                  "no_statistics_inferred_from_derived_store": True,
+                  "focused_and_live_postgres_proofs_are_separate": True,
+              },
+          }
+          Path("test-results/gwb-binding-baseline.json").write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
+          else
+            echo "GWB_CORPUS_AVAILABLE=true" >> "$GITHUB_ENV"
+            echo "GWB_ROOT=$GWB_ROOT" | tee -a test-results/gwb-corpus-inventory.txt
+            echo "GWB_ROOT=$GWB_ROOT" >> "$GITHUB_ENV"
+            find "$GWB_ROOT" -type f | sort | tee -a test-results/gwb-corpus-inventory.txt
+            test "$(find "$GWB_ROOT" -type f | wc -l)" -eq 6
+          fi
+      - name: Compile and rerun full GWB tranche
+        if: env.GWB_CORPUS_AVAILABLE == 'true'
+        run: |
+          mkdir -p test-results
+          set -o pipefail
+          uv run python scripts/run_gwb_binding_baseline.py \
+            --input-dir "$GWB_ROOT" \
+            --output test-results/gwb-binding-baseline.json \
+            2>&1 | tee test-results/gwb-binding-baseline.log
+      - name: Record GWB proof boundary
+        run: |
+          cat test-results/gwb-binding-baseline.json
+          if [ "${GWB_CORPUS_AVAILABLE:-false}" != "true" ]; then
+            echo "Full GWB compilation was not run because the source corpus is local-only." \
+              >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Full six-document GWB compilation and exact rerun proof passed." \
+              >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload GWB binding ledger
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gwb-binding-baseline
+          path: |
+            test-results/gwb-corpus-inventory.txt
+            test-results/gwb-sqlite-inventory.json
+            test-results/gwb-sqlite-inventory.log
+            test-results/gwb-binding-baseline.json
+            test-results/gwb-binding-baseline.log
+          if-no-files-found: warn

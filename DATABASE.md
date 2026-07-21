@@ -147,4 +147,9 @@ guardrails.
   `MigrationRunner` tracks applied migrations in a `schema_migrations` table so `ensure_database()`
   is safe to call repeatedly.
 - The Postgres-first schema (no data carry-forward) is defined in `database/postgres_migrations`; apply with `scripts/apply_pg_migrations.sh` using your `PG*` env vars or `DATABASE_URL`.
+- Migration `007_compiler_substrate.sql` adds the generic compiler substrate:
+  immutable declarations and build dependencies, canonical compiler documents,
+  shared annotations, factorised PNF graphs/revisions, local typed meets, and
+  unresolved demands. These rows intentionally do not require legal-source,
+  actor, or event records; later legal bridges must be explicit.
 - Legacy, unrun SQL in `migrations/` and `schemas/migrations/` is superseded by the new Postgres track but retained for reference.

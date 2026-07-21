@@ -2330,6 +2330,10 @@ def _normalize_extracted_pages_for_body(pages: List[dict]) -> List[dict]:
     normalized_pages: List[dict] = []
     for index, page in enumerate(pages):
         lines = page.get("lines") or []
+        if not lines:
+            heading_val = page.get("heading") or ""
+            text_val = page.get("text") or ""
+            lines = [heading_val, text_val] if heading_val or text_val else []
         cleaned_lines = _clean_page_lines_for_body(
             lines, is_first_page=index == 0
         )
@@ -3407,10 +3411,12 @@ def build_document(
         merged = _dedupe_principles([*existing, *rule_principles])
         prov.principles = merged
         if prov is provisions[0] and extra_refs:
-            seen_refs: set[tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[int]]] = set(
-                tuple(ref) if isinstance(ref, (list, tuple)) else ()
-                for ref in prov.references
-            )
+            seen_refs = set()
+            for ref in prov.references:
+                if isinstance(ref, RuleReference):
+                    seen_refs.add((ref.work, ref.section, ref.pinpoint, ref.citation_text, ref.glossary_id))
+                elif isinstance(ref, (list, tuple)):
+                    seen_refs.add(tuple(ref))
             for ref in extra_refs:
                 serialised = (
                     ref.work,

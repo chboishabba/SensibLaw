@@ -1,0 +1,2651 @@
+{
+  "contracts": {
+    "citation_follow": {
+      "max_depth_required": true,
+      "max_new_docs_required": true,
+      "mode": "bounded"
+    },
+    "truth_vs_view": "biography sources are support lanes; do not treat as authority anchors for legal reasoning"
+  },
+  "documents": [
+    {
+      "authority_links": [],
+      "bytes": 14249,
+      "content_type": "text/html; charset=UTF-8",
+      "doc_id": "doc:0001",
+      "fetched_at": "2026-02-13T11:56:49+00:00",
+      "final_url": "https://georgewbush-whitehouse.archives.gov/president/biography.html",
+      "outbound_links": [
+        {
+          "text": "",
+          "url": "https://georgewbush-whitehouse.archives.gov/index.html"
+        },
+        {
+          "text": "Skip Main Navigation",
+          "url": "https://georgewbush-whitehouse.archives.gov/president/biography.html#whitebox"
+        },
+        {
+          "text": "PRESIDENT",
+          "url": "https://georgewbush-whitehouse.archives.gov/president/"
+        },
+        {
+          "text": "VICE PRESIDENT",
+          "url": "https://georgewbush-whitehouse.archives.gov/vicepresident/"
+        },
+        {
+          "text": "FIRST LADY",
+          "url": "https://georgewbush-whitehouse.archives.gov/firstlady/"
+        },
+        {
+          "text": "MRS. CHENEY",
+          "url": "https://georgewbush-whitehouse.archives.gov/mrscheney/"
+        },
+        {
+          "text": "NEWS",
+          "url": "https://georgewbush-whitehouse.archives.gov/news/"
+        },
+        {
+          "text": "Your Government",
+          "url": "https://georgewbush-whitehouse.archives.gov/government/"
+        },
+        {
+          "text": "History & Tours",
+          "url": "https://georgewbush-whitehouse.archives.gov/history/life/"
+        },
+        {
+          "text": "Kids",
+          "url": "https://georgewbush-whitehouse.archives.gov/kids/"
+        },
+        {
+          "text": "E-mail",
+          "url": "https://georgewbush-whitehouse.archives.gov/email/"
+        },
+        {
+          "text": "En Espa\u00f1ol",
+          "url": "https://georgewbush-whitehouse.archives.gov/espanol/index.es.html"
+        },
+        {
+          "text": "Podcasts",
+          "url": "https://georgewbush-whitehouse.archives.gov/podcasts/"
+        },
+        {
+          "text": "",
+          "url": "https://georgewbush-whitehouse.archives.gov/podcasts/"
+        },
+        {
+          "text": "RSS Feeds",
+          "url": "https://georgewbush-whitehouse.archives.gov/rss/"
+        },
+        {
+          "text": "",
+          "url": "https://georgewbush-whitehouse.archives.gov/rss/"
+        },
+        {
+          "text": "Afghanistan",
+          "url": "https://georgewbush-whitehouse.archives.gov/infocus/afghanistan/"
+        },
+        {
+          "text": "Africa",
+          "url": "https://georgewbush-whitehouse.archives.gov/infocus/africa/"
+        },
+        {
+          "text": "Budget Management",
+          "url": "https://georgewbush-whitehouse.archives.gov/infocus/budget/"
+        },
+        {
+          "text": "Defense",
+          "url": "https://georgewbush-whitehouse.archives.gov/infocus/defense/"
+        },
+        {
+          "text": "Economy",
+          "url": "https://georgewbush-whitehouse.archives.gov/infocus/economy/"
+        },
+        {
+          "text": "Education",
+          "url": "https://georgewbush-whitehouse.archives.gov/infocus/education/"
+        },
+        {
+          "text": "Energy",
+          "url": "https://georgewbush-whitehouse.archives.gov/infocus/energy/"
+        },
+        {
+          "text": "Environment",
+          "url": "https://georgewbush-whitehouse.archives.gov/infocus/environment/"
+        },
+        {
+          "text": "Global Diplomacy",
+          "url": "https://georgewbush-whitehouse.archives.gov/infocus/globaldiplomacy/"
+        },
+        {
+          "text": "Health Care",
+          "url": "https://georgewbush-whitehouse.archives.gov/infocus/healthcare/"
+        },
+        {
+          "text": "Homeland Security",
+          "url": "https://georgewbush-whitehouse.archives.gov/infocus/homeland/"
+        },
+        {
+          "text": "Immigration",
+          "url": "https://georgewbush-whitehouse.archives.gov/infocus/immigration/"
+        },
+        {
+          "text": "International Trade",
+          "url": "https://georgewbush-whitehouse.archives.gov/infocus/internationaltrade/"
+        },
+        {
+          "text": "Iraq",
+          "url": "https://georgewbush-whitehouse.archives.gov/infocus/iraq/"
+        },
+        {
+          "text": "Judicial Nominations",
+          "url": "https://georgewbush-whitehouse.archives.gov/infocus/judicialnominees/"
+        },
+        {
+          "text": "Middle East",
+          "url": "https://georgewbush-whitehouse.archives.gov/infocus/mideast/"
+        },
+        {
+          "text": "National Security",
+          "url": "https://georgewbush-whitehouse.archives.gov/infocus/nationalsecurity/"
+        },
+        {
+          "text": "Veterans",
+          "url": "https://georgewbush-whitehouse.archives.gov/infocus/veterans/"
+        },
+        {
+          "text": "",
+          "url": "https://georgewbush-whitehouse.archives.gov/infocus/"
+        },
+        {
+          "text": "more issues",
+          "url": "https://georgewbush-whitehouse.archives.gov/infocus/"
+        },
+        {
+          "text": "Current News",
+          "url": "https://georgewbush-whitehouse.archives.gov/news/"
+        },
+        {
+          "text": "Press Briefings",
+          "url": "https://georgewbush-whitehouse.archives.gov/news/briefings/"
+        },
+        {
+          "text": "Proclamations",
+          "url": "https://georgewbush-whitehouse.archives.gov/news/proclamations/"
+        },
+        {
+          "text": "Executive Orders",
+          "url": "https://georgewbush-whitehouse.archives.gov/news/orders/"
+        },
+        {
+          "text": "Radio",
+          "url": "https://georgewbush-whitehouse.archives.gov/radio/"
+        },
+        {
+          "text": "Setting the Record Straight",
+          "url": "https://georgewbush-whitehouse.archives.gov/news/setting-record-straight/"
+        },
+        {
+          "text": "",
+          "url": "https://georgewbush-whitehouse.archives.gov/news/"
+        },
+        {
+          "text": "more news",
+          "url": "https://georgewbush-whitehouse.archives.gov/news/"
+        },
+        {
+          "text": "Ask the White House",
+          "url": "https://georgewbush-whitehouse.archives.gov/ask/"
+        },
+        {
+          "text": "White House Interactive",
+          "url": "https://georgewbush-whitehouse.archives.gov/interactive/"
+        },
+        {
+          "text": "President's Cabinet",
+          "url": "https://georgewbush-whitehouse.archives.gov/government/cabinet.html"
+        },
+        {
+          "text": "USA Freedom Corps",
+          "url": "https://georgewbush-whitehouse.archives.gov/goodbye/exit.html"
+        },
+        {
+          "text": "Faith-Based & Community Initiatives",
+          "url": "https://georgewbush-whitehouse.archives.gov/government/fbci/"
+        },
+        {
+          "text": "Office of Management and Budget",
+          "url": "https://georgewbush-whitehouse.archives.gov/omb/"
+        },
+        {
+          "text": "National Security Council",
+          "url": "https://georgewbush-whitehouse.archives.gov/nsc/"
+        },
+        {
+          "text": "USA.gov",
+          "url": "https://georgewbush-whitehouse.archives.gov/goodbye/6e7a995a27e36abc24f5d7ddf6d115c7b4b40cac.html"
+        },
+        {
+          "text": "Nominations",
+          "url": "https://georgewbush-whitehouse.archives.gov/news/nominations/"
+        },
+        {
+          "text": "Home",
+          "url": "https://georgewbush-whitehouse.archives.gov/index.html"
+        },
+        {
+          "text": "President",
+          "url": "https://georgewbush-whitehouse.archives.gov/president/"
+        },
+        {
+          "text": "Home",
+          "url": "https://georgewbush-whitehouse.archives.gov/president/index.html"
+        },
+        {
+          "text": "News",
+          "url": "https://georgewbush-whitehouse.archives.gov/news/"
+        },
+        {
+          "text": "Issues",
+          "url": "https://georgewbush-whitehouse.archives.gov/infocus/"
+        },
+        {
+          "text": "Photo Essays",
+          "url": "https://georgewbush-whitehouse.archives.gov/president/gallery/photoessay/"
+        },
+        {
+          "text": "En Espa\u00f1ol",
+          "url": "https://georgewbush-whitehouse.archives.gov/president/gwbbio.es.html"
+        },
+        {
+          "text": "First Lady Laura Bush",
+          "url": "https://georgewbush-whitehouse.archives.gov/firstlady/flbio.html"
+        },
+        {
+          "text": "Vice President Cheney Biography",
+          "url": "https://georgewbush-whitehouse.archives.gov/vicepresident/vpbio.html"
+        },
+        {
+          "text": "Laura Bush Biography",
+          "url": "https://georgewbush-whitehouse.archives.gov/firstlady/flbio.html"
+        },
+        {
+          "text": "Lynne Cheney Biography",
+          "url": "https://georgewbush-whitehouse.archives.gov/mrscheney/mcbio.html"
+        },
+        {
+          "text": "Vice President",
+          "url": "https://georgewbush-whitehouse.archives.gov/vicepresident/"
+        },
+        {
+          "text": "First Lady",
+          "url": "https://georgewbush-whitehouse.archives.gov/firstlady/"
+        },
+        {
+          "text": "Mrs. Cheney",
+          "url": "https://georgewbush-whitehouse.archives.gov/mrscheney/"
+        },
+        {
+          "text": "News & Policies",
+          "url": "https://georgewbush-whitehouse.archives.gov/news/"
+        },
+        {
+          "text": "History & Tours",
+          "url": "https://georgewbush-whitehouse.archives.gov/history/"
+        },
+        {
+          "text": "Appointments",
+          "url": "https://georgewbush-whitehouse.archives.gov/appointments/"
+        },
+        {
+          "text": "Jobs",
+          "url": "https://georgewbush-whitehouse.archives.gov/oa/jobs/"
+        },
+        {
+          "text": "Contact",
+          "url": "https://georgewbush-whitehouse.archives.gov/contact/"
+        },
+        {
+          "text": "Text only",
+          "url": "https://georgewbush-whitehouse.archives.gov/president/text/biography.html"
+        },
+        {
+          "text": "Accessibility",
+          "url": "https://georgewbush-whitehouse.archives.gov/accessibility.html"
+        },
+        {
+          "text": "Search",
+          "url": "https://georgewbush-whitehouse.archives.gov/search"
+        },
+        {
+          "text": "Privacy Policy",
+          "url": "https://georgewbush-whitehouse.archives.gov/privacy.html"
+        },
+        {
+          "text": "Help",
+          "url": "https://georgewbush-whitehouse.archives.gov/help.html"
+        },
+        {
+          "text": "Site Map",
+          "url": "https://georgewbush-whitehouse.archives.gov/sitemap.html"
+        }
+      ],
+      "raw_path": "SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0001_gwb_public_bios_web_https_georgewbush-whitehouse.archives.gov_president_biography.html.html",
+      "seed_path": null,
+      "sha256": "0956f7112ed230cbae23342f7de615171d1bff28ae45460c4fcf754b2f8e26ff",
+      "source_id": "gwb_public_bios_web",
+      "source_name": "Public biography pages",
+      "status": "ok",
+      "status_code": 200,
+      "title": "Biography of President George W. Bush",
+      "url": "https://georgewbush-whitehouse.archives.gov/president/biography.html"
+    },
+    {
+      "authority_links": [],
+      "bytes": 125552,
+      "content_type": "text/html;charset=UTF-8",
+      "doc_id": "doc:0002",
+      "fetched_at": "2026-02-13T11:56:50+00:00",
+      "final_url": "https://www.britannica.com/biography/George-W-Bush",
+      "outbound_links": [
+        {
+          "text": "",
+          "url": "https://www.britannica.com/"
+        },
+        {
+          "text": "SUBSCRIBE",
+          "url": "https://premium.britannica.com/premium-membership/?utm_source=premium&utm_medium=global-nav&utm_campaign=blue-evergreen"
+        },
+        {
+          "text": "SUBSCRIBE",
+          "url": "https://premium.britannica.com/premium-membership/?utm_source=premium&utm_medium=global-nav-mobile&utm_campaign=blue-evergreen"
+        },
+        {
+          "text": "SUBSCRIBE",
+          "url": "https://premium.britannica.com/premium-membership/?utm_source=premium&utm_medium=hamburger-menu&utm_campaign=blue"
+        },
+        {
+          "text": "Home",
+          "url": "https://www.britannica.com/"
+        },
+        {
+          "text": "History & Society",
+          "url": "https://www.britannica.com/History-Society"
+        },
+        {
+          "text": "Science & Tech",
+          "url": "https://www.britannica.com/Science-Tech"
+        },
+        {
+          "text": "Biographies",
+          "url": "https://www.britannica.com/Biographies"
+        },
+        {
+          "text": "Animals & Nature",
+          "url": "https://www.britannica.com/Animals-Nature"
+        },
+        {
+          "text": "Geography & Travel",
+          "url": "https://www.britannica.com/Geography-Travel"
+        },
+        {
+          "text": "Arts & Culture",
+          "url": "https://www.britannica.com/Arts-Culture"
+        },
+        {
+          "text": "ProCon",
+          "url": "https://www.britannica.com/procon"
+        },
+        {
+          "text": "Money",
+          "url": "https://www.britannica.com/money"
+        },
+        {
+          "text": "Games & Quizzes",
+          "url": "https://www.britannica.com/quiz/browse"
+        },
+        {
+          "text": "Videos",
+          "url": "https://www.britannica.com/videos"
+        },
+        {
+          "text": "On This Day",
+          "url": "https://www.britannica.com/on-this-day"
+        },
+        {
+          "text": "One Good Fact",
+          "url": "https://www.britannica.com/one-good-fact"
+        },
+        {
+          "text": "Dictionary",
+          "url": "https://www.britannica.com/dictionary"
+        },
+        {
+          "text": "New Articles",
+          "url": "https://www.britannica.com/new-articles"
+        },
+        {
+          "text": "Lifestyles & Social Issues",
+          "url": "https://www.britannica.com/browse/Lifestyles-Social-Issues"
+        },
+        {
+          "text": "Philosophy & Religion",
+          "url": "https://www.britannica.com/browse/Philosophy-Religion"
+        },
+        {
+          "text": "Politics, Law & Government",
+          "url": "https://www.britannica.com/browse/Politics-Law-Government"
+        },
+        {
+          "text": "World History",
+          "url": "https://www.britannica.com/browse/World-History"
+        },
+        {
+          "text": "Health & Medicine",
+          "url": "https://www.britannica.com/browse/Health-Medicine"
+        },
+        {
+          "text": "Science",
+          "url": "https://www.britannica.com/browse/Science"
+        },
+        {
+          "text": "Technology",
+          "url": "https://www.britannica.com/browse/Technology"
+        },
+        {
+          "text": "Browse Biographies",
+          "url": "https://www.britannica.com/browse/biographies"
+        },
+        {
+          "text": "Birds, Reptiles & Other Vertebrates",
+          "url": "https://www.britannica.com/browse/Birds-Reptiles-Vertebrates"
+        },
+        {
+          "text": "Environment",
+          "url": "https://www.britannica.com/browse/Environment"
+        },
+        {
+          "text": "Fossils & Geologic Time",
+          "url": "https://www.britannica.com/browse/Fossil-Geologic-Time"
+        },
+        {
+          "text": "Insects & Other Invertebrates",
+          "url": "https://www.britannica.com/browse/Bugs-Mollusks-Invertebrates"
+        },
+        {
+          "text": "Mammals",
+          "url": "https://www.britannica.com/browse/Mammals"
+        },
+        {
+          "text": "Plants",
+          "url": "https://www.britannica.com/browse/Plants"
+        },
+        {
+          "text": "Geography & Travel",
+          "url": "https://www.britannica.com/browse/Geography-Travel"
+        },
+        {
+          "text": "Entertainment & Pop Culture",
+          "url": "https://www.britannica.com/browse/Entertainment-Pop-Culture"
+        },
+        {
+          "text": "Literature",
+          "url": "https://www.britannica.com/browse/Literature"
+        },
+        {
+          "text": "Sports & Recreation",
+          "url": "https://www.britannica.com/browse/Sports-Recreation"
+        },
+        {
+          "text": "Visual Arts",
+          "url": "https://www.britannica.com/browse/Visual-Arts"
+        },
+        {
+          "text": "Image Galleries",
+          "url": "https://www.britannica.com/gallery/browse"
+        },
+        {
+          "text": "Podcasts",
+          "url": "https://www.britannica.com/podcasts"
+        },
+        {
+          "text": "Summaries",
+          "url": "https://www.britannica.com/summary"
+        },
+        {
+          "text": "Top Questions",
+          "url": "https://www.britannica.com/question"
+        },
+        {
+          "text": "Lists and Stories",
+          "url": "https://www.britannica.com/lists-and-stories"
+        },
+        {
+          "text": "Britannica Kids",
+          "url": "https://kids.britannica.com/"
+        },
+        {
+          "text": "Ask the Chatbot",
+          "url": "https://www.britannica.com/chatbot"
+        },
+        {
+          "text": "George W. Bush",
+          "url": "https://www.britannica.com/biography/George-W-Bush"
+        },
+        {
+          "text": "Introduction & Top Questions",
+          "url": "https://www.britannica.com/biography/George-W-Bush"
+        },
+        {
+          "text": "Early life",
+          "url": "https://www.britannica.com/biography/George-W-Bush#ref230036"
+        },
+        {
+          "text": "At a glance: the Bush presidency",
+          "url": "https://www.britannica.com/biography/George-W-Bush#ref384545"
+        },
+        {
+          "text": "Governor of Texas",
+          "url": "https://www.britannica.com/biography/George-W-Bush/Governor-of-Texas"
+        },
+        {
+          "text": "Presidency",
+          "url": "https://www.britannica.com/biography/George-W-Bush/Presidency"
+        },
+        {
+          "text": "Early initiatives",
+          "url": "https://www.britannica.com/biography/George-W-Bush/Presidency#ref278438"
+        },
+        {
+          "text": "The September 11 attacks",
+          "url": "https://www.britannica.com/biography/George-W-Bush/Presidency#ref278439"
+        },
+        {
+          "text": "Domestic measures",
+          "url": "https://www.britannica.com/biography/George-W-Bush/Presidency#ref278440"
+        },
+        {
+          "text": "Treatment of detainees",
+          "url": "https://www.britannica.com/biography/George-W-Bush/Presidency#ref278441"
+        },
+        {
+          "text": "The Iraq War",
+          "url": "https://www.britannica.com/biography/George-W-Bush/Presidency#ref278442"
+        },
+        {
+          "text": "Road to war",
+          "url": "https://www.britannica.com/biography/George-W-Bush/Presidency#ref278443"
+        },
+        {
+          "text": "Operation Iraqi Freedom",
+          "url": "https://www.britannica.com/biography/George-W-Bush/Presidency#ref278444"
+        },
+        {
+          "text": "Occupation and insurgency",
+          "url": "https://www.britannica.com/biography/George-W-Bush/Presidency#ref278445"
+        },
+        {
+          "text": "Foreign aid",
+          "url": "https://www.britannica.com/biography/George-W-Bush/Presidency#ref278446"
+        },
+        {
+          "text": "Domestic affairs",
+          "url": "https://www.britannica.com/biography/George-W-Bush/Presidency#ref278447"
+        },
+        {
+          "text": "Education",
+          "url": "https://www.britannica.com/biography/George-W-Bush/Presidency#ref278448"
+        },
+        {
+          "text": "Medicare",
+          "url": "https://www.britannica.com/biography/George-W-Bush/Presidency#ref278449"
+        },
+        {
+          "text": "Reelection",
+          "url": "https://www.britannica.com/biography/George-W-Bush/Presidency#ref278450"
+        },
+        {
+          "text": "Social Security and immigration",
+          "url": "https://www.britannica.com/biography/George-W-Bush/Presidency#ref278451"
+        },
+        {
+          "text": "Environmental and science policy",
+          "url": "https://www.britannica.com/biography/George-W-Bush/Presidency#ref278452"
+        },
+        {
+          "text": "Later developments and assessment",
+          "url": "https://www.britannica.com/biography/George-W-Bush/Presidency#ref278453"
+        },
+        {
+          "text": "2006 elections",
+          "url": "https://www.britannica.com/biography/George-W-Bush/Presidency#ref278454"
+        },
+        {
+          "text": "The Plame affair",
+          "url": "https://www.britannica.com/biography/George-W-Bush/Presidency#ref278455"
+        },
+        {
+          "text": "Postpresidential activities",
+          "url": "https://www.britannica.com/biography/George-W-Bush/Presidency#ref286079"
+        },
+        {
+          "text": "Cabinet of Pres. George W. Bush",
+          "url": "https://www.britannica.com/biography/George-W-Bush/Cabinet-of-Pres-George-W-Bush"
+        },
+        {
+          "text": "References & Edit History",
+          "url": "https://www.britannica.com/biography/George-W-Bush/additional-info"
+        },
+        {
+          "text": "Quick Facts & Related Topics",
+          "url": "https://www.britannica.com/facts/George-W-Bush"
+        },
+        {
+          "text": "Images, Videos & Interactives",
+          "url": "https://www.britannica.com/biography/George-W-Bush/images-videos"
+        },
+        {
+          "text": "",
+          "url": "https://cdn.britannica.com/78/73178-050-00309E51/George-W-Bush.jpg"
+        },
+        {
+          "text": "",
+          "url": "https://www.britannica.com/video/overview-George-W-Bush/-195848"
+        },
+        {
+          "text": "",
+          "url": "https://cdn.britannica.com/92/181092-050-65E5F504/family-George-W-Bush-Parents-Houston-Texas-1964.jpg"
+        },
+        {
+          "text": "",
+          "url": "https://cdn.britannica.com/47/182147-050-93366615/George-W-Bush-Yale-University-1964.jpg"
+        },
+        {
+          "text": "",
+          "url": "https://cdn.britannica.com/48/182148-050-662CEEED/George-W-Bush-wife-couple-daughters-Laura-1993.jpg"
+        },
+        {
+          "text": "",
+          "url": "https://cdn.britannica.com/64/182164-050-D2C3445B/George-W-Bush-HW-White-House-South-1992.jpg"
+        },
+        {
+          "text": "",
+          "url": "https://cdn.britannica.com/58/182158-050-AA7E2E7F/George-W-Bush-governor-Texas-January-17-1995.jpg"
+        },
+        {
+          "text": "",
+          "url": "https://cdn.britannica.com/66/182166-004-D98AE2E3/George-W-Bush-Laura-arch-swords-governor-1999.jpg"
+        },
+        {
+          "text": "",
+          "url": "https://www.britannica.com/video/What-is-Super-Tuesday/-298302"
+        },
+        {
+          "text": "",
+          "url": "https://www.britannica.com/summary/George-W-Bush"
+        },
+        {
+          "text": "George W. Bush summary",
+          "url": "https://www.britannica.com/summary/George-W-Bush"
+        },
+        {
+          "text": "",
+          "url": "https://www.britannica.com/quiz/us-presidents-and-their-years-in-office-quiz"
+        },
+        {
+          "text": "U.S. Presidents and Their Years in Office Quiz",
+          "url": "https://www.britannica.com/quiz/us-presidents-and-their-years-in-office-quiz"
+        },
+        {
+          "text": "",
+          "url": "https://www.britannica.com/quiz/all-american-history-quiz"
+        },
+        {
+          "text": "All-American History Quiz",
+          "url": "https://www.britannica.com/quiz/all-american-history-quiz"
+        },
+        {
+          "text": "",
+          "url": "https://www.britannica.com/quiz/us-presidents-facts"
+        },
+        {
+          "text": "U.S. Presidents Facts",
+          "url": "https://www.britannica.com/quiz/us-presidents-facts"
+        },
+        {
+          "text": "",
+          "url": "https://www.britannica.com/quiz/us-presidential-nicknames"
+        },
+        {
+          "text": "U.S. Presidential Nicknames",
+          "url": "https://www.britannica.com/quiz/us-presidential-nicknames"
+        },
+        {
+          "text": "",
+          "url": "https://www.britannica.com/quiz/us-presidential-firsts"
+        },
+        {
+          "text": "U.S. Presidential Firsts",
+          "url": "https://www.britannica.com/quiz/us-presidential-firsts"
+        },
+        {
+          "text": "Where was George W. Bush educated?",
+          "url": "https://www.britannica.com/question/Where-was-George-W-Bush-educated"
+        },
+        {
+          "text": "What did George W. Bush accomplish?",
+          "url": "https://www.britannica.com/question/What-did-George-W-Bush-accomplish"
+        },
+        {
+          "text": "Why is Texas redistricting?",
+          "url": "https://www.britannica.com/question/Why-is-Texas-redistricting"
+        },
+        {
+          "text": "Who are historically the U.S.\u2019s allies?",
+          "url": "https://www.britannica.com/question/Who-are-historically-the-U-S-s-allies"
+        },
+        {
+          "text": "What are the two major political parties in the U.S.?",
+          "url": "https://www.britannica.com/question/What-are-the-two-major-political-parties-in-the-U-S"
+        },
+        {
+          "text": "World Leaders",
+          "url": "https://www.britannica.com/browse/World-Leaders"
+        },
+        {
+          "text": "Presidents & Heads of States",
+          "url": "https://www.britannica.com/browse/Presidents"
+        },
+        {
+          "text": "Facebook",
+          "url": "https://www.facebook.com/BRITANNICA/"
+        },
+        {
+          "text": "X",
+          "url": "https://x.com/britannica"
+        },
+        {
+          "text": "https://www.britannica.com/biography/George-W-Bush",
+          "url": "https://www.britannica.com/biography/George-W-Bush"
+        },
+        {
+          "text": "United States History - Biography of George W. Bush",
+          "url": "https://www.u-s-history.com/pages/h2023.html"
+        },
+        {
+          "text": "Miller Center - George W. Bush",
+          "url": "https://millercenter.org/president/gwbush/life-in-brief"
+        },
+        {
+          "text": "CNN - George W. Bush fast facts",
+          "url": "https://edition.cnn.com/2013/07/07/us/george-w-bush-fast-facts/index.html"
+        },
+        {
+          "text": "George W. Bush - Children's Encyclopedia (Ages 8-11)",
+          "url": "https://kids.britannica.com/kids/article/George-W-Bush/345458"
+        },
+        {
+          "text": "George W. Bush - Student Encyclopedia (Ages 11 and up)",
+          "url": "https://kids.britannica.com/students/article/George-W-Bush/344658"
+        },
+        {
+          "text": "George W. Bush",
+          "url": "https://cdn.britannica.com/78/73178-050-00309E51/George-W-Bush.jpg"
+        },
+        {
+          "text": "Brian Duignan Brian Duignan is a senior editor at Encyclop\u00e6dia Britannica. His subject areas include philosophy, law, social science, politics, political theory, and religion.",
+          "url": "https://www.britannica.com/editor/brian-duignan/6469"
+        },
+        {
+          "text": "Britannica Editors Encyclopaedia Britannica's editors oversee subject areas in which they have extensive knowledge, whether from years of experience gained by working on that content or via study for an advanced degree....",
+          "url": "https://www.britannica.com/editor/The-Editors-of-Encyclopaedia-Britannica/4419"
+        },
+        {
+          "text": "History",
+          "url": "https://www.britannica.com/biography/George-W-Bush/additional-info#history"
+        },
+        {
+          "text": "George H.W. Bush",
+          "url": "https://www.britannica.com/biography/George-H-W-Bush"
+        },
+        {
+          "text": "United States",
+          "url": "https://www.britannica.com/place/United-States"
+        },
+        {
+          "text": "Barbara Bush",
+          "url": "https://www.britannica.com/biography/Barbara-Bush"
+        },
+        {
+          "text": "Prescott Bush",
+          "url": "https://www.britannica.com/biography/Prescott-Bush"
+        },
+        {
+          "text": "Connecticut",
+          "url": "https://www.britannica.com/place/Connecticut"
+        },
+        {
+          "text": "Andover",
+          "url": "https://www.britannica.com/place/Andover-Massachusetts"
+        },
+        {
+          "text": "Massachusetts",
+          "url": "https://www.britannica.com/place/Massachusetts"
+        },
+        {
+          "text": "Yale University",
+          "url": "https://www.britannica.com/topic/Yale-University"
+        },
+        {
+          "text": "Harvard University",
+          "url": "https://www.britannica.com/topic/Harvard-University"
+        },
+        {
+          "text": "war on terrorism",
+          "url": "https://www.britannica.com/topic/war-on-terrorism"
+        },
+        {
+          "text": "September 11, 2001",
+          "url": "https://www.britannica.com/event/September-11-attacks"
+        },
+        {
+          "text": "Afghanistan",
+          "url": "https://www.britannica.com/event/Afghanistan-War"
+        },
+        {
+          "text": "Iraq",
+          "url": "https://www.britannica.com/event/Iraq-War"
+        },
+        {
+          "text": "Medicare",
+          "url": "https://www.britannica.com/topic/Medicare-United-States-health-insurance"
+        },
+        {
+          "text": "U.S. education system",
+          "url": "https://www.britannica.com/topic/No-Child-Left-Behind-Act"
+        },
+        {
+          "text": "Trump turns to US military leaders for diplomatic efforts on Iran and Ukraine",
+          "url": "https://www.britannica.com/news/86112/09decddeb6264a4dd83cc3535553b2f2"
+        },
+        {
+          "text": "When Texas Republican John Cornyn became a senator, Bush was president. Will he survive Trump's GOP?",
+          "url": "https://www.britannica.com/news/86112/01f1ffaf8a890e3017af407abe502e8f"
+        },
+        {
+          "text": "Venezuela's Machado says she presented her Nobel Peace Prize to Trump during their meeting",
+          "url": "https://www.britannica.com/news/86112/ed23992bccabf128b7e849259d3c29a8"
+        },
+        {
+          "text": "{ \"sources\": [ { \"file\" : \"//content.jwplatform.com/manifests/B5Hvy4FI.m3u8\" } ], \"image\": \"https://cdn.britannica.com/42/172742-138-B0830C03/overview-George-W-Bush.jpg\", \"vertical\": false ,\"tracks\": [ { \"file\" : \"//assets-jpcust.jwpsrv.com/tracks/x29vr5Fm\", \"label\": \"English\" } ] ,\"adfile\": \"//content.jwplatform.com/manifests/k46Ryrpj.m3u8\" }",
+          "url": "https://www.britannica.com/video/overview-George-W-Bush/-195848"
+        },
+        {
+          "text": "See all videos for this article",
+          "url": "https://www.britannica.com/biography/George-W-Bush/images-videos"
+        },
+        {
+          "text": "New Haven",
+          "url": "https://www.britannica.com/place/New-Haven-Connecticut"
+        },
+        {
+          "text": "country\u2019s",
+          "url": "https://www.britannica.com/topic/nation-state"
+        },
+        {
+          "text": "September 11 terrorist attacks",
+          "url": "https://www.britannica.com/event/September-11-attacks"
+        },
+        {
+          "text": "Iraq War",
+          "url": "https://www.britannica.com/event/Iraq-War"
+        },
+        {
+          "text": "electoral college",
+          "url": "https://www.britannica.com/topic/electoral-college"
+        },
+        {
+          "text": "Al Gore",
+          "url": "https://www.britannica.com/biography/Al-Gore"
+        },
+        {
+          "text": "history",
+          "url": "https://www.britannica.com/topic/history"
+        },
+        {
+          "text": "Benjamin Harrison",
+          "url": "https://www.britannica.com/biography/Benjamin-Harrison-president-of-United-States"
+        },
+        {
+          "text": "president",
+          "url": "https://www.britannica.com/topic/president-government-official"
+        },
+        {
+          "text": "lost the nationwide popular vote",
+          "url": "https://www.britannica.com/topic/list-of-US-presidential-elections-in-which-the-winner-lost-the-popular-vote"
+        },
+        {
+          "text": "Texas",
+          "url": "https://www.britannica.com/place/Texas-state"
+        },
+        {
+          "text": "1 of 2",
+          "url": "https://cdn.britannica.com/92/181092-050-65E5F504/family-George-W-Bush-Parents-Houston-Texas-1964.jpg"
+        },
+        {
+          "text": "George H.W. Bush and his family, 1964",
+          "url": "https://cdn.britannica.com/92/181092-050-65E5F504/family-George-W-Bush-Parents-Houston-Texas-1964.jpg"
+        },
+        {
+          "text": "2 of 2",
+          "url": "https://cdn.britannica.com/47/182147-050-93366615/George-W-Bush-Yale-University-1964.jpg"
+        },
+        {
+          "text": "George W. Bush at Yale University",
+          "url": "https://cdn.britannica.com/47/182147-050-93366615/George-W-Bush-Yale-University-1964.jpg"
+        },
+        {
+          "text": "Midland",
+          "url": "https://www.britannica.com/place/Midland-Texas"
+        },
+        {
+          "text": "Houston",
+          "url": "https://www.britannica.com/place/Houston"
+        },
+        {
+          "text": "attended",
+          "url": "https://www.britannica.com/dictionary/attended"
+        },
+        {
+          "text": "Phillips Academy",
+          "url": "https://www.britannica.com/topic/Phillips-Academy"
+        },
+        {
+          "text": "boarding school",
+          "url": "https://www.britannica.com/topic/boarding-school"
+        },
+        {
+          "text": "bachelor\u2019s degree",
+          "url": "https://www.britannica.com/topic/bachelors-degree"
+        },
+        {
+          "text": "Skull and Bones",
+          "url": "https://www.britannica.com/topic/Skull-and-Bones-Yale"
+        },
+        {
+          "text": "Vietnam War",
+          "url": "https://www.britannica.com/event/Vietnam-War"
+        },
+        {
+          "text": "Commissioned",
+          "url": "https://www.britannica.com/dictionary/Commissioned"
+        },
+        {
+          "text": "University of Texas",
+          "url": "https://www.britannica.com/topic/University-of-Texas"
+        },
+        {
+          "text": "Harvard",
+          "url": "https://www.britannica.com/topic/Harvard-University"
+        }
+      ],
+      "raw_path": "SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0002_gwb_public_bios_web_https_www.britannica.com_biography_George-W-Bush.html",
+      "seed_path": null,
+      "sha256": "e7ed03bce7540ca6b5f142a54936a6b2a57199d274cf6a139f82ef4db64516cc",
+      "source_id": "gwb_public_bios_web",
+      "source_name": "Public biography pages",
+      "status": "ok",
+      "status_code": 200,
+      "title": "George W. Bush | Biography, Presidency, & Facts | Britannica",
+      "url": "https://www.britannica.com/biography/George-W-Bush"
+    },
+    {
+      "authority_links": [],
+      "bytes": 101810,
+      "content_type": "text/html; charset=UTF-8",
+      "doc_id": "doc:0003",
+      "fetched_at": "2026-02-13T11:56:54+00:00",
+      "final_url": "https://www.whitehousehistory.org/bios/george-w-bush",
+      "outbound_links": [
+        {
+          "text": "Skip to Main Content",
+          "url": "https://www.whitehousehistory.org/bios/george-w-bush#main-content"
+        },
+        {
+          "text": "",
+          "url": "https://www.whitehousehistory.org/"
+        },
+        {
+          "text": "Collections Learn About the History of the White House by Subject",
+          "url": "https://www.whitehousehistory.org/collections"
+        },
+        {
+          "text": "Galleries Browse Images From White House History",
+          "url": "https://www.whitehousehistory.org/galleries"
+        },
+        {
+          "text": "Audio Listen to History",
+          "url": "https://www.whitehousehistory.org/audio"
+        },
+        {
+          "text": "Videos Watch Past Programs & Educational Videos",
+          "url": "https://www.whitehousehistory.org/videos"
+        },
+        {
+          "text": "Questions & Answers Have you ever wondered....",
+          "url": "https://www.whitehousehistory.org/questions"
+        },
+        {
+          "text": "Presidents & First Ladies Biographies & Portraits",
+          "url": "https://www.whitehousehistory.org/bios"
+        },
+        {
+          "text": "Podcasts The White House 1600 Sessions",
+          "url": "https://www.whitehousehistory.org/the-white-house-1600-sessions"
+        },
+        {
+          "text": "Slavery in the President's Neighborhood Stories of Slavery & Freedom",
+          "url": "https://www.whitehousehistory.org/spn/introduction"
+        },
+        {
+          "text": "Presidents Learn about Presidents",
+          "url": "https://www.whitehousehistory.org/topics/presidents"
+        },
+        {
+          "text": "First Ladies Learn about First Ladies and Hostesses",
+          "url": "https://www.whitehousehistory.org/topics/first-ladies"
+        },
+        {
+          "text": "First Family Life Life in the White House",
+          "url": "https://www.whitehousehistory.org/topics/first-family-life"
+        },
+        {
+          "text": "Architecture Construction, Renovation, & Maintenance of the White House",
+          "url": "https://www.whitehousehistory.org/topics/architecture"
+        },
+        {
+          "text": "Interiors & Decorative Arts Furnishings and Rooms of the White House",
+          "url": "https://www.whitehousehistory.org/topics/interiors-decorative-arts"
+        },
+        {
+          "text": "Fine Arts Paintings and Sculptures in the White House Collection",
+          "url": "https://www.whitehousehistory.org/topics/fine-art"
+        },
+        {
+          "text": "Gardens & Grounds Learn about the President\u2019s Park",
+          "url": "https://www.whitehousehistory.org/topics/gardens-grounds"
+        },
+        {
+          "text": "Significant Events State Dinners, Historical Events, & Important Visitors",
+          "url": "https://www.whitehousehistory.org/topics/significant-events"
+        },
+        {
+          "text": "Slavery in the President\u2019s Neighborhood Stories of Slavery & Freedom",
+          "url": "https://www.whitehousehistory.org/spn/introduction"
+        },
+        {
+          "text": "Teaching Resources K-12 Education Resources and Programs",
+          "url": "https://www.whitehousehistory.org/rubenstein-center/k-12-education-resources-and-programs"
+        },
+        {
+          "text": "White House 360\u00b0 Tour A 360\u00b0 Tour of the Executive Mansion with Digital Notebooks for Teachers & Students",
+          "url": "https://www.whitehousehistory.org/tour-the-white-house-in-360-degrees"
+        },
+        {
+          "text": "Publishing Information On Our Award-Winning Books & White House History Quarterly Journal",
+          "url": "https://www.whitehousehistory.org/publishing"
+        },
+        {
+          "text": "Podcast The White House 1600 Sessions",
+          "url": "https://www.whitehousehistory.org/the-white-house-1600-sessions"
+        },
+        {
+          "text": "White House History Live Our Facebook Live series on the stories that make up the history of the Executive Mansion",
+          "url": "https://www.whitehousehistory.org/rubenstein-center/white-house-history-live"
+        },
+        {
+          "text": "Digital Archives Explore White House history through the thousands of images in our Free Digital Archives",
+          "url": "https://www.whitehousehistory.org/digital-library"
+        },
+        {
+          "text": "Upcoming Events",
+          "url": "https://www.whitehousehistory.org/events?topic=All&type=upcoming&orderBy=date+ASC"
+        },
+        {
+          "text": "Past Events",
+          "url": "https://www.whitehousehistory.org/events?topic=All&type=past&orderBy=date+DESC"
+        },
+        {
+          "text": "Book the Decatur House Intimate Gatherings & Large Celebrations",
+          "url": "https://www.whitehousehistory.org/decatur-house"
+        },
+        {
+          "text": "Become a Member Be a Part of History",
+          "url": "https://www.whitehousehistory.org/support"
+        },
+        {
+          "text": "Premier Giving Join Our Premier Giving Circles",
+          "url": "https://www.whitehousehistory.org/premier-giving"
+        },
+        {
+          "text": "Planned Giving Learn about Planned Giving Options",
+          "url": "https://whitehousehistory.mygiftlegacy.org/"
+        },
+        {
+          "text": "The National Council Meet the members of The National Council on White House History",
+          "url": "https://www.whitehousehistory.org/the-national-council"
+        },
+        {
+          "text": "The White House Experience Advisory Council Meet the members of The Advisory Council",
+          "url": "https://www.whitehousehistory.org/the-white-house-experience-advisory-council"
+        },
+        {
+          "text": "Corporate Giving Corporate Partner Support and Opportunities",
+          "url": "https://www.whitehousehistory.org/corporate-giving"
+        },
+        {
+          "text": "Matching Your Gift See If Your Employer Will Match Your Donation",
+          "url": "https://www.whitehousehistory.org/giftmatch"
+        },
+        {
+          "text": "Non-Cash Giving Learn about Smart Giving options",
+          "url": "https://www.freewill.com/smartgiving/whitehousehistory?utm_source=partner&utm_medium=website&utm_campaign=_whitehousehistory_homepg"
+        },
+        {
+          "text": "Renew Your Membership",
+          "url": "https://support.whitehousehistory.org/give/227183/#!/donation/checkout"
+        },
+        {
+          "text": "America 250 Campaign",
+          "url": "https://www.whitehousehistory.org/support/a250"
+        },
+        {
+          "text": "State Disclosures",
+          "url": "https://www.whitehousehistory.org/state-disclosures"
+        },
+        {
+          "text": "Our Story",
+          "url": "https://www.whitehousehistory.org/about"
+        },
+        {
+          "text": "Historic Decatur House",
+          "url": "https://www.whitehousehistory.org/collections/the-historic-stephen-decatur-house"
+        },
+        {
+          "text": "The David M. Rubenstein National Center for White House History",
+          "url": "https://www.whitehousehistory.org/rubenstein-center"
+        },
+        {
+          "text": "The People's House: A White House Experience Reserve your passes for Washington, DC's newest attraction",
+          "url": "https://thepeopleshouse.org/"
+        },
+        {
+          "text": "Governing Board of Directors",
+          "url": "https://www.whitehousehistory.org/about/board-of-directors"
+        },
+        {
+          "text": "Current Staff",
+          "url": "https://www.whitehousehistory.org/staff"
+        },
+        {
+          "text": "Media Inquiries",
+          "url": "https://www.whitehousehistory.org/press-room"
+        },
+        {
+          "text": "Career Opportunities",
+          "url": "https://www.whitehousehistory.org/employment"
+        },
+        {
+          "text": "Contact Us",
+          "url": "https://www.whitehousehistory.org/contact"
+        },
+        {
+          "text": "Shop",
+          "url": "https://shop.whitehousehistory.org/"
+        },
+        {
+          "text": "Donate",
+          "url": "https://www.whitehousehistory.org/bios/george-w-bush?campaign=420949"
+        },
+        {
+          "text": "Laura Bush",
+          "url": "https://www.whitehousehistory.org/bios/laura-bush"
+        },
+        {
+          "text": "by John Howard Sanden",
+          "url": "https://www.whitehousehistory.org/photos/fotoware?id=EBA732AB3AAE4189 ADEB16FA40225862"
+        },
+        {
+          "text": "Share on Facebook",
+          "url": "https://www.facebook.com/sharer/sharer.php?u=https://www.whitehousehistory.org/bios/george-w-bush"
+        },
+        {
+          "text": "Share on Twitter",
+          "url": "https://twitter.com/intent/tweet?text=George W. Bush https://www.whitehousehistory.org/bios/george-w-bush"
+        },
+        {
+          "text": "Share on Pinterest",
+          "url": "https://www.pinterest.com/pin/create/button/?url=https://www.whitehousehistory.org/bios/george-w-bush&media=https://d1y822qhq55g6.cloudfront.net/default/_superImage/George-HW.-Bush.jpg&description=George W. Bush became the second presidential son (after John Quincy Adams) to assume office. Although initially focused on tax cuts and education reform, Bush's two terms became defined by the September 11, 2001 terrorist attacks. Bush was born in New Haven, Connecticut, on July 6, 1946 where his father was attending Yale. When George H.W. Bush entered the oil business, the family moved to Midland, Texas. George followed in his father's footsteps, attending prep school at the Phillips Academy and graduating from Yale in 1968. He served in the Texas Air National Guard, went to Harvard Business School, and then returned to Midland, where he entered the oil industry. In 1977 he married Laura Welch, a teacher and librarian, who, in 1982, gave birth to twins Jenna and Barbara. In 1978, Bush was defeated in a campaign for the U.S. House of Representatives.In the 1980s, Bush worked to gain a foothold in a \ufb02agging Texas oil economy while serving as adviser during his father\u2019s vice presidency and presidential campaigns. On his 40th birthday, he gave up drinking alcohol and grew more serious about his Christian faith. He became managing partner of the Texas Rangers while keeping his eye on political opportunities in his home state. In 1994, Bush defeated incumbent Ann Richards to become governor of Texas. Extolling \"compassionate conservatism,\" he won the 2000 Republican presidential nomination. The general election result hinged on the state of Florida. Due to the closeness of the vote, a recount was conducted and was contested in federal court. In a controversial decision, the Supreme Court ordered Florida to stop a subsequent recount of the ballots. Bush won the Electoral College with 271 votes, although lost the popular vote to his opponent, Vice President Al Gore. On September 11, 2001, almost three thousand people were killed in an attack by the terrorist group Al-Qaeda on New York\u2019s World Trade Center and the Pentagon. Also, a hijacked commercial airplane headed for the United States Capitol was overtaken by passengers and crashed in Shanksville, Pennsylvania. Bush declared a worldwide \u201cwar on terrorism,\u201d took the nation into battle against the Taliban regime in Afghanistan, and waged war against the Iraqi dictatorship of Saddam Hussein.Bush's campaign for reelection in 2004 was jeopardized by the Iraq War's growing unpopularity and its connection to the larger global war on terror. But after a close race, Bush defeated Massachusetts Senator John Kerry. Bush\u2019s second term proved full of trial. He was criticized for being too slow to aid victims of Hurricane Katrina, which struck New Orleans and the Gulf Coast. Others complained that while pursuing terrorists, Bush had been too insensitive to civil liberties and American values. In 2007, the United States entered a deep recession, caused by a subprime mortgage crisis and slowed growth. After Congress failed to pass a bill to provide support to banks, the stock market crashed on September 29, 2008, with the Dow Jones falling 777 points in one day.When Bush returned to Texas, he insisted that his presidency had been a \u201cjoyful\u201d experience. He noted that he had kept the nation safe from terrorism after 2001 and maintained that \u201cthe true history of my administration will be written \ufb01fty years from now.\u201d"
+        },
+        {
+          "text": "Related",
+          "url": "https://www.whitehousehistory.org/bios/george-w-bush#related-content"
+        },
+        {
+          "text": "Next International Presidents\u2019 Day Wreath Laying",
+          "url": "https://www.whitehousehistory.org/presidentsdaywreaths"
+        },
+        {
+          "text": "International Presidents\u2019 Day Wreath Laying",
+          "url": "https://www.whitehousehistory.org/presidentsdaywreaths"
+        },
+        {
+          "text": "The American Presidents Song",
+          "url": "https://www.whitehousehistory.org/the-american-presidents-song"
+        },
+        {
+          "text": "The Presidents and the Theatre",
+          "url": "https://www.whitehousehistory.org/white-house-history-articles-from-selected-back-issues/the-presidents-and-the-theatre"
+        },
+        {
+          "text": "Carriages of the Presidents",
+          "url": "https://www.whitehousehistory.org/white-house-horses/carriages-of-the-presidents"
+        },
+        {
+          "text": "Presidents at the Races",
+          "url": "https://www.whitehousehistory.org/white-house-horses/presidents-at-the-races"
+        },
+        {
+          "text": "The Presidents and Sports",
+          "url": "https://www.whitehousehistory.org/white-house-history-articles-from-selected-back-issues/the-presidents-and-sports"
+        },
+        {
+          "text": "Road Trip to the Presidents Heads",
+          "url": "https://www.whitehousehistory.org/the-white-house-1600-sessions/road-trip-to-the-presidents-heads"
+        },
+        {
+          "text": "Queen Elizabeth II and America\u2019s Presidents",
+          "url": "https://www.whitehousehistory.org/the-white-house-1600-sessions/queen-elizabeth-ii-and-americas-presidents"
+        },
+        {
+          "text": "St. John\u2019s, the Church of the Presidents",
+          "url": "https://www.whitehousehistory.org/the-white-house-1600-sessions/st-johns-the-church-of-the-presidents"
+        },
+        {
+          "text": "Blair House: The President\u2019s Guest House",
+          "url": "https://www.whitehousehistory.org/the-white-house-1600-sessions/blair-house-the-presidents-guest-house"
+        },
+        {
+          "text": "Suited to Lead: The Lives of Six Presidents Through Fashion",
+          "url": "https://www.whitehousehistory.org/digital-archives/exhibits/suited-to-lead-the-lives-of-six-presidents-through-fashion"
+        },
+        {
+          "text": "The White House Chief Usher",
+          "url": "https://www.whitehousehistory.org/the-white-house-1600-sessions/the-white-house-chief-usher"
+        },
+        {
+          "text": "Keep Looking?",
+          "url": "https://www.whitehousehistory.org/bios/george-w-bush/p2"
+        },
+        {
+          "text": "Become a Member Help protect and educate America on the history of the White House.",
+          "url": "https://www.whitehousehistory.org/support"
+        },
+        {
+          "text": "Shop Now Official White House Christmas Ornaments, Books, and More.",
+          "url": "https://shop.whitehousehistory.org/"
+        },
+        {
+          "text": "Collections",
+          "url": "https://www.whitehousehistory.org/collections"
+        },
+        {
+          "text": "Galleries",
+          "url": "https://www.whitehousehistory.org/galleries"
+        },
+        {
+          "text": "Audio",
+          "url": "https://www.whitehousehistory.org/audio"
+        },
+        {
+          "text": "Videos",
+          "url": "https://www.whitehousehistory.org/videos"
+        },
+        {
+          "text": "Questions & Answers",
+          "url": "https://www.whitehousehistory.org/questions"
+        },
+        {
+          "text": "Presidents & First Ladies",
+          "url": "https://www.whitehousehistory.org/bios"
+        },
+        {
+          "text": "Podcasts",
+          "url": "https://www.whitehousehistory.org/the-white-house-1600-sessions"
+        },
+        {
+          "text": "Slavery in the President\u2019s Neighborhood",
+          "url": "https://www.whitehousehistory.org/spn/introduction"
+        },
+        {
+          "text": "Teaching Resources",
+          "url": "https://www.whitehousehistory.org/rubenstein-center/k-12-education-resources-and-programs"
+        },
+        {
+          "text": "White House 360\u00b0 Tour",
+          "url": "https://www.whitehousehistory.org/tour-the-white-house-in-360-degrees"
+        },
+        {
+          "text": "Publishing",
+          "url": "https://www.whitehousehistory.org/publishing"
+        },
+        {
+          "text": "Podcast",
+          "url": "https://www.whitehousehistory.org/the-white-house-1600-sessions"
+        },
+        {
+          "text": "White House History Live",
+          "url": "https://www.whitehousehistory.org/rubenstein-center/white-house-history-live"
+        },
+        {
+          "text": "Digital Archives",
+          "url": "https://www.whitehousehistory.org/digital-library"
+        },
+        {
+          "text": "Book the Decatur House",
+          "url": "https://www.whitehousehistory.org/decatur-house"
+        },
+        {
+          "text": "Become a Member",
+          "url": "https://www.whitehousehistory.org/support"
+        },
+        {
+          "text": "Premier Giving",
+          "url": "https://www.whitehousehistory.org/premier-giving"
+        },
+        {
+          "text": "Planned Giving",
+          "url": "https://whitehousehistory.mygiftlegacy.org/"
+        },
+        {
+          "text": "The National Council",
+          "url": "https://www.whitehousehistory.org/the-national-council"
+        },
+        {
+          "text": "The White House Experience Advisory Council",
+          "url": "https://www.whitehousehistory.org/the-white-house-experience-advisory-council"
+        },
+        {
+          "text": "Corporate Giving",
+          "url": "https://www.whitehousehistory.org/corporate-giving"
+        },
+        {
+          "text": "Matching Your Gift",
+          "url": "https://www.whitehousehistory.org/giftmatch"
+        },
+        {
+          "text": "Non-Cash Giving",
+          "url": "https://www.freewill.com/smartgiving/whitehousehistory?utm_source=partner&utm_medium=website&utm_campaign=_whitehousehistory_homepg"
+        },
+        {
+          "text": "The People's House: A White House Experience",
+          "url": "https://thepeopleshouse.org/"
+        },
+        {
+          "text": "facebook",
+          "url": "https://www.facebook.com/WhiteHouseHistory"
+        },
+        {
+          "text": "instagram",
+          "url": "https://instagram.com/whitehousehistory/"
+        },
+        {
+          "text": "linkedin",
+          "url": "https://www.linkedin.com/company/white-house-historical-association/"
+        },
+        {
+          "text": "x",
+          "url": "https://x.com/WhiteHouseHstry"
+        },
+        {
+          "text": "pinterest",
+          "url": "https://www.pinterest.com/WhiteHouseHstry/"
+        },
+        {
+          "text": "Terms of Use and Privacy Policy",
+          "url": "https://www.whitehousehistory.org/about/terms-of-use-privacy-policy"
+        }
+      ],
+      "raw_path": "SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0003_gwb_public_bios_web_https_www.whitehousehistory.org_bios_george-w-bush.html",
+      "seed_path": null,
+      "sha256": "6071ea5128f1d16d880f43f2a67066ad49519aada818536c7a63a906d45a2f6d",
+      "source_id": "gwb_public_bios_web",
+      "source_name": "Public biography pages",
+      "status": "ok",
+      "status_code": 200,
+      "title": "George W. Bush - White House Historical Association",
+      "url": "https://www.whitehousehistory.org/bios/george-w-bush"
+    },
+    {
+      "authority_links": [],
+      "bytes": 633603,
+      "content_type": "text/html; charset=UTF-8",
+      "doc_id": "doc:0004",
+      "fetched_at": "2026-02-13T11:57:01+00:00",
+      "final_url": "https://www.georgewbushlibrary.gov/bush-family/george-w-bush",
+      "outbound_links": [
+        {
+          "text": "Skip to main content",
+          "url": "https://www.georgewbushlibrary.gov/bush-family/george-w-bush#main-content-anchor"
+        },
+        {
+          "text": "Contact George W. Bush",
+          "url": "https://www.georgewbushlibrary.gov/get-involved/about-us/frequently-asked-questions"
+        },
+        {
+          "text": "Order Photos",
+          "url": "https://www.georgewbushlibrary.gov/research/audiovisual-records/order-photos-videos"
+        },
+        {
+          "text": "",
+          "url": "https://www.georgewbushlibrary.gov/"
+        },
+        {
+          "text": "The Bush Family",
+          "url": "https://www.georgewbushlibrary.gov/bush-family"
+        },
+        {
+          "text": "George W. Bush",
+          "url": "https://www.georgewbushlibrary.gov/bush-family/george-w-bush"
+        },
+        {
+          "text": "Laura Bush",
+          "url": "https://www.georgewbushlibrary.gov/bush-family/laura-bush"
+        },
+        {
+          "text": "Barney & Miss Beazley",
+          "url": "https://www.georgewbushlibrary.gov/bush-family/barney-miss-beazley"
+        },
+        {
+          "text": "Presidential Places",
+          "url": "https://www.georgewbushlibrary.gov/bush-family/presidential-places"
+        },
+        {
+          "text": "Explore",
+          "url": "https://www.georgewbushlibrary.gov/explore"
+        },
+        {
+          "text": "Online Exhibits",
+          "url": "https://www.georgewbushlibrary.gov/explore/online-exhibits"
+        },
+        {
+          "text": "Photograph & Video Galleries",
+          "url": "https://www.georgewbushlibrary.gov/explore/galleries"
+        },
+        {
+          "text": "Native Texas Park",
+          "url": "https://www.georgewbushlibrary.gov/explore/native-texas-park"
+        },
+        {
+          "text": "Artifact Gallery",
+          "url": "https://www.georgewbushlibrary.gov/artifacts"
+        },
+        {
+          "text": "Document Gallery",
+          "url": "https://www.georgewbushlibrary.gov/explore/documents-gallery"
+        },
+        {
+          "text": "Artifacts",
+          "url": "https://www.georgewbushlibrary.gov/artifacts"
+        },
+        {
+          "text": "Past Exhibits",
+          "url": "https://www.georgewbushlibrary.gov/artifacts/past-exhibits"
+        },
+        {
+          "text": "Presidential Libraries Passport",
+          "url": "https://www.georgewbushlibrary.gov/artifacts/presidential-libraries-passport"
+        },
+        {
+          "text": "Research",
+          "url": "https://www.georgewbushlibrary.gov/research"
+        },
+        {
+          "text": "Digital Research Room",
+          "url": "https://www.georgewbushlibrary.gov/research/digital-research-room"
+        },
+        {
+          "text": "Plan a Research Visit",
+          "url": "https://www.georgewbushlibrary.gov/research/plan-research-visit"
+        },
+        {
+          "text": "Submit a FOIA Request",
+          "url": "https://www.georgewbushlibrary.gov/research/submit-foia-request"
+        },
+        {
+          "text": "Digitized Records & Finding Aids",
+          "url": "https://www.georgewbushlibrary.gov/research/digitized-record-%26-finding-aids"
+        },
+        {
+          "text": "Topic Guides",
+          "url": "https://www.georgewbushlibrary.gov/research/topic-guides"
+        },
+        {
+          "text": "Records Search",
+          "url": "https://www.georgewbushlibrary.gov/research/records-search"
+        },
+        {
+          "text": "Archived White House Website",
+          "url": "https://www.georgewbushlibrary.gov/research/archived-white-house-website"
+        },
+        {
+          "text": "Audiovisual Records",
+          "url": "https://www.georgewbushlibrary.gov/research/audiovisual-records-0"
+        },
+        {
+          "text": "America 250 National Archives",
+          "url": "https://www.georgewbushlibrary.gov/research/america-250-national-archives"
+        },
+        {
+          "text": "Learn",
+          "url": "https://www.georgewbushlibrary.gov/learn"
+        },
+        {
+          "text": "Teacher Support",
+          "url": "https://www.georgewbushlibrary.gov/learn/teacher-support"
+        },
+        {
+          "text": "Teacher Workshops",
+          "url": "https://www.georgewbushlibrary.gov/learn/teacher-workshops"
+        },
+        {
+          "text": "Traveling Trunk Program",
+          "url": "https://www.georgewbushlibrary.gov/learn/traveling-trunk-program"
+        },
+        {
+          "text": "Presidential Hats Program",
+          "url": "https://www.georgewbushlibrary.gov/learn/presidential-hats-program"
+        },
+        {
+          "text": "Student Lecture Series Presentations",
+          "url": "https://www.georgewbushlibrary.gov/learn/student-lecture-series-presentations"
+        },
+        {
+          "text": "Civics for All of US Program",
+          "url": "https://www.georgewbushlibrary.gov/learn/civics-for-all-of-us"
+        },
+        {
+          "text": "Get Involved",
+          "url": "https://www.georgewbushlibrary.gov/get-involved"
+        },
+        {
+          "text": "Join Our Team",
+          "url": "https://www.georgewbushlibrary.gov/get-involved/join-our-team"
+        },
+        {
+          "text": "Internships",
+          "url": "https://www.georgewbushlibrary.gov/get-involved/internships"
+        },
+        {
+          "text": "Contact Us",
+          "url": "https://www.georgewbushlibrary.gov/get-involved/contact-us"
+        },
+        {
+          "text": "About Us",
+          "url": "https://www.georgewbushlibrary.gov/get-involved/about-us"
+        },
+        {
+          "text": "Home",
+          "url": "https://www.georgewbushlibrary.gov/"
+        },
+        {
+          "text": "Contact George W. Bush",
+          "url": "https://www.georgewbushlibrary.gov/bush-family/george-w-bush/contact-george-w-bush"
+        },
+        {
+          "text": "View in the National Archives Catalog",
+          "url": "https://catalog.archives.gov/id/78086818"
+        },
+        {
+          "text": "George W. Bush",
+          "url": "https://www.bushcenter.org/about-us/the-bush-family/george-w-bush"
+        },
+        {
+          "text": "Bush Center",
+          "url": "http://www.bushcenter.org"
+        },
+        {
+          "text": "National Archives and Records Administration",
+          "url": "http://www.archives.gov"
+        },
+        {
+          "text": "George W. Bush Institute",
+          "url": "http://www.bushcenter.org/explore-our-work/index.html"
+        },
+        {
+          "text": "President's Role",
+          "url": "https://www.georgewbushlibrary.gov/research/topic-guides/presidents-role"
+        },
+        {
+          "text": "President's Foreign Trips",
+          "url": "https://www.georgewbushlibrary.gov/research/topic-guides/presidents-foreign-trips"
+        },
+        {
+          "text": "Return to top",
+          "url": "https://www.georgewbushlibrary.gov/bush-family/george-w-bush#top"
+        },
+        {
+          "text": "Powered by Curator.io",
+          "url": "https://curator.io"
+        },
+        {
+          "text": "View more on Instagram",
+          "url": "https://www.instagram.com/gwblibrary/"
+        },
+        {
+          "text": "Additional Contact Information",
+          "url": "https://www.georgewbushlibrary.gov/get-involved/contact-us"
+        },
+        {
+          "text": "Bush Center",
+          "url": "http://www.bushcenter.org/"
+        },
+        {
+          "text": "Office of George W. Bush",
+          "url": "https://www.georgewbush.com/"
+        },
+        {
+          "text": "Southern Methodist University",
+          "url": "http://www.smu.edu/"
+        },
+        {
+          "text": "Instagram",
+          "url": "https://www.instagram.com/gwblibrary/"
+        },
+        {
+          "text": "YouTube",
+          "url": "https://www.youtube.com/@GWBLibrary"
+        },
+        {
+          "text": "Flickr",
+          "url": "https://www.flickr.com/photos/usnationalarchives/albums/"
+        },
+        {
+          "text": "About NARA",
+          "url": "https://www.archives.gov/about"
+        },
+        {
+          "text": "Presidential Libraries",
+          "url": "https://www.georgewbushlibrary.gov/get-involved/about-us/presidential-libraries"
+        },
+        {
+          "text": "FOIA",
+          "url": "https://www.georgewbushlibrary.gov/research/submit-foia-request"
+        },
+        {
+          "text": "Privacy Policy",
+          "url": "https://www.archives.gov/global-pages/privacy.html"
+        }
+      ],
+      "raw_path": "SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0004_gwb_public_bios_web_https_www.georgewbushlibrary.gov_bush-family_george-w-bush.html",
+      "seed_path": null,
+      "sha256": "b2a81e438585cfa55027c8112ac28d8594f9910964e61005716e3b2b59149f68",
+      "source_id": "gwb_public_bios_web",
+      "source_name": "Public biography pages",
+      "status": "ok",
+      "status_code": 200,
+      "title": "George W. Bush Presidential Library",
+      "url": "https://www.georgewbushlibrary.gov/bush-family/george-w-bush"
+    },
+    {
+      "authority_links": [],
+      "bytes": 120388,
+      "content_type": "text/html; charset=UTF-8",
+      "doc_id": "doc:0005",
+      "fetched_at": "2026-02-13T11:57:06+00:00",
+      "final_url": "https://www.bushcenter.org/about-us/the-bush-family/george-w-bush",
+      "outbound_links": [
+        {
+          "text": "Skip navigation",
+          "url": "https://www.bushcenter.org/about-us/the-bush-family/george-w-bush#main"
+        },
+        {
+          "text": "",
+          "url": "https://www.bushcenter.org/"
+        },
+        {
+          "text": "Plan Your Visit",
+          "url": "https://www.bushcenter.org/plan-your-visit"
+        },
+        {
+          "text": "Museum Admission and Hours",
+          "url": "https://www.bushcenter.org/plan-your-visit/admission-and-hours"
+        },
+        {
+          "text": "Directions and Parking",
+          "url": "https://www.bushcenter.org/plan-your-visit/plan-you-vist-directions-and-parking"
+        },
+        {
+          "text": "Dine at Cafe 43",
+          "url": "https://www.bushcenter.org/plan-your-visit/dining"
+        },
+        {
+          "text": "Laura W. Bush Native Texas Park",
+          "url": "https://www.bushcenter.org/plan-your-visit/native-texas-park"
+        },
+        {
+          "text": "Field Trips and Teacher Resources",
+          "url": "https://www.bushcenter.org/plan-your-visit/field-trips-and-teacher-resources"
+        },
+        {
+          "text": "Tours",
+          "url": "https://www.bushcenter.org/plan-your-visit/tours"
+        },
+        {
+          "text": "Private Events and Rentals",
+          "url": "https://www.bushcenter.org/plan-your-visit/private-events-and-rentals"
+        },
+        {
+          "text": "Save with CityPASS",
+          "url": "https://www.bushcenter.org/plan-your-visit/citypass"
+        },
+        {
+          "text": "Shop",
+          "url": "https://shop.bushcenter.org"
+        },
+        {
+          "text": "Events & Exhibits",
+          "url": "https://www.bushcenter.org/events-and-exhibits"
+        },
+        {
+          "text": "Support Us",
+          "url": "https://www.bushcenter.org/support"
+        },
+        {
+          "text": "Become a Member",
+          "url": "https://www.bushcenter.org/support-us/membership"
+        },
+        {
+          "text": "Corporate Leadership Society",
+          "url": "https://www.bushcenter.org/corporate-leadership-society"
+        },
+        {
+          "text": "Volunteer",
+          "url": "https://www.bushcenter.org/support-us/volunteer"
+        },
+        {
+          "text": "Young Professionals",
+          "url": "https://www.bushcenter.org/support-us/young-professionals"
+        },
+        {
+          "text": "Planned Giving",
+          "url": "https://www.bushcenter.org/planned-giving"
+        },
+        {
+          "text": "Get Email Updates",
+          "url": "https://www.bushcenter.org/stay-connected"
+        },
+        {
+          "text": "About the Bush Center",
+          "url": "https://www.bushcenter.org/about-us"
+        },
+        {
+          "text": "The Bush Family",
+          "url": "https://www.bushcenter.org/about-us/the-bush-family"
+        },
+        {
+          "text": "Our Team",
+          "url": "https://www.bushcenter.org/about-us/our-team"
+        },
+        {
+          "text": "Newsroom",
+          "url": "https://www.bushcenter.org/newsroom"
+        },
+        {
+          "text": "The Bush Center and SMU",
+          "url": "https://www.bushcenter.org/about-us/the-bush-center-and-smu"
+        },
+        {
+          "text": "Annual Reports",
+          "url": "https://www.bushcenter.org/about-us/annual-reports"
+        },
+        {
+          "text": "Presidential Records and Research",
+          "url": "https://www.georgewbushlibrary.gov/research/plan-research-visit-0"
+        },
+        {
+          "text": "Employment",
+          "url": "https://www.bushcenter.org/about-us/employment"
+        },
+        {
+          "text": "Contact",
+          "url": "https://www.bushcenter.org/about-us/contact-us"
+        },
+        {
+          "text": "DONATE",
+          "url": "https://www.bushcenter.org/support"
+        },
+        {
+          "text": "American Democracy",
+          "url": "https://www.bushcenter.org/topics/american-democracy/"
+        },
+        {
+          "text": "Ukraine",
+          "url": "https://www.bushcenter.org/topics/regions/ukraine/"
+        },
+        {
+          "text": "Immigration",
+          "url": "https://www.bushcenter.org/topics/immigration/"
+        },
+        {
+          "text": "The George W. Bush Institute",
+          "url": "https://www.bushcenter.org/our-work"
+        },
+        {
+          "text": "Economic Growth",
+          "url": "https://www.bushcenter.org/topics/economic-growth"
+        },
+        {
+          "text": "Economic Mobility",
+          "url": "https://www.bushcenter.org/topics/economic-growth/economic-mobility"
+        },
+        {
+          "text": "Democratic Capitalism",
+          "url": "https://www.bushcenter.org/topics/economic-growth/democratic-capitalism"
+        },
+        {
+          "text": "Immigration",
+          "url": "https://www.bushcenter.org/topics/immigration"
+        },
+        {
+          "text": "Education and Opportunity",
+          "url": "https://www.bushcenter.org/topics/education"
+        },
+        {
+          "text": "Pathways to Opportunity",
+          "url": "https://www.bushcenter.org/topics/education/pathways-to-opportunity"
+        },
+        {
+          "text": "Advancing Accountability",
+          "url": "https://www.bushcenter.org/topics/education/accountability"
+        },
+        {
+          "text": "Accelerating Literacy",
+          "url": "https://www.bushcenter.org/topics/education/accelerating-literacy"
+        },
+        {
+          "text": "Laura Bush Foundation for America\u2019s Libraries",
+          "url": "https://www.bushcenter.org/topics/education/laura-bush-foundation-for-americas-libraries"
+        },
+        {
+          "text": "Veterans and Military Families",
+          "url": "https://www.bushcenter.org/topics/veterans"
+        },
+        {
+          "text": "Veteran Transition",
+          "url": "https://www.bushcenter.org/topics/veterans/veteran-transition"
+        },
+        {
+          "text": "Veteran Leadership",
+          "url": "https://www.bushcenter.org/topics/veterans/veteran-leadership"
+        },
+        {
+          "text": "Check-In: Veteran Mental Health Resource",
+          "url": "https://www.veterancheckin.org"
+        },
+        {
+          "text": "American Ideals and Respectful Discourse",
+          "url": "https://www.bushcenter.org/topics/american-ideals"
+        },
+        {
+          "text": "Encouraging Pluralism",
+          "url": "https://www.bushcenter.org/topics/american-ideals/encouraging-pluralism"
+        },
+        {
+          "text": "Supporting an Informed Citizenry",
+          "url": "https://www.bushcenter.org/topics/american-ideals/informed-citizenry"
+        },
+        {
+          "text": "Presidential Leadership Scholars",
+          "url": "https://www.bushcenter.org/topics/presidential-leadership-scholars"
+        },
+        {
+          "text": "Freedom and Democracy",
+          "url": "https://www.bushcenter.org/topics/freedom-and-democracy"
+        },
+        {
+          "text": "Supporting Freedom and Democracy",
+          "url": "https://www.bushcenter.org/topics/freedom-and-democracy/supporting-freedom"
+        },
+        {
+          "text": "Confronting Authoritarian Regimes",
+          "url": "https://www.bushcenter.org/topics/freedom-and-democracy/confronting-authoritarian-regimes"
+        },
+        {
+          "text": "Combating Corruption and Kleptocracy",
+          "url": "https://www.bushcenter.org/topics/freedom-and-democracy/combating-corruption-and-kleptocracy"
+        },
+        {
+          "text": "Advocating for Women",
+          "url": "https://www.bushcenter.org/topics/freedom-and-democracy/advocating-for-women"
+        },
+        {
+          "text": "Freedom Collection",
+          "url": "https://www.bushcenter.org/freedom-collection"
+        },
+        {
+          "text": "Global Health",
+          "url": "https://www.bushcenter.org/topics/global-health"
+        },
+        {
+          "text": "Go Further",
+          "url": "https://www.bushcenter.org/topics/global-health/go-further"
+        },
+        {
+          "text": "U.S. Global Health Engagement",
+          "url": "https://www.bushcenter.org/topics/global-health/u-s-global-health-engagement"
+        },
+        {
+          "text": "Our Experts",
+          "url": "https://www.bushcenter.org/experts"
+        },
+        {
+          "text": "Economic Growth",
+          "url": "https://www.bushcenter.org/experts?topic=economic-growth"
+        },
+        {
+          "text": "Immigration",
+          "url": "https://www.bushcenter.org/experts?topic=immigration"
+        },
+        {
+          "text": "Education",
+          "url": "https://www.bushcenter.org/experts?topic=education"
+        },
+        {
+          "text": "Veterans and Military Families",
+          "url": "https://www.bushcenter.org/experts?topic=veterans-and-military-families"
+        },
+        {
+          "text": "American Ideals and Respectful Discourse",
+          "url": "https://www.bushcenter.org/experts?topic=american-ideals"
+        },
+        {
+          "text": "Presidential Leadership Scholars",
+          "url": "https://www.bushcenter.org/experts?topic=presidential-leadership-scholars"
+        },
+        {
+          "text": "Freedom and Democracy",
+          "url": "https://www.bushcenter.org/experts?topic=freedom-and-democracy"
+        },
+        {
+          "text": "Global Health",
+          "url": "https://www.bushcenter.org/experts?topic=global-health"
+        },
+        {
+          "text": "All Publications",
+          "url": "https://www.bushcenter.org/publications"
+        },
+        {
+          "text": "The Catalyst",
+          "url": "https://www.bushcenter.org/catalyst"
+        },
+        {
+          "text": "Podcasts",
+          "url": "https://www.bushcenter.org/podcasts"
+        },
+        {
+          "text": "Democracy Talks",
+          "url": "https://www.bushcenter.org/series/democracy-talks"
+        },
+        {
+          "text": "Articles",
+          "url": "https://www.bushcenter.org/publications?article_type=article"
+        },
+        {
+          "text": "Reports",
+          "url": "https://www.bushcenter.org/publications?article_type=report"
+        },
+        {
+          "text": "Videos",
+          "url": "https://www.bushcenter.org/publications?article_type=video"
+        },
+        {
+          "text": "Read the article Democracy is a verb \u2013 Democratic citizenship in action ..",
+          "url": "https://www.bushcenter.org/publications/democracy-is-a-verb-democratic-citizenship-in-action/"
+        },
+        {
+          "text": "Read the article The Catalyst..",
+          "url": "https://www.bushcenter.org/catalyst/"
+        },
+        {
+          "text": "Read the article The Strategerist..",
+          "url": "https://www.bushcenter.org/podcast/the-strategerist"
+        },
+        {
+          "text": "American Democracy",
+          "url": "https://www.bushcenter.org/topics/american-democracy"
+        },
+        {
+          "text": "North America",
+          "url": "https://www.bushcenter.org/topics/regions/north-america"
+        },
+        {
+          "text": "Central America",
+          "url": "https://www.bushcenter.org/topics/regions/central-america"
+        },
+        {
+          "text": "Africa",
+          "url": "https://www.bushcenter.org/topics/regions/africa"
+        },
+        {
+          "text": "Ukraine",
+          "url": "https://www.bushcenter.org/topics/regions/ukraine"
+        },
+        {
+          "text": "China",
+          "url": "https://www.bushcenter.org/topics/regions/china"
+        },
+        {
+          "text": "Afghanistan",
+          "url": "https://www.bushcenter.org/topics/regions/afghanistan"
+        },
+        {
+          "text": "VISIT",
+          "url": "https://www.bushcenter.org/plan-your-visit"
+        },
+        {
+          "text": "EVENTS & EXHIBITS",
+          "url": "https://www.bushcenter.org/events-and-exhibits"
+        },
+        {
+          "text": "TICKETS",
+          "url": "https://www.bushcenter.org/plan-your-visit"
+        },
+        {
+          "text": "OUR WORK",
+          "url": "https://www.bushcenter.org/our-work"
+        },
+        {
+          "text": "SUPPORT",
+          "url": "https://www.bushcenter.org/support"
+        },
+        {
+          "text": "About Us",
+          "url": "https://www.bushcenter.org/about-us/"
+        },
+        {
+          "text": "The Bush Family",
+          "url": "https://www.bushcenter.org/about-us/the-bush-family/"
+        },
+        {
+          "text": "George W. Bush",
+          "url": "https://www.bushcenter.org/about-us/the-bush-family/george-w-bush/"
+        },
+        {
+          "text": "Mrs. Laura Bush",
+          "url": "https://www.bushcenter.org/about-us/the-bush-family/mrs-laura-bush/"
+        },
+        {
+          "text": "Barbara Bush",
+          "url": "https://www.bushcenter.org/about-us/the-bush-family/barbara-bush/"
+        },
+        {
+          "text": "Jenna Hager",
+          "url": "https://www.bushcenter.org/about-us/the-bush-family/jenna-hager/"
+        },
+        {
+          "text": "Bush Family Pets",
+          "url": "https://www.bushcenter.org/about-us/the-bush-family/bush-family-pets/"
+        },
+        {
+          "text": "Our Team",
+          "url": "https://www.bushcenter.org/about-us/our-team/"
+        },
+        {
+          "text": "The Bush Center and SMU",
+          "url": "https://www.bushcenter.org/about-us/the-bush-center-and-smu/"
+        },
+        {
+          "text": "Annual Reports",
+          "url": "https://www.bushcenter.org/about-us/annual-reports/"
+        },
+        {
+          "text": "Employment",
+          "url": "https://www.bushcenter.org/about-us/employment/"
+        },
+        {
+          "text": "Contact Us",
+          "url": "https://www.bushcenter.org/about-us/contact-us/"
+        },
+        {
+          "text": "",
+          "url": "https://gwbushcenter.imgix.net/wp-content/uploads/george-w-bush-potrait-scaled.jpg"
+        },
+        {
+          "text": "Download headshot",
+          "url": "https://gwbushcenter.imgix.net/wp-content/uploads/george-w-bush-potrait.jpg"
+        },
+        {
+          "text": "E. [email protected]",
+          "url": "https://www.bushcenter.org/cdn-cgi/l/email-protection#4920272f26092b3c3a212a2c273d2c3b67263b2e"
+        },
+        {
+          "text": "Visit",
+          "url": "https://www.bushcenter.org/plan-your-visit"
+        },
+        {
+          "text": "Our Work",
+          "url": "https://www.bushcenter.org/our-work"
+        },
+        {
+          "text": "The Catalyst",
+          "url": "https://www.bushcenter.org/catalyst/index.html"
+        },
+        {
+          "text": "",
+          "url": "https://twitter.com/TheBushCenter"
+        },
+        {
+          "text": "",
+          "url": "https://www.instagram.com/thebushcenter/"
+        },
+        {
+          "text": "",
+          "url": "https://www.facebook.com/TheBushCenter"
+        },
+        {
+          "text": "",
+          "url": "https://www.flickr.com/photos/georgewbushcenter/"
+        },
+        {
+          "text": "",
+          "url": "https://www.youtube.com/user/TheBushCenter"
+        },
+        {
+          "text": "",
+          "url": "https://www.linkedin.com/company/george-w.-bush-presidential-center/"
+        },
+        {
+          "text": "Bush-Cheney Alumni",
+          "url": "https://www.bushcenter.org/bush-cheney-alumni-events"
+        },
+        {
+          "text": "Contact Us",
+          "url": "https://www.bushcenter.org/about-us/contact-us"
+        },
+        {
+          "text": "Privacy Policy",
+          "url": "https://www.bushcenter.org/privacy-policy"
+        }
+      ],
+      "raw_path": "SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0005_gwb_public_bios_web_https_www.bushcenter.org_about-us_the-bush-family_george-w-bush.html",
+      "seed_path": null,
+      "sha256": "64da17a2b2a11b8f0d1a92eedfeef94e706de3b5e415b40c259354789f38783c",
+      "source_id": "gwb_public_bios_web",
+      "source_name": "Public biography pages",
+      "status": "ok",
+      "status_code": 200,
+      "title": "George W. Bush | George W. Bush Presidential Center",
+      "url": "https://www.bushcenter.org/about-us/the-bush-family/george-w-bush"
+    },
+    {
+      "authority_links": [],
+      "bytes": 59108,
+      "content_type": "text/html; charset=UTF-8",
+      "doc_id": "doc:0006",
+      "fetched_at": "2026-02-13T11:57:10+00:00",
+      "final_url": "https://millercenter.org/president/gwbush/life-in-brief",
+      "outbound_links": [
+        {
+          "text": "Skip to main content",
+          "url": "https://millercenter.org/president/gwbush/life-in-brief#main-content"
+        },
+        {
+          "text": "The Presidency",
+          "url": "https://millercenter.org/the-presidency"
+        },
+        {
+          "text": "U.S. Presidents",
+          "url": "https://millercenter.org/president"
+        },
+        {
+          "text": "George Washington",
+          "url": "https://millercenter.org/president/washington"
+        },
+        {
+          "text": "John Adams",
+          "url": "https://millercenter.org/president/adams"
+        },
+        {
+          "text": "Thomas Jefferson",
+          "url": "https://millercenter.org/president/jefferson"
+        },
+        {
+          "text": "James Madison",
+          "url": "https://millercenter.org/president/madison"
+        },
+        {
+          "text": "James Monroe",
+          "url": "https://millercenter.org/president/monroe"
+        },
+        {
+          "text": "John Quincy Adams",
+          "url": "https://millercenter.org/president/jqadams"
+        },
+        {
+          "text": "Andrew Jackson",
+          "url": "https://millercenter.org/president/jackson"
+        },
+        {
+          "text": "Martin Van Buren",
+          "url": "https://millercenter.org/president/vanburen"
+        },
+        {
+          "text": "William Harrison",
+          "url": "https://millercenter.org/president/harrison"
+        },
+        {
+          "text": "John Tyler",
+          "url": "https://millercenter.org/president/tyler"
+        },
+        {
+          "text": "James K. Polk",
+          "url": "https://millercenter.org/president/polk"
+        },
+        {
+          "text": "Zachary Taylor",
+          "url": "https://millercenter.org/president/taylor"
+        },
+        {
+          "text": "Millard Fillmore",
+          "url": "https://millercenter.org/president/fillmore"
+        },
+        {
+          "text": "Franklin Pierce",
+          "url": "https://millercenter.org/president/pierce"
+        },
+        {
+          "text": "James Buchanan",
+          "url": "https://millercenter.org/president/buchanan"
+        },
+        {
+          "text": "Abraham Lincoln",
+          "url": "https://millercenter.org/president/lincoln"
+        },
+        {
+          "text": "Andrew Johnson",
+          "url": "https://millercenter.org/president/johnson"
+        },
+        {
+          "text": "Ulysses S. Grant",
+          "url": "https://millercenter.org/president/grant"
+        },
+        {
+          "text": "Rutherford B. Hayes",
+          "url": "https://millercenter.org/president/hayes"
+        },
+        {
+          "text": "James A. Garfield",
+          "url": "https://millercenter.org/president/garfield"
+        },
+        {
+          "text": "Chester A. Arthur",
+          "url": "https://millercenter.org/president/arthur"
+        },
+        {
+          "text": "Grover Cleveland",
+          "url": "https://millercenter.org/president/cleveland"
+        },
+        {
+          "text": "Benjamin Harrison",
+          "url": "https://millercenter.org/president/bharrison"
+        },
+        {
+          "text": "William McKinley",
+          "url": "https://millercenter.org/president/mckinley"
+        },
+        {
+          "text": "Theodore Roosevelt",
+          "url": "https://millercenter.org/president/roosevelt"
+        },
+        {
+          "text": "William Taft",
+          "url": "https://millercenter.org/president/taft"
+        },
+        {
+          "text": "Woodrow Wilson",
+          "url": "https://millercenter.org/president/wilson"
+        },
+        {
+          "text": "Warren G. Harding",
+          "url": "https://millercenter.org/president/harding"
+        },
+        {
+          "text": "Calvin Coolidge",
+          "url": "https://millercenter.org/president/coolidge"
+        },
+        {
+          "text": "Herbert Hoover",
+          "url": "https://millercenter.org/president/hoover"
+        },
+        {
+          "text": "Franklin D. Roosevelt",
+          "url": "https://millercenter.org/president/fdroosevelt"
+        },
+        {
+          "text": "Harry S. Truman",
+          "url": "https://millercenter.org/president/truman"
+        },
+        {
+          "text": "Dwight D. Eisenhower",
+          "url": "https://millercenter.org/president/eisenhower"
+        },
+        {
+          "text": "John F. Kennedy",
+          "url": "https://millercenter.org/president/kennedy"
+        },
+        {
+          "text": "Lyndon B. Johnson",
+          "url": "https://millercenter.org/president/lbjohnson"
+        },
+        {
+          "text": "Richard Nixon",
+          "url": "https://millercenter.org/president/nixon"
+        },
+        {
+          "text": "Gerald Ford",
+          "url": "https://millercenter.org/president/ford"
+        },
+        {
+          "text": "Jimmy Carter",
+          "url": "https://millercenter.org/president/carter"
+        },
+        {
+          "text": "Ronald Reagan",
+          "url": "https://millercenter.org/president/reagan"
+        },
+        {
+          "text": "George H. W. Bush",
+          "url": "https://millercenter.org/president/bush"
+        },
+        {
+          "text": "Bill Clinton",
+          "url": "https://millercenter.org/president/clinton"
+        },
+        {
+          "text": "George W. Bush",
+          "url": "https://millercenter.org/president/gwbush"
+        },
+        {
+          "text": "Barack Obama",
+          "url": "https://millercenter.org/president/obama"
+        },
+        {
+          "text": "Donald Trump",
+          "url": "https://millercenter.org/president/trump"
+        },
+        {
+          "text": "Joe Biden",
+          "url": "https://millercenter.org/president/biden"
+        },
+        {
+          "text": "Presidential Speeches",
+          "url": "https://millercenter.org/the-presidency/presidential-speeches"
+        },
+        {
+          "text": "Presidential Oral Histories",
+          "url": "https://millercenter.org/the-presidency/presidential-oral-histories"
+        },
+        {
+          "text": "Secret White House Tapes",
+          "url": "https://millercenter.org/the-presidency/secret-white-house-tapes"
+        },
+        {
+          "text": "Listening to the Presidency",
+          "url": "https://millercenter.org/the-presidency/listening-to-the-presidency"
+        },
+        {
+          "text": "Issues & Policy",
+          "url": "https://millercenter.org/issues-policy"
+        },
+        {
+          "text": "U.S. Domestic Policy",
+          "url": "https://millercenter.org/issues-policy/us-domestic-policy"
+        },
+        {
+          "text": "Foreign Policy",
+          "url": "https://millercenter.org/issues-policy/foreign-policy"
+        },
+        {
+          "text": "Economics",
+          "url": "https://millercenter.org/issues-policy/economics"
+        },
+        {
+          "text": "Governance",
+          "url": "https://millercenter.org/issues-policy/governance"
+        },
+        {
+          "text": "Experts",
+          "url": "https://millercenter.org/experts"
+        },
+        {
+          "text": "Events",
+          "url": "https://millercenter.org/news-events/events"
+        },
+        {
+          "text": "Upcoming Events",
+          "url": "https://millercenter.org/events/upcoming-events"
+        },
+        {
+          "text": "Past Events",
+          "url": "https://millercenter.org/events/past-events"
+        },
+        {
+          "text": "Donate",
+          "url": "https://www.givecampus.com/qc9vls"
+        },
+        {
+          "text": "Donate",
+          "url": "https://millercenter.org/support"
+        },
+        {
+          "text": "Subscribe",
+          "url": "https://mc8yhqj3g8f7wd1f41c7htsmk8by.pub.sfmc-content.com/1pki4cjl5pd"
+        },
+        {
+          "text": "About",
+          "url": "https://millercenter.org/about"
+        },
+        {
+          "text": "Contact Us",
+          "url": "https://millercenter.org/contact"
+        },
+        {
+          "text": "Miller Center Governing Council",
+          "url": "https://millercenter.org/about/governing-council"
+        },
+        {
+          "text": "Miller Center Foundation",
+          "url": "https://millercenter.org/support"
+        },
+        {
+          "text": "Privacy Policy",
+          "url": "https://millercenter.org/miller-center-privacy-policy"
+        },
+        {
+          "text": "Notice of Non-Discrimination and Equal Opportunity",
+          "url": "http://eocr.virginia.edu/notice-non-discrimination-and-equal-opportunity"
+        },
+        {
+          "text": "Download millercenter.org Data",
+          "url": "https://data.millercenter.org"
+        },
+        {
+          "text": "Support the Miller Center",
+          "url": "https://millercenter.org/support"
+        },
+        {
+          "text": "Facebook",
+          "url": "https://www.facebook.com/millercenter/"
+        },
+        {
+          "text": "X (Twitter)",
+          "url": "https://twitter.com/Miller_Center"
+        },
+        {
+          "text": "YouTube",
+          "url": "https://www.youtube.com/channel/UChty22qJfdeAd8dAee9Mo7g/featured"
+        },
+        {
+          "text": "Instagram",
+          "url": "https://www.instagram.com/uvamillercenter"
+        },
+        {
+          "text": "University of Virginia",
+          "url": "http://www.virginia.edu/"
+        },
+        {
+          "text": "Miller Center",
+          "url": "https://millercenter.org/"
+        },
+        {
+          "text": "George W. Bush Presidency Page",
+          "url": "https://millercenter.org/president/gwbush"
+        },
+        {
+          "text": "Life in Brief (Current Essay)",
+          "url": "https://millercenter.org/president/gwbush/life-in-brief"
+        },
+        {
+          "text": "Life Before the Presidency",
+          "url": "https://millercenter.org/president/gwbush/life-before-the-presidency"
+        },
+        {
+          "text": "Campaigns and Elections",
+          "url": "https://millercenter.org/president/gwbush/campaigns-and-elections"
+        },
+        {
+          "text": "Domestic Affairs",
+          "url": "https://millercenter.org/president/gwbush/domestic-affairs"
+        },
+        {
+          "text": "Foreign Affairs",
+          "url": "https://millercenter.org/president/gwbush/foreign-affairs"
+        },
+        {
+          "text": "Life After the Presidency",
+          "url": "https://millercenter.org/president/gwbush/life-after-the-presidency"
+        },
+        {
+          "text": "Family Life",
+          "url": "https://millercenter.org/president/gwbush/family-life"
+        },
+        {
+          "text": "The American Franchise",
+          "url": "https://millercenter.org/president/gwbush/the-american-franchise"
+        },
+        {
+          "text": "Impact and Legacy",
+          "url": "https://millercenter.org/president/gwbush/impact-and-legacy"
+        },
+        {
+          "text": "",
+          "url": "https://millercenter.org/contested-presidential-elections/bush-v-gore"
+        },
+        {
+          "text": "Bush v. Gore",
+          "url": "https://millercenter.org/contested-presidential-elections/bush-v-gore"
+        },
+        {
+          "text": "",
+          "url": "https://millercenter.org/remembering-september-11/september-11-terrorist-attacks"
+        },
+        {
+          "text": "Timeline: The September 11 terrorist attacks",
+          "url": "https://millercenter.org/remembering-september-11/september-11-terrorist-attacks"
+        },
+        {
+          "text": "Join our email list",
+          "url": "https://mc8yhqj3g8f7wd1f41c7htsmk8by.pub.sfmc-content.com/1pki4cjl5pd"
+        }
+      ],
+      "raw_path": "SensibLaw/demo/ingest/gwb/public_bios_v1/raw/0006_gwb_public_bios_web_https_millercenter.org_president_gwbush_life-in-brief.html",
+      "seed_path": null,
+      "sha256": "8c566c984fee0a1c3419fd82df3c91c5c5c42559fddeba9679d28fcab4d68c1e",
+      "source_id": "gwb_public_bios_web",
+      "source_name": "Public biography pages",
+      "status": "ok",
+      "status_code": 200,
+      "title": "George W. Bush: Life in Brief | Miller Center",
+      "url": "https://millercenter.org/president/gwbush/life-in-brief"
+    },
+    {
+      "authority_links": [],
+      "bytes": 2037682,
+      "content_type": "application/epub+zip",
+      "doc_id": "doc:0007",
+      "fetched_at": "2026-02-13T11:57:16+00:00",
+      "final_url": "SensibLaw/demo/ingest/gwb/Bush family._ Bush, George_ Bush, George Walker_ Bush, Jeb_ Bush - Jeb and the Bush crime family _ the inside story of an American dynasty (2016, Skyhorse Publishing, Inc.) - libgen.li.epub",
+      "outbound_links": [],
+      "raw_path": "SensibLaw/demo/ingest/gwb/Bush family._ Bush, George_ Bush, George Walker_ Bush, Jeb_ Bush - Jeb and the Bush crime family _ the inside story of an American dynasty (2016, Skyhorse Publishing, Inc.) - libgen.li.epub",
+      "seed_path": "SensibLaw/demo/ingest/gwb/Bush family._ Bush, George_ Bush, George Walker_ Bush, Jeb_ Bush - Jeb and the Bush crime family _ the inside story of an American dynasty (2016, Skyhorse Publishing, Inc.) - libgen.li.epub",
+      "sha256": "8f26f7a3691b4b82a9f5537639f92a67e9c6337f2c9f1a4b7406e6c830363578",
+      "source_id": "gwb_public_bios_web",
+      "source_name": "Public biography pages",
+      "status": "ok",
+      "status_code": 0,
+      "title": "Bush family._ Bush, George_ Bush, George Walker_ Bush, Jeb_ Bush - Jeb and the Bush crime family _ the inside story of an American dynasty (2016, Skyhorse Publishing, Inc.) - libgen.li.epub",
+      "url": null
+    },
+    {
+      "authority_links": [],
+      "bytes": 1230177,
+      "content_type": "application/epub+zip",
+      "doc_id": "doc:0008",
+      "fetched_at": "2026-02-13T11:57:16+00:00",
+      "final_url": "SensibLaw/demo/ingest/gwb/Bush family._Bush, George_Bush, George Walker_Baker, Russ - Family of secrets_ the Bush dynasty, the powerful forces that put it in the White House, and what their influence means for Ame (2009, Bloomsbury Publishing Plc_Bloomsb - libgen.li.epub",
+      "outbound_links": [],
+      "raw_path": "SensibLaw/demo/ingest/gwb/Bush family._Bush, George_Bush, George Walker_Baker, Russ - Family of secrets_ the Bush dynasty, the powerful forces that put it in the White House, and what their influence means for Ame (2009, Bloomsbury Publishing Plc_Bloomsb - libgen.li.epub",
+      "seed_path": "SensibLaw/demo/ingest/gwb/Bush family._Bush, George_Bush, George Walker_Baker, Russ - Family of secrets_ the Bush dynasty, the powerful forces that put it in the White House, and what their influence means for Ame (2009, Bloomsbury Publishing Plc_Bloomsb - libgen.li.epub",
+      "sha256": "e55d3729b512b59bee35aea84a9f12ac55ee5f0e5b60d0f08c80a90975b380bc",
+      "source_id": "gwb_public_bios_web",
+      "source_name": "Public biography pages",
+      "status": "ok",
+      "status_code": 0,
+      "title": "Bush family._Bush, George_Bush, George Walker_Baker, Russ - Family of secrets_ the Bush dynasty, the powerful forces that put it in the White House, and what their influence means for Ame (2009, Bloomsbury Publishing Plc_Bloomsb - libgen.li.epub",
+      "url": null
+    },
+    {
+      "authority_links": [],
+      "bytes": 1974221,
+      "content_type": "application/pdf",
+      "doc_id": "doc:0009",
+      "fetched_at": "2026-02-13T11:57:16+00:00",
+      "final_url": "SensibLaw/demo/ingest/gwb/Bush, George_Bush, George H._Nelson, Michael_Perry, Barbara Ann - 41 - Inside the Presidency of George H. W. Bush (2014, Cornell University Press, in association with the University of Virginia's Miller Center) - libgen.li.pdf",
+      "outbound_links": [],
+      "raw_path": "SensibLaw/demo/ingest/gwb/Bush, George_Bush, George H._Nelson, Michael_Perry, Barbara Ann - 41 - Inside the Presidency of George H. W. Bush (2014, Cornell University Press, in association with the University of Virginia's Miller Center) - libgen.li.pdf",
+      "seed_path": "SensibLaw/demo/ingest/gwb/Bush, George_Bush, George H._Nelson, Michael_Perry, Barbara Ann - 41 - Inside the Presidency of George H. W. Bush (2014, Cornell University Press, in association with the University of Virginia's Miller Center) - libgen.li.pdf",
+      "sha256": "1a83adf481ad2f97819719c102d7770f30c3a058572bf364982d15ee34db4e00",
+      "source_id": "gwb_public_bios_web",
+      "source_name": "Public biography pages",
+      "status": "ok",
+      "status_code": 0,
+      "title": "Bush, George_Bush, George H._Nelson, Michael_Perry, Barbara Ann - 41 - Inside the Presidency of George H. W. Bush (2014, Cornell University Press, in association with the University of Virginia's Miller Center) - libgen.li.pdf",
+      "url": null
+    }
+  ],
+  "errors": [],
+  "fetch_policy": {
+    "default_rps": 0.2,
+    "legal_rps": 0.25,
+    "wiki_rps": 1.0
+  },
+  "generated_at": "2026-02-13T11:56:49+00:00",
+  "pack_id": "gwb_public_bios_v1",
+  "pack_path": "SensibLaw/demo/ingest/gwb/gwb_public_bios_v1.json",
+  "summary": {
+    "authority_links_total": 0,
+    "documents_error": 0,
+    "documents_ok": 9,
+    "documents_total": 9
+  }
+}

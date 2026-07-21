@@ -4,8 +4,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 import hashlib
+from html.parser import HTMLParser
 import re
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
 
 class MediaType(str, Enum):
@@ -243,7 +244,9 @@ def adapt_text_content(
 class PdfPageMediaAdapter(MediaAdapter):
     media_type = MediaType.TEXT
 
-    def __init__(self, *, source_artifact_ref: str, provenance: Mapping[str, Any] | None = None):
+    def __init__(
+        self, *, source_artifact_ref: str, provenance: Mapping[str, Any] | None = None
+    ):
         self._source_artifact_ref = source_artifact_ref
         self._provenance = dict(provenance or {})
 
@@ -269,9 +272,7 @@ class PdfPageMediaAdapter(MediaAdapter):
                 start_char = offset
                 parts.append(text)
                 offset += len(text)
-                segment_id = (
-                    f"{self._source_artifact_ref}:page:{page_index}:segment:{order_index}"
-                )
+                segment_id = f"{self._source_artifact_ref}:page:{page_index}:segment:{order_index}"
                 segment_records.append(
                     (segment_id, page_index, segment_kind, text, start_char, offset)
                 )
@@ -372,10 +373,113 @@ class TextDocumentMediaAdapter(MediaAdapter):
         )
 
 
+class _CanonicalHtmlTextExtractor(HTMLParser):
+    """Structural HTML-to-text projection for the shared media boundary."""
+
+    _BLOCK_TAGS = frozenset(
+        {
+            "address",
+            "article",
+            "aside",
+            "blockquote",
+            "br",
+            "div",
+            "figcaption",
+            "footer",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "header",
+            "li",
+            "main",
+            "p",
+            "section",
+            "table",
+            "td",
+            "th",
+            "tr",
+        }
+    )
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.parts: list[str] = []
+        self._suppressed_depth = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        del attrs
+        normalized = tag.casefold()
+        if normalized in {"script", "style", "template"}:
+            self._suppressed_depth += 1
+        if (
+            normalized in self._BLOCK_TAGS
+            and self.parts
+            and not self.parts[-1].endswith("\n")
+        ):
+            self.parts.append("\n")
+
+    def handle_endtag(self, tag: str) -> None:
+        normalized = tag.casefold()
+        if normalized in {"script", "style", "template"} and self._suppressed_depth:
+            self._suppressed_depth -= 1
+        if (
+            normalized in self._BLOCK_TAGS
+            and self.parts
+            and not self.parts[-1].endswith("\n")
+        ):
+            self.parts.append("\n")
+
+    def handle_data(self, data: str) -> None:
+        if not self._suppressed_depth and data:
+            self.parts.append(data)
+
+    def text(self) -> str:
+        return "".join(self.parts)
+
+
+class HtmlDocumentMediaAdapter(MediaAdapter):
+    """Adapt caller-supplied HTML through the generic canonical-text carrier."""
+
+    media_type = MediaType.TEXT
+
+    def __init__(
+        self,
+        *,
+        source_artifact_ref: str = "html-document",
+        provenance: Mapping[str, Any] | None = None,
+    ) -> None:
+        self._source_artifact_ref = source_artifact_ref
+        self._provenance = dict(provenance or {})
+
+    def adapt(self, artifact: Any) -> CanonicalText:
+        html = str(artifact or "")
+        extractor = _CanonicalHtmlTextExtractor()
+        extractor.feed(html)
+        extractor.close()
+        return adapt_text_content(
+            extractor.text(),
+            provenance={
+                **self._provenance,
+                "adapter": "html_document_media_adapter",
+                "source_artifact_ref": self._source_artifact_ref,
+            },
+            segment_prefix=self._source_artifact_ref,
+        )
+
+
 _INLINE_UNIT_PATTERNS: tuple[tuple[re.Pattern[str], str, str], ...] = (
     (re.compile(r"`([^`\n]+)`"), UnitKind.CODE_SPAN.value, "code"),
     (re.compile(r"\[([^\]]+)\]\(([^)]+)\)"), UnitKind.LINK.value, "link"),
-    (re.compile(r"\b(?:[A-Z][A-Za-z]+ v\. [A-Z][A-Za-z]+|\[[0-9]{4}\] [A-Z]{2,}[A-Za-z0-9 ]*)\b"), UnitKind.CITATION.value, "citation"),
+    (
+        re.compile(
+            r"\b(?:[A-Z][A-Za-z]+ v\. [A-Z][A-Za-z]+|\[[0-9]{4}\] [A-Z]{2,}[A-Za-z0-9 ]*)\b"
+        ),
+        UnitKind.CITATION.value,
+        "citation",
+    ),
     (re.compile(r"(\*\*[^*\n]+\*\*|_[^_\n]+_)"), UnitKind.EMPHASIS.value, "emphasis"),
 )
 
@@ -397,7 +501,11 @@ def _parse_inline_units(segment: CanonicalSegment) -> tuple[CanonicalUnit, ...]:
             elif metadata_key == "citation":
                 metadata["pattern"] = "legal_or_reporter"
             elif metadata_key == "emphasis":
-                metadata["marker"] = match.group(0)[:2] if match.group(0).startswith("**") else match.group(0)[:1]
+                metadata["marker"] = (
+                    match.group(0)[:2]
+                    if match.group(0).startswith("**")
+                    else match.group(0)[:1]
+                )
             matches.append((match.start(), match.end(), unit_kind, metadata))
 
     matches.sort(key=lambda item: (item[0], -(item[1] - item[0])))
@@ -485,7 +593,9 @@ def _inline_split_applied(
     parsed_segments: Sequence[CanonicalSegment],
     parsed_units: Sequence[CanonicalUnit],
 ) -> bool:
-    original_units = tuple(unit for segment in parsed_segments for unit in segment.units)
+    original_units = tuple(
+        unit for segment in parsed_segments for unit in segment.units
+    )
     if len(original_units) != len(parsed_units):
         return True
     for original, parsed in zip(original_units, parsed_units):
@@ -577,6 +687,7 @@ __all__ = [
     "CanonicalSegment",
     "CanonicalText",
     "CanonicalUnit",
+    "HtmlDocumentMediaAdapter",
     "MediaAdapter",
     "MediaType",
     "ParsedEnvelope",

@@ -31,6 +31,62 @@ The loop is iterative. Local structure may create the first PNF skeleton;
 candidate evidence may then refine its roles, boundaries, relations, and
 identity assignments. No stage may rewrite canonical source text.
 
+## Directory compilation kernel
+
+Directory compilation is orchestration, not a new source type, semantic
+profile, or authority boundary. The per-document semantic operation is shared:
+
+```text
+document input + CompilerContext
+-> compile_document(...)
+-> immutable DocumentCompilation artifacts
+```
+
+`compile_directory(...)` inventories supported files, invokes that operation
+independently for each document, persists content-addressed projections, and
+aggregates unresolved semantic demands. It must not reimplement mention
+licensing, form algebra, local typing, typed meet, PNF refinement, readiness,
+or external resolution.
+
+The public context is a declaration bundle rather than a corpus or lane
+profile. It identifies media capabilities, annotation/reduction declarations,
+type and relation systems, allowed registry capabilities, closure policy, and
+readiness policy. It never names a corpus such as GWB or AU to select a
+different semantic pipeline.
+
+The independently invocable corpus phases are:
+
+```text
+0 inventory          directory -> immutable CorpusManifest
+1 local compile      document -> local artifacts/evidence/meets/refinements
+2 demand planning    unresolved document demands -> equivalence groups
+3 evidence acquire   approved plans -> immutable snapshots
+4 refinement         snapshots x affected factors -> typed meets/refinements
+5 projections        refined corpus -> review/report projections
+```
+
+The initial directory kernel implements phases 0--2 only. It performs no
+network request, external identity selection, readiness promotion, or
+cross-document identity closure. Same-form and compatible-demand indexes are
+candidate-generating infrastructure, not semantic evidence. Cross-document
+links remain explicit proposal records for a later declared reconciliation
+phase.
+
+Corpus inventory is deterministic and bounded: relative paths are ordered
+lexically; symlinks and archives are not expanded by default; output/cache
+trees are excluded; file-count, per-file, and total-byte limits are enforced;
+and every ignored, unsupported, or failed entry is recorded. A document's
+identity derives from its content hash and media-normalisation declaration,
+while its path is preserved as a separate occurrence record so duplicate files
+do not acquire false distinct identities.
+
+Artifacts are content-addressed and append-only. Given identical input bytes,
+context declarations, adapter versions, and evidence snapshots, canonical
+manifest, document, demand-group, meet, and refinement artifacts must hash
+identically regardless of absolute path, traversal timing, worker count, cache
+hit order, or backend response order. A failure produces a manifest receipt;
+it cannot erase other document results or be mistaken for zero findings.
+
 Two pressures operate concurrently:
 
 - coverage pressure asks which meaningful spans, relations, quantities, roles,

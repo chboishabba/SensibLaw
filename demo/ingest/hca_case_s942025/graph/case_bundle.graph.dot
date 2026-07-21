@@ -1,0 +1,6 @@
+digraph case_bundle {
+  rankdir="LR";
+  graph [bgcolor="white"];
+  node [shape="box", style="rounded,filled", fillcolor="#f8fafc", color="#94a3b8", fontname="Helvetica"];
+  edge [color="#64748b", fontname="Helvetica", fontsize=10];
+}
