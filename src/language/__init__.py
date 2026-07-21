@@ -8,6 +8,10 @@ from .annotations import (
 )
 from .grammars import ReductionGrammar, ReductionResult, apply_reduction_grammar
 from .graph import AnnotationGraph
+from .operator_composition import (
+    OPERATOR_COMPOSITION_CONTRACT,
+    compose_operator_factors,
+)
 from .semantic_reductions import (
     LocalTypeProjection,
     SemanticReductionDeclaration,
@@ -26,8 +30,10 @@ __all__ = [
     "ReductionResult",
     "RelationAnnotation",
     "LocalTypeProjection",
+    "OPERATOR_COMPOSITION_CONTRACT",
     "SemanticReductionDeclaration",
     "SemanticReductionOutput",
+    "compose_operator_factors",
     "diagnose_untyped_mentions",
     "derive_relational_type_hypotheses",
     "SpanAnnotation",
