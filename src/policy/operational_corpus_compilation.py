@@ -1,30 +1,198 @@
 """Pairwise-free PostgreSQL operational document compilation.
 
-The compatibility compiler retains its expanded JSON carrier. This module is
-the active PostgreSQL path: it shares the same parser, annotation graph,
-reductions, constraints, role refinement and demand machinery, but never
-materializes pairwise binding evidence or per-candidate factor alternatives.
+The active compiler preserves the existing parser, annotation, PNF, constraint, and
+demand semantics while exposing document-local work as immutable observation deltas,
+revision-bound closure jobs, keyed reductions, and an explicit fixed-point certificate.
+No worker mutates a shared graph and no execution result promotes identity or legal truth.
 """
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import hashlib
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
+from src.pnf.factor_proposals import FactorProposal
 from src.pnf.operational_reference_binding import (
     build_operational_reference_binding_artifacts,
 )
+from src.pnf.streaming_fixed_point import (
+    CoverageNotice,
+    PythonClosureExecutor,
+    StreamingSemanticOwner,
+)
+from src.pnf.streaming_operator_executor import (
+    STREAMING_OPERATOR_DECLARATION_REF,
+    operator_streaming_declaration,
+    parser_sentence_deltas,
+    solve_operator_job,
+)
 from src.policy import corpus_compilation as legacy
+from src.runtime.stage_timing import StageTimingLedger
 
 
-OPERATIONAL_COMPILER_CONTRACT = "postgres-semantic-compiler:v0_8"
+OPERATIONAL_COMPILER_CONTRACT = "postgres-semantic-compiler:v0_9"
+
+
+def _base_proposal_from_factor(
+    *,
+    document_ref: str,
+    source_ref: str,
+    factor: Any,
+    observation_refs: Sequence[str],
+) -> FactorProposal:
+    row = factor.to_dict()
+    metadata = dict(row.get("metadata") or {})
+    provenance_refs = tuple(str(ref) for ref in metadata.get("provenance_refs") or ())
+    alternatives = [
+        dict(value)
+        for value in row.get("alternatives") or ()
+        if isinstance(value, Mapping)
+    ]
+    structural_signature = str(
+        metadata.get("structural_signature_ref")
+        or metadata.get("signature_ref")
+        or row.get("factor_type")
+        or "semantic.base_factor"
+    )
+    return FactorProposal(
+        document_ref=document_ref,
+        source_revision_ref="source-revision:"
+        + legacy.canonical_sha256(
+            {
+                "document_ref": document_ref,
+                "source_ref": source_ref,
+                "provenance_refs": sorted(provenance_refs),
+            }
+        ),
+        factor_type_ref=str(row.get("factor_type") or "semantic.base_factor"),
+        source_span_refs=provenance_refs,
+        input_observation_refs=tuple(sorted(set(observation_refs))),
+        dependency_factor_refs=(),
+        structural_signature=structural_signature,
+        role_bindings=dict(metadata.get("role_bindings") or {}),
+        qualifier_state=dict(metadata.get("qualifier_state") or {}),
+        producer_contract=str(
+            metadata.get("composition_contract_ref")
+            or "semantic-base-proposal:v0_1"
+        ),
+        declaration_revision="v0_1",
+        candidate_payload={
+            "source_factor_ref": str(row.get("factor_ref") or ""),
+            "alternatives": alternatives,
+            "predicate_ref": str(metadata.get("predicate_ref") or ""),
+        },
+        residuals=tuple(str(value) for value in row.get("residuals") or ()),
+    )
+
+
+def _streaming_semantic_build(
+    *,
+    document_ref: str,
+    source_ref: str,
+    parsed_document: Mapping[str, Any],
+    base_factors: Sequence[Any],
+    closure_workers: int = 2,
+) -> tuple[dict[str, Any], dict[str, int]]:
+    """Admit parser deltas, reduce base proposals, then stream closure receipts."""
+
+    owner = StreamingSemanticOwner(document_ref=document_ref, partition_count=max(1, closure_workers))
+    declaration = operator_streaming_declaration()
+    owner.register_declarations((declaration,))
+    deltas = parser_sentence_deltas(
+        document_ref=document_ref,
+        parsed_document=parsed_document,
+    )
+    for delta in deltas:
+        owner.admit_observation_delta(delta)
+
+    all_observation_refs = tuple(
+        sorted({ref for delta in deltas for ref in delta.observation_refs})
+    )
+    base_proposals = tuple(
+        _base_proposal_from_factor(
+            document_ref=document_ref,
+            source_ref=source_ref,
+            factor=factor,
+            observation_refs=all_observation_refs,
+        )
+        for factor in base_factors
+    )
+    owner.admit_proposals(base_proposals, stage="base")
+    owner.reduce_dirty_groups()
+    base_reduction = owner.materialized_reduction
+
+    jobs = owner.drain_ready_jobs()
+    closure = PythonClosureExecutor(
+        {STREAMING_OPERATOR_DECLARATION_REF: solve_operator_job}
+    )
+    receipts = []
+    if jobs:
+        with ThreadPoolExecutor(
+            max_workers=max(1, closure_workers),
+            thread_name_prefix="semantic-closure",
+        ) as pool:
+            futures = {pool.submit(closure.execute, job): job for job in jobs}
+            for future in as_completed(futures):
+                receipt = future.result()
+                owner.admit_solver_receipt(receipt)
+                # Reduce each returned delta immediately rather than allowing a
+                # derived candidate frontier to accumulate.
+                owner.reduce_dirty_groups()
+                receipts.append(receipt)
+
+    document_notice = CoverageNotice(
+        document_ref=document_ref,
+        scope_ref="document-global",
+        barrier="document",
+        state="complete",
+        evidence_refs=tuple(delta.delta_ref for delta in deltas),
+    )
+    owner.admit_coverage_notice(document_notice)
+    certificate = owner.fixed_point_certificate()
+    if not certificate.local_fixed_point_reached:
+        raise ValueError("streaming semantic owner did not reach a local fixed point")
+
+    owner_row = owner.to_dict()
+    scopes = sorted({delta.scope_ref for delta in deltas})
+    boundaries = [owner.region_boundary_summary(scope).to_dict() for scope in scopes]
+    build = {
+        **owner_row,
+        "observation_deltas": [delta.to_dict() for delta in deltas],
+        "coverage_notices": [row.to_dict() for row in owner.ledger.coverage_notices],
+        "proposals": [row.to_dict() for row in owner.ledger.proposals],
+        "solver_jobs": [job.to_dict() for job in sorted(jobs, key=lambda row: row.job_ref)],
+        "solver_receipts": [
+            row.to_dict() for row in sorted(receipts, key=lambda row: row.receipt_ref)
+        ],
+        "region_boundary_summaries": boundaries,
+        "fixed_point_certificate": certificate.to_dict(),
+        "declarations": [declaration.to_dict()],
+        "closure_backend": closure.backend_ref,
+        "streaming_bidirectional": True,
+        "logical_owner_granularity": "document_scope_factor_family",
+        "eventual_consistency": "convergent_append_only",
+        "materialized_view_authority": "deterministic_candidate_projection",
+    }
+    metrics = {
+        "observation_delta_count": len(deltas),
+        "observation_count": len(all_observation_refs),
+        "base_proposal_count": len(base_proposals),
+        "base_factor_count": len(base_reduction.factors),
+        "base_residual_count": len(base_reduction.residuals),
+        "closure_job_count": len(jobs),
+        "derived_proposal_count": sum(len(row.proposals) for row in receipts),
+        "materialized_factor_count": len(owner.materialized_reduction.factors),
+        "materialized_residual_count": len(owner.materialized_reduction.residuals),
+    }
+    return build, metrics
 
 
 def compile_document_operational(
     document_input: Mapping[str, Any],
     compiler_context: legacy.CompilerContext,
 ) -> legacy.DocumentCompilation:
-    """Compile one document without constructing the pairwise binding carrier."""
+    """Compile one document through the streaming local fixed-point boundary."""
 
     media_type = legacy.require_text(document_input.get("media_type"), "media_type")
     if (
@@ -44,28 +212,33 @@ def compile_document_operational(
         document_input.get("document_ref"), "document_ref"
     )
     source_ref = legacy.require_text(document_input.get("source_ref"), "source_ref")
-    if media_type == "text/html":
-        canonical = legacy.HtmlDocumentMediaAdapter(
-            source_artifact_ref=source_ref
-        ).adapt(source_text)
-        text = canonical.text
-        source_normalisation = {
-            "adapter_ref": "media:html:v0_1",
-            "canonical_text_ref": canonical.text_id,
-            "source_media_type": media_type,
-            "warnings": list(canonical.warnings),
-            "authority": "normalisation_only",
-        }
-    else:
-        text = source_text
-        source_normalisation = {
-            "adapter_ref": "media:utf8-text:v0_1",
-            "source_media_type": media_type,
-            "authority": "normalisation_only",
-        }
-    if not text:
-        raise ValueError("source normalisation produced empty canonical text")
-    canonical_text_sha256 = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    timings = StageTimingLedger(document_ref=document_ref)
+
+    with timings.stage("canonical_normalization") as stage:
+        if media_type == "text/html":
+            canonical = legacy.HtmlDocumentMediaAdapter(
+                source_artifact_ref=source_ref
+            ).adapt(source_text)
+            text = canonical.text
+            source_normalisation = {
+                "adapter_ref": "media:html:v0_1",
+                "canonical_text_ref": canonical.text_id,
+                "source_media_type": media_type,
+                "warnings": list(canonical.warnings),
+                "authority": "normalisation_only",
+            }
+        else:
+            text = source_text
+            source_normalisation = {
+                "adapter_ref": "media:utf8-text:v0_1",
+                "source_media_type": media_type,
+                "authority": "normalisation_only",
+            }
+        if not text:
+            raise ValueError("source normalisation produced empty canonical text")
+        canonical_text_sha256 = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        stage.record(input_nodes=len(source_text), output_nodes=len(text))
+
     context_payload = compiler_context.to_dict()
     build_key_sha256 = legacy.canonical_sha256(
         {
@@ -78,17 +251,39 @@ def compile_document_operational(
         }
     )
 
-    parsed_document = legacy.parse_canonical_text(text)
-    licensing = legacy.build_mention_licensing_carrier(
-        canonical_text=text,
-        source_ref=source_ref,
-        document_ref=document_ref,
-        parsed_document=parsed_document,
-    )
-    mentions = tuple(licensing["mentions"])
-    recurrence = legacy.build_mention_recurrence_carrier(mentions=mentions)
-    forms = legacy.build_form_derivation_carrier(mentions=mentions)
-    tokens = legacy.tokenize_canonical_with_spans(text)
+    with timings.stage(
+        "parser_annotation",
+        backend_ref="spacy",
+        details={"annotation_backend_ref": compiler_context.annotation_backend_ref},
+    ) as stage:
+        parsed_document = legacy.parse_canonical_text(text)
+        parsed_token_count = sum(
+            len(sentence.get("tokens") or ())
+            for sentence in parsed_document.get("sents") or ()
+        )
+        stage.record(tokens_processed=parsed_token_count, output_nodes=parsed_token_count)
+
+    with timings.stage("coordinate_validation") as stage:
+        tokens = legacy.tokenize_canonical_with_spans(text)
+        stage.record(tokens_processed=len(tokens), output_nodes=len(tokens))
+
+    with timings.stage("mention_licensing") as stage:
+        licensing = legacy.build_mention_licensing_carrier(
+            canonical_text=text,
+            source_ref=source_ref,
+            document_ref=document_ref,
+            parsed_document=parsed_document,
+        )
+        mentions = tuple(licensing["mentions"])
+        recurrence = legacy.build_mention_recurrence_carrier(mentions=mentions)
+        forms = legacy.build_form_derivation_carrier(mentions=mentions)
+        stage.record(
+            input_nodes=len(tokens),
+            output_nodes=len(mentions),
+            tokens_processed=len(tokens),
+            details={"form_count": len(forms.get("forms") or ())},
+        )
+
     layer = legacy.AnnotationLayer(
         layer_ref="annotation-layer:"
         + legacy.canonical_sha256(
@@ -116,17 +311,31 @@ def compile_document_operational(
         ),
         provenance_refs=(source_ref,),
     )
-    semantic_layer, relational_bundle, atom_span_refs = (
-        legacy._semantic_annotation_layer(
+
+    with timings.stage("parser_observation_projection") as stage:
+        semantic_layer, relational_bundle, atom_span_refs = (
+            legacy._semantic_annotation_layer(
+                document_ref=document_ref,
+                source_ref=source_ref,
+                content_sha256=canonical_text_sha256,
+                tokens=tokens,
+                base_layer=layer,
+                text=text,
+                parsed_document=parsed_document,
+            )
+        )
+        parser_deltas = parser_sentence_deltas(
             document_ref=document_ref,
-            source_ref=source_ref,
-            content_sha256=canonical_text_sha256,
-            tokens=tokens,
-            base_layer=layer,
-            text=text,
             parsed_document=parsed_document,
         )
-    )
+        observation_count = sum(len(row.observation_refs) for row in parser_deltas)
+        stage.record(
+            input_nodes=len(tokens),
+            output_nodes=observation_count,
+            tokens_processed=len(tokens),
+            details={"delta_count": len(parser_deltas)},
+        )
+
     annotation_graph = legacy.AnnotationGraph(
         graph_ref="annotation-graph:"
         + legacy.canonical_sha256(
@@ -164,12 +373,72 @@ def compile_document_operational(
             "capabilities", {}
         ),
     )
-    semantic_output = legacy.reduce_relational_bundle(
-        document_ref=document_ref,
-        bundle=relational_bundle,
-        atom_span_refs=atom_span_refs,
-        declarations=declarations,
-    )
+
+    with timings.stage("base_proposal_generation") as stage:
+        semantic_output = legacy.reduce_relational_bundle(
+            document_ref=document_ref,
+            bundle=relational_bundle,
+            atom_span_refs=atom_span_refs,
+            declarations=declarations,
+        )
+        stage.record(
+            input_nodes=len(relational_bundle.get("atoms") or ()),
+            output_nodes=len(semantic_output.factors),
+            proposals_generated=len(semantic_output.factors),
+            input_edges=len(relational_bundle.get("relations") or ()),
+            output_edges=len(semantic_output.relation_refs),
+        )
+
+    with timings.stage("base_proposal_reduction") as stage:
+        # The owner performs the base reduction before any composition job is run.
+        streaming_build, streaming_metrics = _streaming_semantic_build(
+            document_ref=document_ref,
+            source_ref=source_ref,
+            parsed_document=parsed_document,
+            base_factors=semantic_output.factors,
+            closure_workers=2,
+        )
+        stage.record(
+            input_nodes=streaming_metrics["base_proposal_count"],
+            output_nodes=streaming_metrics["base_factor_count"],
+            input_edges=streaming_metrics["base_proposal_count"],
+            output_edges=streaming_metrics["base_factor_count"],
+            proposals_generated=streaming_metrics["base_proposal_count"],
+            residuals_emitted=streaming_metrics["base_residual_count"],
+        )
+
+    with timings.stage(
+        "closure_executor_evaluation",
+        backend_ref=str(streaming_build["closure_backend"]),
+    ) as stage:
+        # Closure was executed inside the streaming build so that returned receipts
+        # were reduced immediately.  Its receipt metrics provide the measured work.
+        receipt_metrics = [
+            row.get("metrics") or {} for row in streaming_build["solver_receipts"]
+        ]
+        stage.record(
+            input_nodes=sum(int(row.get("input_ref_count", 0)) for row in receipt_metrics),
+            output_nodes=streaming_metrics["derived_proposal_count"],
+            proposals_generated=streaming_metrics["derived_proposal_count"],
+            details={"job_count": streaming_metrics["closure_job_count"]},
+        )
+
+    with timings.stage("composition_proposal_reduction") as stage:
+        stage.record(
+            input_nodes=(
+                streaming_metrics["base_proposal_count"]
+                + streaming_metrics["derived_proposal_count"]
+            ),
+            output_nodes=streaming_metrics["materialized_factor_count"],
+            input_edges=(
+                streaming_metrics["base_proposal_count"]
+                + streaming_metrics["derived_proposal_count"]
+            ),
+            output_edges=streaming_metrics["materialized_factor_count"],
+            alternatives_retained=streaming_metrics["materialized_factor_count"],
+            residuals_emitted=streaming_metrics["materialized_residual_count"],
+        )
+
     local_evidence = legacy._local_evidence(
         document_ref=document_ref,
         recurrence=recurrence,
@@ -184,17 +453,29 @@ def compile_document_operational(
         semantic_relation_refs=semantic_output.relation_refs,
         source_ref=source_ref,
     )
-    constraint_assessments = legacy._constraint_assessments(pnf_graph)
-    local_meet_plan, typed_meets, refinements = legacy._local_meets_and_refinements(
-        graph=pnf_graph,
-        evidence=local_evidence,
-        constraint_assessments=constraint_assessments,
-    )
-    refined_pnf_graph = pnf_graph
-    for refinement in refinements:
-        refined_pnf_graph = refined_pnf_graph.replace_factor(
-            refinement.resulting_factor
+
+    with timings.stage("constraint_fixed_point") as stage:
+        constraint_assessments = legacy._constraint_assessments(pnf_graph)
+        local_meet_plan, typed_meets, refinements = legacy._local_meets_and_refinements(
+            graph=pnf_graph,
+            evidence=local_evidence,
+            constraint_assessments=constraint_assessments,
         )
+        refined_pnf_graph = pnf_graph
+        for refinement in refinements:
+            refined_pnf_graph = refined_pnf_graph.replace_factor(
+                refinement.resulting_factor
+            )
+        stage.record(
+            input_nodes=len(pnf_graph.factors),
+            output_nodes=len(refined_pnf_graph.factors),
+            input_edges=len(constraint_assessments),
+            output_edges=len(refinements),
+            residuals_emitted=sum(
+                len(row.resulting_factor.residuals) for row in refinements
+            ),
+        )
+
     demands = legacy.derive_resolution_demands(refined_pnf_graph)
     artifacts = {
         "canonical_text": text,
@@ -249,12 +530,16 @@ def compile_document_operational(
         "resolution_demands": [legacy.canonical_json(row) for row in demands],
         "typed_meets": [row.to_dict() for row in typed_meets],
         "factor_refinements": [row.to_dict() for row in refinements],
+        "streaming_semantic_build": streaming_build,
+        "semantic_stage_timing": timings.to_dict(),
         "phase_boundary": {
-            "completed": ["inventory", "local_compile"],
+            "completed": ["inventory", "local_compile", "local_fixed_point"],
             "network_performed": False,
             "cross_document_identity_closed": False,
             "readiness_invoked": False,
             "pairwise_binding_evidence_materialized": False,
+            "streaming_bidirectional": True,
+            "shared_graph_mutation": False,
         },
     }
     operational_artifacts = build_operational_reference_binding_artifacts(artifacts)
