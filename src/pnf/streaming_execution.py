@@ -14,8 +14,9 @@ from src.pnf.streaming_fixed_point import ClosureExecutor, ObservationDelta, Sol
 @dataclass(frozen=True)
 class StreamExecutionResult:
     receipts: tuple[SolverReceipt, ...]
+    owner_observation_admission_ms: int
     closure_executor_ms: int
-    owner_admission_reduction_ms: int
+    owner_proposal_reduction_ms: int
     accepted_delta_count: int
     deferred_delta_count: int
     backpressure_pause_count: int
@@ -23,8 +24,9 @@ class StreamExecutionResult:
     def to_dict(self) -> dict[str, Any]:
         return {
             "receipt_refs": [row.receipt_ref for row in self.receipts],
+            "owner_observation_admission_ms": self.owner_observation_admission_ms,
             "closure_executor_ms": self.closure_executor_ms,
-            "owner_admission_reduction_ms": self.owner_admission_reduction_ms,
+            "owner_proposal_reduction_ms": self.owner_proposal_reduction_ms,
             "accepted_delta_count": self.accepted_delta_count,
             "deferred_delta_count": self.deferred_delta_count,
             "backpressure_pause_count": self.backpressure_pause_count,
@@ -77,6 +79,12 @@ def _execute_batch(
     return receipts, closure_ms, reduction_ms
 
 
+def _timed_release(owner: CoordinatedStreamingSemanticOwner) -> tuple[tuple[str, ...], int]:
+    started = monotonic_ns()
+    released = owner.release_deferred_deltas()
+    return released, max(0, (monotonic_ns() - started) // 1_000_000)
+
+
 def execute_continuous_stream(
     *,
     owner: CoordinatedStreamingSemanticOwner,
@@ -89,6 +97,7 @@ def execute_continuous_stream(
     if workers < 1:
         raise ValueError("workers must be positive")
     receipts: list[SolverReceipt] = []
+    admission_ms = 0
     closure_ms = 0
     reduction_ms = 0
     accepted = 0
@@ -96,7 +105,9 @@ def execute_continuous_stream(
     pauses = 0
 
     for delta in deltas:
+        started = monotonic_ns()
         admission = owner.offer_observation_delta(delta)
+        admission_ms += max(0, (monotonic_ns() - started) // 1_000_000)
         accepted += int(admission.state == "accepted")
         deferred += int(admission.state == "deferred")
         pauses += int(admission.snapshot.paused)
@@ -113,7 +124,8 @@ def execute_continuous_stream(
             receipts.extend(rows)
             closure_ms += executor_elapsed
             reduction_ms += reduction_elapsed
-            owner.release_deferred_deltas()
+            _released, release_ms = _timed_release(owner)
+            admission_ms += release_ms
 
     while True:
         prior = (
@@ -130,8 +142,11 @@ def execute_continuous_stream(
         receipts.extend(rows)
         closure_ms += executor_elapsed
         reduction_ms += reduction_elapsed
+        started = monotonic_ns()
         owner.reduce_dirty_groups()
-        owner.release_deferred_deltas()
+        reduction_ms += max(0, (monotonic_ns() - started) // 1_000_000)
+        _released, release_ms = _timed_release(owner)
+        admission_ms += release_ms
         current = (
             len(owner._pending_jobs),
             len(owner._in_flight_jobs),
@@ -151,8 +166,9 @@ def execute_continuous_stream(
     )
     return StreamExecutionResult(
         receipts=ordered,
+        owner_observation_admission_ms=admission_ms,
         closure_executor_ms=closure_ms,
-        owner_admission_reduction_ms=reduction_ms,
+        owner_proposal_reduction_ms=reduction_ms,
         accepted_delta_count=accepted,
         deferred_delta_count=deferred,
         backpressure_pause_count=pauses,
