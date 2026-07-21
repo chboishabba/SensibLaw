@@ -5,12 +5,14 @@ on:
     paths:
       - "src/runtime/progress.py"
       - "src/pnf/factor_proposals.py"
+      - "src/pnf/review_coordinates.py"
       - "src/pnf/operator_composition_bridge.py"
       - "src/policy/parallel_postgres_corpus_compilation.py"
       - "scripts/build_legal_ir_catalogue.py"
       - "database/postgres_migrations/**"
       - "tests/runtime/test_progress_instrumentation.py"
       - "tests/pnf/test_factor_proposals.py"
+      - "tests/pnf/test_review_coordinates.py"
       - ".github/workflows/legal-catalogue-regression.yml"
   workflow_dispatch:
 
@@ -61,17 +63,20 @@ jobs:
           uv run ruff check \
             src/runtime/progress.py \
             src/pnf/factor_proposals.py \
+            src/pnf/review_coordinates.py \
             src/pnf/operator_composition_bridge.py \
             src/policy/parallel_postgres_corpus_compilation.py \
             scripts/build_legal_ir_catalogue.py \
             tests/runtime/test_progress_instrumentation.py \
-            tests/pnf/test_factor_proposals.py
+            tests/pnf/test_factor_proposals.py \
+            tests/pnf/test_review_coordinates.py
 
-      - name: Run deterministic proposal and timing tests
+      - name: Run deterministic proposal, review and timing tests
         run: |
           uv run pytest -q \
             tests/runtime/test_progress_instrumentation.py \
             tests/pnf/test_factor_proposals.py \
+            tests/pnf/test_review_coordinates.py \
             tests/pnf/test_operator_composition.py
 
       - name: Build offline catalogue with two document workers
