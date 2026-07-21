@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build or refresh a checked-in legal catalogue and its persistent PNF database."""
+"""Build or refresh a checked-in legal catalogue and persistent PNF database."""
 
 from __future__ import annotations
 
@@ -34,14 +34,29 @@ def _args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--catalogue", type=Path, required=True)
     parser.add_argument("--output-root", type=Path, required=True)
-    parser.add_argument("--database-url", default=os.environ.get("DATABASE_URL"))
+    parser.add_argument(
+        "--database-url",
+        default=os.environ.get("DATABASE_URL"),
+    )
     parser.add_argument("--offline", action="store_true")
     parser.add_argument("--force-refetch", action="store_true")
     parser.add_argument(
         "--compile-workers",
         type=int,
         default=max(1, min(4, (os.cpu_count() or 2) // 2)),
-        help="Document-level PostgreSQL compiler workers (1-32)",
+        help="Document parser/persistence processes (1-32)",
+    )
+    parser.add_argument(
+        "--closure-workers",
+        type=int,
+        default=2,
+        help="Pure closure executors inside each active document (1-32)",
+    )
+    parser.add_argument(
+        "--owner-partitions",
+        type=int,
+        default=4,
+        help="Logical keyed owner partitions inside each document (1-128)",
     )
     parser.add_argument(
         "--copy-workers",
@@ -55,6 +70,10 @@ def _args() -> argparse.Namespace:
         parser.error("--database-url or DATABASE_URL is required")
     if not 1 <= args.compile_workers <= 32:
         parser.error("--compile-workers must be between 1 and 32")
+    if not 1 <= args.closure_workers <= 32:
+        parser.error("--closure-workers must be between 1 and 32")
+    if not 1 <= args.owner_partitions <= 128:
+        parser.error("--owner-partitions must be between 1 and 128")
     if not 1 <= args.copy_workers <= 16:
         parser.error("--copy-workers must be between 1 and 16")
     return args
@@ -62,7 +81,9 @@ def _args() -> argparse.Namespace:
 
 def _write_json(path: Path, value: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, indent=2, ensure_ascii=False, sort_keys=True) + "\n")
+    path.write_text(
+        json.dumps(value, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
+    )
 
 
 def _safe_name(index: int, url: str, suffix: str) -> str:
@@ -84,7 +105,10 @@ def _source_file_plan(
         for path in sorted(source.rglob("*"))
         if path.is_file()
         and (not source_suffixes or path.suffix.lower() in source_suffixes)
-        and (max_file_bytes is None or path.stat().st_size <= max_file_bytes)
+        and (
+            max_file_bytes is None
+            or path.stat().st_size <= max_file_bytes
+        )
     )
 
 
@@ -93,6 +117,47 @@ def _copy_one(pair: tuple[Path, Path]) -> str:
     destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, destination)
     return str(destination)
+
+
+def _aggregate_stage_timings(outcomes: tuple[object, ...]) -> dict[str, object]:
+    totals: dict[str, int] = {}
+    counts: dict[str, int] = {}
+    slowest: list[dict[str, object]] = []
+    fixed_points = 0
+    for outcome in outcomes:
+        if getattr(outcome, "local_fixed_point", None) == "reached":
+            fixed_points += 1
+        for row in getattr(outcome, "stage_timings", ()):
+            stage = str(row["stage"])
+            elapsed = int(row["elapsed_ms"])
+            totals[stage] = totals.get(stage, 0) + elapsed
+            counts[stage] = counts.get(stage, 0) + 1
+            slowest.append(
+                {
+                    "document_ref": getattr(outcome, "document_ref"),
+                    "relative_path": getattr(outcome, "relative_path"),
+                    "stage": stage,
+                    "elapsed_ms": elapsed,
+                    "backend_ref": row.get("backend_ref"),
+                }
+            )
+    return {
+        "stage_totals_ms": {
+            key: totals[key] for key in sorted(totals)
+        },
+        "stage_means_ms": {
+            key: totals[key] / counts[key] for key in sorted(totals)
+        },
+        "slowest_stage_instances": sorted(
+            slowest,
+            key=lambda row: (
+                -int(row["elapsed_ms"]),
+                str(row["document_ref"]),
+                str(row["stage"]),
+            ),
+        )[:30],
+        "local_fixed_point_count": fixed_points,
+    }
 
 
 def main() -> int:
@@ -116,13 +181,18 @@ def main() -> int:
     for family in catalogue.get("persisted_source_families", []):
         max_file_bytes = family.get("max_file_bytes")
         source_suffixes = tuple(
-            str(value).lower() for value in family.get("source_suffixes", ())
+            str(value).lower()
+            for value in family.get("source_suffixes", ())
         )
         copy_plan.extend(
             _source_file_plan(
                 ROOT / family["path"],
                 existing_root / family["family_ref"].replace(":", "_"),
-                max_file_bytes=(int(max_file_bytes) if max_file_bytes is not None else None),
+                max_file_bytes=(
+                    int(max_file_bytes)
+                    if max_file_bytes is not None
+                    else None
+                ),
                 source_suffixes=source_suffixes,
             )
         )
@@ -131,7 +201,10 @@ def main() -> int:
         total=len(copy_plan),
         details={"workers": args.copy_workers},
     ) as phase:
-        with ThreadPoolExecutor(max_workers=args.copy_workers, thread_name_prefix="source-copy") as executor:
+        with ThreadPoolExecutor(
+            max_workers=args.copy_workers,
+            thread_name_prefix="source-copy",
+        ) as executor:
             for copied_path in executor.map(_copy_one, copy_plan):
                 phase.advance(subject_ref=copied_path)
     copied = len(copy_plan)
@@ -139,7 +212,9 @@ def main() -> int:
     policy_data = catalogue["request_policy"]
     governor = RequestGovernor(
         RequestGovernorPolicy(
-            minimum_interval_seconds=float(policy_data["minimum_interval_seconds"]),
+            minimum_interval_seconds=float(
+                policy_data["minimum_interval_seconds"]
+            ),
             maximum_attempts=int(policy_data["maximum_attempts"]),
             backoff_seconds=float(policy_data["backoff_seconds"]),
             request_budget=int(policy_data["request_budget"]),
@@ -151,33 +226,59 @@ def main() -> int:
     with recorder.phase(
         "acquire_sources",
         total=0 if args.offline else len(terms),
-        message="offline reuse" if args.offline else "bounded AustLII discovery",
+        message=(
+            "offline reuse"
+            if args.offline
+            else "bounded AustLII discovery"
+        ),
         details={"provider": provider["endpoint_ref"], "governed": True},
     ) as phase:
         if not args.offline:
             for term in terms:
-                search_url = provider["search_url_template"].format(query=quote_plus(term["query"]))
+                search_url = provider["search_url_template"].format(
+                    query=quote_plus(term["query"])
+                )
                 result = governor.call(
                     search_url,
                     lambda url=search_url: follow_legal_sources(
                         "AU",
                         seed_urls=(url,),
                         max_depth=int(policy_data["max_depth"]),
-                        max_documents=max(1, int(policy_data["max_documents"]) // max(1, len(terms))),
+                        max_documents=max(
+                            1,
+                            int(policy_data["max_documents"])
+                            // max(1, len(terms)),
+                        ),
                     ),
                 )
                 term_count = 0
                 for followed in result.documents:
                     document = followed.document
-                    final_url = document.final_url or document.requested_url
-                    suffix = ".html" if document.media_type in {"text/html", "application/xhtml+xml"} else ".txt"
-                    name = _safe_name(len(fetched_documents) + 1, final_url, suffix)
+                    final_url = (
+                        document.final_url or document.requested_url
+                    )
+                    suffix = (
+                        ".html"
+                        if document.media_type
+                        in {"text/html", "application/xhtml+xml"}
+                        else ".txt"
+                    )
+                    name = _safe_name(
+                        len(fetched_documents) + 1,
+                        final_url,
+                        suffix,
+                    )
                     raw_path = raw_root / name
-                    canonical_path = canonical_root / (Path(name).stem + ".txt")
+                    canonical_path = canonical_root / (
+                        Path(name).stem + ".txt"
+                    )
                     reused = raw_path.exists() and not args.force_refetch
                     if not reused:
                         raw_path.write_bytes(document.raw_bytes)
-                        canonical_path.write_text(document.canonical_text, encoding="utf-8")
+                        canonical_path.write_text(
+                            document.canonical_text,
+                            encoding="utf-8",
+                        )
                     fetched_documents.append(
                         {
                             "jurisdiction": term["jurisdiction"],
@@ -185,8 +286,12 @@ def main() -> int:
                             "search_url": search_url,
                             "requested_url": document.requested_url,
                             "final_url": document.final_url,
-                            "raw_path": str(raw_path.relative_to(output_root)),
-                            "canonical_path": str(canonical_path.relative_to(output_root)),
+                            "raw_path": str(
+                                raw_path.relative_to(output_root)
+                            ),
+                            "canonical_path": str(
+                                canonical_path.relative_to(output_root)
+                            ),
                             "reused": reused,
                             "receipt": document.receipt.to_dict(),
                         }
@@ -195,7 +300,10 @@ def main() -> int:
                 phase.advance(
                     subject_ref=term["query"],
                     message=f"{term_count} documents",
-                    details={"jurisdiction": term["jurisdiction"], "document_count": term_count},
+                    details={
+                        "jurisdiction": term["jurisdiction"],
+                        "document_count": term_count,
+                    },
                 )
 
     with recorder.phase("project_canonical_sources", total=1) as phase:
@@ -205,30 +313,47 @@ def main() -> int:
             max_files=500,
             max_file_bytes=10_000_000,
         )
-        _write_json(output_root / "source_projection" / "manifest.json", projection.to_dict())
+        _write_json(
+            output_root / "source_projection" / "manifest.json",
+            projection.to_dict(),
+        )
         phase.advance(
-            subject_ref=str(output_root / "source_projection" / "manifest.json"),
+            subject_ref=str(
+                output_root / "source_projection" / "manifest.json"
+            ),
             details={"source_family_count": 2},
         )
 
     outcomes: tuple[object, ...]
+    runtime = {
+        "parser_document_processes": args.compile_workers,
+        "owner_partitions_per_document": args.owner_partitions,
+        "closure_executors_per_document": args.closure_workers,
+    }
     with recorder.phase(
         "compile_pnf",
-        details={"workers": args.compile_workers, "parallel_boundary": "document"},
+        details={
+            **runtime,
+            "parallel_boundary": "document_and_revision_bound_jobs",
+        },
     ) as phase:
         compilation, outcomes = compile_directory_postgres_parallel(
             output_root / "source_projection" / "canonical",
             context=default_compiler_context(),
             database_url=args.database_url,
             workers=args.compile_workers,
+            closure_workers_per_document=args.closure_workers,
+            owner_partitions_per_document=args.owner_partitions,
             execution_phase="demand_planning",
             progress=phase,
         )
+    aggregate_timings = _aggregate_stage_timings(outcomes)
     _write_json(
         output_root / "document_compilation_timings.json",
         {
-            "schema_version": "sl.document_compilation_timings.v0_1",
-            "workers": args.compile_workers,
+            "schema_version": "sl.document_compilation_timings.v0_2",
+            "runtime": runtime,
+            "aggregate": aggregate_timings,
             "documents": [row.to_dict() for row in outcomes],
         },
     )
@@ -250,6 +375,10 @@ def main() -> int:
                 "--compare-legacy",
                 "--max-files",
                 "500",
+                "--closure-workers",
+                str(args.closure_workers),
+                "--owner-partitions",
+                str(args.owner_partitions),
             ],
             check=True,
         )
@@ -257,7 +386,7 @@ def main() -> int:
 
     recorder.write_json(phase_ledger_path)
     manifest = {
-        "schema_version": "sl.persisted_legal_catalogue_build.v0_2",
+        "schema_version": "sl.persisted_legal_catalogue_build.v0_3",
         "catalogue_ref": catalogue["catalogue_ref"],
         "provider": provider,
         "existing_tranche_file_count": copied,
@@ -268,13 +397,22 @@ def main() -> int:
         "document_refs": list(compilation.document_refs),
         "demand_refs": list(compilation.demand_refs),
         "failure_refs": list(compilation.failure_refs),
-        "compile_workers": args.compile_workers,
-        "copy_workers": args.copy_workers,
-        "document_compilation_timings": "document_compilation_timings.json",
+        "runtime": runtime,
+        "document_compilation_timings": (
+            "document_compilation_timings.json"
+        ),
+        "aggregate_stage_timings": aggregate_timings,
         "phase_ledger": str(phase_ledger_path.relative_to(output_root)),
         "phase_summary": recorder.to_dict()["phase_summary"],
         "legal_pnf_probe_root": str(probe_dir.relative_to(output_root)),
-        "parallelism_boundary": "immutable_document_build",
+        "parallelism_boundary": (
+            "immutable_document_and_revision_bound_semantic_jobs"
+        ),
+        "logical_owner_granularity": (
+            "document_scope_factor_family"
+        ),
+        "streaming_bidirectional": True,
+        "eventual_consistency": "convergent_append_only",
         "request_governor_serialized": True,
         "final_manifest_reduction_serialized": True,
         "identity_promoted": False,
