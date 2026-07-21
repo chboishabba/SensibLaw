@@ -184,6 +184,7 @@ def compile_directory_postgres_parallel(
             return empty, ()
 
         admitted: list[Mapping[str, Any]] = []
+        duplicate_occurrences: list[tuple[str, str]] = []
         seen: set[str] = set()
         for entry in manifest_row["ordered_documents"]:
             if entry["status"] != "inventoried":
@@ -191,14 +192,7 @@ def compile_directory_postgres_parallel(
             document_ref = str(entry["document_ref"])
             relative_path = str(entry["relative_path"])
             if document_ref in seen:
-                with admission_store.transaction() as cursor:
-                    admission_store.persist_occurrence(
-                        cursor,
-                        corpus_ref=corpus_ref,
-                        relative_path=relative_path,
-                        document_ref=document_ref,
-                        state="duplicate_content_occurrence",
-                    )
+                duplicate_occurrences.append((document_ref, relative_path))
                 continue
             seen.add(document_ref)
             admitted.append(entry)
@@ -250,6 +244,25 @@ def compile_directory_postgres_parallel(
     ordered = tuple(
         sorted(outcomes, key=lambda row: (row.document_ref, row.relative_path))
     )
+    completed_document_refs = {
+        row.document_ref for row in ordered if row.state != "failed"
+    }
+    if duplicate_occurrences:
+        occurrence_store = PostgresCompilerStore.connect(database_url)
+        try:
+            with occurrence_store.transaction() as cursor:
+                for document_ref, relative_path in sorted(duplicate_occurrences):
+                    if document_ref not in completed_document_refs:
+                        continue
+                    occurrence_store.persist_occurrence(
+                        cursor,
+                        corpus_ref=corpus_ref,
+                        relative_path=relative_path,
+                        document_ref=document_ref,
+                        state="duplicate_content_occurrence",
+                    )
+        finally:
+            occurrence_store.close()
     document_refs = tuple(
         sorted(row.document_ref for row in ordered if row.state != "failed")
     )
