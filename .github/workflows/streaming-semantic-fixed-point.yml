@@ -1,0 +1,193 @@
+name: Streaming semantic fixed-point validation
+
+on:
+  push:
+    branches:
+      - agent/streaming-semantic-fixed-point
+  pull_request:
+    paths:
+      - "src/pnf/**"
+      - "src/policy/operational_corpus_compilation.py"
+      - "src/policy/streaming_postgres_corpus_compilation.py"
+      - "src/policy/parallel_postgres_corpus_compilation.py"
+      - "src/runtime/stage_timing.py"
+      - "src/storage/postgres/*streaming*"
+      - "src/storage/postgres/stage_cache_store.py"
+      - "database/postgres_migrations/018_*"
+      - "database/postgres_migrations/019_*"
+      - "database/postgres_migrations/020_*"
+      - "scripts/build_legal_ir_catalogue.py"
+      - "scripts/run_legal_pnf_probe.py"
+      - "scripts/benchmark_pnf_closure_backends.py"
+      - "tests/pnf/test_streaming*"
+      - "tests/pnf/test_constraint_worklist.py"
+      - "tests/pnf/test_stage_build_keys.py"
+      - "tests/pnf/test_stage_cache.py"
+      - "tests/pnf/test_cached_parser.py"
+      - "tests/pnf/test_parser_delta_executor.py"
+      - "tests/pnf/test_operator_closure_benchmark.py"
+      - "tests/pnf/test_zelph_closure_executor.py"
+      - "tests/runtime/test_semantic_stage_timing.py"
+      - "docs/dev/StreamingSemanticFixedPoint.md"
+      - "docs/dev/ZelphPNFClosureBenchmark.md"
+      - ".github/workflows/streaming-semantic-fixed-point.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sensiblaw_streaming_validation
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sensiblaw_streaming_validation"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sensiblaw_streaming_validation
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: sensiblaw_streaming_validation
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install environment
+        run: |
+          python -m pip install --upgrade pip uv
+          uv sync --frozen --extra test --extra dev
+
+      - name: Apply migrations
+        run: bash scripts/apply_pg_migrations.sh
+
+      - name: Lint fixed-point implementation
+        run: |
+          uv run ruff check \
+            src/runtime/stage_timing.py \
+            src/pnf/factor_proposals.py \
+            src/pnf/streaming_fixed_point.py \
+            src/pnf/streaming_coordination.py \
+            src/pnf/streaming_execution.py \
+            src/pnf/streaming_operator_executor.py \
+            src/pnf/streaming_reduction_projection.py \
+            src/pnf/constraint_worklist.py \
+            src/pnf/parser_delta_executor.py \
+            src/pnf/stage_build_keys.py \
+            src/pnf/stage_cache.py \
+            src/pnf/cached_parser.py \
+            src/pnf/zelph_closure_executor.py \
+            src/pnf/operator_closure_benchmark.py \
+            src/policy/operational_corpus_compilation.py \
+            src/policy/streaming_postgres_corpus_compilation.py \
+            src/policy/parallel_postgres_corpus_compilation.py \
+            src/storage/postgres/streaming_semantic_store.py \
+            src/storage/postgres/streaming_coordination_store.py \
+            src/storage/postgres/stage_cache_store.py \
+            scripts/build_legal_ir_catalogue.py \
+            scripts/run_legal_pnf_probe.py \
+            scripts/benchmark_pnf_closure_backends.py \
+            tests/pnf/test_streaming_fixed_point.py \
+            tests/pnf/test_streaming_operator_executor.py \
+            tests/pnf/test_streaming_coordination.py \
+            tests/pnf/test_constraint_worklist.py \
+            tests/pnf/test_stage_build_keys.py \
+            tests/pnf/test_stage_cache.py \
+            tests/pnf/test_cached_parser.py \
+            tests/pnf/test_parser_delta_executor.py \
+            tests/pnf/test_operator_closure_benchmark.py \
+            tests/pnf/test_zelph_closure_executor.py \
+            tests/runtime/test_semantic_stage_timing.py
+
+      - name: Run fixed-point unit tests
+        run: |
+          uv run pytest -q \
+            tests/pnf/test_factor_proposals.py \
+            tests/pnf/test_streaming_fixed_point.py \
+            tests/pnf/test_streaming_operator_executor.py \
+            tests/pnf/test_streaming_coordination.py \
+            tests/pnf/test_constraint_worklist.py \
+            tests/pnf/test_stage_build_keys.py \
+            tests/pnf/test_stage_cache.py \
+            tests/pnf/test_cached_parser.py \
+            tests/pnf/test_parser_delta_executor.py \
+            tests/pnf/test_operator_closure_benchmark.py \
+            tests/pnf/test_zelph_closure_executor.py \
+            tests/runtime/test_semantic_stage_timing.py
+
+      - name: Exercise optional Zelph parity lane
+        run: |
+          uv run python scripts/benchmark_pnf_closure_backends.py \
+            --output build/closure-backend-parity.json
+          test -s build/closure-backend-parity.json
+
+      - name: Build offline catalogue
+        run: |
+          uv run python scripts/build_legal_ir_catalogue.py \
+            --catalogue config/legal_catalogues/au_driving_austlii_v1.json \
+            --output-root build/legal-ir-streaming-validation \
+            --database-url "$DATABASE_URL" \
+            --offline \
+            --compile-workers 2 \
+            --closure-workers 2 \
+            --owner-partitions 4 \
+            --copy-workers 2 \
+            --progress-jsonl
+
+      - name: Verify fixed-point and timing evidence
+        run: |
+          test -s build/legal-ir-streaming-validation/catalogue_build_manifest.json
+          test -s build/legal-ir-streaming-validation/document_compilation_timings.json
+          test -s build/legal-ir-streaming-validation/phase_ledger.json
+          test -s build/legal-ir-streaming-validation/legal_pnf_probe/semantic_stage_timings.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('build/legal-ir-streaming-validation')
+          manifest = json.loads((root / 'catalogue_build_manifest.json').read_text())
+          timings = json.loads((root / 'document_compilation_timings.json').read_text())
+          assert manifest['streaming_bidirectional'] is True
+          assert manifest['logical_owner_granularity'] == 'document_scope_factor_family'
+          assert manifest['identity_promoted'] is False
+          assert manifest['legal_truth_closed'] is False
+          assert timings['aggregate']['local_fixed_point_count'] == len(manifest['document_refs'])
+          required = {
+              'parser_annotation',
+              'parser_observation_projection',
+              'base_proposal_reduction',
+              'closure_executor_evaluation',
+              'composition_proposal_reduction',
+              'constraint_fixed_point',
+              'postgres_persistence',
+          }
+          assert required.issubset(timings['aggregate']['stage_totals_ms'])
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: streaming-semantic-fixed-point-validation
+          path: |
+            build/closure-backend-parity.json
+            build/legal-ir-streaming-validation/catalogue_build_manifest.json
+            build/legal-ir-streaming-validation/document_compilation_timings.json
+            build/legal-ir-streaming-validation/phase_ledger.json
+            build/legal-ir-streaming-validation/legal_pnf_probe/semantic_stage_timings.json
+            build/legal-ir-streaming-validation/legal_pnf_probe/**
+          if-no-files-found: warn
+          retention-days: 14

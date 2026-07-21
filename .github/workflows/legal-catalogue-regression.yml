@@ -4,15 +4,34 @@ on:
   pull_request:
     paths:
       - "src/runtime/progress.py"
+      - "src/runtime/stage_timing.py"
       - "src/pnf/factor_proposals.py"
       - "src/pnf/review_coordinates.py"
       - "src/pnf/operator_composition_bridge.py"
+      - "src/pnf/operator_closure_benchmark.py"
+      - "src/pnf/streaming_fixed_point.py"
+      - "src/pnf/streaming_operator_executor.py"
+      - "src/pnf/stage_build_keys.py"
+      - "src/pnf/zelph_closure_executor.py"
+      - "src/policy/operational_corpus_compilation.py"
+      - "src/policy/streaming_postgres_corpus_compilation.py"
       - "src/policy/parallel_postgres_corpus_compilation.py"
+      - "src/storage/postgres/streaming_semantic_store.py"
       - "scripts/build_legal_ir_catalogue.py"
+      - "scripts/run_legal_pnf_probe.py"
+      - "scripts/benchmark_pnf_closure_backends.py"
       - "database/postgres_migrations/**"
       - "tests/runtime/test_progress_instrumentation.py"
+      - "tests/runtime/test_semantic_stage_timing.py"
       - "tests/pnf/test_factor_proposals.py"
       - "tests/pnf/test_review_coordinates.py"
+      - "tests/pnf/test_streaming_fixed_point.py"
+      - "tests/pnf/test_streaming_operator_executor.py"
+      - "tests/pnf/test_stage_build_keys.py"
+      - "tests/pnf/test_zelph_closure_executor.py"
+      - "tests/pnf/test_operator_closure_benchmark.py"
+      - "docs/dev/StreamingSemanticFixedPoint.md"
+      - "docs/dev/ZelphPNFClosureBenchmark.md"
       - ".github/workflows/legal-catalogue-regression.yml"
   workflow_dispatch:
 
@@ -58,28 +77,57 @@ jobs:
       - name: Apply immutable migrations
         run: bash scripts/apply_pg_migrations.sh
 
-      - name: Lint instrumentation and reduction surfaces
+      - name: Lint streaming semantic surfaces
         run: |
           uv run ruff check \
             src/runtime/progress.py \
+            src/runtime/stage_timing.py \
             src/pnf/factor_proposals.py \
             src/pnf/review_coordinates.py \
             src/pnf/operator_composition_bridge.py \
+            src/pnf/operator_closure_benchmark.py \
+            src/pnf/streaming_fixed_point.py \
+            src/pnf/streaming_operator_executor.py \
+            src/pnf/stage_build_keys.py \
+            src/pnf/zelph_closure_executor.py \
+            src/policy/operational_corpus_compilation.py \
+            src/policy/streaming_postgres_corpus_compilation.py \
             src/policy/parallel_postgres_corpus_compilation.py \
+            src/storage/postgres/streaming_semantic_store.py \
             scripts/build_legal_ir_catalogue.py \
+            scripts/run_legal_pnf_probe.py \
+            scripts/benchmark_pnf_closure_backends.py \
             tests/runtime/test_progress_instrumentation.py \
+            tests/runtime/test_semantic_stage_timing.py \
             tests/pnf/test_factor_proposals.py \
-            tests/pnf/test_review_coordinates.py
+            tests/pnf/test_review_coordinates.py \
+            tests/pnf/test_streaming_fixed_point.py \
+            tests/pnf/test_streaming_operator_executor.py \
+            tests/pnf/test_stage_build_keys.py \
+            tests/pnf/test_zelph_closure_executor.py \
+            tests/pnf/test_operator_closure_benchmark.py
 
-      - name: Run deterministic proposal, review and timing tests
+      - name: Run deterministic streaming and review tests
         run: |
           uv run pytest -q \
             tests/runtime/test_progress_instrumentation.py \
+            tests/runtime/test_semantic_stage_timing.py \
             tests/pnf/test_factor_proposals.py \
             tests/pnf/test_review_coordinates.py \
-            tests/pnf/test_operator_composition.py
+            tests/pnf/test_operator_composition.py \
+            tests/pnf/test_streaming_fixed_point.py \
+            tests/pnf/test_streaming_operator_executor.py \
+            tests/pnf/test_stage_build_keys.py \
+            tests/pnf/test_zelph_closure_executor.py \
+            tests/pnf/test_operator_closure_benchmark.py
 
-      - name: Build offline catalogue with two document workers
+      - name: Exercise closure backend parity harness
+        run: |
+          uv run python scripts/benchmark_pnf_closure_backends.py \
+            --output build/closure-backend-parity.json
+          test -s build/closure-backend-parity.json
+
+      - name: Build offline catalogue with independent pool sizes
         run: |
           uv run python scripts/build_legal_ir_catalogue.py \
             --catalogue config/legal_catalogues/au_driving_austlii_v1.json \
@@ -87,24 +135,39 @@ jobs:
             --database-url "$DATABASE_URL" \
             --offline \
             --compile-workers 2 \
+            --closure-workers 2 \
+            --owner-partitions 4 \
             --copy-workers 2 \
             --progress-jsonl
 
-      - name: Verify durable build evidence
+      - name: Verify durable fixed-point evidence
         run: |
           test -s build/legal-ir-regression/catalogue_build_manifest.json
           test -s build/legal-ir-regression/phase_ledger.json
           test -s build/legal-ir-regression/document_compilation_timings.json
+          test -s build/legal-ir-regression/legal_pnf_probe/semantic_stage_timings.json
           python - <<'PY'
           import json
           from pathlib import Path
           root = Path('build/legal-ir-regression')
           manifest = json.loads((root / 'catalogue_build_manifest.json').read_text())
+          timings = json.loads((root / 'document_compilation_timings.json').read_text())
           ledger = json.loads((root / 'phase_ledger.json').read_text())
-          assert manifest['parallelism_boundary'] == 'immutable_document_build'
+          assert manifest['parallelism_boundary'] == 'immutable_document_and_revision_bound_semantic_jobs'
+          assert manifest['logical_owner_granularity'] == 'document_scope_factor_family'
+          assert manifest['streaming_bidirectional'] is True
+          assert manifest['eventual_consistency'] == 'convergent_append_only'
           assert manifest['request_governor_serialized'] is True
           assert manifest['identity_promoted'] is False
           assert manifest['legal_truth_closed'] is False
+          assert timings['runtime']['parser_document_processes'] == 2
+          assert timings['runtime']['closure_executors_per_document'] == 2
+          assert timings['runtime']['owner_partitions_per_document'] == 4
+          assert timings['aggregate']['local_fixed_point_count'] == len(manifest['document_refs'])
+          assert 'parser_annotation' in timings['aggregate']['stage_totals_ms']
+          assert 'base_proposal_reduction' in timings['aggregate']['stage_totals_ms']
+          assert 'closure_executor_evaluation' in timings['aggregate']['stage_totals_ms']
+          assert 'postgres_persistence' in timings['aggregate']['stage_totals_ms']
           assert 'compile_pnf' in ledger['phase_summary']
           PY
 
@@ -114,9 +177,11 @@ jobs:
         with:
           name: legal-ir-catalogue-regression
           path: |
+            build/closure-backend-parity.json
             build/legal-ir-regression/catalogue_build_manifest.json
             build/legal-ir-regression/phase_ledger.json
             build/legal-ir-regression/document_compilation_timings.json
+            build/legal-ir-regression/legal_pnf_probe/semantic_stage_timings.json
             build/legal-ir-regression/legal_pnf_probe/**
           if-no-files-found: warn
           retention-days: 14
