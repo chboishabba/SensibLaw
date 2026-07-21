@@ -7,6 +7,8 @@ on:
       - "src/ontology/wikimedia_providers.py"
       - "src/pnf/external_enrichment_projection.py"
       - "src/pnf/external_reconciliation.py"
+      - "src/pnf/legal_adjunct.py"
+      - "src/pnf/legal_probe.py"
       - "src/ingestion/web_fetch.py"
       - "src/ingestion/link_follow.py"
       - "src/ingestion/corpus_source_projection.py"
@@ -15,13 +17,18 @@ on:
       - "src/sources/national_archives/brexit_legal_follow_lane.py"
       - "src/storage/postgres/enrichment_planner.py"
       - "src/storage/postgres/enrichment_store.py"
+      - "src/storage/postgres/legal_adjunct_planner.py"
       - "database/postgres_migrations/014_external_pnf_enrichment.sql"
       - "scripts/run_wikimedia_enrichment.py"
       - "scripts/run_legal_follow.py"
       - "scripts/run_complete_tranche.py"
+      - "scripts/run_legal_pnf_probe.py"
+      - "tests/fixtures/legal_pnf_probe/**"
       - "tests/ingestion/test_web_fetch_and_follow.py"
       - "tests/ontology/test_wikimedia_providers.py"
       - "tests/pnf/test_external_enrichment.py"
+      - "tests/pnf/test_legal_adjunct.py"
+      - "tests/pnf/test_legal_probe.py"
       - "tests/runtime/test_complete_tranche_pipeline.py"
       - "tests/sources/test_legal_follow.py"
       - "tests/storage/test_external_enrichment_planner.py"
@@ -34,6 +41,8 @@ on:
       - "src/ontology/wikimedia_providers.py"
       - "src/pnf/external_enrichment_projection.py"
       - "src/pnf/external_reconciliation.py"
+      - "src/pnf/legal_adjunct.py"
+      - "src/pnf/legal_probe.py"
       - "src/ingestion/web_fetch.py"
       - "src/ingestion/link_follow.py"
       - "src/ingestion/corpus_source_projection.py"
@@ -42,13 +51,18 @@ on:
       - "src/sources/national_archives/brexit_legal_follow_lane.py"
       - "src/storage/postgres/enrichment_planner.py"
       - "src/storage/postgres/enrichment_store.py"
+      - "src/storage/postgres/legal_adjunct_planner.py"
       - "database/postgres_migrations/014_external_pnf_enrichment.sql"
       - "scripts/run_wikimedia_enrichment.py"
       - "scripts/run_legal_follow.py"
       - "scripts/run_complete_tranche.py"
+      - "scripts/run_legal_pnf_probe.py"
+      - "tests/fixtures/legal_pnf_probe/**"
       - "tests/ingestion/test_web_fetch_and_follow.py"
       - "tests/ontology/test_wikimedia_providers.py"
       - "tests/pnf/test_external_enrichment.py"
+      - "tests/pnf/test_legal_adjunct.py"
+      - "tests/pnf/test_legal_probe.py"
       - "tests/runtime/test_complete_tranche_pipeline.py"
       - "tests/sources/test_legal_follow.py"
       - "tests/storage/test_external_enrichment_planner.py"
@@ -101,6 +115,8 @@ jobs:
             src/ontology/wikimedia_providers.py \
             src/pnf/external_enrichment_projection.py \
             src/pnf/external_reconciliation.py \
+            src/pnf/legal_adjunct.py \
+            src/pnf/legal_probe.py \
             src/ingestion/web_fetch.py \
             src/ingestion/link_follow.py \
             src/ingestion/corpus_source_projection.py \
@@ -109,12 +125,16 @@ jobs:
             src/sources/national_archives/brexit_legal_follow_lane.py \
             src/storage/postgres/enrichment_planner.py \
             src/storage/postgres/enrichment_store.py \
+            src/storage/postgres/legal_adjunct_planner.py \
             scripts/run_wikimedia_enrichment.py \
             scripts/run_legal_follow.py \
             scripts/run_complete_tranche.py \
+            scripts/run_legal_pnf_probe.py \
             tests/ingestion/test_web_fetch_and_follow.py \
             tests/ontology/test_wikimedia_providers.py \
             tests/pnf/test_external_enrichment.py \
+            tests/pnf/test_legal_adjunct.py \
+            tests/pnf/test_legal_probe.py \
             tests/runtime/test_complete_tranche_pipeline.py \
             tests/sources/test_legal_follow.py \
             tests/storage/test_external_enrichment_planner.py \
@@ -126,6 +146,8 @@ jobs:
           set -o pipefail
           uv run pytest -x -vv \
             tests/pnf/test_external_enrichment.py \
+            tests/pnf/test_legal_adjunct.py \
+            tests/pnf/test_legal_probe.py \
             tests/ontology/test_wikimedia_providers.py \
             tests/storage/test_external_enrichment_planner.py \
             tests/storage/test_external_enrichment_postgres.py \

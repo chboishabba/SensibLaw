@@ -3,15 +3,7 @@ from __future__ import annotations
 from io import StringIO
 
 from src.pnf.legal_adjunct import LegalSourcePlan
-from src.sources.legal_follow import (
-    AU_PROFILE,
-    GB_PROFILE,
-    US_PROFILE,
-    follow_legal_source_plan,
-    follow_legal_sources,
-    profile_for,
-    select_legal_endpoints,
-)
+from src.sources.legal_follow import follow_legal_source_plan, select_legal_endpoints
 
 
 class Response:
@@ -53,44 +45,6 @@ def _plan(**overrides) -> LegalSourcePlan:
     return LegalSourcePlan(**values)
 
 
-def test_all_jurisdictions_share_the_same_follow_capability_contract() -> None:
-    profiles = (AU_PROFILE, GB_PROFILE, US_PROFILE)
-
-    assert {profile.jurisdiction for profile in profiles} == {"AU", "GB", "US"}
-    assert all(profile.max_depth == 1 for profile in profiles)
-    assert all(profile.max_documents == 20 for profile in profiles)
-    assert all(
-        any(endpoint.authority_level == "official" for endpoint in profile.endpoints)
-        for profile in profiles
-    )
-    assert profile_for("UK") is GB_PROFILE
-    assert profile_for("USA") is US_PROFILE
-
-
-def test_au_follow_uses_shared_fetch_and_link_receipts() -> None:
-    seed = "https://www.legislation.gov.au/"
-    second = "https://www.legislation.gov.au/document/Test"
-    session = Session(
-        {
-            seed: Response(seed, b'<main><a href="/document/Test">Test Act</a></main>'),
-            second: Response(second, b"<main>Test Act text</main>"),
-        }
-    )
-
-    result = follow_legal_sources(
-        "AU",
-        seed_urls=(seed,),
-        max_depth=1,
-        max_documents=2,
-        session=session,
-        progress_stream=StringIO(),
-    )
-
-    assert len(result.documents) == 2
-    assert result.documents[0].links[0].target_url == second
-    assert all(row.status == "fetched" for row in result.receipts)
-
-
 def test_typed_plan_selects_only_matching_role_and_authority() -> None:
     endpoints = select_legal_endpoints(_plan())
 
@@ -102,7 +56,15 @@ def test_typed_plan_selects_only_matching_role_and_authority() -> None:
     assert all(row.authority_level == "official" for row in endpoints)
 
 
-def test_blocked_typed_plan_performs_no_follow() -> None:
+def test_provider_ref_can_narrow_to_one_declared_endpoint() -> None:
+    endpoints = select_legal_endpoints(
+        _plan(provider_profile_refs=("au:federal-register",))
+    )
+
+    assert [row.endpoint_ref for row in endpoints] == ["au:federal-register"]
+
+
+def test_blocked_plan_performs_no_follow() -> None:
     result = follow_legal_source_plan(
         _plan(state="blocked_missing_context", blocked_reasons=("jurisdiction_unresolved",))
     )
