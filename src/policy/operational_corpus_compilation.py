@@ -15,9 +15,14 @@ from src.pnf.operational_reference_binding import (
     build_operational_reference_binding_artifacts,
 )
 from src.policy import corpus_compilation as legacy
+from src.policy.compiler_invariant_normalization import (
+    deduplicate_structural_hypotheses,
+    normalize_licensed_mentions,
+)
+from src.runtime.compiler_progress import emit_compiler_progress
 
 
-OPERATIONAL_COMPILER_CONTRACT = "postgres-semantic-compiler:v0_8"
+OPERATIONAL_COMPILER_CONTRACT = "postgres-semantic-compiler:v0_9"
 
 
 def compile_document_operational(
@@ -44,6 +49,7 @@ def compile_document_operational(
         document_input.get("document_ref"), "document_ref"
     )
     source_ref = legacy.require_text(document_input.get("source_ref"), "source_ref")
+    emit_compiler_progress(stage="normalise_started", document_ref=document_ref)
     if media_type == "text/html":
         canonical = legacy.HtmlDocumentMediaAdapter(
             source_artifact_ref=source_ref
@@ -78,17 +84,52 @@ def compile_document_operational(
         }
     )
 
+    tokens = legacy.tokenize_canonical_with_spans(text)
+    token_count = len(tokens)
+    emit_compiler_progress(
+        stage="tokenized",
+        document_ref=document_ref,
+        token_count=token_count,
+        details={"character_count": len(text)},
+    )
+    emit_compiler_progress(
+        stage="parse_started", document_ref=document_ref, token_count=token_count
+    )
     parsed_document = legacy.parse_canonical_text(text)
+    emit_compiler_progress(
+        stage="parse_completed", document_ref=document_ref, token_count=token_count
+    )
     licensing = legacy.build_mention_licensing_carrier(
         canonical_text=text,
         source_ref=source_ref,
         document_ref=document_ref,
         parsed_document=parsed_document,
     )
-    mentions = tuple(licensing["mentions"])
+    mentions, rejected_mentions = normalize_licensed_mentions(
+        canonical_text=text,
+        mentions=tuple(licensing["mentions"]),
+    )
+    licensing = {
+        **dict(licensing),
+        "mentions": list(mentions),
+        "rejected_mentions": list(rejected_mentions),
+        "summary": {
+            **dict(licensing.get("summary") or {}),
+            "accepted_mention_count": len(mentions),
+            "rejected_mention_count": len(rejected_mentions),
+        },
+    }
+    emit_compiler_progress(
+        stage="licensing_completed",
+        document_ref=document_ref,
+        token_count=token_count,
+        details={
+            "accepted_mentions": len(mentions),
+            "rejected_mentions": len(rejected_mentions),
+        },
+    )
     recurrence = legacy.build_mention_recurrence_carrier(mentions=mentions)
     forms = legacy.build_form_derivation_carrier(mentions=mentions)
-    tokens = legacy.tokenize_canonical_with_spans(text)
     layer = legacy.AnnotationLayer(
         layer_ref="annotation-layer:"
         + legacy.canonical_sha256(
@@ -115,6 +156,11 @@ def compile_document_operational(
             for row in mentions
         ),
         provenance_refs=(source_ref,),
+    )
+    emit_compiler_progress(
+        stage="semantic_annotations_started",
+        document_ref=document_ref,
+        token_count=token_count,
     )
     semantic_layer, relational_bundle, atom_span_refs = (
         legacy._semantic_annotation_layer(
@@ -144,10 +190,22 @@ def compile_document_operational(
         semantic_layer=semantic_layer,
         mentions=mentions,
     )
-    structural_hypotheses = legacy.derive_relational_type_hypotheses(
+    structural_hypotheses_raw = legacy.derive_relational_type_hypotheses(
         bundle=relational_bundle,
         atom_mention_refs=atom_mentions,
         declarations=declarations,
+    )
+    structural_hypotheses, duplicate_type_diagnostics = (
+        deduplicate_structural_hypotheses(structural_hypotheses_raw)
+    )
+    emit_compiler_progress(
+        stage="local_typing_started",
+        document_ref=document_ref,
+        token_count=token_count,
+        details={
+            "structural_hypotheses": len(structural_hypotheses),
+            "duplicate_hypotheses": len(duplicate_type_diagnostics),
+        },
     )
     local_typing = legacy.build_local_typing_carrier(
         mentions=mentions,
@@ -163,6 +221,11 @@ def compile_document_operational(
         parser_capabilities=(parsed_document.get("parser_receipt") or {}).get(
             "capabilities", {}
         ),
+    )
+    emit_compiler_progress(
+        stage="pnf_reduction_started",
+        document_ref=document_ref,
+        token_count=token_count,
     )
     semantic_output = legacy.reduce_relational_bundle(
         document_ref=document_ref,
@@ -202,6 +265,10 @@ def compile_document_operational(
         "source_normalisation": source_normalisation,
         "build_key_sha256": build_key_sha256,
         "licensing": licensing,
+        "compiler_invariant_diagnostics": [
+            *rejected_mentions,
+            *duplicate_type_diagnostics,
+        ],
         "recurrence": recurrence,
         "forms": forms,
         "local_typing": local_typing,
@@ -258,6 +325,18 @@ def compile_document_operational(
         },
     }
     operational_artifacts = build_operational_reference_binding_artifacts(artifacts)
+    emit_compiler_progress(
+        stage="document_completed",
+        document_ref=document_ref,
+        token_count=token_count,
+        completed_tokens=token_count,
+        details={
+            "factor_count": len(refined_pnf_graph.factors),
+            "demand_count": len(demands),
+            "invariant_diagnostic_count": len(rejected_mentions)
+            + len(duplicate_type_diagnostics),
+        },
+    )
     return legacy.DocumentCompilation(
         document_ref=document_ref,
         content_sha256=content_sha256,
