@@ -8,6 +8,7 @@ on:
       - "src/pnf/factor_proposals.py"
       - "src/pnf/review_coordinates.py"
       - "src/pnf/operator_composition_bridge.py"
+      - "src/pnf/operator_closure_benchmark.py"
       - "src/pnf/streaming_fixed_point.py"
       - "src/pnf/streaming_operator_executor.py"
       - "src/pnf/stage_build_keys.py"
@@ -18,6 +19,7 @@ on:
       - "src/storage/postgres/streaming_semantic_store.py"
       - "scripts/build_legal_ir_catalogue.py"
       - "scripts/run_legal_pnf_probe.py"
+      - "scripts/benchmark_pnf_closure_backends.py"
       - "database/postgres_migrations/**"
       - "tests/runtime/test_progress_instrumentation.py"
       - "tests/runtime/test_semantic_stage_timing.py"
@@ -27,7 +29,9 @@ on:
       - "tests/pnf/test_streaming_operator_executor.py"
       - "tests/pnf/test_stage_build_keys.py"
       - "tests/pnf/test_zelph_closure_executor.py"
+      - "tests/pnf/test_operator_closure_benchmark.py"
       - "docs/dev/StreamingSemanticFixedPoint.md"
+      - "docs/dev/ZelphPNFClosureBenchmark.md"
       - ".github/workflows/legal-catalogue-regression.yml"
   workflow_dispatch:
 
@@ -81,6 +85,7 @@ jobs:
             src/pnf/factor_proposals.py \
             src/pnf/review_coordinates.py \
             src/pnf/operator_composition_bridge.py \
+            src/pnf/operator_closure_benchmark.py \
             src/pnf/streaming_fixed_point.py \
             src/pnf/streaming_operator_executor.py \
             src/pnf/stage_build_keys.py \
@@ -91,6 +96,7 @@ jobs:
             src/storage/postgres/streaming_semantic_store.py \
             scripts/build_legal_ir_catalogue.py \
             scripts/run_legal_pnf_probe.py \
+            scripts/benchmark_pnf_closure_backends.py \
             tests/runtime/test_progress_instrumentation.py \
             tests/runtime/test_semantic_stage_timing.py \
             tests/pnf/test_factor_proposals.py \
@@ -98,7 +104,8 @@ jobs:
             tests/pnf/test_streaming_fixed_point.py \
             tests/pnf/test_streaming_operator_executor.py \
             tests/pnf/test_stage_build_keys.py \
-            tests/pnf/test_zelph_closure_executor.py
+            tests/pnf/test_zelph_closure_executor.py \
+            tests/pnf/test_operator_closure_benchmark.py
 
       - name: Run deterministic streaming and review tests
         run: |
@@ -111,7 +118,14 @@ jobs:
             tests/pnf/test_streaming_fixed_point.py \
             tests/pnf/test_streaming_operator_executor.py \
             tests/pnf/test_stage_build_keys.py \
-            tests/pnf/test_zelph_closure_executor.py
+            tests/pnf/test_zelph_closure_executor.py \
+            tests/pnf/test_operator_closure_benchmark.py
+
+      - name: Exercise closure backend parity harness
+        run: |
+          uv run python scripts/benchmark_pnf_closure_backends.py \
+            --output build/closure-backend-parity.json
+          test -s build/closure-backend-parity.json
 
       - name: Build offline catalogue with independent pool sizes
         run: |
@@ -163,6 +177,7 @@ jobs:
         with:
           name: legal-ir-catalogue-regression
           path: |
+            build/closure-backend-parity.json
             build/legal-ir-regression/catalogue_build_manifest.json
             build/legal-ir-regression/phase_ledger.json
             build/legal-ir-regression/document_compilation_timings.json
