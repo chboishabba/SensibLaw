@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import atexit
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
@@ -98,6 +99,8 @@ def main() -> int:
     output_root = args.output_root.resolve()
     output_root.mkdir(parents=True, exist_ok=True)
     recorder = PhaseRecorder(json_lines=args.progress_jsonl)
+    phase_ledger_path = output_root / "phase_ledger.json"
+    atexit.register(recorder.write_json, phase_ledger_path)
 
     source_root = output_root / "source_catalogue"
     existing_root = source_root / "existing_au_tranche"
@@ -246,7 +249,6 @@ def main() -> int:
         )
         phase.completed = len(compilation.document_refs)
 
-    phase_ledger_path = output_root / "phase_ledger.json"
     recorder.write_json(phase_ledger_path)
     manifest = {
         "schema_version": "sl.persisted_legal_catalogue_build.v0_2",
