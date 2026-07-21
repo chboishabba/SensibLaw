@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from io import StringIO
 import json
+from time import sleep
 
 from src.runtime.progress import PhaseRecorder
 
@@ -11,6 +12,7 @@ def test_phase_recorder_emits_durable_timing_and_reuse_events(tmp_path) -> None:
     recorder = PhaseRecorder(stream=stream, json_lines=True)
 
     with recorder.phase("compile_pnf", total=2, details={"workers": 2}) as phase:
+        sleep(0.001)
         phase.advance(subject_ref="document:a", reused=True, details={"worker": "document-1"})
         phase.advance(subject_ref="document:b", reused=False, details={"worker": "document-2"})
 
@@ -20,6 +22,9 @@ def test_phase_recorder_emits_durable_timing_and_reuse_events(tmp_path) -> None:
     assert payload["phase_summary"]["compile_pnf"]["failed"] == 0
     assert payload["events"][-1]["elapsed_ms"] >= 0
     assert payload["events"][-1]["details"]["reused_units"] == 1
+    assert payload["events"][1]["throughput_units_per_second"] > 0
+    assert payload["events"][1]["estimated_remaining_ms"] >= 0
+    assert payload["events"][1]["estimated_completion_at"]
 
     output = tmp_path / "phase_ledger.json"
     recorder.write_json(output)

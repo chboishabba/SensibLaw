@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 import json
 from pathlib import Path
 import sys
@@ -32,6 +32,9 @@ class ProgressEvent:
     started_at: str | None = None
     observed_at: str = field(default_factory=_utc_now)
     elapsed_ms: int | None = None
+    throughput_units_per_second: float | None = None
+    estimated_remaining_ms: int | None = None
+    estimated_completion_at: str | None = None
     worker: str | None = None
     reused: bool | None = None
 
@@ -147,6 +150,8 @@ class PhaseHandle:
         self.completed += amount
         if reused:
             self.reused += amount
+        elapsed_ms = self.elapsed_ms
+        estimate = self._estimate(elapsed_ms)
         self.recorder.emit(
             ProgressEvent(
                 phase=self.phase,
@@ -157,11 +162,25 @@ class PhaseHandle:
                 subject_ref=subject_ref or self.subject_ref,
                 details=dict(details or {}) or None,
                 started_at=self._started_at,
-                elapsed_ms=self.elapsed_ms,
+                elapsed_ms=elapsed_ms,
                 worker=self.worker,
                 reused=reused,
+                **estimate,
             )
         )
+
+    def _estimate(self, elapsed_ms: int) -> dict[str, Any]:
+        if self.total is None or self.total <= 0 or self.completed <= 0 or elapsed_ms <= 0:
+            return {}
+        throughput = self.completed / (elapsed_ms / 1_000)
+        remaining_ms = round(elapsed_ms * (self.total - self.completed) / self.completed)
+        return {
+            "throughput_units_per_second": round(throughput, 3),
+            "estimated_remaining_ms": max(0, remaining_ms),
+            "estimated_completion_at": (
+                datetime.now(UTC) + timedelta(milliseconds=max(0, remaining_ms))
+            ).isoformat(),
+        }
 
     @property
     def elapsed_ms(self) -> int:
@@ -208,8 +227,13 @@ def emit_progress(
     elapsed = f" {event.elapsed_ms}ms" if event.elapsed_ms is not None else ""
     worker = f" worker={event.worker}" if event.worker else ""
     reuse = " reused" if event.reused else ""
+    estimate = (
+        f" eta={event.estimated_remaining_ms}ms"
+        if event.estimated_remaining_ms is not None
+        else ""
+    )
     print(
-        f"[{event.phase}] {event.state} {event.completed}{total}{subject}{elapsed}{worker}{reuse}{message}",
+        f"[{event.phase}] {event.state} {event.completed}{total}{subject}{elapsed}{worker}{reuse}{estimate}{message}",
         file=target,
         flush=True,
     )
