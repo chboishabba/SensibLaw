@@ -1,8 +1,8 @@
 """Sentence-delta adapter for streaming generic operator composition.
 
 The public parser may still return a complete document record, but this adapter exposes
-that record as immutable sentence batches.  Each complete sentence activates an
-independent revision-bound operator-composition job.  Jobs may execute concurrently and
+that record as immutable sentence batches. Each complete sentence activates an
+independent revision-bound operator-composition job. Jobs may execute concurrently and
 stream proposal receipts back to the keyed document owner.
 """
 
@@ -27,11 +27,19 @@ from src.pnf.streaming_fixed_point import (
 from src.policy.carriers.canonical import canonical_sha256
 
 
-STREAMING_OPERATOR_DECLARATION_REF = "streaming-declaration:operator-composition:v0_1"
-STREAMING_OPERATOR_ADAPTER_REF = "parser-delta-adapter:operator-composition:v0_1"
+STREAMING_OPERATOR_DECLARATION_REF = (
+    "streaming-declaration:operator-composition:v0_1"
+)
+STREAMING_OPERATOR_ADAPTER_REF = (
+    "parser-delta-adapter:operator-composition:v0_1"
+)
 
 
-def _observation_ref(document_ref: str, sentence_index: int, token: Mapping[str, Any]) -> str:
+def _observation_ref(
+    document_ref: str,
+    sentence_index: int,
+    token: Mapping[str, Any],
+) -> str:
     return "parser-observation:" + canonical_sha256(
         {
             "document_ref": document_ref,
@@ -47,13 +55,17 @@ def _observation_ref(document_ref: str, sentence_index: int, token: Mapping[str,
 
 
 def parser_sentence_deltas(
-    *, document_ref: str, parsed_document: Mapping[str, Any]
+    *,
+    document_ref: str,
+    parsed_document: Mapping[str, Any],
 ) -> tuple[ObservationDelta, ...]:
     """Project parser sentences into stable, complete semantic observation batches."""
 
     deltas: list[ObservationDelta] = []
     token_cursor = 0
-    for sentence_index, sentence in enumerate(parsed_document.get("sents") or ()):
+    for sentence_index, sentence in enumerate(
+        parsed_document.get("sents") or ()
+    ):
         tokens = tuple(dict(row) for row in sentence.get("tokens") or ())
         if not tokens:
             continue
@@ -89,7 +101,9 @@ def parser_sentence_deltas(
                 scope_ref=scope_ref,
                 sequence_no=sentence_index,
                 parser_contract=str(
-                    (parsed_document.get("parser_receipt") or {}).get("contract_ref")
+                    (parsed_document.get("parser_receipt") or {}).get(
+                        "contract_ref"
+                    )
                     or STREAMING_OPERATOR_ADAPTER_REF
                 ),
                 observation_refs=tuple(observation_refs),
@@ -128,11 +142,16 @@ def operator_streaming_declaration() -> StreamingDeclaration:
 
 
 def _proposal_from_factor(
-    *, document_ref: str, factor: Mapping[str, Any], observation_refs: Sequence[str]
+    *,
+    document_ref: str,
+    factor: Mapping[str, Any],
+    observation_refs: Sequence[str],
 ) -> FactorProposal:
     metadata = dict(factor.get("metadata") or {})
     alternatives = [
-        dict(row) for row in factor.get("alternatives") or () if isinstance(row, Mapping)
+        dict(row)
+        for row in factor.get("alternatives") or ()
+        if isinstance(row, Mapping)
     ]
     provenance_refs = tuple(
         sorted(
@@ -150,14 +169,21 @@ def _proposal_from_factor(
             }
         ),
         factor_type_ref=str(factor.get("factor_type") or ""),
-        source_span_refs=tuple(str(ref) for ref in metadata.get("provenance_refs") or ()),
-        input_observation_refs=tuple(sorted(set(str(ref) for ref in observation_refs))),
+        source_span_refs=tuple(
+            str(ref) for ref in metadata.get("provenance_refs") or ()
+        ),
+        input_observation_refs=tuple(
+            sorted(set(str(ref) for ref in observation_refs))
+        ),
         dependency_factor_refs=(),
-        structural_signature=str(metadata.get("structural_signature_ref") or ""),
+        structural_signature=str(
+            metadata.get("structural_signature_ref") or ""
+        ),
         role_bindings=dict(metadata.get("role_bindings") or {}),
         qualifier_state=dict(metadata.get("qualifier_state") or {}),
         producer_contract=str(
-            metadata.get("composition_contract_ref") or OPERATOR_COMPOSITION_CONTRACT
+            metadata.get("composition_contract_ref")
+            or OPERATOR_COMPOSITION_CONTRACT
         ),
         declaration_revision="v0_1",
         candidate_payload={
@@ -166,7 +192,9 @@ def _proposal_from_factor(
             "alternatives": alternatives,
             "provenance_refs": list(provenance_refs),
         },
-        residuals=tuple(str(value) for value in factor.get("residuals") or ()),
+        residuals=tuple(
+            str(value) for value in factor.get("residuals") or ()
+        ),
     )
 
 
@@ -223,9 +251,6 @@ def build_streaming_operator_state(
     executor = PythonClosureExecutor(
         {STREAMING_OPERATOR_DECLARATION_REF: solve_operator_job}
     )
-    while owner.drain_ready_jobs(limit=0):
-        # limit=0 is intentionally a no-op; the real drain occurs in execute_ready_jobs.
-        raise AssertionError("zero-limit job drain must be empty")
     execute_ready_jobs(owner, executor, workers=closure_workers)
     owner.reduce_dirty_groups()
     owner.admit_coverage_notice(
@@ -234,7 +259,9 @@ def build_streaming_operator_state(
             scope_ref="document-global",
             barrier="document",
             state="complete",
-            evidence_refs=tuple(delta.delta_ref for delta in owner.ledger.observation_deltas),
+            evidence_refs=tuple(
+                delta.delta_ref for delta in owner.ledger.observation_deltas
+            ),
         )
     )
     return owner
