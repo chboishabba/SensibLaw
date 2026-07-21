@@ -14,11 +14,23 @@ on:
         default: false
         type: boolean
       compile_workers:
-        description: Document-level compiler workers
+        description: Document parser/persistence processes
         required: false
         default: "3"
         type: choice
         options: ["1", "2", "3", "4"]
+      closure_workers:
+        description: Pure closure executors inside each active document
+        required: false
+        default: "2"
+        type: choice
+        options: ["1", "2", "4", "8"]
+      owner_partitions:
+        description: Logical keyed owner partitions inside each document
+        required: false
+        default: "4"
+        type: choice
+        options: ["1", "2", "4", "8", "16"]
       copy_workers:
         description: Source-family copy workers
         required: false
@@ -70,7 +82,6 @@ jobs:
         run: |
           git fetch origin "$CATALOGUE_BRANCH" || true
           rm -rf "$CATALOGUE_ROOT"
-          mkdir -p "$CATALOGUE_ROOT"
           if git show-ref --verify --quiet "refs/remotes/origin/$CATALOGUE_BRANCH"; then
             git worktree add --detach "$CATALOGUE_ROOT" "origin/$CATALOGUE_BRANCH"
           else
@@ -111,6 +122,8 @@ jobs:
             --output-root build/legal-ir-catalogue
             --database-url "$DATABASE_URL"
             --compile-workers "${{ inputs.compile_workers }}"
+            --closure-workers "${{ inputs.closure_workers }}"
+            --owner-partitions "${{ inputs.owner_partitions }}"
             --copy-workers "${{ inputs.copy_workers }}"
             --progress-jsonl
           )
@@ -124,16 +137,30 @@ jobs:
           uv run ruff check \
             src/runtime/progress.py \
             src/runtime/request_governor.py \
+            src/runtime/stage_timing.py \
             src/pnf/factor_proposals.py \
+            src/pnf/streaming_fixed_point.py \
+            src/pnf/streaming_operator_executor.py \
+            src/pnf/stage_build_keys.py \
+            src/pnf/zelph_closure_executor.py \
+            src/policy/operational_corpus_compilation.py \
+            src/policy/streaming_postgres_corpus_compilation.py \
             src/policy/parallel_postgres_corpus_compilation.py \
-            scripts/build_legal_ir_catalogue.py
+            src/storage/postgres/streaming_semantic_store.py \
+            scripts/build_legal_ir_catalogue.py \
+            scripts/run_legal_pnf_probe.py
           uv run pytest -q \
             tests/runtime/test_progress_instrumentation.py \
-            tests/pnf/test_factor_proposals.py
+            tests/runtime/test_semantic_stage_timing.py \
+            tests/pnf/test_factor_proposals.py \
+            tests/pnf/test_streaming_fixed_point.py \
+            tests/pnf/test_streaming_operator_executor.py \
+            tests/pnf/test_stage_build_keys.py \
+            tests/pnf/test_zelph_closure_executor.py
           test -s build/legal-ir-catalogue/catalogue_build_manifest.json
           test -s build/legal-ir-catalogue/phase_ledger.json
           test -s build/legal-ir-catalogue/document_compilation_timings.json
-          test -d build/legal-ir-catalogue/legal_pnf_probe
+          test -s build/legal-ir-catalogue/legal_pnf_probe/semantic_stage_timings.json
 
       - name: Produce persistent PostgreSQL snapshot
         shell: bash
@@ -153,8 +180,10 @@ jobs:
           manifest = json.loads(Path('build/legal-ir-catalogue/catalogue_build_manifest.json').read_text())
           timings = json.loads(Path('build/legal-ir-catalogue/document_compilation_timings.json').read_text())
           phase_rows = manifest.get('phase_summary', {})
+          stage_rows = timings.get('aggregate', {}).get('stage_totals_ms', {})
           documents = timings.get('documents', [])
           slow = sorted(documents, key=lambda row: row.get('elapsed_ms', 0), reverse=True)[:10]
+          runtime = manifest.get('runtime', {})
           lines = [
               '# AU driving Legal IR catalogue',
               '',
@@ -164,20 +193,26 @@ jobs:
               f"- PostgreSQL corpus: `{manifest['corpus_ref']}`",
               f"- PNF documents: {len(manifest['document_refs'])}",
               f"- Compilation failures: {len(manifest['failure_refs'])}",
-              f"- Compile workers: {manifest['compile_workers']}",
+              f"- Parser/document processes: {runtime.get('parser_document_processes')}",
+              f"- Owner partitions per document: {runtime.get('owner_partitions_per_document')}",
+              f"- Closure executors per document: {runtime.get('closure_executors_per_document')}",
+              '- Bidirectional streaming: true',
               '- Identity promoted: false',
               '- Legal truth closed: false',
               '',
-              '## Phase timing',
+              '## Outer phase timing',
               '',
               '| Phase | Events | Elapsed ms | Failures |',
               '|---|---:|---:|---:|',
           ]
           for phase, row in sorted(phase_rows.items()):
               lines.append(f"| `{phase}` | {row['events']} | {row['elapsed_ms']} | {row['failed']} |")
-          lines.extend(['', '## Slowest document compilations', '', '| Document | State | Worker | Elapsed ms |', '|---|---|---|---:|'])
+          lines.extend(['', '## Nested semantic stage timing', '', '| Stage | Aggregate ms |', '|---|---:|'])
+          for stage, elapsed in sorted(stage_rows.items(), key=lambda item: item[1], reverse=True):
+              lines.append(f"| `{stage}` | {elapsed} |")
+          lines.extend(['', '## Slowest document compilations', '', '| Document | State | Fixed point | Worker | Elapsed ms |', '|---|---|---|---|---:|'])
           for row in slow:
-              lines.append(f"| `{row['document_ref']}` | {row['state']} | `{row['worker']}` | {row['elapsed_ms']} |")
+              lines.append(f"| `{row['document_ref']}` | {row['state']} | {row.get('local_fixed_point')} | `{row['worker']}` | {row['elapsed_ms']} |")
           Path(__import__('os').environ['GITHUB_STEP_SUMMARY']).write_text('\n'.join(lines) + '\n')
           PY
 
@@ -208,6 +243,7 @@ jobs:
             build/legal-ir-catalogue/catalogue_build_manifest.json
             build/legal-ir-catalogue/phase_ledger.json
             build/legal-ir-catalogue/document_compilation_timings.json
+            build/legal-ir-catalogue/legal_pnf_probe/semantic_stage_timings.json
             build/legal-ir-catalogue/legal_pnf_probe/**
             build/catalogue-publish/SHA256SUMS
           if-no-files-found: warn
