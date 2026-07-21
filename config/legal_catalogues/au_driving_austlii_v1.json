@@ -21,12 +21,14 @@
     {
       "family_ref": "source-family:au-legal-principles:v1",
       "path": "demo/ingest/legal_principles_au_v1",
-      "max_file_bytes": 10000000
+      "max_file_bytes": 10000000,
+      "source_suffixes": [".html", ".htm", ".txt", ".md", ".markdown", ".pdf", ".epub"]
     },
     {
       "family_ref": "source-family:hca-s942025:v1",
       "path": "demo/ingest/hca_case_s942025",
-      "max_file_bytes": 10000000
+      "max_file_bytes": 10000000,
+      "source_suffixes": [".html", ".htm", ".txt", ".md", ".markdown", ".pdf", ".epub"]
     }
   ],
   "search_terms": [

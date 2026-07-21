@@ -75,6 +75,7 @@ def _source_file_plan(
     target: Path,
     *,
     max_file_bytes: int | None = None,
+    source_suffixes: tuple[str, ...] = (),
 ) -> tuple[tuple[Path, Path], ...]:
     if not source.exists():
         return ()
@@ -82,6 +83,7 @@ def _source_file_plan(
         (path, target / path.relative_to(source))
         for path in sorted(source.rglob("*"))
         if path.is_file()
+        and (not source_suffixes or path.suffix.lower() in source_suffixes)
         and (max_file_bytes is None or path.stat().st_size <= max_file_bytes)
     )
 
@@ -113,11 +115,15 @@ def main() -> int:
     copy_plan: list[tuple[Path, Path]] = []
     for family in catalogue.get("persisted_source_families", []):
         max_file_bytes = family.get("max_file_bytes")
+        source_suffixes = tuple(
+            str(value).lower() for value in family.get("source_suffixes", ())
+        )
         copy_plan.extend(
             _source_file_plan(
                 ROOT / family["path"],
                 existing_root / family["family_ref"].replace(":", "_"),
                 max_file_bytes=(int(max_file_bytes) if max_file_bytes is not None else None),
+                source_suffixes=source_suffixes,
             )
         )
     with recorder.phase(
