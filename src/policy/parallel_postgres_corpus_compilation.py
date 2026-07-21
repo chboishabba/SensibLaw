@@ -1,6 +1,6 @@
 """Bounded document-level PostgreSQL compilation with deterministic reduction.
 
-Corpus admission and the final result ordering remain serialized.  Each worker owns a
+Corpus admission and the final result ordering remain serialized. Each worker owns a
 short-lived PostgreSQL connection and compiles exactly one immutable document build.
 No worker mutates a shared graph object or a mutable corpus pointer.
 """
@@ -14,12 +14,15 @@ from time import monotonic_ns
 from typing import Any, Callable, Mapping, Sequence
 
 from src.policy.corpus_compilation import CompilerContext, build_corpus_manifest
+from src.policy.operational_corpus_compilation import OPERATIONAL_COMPILER_CONTRACT
 from src.policy.postgres_corpus_compilation import (
+    _operational_build_key,
     _prepare_operational_manifest,
     persist_document_compilation,
 )
 from src.runtime.progress import PhaseHandle
 from src.storage.postgres import PersistedCompilation, PostgresCompilerStore
+from src.storage.postgres.operational_build_store import load_completed_operational_build
 
 
 PARALLEL_COMPILATION_SCHEMA_VERSION = "sl.parallel_postgres_compilation.v0_1"
@@ -48,6 +51,16 @@ class DocumentCompilationOutcome:
         }
 
 
+def _build_key(entry: Mapping[str, Any], context: CompilerContext) -> str:
+    return _operational_build_key(
+        document_ref=str(entry["document_ref"]),
+        content_sha256=str(entry["content_sha256"]),
+        canonical_text_sha256=str(entry["canonical_text_sha256"]),
+        media_adapter_ref=str(entry["media_adapter_ref"]),
+        context=context,
+    )
+
+
 def _compile_one(
     *,
     database_url: str,
@@ -63,6 +76,14 @@ def _compile_one(
     relative_path = str(entry["relative_path"])
     store = PostgresCompilerStore.connect(database_url)
     try:
+        build_key = _build_key(entry, context)
+        with store.transaction() as cursor:
+            cached = load_completed_operational_build(
+                cursor,
+                document_ref=document_ref,
+                compiler_contract_ref=OPERATIONAL_COMPILER_CONTRACT,
+                build_key_sha256=build_key,
+            )
         if prepared_source is None:
             source_bytes = (root / relative_path).read_bytes()
             source_text = source_bytes.decode("utf-8")
@@ -77,11 +98,10 @@ def _compile_one(
             source_text=source_text,
             context=context,
         )
-        state = "reused_or_compiled"
         return DocumentCompilationOutcome(
             document_ref=document_ref,
             relative_path=relative_path,
-            state=state,
+            state="reused" if cached is not None else "compiled",
             demand_refs=tuple(sorted(set(demand_refs))),
             elapsed_ms=max(0, (monotonic_ns() - started) // 1_000_000),
             worker=worker,
@@ -125,12 +145,13 @@ def compile_directory_postgres_parallel(
 ) -> tuple[PersistedCompilation, tuple[DocumentCompilationOutcome, ...]]:
     """Compile distinct canonical documents concurrently and reduce stably.
 
-    Duplicate-content occurrences are admitted serially.  Workers use independent
-    database connections.  Returned document, demand, failure, and timing rows are
+    Duplicate-content occurrences are admitted serially. Workers use independent
+    database connections. Returned document, demand, failure, and timing rows are
     sorted by stable references rather than completion order.
     """
 
-    if execution_phase not in {"inventory", "local", "demand_planning", "legal_catalogue_build"}:
+    phases = {"inventory", "local", "demand_planning", "legal_catalogue_build"}
+    if execution_phase not in phases:
         raise ValueError("unsupported corpus compilation phase")
     if workers < 1 or workers > 32:
         raise ValueError("workers must be between 1 and 32")
@@ -188,7 +209,10 @@ def compile_directory_postgres_parallel(
         progress.total = len(admitted)
 
     outcomes: list[DocumentCompilationOutcome] = []
-    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="pnf-document") as executor:
+    with ThreadPoolExecutor(
+        max_workers=workers,
+        thread_name_prefix="pnf-document",
+    ) as executor:
         future_map: dict[Future[DocumentCompilationOutcome], str] = {}
         for index, entry in enumerate(admitted):
             relative_path = str(entry["relative_path"])
@@ -214,7 +238,7 @@ def compile_directory_postgres_parallel(
                 progress.advance(
                     subject_ref=outcome.document_ref,
                     message=outcome.state,
-                    reused=outcome.state == "reused_or_compiled",
+                    reused=outcome.state == "reused",
                     details={
                         "elapsed_ms": outcome.elapsed_ms,
                         "worker": outcome.worker,
@@ -223,10 +247,16 @@ def compile_directory_postgres_parallel(
                     },
                 )
 
-    ordered = tuple(sorted(outcomes, key=lambda row: (row.document_ref, row.relative_path)))
-    document_refs = tuple(sorted(row.document_ref for row in ordered if row.state != "failed"))
+    ordered = tuple(
+        sorted(outcomes, key=lambda row: (row.document_ref, row.relative_path))
+    )
+    document_refs = tuple(
+        sorted(row.document_ref for row in ordered if row.state != "failed")
+    )
     demand_refs = tuple(sorted({ref for row in ordered for ref in row.demand_refs}))
-    failure_refs = tuple(sorted(row.failure_ref for row in ordered if row.failure_ref is not None))
+    failure_refs = tuple(
+        sorted(row.failure_ref for row in ordered if row.failure_ref is not None)
+    )
     return (
         PersistedCompilation(
             corpus_ref=corpus_ref,
