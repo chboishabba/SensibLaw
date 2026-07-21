@@ -1,0 +1,117 @@
+name: Legal IR catalogue regression
+
+on:
+  pull_request:
+    paths:
+      - "src/runtime/progress.py"
+      - "src/pnf/factor_proposals.py"
+      - "src/pnf/operator_composition_bridge.py"
+      - "src/policy/parallel_postgres_corpus_compilation.py"
+      - "scripts/build_legal_ir_catalogue.py"
+      - "database/postgres_migrations/**"
+      - "tests/runtime/test_progress_instrumentation.py"
+      - "tests/pnf/test_factor_proposals.py"
+      - ".github/workflows/legal-catalogue-regression.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-regression:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sensiblaw_regression
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sensiblaw_regression"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sensiblaw_regression
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: sensiblaw_regression
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install environment
+        run: |
+          python -m pip install --upgrade pip uv
+          uv sync --frozen --extra test --extra dev
+
+      - name: Apply immutable migrations
+        run: bash scripts/apply_pg_migrations.sh
+
+      - name: Lint instrumentation and reduction surfaces
+        run: |
+          uv run ruff check \
+            src/runtime/progress.py \
+            src/pnf/factor_proposals.py \
+            src/pnf/operator_composition_bridge.py \
+            src/policy/parallel_postgres_corpus_compilation.py \
+            scripts/build_legal_ir_catalogue.py \
+            tests/runtime/test_progress_instrumentation.py \
+            tests/pnf/test_factor_proposals.py
+
+      - name: Run deterministic proposal and timing tests
+        run: |
+          uv run pytest -q \
+            tests/runtime/test_progress_instrumentation.py \
+            tests/pnf/test_factor_proposals.py \
+            tests/pnf/test_operator_composition.py
+
+      - name: Build offline catalogue with two document workers
+        run: |
+          uv run python scripts/build_legal_ir_catalogue.py \
+            --catalogue config/legal_catalogues/au_driving_austlii_v1.json \
+            --output-root build/legal-ir-regression \
+            --database-url "$DATABASE_URL" \
+            --offline \
+            --compile-workers 2 \
+            --copy-workers 2 \
+            --progress-jsonl
+
+      - name: Verify durable build evidence
+        run: |
+          test -s build/legal-ir-regression/catalogue_build_manifest.json
+          test -s build/legal-ir-regression/phase_ledger.json
+          test -s build/legal-ir-regression/document_compilation_timings.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('build/legal-ir-regression')
+          manifest = json.loads((root / 'catalogue_build_manifest.json').read_text())
+          ledger = json.loads((root / 'phase_ledger.json').read_text())
+          assert manifest['parallelism_boundary'] == 'immutable_document_build'
+          assert manifest['request_governor_serialized'] is True
+          assert manifest['identity_promoted'] is False
+          assert manifest['legal_truth_closed'] is False
+          assert 'compile_pnf' in ledger['phase_summary']
+          PY
+
+      - name: Upload regression evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: legal-ir-catalogue-regression
+          path: |
+            build/legal-ir-regression/catalogue_build_manifest.json
+            build/legal-ir-regression/phase_ledger.json
+            build/legal-ir-regression/document_compilation_timings.json
+            build/legal-ir-regression/legal_pnf_probe/**
+          if-no-files-found: warn
+          retention-days: 14
