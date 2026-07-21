@@ -29,6 +29,9 @@ from src.ontology.wikimedia_providers import (  # noqa: E402
 )
 from src.pnf.legal_probe import build_legal_pnf_probe  # noqa: E402
 from src.pnf.legal_semantic_build import build_legal_semantic_build  # noqa: E402
+from src.pnf.operator_composition_bridge import (  # noqa: E402
+    apply_operator_composition_to_compilation,
+)
 from src.policy.corpus_compilation import compile_document, default_compiler_context  # noqa: E402
 
 
@@ -81,7 +84,7 @@ def _compile_projection_row(row: Any, projection_root: Path) -> Mapping[str, Any
         },
         default_compiler_context(),
     )
-    return compilation.to_dict()
+    return apply_operator_composition_to_compilation(compilation.to_dict())
 
 
 def _legacy_rows(text: str) -> list[dict[str, Any]]:
@@ -118,7 +121,6 @@ def main() -> int:
         legacy = _legacy_rows(canonical_text) if args.compare_legacy else []
         probe = build_legal_pnf_probe(compilation, legacy_rows=legacy)
 
-        # The probe owns discovery; the build owns the typed, versioned merge surface.
         from src.pnf.legal_adjunct import project_legal_ir
 
         refined_graph = artifacts.get("refined_pnf_graph") or artifacts.get("pnf_graph") or {}
@@ -127,7 +129,10 @@ def main() -> int:
             compilation=compilation,
             legal_ir=legal_ir_objects,
             legacy_rows=legacy,
-            declaration_revision_refs=artifacts.get("semantic_reduction_refs") or (),
+            declaration_revision_refs=(
+                *(artifacts.get("semantic_reduction_refs") or ()),
+                str((artifacts.get("operator_composition") or {}).get("contract_ref") or ""),
+            ),
         )
 
         document_dir = output_dir / "documents" / f"{index:04d}_{row.canonical_sha256[:12]}"
@@ -157,6 +162,7 @@ def main() -> int:
                 "summary": {**probe["summary"], **semantic_build["summary"]},
                 "document_output_dir": str(document_dir),
                 "parser_receipt": artifacts.get("parser_receipt") or {},
+                "operator_composition": artifacts.get("operator_composition") or {},
             }
         )
         wikidata_demands.extend(probe["wikidata_lookup_demands"])
@@ -198,7 +204,7 @@ def main() -> int:
     _write_json(output_dir / "wikidata_results.json", wikidata_output)
 
     summary = {
-        "schema_version": "sl.legal_pnf_probe_run.v0_2",
+        "schema_version": "sl.legal_pnf_probe_run.v0_3",
         "source_projection": str(projection_root / "manifest.json"),
         "documents": probe_rows,
         "document_count": len(probe_rows),
@@ -211,6 +217,10 @@ def main() -> int:
         ),
         "coverage_demand_count": sum(
             int(row["summary"]["coverage_demand_count"]) for row in probe_rows
+        ),
+        "operator_factor_count": sum(
+            int((row.get("operator_composition") or {}).get("factor_count") or 0)
+            for row in probe_rows
         ),
         "wikidata_lookup_demand_count": len(wikidata_demands),
         "wikidata_network_performed": wikidata_output["network_performed"],
