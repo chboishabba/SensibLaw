@@ -139,6 +139,7 @@ jobs:
             src/runtime/request_governor.py \
             src/runtime/stage_timing.py \
             src/pnf/factor_proposals.py \
+            src/pnf/operator_closure_benchmark.py \
             src/pnf/streaming_fixed_point.py \
             src/pnf/streaming_operator_executor.py \
             src/pnf/stage_build_keys.py \
@@ -148,7 +149,8 @@ jobs:
             src/policy/parallel_postgres_corpus_compilation.py \
             src/storage/postgres/streaming_semantic_store.py \
             scripts/build_legal_ir_catalogue.py \
-            scripts/run_legal_pnf_probe.py
+            scripts/run_legal_pnf_probe.py \
+            scripts/benchmark_pnf_closure_backends.py
           uv run pytest -q \
             tests/runtime/test_progress_instrumentation.py \
             tests/runtime/test_semantic_stage_timing.py \
@@ -156,7 +158,11 @@ jobs:
             tests/pnf/test_streaming_fixed_point.py \
             tests/pnf/test_streaming_operator_executor.py \
             tests/pnf/test_stage_build_keys.py \
-            tests/pnf/test_zelph_closure_executor.py
+            tests/pnf/test_zelph_closure_executor.py \
+            tests/pnf/test_operator_closure_benchmark.py
+          uv run python scripts/benchmark_pnf_closure_backends.py \
+            --output build/closure-backend-parity.json
+          test -s build/closure-backend-parity.json
           test -s build/legal-ir-catalogue/catalogue_build_manifest.json
           test -s build/legal-ir-catalogue/phase_ledger.json
           test -s build/legal-ir-catalogue/document_compilation_timings.json
@@ -179,6 +185,7 @@ jobs:
           from pathlib import Path
           manifest = json.loads(Path('build/legal-ir-catalogue/catalogue_build_manifest.json').read_text())
           timings = json.loads(Path('build/legal-ir-catalogue/document_compilation_timings.json').read_text())
+          parity = json.loads(Path('build/closure-backend-parity.json').read_text())
           phase_rows = manifest.get('phase_summary', {})
           stage_rows = timings.get('aggregate', {}).get('stage_totals_ms', {})
           documents = timings.get('documents', [])
@@ -196,6 +203,7 @@ jobs:
               f"- Parser/document processes: {runtime.get('parser_document_processes')}",
               f"- Owner partitions per document: {runtime.get('owner_partitions_per_document')}",
               f"- Closure executors per document: {runtime.get('closure_executors_per_document')}",
+              f"- Zelph parity lane: {parity.get('status')}",
               '- Bidirectional streaming: true',
               '- Identity promoted: false',
               '- Legal truth closed: false',
@@ -240,6 +248,7 @@ jobs:
         with:
           name: au-driving-legal-ir-catalogue-build
           path: |
+            build/closure-backend-parity.json
             build/legal-ir-catalogue/catalogue_build_manifest.json
             build/legal-ir-catalogue/phase_ledger.json
             build/legal-ir-catalogue/document_compilation_timings.json
