@@ -100,6 +100,7 @@ def test_completed_build_replays_exact_demand_refs() -> None:
     )
     assert demands == ("demand:a", "demand:b")
     assert bytes.fromhex("00" * 32) in cursor.calls[0][1]
+    assert "JOIN corpus.document AS document" in cursor.calls[0][0]
 
 
 def test_missing_build_is_not_confused_with_zero_demand_build() -> None:

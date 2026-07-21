@@ -311,6 +311,13 @@ class PostgresCompilerStore:
         )
         return run_ref
 
+    def count_persisted_tokens(self, cursor: Any, *, document_ref: str) -> int:
+        cursor.execute(
+            "SELECT count(*) FROM language.token WHERE document_ref = %s",
+            (document_ref,),
+        )
+        return int(cursor.fetchone()[0])
+
     def persist_annotation_layer(
         self, cursor: Any, *, document_ref: str, layer: Mapping[str, Any]
     ) -> None:

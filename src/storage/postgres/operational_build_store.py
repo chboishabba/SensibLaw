@@ -45,6 +45,8 @@ def load_completed_operational_build(
         FROM execution.document_compilation_build AS document_build
         JOIN execution.build AS build
           ON build.build_ref = document_build.build_ref
+        JOIN corpus.document AS document
+          ON document.document_ref = document_build.document_ref
         WHERE document_build.document_ref = %s
           AND document_build.compiler_contract_ref = %s
           AND document_build.build_key_sha256 = %s

@@ -66,3 +66,5 @@ def test_au_driving_catalogue_is_bounded_and_preserves_existing_tranche() -> Non
         "demo/ingest/legal_principles_au_v1",
         "demo/ingest/hca_case_s942025",
     }
+    assert all(row["max_file_bytes"] == 10_000_000 for row in catalogue["persisted_source_families"])
+    assert all(".sqlite" not in row["source_suffixes"] for row in catalogue["persisted_source_families"])
