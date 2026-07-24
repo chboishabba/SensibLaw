@@ -186,7 +186,8 @@ def _persist_proposal_extension(cursor: Any, proposal: Mapping[str, Any]) -> Non
     )
 
 
-def _persist_optional_transport(cursor: Any, row: Mapping[str, Any]) -> None:
+def _persist_transport(cursor: Any, row: SemanticTransport) -> None:
+    payload = row.to_dict()
     cursor.execute(
         """
         INSERT INTO semantic_transport
@@ -200,40 +201,98 @@ def _persist_optional_transport(cursor: Any, row: Mapping[str, Any]) -> None:
         ON CONFLICT (transport_ref) DO NOTHING
         """,
         (
-            row["transport_ref"],
-            row["document_ref"],
-            row["source_coordinate_ref"],
-            row["target_coordinate_ref"],
-            row["transport_type"],
-            row["strength"],
-            _json(row.get("evidence_refs") or ()),
-            _json(row.get("ontology_axis_refs") or ()),
-            _json(row.get("allowed_operations") or ()),
-            _json(row.get("residual_refs") or ()),
+            payload["transport_ref"],
+            payload["document_ref"],
+            payload["source_coordinate_ref"],
+            payload["target_coordinate_ref"],
+            payload["transport_type"],
+            payload["strength"],
+            _json(payload["evidence_refs"]),
+            _json(payload["ontology_axis_refs"]),
+            _json(payload["allowed_operations"]),
+            _json(payload["residual_refs"]),
         ),
     )
 
 
-def persist_semantic_fibre_artifacts(
-    cursor: Any,
-    *,
+def _persist_axis(cursor: Any, row: OntologyAxis) -> None:
+    payload = row.to_dict()
+    cursor.execute(
+        """
+        INSERT INTO semantic_ontology_axis
+            (axis_ref, label, authority_ref, relation_refs, root_refs, open_world)
+        VALUES (%s, %s, %s, %s::jsonb, %s::jsonb, %s)
+        ON CONFLICT (axis_ref) DO NOTHING
+        """,
+        (
+            payload["axis_ref"],
+            payload["label"],
+            payload["authority_ref"],
+            _json(payload["relation_refs"]),
+            _json(payload["root_refs"]),
+            payload["open_world"],
+        ),
+    )
+
+
+def _persist_axis_obligation(cursor: Any, row: AxisObligation) -> None:
+    payload = row.to_dict()
+    cursor.execute(
+        """
+        INSERT INTO semantic_axis_obligation
+            (obligation_ref, document_ref, coordinate_ref, axis_ref,
+             obligation_type, trigger_refs, frontier_refs, state,
+             resource_limit_reached, truth_closed)
+        VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s::jsonb, %s, %s, FALSE)
+        ON CONFLICT (obligation_ref) DO NOTHING
+        """,
+        (
+            payload["obligation_ref"],
+            payload["document_ref"],
+            payload["coordinate_ref"],
+            payload["axis_ref"],
+            payload["obligation_type"],
+            _json(payload["trigger_refs"]),
+            _json(payload["frontier_refs"]),
+            payload["state"],
+            payload["resource_limit_reached"],
+        ),
+    )
+
+
+def _persist_boundary(cursor: Any, row: FibreBoundaryObligation) -> None:
+    payload = row.to_dict()
+    cursor.execute(
+        """
+        INSERT INTO semantic_fibre_boundary_obligation
+            (boundary_ref, document_ref, coordinate_ref, scope_ref,
+             boundary_kind, evidence_refs, frontier_refs,
+             required_axis_refs, state, message)
+        VALUES
+            (%s, %s, %s, %s, %s, %s::jsonb, %s::jsonb, %s::jsonb, %s, %s)
+        ON CONFLICT (boundary_ref) DO NOTHING
+        """,
+        (
+            payload["boundary_ref"],
+            payload["document_ref"],
+            payload["coordinate_ref"],
+            payload["scope_ref"],
+            payload["boundary_kind"],
+            _json(payload["evidence_refs"]),
+            _json(payload["frontier_refs"]),
+            _json(payload["required_axis_refs"]),
+            payload["state"],
+            payload["message"],
+        ),
+    )
+
+
+def _observation_elements(
     document_ref: str,
     observation_deltas: Sequence[Mapping[str, Any]],
-    proposals: Sequence[Mapping[str, Any]],
-    solver_jobs: Sequence[Mapping[str, Any]],
-    solver_receipts: Sequence[Mapping[str, Any]],
-    materialized_reduction: Mapping[str, Any],
-    transports: Sequence[Mapping[str, Any]] = (),
-    ontology_axes: Sequence[Mapping[str, Any]] = (),
-    axis_obligations: Sequence[Mapping[str, Any]] = (),
-    boundary_obligations: Sequence[Mapping[str, Any]] = (),
-) -> IntegratedProducerReceipt:
-    """Persist the fibred view derived from the ordinary streaming evidence."""
-
+) -> tuple[dict[str, SemanticCoordinate], list[FibreElement]]:
     coordinates: dict[str, SemanticCoordinate] = {}
     elements: list[FibreElement] = []
-    content_to_element_ref: dict[str, str] = {}
-
     for delta in observation_deltas:
         parser_contract = str(delta.get("parser_contract") or "")
         scope_ref = str(delta.get("scope_ref") or "document-global")
@@ -273,30 +332,21 @@ def persist_semantic_fibre_artifacts(
             )
             coordinates[coordinate_ref] = coordinate
             elements.append(element)
-            content_to_element_ref[observation_ref] = element.element_ref
+    return coordinates, elements
 
-    for proposal in proposals:
-        coordinate = _proposal_coordinate(proposal)
-        element = fibre_element_from_proposal_row(proposal)
-        coordinates[coordinate.coordinate_ref] = coordinate
-        elements.append(element)
-        content_to_element_ref[str(proposal["proposal_ref"])] = element.element_ref
-        _persist_proposal_extension(cursor, proposal)
 
-    for coordinate in coordinates.values():
-        _persist_coordinate(cursor, coordinate)
-    for element in elements:
-        _persist_element(cursor, element)
-
+def _fibre_derivations(
+    *,
+    document_ref: str,
+    solver_jobs: Sequence[Mapping[str, Any]],
+    solver_receipts: Sequence[Mapping[str, Any]],
+    proposal_by_ref: Mapping[str, Mapping[str, Any]],
+    content_to_element_ref: Mapping[str, str],
+) -> tuple[FibreDerivation, ...]:
     jobs = {
         str(row.get("job_ref") or ""): row
         for row in solver_jobs
         if row.get("job_ref")
-    }
-    proposal_by_ref = {
-        str(row.get("proposal_ref") or ""): row
-        for row in proposals
-        if row.get("proposal_ref")
     }
     derivations: list[FibreDerivation] = []
     for receipt in solver_receipts:
@@ -305,45 +355,90 @@ def persist_semantic_fibre_artifacts(
             str(ref) for ref in receipt.get("proposal_refs") or ()
         )
         proposal_rows = [
-            proposal_by_ref[ref] for ref in proposal_refs if ref in proposal_by_ref
+            proposal_by_ref[ref]
+            for ref in proposal_refs
+            if ref in proposal_by_ref
         ]
-        operation_contract = str(
-            proposal_rows[0].get("operation_contract")
+        operation_kind = (
+            str(
+                (proposal_rows[0].get("execution_metadata") or {}).get(
+                    "operation_kind"
+                )
+                or ""
+            )
             if proposal_rows
-            else job.get("declaration_ref") or ""
+            else ""
+        ) or "closure"
+        derivations.append(
+            FibreDerivation(
+                document_ref=document_ref,
+                operation_kind=operation_kind,
+                declaration_ref=str(job.get("declaration_ref") or ""),
+                producer_contract=INTEGRATED_SEMANTIC_PRODUCER_CONTRACT,
+                input_element_refs=tuple(
+                    content_to_element_ref.get(str(ref), str(ref))
+                    for ref in receipt.get("input_refs") or ()
+                ),
+                output_element_refs=tuple(
+                    content_to_element_ref[ref]
+                    for ref in proposal_refs
+                    if ref in content_to_element_ref
+                ),
+                sub_executor_ref=str(receipt.get("backend_ref") or ""),
+                rule_set_revision=str(receipt.get("rule_set_revision") or ""),
+                receipt_ref=str(receipt.get("receipt_ref") or "") or None,
+                assumptions=tuple(
+                    str(ref) for ref in receipt.get("assumptions") or ()
+                ),
+                metrics=dict(receipt.get("metrics") or {}),
+            )
         )
-        operation_kind = str(
-            (
-                proposal_rows[0].get("execution_metadata") or {}
-            ).get("operation_kind")
-            if proposal_rows
-            else "closure"
-        )
-        derivation = FibreDerivation(
-            document_ref=document_ref,
-            operation_kind=operation_kind or "closure",
-            declaration_ref=str(job.get("declaration_ref") or ""),
-            producer_contract=INTEGRATED_SEMANTIC_PRODUCER_CONTRACT,
-            input_element_refs=tuple(
-                content_to_element_ref.get(str(ref), str(ref))
-                for ref in receipt.get("input_refs") or ()
-            ),
-            output_element_refs=tuple(
-                content_to_element_ref[ref]
-                for ref in proposal_refs
-                if ref in content_to_element_ref
-            ),
-            sub_executor_ref=str(receipt.get("backend_ref") or ""),
-            rule_set_revision=str(receipt.get("rule_set_revision") or ""),
-            receipt_ref=str(receipt.get("receipt_ref") or "") or None,
-            assumptions=tuple(
-                str(ref) for ref in receipt.get("assumptions") or ()
-            ),
-            metrics=dict(receipt.get("metrics") or {}),
-        )
-        derivations.append(derivation)
-        _persist_derivation(cursor, derivation)
+    return tuple(sorted(derivations, key=lambda row: row.derivation_ref))
 
+
+def persist_semantic_fibre_artifacts(
+    cursor: Any,
+    *,
+    document_ref: str,
+    observation_deltas: Sequence[Mapping[str, Any]],
+    proposals: Sequence[Mapping[str, Any]],
+    solver_jobs: Sequence[Mapping[str, Any]],
+    solver_receipts: Sequence[Mapping[str, Any]],
+    materialized_reduction: Mapping[str, Any],
+    transports: Sequence[Mapping[str, Any]] = (),
+    ontology_axes: Sequence[Mapping[str, Any]] = (),
+    axis_obligations: Sequence[Mapping[str, Any]] = (),
+    boundary_obligations: Sequence[Mapping[str, Any]] = (),
+) -> IntegratedProducerReceipt:
+    """Persist and return the exact fibre receipt derived from stream evidence."""
+
+    coordinates, elements = _observation_elements(
+        document_ref,
+        observation_deltas,
+    )
+    content_to_element_ref = {
+        row.content_ref: row.element_ref for row in elements
+    }
+    proposal_by_ref = {
+        str(row.get("proposal_ref") or ""): row
+        for row in proposals
+        if row.get("proposal_ref")
+    }
+    for proposal in proposals:
+        coordinate = _proposal_coordinate(proposal)
+        element = fibre_element_from_proposal_row(proposal)
+        coordinates[coordinate.coordinate_ref] = coordinate
+        elements.append(element)
+        content_to_element_ref[str(proposal["proposal_ref"])] = element.element_ref
+        _persist_proposal_extension(cursor, proposal)
+
+    derivations = _fibre_derivations(
+        document_ref=document_ref,
+        solver_jobs=solver_jobs,
+        solver_receipts=solver_receipts,
+        proposal_by_ref=proposal_by_ref,
+        content_to_element_ref=content_to_element_ref,
+    )
     transport_rows = tuple(
         SemanticTransport(
             document_ref=str(row["document_ref"]),
@@ -358,9 +453,6 @@ def persist_semantic_fibre_artifacts(
         )
         for row in transports
     )
-    for row in transport_rows:
-        _persist_optional_transport(cursor, row.to_dict())
-
     axis_rows = tuple(
         OntologyAxis(
             axis_ref=str(row["axis_ref"]),
@@ -372,26 +464,6 @@ def persist_semantic_fibre_artifacts(
         )
         for row in ontology_axes
     )
-    for row in axis_rows:
-        payload = row.to_dict()
-        cursor.execute(
-            """
-            INSERT INTO semantic_ontology_axis
-                (axis_ref, label, authority_ref, relation_refs, root_refs,
-                 open_world)
-            VALUES (%s, %s, %s, %s::jsonb, %s::jsonb, %s)
-            ON CONFLICT (axis_ref) DO NOTHING
-            """,
-            (
-                payload["axis_ref"],
-                payload["label"],
-                payload["authority_ref"],
-                _json(payload["relation_refs"]),
-                _json(payload["root_refs"]),
-                payload["open_world"],
-            ),
-        )
-
     obligation_rows = tuple(
         AxisObligation(
             document_ref=str(row["document_ref"]),
@@ -407,30 +479,6 @@ def persist_semantic_fibre_artifacts(
         )
         for row in axis_obligations
     )
-    for row in obligation_rows:
-        payload = row.to_dict()
-        cursor.execute(
-            """
-            INSERT INTO semantic_axis_obligation
-                (obligation_ref, document_ref, coordinate_ref, axis_ref,
-                 obligation_type, trigger_refs, frontier_refs, state,
-                 resource_limit_reached, truth_closed)
-            VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s::jsonb, %s, %s, FALSE)
-            ON CONFLICT (obligation_ref) DO NOTHING
-            """,
-            (
-                payload["obligation_ref"],
-                payload["document_ref"],
-                payload["coordinate_ref"],
-                payload["axis_ref"],
-                payload["obligation_type"],
-                _json(payload["trigger_refs"]),
-                _json(payload["frontier_refs"]),
-                payload["state"],
-                payload["resource_limit_reached"],
-            ),
-        )
-
     boundary_rows = tuple(
         FibreBoundaryObligation(
             document_ref=str(row["document_ref"]),
@@ -445,32 +493,21 @@ def persist_semantic_fibre_artifacts(
         )
         for row in boundary_obligations
     )
-    for row in boundary_rows:
-        payload = row.to_dict()
-        cursor.execute(
-            """
-            INSERT INTO semantic_fibre_boundary_obligation
-                (boundary_ref, document_ref, coordinate_ref, scope_ref,
-                 boundary_kind, evidence_refs, frontier_refs,
-                 required_axis_refs, state, message)
-            VALUES
-                (%s, %s, %s, %s, %s, %s::jsonb, %s::jsonb,
-                 %s::jsonb, %s, %s)
-            ON CONFLICT (boundary_ref) DO NOTHING
-            """,
-            (
-                payload["boundary_ref"],
-                payload["document_ref"],
-                payload["coordinate_ref"],
-                payload["scope_ref"],
-                payload["boundary_kind"],
-                _json(payload["evidence_refs"]),
-                _json(payload["frontier_refs"]),
-                _json(payload["required_axis_refs"]),
-                payload["state"],
-                payload["message"],
-            ),
-        )
+
+    for coordinate in coordinates.values():
+        _persist_coordinate(cursor, coordinate)
+    for element in elements:
+        _persist_element(cursor, element)
+    for derivation in derivations:
+        _persist_derivation(cursor, derivation)
+    for transport in transport_rows:
+        _persist_transport(cursor, transport)
+    for axis in axis_rows:
+        _persist_axis(cursor, axis)
+    for obligation in obligation_rows:
+        _persist_axis_obligation(cursor, obligation)
+    for boundary in boundary_rows:
+        _persist_boundary(cursor, boundary)
 
     graph_ref = str(materialized_reduction.get("graph_ref") or "")
     for factor in materialized_reduction.get("factors") or ():
@@ -514,9 +551,7 @@ def persist_semantic_fibre_artifacts(
         transports=tuple(
             sorted(transport_rows, key=lambda row: row.transport_ref)
         ),
-        derivations=tuple(
-            sorted(derivations, key=lambda row: row.derivation_ref)
-        ),
+        derivations=derivations,
         ontology_axes=tuple(sorted(axis_rows, key=lambda row: row.axis_ref)),
         axis_obligations=tuple(
             sorted(obligation_rows, key=lambda row: row.obligation_ref)
