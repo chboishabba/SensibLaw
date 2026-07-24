@@ -6,7 +6,7 @@ from contextlib import AbstractContextManager
 from dataclasses import asdict, dataclass
 import socket
 from types import TracebackType
-from typing import Any
+from typing import Any, Callable
 
 from src.policy.carriers.canonical import canonical_sha256
 
@@ -50,6 +50,8 @@ class OfflineNetworkGuard(AbstractContextManager["OfflineNetworkGuard"]):
         self._blocked: list[str] = []
         self._original_create_connection = socket.create_connection
         self._original_connect = socket.socket.connect
+        self._patched_create_connection: Callable[..., Any] | None = None
+        self._patched_connect: Callable[..., Any] | None = None
 
     def _is_allowed(self, address: Any) -> bool:
         if isinstance(address, str):
@@ -58,23 +60,35 @@ class OfflineNetworkGuard(AbstractContextManager["OfflineNetworkGuard"]):
             return str(address[0]) in self.allowed_hosts
         return False
 
-    def _guard_create_connection(self, address: Any, *args: Any, **kwargs: Any) -> Any:
-        if self._is_allowed(address):
-            self._allowed.append(repr(address))
-            return self._original_create_connection(address, *args, **kwargs)
-        self._blocked.append(repr(address))
-        raise OfflineNetworkViolation(f"offline build attempted external access: {address!r}")
-
-    def _guard_connect(self, instance: socket.socket, address: Any) -> Any:
-        if self._is_allowed(address):
-            self._allowed.append(repr(address))
-            return self._original_connect(instance, address)
-        self._blocked.append(repr(address))
-        raise OfflineNetworkViolation(f"offline build attempted external access: {address!r}")
-
     def __enter__(self) -> "OfflineNetworkGuard":
-        socket.create_connection = self._guard_create_connection  # type: ignore[assignment]
-        socket.socket.connect = self._guard_connect  # type: ignore[method-assign]
+        guard = self
+
+        def guarded_create_connection(
+            address: Any,
+            *args: Any,
+            **kwargs: Any,
+        ) -> Any:
+            if guard._is_allowed(address):
+                guard._allowed.append(repr(address))
+                return guard._original_create_connection(address, *args, **kwargs)
+            guard._blocked.append(repr(address))
+            raise OfflineNetworkViolation(
+                f"offline build attempted external access: {address!r}"
+            )
+
+        def guarded_connect(instance: socket.socket, address: Any) -> Any:
+            if guard._is_allowed(address):
+                guard._allowed.append(repr(address))
+                return guard._original_connect(instance, address)
+            guard._blocked.append(repr(address))
+            raise OfflineNetworkViolation(
+                f"offline build attempted external access: {address!r}"
+            )
+
+        self._patched_create_connection = guarded_create_connection
+        self._patched_connect = guarded_connect
+        socket.create_connection = guarded_create_connection
+        socket.socket.connect = guarded_connect  # type: ignore[method-assign]
         return self
 
     def __exit__(
@@ -86,6 +100,8 @@ class OfflineNetworkGuard(AbstractContextManager["OfflineNetworkGuard"]):
         del exc_type, exc_value, traceback
         socket.create_connection = self._original_create_connection
         socket.socket.connect = self._original_connect  # type: ignore[method-assign]
+        self._patched_create_connection = None
+        self._patched_connect = None
         return None
 
     @property
