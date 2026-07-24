@@ -75,6 +75,9 @@ from .streaming_fixed_point import (
     execute_ready_jobs,
     owner_partition,
 )
+from .streaming_reduction_metrics import install_streaming_reduction_metrics
+
+install_streaming_reduction_metrics()
 
 __all__ = [
     "INTEGRATED_SEMANTIC_PRODUCER_CONTRACT",
@@ -134,6 +137,7 @@ __all__ = [
     "evaluate_fibre",
     "execute_ready_jobs",
     "fibre_element_from_proposal_row",
+    "install_streaming_reduction_metrics",
     "normalize_factor_revision_artifacts",
     "owner_partition",
     "project_pronominal_reference_arguments",
