@@ -7,9 +7,11 @@ on:
   pull_request:
     paths:
       - "src/sources/**"
+      - "src/pnf/__init__.py"
       - "src/pnf/factor_proposals.py"
       - "src/pnf/legal_*.py"
       - "src/pnf/curated_legal_ir_flow.py"
+      - "src/pnf/streaming_reduction_metrics.py"
       - "src/policy/curated_postgres_corpus_compilation.py"
       - "src/policy/optimized_streaming_postgres_corpus_compilation.py"
       - "src/runtime/offline_network_guard.py"
@@ -75,10 +77,12 @@ jobs:
             src/sources/admission.py \
             src/sources/catalogue_metadata.py \
             src/sources/governed_acquisition.py \
+            src/pnf/__init__.py \
             src/pnf/factor_proposals.py \
             src/pnf/legal_ir_parity.py \
             src/pnf/legal_source_registry.py \
             src/pnf/curated_legal_ir_flow.py \
+            src/pnf/streaming_reduction_metrics.py \
             src/policy/curated_postgres_corpus_compilation.py \
             src/policy/optimized_streaming_postgres_corpus_compilation.py \
             src/runtime/offline_network_guard.py \
@@ -98,6 +102,7 @@ jobs:
             tests/sources/test_governed_acquisition.py \
             tests/runtime/test_offline_network_guard.py \
             tests/pnf/test_reducer_partition_metrics.py \
+            tests/pnf/test_streaming_reduction_metrics.py \
             tests/pnf/test_legal_ir_parity.py \
             tests/pnf/test_curated_legal_ir_flow.py \
             tests/policy/test_operational_corpus_compilation.py
@@ -110,6 +115,7 @@ jobs:
             tests/runtime/test_offline_network_guard.py \
             tests/pnf/test_factor_proposals.py \
             tests/pnf/test_reducer_partition_metrics.py \
+            tests/pnf/test_streaming_reduction_metrics.py \
             tests/pnf/test_legal_ir_parity.py \
             tests/pnf/test_curated_legal_ir_flow.py \
             tests/pnf/test_legal_persisted_selection.py \
@@ -194,6 +200,14 @@ jobs:
               'postgres.receipts',
               'postgres_persistence',
           }.issubset(stages)
+          base_rows = [
+              row
+              for document in timings['documents']
+              for row in document['stage_timings']
+              if row['stage'] == 'base_proposal_reduction'
+          ]
+          assert base_rows
+          assert 'fibre_partition_metrics' in base_rows[0]['details']
           PY
 
       - name: Run offline parity surface
@@ -220,4 +234,4 @@ jobs:
           PY
 
       - name: Check worktree patch formatting
-        run: git diff --check HEAD^
+        run: git diff --check origin/main...HEAD
