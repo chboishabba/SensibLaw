@@ -1,4 +1,4 @@
-"""Transactional PostgreSQL persistence for streaming semantic document builds."""
+"""Transactional PostgreSQL persistence for fibred streaming document builds."""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ from time import monotonic_ns
 from typing import Any, Mapping
 
 from src.policy.corpus_compilation import CompilerContext
-from src.policy.operational_corpus_compilation import (
-    OPERATIONAL_COMPILER_CONTRACT,
-    compile_document_operational,
+from src.policy.fibred_operational_corpus_compilation import (
+    FIBRED_OPERATIONAL_COMPILER_CONTRACT,
+    compile_document_fibred_operational,
 )
 from src.policy.postgres_corpus_compilation import (
     _canonical_source_coordinates,
@@ -55,7 +55,7 @@ def _with_persistence_timing(
         elapsed_ms=elapsed_ms,
         backend_ref="postgresql",
         details={
-            "transaction_scope": "document_immutable_build",
+            "transaction_scope": "document_immutable_fibred_build",
             "excludes": [
                 "semantic_stage_timing_insert",
                 "completed_build_receipt_insert",
@@ -89,7 +89,7 @@ def persist_streaming_document_compilation(
     closure_workers: int = 2,
     owner_partitions: int = 2,
 ) -> tuple[str, ...]:
-    """Compile and persist one immutable document and its fixed-point evidence."""
+    """Compile and persist one immutable fibred fixed-point document build."""
 
     document_ref = str(entry["document_ref"])
     content_sha256 = str(entry["content_sha256"])
@@ -132,7 +132,7 @@ def persist_streaming_document_compilation(
         cached_demand_refs = load_completed_operational_build(
             cursor,
             document_ref=document_ref,
-            compiler_contract_ref=OPERATIONAL_COMPILER_CONTRACT,
+            compiler_contract_ref=FIBRED_OPERATIONAL_COMPILER_CONTRACT,
             build_key_sha256=build_key_sha256,
         )
         if cached_demand_refs is not None:
@@ -145,7 +145,7 @@ def persist_streaming_document_compilation(
             )
             return cached_demand_refs
 
-    compilation = compile_document_operational(
+    compilation = compile_document_fibred_operational(
         {
             "document_ref": document_ref,
             "content_sha256": content_sha256,
@@ -162,6 +162,10 @@ def persist_streaming_document_compilation(
         raise ValueError(
             "operational compiler build key disagrees with persistence"
         )
+    if artifacts.get("operational_compiler_contract") != (
+        FIBRED_OPERATIONAL_COMPILER_CONTRACT
+    ):
+        raise ValueError("catalogue persistence requires the fibred compiler")
     source_normalisation = artifacts.get("source_normalisation") or {}
     if str(source_normalisation.get("adapter_ref") or "") != media_adapter_ref:
         raise ValueError(
@@ -173,6 +177,9 @@ def persist_streaming_document_compilation(
         expected_sha256=canonical_text_sha256,
     )
     refinements = tuple(artifacts.get("factor_refinements") or ())
+    compatibility_refinements = tuple(
+        artifacts.get("compatibility_factor_refinements") or refinements
+    )
     candidate_sets = tuple(
         artifacts.get("binding_candidate_sets") or ()
     )
@@ -191,6 +198,8 @@ def persist_streaming_document_compilation(
         raise ValueError(
             "only locally fixed-point streaming builds may be persisted"
         )
+    if not streaming_build.get("one_reduction_authority"):
+        raise ValueError("fibred build requires one reduction authority")
 
     persistence_started = monotonic_ns()
     with store.savepoint() as cursor:
@@ -258,7 +267,7 @@ def persist_streaming_document_compilation(
         persist_binding_candidate_sets(
             cursor,
             candidate_sets=candidate_sets,
-            refinements=refinements,
+            refinements=compatibility_refinements,
             factor_revisions=base_factor_revisions,
             factor_anchors=factor_anchors,
             builds=candidate_set_builds,
@@ -331,7 +340,7 @@ def persist_streaming_document_compilation(
         persist_completed_operational_build(
             cursor,
             document_ref=compilation.document_ref,
-            compiler_contract_ref=OPERATIONAL_COMPILER_CONTRACT,
+            compiler_contract_ref=FIBRED_OPERATIONAL_COMPILER_CONTRACT,
             build_key_sha256=build_key_sha256,
             graph_ref=str(artifacts["pnf_graph"]["graph_ref"]),
             demand_refs=demand_refs,
