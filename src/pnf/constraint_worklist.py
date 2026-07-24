@@ -1,7 +1,9 @@
 """Adjacency-indexed, document-local constraint propagation.
 
-Only constraints incident on changed factors are placed on the worklist.  Assessments are
-immutable candidate-only evidence and never close a factor, identity, or legal conclusion.
+Only constraints incident on changed factors are placed on the worklist. An
+initial build evaluates every declared constraint; an incremental change with
+no incident constraints performs zero work. Assessments are immutable
+candidate-only evidence and never close a factor, identity, or legal conclusion.
 """
 
 from __future__ import annotations
@@ -14,7 +16,7 @@ from src.policy.algebra import ConstraintAssessment, FactorConstraint
 from src.policy.carriers.canonical import canonical_sha256
 
 
-CONSTRAINT_WORKLIST_SCHEMA_VERSION = "sl.pnf.constraint_worklist.v0_1"
+CONSTRAINT_WORKLIST_SCHEMA_VERSION = "sl.pnf.constraint_worklist.v0_2"
 
 _SUPPORTED_STRUCTURAL_CONSTRAINTS = {
     "syntactic_subject_of",
@@ -33,16 +35,20 @@ class ConstraintWorkItem:
     constraint_ref: str
     incident_factor_refs: tuple[str, ...]
     triggering_factor_refs: tuple[str, ...]
+    propagation_wave: int = 0
 
     @property
     def work_ref(self) -> str:
-        return "constraint-work:" + canonical_sha256(self.to_dict(include_ref=False))
+        return "constraint-work:" + canonical_sha256(
+            self.to_dict(include_ref=False)
+        )
 
     def to_dict(self, *, include_ref: bool = True) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "constraint_ref": self.constraint_ref,
             "incident_factor_refs": list(self.incident_factor_refs),
             "triggering_factor_refs": list(self.triggering_factor_refs),
+            "propagation_wave": self.propagation_wave,
         }
         if include_ref:
             payload["work_ref"] = self.work_ref
@@ -80,7 +86,9 @@ class ConstraintWorklistResult:
         return payload
 
 
-def _coerce_constraint(value: FactorConstraint | Mapping[str, Any]) -> FactorConstraint:
+def _coerce_constraint(
+    value: FactorConstraint | Mapping[str, Any],
+) -> FactorConstraint:
     if isinstance(value, FactorConstraint):
         return value
     return FactorConstraint(
@@ -111,7 +119,7 @@ def evaluate_constraint_worklist(
     constraints: Sequence[FactorConstraint | Mapping[str, Any]],
     changed_factor_refs: Iterable[str] | None = None,
 ) -> ConstraintWorklistResult:
-    """Evaluate only constraints incident on the changed factor frontier."""
+    """Evaluate the initial graph or only the changed-factor frontier."""
 
     known_factors = frozenset(str(ref) for ref in factor_refs)
     declarations = tuple(
@@ -134,29 +142,26 @@ def evaluate_constraint_worklist(
                 declaration.constraint_ref
             )
 
-    changed = (
-        frozenset(str(ref) for ref in changed_factor_refs)
-        if changed_factor_refs is not None
-        else known_factors
-    )
-    queue = deque(
-        sorted(
-            {
-                constraint_ref
-                for factor_ref in changed
-                for constraint_ref in adjacency.get(factor_ref, ())
-            }
-            or set(by_ref)
-        )
-    )
-    queued = set(queue)
+    if changed_factor_refs is None:
+        changed = known_factors
+        initial_constraint_refs = set(by_ref)
+    else:
+        changed = frozenset(str(ref) for ref in changed_factor_refs)
+        initial_constraint_refs = {
+            constraint_ref
+            for factor_ref in changed
+            for constraint_ref in adjacency.get(factor_ref, ())
+        }
+
+    queue = deque((constraint_ref, 0) for constraint_ref in sorted(initial_constraint_refs))
+    queued = set(initial_constraint_refs)
     assessments: dict[str, ConstraintAssessment] = {}
     work_items: list[ConstraintWorkItem] = []
-    rounds = 0
+    maximum_wave = -1
 
     while queue:
-        rounds += 1
-        constraint_ref = queue.popleft()
+        constraint_ref, wave = queue.popleft()
+        maximum_wave = max(maximum_wave, wave)
         queued.discard(constraint_ref)
         declaration = by_ref[constraint_ref]
         incident = tuple(
@@ -171,6 +176,7 @@ def evaluate_constraint_worklist(
                 constraint_ref=constraint_ref,
                 incident_factor_refs=incident,
                 triggering_factor_refs=triggers,
+                propagation_wave=wave,
             )
         )
         source_ok = set(declaration.source_factor_refs).issubset(known_factors)
@@ -204,7 +210,7 @@ def evaluate_constraint_worklist(
             for factor_ref in incident:
                 for neighbour in adjacency.get(factor_ref, ()):
                     if neighbour not in queued:
-                        queue.append(neighbour)
+                        queue.append((neighbour, wave + 1))
                         queued.add(neighbour)
 
     return ConstraintWorklistResult(
@@ -214,7 +220,7 @@ def evaluate_constraint_worklist(
         ),
         work_items=tuple(work_items),
         changed_factor_refs=tuple(sorted(changed)),
-        fixed_point_rounds=rounds,
+        fixed_point_rounds=maximum_wave + 1,
     )
 
 
