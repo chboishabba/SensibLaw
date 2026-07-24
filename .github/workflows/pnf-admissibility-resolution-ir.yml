@@ -8,7 +8,9 @@ on:
     paths:
       - "src/pnf/domain_ir.py"
       - "src/pnf/domain_ir_projection.py"
+      - "src/pnf/domain_ir_applicability.py"
       - "src/pnf/semantic_lifecycle.py"
+      - "src/pnf/semantic_lifecycle_pipeline.py"
       - "src/pnf/ir_execution.py"
       - "src/pnf/lifecycle_assessment_projection.py"
       - "src/pnf/projection_factor_binding.py"
@@ -20,7 +22,9 @@ on:
       - "src/storage/postgres/semantic_lifecycle_store.py"
       - "database/postgres_migrations/023_pnf_semantic_lifecycle.sql"
       - "tests/pnf/test_semantic_lifecycle.py"
+      - "tests/pnf/test_semantic_lifecycle_pipeline.py"
       - "tests/pnf/test_domain_ir_projection.py"
+      - "tests/pnf/test_domain_ir_applicability.py"
       - "tests/pnf/test_ir_execution.py"
       - "tests/pnf/test_lifecycle_assessment_projection.py"
       - "tests/pnf/test_projection_factor_binding.py"
@@ -79,7 +83,9 @@ jobs:
           uv run ruff check \
             src/pnf/domain_ir.py \
             src/pnf/domain_ir_projection.py \
+            src/pnf/domain_ir_applicability.py \
             src/pnf/semantic_lifecycle.py \
+            src/pnf/semantic_lifecycle_pipeline.py \
             src/pnf/ir_execution.py \
             src/pnf/lifecycle_assessment_projection.py \
             src/pnf/projection_factor_binding.py \
@@ -90,7 +96,9 @@ jobs:
             src/policy/optimized_streaming_postgres_corpus_compilation.py \
             src/storage/postgres/semantic_lifecycle_store.py \
             tests/pnf/test_semantic_lifecycle.py \
+            tests/pnf/test_semantic_lifecycle_pipeline.py \
             tests/pnf/test_domain_ir_projection.py \
+            tests/pnf/test_domain_ir_applicability.py \
             tests/pnf/test_ir_execution.py \
             tests/pnf/test_lifecycle_assessment_projection.py \
             tests/pnf/test_projection_factor_binding.py \
@@ -101,7 +109,9 @@ jobs:
         run: |
           uv run pytest -q \
             tests/pnf/test_semantic_lifecycle.py \
+            tests/pnf/test_semantic_lifecycle_pipeline.py \
             tests/pnf/test_domain_ir_projection.py \
+            tests/pnf/test_domain_ir_applicability.py \
             tests/pnf/test_ir_execution.py \
             tests/pnf/test_lifecycle_assessment_projection.py \
             tests/pnf/test_projection_factor_binding.py \
@@ -162,6 +172,7 @@ jobs:
           artifacts = compilation.artifacts
           assert artifacts["operational_compiler_contract"] == FIBRED_OPERATIONAL_COMPILER_CONTRACT
           assert artifacts["semantic_lifecycle"]["reduction_is_not_resolution"] is True
+          assert artifacts["candidate_assessments"]
           assert artifacts["domain_ir_build"]["memory_projection_included"] is False
           assert artifacts["phase_boundary"]["execution_requires_applicability_witness"] is True
           assert all(row["authority"] == "projection_demand_only" for row in artifacts["projection_demands"])
