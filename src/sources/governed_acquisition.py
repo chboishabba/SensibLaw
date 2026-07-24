@@ -54,6 +54,7 @@ class FetchedSource:
     media_type: str
     raw_bytes: bytes
     canonical_text: str
+    adapter_ref: str = "media:external-canonical-text:v0_1"
 
 
 @dataclass(frozen=True)
@@ -120,6 +121,8 @@ def acquire_legal_source(
             raise ValueError("fetched source exceeds acquisition byte limit")
         if fetched.media_type not in set(policy.allowed_media_types):
             raise ValueError("fetched source media type is not permitted")
+        if not fetched.adapter_ref:
+            raise ValueError("fetched source requires a canonical media adapter")
         content_sha256 = hashlib.sha256(fetched.raw_bytes).hexdigest()
         canonical_sha256_hex = hashlib.sha256(
             fetched.canonical_text.encode("utf-8")
@@ -130,6 +133,7 @@ def acquire_legal_source(
                 "content_sha256": content_sha256,
                 "canonical_text_sha256": canonical_sha256_hex,
                 "media_type": fetched.media_type,
+                "adapter_ref": fetched.adapter_ref,
             }
         )
         receipt = AcquisitionReceipt(
@@ -152,6 +156,7 @@ def acquire_legal_source(
             "temporal_refs": request.temporal_refs,
             "provider_profile_refs": (request.provider_profile_ref,),
             "media_type": fetched.media_type,
+            "adapter_ref": fetched.adapter_ref,
             "canonical_text_sha256": canonical_sha256_hex,
             "raw_bytes": fetched.raw_bytes,
             "canonical_text": fetched.canonical_text,
