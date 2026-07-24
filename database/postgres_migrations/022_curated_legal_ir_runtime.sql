@@ -97,11 +97,22 @@ CREATE TABLE IF NOT EXISTS governed_acquisition_receipt (
     UNIQUE (request_ref, content_sha256)
 );
 
-ALTER TABLE legal_source_revision
-    ADD CONSTRAINT legal_source_revision_acquisition_fk
-    FOREIGN KEY (acquisition_receipt_ref)
-    REFERENCES governed_acquisition_receipt(receipt_ref)
-    DEFERRABLE INITIALLY DEFERRED;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'legal_source_revision_acquisition_fk'
+          AND conrelid = 'legal_source_revision'::regclass
+    ) THEN
+        ALTER TABLE legal_source_revision
+            ADD CONSTRAINT legal_source_revision_acquisition_fk
+            FOREIGN KEY (acquisition_receipt_ref)
+            REFERENCES governed_acquisition_receipt(receipt_ref)
+            DEFERRABLE INITIALLY DEFERRED;
+    END IF;
+END
+$$;
 
 CREATE TABLE IF NOT EXISTS execution_document_transaction_attempt (
     attempt_ref TEXT PRIMARY KEY,
