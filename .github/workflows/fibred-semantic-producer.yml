@@ -1,0 +1,267 @@
+name: Fibred semantic producer validation
+
+on:
+  push:
+    branches:
+      - agent/fibred-semantic-producer
+  pull_request:
+    paths:
+      - "src/pnf/factor_proposals.py"
+      - "src/pnf/semantic_fibres.py"
+      - "src/pnf/integrated_semantic_producer.py"
+      - "src/pnf/fibred_build_projection.py"
+      - "src/pnf/constraint_worklist.py"
+      - "src/pnf/streaming_operator_executor.py"
+      - "src/pnf/streaming_reduction_projection.py"
+      - "src/pnf/__init__.py"
+      - "src/policy/fibred_operational_corpus_compilation.py"
+      - "src/policy/streaming_postgres_corpus_compilation.py"
+      - "src/storage/postgres/semantic_fibre_store.py"
+      - "scripts/run_legal_pnf_probe.py"
+      - "database/postgres_migrations/021_semantic_fibres.sql"
+      - "tests/pnf/test_semantic_fibres.py"
+      - "tests/pnf/test_integrated_semantic_producer.py"
+      - "tests/pnf/test_factor_proposals.py"
+      - "tests/pnf/test_constraint_worklist.py"
+      - "tests/policy/test_fibred_operational_corpus_compilation.py"
+      - "docs/dev/FibredSemanticCompiler.md"
+      - ".github/workflows/fibred-semantic-producer.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sensiblaw_fibred_validation
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sensiblaw_fibred_validation"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sensiblaw_fibred_validation
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: sensiblaw_fibred_validation
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install environment
+        run: |
+          python -m pip install --upgrade pip uv
+          uv sync --frozen --extra test --extra dev
+
+      - name: Apply migrations
+        run: bash scripts/apply_pg_migrations.sh
+
+      - name: Lint fibred compiler surfaces
+        run: |
+          uv run ruff check \
+            src/pnf/factor_proposals.py \
+            src/pnf/semantic_fibres.py \
+            src/pnf/integrated_semantic_producer.py \
+            src/pnf/fibred_build_projection.py \
+            src/pnf/constraint_worklist.py \
+            src/pnf/streaming_operator_executor.py \
+            src/pnf/streaming_reduction_projection.py \
+            src/pnf/__init__.py \
+            src/policy/fibred_operational_corpus_compilation.py \
+            src/policy/streaming_postgres_corpus_compilation.py \
+            src/storage/postgres/semantic_fibre_store.py \
+            scripts/run_legal_pnf_probe.py \
+            tests/pnf/test_semantic_fibres.py \
+            tests/pnf/test_integrated_semantic_producer.py \
+            tests/pnf/test_factor_proposals.py \
+            tests/pnf/test_constraint_worklist.py \
+            tests/policy/test_fibred_operational_corpus_compilation.py
+
+      - name: Run fibred compiler tests
+        run: |
+          uv run pytest -q \
+            tests/pnf/test_semantic_fibres.py \
+            tests/pnf/test_integrated_semantic_producer.py \
+            tests/pnf/test_factor_proposals.py \
+            tests/pnf/test_constraint_worklist.py \
+            tests/pnf/test_streaming_operator_executor.py \
+            tests/pnf/test_streaming_fixed_point.py \
+            tests/pnf/test_zelph_closure_executor.py \
+            tests/policy/test_fibred_operational_corpus_compilation.py
+
+      - name: Validate fibre migration guards
+        run: |
+          uv run python - <<'PY'
+          import os
+          import psycopg
+
+          required = (
+              'semantic_coordinate',
+              'semantic_fibre_element',
+              'semantic_fibre_derivation',
+              'semantic_transport',
+              'semantic_ontology_axis',
+              'semantic_axis_obligation',
+              'semantic_fibre_boundary_obligation',
+              'semantic_fibre_summary',
+              'integrated_semantic_producer_receipt',
+          )
+          with psycopg.connect(os.environ['DATABASE_URL']) as connection:
+              with connection.cursor() as cursor:
+                  for table in required:
+                      cursor.execute(
+                          "SELECT to_regclass(%s)",
+                          (f'public.{table}',),
+                      )
+                      assert cursor.fetchone()[0] == table
+          PY
+
+      - name: Persist one fibred semantic build
+        run: |
+          uv run python - <<'PY'
+          import os
+          import psycopg
+
+          from src.pnf.factor_proposals import FactorProposal, reduce_factor_proposals
+          from src.pnf.semantic_fibres import SemanticCoordinate
+          from src.pnf.streaming_fixed_point import ObservationDelta
+          from src.storage.postgres.semantic_fibre_store import (
+              persist_semantic_fibre_artifacts,
+          )
+
+          document_ref = 'document:fibre-validation'
+          observation_ref = 'observation:must'
+          delta = ObservationDelta(
+              document_ref=document_ref,
+              batch_ref='batch:1',
+              scope_ref='sentence:1',
+              sequence_no=0,
+              parser_contract='parser:test:v1',
+              observation_refs=(observation_ref,),
+              observations=({
+                  'observation_ref': observation_ref,
+                  'observation_type': 'parser.token',
+                  'fibre_kind': 'observation',
+                  'token': {'text': 'must', 'index': 0},
+              },),
+              token_start=0,
+              token_end=1,
+              char_start=0,
+              char_end=4,
+              token_count=1,
+              coverage_barrier='sentence',
+              coverage_complete=True,
+          )
+          coordinate = SemanticCoordinate(
+              document_ref=document_ref,
+              scope_ref='sentence:1',
+              source_span_refs=(observation_ref,),
+              statement_role='parser_observation',
+              factor_family='parser.token',
+          )
+          delta_row = delta.to_dict()
+          delta_row['observations'][0]['semantic_coordinate_ref'] = coordinate.coordinate_ref
+          proposal = FactorProposal(
+              document_ref=document_ref,
+              source_revision_ref='source:1',
+              factor_type_ref='semantic.normative_relation',
+              source_span_refs=('span:1',),
+              input_observation_refs=(observation_ref,),
+              dependency_factor_refs=(),
+              structural_signature='normative:v1',
+              role_bindings={'conduct': 'eventuality:drive'},
+              qualifier_state={'modality': 'obligation'},
+              producer_contract='operator:test:v1',
+              declaration_revision='v1',
+              candidate_payload={'predicate_ref': 'normative.obligation'},
+              scope_ref='sentence:1',
+              fibre_kind='composition',
+          )
+          reduction = reduce_factor_proposals(
+              document_ref=document_ref,
+              proposals=(proposal,),
+              known_observation_refs=(observation_ref,),
+          )
+          with psycopg.connect(os.environ['DATABASE_URL']) as connection:
+              with connection.cursor() as cursor:
+                  receipt = persist_semantic_fibre_artifacts(
+                      cursor,
+                      document_ref=document_ref,
+                      observation_deltas=(delta_row,),
+                      proposals=(proposal.to_dict(),),
+                      solver_jobs=(),
+                      solver_receipts=(),
+                      materialized_reduction=reduction.to_dict(),
+                  )
+                  assert receipt.fibre_ledger_ref.startswith('semantic-fibre-ledger:')
+                  cursor.execute(
+                      'SELECT count(*) FROM semantic_fibre_element WHERE document_ref = %s',
+                      (document_ref,),
+                  )
+                  assert cursor.fetchone()[0] == 2
+                  cursor.execute(
+                      'SELECT count(*) FROM semantic_fibre_summary WHERE document_ref = %s',
+                      (document_ref,),
+                  )
+                  assert cursor.fetchone()[0] == 1
+                  cursor.execute(
+                      'SELECT one_proposal_contract, one_reduction_authority '
+                      'FROM integrated_semantic_producer_receipt WHERE document_ref = %s',
+                      (document_ref,),
+                  )
+                  assert cursor.fetchone() == (True, True)
+              connection.commit()
+          PY
+
+      - name: Run one fibred Legal PNF probe
+        run: |
+          mkdir -p build/fibred-probe-input
+          printf '%s\n' 'A driver must not drive unless licensed.' > build/fibred-probe-input/norm.txt
+          uv run python scripts/run_legal_pnf_probe.py \
+            --input-file build/fibred-probe-input/norm.txt \
+            --output-dir build/fibred-probe \
+            --max-files 1 \
+            --compare-legacy \
+            --closure-workers 2 \
+            --owner-partitions 2
+          uv run python - <<'PY'
+          import json
+          from pathlib import Path
+
+          summary = json.loads(
+              Path('build/fibred-probe/coverage_scorecard.json').read_text()
+          )
+          assert summary['document_count'] == 1
+          assert summary['fibred_build_count'] == 1
+          assert summary['one_proposal_contract'] is True
+          assert summary['one_reduction_authority'] is True
+          document_dir = next(Path('build/fibred-probe/documents').iterdir())
+          build = json.loads(
+              (document_dir / 'fibred_semantic_build.json').read_text()
+          )
+          assert build['fibre_ledger']['ledger_ref'].startswith(
+              'semantic-fibre-ledger:'
+          )
+          assert build['identity_promoted'] is False
+          assert build['legal_truth_closed'] is False
+          timings = json.loads(
+              (document_dir / 'probe_stage_timings.json').read_text()
+          )
+          stages = {row['stage'] for row in timings['probe_timings']}
+          assert 'fibred_document_compile' in stages
+          assert 'operator_compatibility_projection' not in stages
+          PY

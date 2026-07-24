@@ -1,4 +1,4 @@
-"""Transactional PostgreSQL persistence for streaming semantic document builds."""
+"""Transactional PostgreSQL persistence for fibred streaming document builds."""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ from time import monotonic_ns
 from typing import Any, Mapping
 
 from src.policy.corpus_compilation import CompilerContext
-from src.policy.operational_corpus_compilation import (
-    OPERATIONAL_COMPILER_CONTRACT,
-    compile_document_operational,
+from src.policy.fibred_operational_corpus_compilation import (
+    FIBRED_OPERATIONAL_COMPILER_CONTRACT,
+    compile_document_fibred_operational,
 )
 from src.policy.postgres_corpus_compilation import (
     _canonical_source_coordinates,
@@ -26,6 +26,9 @@ from src.storage.postgres.factor_revision_store import persist_factor_revision
 from src.storage.postgres.operational_build_store import (
     load_completed_operational_build,
     persist_completed_operational_build,
+)
+from src.storage.postgres.semantic_fibre_store import (
+    persist_semantic_fibre_artifacts,
 )
 from src.storage.postgres.semantic_store import (
     persist_pnf_graph,
@@ -52,7 +55,7 @@ def _with_persistence_timing(
         elapsed_ms=elapsed_ms,
         backend_ref="postgresql",
         details={
-            "transaction_scope": "document_immutable_build",
+            "transaction_scope": "document_immutable_fibred_build",
             "excludes": [
                 "semantic_stage_timing_insert",
                 "completed_build_receipt_insert",
@@ -86,7 +89,7 @@ def persist_streaming_document_compilation(
     closure_workers: int = 2,
     owner_partitions: int = 2,
 ) -> tuple[str, ...]:
-    """Compile and persist one immutable document and its fixed-point evidence."""
+    """Compile and persist one immutable fibred fixed-point document build."""
 
     document_ref = str(entry["document_ref"])
     content_sha256 = str(entry["content_sha256"])
@@ -129,7 +132,7 @@ def persist_streaming_document_compilation(
         cached_demand_refs = load_completed_operational_build(
             cursor,
             document_ref=document_ref,
-            compiler_contract_ref=OPERATIONAL_COMPILER_CONTRACT,
+            compiler_contract_ref=FIBRED_OPERATIONAL_COMPILER_CONTRACT,
             build_key_sha256=build_key_sha256,
         )
         if cached_demand_refs is not None:
@@ -142,7 +145,7 @@ def persist_streaming_document_compilation(
             )
             return cached_demand_refs
 
-    compilation = compile_document_operational(
+    compilation = compile_document_fibred_operational(
         {
             "document_ref": document_ref,
             "content_sha256": content_sha256,
@@ -159,6 +162,10 @@ def persist_streaming_document_compilation(
         raise ValueError(
             "operational compiler build key disagrees with persistence"
         )
+    if artifacts.get("operational_compiler_contract") != (
+        FIBRED_OPERATIONAL_COMPILER_CONTRACT
+    ):
+        raise ValueError("catalogue persistence requires the fibred compiler")
     source_normalisation = artifacts.get("source_normalisation") or {}
     if str(source_normalisation.get("adapter_ref") or "") != media_adapter_ref:
         raise ValueError(
@@ -170,9 +177,10 @@ def persist_streaming_document_compilation(
         expected_sha256=canonical_text_sha256,
     )
     refinements = tuple(artifacts.get("factor_refinements") or ())
-    candidate_sets = tuple(
-        artifacts.get("binding_candidate_sets") or ()
+    compatibility_refinements = tuple(
+        artifacts.get("compatibility_factor_refinements") or refinements
     )
+    candidate_sets = tuple(artifacts.get("binding_candidate_sets") or ())
     factor_anchors = tuple(artifacts.get("factor_anchors") or ())
     candidate_set_builds = tuple(
         artifacts.get("binding_candidate_set_builds") or ()
@@ -188,6 +196,11 @@ def persist_streaming_document_compilation(
         raise ValueError(
             "only locally fixed-point streaming builds may be persisted"
         )
+    if not streaming_build.get("one_reduction_authority"):
+        raise ValueError("fibred build requires one reduction authority")
+    expected_producer_receipt = (
+        streaming_build.get("integrated_producer_receipt") or {}
+    )
 
     persistence_started = monotonic_ns()
     with store.savepoint() as cursor:
@@ -255,7 +268,7 @@ def persist_streaming_document_compilation(
         persist_binding_candidate_sets(
             cursor,
             candidate_sets=candidate_sets,
-            refinements=refinements,
+            refinements=compatibility_refinements,
             factor_revisions=base_factor_revisions,
             factor_anchors=factor_anchors,
             builds=candidate_set_builds,
@@ -278,10 +291,70 @@ def persist_streaming_document_compilation(
             streaming_build=streaming_build,
             stage_timing_ledger=persisted_stage_timing,
         )
+        persisted_producer_receipt = persist_semantic_fibre_artifacts(
+            cursor,
+            document_ref=compilation.document_ref,
+            observation_deltas=tuple(
+                row
+                for row in streaming_build.get("observation_deltas") or ()
+                if isinstance(row, Mapping)
+            ),
+            proposals=tuple(
+                row
+                for row in streaming_build.get("proposals") or ()
+                if isinstance(row, Mapping)
+            ),
+            solver_jobs=tuple(
+                row
+                for row in streaming_build.get("solver_jobs") or ()
+                if isinstance(row, Mapping)
+            ),
+            solver_receipts=tuple(
+                row
+                for row in streaming_build.get("solver_receipts") or ()
+                if isinstance(row, Mapping)
+            ),
+            materialized_reduction=(
+                streaming_build.get("materialized_reduction") or {}
+            ),
+            transports=tuple(
+                row
+                for row in streaming_build.get("semantic_transports") or ()
+                if isinstance(row, Mapping)
+            ),
+            ontology_axes=tuple(
+                row
+                for row in streaming_build.get("ontology_axes") or ()
+                if isinstance(row, Mapping)
+            ),
+            axis_obligations=tuple(
+                row
+                for row in streaming_build.get("axis_obligations") or ()
+                if isinstance(row, Mapping)
+            ),
+            boundary_obligations=tuple(
+                row
+                for row in streaming_build.get("fibre_boundary_obligations") or ()
+                if isinstance(row, Mapping)
+            ),
+        )
+        if expected_producer_receipt:
+            if persisted_producer_receipt.fibre_ledger_ref != str(
+                expected_producer_receipt.get("fibre_ledger_ref") or ""
+            ):
+                raise ValueError(
+                    "persisted fibre ledger disagrees with compiler receipt"
+                )
+            if persisted_producer_receipt.receipt_ref != str(
+                expected_producer_receipt.get("receipt_ref") or ""
+            ):
+                raise ValueError(
+                    "persisted producer receipt disagrees with compiler receipt"
+                )
         persist_completed_operational_build(
             cursor,
             document_ref=compilation.document_ref,
-            compiler_contract_ref=OPERATIONAL_COMPILER_CONTRACT,
+            compiler_contract_ref=FIBRED_OPERATIONAL_COMPILER_CONTRACT,
             build_key_sha256=build_key_sha256,
             graph_ref=str(artifacts["pnf_graph"]["graph_ref"]),
             demand_refs=demand_refs,

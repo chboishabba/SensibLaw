@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a bounded legal-document probe through the streaming compiler spine."""
+"""Run a bounded legal-document probe through the fibred compiler spine."""
 
 from __future__ import annotations
 
@@ -24,12 +24,10 @@ from src.ontology.wikimedia_providers import (  # noqa: E402
 )
 from src.pnf.legal_probe import build_legal_pnf_probe  # noqa: E402
 from src.pnf.legal_semantic_build import build_legal_semantic_build  # noqa: E402
-from src.pnf.operator_composition_bridge import (  # noqa: E402
-    apply_operator_composition_to_compilation,
-)
 from src.policy.corpus_compilation import default_compiler_context  # noqa: E402
-from src.policy.operational_corpus_compilation import (  # noqa: E402
-    compile_document_operational,
+from src.policy.fibred_operational_corpus_compilation import (  # noqa: E402
+    FIBRED_OPERATIONAL_COMPILER_CONTRACT,
+    compile_document_fibred_operational,
 )
 
 
@@ -113,7 +111,7 @@ def _compile_projection_row(
 ) -> Mapping[str, Any]:
     canonical_path = projection_root / row.canonical_path
     canonical_text = canonical_path.read_text(encoding="utf-8")
-    compilation = compile_document_operational(
+    compilation = compile_document_fibred_operational(
         {
             "document_ref": _document_ref(row.canonical_sha256),
             "source_ref": row.source_ref,
@@ -188,33 +186,29 @@ def main() -> int:
         compilation = _timed(
             document_timings,
             document_ref=document_ref,
-            stage="streaming_document_compile",
+            stage="fibred_document_compile",
             operation=lambda: _compile_projection_row(
                 row,
                 projection_root,
                 closure_workers=args.closure_workers,
                 owner_partitions=args.owner_partitions,
             ),
-            backend_ref="streaming-semantic-owner:v0_1",
+            backend_ref=FIBRED_OPERATIONAL_COMPILER_CONTRACT,
         )
-        base_artifacts = compilation.get("artifacts") or {}
-        streaming = base_artifacts.get("streaming_semantic_build") or {}
+        artifacts = compilation.get("artifacts") or {}
+        streaming = artifacts.get("streaming_semantic_build") or {}
         certificate = streaming.get("fixed_point_certificate") or {}
         if certificate.get("local_fixed_point") != "reached":
             raise ValueError(
                 "Legal IR projection requires a reached local fixed point"
             )
+        if not streaming.get("one_reduction_authority"):
+            raise ValueError(
+                "Legal IR projection requires the fibred reduction authority"
+            )
+        if not artifacts.get("fibred_semantic_build"):
+            raise ValueError("fibred semantic build evidence is missing")
 
-        compilation = _timed(
-            document_timings,
-            document_ref=document_ref,
-            stage="operator_compatibility_projection",
-            operation=lambda: apply_operator_composition_to_compilation(
-                compilation
-            ),
-            backend_ref="pnf-operator-composition-bridge:v0_1",
-        )
-        artifacts = compilation.get("artifacts") or {}
         canonical_text = str(artifacts.get("canonical_text") or "")
         legacy = (
             _timed(
@@ -255,9 +249,13 @@ def main() -> int:
             details={
                 "fixed_point_certificate_ref": certificate.get(
                     "certificate_ref"
-                )
+                ),
+                "fibre_ledger_ref": streaming.get("fibre_ledger_ref"),
             },
         )
+        projection_receipt = artifacts.get(
+            "streaming_reduction_projection"
+        ) or {}
         semantic_build = _timed(
             document_timings,
             document_ref=document_ref,
@@ -268,12 +266,7 @@ def main() -> int:
                 legacy_rows=legacy,
                 declaration_revision_refs=(
                     *(artifacts.get("semantic_reduction_refs") or ()),
-                    str(
-                        (
-                            artifacts.get("operator_composition") or {}
-                        ).get("contract_ref")
-                        or ""
-                    ),
+                    str(projection_receipt.get("contract_ref") or ""),
                 ),
             ),
         )
@@ -290,6 +283,14 @@ def main() -> int:
         _write_json(
             document_dir / "refined_pnf_graph.json",
             probe["refined_pnf_graph"],
+        )
+        _write_json(
+            document_dir / "fibred_semantic_build.json",
+            artifacts["fibred_semantic_build"],
+        )
+        _write_json(
+            document_dir / "streaming_reduction_projection.json",
+            projection_receipt,
         )
         _write_json(document_dir / "legal_ir.json", probe["legal_ir"])
         _write_json(
@@ -327,9 +328,10 @@ def main() -> int:
         _write_json(
             document_dir / "probe_stage_timings.json",
             {
-                "schema_version": "sl.legal_probe_stage_timings.v0_1",
+                "schema_version": "sl.legal_probe_stage_timings.v0_2",
                 "document_ref": document_ref,
                 "fixed_point_certificate": certificate,
+                "fibre_ledger_ref": streaming.get("fibre_ledger_ref"),
                 "compiler_stage_timings": (
                     artifacts.get("semantic_stage_timing") or {}
                 ),
@@ -349,12 +351,14 @@ def main() -> int:
                 "summary": {**probe["summary"], **semantic_build["summary"]},
                 "document_output_dir": str(document_dir),
                 "parser_receipt": artifacts.get("parser_receipt") or {},
-                "operator_composition": (
-                    artifacts.get("operator_composition") or {}
-                ),
+                "streaming_reduction_projection": projection_receipt,
                 "fixed_point_certificate_ref": certificate.get(
                     "certificate_ref"
                 ),
+                "fibre_ledger_ref": streaming.get("fibre_ledger_ref"),
+                "integrated_producer_receipt_ref": (
+                    streaming.get("integrated_producer_receipt") or {}
+                ).get("receipt_ref"),
                 "stage_build_keys": artifacts.get("stage_build_keys") or {},
             }
         )
@@ -376,7 +380,7 @@ def main() -> int:
                 surface=str(row["surface"]),
                 demand_kind=str(row["demand_kind"]),
                 local_type_refs=tuple(row.get("local_type_refs") or ()),
-                context_terms=tuple(row.get("context_terms") or ()),
+                candidate_limit=int(row.get("candidate_limit") or 5),
                 priority=int(row.get("priority") or 0),
                 provenance_refs=tuple(row.get("provenance_refs") or ()),
             )
@@ -401,10 +405,11 @@ def main() -> int:
     _write_json(output_dir / "wikidata_results.json", wikidata_output)
 
     timing_summary = {
-        "schema_version": "sl.legal_probe_timing_summary.v0_1",
+        "schema_version": "sl.legal_probe_timing_summary.v0_2",
         "runtime": {
             "closure_workers": args.closure_workers,
             "owner_partitions": args.owner_partitions,
+            "compiler_contract": FIBRED_OPERATIONAL_COMPILER_CONTRACT,
         },
         "aggregate": _aggregate_timings(all_timings),
         "timings": all_timings,
@@ -414,7 +419,7 @@ def main() -> int:
         timing_summary,
     )
     summary = {
-        "schema_version": "sl.legal_pnf_probe_run.v0_4",
+        "schema_version": "sl.legal_pnf_probe_run.v0_5",
         "source_projection": str(projection_root / "manifest.json"),
         "documents": probe_rows,
         "document_count": len(probe_rows),
@@ -433,7 +438,7 @@ def main() -> int:
         ),
         "operator_factor_count": sum(
             int(
-                (row.get("operator_composition") or {}).get(
+                (row.get("streaming_reduction_projection") or {}).get(
                     "factor_count"
                 )
                 or 0
@@ -444,6 +449,9 @@ def main() -> int:
             bool(row.get("fixed_point_certificate_ref"))
             for row in probe_rows
         ),
+        "fibred_build_count": sum(
+            bool(row.get("fibre_ledger_ref")) for row in probe_rows
+        ),
         "semantic_stage_timings": "semantic_stage_timings.json",
         "wikidata_lookup_demand_count": len(wikidata_demands),
         "wikidata_network_performed": wikidata_output[
@@ -451,6 +459,8 @@ def main() -> int:
         ],
         "identity_closure_count": 0,
         "legal_conclusion_promotion_count": 0,
+        "one_proposal_contract": True,
+        "one_reduction_authority": True,
         "authority": "diagnostic_build_index",
     }
     _write_json(output_dir / "coverage_scorecard.json", summary)

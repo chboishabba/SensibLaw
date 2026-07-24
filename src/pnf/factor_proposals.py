@@ -1,8 +1,11 @@
-"""Immutable document-local PNF proposals and deterministic reduction.
+"""Immutable fibred PNF proposals and deterministic reduction.
 
-Workers may generate proposals concurrently, but they never mutate a shared graph.
-The reducer validates references, orders by canonical keys, deduplicates byte-identical
-proposals, and retains incompatible alternatives as explicit residuals.
+Ordinary compiler operations are normalised under one integrated semantic
+producer family.  Their particular typing, linking, composition, constraint,
+closure, or enrichment operation remains explicit, while executor details stay
+outside semantic identity.  Workers may populate fibres concurrently; one
+fibrewise reducer materialises the active PNF view and retains incompatible
+alternatives and residual boundary data.
 """
 
 from __future__ import annotations
@@ -10,12 +13,40 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any, Iterable, Mapping, Sequence
 
+from src.pnf.semantic_fibres import SemanticCoordinate
 from src.policy.carriers.canonical import canonical_sha256
 
 
-FACTOR_PROPOSAL_SCHEMA_VERSION = "sl.pnf.factor_proposal.v0_1"
-PROPOSAL_REDUCTION_SCHEMA_VERSION = "sl.pnf.proposal_reduction.v0_1"
+INTEGRATED_SEMANTIC_PRODUCER_CONTRACT = "integrated-semantic-producer:v0_1"
+FACTOR_PROPOSAL_SCHEMA_VERSION = "sl.pnf.factor_proposal.v0_2"
+PROPOSAL_REDUCTION_SCHEMA_VERSION = "sl.pnf.proposal_reduction.v0_2"
 CROSS_DOCUMENT_RELATION_SCHEMA_VERSION = "sl.pnf.cross_document_relation.v0_1"
+
+_FIBRE_KINDS = {
+    "observation",
+    "hypothesis",
+    "composition",
+    "constraint",
+    "consequence",
+    "enrichment",
+    "residual",
+    "review",
+}
+_DERIVATION_ROLES = {"support", "contradict", "undetermined", "transport"}
+_PRODUCER_SCOPES = {"integrated", "external"}
+_SUPPORT_STATES = {
+    "unscored",
+    "candidate",
+    "supported",
+    "supported_with_residuals",
+    "contested",
+    "unsupported",
+    "unresolved",
+}
+
+
+def _refs(values: Iterable[str]) -> tuple[str, ...]:
+    return tuple(sorted({str(value) for value in values if str(value)}))
 
 
 @dataclass(frozen=True)
@@ -42,6 +73,8 @@ class CompositionDeclaration:
 
 @dataclass(frozen=True)
 class FactorProposal:
+    """One immutable candidate in the fibre over a semantic coordinate."""
+
     document_ref: str
     source_revision_ref: str
     factor_type_ref: str
@@ -55,6 +88,82 @@ class FactorProposal:
     declaration_revision: str
     candidate_payload: Mapping[str, Any]
     residuals: tuple[str, ...] = ()
+    scope_ref: str | None = None
+    statement_role: str = "main"
+    coordinate_kind: str = "object"
+    semantic_coordinate_ref: str | None = None
+    fibre_kind: str = "hypothesis"
+    derivation_role: str = "support"
+    producer_scope: str = "integrated"
+    operation_contract: str | None = None
+    ontology_axis_refs: tuple[str, ...] = ()
+    transport_refs: tuple[str, ...] = ()
+    support_state: str = "candidate"
+    confidence: float | None = None
+    assumptions: tuple[str, ...] = ()
+    coverage_requirements: tuple[str, ...] = ()
+    execution_metadata: Mapping[str, Any] = field(
+        default_factory=dict,
+        compare=False,
+        hash=False,
+    )
+
+    def __post_init__(self) -> None:
+        if not self.document_ref or not self.factor_type_ref:
+            raise ValueError("factor proposal requires document and factor type")
+        if self.fibre_kind not in _FIBRE_KINDS:
+            raise ValueError("unsupported proposal fibre kind")
+        if self.derivation_role not in _DERIVATION_ROLES:
+            raise ValueError("unsupported proposal derivation role")
+        if self.producer_scope not in _PRODUCER_SCOPES:
+            raise ValueError("unsupported proposal producer scope")
+        if self.support_state not in _SUPPORT_STATES:
+            raise ValueError("unsupported proposal support state")
+        if self.confidence is not None and not 0.0 <= self.confidence <= 1.0:
+            raise ValueError("proposal confidence must be between zero and one")
+
+        spans = _refs(self.source_span_refs)
+        observations = _refs(self.input_observation_refs)
+        dependencies = _refs(self.dependency_factor_refs)
+        residuals = _refs(self.residuals)
+        axes = _refs(self.ontology_axis_refs)
+        transports = _refs(self.transport_refs)
+        assumptions = _refs(self.assumptions)
+        coverage = _refs(self.coverage_requirements)
+        object.__setattr__(self, "source_span_refs", spans)
+        object.__setattr__(self, "input_observation_refs", observations)
+        object.__setattr__(self, "dependency_factor_refs", dependencies)
+        object.__setattr__(self, "residuals", residuals)
+        object.__setattr__(self, "ontology_axis_refs", axes)
+        object.__setattr__(self, "transport_refs", transports)
+        object.__setattr__(self, "assumptions", assumptions)
+        object.__setattr__(self, "coverage_requirements", coverage)
+
+        resolved_scope = self.scope_ref or (
+            min(spans) if spans else "document-global"
+        )
+        object.__setattr__(self, "scope_ref", resolved_scope)
+
+        operation_contract = self.operation_contract
+        producer_contract = self.producer_contract
+        if self.producer_scope == "integrated":
+            operation_contract = operation_contract or producer_contract
+            producer_contract = INTEGRATED_SEMANTIC_PRODUCER_CONTRACT
+        else:
+            operation_contract = operation_contract or producer_contract
+        object.__setattr__(self, "operation_contract", operation_contract)
+        object.__setattr__(self, "producer_contract", producer_contract)
+
+        coordinate = SemanticCoordinate(
+            document_ref=self.document_ref,
+            scope_ref=resolved_scope,
+            source_span_refs=spans,
+            statement_role=self.statement_role,
+            factor_family=self.factor_type_ref,
+            coordinate_kind=self.coordinate_kind,
+        )
+        coordinate_ref = self.semantic_coordinate_ref or coordinate.coordinate_ref
+        object.__setattr__(self, "semantic_coordinate_ref", coordinate_ref)
 
     @property
     def proposal_digest(self) -> str:
@@ -65,20 +174,36 @@ class FactorProposal:
         return "factor-proposal:" + self.proposal_digest
 
     def identity_payload(self) -> dict[str, Any]:
+        """Return semantic identity without executor-specific telemetry."""
+
         return {
             "document_ref": self.document_ref,
             "source_revision_ref": self.source_revision_ref,
+            "semantic_coordinate_ref": self.semantic_coordinate_ref,
+            "scope_ref": self.scope_ref,
+            "statement_role": self.statement_role,
+            "coordinate_kind": self.coordinate_kind,
+            "fibre_kind": self.fibre_kind,
+            "derivation_role": self.derivation_role,
             "factor_type_ref": self.factor_type_ref,
-            "source_span_refs": sorted(set(self.source_span_refs)),
-            "input_observation_refs": sorted(set(self.input_observation_refs)),
-            "dependency_factor_refs": sorted(set(self.dependency_factor_refs)),
+            "source_span_refs": list(self.source_span_refs),
+            "input_observation_refs": list(self.input_observation_refs),
+            "dependency_factor_refs": list(self.dependency_factor_refs),
             "structural_signature": self.structural_signature,
             "role_bindings": dict(sorted(self.role_bindings.items())),
             "qualifier_state": dict(self.qualifier_state),
             "producer_contract": self.producer_contract,
+            "producer_scope": self.producer_scope,
+            "operation_contract": self.operation_contract,
             "declaration_revision": self.declaration_revision,
+            "ontology_axis_refs": list(self.ontology_axis_refs),
+            "transport_refs": list(self.transport_refs),
+            "support_state": self.support_state,
+            "confidence": self.confidence,
+            "assumptions": list(self.assumptions),
+            "coverage_requirements": list(self.coverage_requirements),
             "candidate_payload": dict(self.candidate_payload),
-            "residuals": sorted(set(self.residuals)),
+            "residuals": list(self.residuals),
         }
 
     def to_dict(self) -> dict[str, Any]:
@@ -87,7 +212,12 @@ class FactorProposal:
             "proposal_ref": self.proposal_ref,
             "proposal_digest": self.proposal_digest,
             **self.identity_payload(),
-            "authority": "candidate_only",
+            "execution_metadata": dict(self.execution_metadata),
+            "authority": (
+                "external_candidate"
+                if self.producer_scope == "external"
+                else "candidate_only"
+            ),
         }
 
 
@@ -98,6 +228,8 @@ class ReductionResidual:
     residual_type: str
     proposal_refs: tuple[str, ...]
     message: str
+    semantic_coordinate_ref: str | None = None
+    boundary_kind: str = "fibre"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -107,6 +239,8 @@ class ReductionResidual:
 class ReducedFactor:
     factor_ref: str
     document_ref: str
+    semantic_coordinate_ref: str
+    fibre_kind: str
     factor_type_ref: str
     structural_signature: str
     proposal_refs: tuple[str, ...]
@@ -114,11 +248,17 @@ class ReducedFactor:
     role_bindings: Mapping[str, str]
     qualifier_state: Mapping[str, Any]
     residuals: tuple[str, ...]
+    derivation_roles: tuple[str, ...] = ()
+    ontology_axis_refs: tuple[str, ...] = ()
+    transport_refs: tuple[str, ...] = ()
+    support_states: tuple[str, ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "factor_ref": self.factor_ref,
             "document_ref": self.document_ref,
+            "semantic_coordinate_ref": self.semantic_coordinate_ref,
+            "fibre_kind": self.fibre_kind,
             "factor_type_ref": self.factor_type_ref,
             "structural_signature": self.structural_signature,
             "proposal_refs": list(self.proposal_refs),
@@ -126,7 +266,13 @@ class ReducedFactor:
             "role_bindings": dict(self.role_bindings),
             "qualifier_state": dict(self.qualifier_state),
             "residuals": list(self.residuals),
-            "closure_state": "requires_review" if self.residuals else "locally_closed",
+            "derivation_roles": list(self.derivation_roles),
+            "ontology_axis_refs": list(self.ontology_axis_refs),
+            "transport_refs": list(self.transport_refs),
+            "support_states": list(self.support_states),
+            "closure_state": (
+                "requires_review" if self.residuals else "locally_closed"
+            ),
         }
 
 
@@ -145,6 +291,7 @@ class ProposalReduction:
                 "document_ref": self.document_ref,
                 "factors": [row.to_dict() for row in self.factors],
                 "residuals": [row.to_dict() for row in self.residuals],
+                "reduction_contract": "deterministic-fibrewise-pnf:v0_1",
             }
         )
 
@@ -155,8 +302,16 @@ class ProposalReduction:
             "graph_ref": self.graph_ref,
             "proposal_count": self.proposal_count,
             "deduplicated_count": self.deduplicated_count,
+            "semantic_coordinate_refs": sorted(
+                {row.semantic_coordinate_ref for row in self.factors}
+            ),
             "factors": [row.to_dict() for row in self.factors],
             "residuals": [row.to_dict() for row in self.residuals],
+            "reduction_contract": "deterministic-fibrewise-pnf:v0_1",
+            "integrated_producer_contract": (
+                INTEGRATED_SEMANTIC_PRODUCER_CONTRACT
+            ),
+            "fibrewise_reduction": True,
             "identity_promoted": False,
             "legal_truth_closed": False,
         }
@@ -175,7 +330,9 @@ class CrossDocumentRelation:
 
     @property
     def relation_ref(self) -> str:
-        return "cross-document-relation:" + canonical_sha256(self.identity_payload())
+        return "cross-document-relation:" + canonical_sha256(
+            self.identity_payload()
+        )
 
     def identity_payload(self) -> dict[str, Any]:
         return {
@@ -212,13 +369,21 @@ def proposal_build_key(
             "canonical_text_digest": canonical_text_digest,
             "producer_contract": producer_contract,
             "declaration_revision": declaration_revision,
-            "input_observation_digests": sorted(set(input_observation_digests)),
-            "dependency_factor_digests": sorted(set(dependency_factor_digests)),
+            "input_observation_digests": sorted(
+                set(input_observation_digests)
+            ),
+            "dependency_factor_digests": sorted(
+                set(dependency_factor_digests)
+            ),
         }
     )
 
 
 def _compatible(left: FactorProposal, right: FactorProposal) -> bool:
+    if left.semantic_coordinate_ref != right.semantic_coordinate_ref:
+        return False
+    if left.fibre_kind != right.fibre_kind:
+        return False
     if left.factor_type_ref != right.factor_type_ref:
         return False
     if left.structural_signature != right.structural_signature:
@@ -236,23 +401,37 @@ def reduce_factor_proposals(
     known_observation_refs: Iterable[str] = (),
     known_dependency_refs: Iterable[str] = (),
 ) -> ProposalReduction:
+    """Materialise canonical summaries independently for each semantic fibre."""
+
     ordered = sorted(proposals, key=lambda row: row.proposal_ref)
     for proposal in ordered:
         if proposal.document_ref != document_ref:
-            raise ValueError("cross-document proposal supplied to document-local reducer")
+            raise ValueError(
+                "cross-document proposal supplied to document-local reducer"
+            )
 
     observation_refs = set(known_observation_refs)
     dependency_refs = set(known_dependency_refs)
     validation_residuals: list[ReductionResidual] = []
     valid: list[FactorProposal] = []
     for proposal in ordered:
-        missing_observations = sorted(set(proposal.input_observation_refs) - observation_refs) if observation_refs else []
-        missing_dependencies = sorted(set(proposal.dependency_factor_refs) - dependency_refs) if dependency_refs else []
+        missing_observations = (
+            sorted(set(proposal.input_observation_refs) - observation_refs)
+            if observation_refs
+            else []
+        )
+        missing_dependencies = (
+            sorted(set(proposal.dependency_factor_refs) - dependency_refs)
+            if dependency_refs
+            else []
+        )
         if missing_observations or missing_dependencies:
-            residual_type = "missing_reduction_input"
             residual_ref = "reduction-residual:" + canonical_sha256(
                 {
                     "proposal_ref": proposal.proposal_ref,
+                    "semantic_coordinate_ref": (
+                        proposal.semantic_coordinate_ref
+                    ),
                     "missing_observations": missing_observations,
                     "missing_dependencies": missing_dependencies,
                 }
@@ -261,9 +440,16 @@ def reduce_factor_proposals(
                 ReductionResidual(
                     residual_ref=residual_ref,
                     document_ref=document_ref,
-                    residual_type=residual_type,
+                    residual_type="missing_reduction_input",
                     proposal_refs=(proposal.proposal_ref,),
-                    message="proposal retained outside reduction because declared inputs are unavailable",
+                    message=(
+                        "proposal retained outside reduction because declared "
+                        "inputs are unavailable"
+                    ),
+                    semantic_coordinate_ref=(
+                        proposal.semantic_coordinate_ref
+                    ),
+                    boundary_kind="input_frontier",
                 )
             )
             continue
@@ -273,7 +459,14 @@ def reduce_factor_proposals(
     deduplicated = sorted(unique.values(), key=lambda row: row.proposal_ref)
     groups: list[list[FactorProposal]] = []
     for proposal in deduplicated:
-        matched = next((group for group in groups if all(_compatible(proposal, item) for item in group)), None)
+        matched = next(
+            (
+                group
+                for group in groups
+                if all(_compatible(proposal, item) for item in group)
+            ),
+            None,
+        )
         if matched is None:
             groups.append([proposal])
         else:
@@ -281,39 +474,85 @@ def reduce_factor_proposals(
 
     factors: list[ReducedFactor] = []
     incompatibility_residuals: list[ReductionResidual] = []
-    signature_groups: dict[tuple[str, str], list[list[FactorProposal]]] = {}
+    signature_groups: dict[
+        tuple[str, str, str, str],
+        list[list[FactorProposal]],
+    ] = {}
     for group in groups:
-        key = (group[0].factor_type_ref, group[0].structural_signature)
+        key = (
+            str(group[0].semantic_coordinate_ref),
+            group[0].fibre_kind,
+            group[0].factor_type_ref,
+            group[0].structural_signature,
+        )
         signature_groups.setdefault(key, []).append(group)
 
     for key, compatible_groups in sorted(signature_groups.items()):
         if len(compatible_groups) > 1:
-            refs = tuple(sorted(row.proposal_ref for group in compatible_groups for row in group))
+            refs = tuple(
+                sorted(
+                    row.proposal_ref
+                    for group in compatible_groups
+                    for row in group
+                )
+            )
             incompatibility_residuals.append(
                 ReductionResidual(
-                    residual_ref="reduction-residual:" + canonical_sha256({"kind": "incompatible_alternatives", "refs": refs}),
+                    residual_ref="reduction-residual:"
+                    + canonical_sha256(
+                        {
+                            "kind": "incompatible_alternatives",
+                            "semantic_coordinate_ref": key[0],
+                            "refs": refs,
+                        }
+                    ),
                     document_ref=document_ref,
                     residual_type="incompatible_alternatives",
                     proposal_refs=refs,
-                    message="structurally related proposals disagree on one or more occupied coordinates",
+                    message=(
+                        "proposals in one semantic fibre disagree on one or "
+                        "more occupied coordinates"
+                    ),
+                    semantic_coordinate_ref=key[0],
+                    boundary_kind="conflicted_fibre",
                 )
             )
         for group in compatible_groups:
-            proposal_refs = tuple(sorted(row.proposal_ref for row in group))
+            proposal_refs = tuple(
+                sorted(row.proposal_ref for row in group)
+            )
             roles: dict[str, str] = {}
             qualifiers: dict[str, Any] = {}
             residuals: set[str] = set()
             alternatives: list[Mapping[str, Any]] = []
+            derivation_roles: set[str] = set()
+            axes: set[str] = set()
+            transports: set[str] = set()
+            support_states: set[str] = set()
             for proposal in sorted(group, key=lambda row: row.proposal_ref):
                 roles.update(proposal.role_bindings)
                 qualifiers.update(proposal.qualifier_state)
                 residuals.update(proposal.residuals)
-                alternatives.append(dict(proposal.candidate_payload))
+                derivation_roles.add(proposal.derivation_role)
+                axes.update(proposal.ontology_axis_refs)
+                transports.update(proposal.transport_refs)
+                support_states.add(proposal.support_state)
+                alternatives.append(
+                    {
+                        **dict(proposal.candidate_payload),
+                        "proposal_ref": proposal.proposal_ref,
+                        "derivation_role": proposal.derivation_role,
+                        "support_state": proposal.support_state,
+                        "confidence": proposal.confidence,
+                    }
+                )
             factor_ref = "factor:" + canonical_sha256(
                 {
                     "document_ref": document_ref,
-                    "factor_type_ref": key[0],
-                    "structural_signature": key[1],
+                    "semantic_coordinate_ref": key[0],
+                    "fibre_kind": key[1],
+                    "factor_type_ref": key[2],
+                    "structural_signature": key[3],
                     "proposal_refs": proposal_refs,
                 }
             )
@@ -321,20 +560,31 @@ def reduce_factor_proposals(
                 ReducedFactor(
                     factor_ref=factor_ref,
                     document_ref=document_ref,
-                    factor_type_ref=key[0],
-                    structural_signature=key[1],
+                    semantic_coordinate_ref=key[0],
+                    fibre_kind=key[1],
+                    factor_type_ref=key[2],
+                    structural_signature=key[3],
                     proposal_refs=proposal_refs,
                     alternatives=tuple(alternatives),
                     role_bindings=dict(sorted(roles.items())),
                     qualifier_state=qualifiers,
                     residuals=tuple(sorted(residuals)),
+                    derivation_roles=tuple(sorted(derivation_roles)),
+                    ontology_axis_refs=tuple(sorted(axes)),
+                    transport_refs=tuple(sorted(transports)),
+                    support_states=tuple(sorted(support_states)),
                 )
             )
 
     return ProposalReduction(
         document_ref=document_ref,
         factors=tuple(sorted(factors, key=lambda row: row.factor_ref)),
-        residuals=tuple(sorted((*validation_residuals, *incompatibility_residuals), key=lambda row: row.residual_ref)),
+        residuals=tuple(
+            sorted(
+                (*validation_residuals, *incompatibility_residuals),
+                key=lambda row: row.residual_ref,
+            )
+        ),
         proposal_count=len(ordered),
         deduplicated_count=len(valid) - len(deduplicated),
     )
@@ -343,6 +593,7 @@ def reduce_factor_proposals(
 __all__ = [
     "CROSS_DOCUMENT_RELATION_SCHEMA_VERSION",
     "FACTOR_PROPOSAL_SCHEMA_VERSION",
+    "INTEGRATED_SEMANTIC_PRODUCER_CONTRACT",
     "PROPOSAL_REDUCTION_SCHEMA_VERSION",
     "CompositionDeclaration",
     "CrossDocumentRelation",

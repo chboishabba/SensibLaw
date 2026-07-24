@@ -1,9 +1,10 @@
-"""Sentence-delta adapter for streaming generic operator composition.
+"""Sentence-delta adapter for fibred streaming operator composition.
 
-The public parser may still return a complete document record, but this adapter exposes
-that record as immutable sentence batches. Each complete sentence activates an
-independent revision-bound operator-composition job. Jobs may execute concurrently and
-stream proposal receipts back to the keyed document owner.
+The public parser may still return a complete document record, but this adapter
+exposes it as immutable sentence batches.  Parser observations name their base
+semantic coordinates.  Each complete sentence activates an independent,
+revision-bound composition job whose output is normalised under the integrated
+semantic producer proposal contract.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from src.language.operator_composition import (
     compose_operator_factors,
 )
 from src.pnf.factor_proposals import FactorProposal
+from src.pnf.semantic_fibres import SemanticCoordinate
 from src.pnf.streaming_fixed_point import (
     CoverageNotice,
     ObservationDelta,
@@ -28,10 +30,10 @@ from src.policy.carriers.canonical import canonical_sha256
 
 
 STREAMING_OPERATOR_DECLARATION_REF = (
-    "streaming-declaration:operator-composition:v0_1"
+    "streaming-declaration:operator-composition:v0_2"
 )
 STREAMING_OPERATOR_ADAPTER_REF = (
-    "parser-delta-adapter:operator-composition:v0_1"
+    "parser-delta-adapter:operator-composition:v0_2"
 )
 
 
@@ -59,7 +61,7 @@ def parser_sentence_deltas(
     document_ref: str,
     parsed_document: Mapping[str, Any],
 ) -> tuple[ObservationDelta, ...]:
-    """Project parser sentences into stable, complete semantic observation batches."""
+    """Project parser sentences into stable, complete observation fibres."""
 
     deltas: list[ObservationDelta] = []
     token_cursor = 0
@@ -69,15 +71,26 @@ def parser_sentence_deltas(
         tokens = tuple(dict(row) for row in sentence.get("tokens") or ())
         if not tokens:
             continue
+        scope_ref = f"document-sentence:{document_ref}:{sentence_index}"
         observations: list[dict[str, Any]] = []
         observation_refs: list[str] = []
         for token in tokens:
             ref = _observation_ref(document_ref, sentence_index, token)
+            coordinate = SemanticCoordinate(
+                document_ref=document_ref,
+                scope_ref=scope_ref,
+                source_span_refs=(ref,),
+                statement_role="parser_observation",
+                factor_family="parser.token",
+                coordinate_kind="object",
+            )
             observation_refs.append(ref)
             observations.append(
                 {
                     "observation_ref": ref,
+                    "semantic_coordinate_ref": coordinate.coordinate_ref,
                     "observation_type": "parser.token",
+                    "fibre_kind": "observation",
                     "sentence_index": sentence_index,
                     "token": token,
                     "authority": "parser_observation_only",
@@ -86,7 +99,6 @@ def parser_sentence_deltas(
         observation_refs = sorted(set(observation_refs))
         char_start = min(int(row.get("start", 0)) for row in tokens)
         char_end = max(int(row.get("end", char_start)) for row in tokens)
-        scope_ref = f"document-sentence:{document_ref}:{sentence_index}"
         batch_ref = "parser-sentence-batch:" + canonical_sha256(
             {
                 "document_ref": document_ref,
@@ -136,7 +148,7 @@ def operator_streaming_declaration() -> StreamingDeclaration:
         scope_kind="sentence",
         coverage_barrier="sentence",
         affected_index="semantic.operator_composition",
-        declaration_revision="v0_1",
+        declaration_revision="v0_2",
         priority=40,
     )
 
@@ -144,8 +156,12 @@ def operator_streaming_declaration() -> StreamingDeclaration:
 def _proposal_from_factor(
     *,
     document_ref: str,
+    scope_ref: str,
     factor: Mapping[str, Any],
     observation_refs: Sequence[str],
+    assumptions: Sequence[str],
+    coverage_requirements: Sequence[str],
+    declaration_ref: str,
 ) -> FactorProposal:
     metadata = dict(factor.get("metadata") or {})
     alternatives = [
@@ -181,11 +197,9 @@ def _proposal_from_factor(
         ),
         role_bindings=dict(metadata.get("role_bindings") or {}),
         qualifier_state=dict(metadata.get("qualifier_state") or {}),
-        producer_contract=str(
-            metadata.get("composition_contract_ref")
-            or OPERATOR_COMPOSITION_CONTRACT
-        ),
-        declaration_revision="v0_1",
+        producer_contract=OPERATOR_COMPOSITION_CONTRACT,
+        operation_contract=OPERATOR_COMPOSITION_CONTRACT,
+        declaration_revision="v0_2",
         candidate_payload={
             "source_factor_ref": str(factor.get("factor_ref") or ""),
             "predicate_ref": str(metadata.get("predicate_ref") or ""),
@@ -195,11 +209,22 @@ def _proposal_from_factor(
         residuals=tuple(
             str(value) for value in factor.get("residuals") or ()
         ),
+        scope_ref=scope_ref,
+        statement_role="main",
+        coordinate_kind="object",
+        fibre_kind="composition",
+        derivation_role="support",
+        assumptions=tuple(assumptions),
+        coverage_requirements=tuple(coverage_requirements),
+        execution_metadata={
+            "operation_kind": "composition",
+            "declaration_ref": declaration_ref,
+        },
     )
 
 
 def solve_operator_job(job: SolverJob) -> tuple[FactorProposal, ...]:
-    """Pure closure handler for one complete sentence observation delta."""
+    """Pure composition handler for one complete observation fibre batch."""
 
     delta = dict(job.input_payload.get("observation_delta") or {})
     observations = tuple(delta.get("observations") or ())
@@ -221,8 +246,12 @@ def solve_operator_job(job: SolverJob) -> tuple[FactorProposal, ...]:
     return tuple(
         _proposal_from_factor(
             document_ref=job.owner_key.document_ref,
+            scope_ref=job.owner_key.scope_ref,
             factor=factor.to_dict(),
             observation_refs=job.input_refs,
+            assumptions=job.assumptions,
+            coverage_requirements=job.coverage_requirements,
+            declaration_ref=job.declaration_ref,
         )
         for factor in factors
     )
@@ -235,7 +264,7 @@ def build_streaming_operator_state(
     closure_workers: int = 2,
     partition_count: int = 1,
 ) -> StreamingSemanticOwner:
-    """Run sentence jobs concurrently and return the converged keyed owner state."""
+    """Run sentence jobs concurrently and return converged keyed owner state."""
 
     owner = StreamingSemanticOwner(
         document_ref=document_ref,

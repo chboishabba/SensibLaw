@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 from src.pnf.factor_proposals import (
+    INTEGRATED_SEMANTIC_PRODUCER_CONTRACT,
     CrossDocumentRelation,
     FactorProposal,
     proposal_build_key,
@@ -8,7 +11,12 @@ from src.pnf.factor_proposals import (
 )
 
 
-def _proposal(*, bearer: str, payload: str = "drive") -> FactorProposal:
+def _proposal(
+    *,
+    bearer: str,
+    payload: str = "drive",
+    statement_role: str = "main",
+) -> FactorProposal:
     return FactorProposal(
         document_ref="document:qld-road-rules",
         source_revision_ref="source-revision:1",
@@ -23,6 +31,8 @@ def _proposal(*, bearer: str, payload: str = "drive") -> FactorProposal:
         declaration_revision="v0_1",
         candidate_payload={"predicate_ref": payload},
         residuals=("jurisdiction_unresolved",),
+        statement_role=statement_role,
+        fibre_kind="composition",
     )
 
 
@@ -45,6 +55,7 @@ def test_reducer_is_order_independent_and_deduplicates_exact_proposals() -> None
     assert len(left.factors) == 1
     assert left.factors[0].proposal_refs == (first.proposal_ref,)
     assert left.to_dict()["legal_truth_closed"] is False
+    assert left.to_dict()["fibrewise_reduction"] is True
 
 
 def test_incompatible_coordinates_remain_explicit_alternatives() -> None:
@@ -57,8 +68,33 @@ def test_incompatible_coordinates_remain_explicit_alternatives() -> None:
     )
 
     assert len(reduction.factors) == 2
-    assert [row.residual_type for row in reduction.residuals] == ["incompatible_alternatives"]
-    assert set(reduction.residuals[0].proposal_refs) == {driver.proposal_ref, owner.proposal_ref}
+    assert [row.residual_type for row in reduction.residuals] == [
+        "incompatible_alternatives"
+    ]
+    assert set(reduction.residuals[0].proposal_refs) == {
+        driver.proposal_ref,
+        owner.proposal_ref,
+    }
+    assert reduction.residuals[0].semantic_coordinate_ref == (
+        driver.semantic_coordinate_ref
+    )
+
+
+def test_distinct_statement_roles_do_not_compete_in_one_fibre() -> None:
+    main = _proposal(bearer="entity:driver", statement_role="main")
+    qualifier = _proposal(
+        bearer="entity:driver",
+        statement_role="qualifier",
+    )
+    reduction = reduce_factor_proposals(
+        document_ref=main.document_ref,
+        proposals=(main, qualifier),
+        known_observation_refs=("observation:must", "observation:drive"),
+    )
+
+    assert main.semantic_coordinate_ref != qualifier.semantic_coordinate_ref
+    assert len(reduction.factors) == 2
+    assert reduction.residuals == ()
 
 
 def test_missing_declared_inputs_do_not_race_into_graph() -> None:
@@ -71,6 +107,33 @@ def test_missing_declared_inputs_do_not_race_into_graph() -> None:
 
     assert reduction.factors == ()
     assert reduction.residuals[0].residual_type == "missing_reduction_input"
+    assert reduction.residuals[0].boundary_kind == "input_frontier"
+
+
+def test_integrated_producer_family_preserves_operation_contract() -> None:
+    proposal = _proposal(bearer="entity:driver")
+
+    assert proposal.producer_contract == INTEGRATED_SEMANTIC_PRODUCER_CONTRACT
+    assert proposal.operation_contract == (
+        "grammar:semantic:operator-composition:v0_1"
+    )
+
+
+def test_executor_metadata_does_not_change_semantic_identity() -> None:
+    proposal = _proposal(bearer="entity:driver")
+    python = replace(
+        proposal,
+        execution_metadata={"sub_executor_ref": "python-worklist:v1"},
+    )
+    zelph = replace(
+        proposal,
+        execution_metadata={"sub_executor_ref": "zelph:v1"},
+    )
+
+    assert python.proposal_ref == zelph.proposal_ref
+    assert python.to_dict()["execution_metadata"] != zelph.to_dict()[
+        "execution_metadata"
+    ]
 
 
 def test_build_key_targets_only_declared_inputs() -> None:

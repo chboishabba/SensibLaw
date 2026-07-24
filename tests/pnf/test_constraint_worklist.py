@@ -7,10 +7,10 @@ from src.policy.algebra import FactorConstraint
 def _constraint(ref: str, source: str, target: str) -> FactorConstraint:
     return FactorConstraint(
         constraint_ref=ref,
+        constraint_type="syntactic_subject_of",
         source_factor_refs=(source,),
         target_factor_refs=(target,),
-        relation_type="syntactic_subject_of",
-        evidence_refs=(f"evidence:{ref}",),
+        provenance_refs=(f"evidence:{ref}",),
     )
 
 
@@ -29,6 +29,7 @@ def test_initial_constraint_fixed_point_evaluates_all_constraints() -> None:
         "constraint:bc",
     }
     assert result.fixed_point_rounds == 1
+    assert {row.propagation_wave for row in result.work_items} == {0}
     assert result.to_dict()["pending_work_items"] == 0
 
 
@@ -49,6 +50,7 @@ def test_targeted_change_evaluates_only_incident_constraints() -> None:
     assert [row.constraint_ref for row in result.work_items] == [
         "constraint:bc"
     ]
+    assert result.fixed_point_rounds == 1
 
 
 def test_unrelated_change_does_not_fall_back_to_full_scan() -> None:
