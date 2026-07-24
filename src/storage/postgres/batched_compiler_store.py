@@ -6,6 +6,10 @@ import hashlib
 from typing import Any, Mapping, Sequence
 
 from src.policy.carriers.canonical import canonical_sha256
+from src.storage.postgres import binding_candidate_store as _binding_store
+from src.storage.postgres.batched_binding_candidate_store import (
+    persist_binding_candidate_sets_batched,
+)
 from src.storage.postgres.compiler_store import PostgresCompilerStore, _stable_bytes
 from src.storage.postgres.token_codec import CorpusCodec, encode_delta_sequence
 
@@ -76,7 +80,9 @@ class BatchedPostgresCompilerStore(PostgresCompilerStore):
                 tokenizer_ref,
                 tokenizer_version,
                 len(tokens),
-                _stable_bytes({"lexeme_ids": lexeme_ids, "starts": starts, "ends": ends}),
+                _stable_bytes(
+                    {"lexeme_ids": lexeme_ids, "starts": starts, "ends": ends}
+                ),
             ),
         )
         if not tokens:
@@ -206,6 +212,12 @@ class BatchedPostgresCompilerStore(PostgresCompilerStore):
                 """,
                 relation_rows,
             )
+
+
+# Importing the curated batched store is the explicit activation boundary. The
+# ordinary compiler continues to use its existing row-wise helper unless this
+# module is selected by the curated runtime.
+_binding_store.persist_binding_candidate_sets = persist_binding_candidate_sets_batched
 
 
 __all__ = ["BatchedPostgresCompilerStore"]
