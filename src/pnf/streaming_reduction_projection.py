@@ -1,8 +1,9 @@
-"""Project a deterministic streamed proposal reduction into the PNF graph.
+"""Project deterministic fibrewise proposal reduction into the PNF graph.
 
-The projection is a compatibility materialisation only.  It consumes the converged
-proposal ledger and reduced-factor revision, preserves all proposal alternatives and
-residuals, and never re-runs parser/operator composition.
+The projection consumes the converged proposal ledger and reduced fibre
+summaries, preserves every proposal alternative and residual, and never re-runs
+parser or operator composition.  It is a materialised view, not a second
+semantic authority.
 """
 
 from __future__ import annotations
@@ -10,13 +11,14 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from src.language.operator_composition import OPERATOR_COMPOSITION_CONTRACT
+from src.pnf.factor_proposals import INTEGRATED_SEMANTIC_PRODUCER_CONTRACT
 from src.pnf.graph import PNFGraph
 from src.policy.algebra import Factor, TypedAlternative
 from src.policy.carriers.canonical import canonical_sha256
 
 
 STREAMING_REDUCTION_PROJECTION_CONTRACT = (
-    "streaming-reduction-pnf-projection:v0_1"
+    "streaming-reduction-pnf-projection:v0_2"
 )
 
 
@@ -38,6 +40,15 @@ def _factor_from_reduction(
                     (row.get("candidate_payload") or {}).get("predicate_ref")
                     or ""
                 ),
+                "semantic_coordinate_ref": str(
+                    row.get("semantic_coordinate_ref") or ""
+                ),
+                "fibre_kind": str(row.get("fibre_kind") or "hypothesis"),
+                "derivation_role": str(
+                    row.get("derivation_role") or "support"
+                ),
+                "support_state": str(row.get("support_state") or "candidate"),
+                "confidence": row.get("confidence"),
                 "role_bindings": dict(row.get("role_bindings") or {}),
                 "qualifier_state": dict(row.get("qualifier_state") or {}),
                 "candidate_payload": dict(row.get("candidate_payload") or {}),
@@ -48,11 +59,17 @@ def _factor_from_reduction(
                 sorted(
                     {
                         str(row.get("producer_contract") or ""),
+                        str(row.get("operation_contract") or ""),
                         str(row.get("declaration_revision") or ""),
                         *(str(ref) for ref in row.get("source_span_refs") or ()),
                         *(
                             str(ref)
                             for ref in row.get("input_observation_refs") or ()
+                        ),
+                        *(str(ref) for ref in row.get("transport_refs") or ()),
+                        *(
+                            str(ref)
+                            for ref in row.get("ontology_axis_refs") or ()
                         ),
                     }
                     - {""}
@@ -61,7 +78,9 @@ def _factor_from_reduction(
         )
         for index, row in enumerate(proposal_rows)
     )
-    residuals = tuple(sorted(str(value) for value in reduced.get("residuals") or ()))
+    residuals = tuple(
+        sorted(str(value) for value in reduced.get("residuals") or ())
+    )
     provenance_refs = tuple(
         sorted(
             {
@@ -86,17 +105,41 @@ def _factor_from_reduction(
         ),
         metadata={
             "factor_revision_ref": str(reduced["factor_revision_ref"]),
+            "semantic_coordinate_ref": str(
+                reduced.get("semantic_coordinate_ref") or ""
+            ),
+            "fibre_kind": str(reduced.get("fibre_kind") or "hypothesis"),
             "structural_signature_ref": str(
                 reduced.get("structural_signature") or ""
             ),
             "role_bindings": role_bindings,
             "qualifier_state": qualifier_state,
             "proposal_refs": proposal_refs,
+            "derivation_roles": list(
+                reduced.get("derivation_roles") or ()
+            ),
+            "ontology_axis_refs": list(
+                reduced.get("ontology_axis_refs") or ()
+            ),
+            "transport_refs": list(reduced.get("transport_refs") or ()),
+            "support_states": list(reduced.get("support_states") or ()),
             "provenance_refs": provenance_refs,
             "streaming_reduction_ref": reduction_ref,
             "projection_contract_ref": STREAMING_REDUCTION_PROJECTION_CONTRACT,
+            "integrated_producer_contract": (
+                INTEGRATED_SEMANTIC_PRODUCER_CONTRACT
+            ),
             "authority": "candidate_pnf_only",
         },
+    )
+
+
+def _is_operator_proposal(row: Mapping[str, Any]) -> bool:
+    operation_contract = str(row.get("operation_contract") or "")
+    producer_contract = str(row.get("producer_contract") or "")
+    return operation_contract == OPERATOR_COMPOSITION_CONTRACT or (
+        not operation_contract
+        and producer_contract == OPERATOR_COMPOSITION_CONTRACT
     )
 
 
@@ -105,7 +148,7 @@ def project_streaming_reduction(
     graph: PNFGraph,
     streaming_build: Mapping[str, Any],
 ) -> tuple[PNFGraph, dict[str, Any]]:
-    """Return a PNF graph containing streamed operator-composition factors."""
+    """Return the PNF graph materialised from streamed composition fibres."""
 
     materialized = streaming_build.get("materialized_reduction") or {}
     reduction_ref = str(materialized.get("graph_ref") or "")
@@ -115,10 +158,7 @@ def project_streaming_reduction(
         if isinstance(row, Mapping) and row.get("proposal_ref")
     }
     operator_proposal_refs = {
-        ref
-        for ref, row in proposals.items()
-        if str(row.get("producer_contract") or "")
-        == OPERATOR_COMPOSITION_CONTRACT
+        ref for ref, row in proposals.items() if _is_operator_proposal(row)
     }
     selected = [
         row
@@ -143,6 +183,13 @@ def project_streaming_reduction(
         "input_graph_ref": graph.graph_ref,
         "streaming_reduction_ref": reduction_ref,
         "factor_refs": [row.factor_ref for row in factors],
+        "semantic_coordinate_refs": sorted(
+            {
+                str(row.metadata.get("semantic_coordinate_ref") or "")
+                for row in factors
+            }
+            - {""}
+        ),
     }
     receipt = {
         **receipt_identity,
@@ -152,6 +199,7 @@ def project_streaming_reduction(
         "factor_count": len(factors),
         "parser_observation_source": "streaming_observation_ledger",
         "reparsed": False,
+        "fibrewise_materialisation": True,
         "shared_graph_mutation": False,
         "identity_promoted": False,
         "legal_truth_closed": False,
