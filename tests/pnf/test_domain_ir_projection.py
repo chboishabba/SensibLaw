@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 from src.pnf.domain_ir_projection import (
     LEGAL_IR_CONTRACT,
     RETRIEVAL_IR_CONTRACT,
@@ -45,7 +47,13 @@ def _resolution(proposal: FactorProposal) -> ResolutionReceipt:
     )
 
 
-def _factor(*, jurisdiction: bool = False, event_time: bool = False):
+def _factor(
+    *,
+    jurisdiction: bool = False,
+    event_time: bool = False,
+    factor_type: str = "semantic.normative_relation",
+    signature: str = "signature:normative:v1",
+):
     roles = {"bearer": "entity:driver", "conduct": "event:drive"}
     qualifiers = {"modality": "obligation"}
     residuals = []
@@ -57,11 +65,11 @@ def _factor(*, jurisdiction: bool = False, event_time: bool = False):
         qualifiers["event_time"] = "2026-07-24"
     return {
         "factor_ref": "factor:source",
-        "factor_type": "semantic.normative_relation",
+        "factor_type": factor_type,
         "residuals": residuals,
         "metadata": {
             "fibre_summary_ref": "fibre-summary:1",
-            "structural_signature_ref": "signature:normative:v1",
+            "structural_signature_ref": signature,
             "role_bindings": roles,
             "qualifier_state": qualifiers,
             "provenance_refs": ["span:1"],
@@ -108,17 +116,37 @@ def test_legal_projection_is_loss_receipted_when_coordinates_are_complete() -> N
 
 
 def test_timeline_projection_requires_temporal_coordinate() -> None:
-    proposal = _proposal()
+    proposal = replace(
+        _proposal(),
+        factor_type_ref="semantic.event",
+        structural_signature="signature:event:v1",
+        role_bindings={"actor": "entity:driver", "event": "event:drive"},
+        qualifier_state={},
+        candidate_payload={"predicate_ref": "event.drive"},
+    )
     resolution = _resolution(proposal)
+    factor = _factor(
+        jurisdiction=True,
+        factor_type="semantic.event",
+        signature="signature:event:v1",
+    )
+    factor["metadata"]["role_bindings"] = {
+        "actor": "entity:driver",
+        "event": "event:drive",
+    }
+    factor["metadata"]["qualifier_state"] = {}
     result = project_resolved_factor(
         resolution=resolution,
-        factors={"fibre-summary:1": _factor(jurisdiction=True)},
+        factors={"fibre-summary:1": factor},
         proposals={proposal.proposal_ref: proposal},
         contract=TIMELINE_IR_CONTRACT,
     )
 
     assert result.projection is None
-    assert result.receipt.state == "inapplicable"
+    assert result.receipt.state == "blocked"
+    assert {row.demand_kind for row in result.demands} == {
+        "missing_temporal_coordinate"
+    }
 
 
 def test_retrieval_projection_preserves_source_binding() -> None:
