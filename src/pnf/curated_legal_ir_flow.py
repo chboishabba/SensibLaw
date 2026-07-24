@@ -41,7 +41,9 @@ def _artifacts(compilation: Mapping[str, Any]) -> Mapping[str, Any]:
     return compilation.get("artifacts") or compilation
 
 
-def _factor_projection_rows(artifact: Mapping[str, Any]) -> tuple[dict[str, Any], ...]:
+def _factor_projection_rows(
+    artifact: Mapping[str, Any],
+) -> tuple[dict[str, Any], ...]:
     graph = artifact.get("refined_pnf_graph") or artifact.get("pnf_graph") or {}
     rows = []
     for factor in graph.get("factors") or ():
@@ -138,17 +140,17 @@ def run_curated_legal_ir_flow(
         for row in _artifacts(compilation).get("resolution_demands") or ()
     )
     plans: list[LegalSourcePlan] = []
-    selected_sources: dict[str, RegisteredLegalSource] = {}
     for demand in demands:
         sources = tuple(source_lookup(demand))
-        selected_sources.update({row.source_revision_ref: row for row in sources})
         plans.extend(
             plan_legal_sources(
                 (demand,),
                 persisted_sources=(row.planning_row() for row in sources),
             )
         )
-    ordered_plans = tuple(sorted(plans, key=lambda row: (row.demand_ref, row.plan_key)))
+    ordered_plans = tuple(
+        sorted(plans, key=lambda row: (row.demand_ref, row.plan_key))
+    )
     requirements = project_acquisition_requirements(ordered_plans)
 
     selected_refs = tuple(
@@ -165,11 +167,18 @@ def run_curated_legal_ir_flow(
     for source_ref in selected_refs:
         payload = payload_lookup(source_ref)
         if payload is None:
-            raise ValueError(f"selected persisted legal source is unavailable: {source_ref}")
+            raise ValueError(
+                f"selected persisted legal source is unavailable: {source_ref}"
+            )
         compilation = compile_legal_source(payload)
         artifacts = _artifacts(compilation)
         streaming = artifacts.get("streaming_semantic_build") or {}
-        if (streaming.get("fixed_point_certificate") or {}).get("local_fixed_point") != "reached":
+        if (
+            (streaming.get("fixed_point_certificate") or {}).get(
+                "local_fixed_point"
+            )
+            != "reached"
+        ):
             raise ValueError("selected legal source did not reach local fixed point")
         legal_compilations.append(dict(compilation))
 
@@ -202,7 +211,8 @@ def run_curated_legal_ir_flow(
         all_artifacts,
         legal_ir_refs=(row.observation_ref for row in legal_ir),
         typed_meet_refs=(
-            "legal-typed-meet:" + canonical_sha256(row.to_dict()) for row in typed_meets
+            "legal-typed-meet:" + canonical_sha256(row.to_dict())
+            for row in typed_meets
         ),
         legacy_witness_refs=witness_refs,
     )
@@ -237,7 +247,8 @@ def run_curated_legal_ir_flow(
         ),
         legal_ir_refs=tuple(row.observation_ref for row in legal_ir),
         typed_meet_refs=tuple(
-            "legal-typed-meet:" + canonical_sha256(row.to_dict()) for row in typed_meets
+            "legal-typed-meet:" + canonical_sha256(row.to_dict())
+            for row in typed_meets
         ),
         legacy_witness_refs=witness_refs,
         identity_snapshot=snapshot.to_dict(),
