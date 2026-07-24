@@ -9,15 +9,21 @@ on:
       - "src/pnf/factor_proposals.py"
       - "src/pnf/semantic_fibres.py"
       - "src/pnf/integrated_semantic_producer.py"
+      - "src/pnf/fibred_build_projection.py"
+      - "src/pnf/constraint_worklist.py"
       - "src/pnf/streaming_operator_executor.py"
       - "src/pnf/streaming_reduction_projection.py"
       - "src/pnf/__init__.py"
+      - "src/policy/fibred_operational_corpus_compilation.py"
       - "src/policy/streaming_postgres_corpus_compilation.py"
       - "src/storage/postgres/semantic_fibre_store.py"
+      - "scripts/run_legal_pnf_probe.py"
       - "database/postgres_migrations/021_semantic_fibres.sql"
       - "tests/pnf/test_semantic_fibres.py"
       - "tests/pnf/test_integrated_semantic_producer.py"
       - "tests/pnf/test_factor_proposals.py"
+      - "tests/pnf/test_constraint_worklist.py"
+      - "tests/policy/test_fibred_operational_corpus_compilation.py"
       - "docs/dev/FibredSemanticCompiler.md"
       - ".github/workflows/fibred-semantic-producer.yml"
   workflow_dispatch:
@@ -70,14 +76,20 @@ jobs:
             src/pnf/factor_proposals.py \
             src/pnf/semantic_fibres.py \
             src/pnf/integrated_semantic_producer.py \
+            src/pnf/fibred_build_projection.py \
+            src/pnf/constraint_worklist.py \
             src/pnf/streaming_operator_executor.py \
             src/pnf/streaming_reduction_projection.py \
             src/pnf/__init__.py \
+            src/policy/fibred_operational_corpus_compilation.py \
             src/policy/streaming_postgres_corpus_compilation.py \
             src/storage/postgres/semantic_fibre_store.py \
+            scripts/run_legal_pnf_probe.py \
             tests/pnf/test_semantic_fibres.py \
             tests/pnf/test_integrated_semantic_producer.py \
-            tests/pnf/test_factor_proposals.py
+            tests/pnf/test_factor_proposals.py \
+            tests/pnf/test_constraint_worklist.py \
+            tests/policy/test_fibred_operational_corpus_compilation.py
 
       - name: Run fibred compiler tests
         run: |
@@ -85,9 +97,11 @@ jobs:
             tests/pnf/test_semantic_fibres.py \
             tests/pnf/test_integrated_semantic_producer.py \
             tests/pnf/test_factor_proposals.py \
+            tests/pnf/test_constraint_worklist.py \
             tests/pnf/test_streaming_operator_executor.py \
             tests/pnf/test_streaming_fixed_point.py \
-            tests/pnf/test_zelph_closure_executor.py
+            tests/pnf/test_zelph_closure_executor.py \
+            tests/policy/test_fibred_operational_corpus_compilation.py
 
       - name: Validate fibre migration guards
         run: |
@@ -123,6 +137,7 @@ jobs:
           import psycopg
 
           from src.pnf.factor_proposals import FactorProposal, reduce_factor_proposals
+          from src.pnf.semantic_fibres import SemanticCoordinate
           from src.pnf.streaming_fixed_point import ObservationDelta
           from src.storage.postgres.semantic_fibre_store import (
               persist_semantic_fibre_artifacts,
@@ -130,7 +145,6 @@ jobs:
 
           document_ref = 'document:fibre-validation'
           observation_ref = 'observation:must'
-          coordinate_ref = None
           delta = ObservationDelta(
               document_ref=document_ref,
               batch_ref='batch:1',
@@ -152,8 +166,6 @@ jobs:
               coverage_barrier='sentence',
               coverage_complete=True,
           )
-          # Use the canonical coordinate projected by the current parser adapter shape.
-          from src.pnf.semantic_fibres import SemanticCoordinate
           coordinate = SemanticCoordinate(
               document_ref=document_ref,
               scope_ref='sentence:1',
@@ -213,4 +225,43 @@ jobs:
                   )
                   assert cursor.fetchone() == (True, True)
               connection.commit()
+          PY
+
+      - name: Run one fibred Legal PNF probe
+        run: |
+          mkdir -p build/fibred-probe-input
+          printf '%s\n' 'A driver must not drive unless licensed.' > build/fibred-probe-input/norm.txt
+          uv run python scripts/run_legal_pnf_probe.py \
+            --input-file build/fibred-probe-input/norm.txt \
+            --output-dir build/fibred-probe \
+            --max-files 1 \
+            --compare-legacy \
+            --closure-workers 2 \
+            --owner-partitions 2
+          uv run python - <<'PY'
+          import json
+          from pathlib import Path
+
+          summary = json.loads(
+              Path('build/fibred-probe/coverage_scorecard.json').read_text()
+          )
+          assert summary['document_count'] == 1
+          assert summary['fibred_build_count'] == 1
+          assert summary['one_proposal_contract'] is True
+          assert summary['one_reduction_authority'] is True
+          document_dir = next(Path('build/fibred-probe/documents').iterdir())
+          build = json.loads(
+              (document_dir / 'fibred_semantic_build.json').read_text()
+          )
+          assert build['fibre_ledger']['ledger_ref'].startswith(
+              'semantic-fibre-ledger:'
+          )
+          assert build['identity_promoted'] is False
+          assert build['legal_truth_closed'] is False
+          timings = json.loads(
+              (document_dir / 'probe_stage_timings.json').read_text()
+          )
+          stages = {row['stage'] for row in timings['probe_timings']}
+          assert 'fibred_document_compile' in stages
+          assert 'operator_compatibility_projection' not in stages
           PY
