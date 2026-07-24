@@ -1,0 +1,103 @@
+name: Fibred semantic producer validation
+
+on:
+  push:
+    branches:
+      - agent/fibred-semantic-producer
+  pull_request:
+    paths:
+      - "src/pnf/factor_proposals.py"
+      - "src/pnf/semantic_fibres.py"
+      - "src/pnf/integrated_semantic_producer.py"
+      - "src/pnf/streaming_operator_executor.py"
+      - "src/pnf/streaming_reduction_projection.py"
+      - "src/pnf/__init__.py"
+      - "database/postgres_migrations/021_semantic_fibres.sql"
+      - "tests/pnf/test_semantic_fibres.py"
+      - "tests/pnf/test_integrated_semantic_producer.py"
+      - "tests/pnf/test_factor_proposals.py"
+      - "docs/dev/FibredSemanticCompiler.md"
+      - ".github/workflows/fibred-semantic-producer.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sensiblaw_fibred_validation
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sensiblaw_fibred_validation"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sensiblaw_fibred_validation
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: sensiblaw_fibred_validation
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install environment
+        run: |
+          python -m pip install --upgrade pip uv
+          uv sync --frozen --extra test --extra dev
+
+      - name: Apply migrations
+        run: bash scripts/apply_pg_migrations.sh
+
+      - name: Lint fibred compiler surfaces
+        run: |
+          uv run ruff check \
+            src/pnf/factor_proposals.py \
+            src/pnf/semantic_fibres.py \
+            src/pnf/integrated_semantic_producer.py \
+            src/pnf/streaming_operator_executor.py \
+            src/pnf/streaming_reduction_projection.py \
+            src/pnf/__init__.py \
+            tests/pnf/test_semantic_fibres.py \
+            tests/pnf/test_integrated_semantic_producer.py \
+            tests/pnf/test_factor_proposals.py
+
+      - name: Run fibred compiler tests
+        run: |
+          uv run pytest -q \
+            tests/pnf/test_semantic_fibres.py \
+            tests/pnf/test_integrated_semantic_producer.py \
+            tests/pnf/test_factor_proposals.py \
+            tests/pnf/test_streaming_operator_executor.py \
+            tests/pnf/test_streaming_fixed_point.py
+
+      - name: Validate fibre migration guards
+        run: |
+          python - <<'PY'
+          import os
+          import psycopg
+
+          with psycopg.connect(os.environ['DATABASE_URL']) as connection:
+              with connection.cursor() as cursor:
+                  cursor.execute("SELECT to_regclass('public.semantic_coordinate')")
+                  assert cursor.fetchone()[0] == 'semantic_coordinate'
+                  cursor.execute("SELECT to_regclass('public.semantic_fibre_element')")
+                  assert cursor.fetchone()[0] == 'semantic_fibre_element'
+                  cursor.execute("SELECT to_regclass('public.semantic_transport')")
+                  assert cursor.fetchone()[0] == 'semantic_transport'
+                  cursor.execute("SELECT to_regclass('public.semantic_axis_obligation')")
+                  assert cursor.fetchone()[0] == 'semantic_axis_obligation'
+          PY
