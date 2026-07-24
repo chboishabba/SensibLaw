@@ -109,3 +109,35 @@ def test_positive_invalidation_rejects_candidate() -> None:
     assert "failed_typed_meet" in lifecycle.assessments[0].invalidation_grounds
     assert lifecycle.admissions[0].state == "rejected"
     assert lifecycle.resolutions[0].state == "blocked_conflict"
+
+
+def test_incompatible_reduction_alternatives_do_not_resolve_independently() -> None:
+    driver = _proposal(
+        role_bindings={"bearer": "entity:driver", "conduct": "event:drive"}
+    )
+    owner = _proposal(
+        role_bindings={"bearer": "entity:owner", "conduct": "event:drive"}
+    )
+    reduction = _reduction(driver, owner)
+
+    assert len(reduction.factors) == 2
+    assert [row.residual_type for row in reduction.residuals] == [
+        "incompatible_alternatives"
+    ]
+
+    lifecycle = build_semantic_lifecycle(
+        document_ref="document:1",
+        proposals=(driver, owner),
+        reduced_factors=reduction.factors,
+        reduction_residuals=reduction.residuals,
+    )
+
+    assert len(lifecycle.resolutions) == 2
+    assert all(row.state == "blocked_conflict" for row in lifecycle.resolutions)
+    assert all(
+        row.selected_proposal_ref is None for row in lifecycle.resolutions
+    )
+    assert all(
+        "incompatible_alternatives" in row.unresolved_residual_refs
+        for row in lifecycle.resolutions
+    )
