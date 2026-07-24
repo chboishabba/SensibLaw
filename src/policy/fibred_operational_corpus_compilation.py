@@ -17,6 +17,7 @@ from src.pnf.constraint_worklist import evaluate_constraint_worklist
 from src.pnf.domain_ir_projection import build_domain_ir
 from src.pnf.fibred_build_projection import project_fibred_semantic_build
 from src.pnf.ir_execution import execute_ir_requests
+from src.pnf.projection_factor_binding import bind_projection_factor_rows
 from src.pnf.semantic_lifecycle import build_semantic_lifecycle
 from src.pnf.streaming_reduction_projection import project_streaming_reduction
 from src.policy import corpus_compilation as legacy
@@ -258,11 +259,16 @@ def compile_document_fibred_operational(
         constraint_assessments=assessment_rows,
         reduction_residuals=reduction_residual_rows,
     )
+    projection_factor_rows = bind_projection_factor_rows(
+        reduced_factors=reduced_factor_rows,
+        proposals=proposal_rows,
+        graph_factors=fibred_graph.factors,
+    )
     domain_ir = build_domain_ir(
         document_ref=fibred_graph.document_ref,
         resolutions=lifecycle.resolutions,
         factors=(
-            *reduced_factor_rows,
+            *projection_factor_rows,
             *(row.to_dict() for row in fibred_graph.factors),
         ),
         proposals=proposal_rows,
