@@ -105,10 +105,13 @@ def _lawful_legal_ir(
         if isinstance(projection, Mapping)
         and str(projection.get("domain") or "") == "legal"
     )
-    if domain_rows:
+    if any("domain_ir_build" in artifact for artifact in artifacts):
+        # The explicit build boundary is authoritative even when zero legal
+        # projections were admitted. An empty result is a coverage finding and
+        # must not fall back to raw-factor projection.
         return project_legal_ir_from_domain_ir(domain_rows)
-    # Compatibility only for caller-supplied historical fixtures. Active v0_2
-    # compiler builds always expose lawful Domain IR projections.
+    # Compatibility only for caller-supplied historical fixtures predating the
+    # explicit PNF lifecycle. Active v0_2 builds always expose domain_ir_build.
     factor_rows = tuple(
         row for artifact in artifacts for row in _factor_projection_rows(artifact)
     )
