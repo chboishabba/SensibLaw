@@ -25,6 +25,7 @@ on:
       - "tests/pnf/**"
       - "tests/policy/**"
       - "tests/runtime/**"
+      - "tests/storage/**"
       - "docs/dev/CuratedLegalIRPerformanceParity.md"
       - ".github/workflows/curated-legal-ir-tranche.yml"
   workflow_dispatch:
@@ -58,6 +59,8 @@ jobs:
       PGDATABASE: sensiblaw_curated_legal_ir
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -105,7 +108,8 @@ jobs:
             tests/pnf/test_streaming_reduction_metrics.py \
             tests/pnf/test_legal_ir_parity.py \
             tests/pnf/test_curated_legal_ir_flow.py \
-            tests/policy/test_operational_corpus_compilation.py
+            tests/policy/test_operational_corpus_compilation.py \
+            tests/storage/test_curated_batched_activation.py
 
       - name: Run tranche tests
         run: |
@@ -120,7 +124,8 @@ jobs:
             tests/pnf/test_curated_legal_ir_flow.py \
             tests/pnf/test_legal_persisted_selection.py \
             tests/policy/test_operational_corpus_compilation.py \
-            tests/policy/test_fibred_operational_corpus_compilation.py
+            tests/policy/test_fibred_operational_corpus_compilation.py \
+            tests/storage/test_curated_batched_activation.py
 
       - name: Validate curated migration guards
         run: |
