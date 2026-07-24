@@ -10,6 +10,7 @@ on:
       - "src/pnf/domain_ir_projection.py"
       - "src/pnf/semantic_lifecycle.py"
       - "src/pnf/ir_execution.py"
+      - "src/pnf/projection_factor_binding.py"
       - "src/pnf/legal_ir_projection_bridge.py"
       - "src/pnf/curated_legal_ir_flow.py"
       - "src/pnf/__init__.py"
@@ -20,6 +21,7 @@ on:
       - "tests/pnf/test_semantic_lifecycle.py"
       - "tests/pnf/test_domain_ir_projection.py"
       - "tests/pnf/test_ir_execution.py"
+      - "tests/pnf/test_projection_factor_binding.py"
       - "tests/policy/test_pnf_semantic_lifecycle_compilation.py"
       - "tests/storage/test_semantic_lifecycle_store.py"
       - "docs/dev/PNFAdmissibilityResolutionProjectionExecution.md"
@@ -77,6 +79,7 @@ jobs:
             src/pnf/domain_ir_projection.py \
             src/pnf/semantic_lifecycle.py \
             src/pnf/ir_execution.py \
+            src/pnf/projection_factor_binding.py \
             src/pnf/legal_ir_projection_bridge.py \
             src/pnf/curated_legal_ir_flow.py \
             src/pnf/__init__.py \
@@ -86,6 +89,7 @@ jobs:
             tests/pnf/test_semantic_lifecycle.py \
             tests/pnf/test_domain_ir_projection.py \
             tests/pnf/test_ir_execution.py \
+            tests/pnf/test_projection_factor_binding.py \
             tests/policy/test_pnf_semantic_lifecycle_compilation.py \
             tests/storage/test_semantic_lifecycle_store.py
 
@@ -95,6 +99,7 @@ jobs:
             tests/pnf/test_semantic_lifecycle.py \
             tests/pnf/test_domain_ir_projection.py \
             tests/pnf/test_ir_execution.py \
+            tests/pnf/test_projection_factor_binding.py \
             tests/pnf/test_factor_proposals.py \
             tests/pnf/test_curated_legal_ir_flow.py \
             tests/policy/test_fibred_operational_corpus_compilation.py \
