@@ -54,8 +54,8 @@ def _compilation(document_ref: str, *, legal_demand: bool) -> dict[str, object]:
     }
 
 
-def test_flow_selects_persisted_source_and_never_fetches() -> None:
-    source = RegisteredLegalSource(
+def _source() -> RegisteredLegalSource:
+    return RegisteredLegalSource(
         source_revision_ref="source:act",
         document_ref="document:act",
         admission_receipt_ref="admission:act",
@@ -64,6 +64,10 @@ def test_flow_selects_persisted_source_and_never_fetches() -> None:
         authority_level="primary",
         canonical_text_sha256="a" * 64,
     )
+
+
+def test_flow_selects_persisted_source_and_never_fetches() -> None:
+    source = _source()
     payload_reads = []
 
     result = run_curated_legal_ir_flow(
@@ -81,8 +85,43 @@ def test_flow_selects_persisted_source_and_never_fetches() -> None:
     assert result.plans[0].state == "ready_persisted"
     assert result.acquisition_requirements == ()
     assert payload_reads == ["source:act"]
+    assert result.legal_ir
     assert result.parity_receipt.network_attempt_count == 0
     assert result.parity_receipt.to_dict()["legal_truth_closed"] is False
+
+
+def test_active_lifecycle_with_no_legal_projection_does_not_fallback() -> None:
+    source = _source()
+    legal_compilation = _compilation("law", legal_demand=False)
+    artifacts = legal_compilation["artifacts"]
+    assert isinstance(artifacts, dict)
+    artifacts["domain_ir_build"] = {
+        "build_ref": "domain-ir-build:law",
+        "projections": [],
+        "demands": [
+            {
+                "demand_ref": "pnf-projection-demand:jurisdiction",
+                "domain": "legal",
+                "demand_kind": "missing_jurisdiction",
+            }
+        ],
+    }
+    artifacts["domain_ir_projections"] = []
+
+    result = run_curated_legal_ir_flow(
+        corpus_ref="corpus:hca",
+        admission_profile_ref="profile:offline-hca-regression:v0_2",
+        compiler_contract_ref="postgres-fibred-semantic-compiler:v0_2",
+        ordinary_compilations=(_compilation("world", legal_demand=True),),
+        source_lookup=lambda demand: (source,),
+        payload_lookup=lambda source_ref: {"source_revision_ref": source_ref},
+        compile_legal_source=lambda payload: legal_compilation,
+        network_attempt_count=0,
+    )
+
+    assert result.legal_compilations
+    assert result.legal_ir == ()
+    assert result.typed_meets == ()
 
 
 def test_flow_preserves_missing_source_as_blocked_requirement() -> None:

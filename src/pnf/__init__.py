@@ -11,6 +11,26 @@ from .binding_candidate_sets import (
 )
 from .closure import ClosureContract, assess_pnf_closure
 from .demands import derive_resolution_demands
+from .domain_ir import (
+    DomainIRBuild,
+    DomainIRProjection,
+    DomainIRProjectionContract,
+    DomainIRProjectionReceipt,
+    ProjectionDemand,
+    ProjectionLossReceipt,
+)
+from .domain_ir_applicability import (
+    build_applicable_domain_ir,
+    normalize_projection_applicability,
+)
+from .domain_ir_projection import (
+    DEFAULT_DOMAIN_IR_CONTRACTS,
+    LEGAL_IR_CONTRACT,
+    RETRIEVAL_IR_CONTRACT,
+    TIMELINE_IR_CONTRACT,
+    build_domain_ir,
+    project_resolved_factor,
+)
 from .factor_proposals import (
     INTEGRATED_SEMANTIC_PRODUCER_CONTRACT,
     CompositionDeclaration,
@@ -29,6 +49,12 @@ from .integrated_semantic_producer import (
     IntegratedSemanticProducer,
     ProducerCapability,
     SubExecutorReceipt,
+)
+from .ir_execution import (
+    IRExecutionReceipt,
+    IRExecutionRequest,
+    execute_ir_request,
+    execute_ir_requests,
 )
 from .operational_reference_binding import (
     REFERENCE_BINDING_CONTRACT_REF,
@@ -56,6 +82,19 @@ from .semantic_fibres import (
     evaluate_fibre,
     fibre_element_from_proposal_row,
 )
+from .semantic_lifecycle import (
+    AdmissibilityReceipt,
+    CandidateAssessment,
+    ResolutionReceipt,
+    SemanticLifecycleResult,
+    admit_factor_proposals,
+    assess_factor_proposals,
+    build_semantic_lifecycle,
+    resolve_reduced_factors,
+)
+from .semantic_lifecycle_pipeline import (
+    build_admission_aware_semantic_lifecycle,
+)
 from .stage_build_keys import StageBuildKeys, derive_stage_build_keys
 from .streaming_fixed_point import (
     ClosureExecutor,
@@ -81,12 +120,20 @@ install_streaming_reduction_metrics()
 
 __all__ = [
     "INTEGRATED_SEMANTIC_PRODUCER_CONTRACT",
+    "DEFAULT_DOMAIN_IR_CONTRACTS",
+    "LEGAL_IR_CONTRACT",
+    "REFERENCE_BINDING_CONTRACT_REF",
+    "REFERENCE_REDUCTION_DECLARATION_REF",
+    "RETRIEVAL_IR_CONTRACT",
+    "TIMELINE_IR_CONTRACT",
+    "AdmissibilityReceipt",
     "AxisObligation",
     "BindingAccessibilityDeclaration",
     "BindingCandidateMember",
     "BindingCandidateSet",
     "BindingCompatibilityDeclaration",
     "BindingExclusionSummary",
+    "CandidateAssessment",
     "ClosureContract",
     "ClosureExecutor",
     "CompositionDeclaration",
@@ -94,12 +141,18 @@ __all__ = [
     "CoverageNotice",
     "CrossDocumentRelation",
     "DocumentFixedPointCertificate",
+    "DomainIRBuild",
+    "DomainIRProjection",
+    "DomainIRProjectionContract",
+    "DomainIRProjectionReceipt",
     "FactorAnchor",
     "FactorProposal",
     "FibreBoundaryObligation",
     "FibreDerivation",
     "FibreElement",
     "FibreValidation",
+    "IRExecutionReceipt",
+    "IRExecutionRequest",
     "IntegratedProducerContract",
     "IntegratedProducerReceipt",
     "IntegratedSemanticProducer",
@@ -108,15 +161,17 @@ __all__ = [
     "OwnerKey",
     "PNFGraph",
     "ProducerCapability",
+    "ProjectionDemand",
+    "ProjectionLossReceipt",
     "ProposalReduction",
     "PythonClosureExecutor",
-    "REFERENCE_BINDING_CONTRACT_REF",
-    "REFERENCE_REDUCTION_DECLARATION_REF",
     "ReducedFactor",
     "ReductionResidual",
     "RegionBoundarySummary",
+    "ResolutionReceipt",
     "SemanticCoordinate",
     "SemanticFibreLedger",
+    "SemanticLifecycleResult",
     "SemanticReviewAssessment",
     "SemanticReviewCoordinate",
     "SemanticTransport",
@@ -127,21 +182,32 @@ __all__ = [
     "StreamingDeclaration",
     "StreamingSemanticOwner",
     "SubExecutorReceipt",
+    "admit_factor_proposals",
     "assert_finalising_claim_allowed",
+    "assess_factor_proposals",
     "assess_pnf_closure",
+    "build_admission_aware_semantic_lifecycle",
+    "build_applicable_domain_ir",
+    "build_domain_ir",
     "build_operational_reference_binding_artifacts",
+    "build_semantic_lifecycle",
     "build_set_valued_binding_artifacts",
     "compact_binding_artifacts",
     "derive_resolution_demands",
     "derive_stage_build_keys",
     "evaluate_fibre",
+    "execute_ir_request",
+    "execute_ir_requests",
     "execute_ready_jobs",
     "fibre_element_from_proposal_row",
     "install_streaming_reduction_metrics",
     "normalize_factor_revision_artifacts",
+    "normalize_projection_applicability",
     "owner_partition",
     "project_pronominal_reference_arguments",
+    "project_resolved_factor",
     "project_review_state",
     "proposal_build_key",
     "reduce_factor_proposals",
+    "resolve_reduced_factors",
 ]

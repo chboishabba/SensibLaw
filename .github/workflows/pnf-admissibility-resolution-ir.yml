@@ -1,0 +1,185 @@
+name: PNF admissibility resolution and Domain IR
+
+on:
+  push:
+    branches:
+      - agent/pnf-admissibility-resolution-ir-execution
+  pull_request:
+    paths:
+      - "src/pnf/domain_ir.py"
+      - "src/pnf/domain_ir_projection.py"
+      - "src/pnf/domain_ir_applicability.py"
+      - "src/pnf/semantic_lifecycle.py"
+      - "src/pnf/semantic_lifecycle_pipeline.py"
+      - "src/pnf/ir_execution.py"
+      - "src/pnf/lifecycle_assessment_projection.py"
+      - "src/pnf/projection_factor_binding.py"
+      - "src/pnf/legal_ir_projection_bridge.py"
+      - "src/pnf/curated_legal_ir_flow.py"
+      - "src/pnf/__init__.py"
+      - "src/policy/fibred_operational_corpus_compilation.py"
+      - "src/policy/optimized_streaming_postgres_corpus_compilation.py"
+      - "src/storage/postgres/semantic_lifecycle_store.py"
+      - "database/postgres_migrations/023_pnf_semantic_lifecycle.sql"
+      - "tests/pnf/test_semantic_lifecycle.py"
+      - "tests/pnf/test_semantic_lifecycle_pipeline.py"
+      - "tests/pnf/test_domain_ir_projection.py"
+      - "tests/pnf/test_domain_ir_applicability.py"
+      - "tests/pnf/test_ir_execution.py"
+      - "tests/pnf/test_lifecycle_assessment_projection.py"
+      - "tests/pnf/test_projection_factor_binding.py"
+      - "tests/policy/test_pnf_semantic_lifecycle_compilation.py"
+      - "tests/storage/test_semantic_lifecycle_store.py"
+      - "docs/dev/PNFAdmissibilityResolutionProjectionExecution.md"
+      - ".github/workflows/pnf-admissibility-resolution-ir.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sensiblaw_pnf_lifecycle
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sensiblaw_pnf_lifecycle"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sensiblaw_pnf_lifecycle
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: sensiblaw_pnf_lifecycle
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install environment
+        run: |
+          python -m pip install --upgrade pip uv
+          uv sync --frozen --extra test --extra dev
+
+      - name: Apply PostgreSQL migrations
+        run: bash scripts/apply_pg_migrations.sh
+
+      - name: Lint lifecycle surfaces
+        run: |
+          uv run ruff check \
+            src/pnf/domain_ir.py \
+            src/pnf/domain_ir_projection.py \
+            src/pnf/domain_ir_applicability.py \
+            src/pnf/semantic_lifecycle.py \
+            src/pnf/semantic_lifecycle_pipeline.py \
+            src/pnf/ir_execution.py \
+            src/pnf/lifecycle_assessment_projection.py \
+            src/pnf/projection_factor_binding.py \
+            src/pnf/legal_ir_projection_bridge.py \
+            src/pnf/curated_legal_ir_flow.py \
+            src/pnf/__init__.py \
+            src/policy/fibred_operational_corpus_compilation.py \
+            src/policy/optimized_streaming_postgres_corpus_compilation.py \
+            src/storage/postgres/semantic_lifecycle_store.py \
+            tests/pnf/test_semantic_lifecycle.py \
+            tests/pnf/test_semantic_lifecycle_pipeline.py \
+            tests/pnf/test_domain_ir_projection.py \
+            tests/pnf/test_domain_ir_applicability.py \
+            tests/pnf/test_ir_execution.py \
+            tests/pnf/test_lifecycle_assessment_projection.py \
+            tests/pnf/test_projection_factor_binding.py \
+            tests/policy/test_pnf_semantic_lifecycle_compilation.py \
+            tests/storage/test_semantic_lifecycle_store.py
+
+      - name: Run lifecycle and regression tests
+        run: |
+          uv run pytest -q \
+            tests/pnf/test_semantic_lifecycle.py \
+            tests/pnf/test_semantic_lifecycle_pipeline.py \
+            tests/pnf/test_domain_ir_projection.py \
+            tests/pnf/test_domain_ir_applicability.py \
+            tests/pnf/test_ir_execution.py \
+            tests/pnf/test_lifecycle_assessment_projection.py \
+            tests/pnf/test_projection_factor_binding.py \
+            tests/pnf/test_factor_proposals.py \
+            tests/pnf/test_curated_legal_ir_flow.py \
+            tests/policy/test_fibred_operational_corpus_compilation.py \
+            tests/policy/test_pnf_semantic_lifecycle_compilation.py \
+            tests/storage/test_semantic_lifecycle_store.py
+
+      - name: Validate lifecycle migration
+        run: |
+          uv run python - <<'PY'
+          import os
+          import psycopg
+
+          required = (
+              "pnf_candidate_assessment",
+              "pnf_admissibility_receipt",
+              "pnf_resolution_receipt",
+              "pnf_domain_ir_projection_contract",
+              "pnf_projection_demand",
+              "pnf_projection_loss_receipt",
+              "pnf_domain_ir_projection_receipt",
+              "pnf_domain_ir",
+              "pnf_ir_execution_receipt",
+          )
+          with psycopg.connect(os.environ["DATABASE_URL"]) as connection:
+              with connection.cursor() as cursor:
+                  for table in required:
+                      cursor.execute("SELECT to_regclass(%s)", (f"public.{table}",))
+                      assert cursor.fetchone()[0] == table
+          PY
+
+      - name: Compile a real normative sentence
+        run: |
+          uv run python - <<'PY'
+          import hashlib
+
+          from src.policy.corpus_compilation import default_compiler_context
+          from src.policy.fibred_operational_corpus_compilation import (
+              FIBRED_OPERATIONAL_COMPILER_CONTRACT,
+              compile_document_fibred_operational,
+          )
+
+          text = "A driver must not drive unless a stated exception applies."
+          compilation = compile_document_fibred_operational(
+              {
+                  "document_ref": "document:pnf-lifecycle-ci",
+                  "source_ref": "source:pnf-lifecycle-ci",
+                  "media_type": "text/plain",
+                  "content_sha256": hashlib.sha256(text.encode()).hexdigest(),
+                  "canonical_text": text,
+              },
+              default_compiler_context(),
+              closure_workers=1,
+              owner_partitions=1,
+          )
+          artifacts = compilation.artifacts
+          assert artifacts["operational_compiler_contract"] == FIBRED_OPERATIONAL_COMPILER_CONTRACT
+          assert artifacts["semantic_lifecycle"]["reduction_is_not_resolution"] is True
+          assert artifacts["candidate_assessments"]
+          assert artifacts["domain_ir_build"]["memory_projection_included"] is False
+          assert artifacts["phase_boundary"]["execution_requires_applicability_witness"] is True
+          assert all(row["authority"] == "projection_demand_only" for row in artifacts["projection_demands"])
+          PY
+
+      - name: Check patch formatting
+        run: |
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git diff --check origin/main...HEAD
