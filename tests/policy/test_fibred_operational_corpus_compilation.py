@@ -17,26 +17,9 @@ def _factor() -> dict[str, object]:
     }
 
 
-def test_fibred_wrapper_materialises_streamed_reduction(monkeypatch) -> None:
-    proposal = FactorProposal(
-        document_ref="document:1",
-        source_revision_ref="source:1",
-        factor_type_ref="semantic.normative_relation",
-        source_span_refs=("span:1",),
-        input_observation_refs=(),
-        dependency_factor_refs=(),
-        structural_signature="normative:v1",
-        role_bindings={"conduct": "eventuality:drive"},
-        qualifier_state={"modality": "obligation"},
-        producer_contract="grammar:semantic:operator-composition:v0_1",
-        declaration_revision="v1",
-        candidate_payload={
-            "source_factor_ref": "factor:source",
-            "predicate_ref": "normative.obligation",
-        },
-        scope_ref="sentence:1",
-        fibre_kind="composition",
-    )
+def _base_compilation(
+    proposal: FactorProposal,
+) -> tuple[DocumentCompilation, object]:
     reduction = reduce_factor_proposals(
         document_ref="document:1",
         proposals=(proposal,),
@@ -70,13 +53,16 @@ def test_fibred_wrapper_materialises_streamed_reduction(monkeypatch) -> None:
             "phase_boundary": {},
         },
     )
+    return base, reduction
+
+
+def _compile(monkeypatch, base: DocumentCompilation) -> DocumentCompilation:
     monkeypatch.setattr(
         module,
         "compile_document_operational",
         lambda *args, **kwargs: base,
     )
-
-    compilation = module.compile_document_fibred_operational(
+    return module.compile_document_fibred_operational(
         {
             "document_ref": "document:1",
             "content_sha256": "content:1",
@@ -86,8 +72,35 @@ def test_fibred_wrapper_materialises_streamed_reduction(monkeypatch) -> None:
         },
         default_compiler_context(),
     )
+
+
+def test_fibred_wrapper_replaces_existing_compatibility_coordinate(
+    monkeypatch,
+) -> None:
+    proposal = FactorProposal(
+        document_ref="document:1",
+        source_revision_ref="source:1",
+        factor_type_ref="semantic.normative_relation",
+        source_span_refs=("span:1",),
+        input_observation_refs=(),
+        dependency_factor_refs=(),
+        structural_signature="normative:v1",
+        role_bindings={"conduct": "eventuality:drive"},
+        qualifier_state={"modality": "obligation"},
+        producer_contract="grammar:semantic:operator-composition:v0_1",
+        declaration_revision="v1",
+        candidate_payload={
+            "source_factor_ref": "factor:source",
+            "predicate_ref": "normative.obligation",
+        },
+        scope_ref="sentence:1",
+        fibre_kind="composition",
+    )
+    base, reduction = _base_compilation(proposal)
+    compilation = _compile(monkeypatch, base)
     artifacts = compilation.artifacts
     factor = artifacts["pnf_graph"]["factors"][0]
+    receipt = artifacts["streaming_reduction_projection"]
 
     assert artifacts["pnf_graph"]["graph_ref"].startswith(
         "pnf-fibred-graph:"
@@ -96,6 +109,8 @@ def test_fibred_wrapper_materialises_streamed_reduction(monkeypatch) -> None:
     assert factor["metadata"]["fibre_summary_ref"] == (
         reduction.factors[0].factor_ref
     )
+    assert receipt["replaced_factor_count"] == 1
+    assert receipt["added_factor_count"] == 0
     assert artifacts["factor_refinements"] == []
     assert artifacts["compatibility_factor_refinements"] == [
         {"refinement_ref": "legacy:1"}
@@ -103,3 +118,38 @@ def test_fibred_wrapper_materialises_streamed_reduction(monkeypatch) -> None:
     assert artifacts["fibred_semantic_build"]["one_proposal_contract"] is True
     assert artifacts["streaming_semantic_build"]["one_reduction_authority"] is True
     assert artifacts["phase_boundary"]["fibred_semantic_state"] is True
+    assert artifacts["phase_boundary"][
+        "constraints_after_fibre_materialisation"
+    ] is True
+
+
+def test_fibred_wrapper_adds_new_higher_order_coordinate(monkeypatch) -> None:
+    proposal = FactorProposal(
+        document_ref="document:1",
+        source_revision_ref="source:1",
+        factor_type_ref="semantic.legal_exception",
+        source_span_refs=("span:unless",),
+        input_observation_refs=(),
+        dependency_factor_refs=(),
+        structural_signature="exception:v1",
+        role_bindings={"host": "factor:source"},
+        qualifier_state={"marker": "unless"},
+        producer_contract="grammar:semantic:operator-composition:v0_1",
+        declaration_revision="v1",
+        candidate_payload={"predicate_ref": "legal.exception"},
+        scope_ref="sentence:1",
+        fibre_kind="composition",
+    )
+    base, reduction = _base_compilation(proposal)
+    compilation = _compile(monkeypatch, base)
+    artifacts = compilation.artifacts
+    factors = artifacts["pnf_graph"]["factors"]
+    receipt = artifacts["streaming_reduction_projection"]
+
+    assert len(factors) == 2
+    added = next(
+        row for row in factors if row["factor_ref"] == reduction.factors[0].factor_ref
+    )
+    assert added["metadata"]["fibre_summary_ref"] == added["factor_ref"]
+    assert receipt["added_factor_count"] == 1
+    assert receipt["replaced_factor_count"] == 0
