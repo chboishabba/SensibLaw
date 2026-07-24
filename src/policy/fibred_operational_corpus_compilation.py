@@ -14,7 +14,7 @@ from typing import Any, Mapping
 
 from src.pnf import PNFGraph, derive_resolution_demands
 from src.pnf.constraint_worklist import evaluate_constraint_worklist
-from src.pnf.domain_ir_projection import build_domain_ir
+from src.pnf.domain_ir_applicability import build_applicable_domain_ir
 from src.pnf.fibred_build_projection import project_fibred_semantic_build
 from src.pnf.ir_execution import execute_ir_requests
 from src.pnf.lifecycle_assessment_projection import (
@@ -22,7 +22,9 @@ from src.pnf.lifecycle_assessment_projection import (
     annotate_assessment_proposals,
 )
 from src.pnf.projection_factor_binding import bind_projection_factor_rows
-from src.pnf.semantic_lifecycle import build_semantic_lifecycle
+from src.pnf.semantic_lifecycle_pipeline import (
+    build_admission_aware_semantic_lifecycle,
+)
 from src.pnf.streaming_reduction_projection import project_streaming_reduction
 from src.policy import corpus_compilation as legacy
 from src.policy.algebra import (
@@ -235,7 +237,7 @@ def compile_document_fibred_operational(
     assessment_rows = tuple(
         row.to_dict() for row in constraint_worklist.assessments
     )
-    lifecycle = build_semantic_lifecycle(
+    lifecycle = build_admission_aware_semantic_lifecycle(
         document_ref=fibred_graph.document_ref,
         proposals=lifecycle_proposal_rows,
         reduced_factors=reduced_factor_rows,
@@ -248,7 +250,7 @@ def compile_document_fibred_operational(
         proposals=proposal_rows,
         graph_factors=fibred_graph.factors,
     )
-    domain_ir = build_domain_ir(
+    domain_ir = build_applicable_domain_ir(
         document_ref=fibred_graph.document_ref,
         resolutions=lifecycle.resolutions,
         factors=(
