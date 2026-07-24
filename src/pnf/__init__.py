@@ -1,4 +1,4 @@
-"""Factorized PNF graph primitives."""
+"""Factorized PNF graph and fibred semantic compiler primitives."""
 
 from .binding_candidate_sets import (
     BindingAccessibilityDeclaration,
@@ -12,6 +12,7 @@ from .binding_candidate_sets import (
 from .closure import ClosureContract, assess_pnf_closure
 from .demands import derive_resolution_demands
 from .factor_proposals import (
+    INTEGRATED_SEMANTIC_PRODUCER_CONTRACT,
     CompositionDeclaration,
     CrossDocumentRelation,
     FactorProposal,
@@ -22,6 +23,13 @@ from .factor_proposals import (
     reduce_factor_proposals,
 )
 from .graph import PNFGraph
+from .integrated_semantic_producer import (
+    IntegratedProducerContract,
+    IntegratedProducerReceipt,
+    IntegratedSemanticProducer,
+    ProducerCapability,
+    SubExecutorReceipt,
+)
 from .operational_reference_binding import (
     REFERENCE_BINDING_CONTRACT_REF,
     REFERENCE_REDUCTION_DECLARATION_REF,
@@ -35,6 +43,19 @@ from .review_coordinates import (
     project_review_state,
 )
 from .revision_normalization import normalize_factor_revision_artifacts
+from .semantic_fibres import (
+    AxisObligation,
+    FibreBoundaryObligation,
+    FibreDerivation,
+    FibreElement,
+    FibreValidation,
+    OntologyAxis,
+    SemanticCoordinate,
+    SemanticFibreLedger,
+    SemanticTransport,
+    evaluate_fibre,
+    fibre_element_from_proposal_row,
+)
 from .stage_build_keys import StageBuildKeys, derive_stage_build_keys
 from .streaming_fixed_point import (
     ClosureExecutor,
@@ -56,6 +77,8 @@ from .streaming_fixed_point import (
 )
 
 __all__ = [
+    "INTEGRATED_SEMANTIC_PRODUCER_CONTRACT",
+    "AxisObligation",
     "BindingAccessibilityDeclaration",
     "BindingCandidateMember",
     "BindingCandidateSet",
@@ -70,9 +93,18 @@ __all__ = [
     "DocumentFixedPointCertificate",
     "FactorAnchor",
     "FactorProposal",
+    "FibreBoundaryObligation",
+    "FibreDerivation",
+    "FibreElement",
+    "FibreValidation",
+    "IntegratedProducerContract",
+    "IntegratedProducerReceipt",
+    "IntegratedSemanticProducer",
     "ObservationDelta",
+    "OntologyAxis",
     "OwnerKey",
     "PNFGraph",
+    "ProducerCapability",
     "ProposalReduction",
     "PythonClosureExecutor",
     "REFERENCE_BINDING_CONTRACT_REF",
@@ -80,14 +112,18 @@ __all__ = [
     "ReducedFactor",
     "ReductionResidual",
     "RegionBoundarySummary",
+    "SemanticCoordinate",
+    "SemanticFibreLedger",
     "SemanticReviewAssessment",
     "SemanticReviewCoordinate",
+    "SemanticTransport",
     "SolverJob",
     "SolverReceipt",
     "StageBuildKeys",
     "StateDelta",
     "StreamingDeclaration",
     "StreamingSemanticOwner",
+    "SubExecutorReceipt",
     "assert_finalising_claim_allowed",
     "assess_pnf_closure",
     "build_operational_reference_binding_artifacts",
@@ -95,7 +131,9 @@ __all__ = [
     "compact_binding_artifacts",
     "derive_resolution_demands",
     "derive_stage_build_keys",
+    "evaluate_fibre",
     "execute_ready_jobs",
+    "fibre_element_from_proposal_row",
     "normalize_factor_revision_artifacts",
     "owner_partition",
     "project_pronominal_reference_arguments",
