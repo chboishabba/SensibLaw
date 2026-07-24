@@ -17,6 +17,24 @@ def _sha(value: object) -> bytes:
     return bytes.fromhex(canonical_sha256(value))
 
 
+def _ledger_rows(
+    rows: object,
+    *,
+    ref_field: str,
+    admitted_refs: object,
+) -> list[Mapping[str, Any]]:
+    by_ref = {
+        str(row.get(ref_field) or ""): row
+        for row in rows or ()
+        if isinstance(row, Mapping) and row.get(ref_field)
+    }
+    return [
+        by_ref[str(ref)]
+        for ref in admitted_refs or ()
+        if str(ref) in by_ref
+    ]
+
+
 def persist_streaming_semantic_artifacts_batched(
     cursor: Any,
     *,
@@ -25,11 +43,11 @@ def persist_streaming_semantic_artifacts_batched(
     stage_timing_ledger: Mapping[str, Any],
 ) -> None:
     ledger = streaming_build.get("ledger") or {}
-    deltas = [
-        row
-        for row in streaming_build.get("observation_deltas") or ()
-        if isinstance(row, Mapping)
-    ]
+    deltas = _ledger_rows(
+        streaming_build.get("observation_deltas"),
+        ref_field="delta_ref",
+        admitted_refs=ledger.get("observation_delta_refs"),
+    )
     if deltas:
         cursor.executemany(
             """
@@ -44,22 +62,31 @@ def persist_streaming_semantic_artifacts_batched(
             """,
             [
                 (
-                    row["delta_ref"], document_ref, row["batch_ref"], row["scope_ref"],
-                    int(row["sequence_no"]), row["parser_contract"],
+                    row["delta_ref"],
+                    document_ref,
+                    row["batch_ref"],
+                    row["scope_ref"],
+                    int(row["sequence_no"]),
+                    row["parser_contract"],
                     _json(row.get("observation_refs") or ()),
-                    _json(row.get("observations") or ()), int(row["token_start"]),
-                    int(row["token_end"]), int(row["char_start"]), int(row["char_end"]),
-                    int(row["token_count"]), row["coverage_barrier"],
-                    bool(row["coverage_complete"]), _sha(row),
+                    _json(row.get("observations") or ()),
+                    int(row["token_start"]),
+                    int(row["token_end"]),
+                    int(row["char_start"]),
+                    int(row["char_end"]),
+                    int(row["token_count"]),
+                    row["coverage_barrier"],
+                    bool(row["coverage_complete"]),
+                    _sha(row),
                 )
                 for row in deltas
             ],
         )
-    notices = [
-        row
-        for row in streaming_build.get("coverage_notices") or ()
-        if isinstance(row, Mapping)
-    ]
+    notices = _ledger_rows(
+        streaming_build.get("coverage_notices"),
+        ref_field="notice_ref",
+        admitted_refs=ledger.get("coverage_notice_refs"),
+    )
     if notices:
         cursor.executemany(
             """
@@ -70,14 +97,20 @@ def persist_streaming_semantic_artifacts_batched(
             """,
             [
                 (
-                    row["notice_ref"], document_ref, row["scope_ref"], row["barrier"],
-                    row["state"], _json(row.get("evidence_refs") or ()),
+                    row["notice_ref"],
+                    document_ref,
+                    row["scope_ref"],
+                    row["barrier"],
+                    row["state"],
+                    _json(row.get("evidence_refs") or ()),
                 )
                 for row in notices
             ],
         )
     proposals = [
-        row for row in streaming_build.get("proposals") or () if isinstance(row, Mapping)
+        row
+        for row in streaming_build.get("proposals") or ()
+        if isinstance(row, Mapping)
     ]
     if proposals:
         cursor.executemany(
@@ -95,10 +128,15 @@ def persist_streaming_semantic_artifacts_batched(
             """,
             [
                 (
-                    row["proposal_ref"], row["proposal_digest"], row["document_ref"],
-                    row["source_revision_ref"], row["factor_type_ref"],
-                    row["structural_signature"], row["producer_contract"],
-                    row["declaration_revision"], _json(row.get("source_span_refs") or ()),
+                    row["proposal_ref"],
+                    row["proposal_digest"],
+                    row["document_ref"],
+                    row["source_revision_ref"],
+                    row["factor_type_ref"],
+                    row["structural_signature"],
+                    row["producer_contract"],
+                    row["declaration_revision"],
+                    _json(row.get("source_span_refs") or ()),
                     _json(row.get("input_observation_refs") or ()),
                     _json(row.get("dependency_factor_refs") or ()),
                     _json(row.get("role_bindings") or {}),
@@ -110,7 +148,9 @@ def persist_streaming_semantic_artifacts_batched(
             ],
         )
     jobs = [
-        row for row in streaming_build.get("solver_jobs") or () if isinstance(row, Mapping)
+        row
+        for row in streaming_build.get("solver_jobs") or ()
+        if isinstance(row, Mapping)
     ]
     if jobs:
         cursor.executemany(
@@ -125,20 +165,27 @@ def persist_streaming_semantic_artifacts_batched(
             """,
             [
                 (
-                    row["job_ref"], document_ref,
+                    row["job_ref"],
+                    document_ref,
                     "semantic-owner:" + canonical_sha256(row.get("owner_key") or {}),
                     str((row.get("owner_key") or {}).get("scope_ref") or ""),
                     str((row.get("owner_key") or {}).get("factor_family") or ""),
-                    row["declaration_ref"], int(row["input_revision"]),
-                    _json(row.get("input_refs") or ()), _json(row.get("input_payload") or {}),
-                    row["rule_set_revision"], _json(row.get("coverage_requirements") or ()),
-                    _json(row.get("assumptions") or ()), int(row.get("priority", 100)),
+                    row["declaration_ref"],
+                    int(row["input_revision"]),
+                    _json(row.get("input_refs") or ()),
+                    _json(row.get("input_payload") or {}),
+                    row["rule_set_revision"],
+                    _json(row.get("coverage_requirements") or ()),
+                    _json(row.get("assumptions") or ()),
+                    int(row.get("priority", 100)),
                 )
                 for row in jobs
             ],
         )
     receipts = [
-        row for row in streaming_build.get("solver_receipts") or () if isinstance(row, Mapping)
+        row
+        for row in streaming_build.get("solver_receipts") or ()
+        if isinstance(row, Mapping)
     ]
     if receipts:
         cursor.executemany(
@@ -154,19 +201,27 @@ def persist_streaming_semantic_artifacts_batched(
             """,
             [
                 (
-                    row["receipt_ref"], row["job_ref"], document_ref,
+                    row["receipt_ref"],
+                    row["job_ref"],
+                    document_ref,
                     "semantic-owner:" + canonical_sha256(row.get("owner_key") or {}),
-                    int(row["input_revision"]), _json(row.get("input_refs") or ()),
-                    row["rule_set_revision"], _json(row.get("proposal_refs") or ()),
-                    _json(row.get("residuals") or ()), _json(row.get("assumptions") or ()),
+                    int(row["input_revision"]),
+                    _json(row.get("input_refs") or ()),
+                    row["rule_set_revision"],
+                    _json(row.get("proposal_refs") or ()),
+                    _json(row.get("residuals") or ()),
+                    _json(row.get("assumptions") or ()),
                     _json(row.get("coverage_requirements") or ()),
-                    _json(row.get("metrics") or {}), str(row.get("backend_ref") or ""),
+                    _json(row.get("metrics") or {}),
+                    str(row.get("backend_ref") or ""),
                 )
                 for row in receipts
             ],
         )
     state_deltas = [
-        row for row in streaming_build.get("state_deltas") or () if isinstance(row, Mapping)
+        row
+        for row in streaming_build.get("state_deltas") or ()
+        if isinstance(row, Mapping)
     ]
     if state_deltas:
         cursor.executemany(
@@ -182,7 +237,9 @@ def persist_streaming_semantic_artifacts_batched(
             """,
             [
                 (
-                    document_ref, int(row["resulting_revision"]), int(row["prior_revision"]),
+                    document_ref,
+                    int(row["resulting_revision"]),
+                    int(row["prior_revision"]),
                     _json(row.get("accepted_observation_refs") or ()),
                     _json(row.get("accepted_proposal_refs") or ()),
                     _json(row.get("changed_factor_refs") or ()),
@@ -204,10 +261,20 @@ def persist_streaming_semantic_artifacts_batched(
         ON CONFLICT (graph_ref) DO NOTHING
         """,
         (
-            materialized["graph_ref"], document_ref, int(streaming_build["revision"]),
-            ledger["ledger_ref"], int(materialized.get("proposal_count", 0)),
-            _json([row.get("factor_ref") for row in materialized.get("factors") or ()]),
-            _json([row.get("residual_ref") for row in materialized.get("residuals") or ()]),
+            materialized["graph_ref"],
+            document_ref,
+            int(streaming_build["revision"]),
+            ledger["ledger_ref"],
+            int(materialized.get("proposal_count", 0)),
+            _json(
+                [row.get("factor_ref") for row in materialized.get("factors") or ()]
+            ),
+            _json(
+                [
+                    row.get("residual_ref")
+                    for row in materialized.get("residuals") or ()
+                ]
+            ),
         ),
     )
     boundaries = [
@@ -228,7 +295,9 @@ def persist_streaming_semantic_artifacts_batched(
             """,
             [
                 (
-                    row["summary_ref"], document_ref, row["scope_ref"],
+                    row["summary_ref"],
+                    document_ref,
+                    row["scope_ref"],
                     _json(row.get("stable_factor_refs") or ()),
                     _json(row.get("unresolved_external_refs") or ()),
                     _json(row.get("possible_cross_scope_hosts") or ()),
@@ -253,10 +322,15 @@ def persist_streaming_semantic_artifacts_batched(
         ON CONFLICT (certificate_ref) DO NOTHING
         """,
         (
-            certificate["certificate_ref"], document_ref, int(certificate["revision"]),
-            certificate["ledger_ref"], certificate["materialized_graph_ref"],
-            certificate["local_fixed_point"], int(certificate["unconsumed_observation_deltas"]),
-            int(certificate["dirty_reduction_groups"]), int(certificate["pending_jobs"]),
+            certificate["certificate_ref"],
+            document_ref,
+            int(certificate["revision"]),
+            certificate["ledger_ref"],
+            certificate["materialized_graph_ref"],
+            certificate["local_fixed_point"],
+            int(certificate["unconsumed_observation_deltas"]),
+            int(certificate["dirty_reduction_groups"]),
+            int(certificate["pending_jobs"]),
             int(certificate["in_flight_jobs"]),
             int(certificate["unresolved_local_boundary_obligations"]),
             int(certificate["open_required_coverage_barriers"]),
