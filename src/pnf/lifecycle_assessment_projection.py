@@ -1,13 +1,16 @@
-"""Project operational worklist and coverage receipts into assessment evidence.
+"""Project operational receipts into assessment-only semantic evidence.
 
-This creates an assessment-only view of immutable proposal rows. The explicit
-``proposal_ref`` remains unchanged; neither constraint adjacency nor coverage
-telemetry is added to proposal semantic identity.
+These helpers create assessment views of immutable proposal and fibre rows. The
+explicit proposal and element identities in the canonical ledger are unchanged;
+coverage, constraint adjacency, and aggregate support state affect assessment
+only.
 """
 
 from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
+
+from src.policy.carriers.canonical import canonical_sha256
 
 
 def annotate_assessment_proposals(
@@ -85,4 +88,49 @@ def annotate_assessment_proposals(
     return tuple(output)
 
 
-__all__ = ["annotate_assessment_proposals"]
+def annotate_assessment_fibre_elements(
+    *,
+    proposals: Sequence[Mapping[str, Any]],
+    fibre_elements: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, Any], ...]:
+    """Expose aggregate support states without rewriting the canonical ledger."""
+
+    proposal_state = {
+        str(row.get("proposal_ref") or ""): str(
+            row.get("support_state") or "candidate"
+        )
+        for row in proposals
+        if row.get("proposal_ref")
+    }
+    output: list[dict[str, Any]] = []
+    for element in fibre_elements:
+        row = dict(element)
+        proposal_ref = str(row.get("content_ref") or "")
+        state = proposal_state.get(proposal_ref)
+        if state in {"unsupported", "unresolved"}:
+            row["derivation_role"] = "undetermined"
+            row["assessment_support_state"] = state
+        output.append(row)
+        if state == "contested" and str(row.get("derivation_role") or "") == "support":
+            output.append(
+                {
+                    **row,
+                    "element_ref": "assessment-fibre-element:"
+                    + canonical_sha256(
+                        {
+                            "proposal_ref": proposal_ref,
+                            "source_element_ref": row.get("element_ref"),
+                            "role": "contradict",
+                        }
+                    ),
+                    "derivation_role": "contradict",
+                    "assessment_support_state": "contested",
+                }
+            )
+    return tuple(sorted(output, key=lambda row: str(row.get("element_ref") or "")))
+
+
+__all__ = [
+    "annotate_assessment_fibre_elements",
+    "annotate_assessment_proposals",
+]
