@@ -1,8 +1,8 @@
 """Timed, batched PostgreSQL persistence for one immutable fibred document.
 
-This module preserves the existing compiler and semantic identities. It changes
-only execution: parent-before-child batching, nested persistence timings, and a
-single document transaction suitable for whole-attempt retry by the caller.
+This module preserves semantic identities while changing execution: canonical
+parent-before-child batching, nested persistence timings, and one document
+transaction suitable for whole-attempt retry by the caller.
 """
 
 from __future__ import annotations
@@ -44,6 +44,9 @@ from src.storage.postgres.operational_build_store import (
 )
 from src.storage.postgres.proposal_parent_store import (
     persist_factor_proposal_parents,
+)
+from src.storage.postgres.semantic_lifecycle_store import (
+    persist_semantic_lifecycle_artifacts,
 )
 from src.storage.postgres.span_store import persist_licensed_spans
 from src.storage.postgres.stage_timing_store import persist_stage_timings
@@ -119,7 +122,9 @@ def persist_optimized_streaming_document_compilation(
         context=context,
     )
     if document_ref != expected_document_ref:
-        raise ValueError("operational document identity disagrees with canonical text")
+        raise ValueError(
+            "operational document identity disagrees with canonical text"
+        )
     if str(entry.get("canonical_text_sha256") or "") != canonical_text_sha256:
         raise ValueError("manifest canonical text hash disagrees with compilation")
     if str(entry.get("media_adapter_ref") or "") != media_adapter_ref:
@@ -172,7 +177,9 @@ def persist_optimized_streaming_document_compilation(
         raise ValueError("catalogue persistence requires the fibred compiler")
     source_normalisation = artifacts.get("source_normalisation") or {}
     if str(source_normalisation.get("adapter_ref") or "") != media_adapter_ref:
-        raise ValueError("operational compiler media adapter disagrees with persistence")
+        raise ValueError(
+            "operational compiler media adapter disagrees with persistence"
+        )
 
     canonical_tokens = _validated_canonical_tokens(
         artifacts=artifacts,
@@ -193,9 +200,13 @@ def persist_optimized_streaming_document_compilation(
     stage_ledger = dict(artifacts.get("semantic_stage_timing") or {})
     certificate = streaming_build.get("fixed_point_certificate") or {}
     if certificate.get("local_fixed_point") != "reached":
-        raise ValueError("only locally fixed-point streaming builds may be persisted")
+        raise ValueError(
+            "only locally fixed-point streaming builds may be persisted"
+        )
     if not streaming_build.get("one_reduction_authority"):
         raise ValueError("fibred build requires one reduction authority")
+    if not streaming_build.get("reduction_is_not_resolution"):
+        raise ValueError("semantic lifecycle must separate reduction and resolution")
     expected_producer_receipt = (
         streaming_build.get("integrated_producer_receipt") or {}
     )
@@ -253,9 +264,13 @@ def persist_optimized_streaming_document_compilation(
             output_nodes=len(canonical_tokens),
             details={
                 "token_count": len(canonical_tokens),
-                "mention_count": len(artifacts["licensing"].get("mentions") or ()),
+                "mention_count": len(
+                    artifacts["licensing"].get("mentions") or ()
+                ),
                 "batched": True,
-                "canonical_lock_order": "lexeme_key_then_document_children",
+                "canonical_lock_order": (
+                    "lexeme_key_then_document_children"
+                ),
             },
         )
 
@@ -274,7 +289,9 @@ def persist_optimized_streaming_document_compilation(
                     document_ref=compilation.document_ref,
                     factor=resulting,
                 )
-                resulting_factor_revisions[str(resulting["factor_ref"])] = revision_ref
+                resulting_factor_revisions[str(resulting["factor_ref"])] = (
+                    revision_ref
+                )
         stage_ledger = _append_timing(
             stage_ledger,
             document_ref=document_ref,
@@ -282,7 +299,10 @@ def persist_optimized_streaming_document_compilation(
             elapsed_ms=_elapsed_ms(stage_started),
             input_nodes=len(artifacts["pnf_graph"].get("factors") or ()),
             output_nodes=len(base_factor_revisions),
-            details={"batched": True, "refinement_count": len(refinements)},
+            details={
+                "batched": True,
+                "refinement_count": len(refinements),
+            },
         )
 
         stage_started = monotonic_ns()
@@ -322,58 +342,88 @@ def persist_optimized_streaming_document_compilation(
 
         stage_started = monotonic_ns()
         persist_factor_proposal_parents(cursor, proposals)
-        persisted_producer_receipt = persist_semantic_fibre_artifacts_batched(
+        lifecycle_counts = persist_semantic_lifecycle_artifacts(
             cursor,
             document_ref=compilation.document_ref,
-            observation_deltas=tuple(
-                row
-                for row in streaming_build.get("observation_deltas") or ()
-                if isinstance(row, Mapping)
-            ),
-            proposals=proposals,
-            solver_jobs=tuple(
-                row
-                for row in streaming_build.get("solver_jobs") or ()
-                if isinstance(row, Mapping)
-            ),
-            solver_receipts=tuple(
-                row
-                for row in streaming_build.get("solver_receipts") or ()
-                if isinstance(row, Mapping)
-            ),
-            materialized_reduction=(
-                streaming_build.get("materialized_reduction") or {}
-            ),
-            transports=tuple(
-                row
-                for row in streaming_build.get("semantic_transports") or ()
-                if isinstance(row, Mapping)
-            ),
-            ontology_axes=tuple(
-                row
-                for row in streaming_build.get("ontology_axes") or ()
-                if isinstance(row, Mapping)
-            ),
-            axis_obligations=tuple(
-                row
-                for row in streaming_build.get("axis_obligations") or ()
-                if isinstance(row, Mapping)
-            ),
-            boundary_obligations=tuple(
-                row
-                for row in streaming_build.get("fibre_boundary_obligations") or ()
-                if isinstance(row, Mapping)
-            ),
+            artifacts=artifacts,
+        )
+        stage_ledger = _append_timing(
+            stage_ledger,
+            document_ref=document_ref,
+            stage="postgres.semantic_lifecycle",
+            elapsed_ms=_elapsed_ms(stage_started),
+            input_nodes=len(proposals),
+            output_nodes=sum(lifecycle_counts.values()),
+            details={
+                **lifecycle_counts,
+                "batched": True,
+                "reduction_is_not_resolution": True,
+                "memory_learning_deferred": True,
+            },
+        )
+
+        stage_started = monotonic_ns()
+        persisted_producer_receipt = (
+            persist_semantic_fibre_artifacts_batched(
+                cursor,
+                document_ref=compilation.document_ref,
+                observation_deltas=tuple(
+                    row
+                    for row in streaming_build.get("observation_deltas") or ()
+                    if isinstance(row, Mapping)
+                ),
+                proposals=proposals,
+                solver_jobs=tuple(
+                    row
+                    for row in streaming_build.get("solver_jobs") or ()
+                    if isinstance(row, Mapping)
+                ),
+                solver_receipts=tuple(
+                    row
+                    for row in streaming_build.get("solver_receipts") or ()
+                    if isinstance(row, Mapping)
+                ),
+                materialized_reduction=(
+                    streaming_build.get("materialized_reduction") or {}
+                ),
+                transports=tuple(
+                    row
+                    for row in streaming_build.get("semantic_transports") or ()
+                    if isinstance(row, Mapping)
+                ),
+                ontology_axes=tuple(
+                    row
+                    for row in streaming_build.get("ontology_axes") or ()
+                    if isinstance(row, Mapping)
+                ),
+                axis_obligations=tuple(
+                    row
+                    for row in streaming_build.get("axis_obligations") or ()
+                    if isinstance(row, Mapping)
+                ),
+                boundary_obligations=tuple(
+                    row
+                    for row in streaming_build.get(
+                        "fibre_boundary_obligations"
+                    )
+                    or ()
+                    if isinstance(row, Mapping)
+                ),
+            )
         )
         if expected_producer_receipt:
             if persisted_producer_receipt.fibre_ledger_ref != str(
                 expected_producer_receipt.get("fibre_ledger_ref") or ""
             ):
-                raise ValueError("persisted fibre ledger disagrees with compiler receipt")
+                raise ValueError(
+                    "persisted fibre ledger disagrees with compiler receipt"
+                )
             if persisted_producer_receipt.receipt_ref != str(
                 expected_producer_receipt.get("receipt_ref") or ""
             ):
-                raise ValueError("persisted producer receipt disagrees with compiler receipt")
+                raise ValueError(
+                    "persisted producer receipt disagrees with compiler receipt"
+                )
         stage_ledger = _append_timing(
             stage_ledger,
             document_ref=document_ref,
@@ -381,15 +431,17 @@ def persist_optimized_streaming_document_compilation(
             elapsed_ms=_elapsed_ms(stage_started),
             input_nodes=len(proposals),
             output_nodes=len(
-                (streaming_build.get("materialized_reduction") or {}).get("factors")
+                (
+                    streaming_build.get("materialized_reduction") or {}
+                ).get("factors")
                 or ()
             ),
             details={
                 "proposal_count": len(proposals),
                 "coordinate_count": len(
-                    (streaming_build.get("fibred_semantic_build") or {}).get(
-                        "semantic_coordinates"
-                    )
+                    (
+                        streaming_build.get("fibred_semantic_build") or {}
+                    ).get("semantic_coordinates")
                     or ()
                 ),
                 "batched": True,
@@ -403,30 +455,32 @@ def persist_optimized_streaming_document_compilation(
             streaming_build=streaming_build,
             stage_timing_ledger=stage_ledger,
         )
-        receipt_elapsed_ms = _elapsed_ms(stage_started)
         stage_ledger = _append_timing(
             stage_ledger,
             document_ref=document_ref,
             stage="postgres.receipts",
-            elapsed_ms=receipt_elapsed_ms,
+            elapsed_ms=_elapsed_ms(stage_started),
             input_nodes=len(streaming_build.get("solver_receipts") or ()),
             output_nodes=len(streaming_build.get("solver_receipts") or ()),
             details={
                 "solver_receipt_count": len(
                     streaming_build.get("solver_receipts") or ()
                 ),
-                "state_delta_count": len(streaming_build.get("state_deltas") or ()),
+                "state_delta_count": len(
+                    streaming_build.get("state_deltas") or ()
+                ),
                 "batched": True,
             },
         )
-        total_elapsed_ms = _elapsed_ms(persistence_started)
         stage_ledger = _append_timing(
             stage_ledger,
             document_ref=document_ref,
             stage="postgres_persistence",
-            elapsed_ms=total_elapsed_ms,
+            elapsed_ms=_elapsed_ms(persistence_started),
             details={
-                "transaction_scope": "document_immutable_fibred_build",
+                "transaction_scope": (
+                    "document_immutable_fibred_build"
+                ),
                 "nested_stage_refs": [
                     row["timing_ref"]
                     for row in stage_ledger.get("timings") or ()
