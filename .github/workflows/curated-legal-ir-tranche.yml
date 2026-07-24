@@ -1,0 +1,223 @@
+name: Curated offline Legal IR tranche
+
+on:
+  push:
+    branches:
+      - agent/complete-curated-legal-ir-tranche
+  pull_request:
+    paths:
+      - "src/sources/**"
+      - "src/pnf/factor_proposals.py"
+      - "src/pnf/legal_*.py"
+      - "src/pnf/curated_legal_ir_flow.py"
+      - "src/policy/curated_postgres_corpus_compilation.py"
+      - "src/policy/optimized_streaming_postgres_corpus_compilation.py"
+      - "src/runtime/offline_network_guard.py"
+      - "src/storage/postgres/**"
+      - "scripts/build_legal_ir_catalogue.py"
+      - "scripts/acquire_legal_source.py"
+      - "scripts/run_curated_legal_ir_parity.py"
+      - "scripts/check_curated_legal_ir_acceptance.py"
+      - "database/postgres_migrations/022_curated_legal_ir_runtime.sql"
+      - "tests/sources/**"
+      - "tests/pnf/**"
+      - "tests/policy/**"
+      - "tests/runtime/**"
+      - "docs/dev/CuratedLegalIRPerformanceParity.md"
+      - ".github/workflows/curated-legal-ir-tranche.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sensiblaw_curated_legal_ir
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sensiblaw_curated_legal_ir"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sensiblaw_curated_legal_ir
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: sensiblaw_curated_legal_ir
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install environment
+        run: |
+          python -m pip install --upgrade pip uv
+          uv sync --frozen --extra test --extra dev
+
+      - name: Apply migrations
+        run: bash scripts/apply_pg_migrations.sh
+
+      - name: Lint tranche surfaces
+        run: |
+          uv run ruff check \
+            src/sources/admission.py \
+            src/sources/catalogue_metadata.py \
+            src/sources/governed_acquisition.py \
+            src/pnf/factor_proposals.py \
+            src/pnf/legal_ir_parity.py \
+            src/pnf/legal_source_registry.py \
+            src/pnf/curated_legal_ir_flow.py \
+            src/policy/curated_postgres_corpus_compilation.py \
+            src/policy/optimized_streaming_postgres_corpus_compilation.py \
+            src/runtime/offline_network_guard.py \
+            src/storage/postgres/batched_binding_candidate_store.py \
+            src/storage/postgres/batched_compiler_store.py \
+            src/storage/postgres/batched_semantic_fibre_store.py \
+            src/storage/postgres/batched_semantic_store.py \
+            src/storage/postgres/batched_streaming_semantic_store.py \
+            src/storage/postgres/legal_source_store.py \
+            src/storage/postgres/proposal_parent_store.py \
+            src/storage/postgres/stage_timing_store.py \
+            scripts/build_legal_ir_catalogue.py \
+            scripts/acquire_legal_source.py \
+            scripts/run_curated_legal_ir_parity.py \
+            scripts/check_curated_legal_ir_acceptance.py \
+            tests/sources/test_admission.py \
+            tests/sources/test_governed_acquisition.py \
+            tests/runtime/test_offline_network_guard.py \
+            tests/pnf/test_reducer_partition_metrics.py \
+            tests/pnf/test_legal_ir_parity.py \
+            tests/pnf/test_curated_legal_ir_flow.py \
+            tests/policy/test_operational_corpus_compilation.py
+
+      - name: Run tranche tests
+        run: |
+          uv run pytest -q \
+            tests/sources/test_admission.py \
+            tests/sources/test_governed_acquisition.py \
+            tests/runtime/test_offline_network_guard.py \
+            tests/pnf/test_factor_proposals.py \
+            tests/pnf/test_reducer_partition_metrics.py \
+            tests/pnf/test_legal_ir_parity.py \
+            tests/pnf/test_curated_legal_ir_flow.py \
+            tests/pnf/test_legal_persisted_selection.py \
+            tests/policy/test_operational_corpus_compilation.py \
+            tests/policy/test_fibred_operational_corpus_compilation.py
+
+      - name: Validate curated migration guards
+        run: |
+          uv run python - <<'PY'
+          import os
+          import psycopg
+
+          required = (
+              'source_admission_receipt',
+              'legal_source_revision',
+              'legal_source_plan_receipt',
+              'governed_acquisition_receipt',
+              'execution_document_transaction_attempt',
+              'curated_legal_ir_parity_receipt',
+          )
+          with psycopg.connect(os.environ['DATABASE_URL']) as connection:
+              with connection.cursor() as cursor:
+                  for table in required:
+                      cursor.execute('SELECT to_regclass(%s)', (f'public.{table}',))
+                      assert cursor.fetchone()[0] == table
+          PY
+
+      - name: Run synthetic offline catalogue
+        run: |
+          mkdir -p build/fixture/substantive build/fixture/discovery
+          printf '%s\n' 'A driver must not drive unless licensed.' > build/fixture/substantive/hearing.txt
+          printf '%s\n' 'Search results for hearing.' > build/fixture/discovery/search.txt
+          cat > build/catalogue.json <<'JSON'
+          {
+            "catalogue_ref": "catalogue:ci-curated-legal-ir:v1",
+            "persisted_source_families": [
+              {
+                "family_ref": "hca-substantive",
+                "path": "build/fixture/substantive",
+                "source_suffixes": [".txt"],
+                "source_role": "hearing_transcript",
+                "semantic_scope": "case_material"
+              },
+              {
+                "family_ref": "hca-discovery",
+                "path": "build/fixture/discovery",
+                "source_suffixes": [".txt"],
+                "source_role": "search",
+                "semantic_scope": "discovery"
+              }
+            ]
+          }
+          JSON
+          uv run python scripts/build_legal_ir_catalogue.py \
+            --catalogue build/catalogue.json \
+            --output-root build/catalogue-output \
+            --database-url "$DATABASE_URL" \
+            --offline \
+            --compile-workers 1 \
+            --closure-workers 1 \
+            --owner-partitions 1
+          uv run python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('build/catalogue-output')
+          admission = json.loads((root / 'source_admission_manifest.json').read_text())
+          assert admission['counts'] == {'compile': 1, 'evidence_only': 1, 'exclude': 0}
+          network = json.loads((root / 'network_absence_receipt.json').read_text())
+          assert network['external_network_absent'] is True
+          timings = json.loads((root / 'document_compilation_timings.json').read_text())
+          stages = {
+              row['stage']
+              for document in timings['documents']
+              for row in document['stage_timings']
+          }
+          assert {
+              'postgres.token_lexeme',
+              'postgres.graph_revision',
+              'postgres.resolution_binding',
+              'postgres.fibred_ledger',
+              'postgres.receipts',
+              'postgres_persistence',
+          }.issubset(stages)
+          PY
+
+      - name: Run offline parity surface
+        run: |
+          uv run python scripts/run_curated_legal_ir_parity.py \
+            --input-directory build/catalogue-output/source_projection/canonical \
+            --source-metadata build/catalogue-output/source_metadata.json \
+            --output-dir build/parity-output \
+            --database-url "$DATABASE_URL" \
+            --closure-workers 1 \
+            --owner-partitions 1
+          uv run python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('build/parity-output')
+          receipt = json.loads((root / 'parity_receipt.json').read_text())
+          network = json.loads((root / 'network_absence_receipt.json').read_text())
+          assert receipt['network_attempt_count'] == 0
+          assert receipt['semantic_state_promoted'] is False
+          assert receipt['applicability_closed'] is False
+          assert receipt['legal_truth_closed'] is False
+          assert network['external_network_absent'] is True
+          PY
+
+      - name: Check worktree patch formatting
+        run: git diff --check HEAD^
