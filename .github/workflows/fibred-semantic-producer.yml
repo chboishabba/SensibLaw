@@ -12,6 +12,8 @@ on:
       - "src/pnf/streaming_operator_executor.py"
       - "src/pnf/streaming_reduction_projection.py"
       - "src/pnf/__init__.py"
+      - "src/policy/streaming_postgres_corpus_compilation.py"
+      - "src/storage/postgres/semantic_fibre_store.py"
       - "database/postgres_migrations/021_semantic_fibres.sql"
       - "tests/pnf/test_semantic_fibres.py"
       - "tests/pnf/test_integrated_semantic_producer.py"
@@ -71,6 +73,8 @@ jobs:
             src/pnf/streaming_operator_executor.py \
             src/pnf/streaming_reduction_projection.py \
             src/pnf/__init__.py \
+            src/policy/streaming_postgres_corpus_compilation.py \
+            src/storage/postgres/semantic_fibre_store.py \
             tests/pnf/test_semantic_fibres.py \
             tests/pnf/test_integrated_semantic_producer.py \
             tests/pnf/test_factor_proposals.py
@@ -82,22 +86,131 @@ jobs:
             tests/pnf/test_integrated_semantic_producer.py \
             tests/pnf/test_factor_proposals.py \
             tests/pnf/test_streaming_operator_executor.py \
-            tests/pnf/test_streaming_fixed_point.py
+            tests/pnf/test_streaming_fixed_point.py \
+            tests/pnf/test_zelph_closure_executor.py
 
       - name: Validate fibre migration guards
         run: |
-          python - <<'PY'
+          uv run python - <<'PY'
           import os
           import psycopg
 
+          required = (
+              'semantic_coordinate',
+              'semantic_fibre_element',
+              'semantic_fibre_derivation',
+              'semantic_transport',
+              'semantic_ontology_axis',
+              'semantic_axis_obligation',
+              'semantic_fibre_boundary_obligation',
+              'semantic_fibre_summary',
+              'integrated_semantic_producer_receipt',
+          )
           with psycopg.connect(os.environ['DATABASE_URL']) as connection:
               with connection.cursor() as cursor:
-                  cursor.execute("SELECT to_regclass('public.semantic_coordinate')")
-                  assert cursor.fetchone()[0] == 'semantic_coordinate'
-                  cursor.execute("SELECT to_regclass('public.semantic_fibre_element')")
-                  assert cursor.fetchone()[0] == 'semantic_fibre_element'
-                  cursor.execute("SELECT to_regclass('public.semantic_transport')")
-                  assert cursor.fetchone()[0] == 'semantic_transport'
-                  cursor.execute("SELECT to_regclass('public.semantic_axis_obligation')")
-                  assert cursor.fetchone()[0] == 'semantic_axis_obligation'
+                  for table in required:
+                      cursor.execute(
+                          "SELECT to_regclass(%s)",
+                          (f'public.{table}',),
+                      )
+                      assert cursor.fetchone()[0] == table
+          PY
+
+      - name: Persist one fibred semantic build
+        run: |
+          uv run python - <<'PY'
+          import os
+          import psycopg
+
+          from src.pnf.factor_proposals import FactorProposal, reduce_factor_proposals
+          from src.pnf.streaming_fixed_point import ObservationDelta
+          from src.storage.postgres.semantic_fibre_store import (
+              persist_semantic_fibre_artifacts,
+          )
+
+          document_ref = 'document:fibre-validation'
+          observation_ref = 'observation:must'
+          coordinate_ref = None
+          delta = ObservationDelta(
+              document_ref=document_ref,
+              batch_ref='batch:1',
+              scope_ref='sentence:1',
+              sequence_no=0,
+              parser_contract='parser:test:v1',
+              observation_refs=(observation_ref,),
+              observations=({
+                  'observation_ref': observation_ref,
+                  'observation_type': 'parser.token',
+                  'fibre_kind': 'observation',
+                  'token': {'text': 'must', 'index': 0},
+              },),
+              token_start=0,
+              token_end=1,
+              char_start=0,
+              char_end=4,
+              token_count=1,
+              coverage_barrier='sentence',
+              coverage_complete=True,
+          )
+          # Use the canonical coordinate projected by the current parser adapter shape.
+          from src.pnf.semantic_fibres import SemanticCoordinate
+          coordinate = SemanticCoordinate(
+              document_ref=document_ref,
+              scope_ref='sentence:1',
+              source_span_refs=(observation_ref,),
+              statement_role='parser_observation',
+              factor_family='parser.token',
+          )
+          delta_row = delta.to_dict()
+          delta_row['observations'][0]['semantic_coordinate_ref'] = coordinate.coordinate_ref
+          proposal = FactorProposal(
+              document_ref=document_ref,
+              source_revision_ref='source:1',
+              factor_type_ref='semantic.normative_relation',
+              source_span_refs=('span:1',),
+              input_observation_refs=(observation_ref,),
+              dependency_factor_refs=(),
+              structural_signature='normative:v1',
+              role_bindings={'conduct': 'eventuality:drive'},
+              qualifier_state={'modality': 'obligation'},
+              producer_contract='operator:test:v1',
+              declaration_revision='v1',
+              candidate_payload={'predicate_ref': 'normative.obligation'},
+              scope_ref='sentence:1',
+              fibre_kind='composition',
+          )
+          reduction = reduce_factor_proposals(
+              document_ref=document_ref,
+              proposals=(proposal,),
+              known_observation_refs=(observation_ref,),
+          )
+          with psycopg.connect(os.environ['DATABASE_URL']) as connection:
+              with connection.cursor() as cursor:
+                  receipt = persist_semantic_fibre_artifacts(
+                      cursor,
+                      document_ref=document_ref,
+                      observation_deltas=(delta_row,),
+                      proposals=(proposal.to_dict(),),
+                      solver_jobs=(),
+                      solver_receipts=(),
+                      materialized_reduction=reduction.to_dict(),
+                  )
+                  assert receipt.fibre_ledger_ref.startswith('semantic-fibre-ledger:')
+                  cursor.execute(
+                      'SELECT count(*) FROM semantic_fibre_element WHERE document_ref = %s',
+                      (document_ref,),
+                  )
+                  assert cursor.fetchone()[0] == 2
+                  cursor.execute(
+                      'SELECT count(*) FROM semantic_fibre_summary WHERE document_ref = %s',
+                      (document_ref,),
+                  )
+                  assert cursor.fetchone()[0] == 1
+                  cursor.execute(
+                      'SELECT one_proposal_contract, one_reduction_authority '
+                      'FROM integrated_semantic_producer_receipt WHERE document_ref = %s',
+                      (document_ref,),
+                  )
+                  assert cursor.fetchone() == (True, True)
+              connection.commit()
           PY
