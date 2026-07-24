@@ -2,8 +2,10 @@
 
 The projection consumes the converged proposal ledger and reduced fibre
 summaries, preserves every proposal alternative and residual, and never re-runs
-parser or operator composition.  It is a materialised view, not a second
-semantic authority.
+parser or operator composition. It is a materialised view, not a second
+semantic authority. Reduced fibre-summary identity remains explicit while the
+source compatibility factor reference is retained when downstream graph APIs
+require replacement at an existing coordinate.
 """
 
 from __future__ import annotations
@@ -22,6 +24,19 @@ STREAMING_REDUCTION_PROJECTION_CONTRACT = (
 )
 
 
+def _materialized_factor_ref(
+    reduced: Mapping[str, Any],
+    proposal_rows: list[Mapping[str, Any]],
+) -> str:
+    source_refs = {
+        str((row.get("candidate_payload") or {}).get("source_factor_ref") or "")
+        for row in proposal_rows
+    } - {""}
+    if len(source_refs) == 1:
+        return next(iter(source_refs))
+    return str(reduced["factor_ref"])
+
+
 def _factor_from_reduction(
     *,
     reduced: Mapping[str, Any],
@@ -32,9 +47,10 @@ def _factor_from_reduction(
         sorted(str(ref) for ref in reduced.get("proposal_refs") or ())
     )
     proposal_rows = [proposals[ref] for ref in proposal_refs if ref in proposals]
+    factor_ref = _materialized_factor_ref(reduced, proposal_rows)
     alternatives = tuple(
         TypedAlternative(
-            alternative_ref=f"{str(reduced['factor_ref'])}:proposal:{index}",
+            alternative_ref=f"{factor_ref}:proposal:{index}",
             value={
                 "predicate_ref": str(
                     (row.get("candidate_payload") or {}).get("predicate_ref")
@@ -95,8 +111,21 @@ def _factor_from_reduction(
     )
     role_bindings = dict(reduced.get("role_bindings") or {})
     qualifier_state = dict(reduced.get("qualifier_state") or {})
+    fibre_summary_ref = str(reduced["factor_ref"])
+    factor_revision_ref = str(
+        reduced.get("factor_revision_ref")
+        or "factor-revision:"
+        + canonical_sha256(
+            {
+                "factor_ref": factor_ref,
+                "fibre_summary_ref": fibre_summary_ref,
+                "proposal_refs": proposal_refs,
+                "residuals": residuals,
+            }
+        )
+    )
     return Factor(
-        factor_ref=str(reduced["factor_ref"]),
+        factor_ref=factor_ref,
         factor_type=str(reduced["factor_type_ref"]),
         alternatives=alternatives,
         residuals=residuals,
@@ -104,7 +133,8 @@ def _factor_from_reduction(
             "requires_external_resolution" if residuals else "locally_closed"
         ),
         metadata={
-            "factor_revision_ref": str(reduced["factor_revision_ref"]),
+            "factor_revision_ref": factor_revision_ref,
+            "fibre_summary_ref": fibre_summary_ref,
             "semantic_coordinate_ref": str(
                 reduced.get("semantic_coordinate_ref") or ""
             ),
@@ -183,6 +213,13 @@ def project_streaming_reduction(
         "input_graph_ref": graph.graph_ref,
         "streaming_reduction_ref": reduction_ref,
         "factor_refs": [row.factor_ref for row in factors],
+        "fibre_summary_refs": sorted(
+            {
+                str(row.metadata.get("fibre_summary_ref") or "")
+                for row in factors
+            }
+            - {""}
+        ),
         "semantic_coordinate_refs": sorted(
             {
                 str(row.metadata.get("semantic_coordinate_ref") or "")
@@ -200,6 +237,7 @@ def project_streaming_reduction(
         "parser_observation_source": "streaming_observation_ledger",
         "reparsed": False,
         "fibrewise_materialisation": True,
+        "compatibility_factor_refs_preserved": True,
         "shared_graph_mutation": False,
         "identity_promoted": False,
         "legal_truth_closed": False,
