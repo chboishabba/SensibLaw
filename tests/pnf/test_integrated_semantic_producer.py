@@ -1,13 +1,30 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from typing import Any
 
 from src.pnf.factor_proposals import (
     INTEGRATED_SEMANTIC_PRODUCER_CONTRACT,
     FactorProposal,
     reduce_factor_proposals,
 )
+from src.pnf.fibred_build_projection import project_fibred_semantic_build
 from src.pnf.integrated_semantic_producer import IntegratedSemanticProducer
+from src.storage.postgres.semantic_fibre_store import (
+    persist_semantic_fibre_artifacts,
+)
+
+
+class _Cursor:
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, tuple[Any, ...] | None]] = []
+
+    def execute(
+        self,
+        query: str,
+        params: tuple[Any, ...] | None = None,
+    ) -> None:
+        self.calls.append((query, params))
 
 
 def _proposal(
@@ -119,3 +136,53 @@ def test_integrated_producer_builds_fibre_ledger_and_receipt() -> None:
     assert payload["one_reduction_authority"] is True
     assert payload["identity_promoted"] is False
     assert payload["legal_truth_closed"] is False
+
+
+def test_persistence_reconstructs_exact_compiler_receipt_with_sparse_metadata() -> None:
+    proposal = replace(
+        _proposal(),
+        input_observation_refs=(),
+        execution_metadata={},
+    )
+    reduction = reduce_factor_proposals(
+        document_ref="document:1",
+        proposals=(proposal,),
+    )
+    job = {
+        "job_ref": "job:1",
+        "declaration_ref": "declaration:linking:v1",
+    }
+    solver_receipt = {
+        "receipt_ref": "solver-receipt:1",
+        "job_ref": "job:1",
+        "backend_ref": "python-closure:v1",
+        "rule_set_revision": "v1",
+        "input_refs": [],
+        "proposal_refs": [proposal.proposal_ref],
+        "assumptions": [],
+        "metrics": {},
+    }
+    streaming_build = {
+        "document_ref": "document:1",
+        "observation_deltas": [],
+        "proposals": [proposal.to_dict()],
+        "solver_jobs": [job],
+        "solver_receipts": [solver_receipt],
+        "materialized_reduction": reduction.to_dict(),
+    }
+    projected = project_fibred_semantic_build(streaming_build)
+    cursor = _Cursor()
+    persisted = persist_semantic_fibre_artifacts(
+        cursor,
+        document_ref="document:1",
+        observation_deltas=(),
+        proposals=(proposal.to_dict(),),
+        solver_jobs=(job,),
+        solver_receipts=(solver_receipt,),
+        materialized_reduction=reduction.to_dict(),
+    )
+
+    expected = projected["integrated_producer_receipt"]
+    assert persisted.fibre_ledger_ref == expected["fibre_ledger_ref"]
+    assert persisted.receipt_ref == expected["receipt_ref"]
+    assert any("semantic_fibre_derivation" in query for query, _ in cursor.calls)
