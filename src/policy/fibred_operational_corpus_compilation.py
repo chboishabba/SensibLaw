@@ -1,11 +1,10 @@
 """Fibred operational wrapper over the streaming document compiler.
 
-The existing compiler still performs canonical parsing, mention licensing,
-structural typing, local meets, and streaming job execution. This wrapper makes
-the deterministic streamed fibre reduction the PNF materialised view returned
-to persistence and downstream projections, evaluates the constraint frontier
-against that view, and retains pre-fibre artifacts only as compatibility
-evidence.
+The existing compiler performs canonical parsing, mention licensing, structural
+typing, local meets, and streaming job execution. This wrapper makes fibrewise
+reduction the PNF materialised view, then separately assesses, admits, resolves,
+projects, and optionally executes it. Memory and learning remain outside the
+SensibLaw compiler.
 """
 
 from __future__ import annotations
@@ -15,7 +14,10 @@ from typing import Any, Mapping
 
 from src.pnf import PNFGraph, derive_resolution_demands
 from src.pnf.constraint_worklist import evaluate_constraint_worklist
+from src.pnf.domain_ir_projection import build_domain_ir
 from src.pnf.fibred_build_projection import project_fibred_semantic_build
+from src.pnf.ir_execution import execute_ir_requests
+from src.pnf.semantic_lifecycle import build_semantic_lifecycle
 from src.pnf.streaming_reduction_projection import project_streaming_reduction
 from src.policy import corpus_compilation as legacy
 from src.policy.algebra import (
@@ -32,7 +34,7 @@ from src.policy.operational_corpus_compilation import (
 
 
 FIBRED_OPERATIONAL_COMPILER_CONTRACT = (
-    "postgres-fibred-semantic-compiler:v0_1"
+    "postgres-fibred-semantic-compiler:v0_2"
 )
 
 
@@ -135,6 +137,19 @@ def _canonicalize_factor_revisions(graph: PNFGraph) -> PNFGraph:
     )
 
 
+def _demand_rows(
+    graph: PNFGraph,
+    projection_demands: tuple[Any, ...],
+) -> tuple[dict[str, Any], ...]:
+    rows = [legacy.canonical_json(row) for row in derive_resolution_demands(graph)]
+    rows.extend(row.to_resolution_demand() for row in projection_demands)
+    by_ref = {
+        str(row.get("demand_ref") or canonical_sha256(row)): row
+        for row in rows
+    }
+    return tuple(by_ref[key] for key in sorted(by_ref))
+
+
 def compile_document_fibred_operational(
     document_input: Mapping[str, Any],
     compiler_context: legacy.CompilerContext,
@@ -142,7 +157,7 @@ def compile_document_fibred_operational(
     closure_workers: int = 2,
     owner_partitions: int = 2,
 ) -> legacy.DocumentCompilation:
-    """Compile a document and return the fibrewise PNF materialised view."""
+    """Compile one source through the explicit pre-memory semantic lifecycle."""
 
     base = compile_document_operational(
         document_input,
@@ -162,7 +177,9 @@ def compile_document_fibred_operational(
         graph=source_graph,
         streaming_build=streaming_build,
     )
-    fibred_graph = _canonicalize_factor_revisions(_reidentify_graph(fibred_graph))
+    fibred_graph = _canonicalize_factor_revisions(
+        _reidentify_graph(fibred_graph)
+    )
     changed_factor_refs = tuple(
         str(ref) for ref in projection_receipt.get("factor_refs") or ()
     )
@@ -173,6 +190,43 @@ def compile_document_fibred_operational(
         changed_factor_refs=(changed_factor_refs or None),
     )
     fibred_build = project_fibred_semantic_build(streaming_build)
+
+    proposal_rows = tuple(
+        row
+        for row in streaming_build.get("proposals") or ()
+        if isinstance(row, Mapping)
+    )
+    materialized_reduction = streaming_build.get("materialized_reduction") or {}
+    reduced_factor_rows = tuple(
+        row
+        for row in materialized_reduction.get("factors") or ()
+        if isinstance(row, Mapping)
+    )
+    assessment_rows = tuple(
+        row.to_dict() for row in constraint_worklist.assessments
+    )
+    lifecycle = build_semantic_lifecycle(
+        document_ref=fibred_graph.document_ref,
+        proposals=proposal_rows,
+        reduced_factors=reduced_factor_rows,
+        fibre_elements=tuple(fibred_build.get("fibre_elements") or ()),
+        constraint_assessments=assessment_rows,
+    )
+    domain_ir = build_domain_ir(
+        document_ref=fibred_graph.document_ref,
+        resolutions=lifecycle.resolutions,
+        factors=(
+            *reduced_factor_rows,
+            *(row.to_dict() for row in fibred_graph.factors),
+        ),
+        proposals=proposal_rows,
+    )
+    execution_receipts = execute_ir_requests(
+        requests=tuple(document_input.get("ir_execution_requests") or ()),
+        domain_ir=domain_ir.projections,
+    )
+    demands = _demand_rows(fibred_graph, domain_ir.demands)
+
     streaming_build.update(
         {
             "fibred_semantic_build": fibred_build,
@@ -186,24 +240,37 @@ def compile_document_fibred_operational(
             "materialized_pnf_graph_ref": fibred_graph.graph_ref,
             "materialized_view_authority": "deterministic_fibrewise_pnf",
             "constraint_worklist_ref": constraint_worklist.result_ref,
+            "semantic_lifecycle_ref": lifecycle.lifecycle_ref,
+            "domain_ir_build_ref": domain_ir.build_ref,
+            "ir_execution_receipt_refs": [
+                row.receipt_ref for row in execution_receipts
+            ],
             "one_proposal_contract": True,
             "one_reduction_authority": True,
+            "reduction_is_not_resolution": True,
+            "memory_learning_deferred": True,
         }
     )
-    compatibility_refinements = list(
-        artifacts.get("factor_refinements") or ()
-    )
-    demands = derive_resolution_demands(fibred_graph)
+    compatibility_refinements = list(artifacts.get("factor_refinements") or ())
     phase_boundary = dict(artifacts.get("phase_boundary") or {})
     phase_boundary.update(
         {
             "fibred_semantic_state": True,
             "constraints_after_fibre_materialisation": True,
+            "candidate_assessment_separate": True,
+            "admissibility_separate": True,
+            "reduction_is_not_resolution": True,
+            "domain_ir_is_lawful_projection": True,
+            "projection_demands_return_to_pnf": True,
+            "execution_requires_applicability_witness": True,
+            "memory_learning_deferred": True,
             "one_integrated_producer": True,
             "one_proposal_contract": True,
             "one_reduction_authority": True,
         }
     )
+    lifecycle_row = lifecycle.to_dict()
+    domain_ir_row = domain_ir.to_dict()
     artifacts.update(
         {
             "pre_fibre_pnf_graph": artifacts.get("pnf_graph"),
@@ -215,17 +282,25 @@ def compile_document_fibred_operational(
             ),
             "compatibility_factor_refinements": compatibility_refinements,
             "factor_refinements": [],
-            "constraint_assessments": [
-                row.to_dict() for row in constraint_worklist.assessments
-            ],
+            "constraint_assessments": assessment_rows,
             "fibred_constraint_worklist": constraint_worklist.to_dict(),
             "pnf_graph": fibred_graph.to_dict(),
             "refined_pnf_graph": fibred_graph.to_dict(),
-            # ``derive_resolution_demands`` deliberately returns canonical
-            # mapping payloads.  Keep that backend-free contract intact at
-            # the fibred boundary rather than treating demand rows as carrier
-            # instances.
-            "resolution_demands": [legacy.canonical_json(row) for row in demands],
+            "semantic_lifecycle": lifecycle_row,
+            "candidate_assessments": lifecycle_row["candidate_assessments"],
+            "admissibility_receipts": lifecycle_row["admissibility_receipts"],
+            "semantic_resolution_receipts": lifecycle_row[
+                "resolution_receipts"
+            ],
+            "domain_ir_build": domain_ir_row,
+            "domain_ir_projections": domain_ir_row["projections"],
+            "domain_ir_projection_receipts": domain_ir_row["receipts"],
+            "projection_loss_receipts": domain_ir_row["losses"],
+            "projection_demands": domain_ir_row["demands"],
+            "ir_execution_receipts": [
+                row.to_dict() for row in execution_receipts
+            ],
+            "resolution_demands": list(demands),
             "streaming_semantic_build": streaming_build,
             "fibred_semantic_build": fibred_build,
             "streaming_reduction_projection": projection_receipt,
