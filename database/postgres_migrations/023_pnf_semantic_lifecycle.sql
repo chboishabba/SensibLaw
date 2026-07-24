@@ -174,7 +174,7 @@ CREATE TABLE IF NOT EXISTS pnf_ir_execution_receipt (
     receipt_ref TEXT PRIMARY KEY,
     document_ref TEXT NOT NULL,
     request_ref TEXT NOT NULL,
-    domain_ir_ref TEXT NOT NULL REFERENCES pnf_domain_ir(domain_ir_ref),
+    domain_ir_ref TEXT NOT NULL,
     rule_or_query_ref TEXT NOT NULL,
     outcome TEXT NOT NULL CHECK (
         outcome IN ('executed', 'refused_invalid_ir',
