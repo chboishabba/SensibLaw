@@ -76,7 +76,7 @@ def _fetch(url: str, maximum_bytes: int) -> FetchedSource:
     if media_type not in {"text/plain", "text/html", "application/xhtml+xml"}:
         raise ValueError("this acquisition CLI accepts text and HTML only")
     decoded = raw.decode("utf-8")
-    canonical_text, _, _ = _canonical_source_coordinates(
+    canonical_text, _, adapter_ref = _canonical_source_coordinates(
         media_type=media_type,
         source_text=decoded,
         source_ref=f"governed-fetch:{hashlib.sha256(raw).hexdigest()}",
@@ -86,6 +86,7 @@ def _fetch(url: str, maximum_bytes: int) -> FetchedSource:
         media_type=media_type,
         raw_bytes=raw,
         canonical_text=canonical_text,
+        adapter_ref=adapter_ref,
     )
 
 
@@ -115,14 +116,12 @@ def main() -> int:
                 print(receipt.to_dict())
                 return 1
             context = default_compiler_context()
-            canonical_text, canonical_sha256_hex, adapter_ref = (
-                _canonical_source_coordinates(
-                    media_type=str(payload["media_type"]),
-                    source_text=str(payload["canonical_text"]),
-                    source_ref=str(payload["source_revision_ref"]),
-                )
-            )
-            if canonical_sha256_hex != str(payload["canonical_text_sha256"]):
+            canonical_text = str(payload["canonical_text"])
+            canonical_sha256_hex = str(payload["canonical_text_sha256"])
+            adapter_ref = str(payload["adapter_ref"])
+            if hashlib.sha256(canonical_text.encode("utf-8")).hexdigest() != (
+                canonical_sha256_hex
+            ):
                 raise ValueError("acquisition canonical text digest is not reproducible")
             document_ref = _operational_document_ref(
                 source_content_sha256=str(receipt.content_sha256),
