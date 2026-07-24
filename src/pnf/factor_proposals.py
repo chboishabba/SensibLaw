@@ -1,25 +1,23 @@
 """Immutable fibred PNF proposals and deterministic reduction.
 
 Ordinary compiler operations are normalised under one integrated semantic
-producer family.  Their particular typing, linking, composition, constraint,
-closure, or enrichment operation remains explicit, while executor details stay
-outside semantic identity.  Workers may populate fibres concurrently; one
-fibrewise reducer materialises the active PNF view and retains incompatible
-alternatives and residual boundary data.
+producer family. Executor details stay outside semantic identity. Proposals are
+partitioned by their complete fibre signature before compatibility grouping, so
+unrelated fibres never enter the comparison loop.
 """
 
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
+from math import comb
 from typing import Any, Iterable, Mapping, Sequence
 
 from src.pnf.semantic_fibres import SemanticCoordinate
 from src.policy.carriers.canonical import canonical_sha256
 
-
 INTEGRATED_SEMANTIC_PRODUCER_CONTRACT = "integrated-semantic-producer:v0_1"
 FACTOR_PROPOSAL_SCHEMA_VERSION = "sl.pnf.factor_proposal.v0_2"
-PROPOSAL_REDUCTION_SCHEMA_VERSION = "sl.pnf.proposal_reduction.v0_2"
+PROPOSAL_REDUCTION_SCHEMA_VERSION = "sl.pnf.proposal_reduction.v0_3"
 CROSS_DOCUMENT_RELATION_SCHEMA_VERSION = "sl.pnf.cross_document_relation.v0_1"
 
 _FIBRE_KINDS = {
@@ -139,18 +137,12 @@ class FactorProposal:
         object.__setattr__(self, "assumptions", assumptions)
         object.__setattr__(self, "coverage_requirements", coverage)
 
-        resolved_scope = self.scope_ref or (
-            min(spans) if spans else "document-global"
-        )
+        resolved_scope = self.scope_ref or (min(spans) if spans else "document-global")
         object.__setattr__(self, "scope_ref", resolved_scope)
-
-        operation_contract = self.operation_contract
+        operation_contract = self.operation_contract or self.producer_contract
         producer_contract = self.producer_contract
         if self.producer_scope == "integrated":
-            operation_contract = operation_contract or producer_contract
             producer_contract = INTEGRATED_SEMANTIC_PRODUCER_CONTRACT
-        else:
-            operation_contract = operation_contract or producer_contract
         object.__setattr__(self, "operation_contract", operation_contract)
         object.__setattr__(self, "producer_contract", producer_contract)
 
@@ -162,8 +154,11 @@ class FactorProposal:
             factor_family=self.factor_type_ref,
             coordinate_kind=self.coordinate_kind,
         )
-        coordinate_ref = self.semantic_coordinate_ref or coordinate.coordinate_ref
-        object.__setattr__(self, "semantic_coordinate_ref", coordinate_ref)
+        object.__setattr__(
+            self,
+            "semantic_coordinate_ref",
+            self.semantic_coordinate_ref or coordinate.coordinate_ref,
+        )
 
     @property
     def proposal_digest(self) -> str:
@@ -174,8 +169,6 @@ class FactorProposal:
         return "factor-proposal:" + self.proposal_digest
 
     def identity_payload(self) -> dict[str, Any]:
-        """Return semantic identity without executor-specific telemetry."""
-
         return {
             "document_ref": self.document_ref,
             "source_revision_ref": self.source_revision_ref,
@@ -270,9 +263,7 @@ class ReducedFactor:
             "ontology_axis_refs": list(self.ontology_axis_refs),
             "transport_refs": list(self.transport_refs),
             "support_states": list(self.support_states),
-            "closure_state": (
-                "requires_review" if self.residuals else "locally_closed"
-            ),
+            "closure_state": "requires_review" if self.residuals else "locally_closed",
         }
 
 
@@ -283,6 +274,7 @@ class ProposalReduction:
     residuals: tuple[ReductionResidual, ...]
     proposal_count: int
     deduplicated_count: int
+    metrics: Mapping[str, Any] = field(default_factory=dict)
 
     @property
     def graph_ref(self) -> str:
@@ -307,10 +299,9 @@ class ProposalReduction:
             ),
             "factors": [row.to_dict() for row in self.factors],
             "residuals": [row.to_dict() for row in self.residuals],
+            "metrics": dict(self.metrics),
             "reduction_contract": "deterministic-fibrewise-pnf:v0_1",
-            "integrated_producer_contract": (
-                INTEGRATED_SEMANTIC_PRODUCER_CONTRACT
-            ),
+            "integrated_producer_contract": INTEGRATED_SEMANTIC_PRODUCER_CONTRACT,
             "fibrewise_reduction": True,
             "identity_promoted": False,
             "legal_truth_closed": False,
@@ -330,9 +321,7 @@ class CrossDocumentRelation:
 
     @property
     def relation_ref(self) -> str:
-        return "cross-document-relation:" + canonical_sha256(
-            self.identity_payload()
-        )
+        return "cross-document-relation:" + canonical_sha256(self.identity_payload())
 
     def identity_payload(self) -> dict[str, Any]:
         return {
@@ -369,29 +358,28 @@ def proposal_build_key(
             "canonical_text_digest": canonical_text_digest,
             "producer_contract": producer_contract,
             "declaration_revision": declaration_revision,
-            "input_observation_digests": sorted(
-                set(input_observation_digests)
-            ),
-            "dependency_factor_digests": sorted(
-                set(dependency_factor_digests)
-            ),
+            "input_observation_digests": sorted(set(input_observation_digests)),
+            "dependency_factor_digests": sorted(set(dependency_factor_digests)),
         }
     )
 
 
+def _signature_key(proposal: FactorProposal) -> tuple[str, str, str, str]:
+    return (
+        str(proposal.semantic_coordinate_ref),
+        proposal.fibre_kind,
+        proposal.factor_type_ref,
+        proposal.structural_signature,
+    )
+
+
 def _compatible(left: FactorProposal, right: FactorProposal) -> bool:
-    if left.semantic_coordinate_ref != right.semantic_coordinate_ref:
+    if _signature_key(left) != _signature_key(right):
         return False
-    if left.fibre_kind != right.fibre_kind:
-        return False
-    if left.factor_type_ref != right.factor_type_ref:
-        return False
-    if left.structural_signature != right.structural_signature:
-        return False
-    for role in set(left.role_bindings) & set(right.role_bindings):
-        if left.role_bindings[role] != right.role_bindings[role]:
-            return False
-    return True
+    return all(
+        left.role_bindings[role] == right.role_bindings[role]
+        for role in set(left.role_bindings) & set(right.role_bindings)
+    )
 
 
 def reduce_factor_proposals(
@@ -406,9 +394,7 @@ def reduce_factor_proposals(
     ordered = sorted(proposals, key=lambda row: row.proposal_ref)
     for proposal in ordered:
         if proposal.document_ref != document_ref:
-            raise ValueError(
-                "cross-document proposal supplied to document-local reducer"
-            )
+            raise ValueError("cross-document proposal supplied to document-local reducer")
 
     observation_refs = set(known_observation_refs)
     dependency_refs = set(known_dependency_refs)
@@ -429,9 +415,7 @@ def reduce_factor_proposals(
             residual_ref = "reduction-residual:" + canonical_sha256(
                 {
                     "proposal_ref": proposal.proposal_ref,
-                    "semantic_coordinate_ref": (
-                        proposal.semantic_coordinate_ref
-                    ),
+                    "semantic_coordinate_ref": proposal.semantic_coordinate_ref,
                     "missing_observations": missing_observations,
                     "missing_dependencies": missing_dependencies,
                 }
@@ -443,12 +427,10 @@ def reduce_factor_proposals(
                     residual_type="missing_reduction_input",
                     proposal_refs=(proposal.proposal_ref,),
                     message=(
-                        "proposal retained outside reduction because declared "
-                        "inputs are unavailable"
+                        "proposal retained outside reduction because declared inputs "
+                        "are unavailable"
                     ),
-                    semantic_coordinate_ref=(
-                        proposal.semantic_coordinate_ref
-                    ),
+                    semantic_coordinate_ref=proposal.semantic_coordinate_ref,
                     boundary_kind="input_frontier",
                 )
             )
@@ -457,37 +439,32 @@ def reduce_factor_proposals(
 
     unique = {row.proposal_ref: row for row in valid}
     deduplicated = sorted(unique.values(), key=lambda row: row.proposal_ref)
-    groups: list[list[FactorProposal]] = []
+    buckets: dict[tuple[str, str, str, str], list[FactorProposal]] = {}
     for proposal in deduplicated:
-        matched = next(
-            (
-                group
-                for group in groups
-                if all(_compatible(proposal, item) for item in group)
-            ),
-            None,
-        )
-        if matched is None:
-            groups.append([proposal])
-        else:
-            matched.append(proposal)
+        buckets.setdefault(_signature_key(proposal), []).append(proposal)
+
+    candidate_comparisons = 0
+    grouped_by_signature: dict[
+        tuple[str, str, str, str], list[list[FactorProposal]]
+    ] = {}
+    for key, bucket in sorted(buckets.items()):
+        groups: list[list[FactorProposal]] = []
+        for proposal in bucket:
+            matched: list[FactorProposal] | None = None
+            for group in groups:
+                candidate_comparisons += 1
+                if all(_compatible(proposal, item) for item in group):
+                    matched = group
+                    break
+            if matched is None:
+                groups.append([proposal])
+            else:
+                matched.append(proposal)
+        grouped_by_signature[key] = groups
 
     factors: list[ReducedFactor] = []
     incompatibility_residuals: list[ReductionResidual] = []
-    signature_groups: dict[
-        tuple[str, str, str, str],
-        list[list[FactorProposal]],
-    ] = {}
-    for group in groups:
-        key = (
-            str(group[0].semantic_coordinate_ref),
-            group[0].fibre_kind,
-            group[0].factor_type_ref,
-            group[0].structural_signature,
-        )
-        signature_groups.setdefault(key, []).append(group)
-
-    for key, compatible_groups in sorted(signature_groups.items()):
+    for key, compatible_groups in sorted(grouped_by_signature.items()):
         if len(compatible_groups) > 1:
             refs = tuple(
                 sorted(
@@ -510,17 +487,15 @@ def reduce_factor_proposals(
                     residual_type="incompatible_alternatives",
                     proposal_refs=refs,
                     message=(
-                        "proposals in one semantic fibre disagree on one or "
-                        "more occupied coordinates"
+                        "proposals in one semantic fibre disagree on one or more "
+                        "occupied coordinates"
                     ),
                     semantic_coordinate_ref=key[0],
                     boundary_kind="conflicted_fibre",
                 )
             )
         for group in compatible_groups:
-            proposal_refs = tuple(
-                sorted(row.proposal_ref for row in group)
-            )
+            proposal_refs = tuple(sorted(row.proposal_ref for row in group))
             roles: dict[str, str] = {}
             qualifiers: dict[str, Any] = {}
             residuals: set[str] = set()
@@ -576,6 +551,26 @@ def reduce_factor_proposals(
                 )
             )
 
+    possible_comparisons = comb(len(deduplicated), 2) if len(deduplicated) > 1 else 0
+    avoided = max(0, possible_comparisons - candidate_comparisons)
+    metrics = {
+        "bucket_count": len(buckets),
+        "largest_bucket": max((len(value) for value in buckets.values()), default=0),
+        "candidate_comparisons": candidate_comparisons,
+        "potential_candidate_comparisons": possible_comparisons,
+        "comparisons_avoided": avoided,
+        "comparison_avoidance_ratio": (
+            avoided / possible_comparisons if possible_comparisons else 1.0
+        ),
+        "duplicates_collapsed": len(valid) - len(deduplicated),
+        "alternatives_retained": sum(
+            len(group) for groups in grouped_by_signature.values() for group in groups
+        ),
+        "factor_count": len(factors),
+        "reduction_ratio": (
+            len(factors) / len(deduplicated) if deduplicated else 0.0
+        ),
+    }
     return ProposalReduction(
         document_ref=document_ref,
         factors=tuple(sorted(factors, key=lambda row: row.factor_ref)),
@@ -587,6 +582,7 @@ def reduce_factor_proposals(
         ),
         proposal_count=len(ordered),
         deduplicated_count=len(valid) - len(deduplicated),
+        metrics=metrics,
     )
 
 
