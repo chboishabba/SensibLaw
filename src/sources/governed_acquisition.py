@@ -88,6 +88,16 @@ class AcquisitionReceipt:
 FetchFunction = Callable[[str, int], FetchedSource]
 
 
+def _validated_http_host(url: str, allowed_hosts: set[str], *, label: str) -> str:
+    parsed = urlparse(url)
+    if parsed.scheme not in {"https", "http"}:
+        raise ValueError(f"{label} URL must use HTTP(S)")
+    hostname = str(parsed.hostname or "")
+    if hostname not in allowed_hosts:
+        raise ValueError(f"{label} host is outside the acquisition policy")
+    return hostname
+
+
 def acquire_legal_source(
     request: AcquisitionRequest,
     *,
@@ -100,14 +110,12 @@ def acquire_legal_source(
         raise ValueError("operator authorization is required")
     if request.provider_profile_ref != policy.provider_profile_ref:
         raise ValueError("request provider profile disagrees with policy")
-    parsed = urlparse(request.requested_url)
-    if parsed.scheme not in {"https", "http"}:
-        raise ValueError("governed acquisition supports HTTP(S) only")
-    if parsed.hostname not in set(policy.allowed_hosts):
-        raise ValueError("requested host is outside the acquisition policy")
+    allowed_hosts = set(policy.allowed_hosts)
+    _validated_http_host(request.requested_url, allowed_hosts, label="requested")
 
     try:
         fetched = fetch(request.requested_url, policy.maximum_bytes)
+        _validated_http_host(fetched.final_url, allowed_hosts, label="redirected")
         if len(fetched.raw_bytes) > policy.maximum_bytes:
             raise ValueError("fetched source exceeds acquisition byte limit")
         if fetched.media_type not in set(policy.allowed_media_types):
