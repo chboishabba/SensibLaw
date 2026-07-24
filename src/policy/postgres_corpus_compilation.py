@@ -166,6 +166,8 @@ def _operational_build_key(
             "media_adapter_ref": media_adapter_ref,
             "context": context.to_dict(),
             "compiler_contract": OPERATIONAL_COMPILER_CONTRACT,
+            "closure_workers_semantic_effect": "none",
+            "owner_partitions_semantic_effect": "none",
         }
     )
 

@@ -15,7 +15,9 @@ from time import monotonic_ns
 from typing import Any, Callable, Mapping, Sequence
 
 from src.policy.corpus_compilation import CompilerContext, build_corpus_manifest
-from src.policy.operational_corpus_compilation import OPERATIONAL_COMPILER_CONTRACT
+from src.policy.fibred_operational_corpus_compilation import (
+    FIBRED_OPERATIONAL_COMPILER_CONTRACT,
+)
 from src.policy.postgres_corpus_compilation import (
     _operational_build_key,
     _prepare_operational_manifest,
@@ -131,7 +133,7 @@ def _compile_one(
             cached = load_completed_operational_build(
                 cursor,
                 document_ref=document_ref,
-                compiler_contract_ref=OPERATIONAL_COMPILER_CONTRACT,
+                compiler_contract_ref=FIBRED_OPERATIONAL_COMPILER_CONTRACT,
                 build_key_sha256=build_key,
             )
         if prepared_source is None:
