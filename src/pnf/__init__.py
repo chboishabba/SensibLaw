@@ -19,6 +19,10 @@ from .domain_ir import (
     ProjectionDemand,
     ProjectionLossReceipt,
 )
+from .domain_ir_applicability import (
+    build_applicable_domain_ir,
+    normalize_projection_applicability,
+)
 from .domain_ir_projection import (
     DEFAULT_DOMAIN_IR_CONTRACTS,
     LEGAL_IR_CONTRACT,
@@ -87,6 +91,9 @@ from .semantic_lifecycle import (
     assess_factor_proposals,
     build_semantic_lifecycle,
     resolve_reduced_factors,
+)
+from .semantic_lifecycle_pipeline import (
+    build_admission_aware_semantic_lifecycle,
 )
 from .stage_build_keys import StageBuildKeys, derive_stage_build_keys
 from .streaming_fixed_point import (
@@ -179,6 +186,8 @@ __all__ = [
     "assert_finalising_claim_allowed",
     "assess_factor_proposals",
     "assess_pnf_closure",
+    "build_admission_aware_semantic_lifecycle",
+    "build_applicable_domain_ir",
     "build_domain_ir",
     "build_operational_reference_binding_artifacts",
     "build_semantic_lifecycle",
@@ -193,6 +202,7 @@ __all__ = [
     "fibre_element_from_proposal_row",
     "install_streaming_reduction_metrics",
     "normalize_factor_revision_artifacts",
+    "normalize_projection_applicability",
     "owner_partition",
     "project_pronominal_reference_arguments",
     "project_resolved_factor",
