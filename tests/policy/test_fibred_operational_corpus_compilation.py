@@ -77,6 +77,11 @@ def _compile(monkeypatch, base: DocumentCompilation) -> DocumentCompilation:
 def test_fibred_wrapper_replaces_existing_compatibility_coordinate(
     monkeypatch,
 ) -> None:
+    monkeypatch.setattr(
+        module,
+        "derive_resolution_demands",
+        lambda graph: ({"demand_ref": "demand:1", "graph_ref": graph.graph_ref},),
+    )
     proposal = FactorProposal(
         document_ref="document:1",
         source_revision_ref="source:1",
@@ -121,6 +126,8 @@ def test_fibred_wrapper_replaces_existing_compatibility_coordinate(
     assert artifacts["phase_boundary"][
         "constraints_after_fibre_materialisation"
     ] is True
+    assert artifacts["resolution_demands"]
+    assert all(isinstance(row, dict) for row in artifacts["resolution_demands"])
 
 
 def test_fibred_wrapper_adds_new_higher_order_coordinate(monkeypatch) -> None:

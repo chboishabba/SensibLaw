@@ -204,7 +204,11 @@ def compile_document_fibred_operational(
             "fibred_constraint_worklist": constraint_worklist.to_dict(),
             "pnf_graph": fibred_graph.to_dict(),
             "refined_pnf_graph": fibred_graph.to_dict(),
-            "resolution_demands": [row.to_dict() for row in demands],
+            # ``derive_resolution_demands`` deliberately returns canonical
+            # mapping payloads.  Keep that backend-free contract intact at
+            # the fibred boundary rather than treating demand rows as carrier
+            # instances.
+            "resolution_demands": [legacy.canonical_json(row) for row in demands],
             "streaming_semantic_build": streaming_build,
             "fibred_semantic_build": fibred_build,
             "streaming_reduction_projection": projection_receipt,
