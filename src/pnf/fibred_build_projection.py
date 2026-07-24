@@ -216,11 +216,6 @@ def project_fibred_semantic_build(
             for ref in receipt.get("proposal_refs") or ()
             if str(ref) in proposal_rows
         ]
-        operation_contract = str(
-            output_proposals[0].operation_contract
-            if output_proposals
-            else job.get("declaration_ref") or "unknown-operation"
-        )
         operation_kind = str(
             (
                 output_proposals[0].execution_metadata.get("operation_kind")
