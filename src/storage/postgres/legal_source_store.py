@@ -5,11 +5,8 @@ from __future__ import annotations
 import json
 from typing import Any, Iterable, Mapping, Sequence
 
-from src.pnf.legal_adjunct import (
-    LegalSourcePlan,
-    NormativeInteractionDemand,
-    PersistedLegalSource,
-)
+from src.pnf.legal_adjunct import LegalSourcePlan, NormativeInteractionDemand
+from src.pnf.legal_source_registry import RegisteredLegalSource
 from src.policy.carriers.canonical import canonical_sha256
 from src.sources.admission import SourceAdmissionReceipt
 
@@ -64,9 +61,9 @@ def persist_source_admission_receipts(
 
 def persist_legal_source_revision(
     cursor: Any,
-    source: PersistedLegalSource | Mapping[str, Any],
+    source: RegisteredLegalSource | Mapping[str, Any],
 ) -> str:
-    payload = source.to_dict() if isinstance(source, PersistedLegalSource) else dict(source)
+    payload = source.to_dict() if isinstance(source, RegisteredLegalSource) else dict(source)
     cursor.execute(
         """
         INSERT INTO legal_source_revision
@@ -100,9 +97,11 @@ def persist_legal_source_revision(
 def load_compatible_legal_sources(
     cursor: Any,
     demand: NormativeInteractionDemand,
-) -> tuple[PersistedLegalSource, ...]:
+) -> tuple[RegisteredLegalSource, ...]:
     """Load only persisted revisions compatible with an explicit legal demand."""
 
+    if not demand.acquisition_ready:
+        return ()
     cursor.execute(
         """
         SELECT source_revision_ref, document_ref, admission_receipt_ref,
@@ -122,16 +121,23 @@ def load_compatible_legal_sources(
             list(demand.authority_level_refs),
         ),
     )
-    rows = []
+    rows: list[RegisteredLegalSource] = []
     for row in cursor.fetchall():
         temporal_refs = tuple(str(value) for value in (row[7] or ()))
         provider_refs = tuple(str(value) for value in (row[8] or ()))
-        if demand.temporal_refs and temporal_refs and not set(demand.temporal_refs).intersection(temporal_refs):
+        if (
+            demand.temporal_refs
+            and temporal_refs
+            and not set(demand.temporal_refs).intersection(temporal_refs)
+        ):
             continue
-        if demand.provider_profile_refs and not set(demand.provider_profile_refs).intersection(provider_refs):
+        if (
+            demand.provider_profile_refs
+            and not set(demand.provider_profile_refs).intersection(provider_refs)
+        ):
             continue
         rows.append(
-            PersistedLegalSource(
+            RegisteredLegalSource(
                 source_revision_ref=str(row[0]),
                 document_ref=str(row[1]),
                 admission_receipt_ref=str(row[2]),
@@ -154,8 +160,6 @@ def load_legal_source_payload(
     *,
     source_revision_ref: str,
 ) -> Mapping[str, Any] | None:
-    """Read the canonical payload attached to one registered source revision."""
-
     cursor.execute(
         """
         SELECT l.source_revision_ref, l.document_ref, l.media_type,
@@ -321,7 +325,11 @@ def persist_parity_receipt(cursor: Any, receipt: Mapping[str, Any]) -> str:
             _json(receipt.get("typed_meet_refs") or ()),
             _json(receipt.get("legacy_witness_refs") or ()),
             _json(receipt["identity_snapshot"]),
-            _json(receipt["control_snapshot"]) if receipt.get("control_snapshot") is not None else None,
+            (
+                _json(receipt["control_snapshot"])
+                if receipt.get("control_snapshot") is not None
+                else None
+            ),
             receipt.get("identity_parity"),
             int(receipt.get("network_attempt_count") or 0),
             _json(receipt.get("unexpected_failure_refs") or ()),
