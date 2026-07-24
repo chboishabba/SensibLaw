@@ -112,9 +112,31 @@ class LegalSourcePlan:
     temporal_refs: tuple[str, ...]
     state: str
     blocked_reasons: tuple[str, ...]
+    selected_source_revision_refs: tuple[str, ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
         return {**asdict(self), "authority": "acquisition_plan_only"}
+
+
+@dataclass(frozen=True)
+class PersistedLegalSource:
+    """A revision already acquired under an operator-governed process."""
+
+    source_revision_ref: str
+    jurisdiction_ref: str
+    source_role: str
+    authority_level: str
+    temporal_refs: tuple[str, ...] = ()
+    provider_profile_refs: tuple[str, ...] = ()
+    compile_eligible: bool = True
+
+
+@dataclass(frozen=True)
+class AcquisitionRequirement:
+    demand_ref: str
+    plan_key: str
+    state: str = "blocked_acquisition_required"
+    reason: str = "compatible_persisted_legal_source_absent"
 
 
 @dataclass(frozen=True)
@@ -185,7 +207,9 @@ def project_normative_interaction_demands(
 
     projected: dict[tuple[str, str], NormativeInteractionDemand] = {}
     for row in rows:
-        facets = tuple(sorted({str(value) for value in row.get("requested_facets") or ()}))
+        facets = tuple(
+            sorted({str(value) for value in row.get("requested_facets") or ()})
+        )
         explicit = bool(row.get("explicit_legal_request"))
         if not explicit and not _LEGAL_TRIGGER_FACETS.intersection(facets):
             continue
@@ -251,28 +275,104 @@ def project_normative_interaction_demands(
 
 def plan_legal_sources(
     demands: Iterable[NormativeInteractionDemand],
+    persisted_sources: Iterable[PersistedLegalSource | Mapping[str, Any]] = (),
 ) -> tuple[LegalSourcePlan, ...]:
+    sources = tuple(_coerce_persisted_source(source) for source in persisted_sources)
     plans: list[LegalSourcePlan] = []
     for demand in demands:
         blocked = demand.open_slots
+        selected = () if blocked else _select_persisted_sources(demand, sources)
+        if not blocked and not selected:
+            blocked = ("compatible_persisted_legal_source_absent",)
         plans.append(
             LegalSourcePlan(
                 demand_ref=demand.demand_ref,
                 plan_key=demand.plan_key,
-                jurisdiction_ref=demand.jurisdiction_refs[0] if demand.jurisdiction_refs else "",
+                jurisdiction_ref=demand.jurisdiction_refs[0]
+                if demand.jurisdiction_refs
+                else "",
                 source_role_refs=demand.source_role_refs,
                 authority_level_refs=demand.authority_level_refs,
                 provider_profile_refs=demand.provider_profile_refs,
                 requested_legal_facets=demand.requested_legal_facets,
                 temporal_refs=demand.temporal_refs,
-                state="ready" if demand.acquisition_ready else "blocked_missing_context",
+                state=(
+                    "ready_persisted"
+                    if demand.acquisition_ready and selected
+                    else "blocked_missing_context"
+                    if demand.open_slots
+                    else "blocked_acquisition_required"
+                ),
                 blocked_reasons=blocked,
+                selected_source_revision_refs=selected,
             )
         )
     return tuple(plans)
 
 
-def project_legal_ir(rows: Iterable[Mapping[str, Any]]) -> tuple[LegalIRObservation, ...]:
+def _coerce_persisted_source(
+    value: PersistedLegalSource | Mapping[str, Any],
+) -> PersistedLegalSource:
+    if isinstance(value, PersistedLegalSource):
+        return value
+    return PersistedLegalSource(
+        source_revision_ref=str(value["source_revision_ref"]),
+        jurisdiction_ref=str(value["jurisdiction_ref"]),
+        source_role=str(value["source_role"]),
+        authority_level=str(value["authority_level"]),
+        temporal_refs=tuple(
+            sorted(str(item) for item in value.get("temporal_refs") or ())
+        ),
+        provider_profile_refs=tuple(
+            sorted(str(item) for item in value.get("provider_profile_refs") or ())
+        ),
+        compile_eligible=bool(value.get("compile_eligible", True)),
+    )
+
+
+def _select_persisted_sources(
+    demand: NormativeInteractionDemand, sources: Sequence[PersistedLegalSource]
+) -> tuple[str, ...]:
+    """Select only already-persisted compatible revisions; never acquire here."""
+    selected = []
+    for source in sources:
+        if (
+            not source.compile_eligible
+            or source.jurisdiction_ref not in demand.jurisdiction_refs
+        ):
+            continue
+        if (
+            source.source_role not in demand.source_role_refs
+            or source.authority_level not in demand.authority_level_refs
+        ):
+            continue
+        if demand.provider_profile_refs and not set(
+            demand.provider_profile_refs
+        ).intersection(source.provider_profile_refs):
+            continue
+        if (
+            demand.temporal_refs
+            and source.temporal_refs
+            and not set(demand.temporal_refs).intersection(source.temporal_refs)
+        ):
+            continue
+        selected.append(source.source_revision_ref)
+    return tuple(sorted(set(selected)))
+
+
+def project_acquisition_requirements(
+    plans: Iterable[LegalSourcePlan],
+) -> tuple[AcquisitionRequirement, ...]:
+    return tuple(
+        AcquisitionRequirement(plan.demand_ref, plan.plan_key)
+        for plan in plans
+        if plan.state == "blocked_acquisition_required"
+    )
+
+
+def project_legal_ir(
+    rows: Iterable[Mapping[str, Any]],
+) -> tuple[LegalIRObservation, ...]:
     """Project Legal IR from already-constructed PNF rows.
 
     Rows without a legal PNF factor type are ignored. This deliberately refuses
@@ -282,7 +382,9 @@ def project_legal_ir(rows: Iterable[Mapping[str, Any]]) -> tuple[LegalIRObservat
     projected: dict[str, LegalIRObservation] = {}
     for row in rows:
         factor_type = str(row.get("factor_type_ref") or "")
-        if factor_type not in _LEGAL_PNF_TYPES and not factor_type.startswith("semantic.legal."):
+        if factor_type not in _LEGAL_PNF_TYPES and not factor_type.startswith(
+            "semantic.legal."
+        ):
             continue
         factor_ref = str(row.get("factor_ref") or "")
         revision_ref = str(row.get("factor_revision_ref") or "")
@@ -306,8 +408,12 @@ def project_legal_ir(rows: Iterable[Mapping[str, Any]]) -> tuple[LegalIRObservat
             role_bindings=dict(row.get("role_bindings") or {}),
             qualifier_state=dict(row.get("qualifier_state") or {}),
             wrapper_state=dict(row.get("wrapper_state") or {}),
-            provenance_refs=tuple(sorted(str(value) for value in row.get("provenance_refs") or ())),
-            residual_refs=tuple(sorted(str(value) for value in row.get("residual_refs") or ())),
+            provenance_refs=tuple(
+                sorted(str(value) for value in row.get("provenance_refs") or ())
+            ),
+            residual_refs=tuple(
+                sorted(str(value) for value in row.get("residual_refs") or ())
+            ),
         )
     return tuple(sorted(projected.values(), key=lambda item: item.observation_ref))
 
@@ -317,9 +423,16 @@ def typed_legal_meet(
     legal_observation: LegalIRObservation,
 ) -> LegalTypedMeet:
     world_signature = str(world_row.get("structural_signature_ref") or "")
-    if not world_signature or world_signature != legal_observation.structural_signature_ref:
+    if (
+        not world_signature
+        or world_signature != legal_observation.structural_signature_ref
+    ):
         return LegalTypedMeet(
-            world_pnf_ref=str(world_row.get("factor_revision_ref") or world_row.get("factor_ref") or ""),
+            world_pnf_ref=str(
+                world_row.get("factor_revision_ref")
+                or world_row.get("factor_ref")
+                or ""
+            ),
             legal_ir_ref=legal_observation.observation_ref,
             structural_state="NO_TYPED_MEET",
             jurisdiction_state="not_evaluated",
@@ -334,7 +447,9 @@ def typed_legal_meet(
         )
     coordinates = dict(world_row.get("legal_coordinates") or {})
     return LegalTypedMeet(
-        world_pnf_ref=str(world_row.get("factor_revision_ref") or world_row.get("factor_ref") or ""),
+        world_pnf_ref=str(
+            world_row.get("factor_revision_ref") or world_row.get("factor_ref") or ""
+        ),
         legal_ir_ref=legal_observation.observation_ref,
         structural_state="same_fibre_candidate",
         jurisdiction_state=str(coordinates.get("jurisdiction_state") or "unresolved"),
@@ -361,10 +476,13 @@ __all__ = [
     "LEGAL_ADJUNCT_CONTRACT",
     "LEGAL_IR_PROJECTION_CONTRACT",
     "LegalIRObservation",
+    "PersistedLegalSource",
+    "AcquisitionRequirement",
     "LegalSourcePlan",
     "LegalTypedMeet",
     "NormativeInteractionDemand",
     "plan_legal_sources",
+    "project_acquisition_requirements",
     "project_legal_ir",
     "project_normative_interaction_demands",
     "typed_legal_meet",
