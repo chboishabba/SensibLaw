@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
-"""Build or refresh a checked-in legal catalogue and persistent PNF database."""
+"""Build a deterministic offline Legal IR catalogue from persisted sources.
+
+This command has no acquisition capability. Use ``acquire_legal_source.py`` for
+an explicit operator-authorised bounded fetch, then rerun this catalogue build.
+"""
 
 from __future__ import annotations
 
 import argparse
 import atexit
 from concurrent.futures import ThreadPoolExecutor
-import hashlib
 import json
 import os
 from pathlib import Path
 import shutil
-import subprocess
 import sys
-from urllib.parse import quote_plus
-
+from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -22,52 +23,35 @@ if str(ROOT) not in sys.path:
 
 from src.ingestion.corpus_source_projection import project_source_families  # noqa: E402
 from src.policy.corpus_compilation import default_compiler_context  # noqa: E402
-from src.policy.parallel_postgres_corpus_compilation import (  # noqa: E402
-    compile_directory_postgres_parallel,
+from src.policy.curated_postgres_corpus_compilation import (  # noqa: E402
+    compile_curated_directory_postgres,
 )
+from src.runtime.offline_network_guard import OfflineNetworkGuard  # noqa: E402
 from src.runtime.progress import PhaseRecorder  # noqa: E402
-from src.runtime.request_governor import RequestGovernor, RequestGovernorPolicy  # noqa: E402
-from src.sources.legal_follow import follow_legal_sources  # noqa: E402
+from src.sources.admission import OFFLINE_HCA_REGRESSION_PROFILE  # noqa: E402
+from src.sources.catalogue_metadata import source_metadata_from_rules  # noqa: E402
 
 
 def _args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--catalogue", type=Path, required=True)
     parser.add_argument("--output-root", type=Path, required=True)
-    parser.add_argument(
-        "--database-url",
-        default=os.environ.get("DATABASE_URL"),
-    )
-    parser.add_argument("--offline", action="store_true")
-    parser.add_argument("--force-refetch", action="store_true")
-    parser.add_argument(
-        "--compile-workers",
-        type=int,
-        default=max(1, min(4, (os.cpu_count() or 2) // 2)),
-        help="Document parser/persistence processes (1-32)",
-    )
-    parser.add_argument(
-        "--closure-workers",
-        type=int,
-        default=2,
-        help="Pure closure executors inside each active document (1-32)",
-    )
-    parser.add_argument(
-        "--owner-partitions",
-        type=int,
-        default=4,
-        help="Logical keyed owner partitions inside each document (1-128)",
-    )
-    parser.add_argument(
-        "--copy-workers",
-        type=int,
-        default=4,
-        help="Bounded source-family copy workers",
-    )
+    parser.add_argument("--database-url", default=os.environ.get("DATABASE_URL"))
+    parser.add_argument("--offline", action="store_true", help="Retained for compatibility; builds are always offline")
+    parser.add_argument("--force-refetch", action="store_true", help="Rejected; acquisition is a separate command")
+    parser.add_argument("--compile-workers", type=int, default=4)
+    parser.add_argument("--closure-workers", type=int, default=4)
+    parser.add_argument("--owner-partitions", type=int, default=8)
+    parser.add_argument("--copy-workers", type=int, default=4)
+    parser.add_argument("--transaction-attempts", type=int, default=3)
+    parser.add_argument("--max-files", type=int, default=500)
+    parser.add_argument("--max-file-bytes", type=int, default=10_000_000)
     parser.add_argument("--progress-jsonl", action="store_true")
     args = parser.parse_args()
     if not args.database_url:
         parser.error("--database-url or DATABASE_URL is required")
+    if args.force_refetch:
+        parser.error("--force-refetch is unavailable; use scripts/acquire_legal_source.py")
     if not 1 <= args.compile_workers <= 32:
         parser.error("--compile-workers must be between 1 and 32")
     if not 1 <= args.closure_workers <= 32:
@@ -82,34 +66,34 @@ def _args() -> argparse.Namespace:
 def _write_json(path: Path, value: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
-        json.dumps(value, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
+        json.dumps(value, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
+        encoding="utf-8",
     )
 
 
-def _safe_name(index: int, url: str, suffix: str) -> str:
-    digest = hashlib.sha256(url.encode()).hexdigest()[:16]
-    return f"{index:04d}_{digest}{suffix}"
-
-
-def _source_file_plan(
-    source: Path,
-    target: Path,
-    *,
-    max_file_bytes: int | None = None,
-    source_suffixes: tuple[str, ...] = (),
-) -> tuple[tuple[Path, Path], ...]:
-    if not source.exists():
-        return ()
-    return tuple(
-        (path, target / path.relative_to(source))
-        for path in sorted(source.rglob("*"))
-        if path.is_file()
-        and (not source_suffixes or path.suffix.lower() in source_suffixes)
-        and (
-            max_file_bytes is None
-            or path.stat().st_size <= max_file_bytes
-        )
-    )
+def _copy_plan(catalogue: dict[str, object], target_root: Path) -> tuple[tuple[Path, Path], ...]:
+    rows: list[tuple[Path, Path]] = []
+    for raw_family in catalogue.get("persisted_source_families", []):
+        family = dict(raw_family)
+        source = (ROOT / str(family["path"])).resolve()
+        family_ref = str(family["family_ref"]).replace(":", "_")
+        target = target_root / family_ref
+        suffixes = {str(value).lower() for value in family.get("source_suffixes", ())}
+        maximum = family.get("max_file_bytes")
+        if source.is_file():
+            candidates = (source,)
+        elif source.exists():
+            candidates = tuple(path for path in sorted(source.rglob("*")) if path.is_file())
+        else:
+            candidates = ()
+        for path in candidates:
+            if suffixes and path.suffix.lower() not in suffixes:
+                continue
+            if maximum is not None and path.stat().st_size > int(maximum):
+                continue
+            relative = path.name if source.is_file() else str(path.relative_to(source))
+            rows.append((path, target / relative))
+    return tuple(rows)
 
 
 def _copy_one(pair: tuple[Path, Path]) -> str:
@@ -119,14 +103,33 @@ def _copy_one(pair: tuple[Path, Path]) -> str:
     return str(destination)
 
 
-def _aggregate_stage_timings(outcomes: tuple[object, ...]) -> dict[str, object]:
+def _admission_rules(catalogue: dict[str, object]) -> tuple[dict[str, object], ...]:
+    explicit = tuple(dict(row) for row in catalogue.get("source_admission_rules", []))
+    if explicit:
+        return explicit
+    derived = []
+    for raw_family in catalogue.get("persisted_source_families", []):
+        family = dict(raw_family)
+        family_ref = str(family["family_ref"]).replace(":", "_")
+        derived.append(
+            {
+                "glob": f"{family_ref}/**",
+                "source_role": str(family.get("source_role") or "unclassified"),
+                "semantic_scope": str(family.get("semantic_scope") or "source_material"),
+                "jurisdiction_ref": str(family.get("jurisdiction_ref") or ""),
+                "authority_level": str(family.get("authority_level") or ""),
+                "provider_profile_refs": family.get("provider_profile_refs") or (),
+                "temporal_refs": family.get("temporal_refs") or (),
+            }
+        )
+    return tuple(derived)
+
+
+def _aggregate_timings(outcomes: tuple[object, ...]) -> dict[str, object]:
     totals: dict[str, int] = {}
     counts: dict[str, int] = {}
     slowest: list[dict[str, object]] = []
-    fixed_points = 0
     for outcome in outcomes:
-        if getattr(outcome, "local_fixed_point", None) == "reached":
-            fixed_points += 1
         for row in getattr(outcome, "stage_timings", ()):
             stage = str(row["stage"])
             elapsed = int(row["elapsed_ms"])
@@ -138,26 +141,27 @@ def _aggregate_stage_timings(outcomes: tuple[object, ...]) -> dict[str, object]:
                     "relative_path": getattr(outcome, "relative_path"),
                     "stage": stage,
                     "elapsed_ms": elapsed,
-                    "backend_ref": row.get("backend_ref"),
                 }
             )
     return {
-        "stage_totals_ms": {
-            key: totals[key] for key in sorted(totals)
-        },
+        "stage_totals_ms": {key: totals[key] for key in sorted(totals)},
         "stage_means_ms": {
             key: totals[key] / counts[key] for key in sorted(totals)
         },
         "slowest_stage_instances": sorted(
             slowest,
-            key=lambda row: (
-                -int(row["elapsed_ms"]),
-                str(row["document_ref"]),
-                str(row["stage"]),
-            ),
+            key=lambda row: (-int(row["elapsed_ms"]), str(row["document_ref"])),
         )[:30],
-        "local_fixed_point_count": fixed_points,
     }
+
+
+def _allowed_database_hosts(database_url: str) -> tuple[str, ...]:
+    parsed = urlparse(database_url)
+    host = parsed.hostname
+    local = {"localhost", "127.0.0.1", "::1"}
+    if host and host not in local:
+        raise ValueError("offline catalogue requires a local PostgreSQL endpoint")
+    return tuple(sorted(local | ({host} if host else set())))
 
 
 def main() -> int:
@@ -170,258 +174,118 @@ def main() -> int:
     atexit.register(recorder.write_json, phase_ledger_path)
 
     source_root = output_root / "source_catalogue"
-    existing_root = source_root / "existing_au_tranche"
-    driving_root = source_root / "austlii_driving"
-    raw_root = driving_root / "raw"
-    canonical_root = driving_root / "canonical"
-    raw_root.mkdir(parents=True, exist_ok=True)
-    canonical_root.mkdir(parents=True, exist_ok=True)
-
-    copy_plan: list[tuple[Path, Path]] = []
-    for family in catalogue.get("persisted_source_families", []):
-        max_file_bytes = family.get("max_file_bytes")
-        source_suffixes = tuple(
-            str(value).lower()
-            for value in family.get("source_suffixes", ())
-        )
-        copy_plan.extend(
-            _source_file_plan(
-                ROOT / family["path"],
-                existing_root / family["family_ref"].replace(":", "_"),
-                max_file_bytes=(
-                    int(max_file_bytes)
-                    if max_file_bytes is not None
-                    else None
-                ),
-                source_suffixes=source_suffixes,
-            )
-        )
+    source_root.mkdir(parents=True, exist_ok=True)
+    copy_plan = _copy_plan(catalogue, source_root)
     with recorder.phase(
         "copy_persisted_sources",
         total=len(copy_plan),
-        details={"workers": args.copy_workers},
+        details={"workers": args.copy_workers, "network": "forbidden"},
     ) as phase:
-        with ThreadPoolExecutor(
-            max_workers=args.copy_workers,
-            thread_name_prefix="source-copy",
-        ) as executor:
+        with ThreadPoolExecutor(max_workers=args.copy_workers) as executor:
             for copied_path in executor.map(_copy_one, copy_plan):
                 phase.advance(subject_ref=copied_path)
-    copied = len(copy_plan)
 
-    policy_data = catalogue["request_policy"]
-    governor = RequestGovernor(
-        RequestGovernorPolicy(
-            minimum_interval_seconds=float(
-                policy_data["minimum_interval_seconds"]
-            ),
-            maximum_attempts=int(policy_data["maximum_attempts"]),
-            backoff_seconds=float(policy_data["backoff_seconds"]),
-            request_budget=int(policy_data["request_budget"]),
-        )
-    )
-    provider = catalogue["provider"]
-    fetched_documents: list[dict[str, object]] = []
-    terms = tuple(catalogue.get("search_terms", []))
-    with recorder.phase(
-        "acquire_sources",
-        total=0 if args.offline else len(terms),
-        message=(
-            "offline reuse"
-            if args.offline
-            else "bounded AustLII discovery"
-        ),
-        details={"provider": provider["endpoint_ref"], "governed": True},
-    ) as phase:
-        if not args.offline:
-            for term in terms:
-                search_url = provider["search_url_template"].format(
-                    query=quote_plus(term["query"])
-                )
-                result = governor.call(
-                    search_url,
-                    lambda url=search_url: follow_legal_sources(
-                        "AU",
-                        seed_urls=(url,),
-                        max_depth=int(policy_data["max_depth"]),
-                        max_documents=max(
-                            1,
-                            int(policy_data["max_documents"])
-                            // max(1, len(terms)),
-                        ),
-                    ),
-                )
-                term_count = 0
-                for followed in result.documents:
-                    document = followed.document
-                    final_url = (
-                        document.final_url or document.requested_url
-                    )
-                    suffix = (
-                        ".html"
-                        if document.media_type
-                        in {"text/html", "application/xhtml+xml"}
-                        else ".txt"
-                    )
-                    name = _safe_name(
-                        len(fetched_documents) + 1,
-                        final_url,
-                        suffix,
-                    )
-                    raw_path = raw_root / name
-                    canonical_path = canonical_root / (
-                        Path(name).stem + ".txt"
-                    )
-                    reused = raw_path.exists() and not args.force_refetch
-                    if not reused:
-                        raw_path.write_bytes(document.raw_bytes)
-                        canonical_path.write_text(
-                            document.canonical_text,
-                            encoding="utf-8",
-                        )
-                    fetched_documents.append(
-                        {
-                            "jurisdiction": term["jurisdiction"],
-                            "search_term": term["query"],
-                            "search_url": search_url,
-                            "requested_url": document.requested_url,
-                            "final_url": document.final_url,
-                            "raw_path": str(
-                                raw_path.relative_to(output_root)
-                            ),
-                            "canonical_path": str(
-                                canonical_path.relative_to(output_root)
-                            ),
-                            "reused": reused,
-                            "receipt": document.receipt.to_dict(),
-                        }
-                    )
-                    term_count += 1
-                phase.advance(
-                    subject_ref=term["query"],
-                    message=f"{term_count} documents",
-                    details={
-                        "jurisdiction": term["jurisdiction"],
-                        "document_count": term_count,
-                    },
-                )
-
+    projection_root = output_root / "source_projection"
     with recorder.phase("project_canonical_sources", total=1) as phase:
         projection = project_source_families(
-            [existing_root, raw_root],
-            output_dir=output_root / "source_projection",
-            max_files=500,
-            max_file_bytes=10_000_000,
+            [source_root],
+            output_dir=projection_root,
+            max_files=args.max_files,
+            max_file_bytes=args.max_file_bytes,
         )
-        _write_json(
-            output_root / "source_projection" / "manifest.json",
-            projection.to_dict(),
-        )
+        _write_json(projection_root / "manifest.json", projection.to_dict())
         phase.advance(
-            subject_ref=str(
-                output_root / "source_projection" / "manifest.json"
-            ),
-            details={"source_family_count": 2},
+            subject_ref=str(projection_root / "manifest.json"),
+            details={"document_count": len(projection.documents)},
         )
 
-    outcomes: tuple[object, ...]
+    original_relative_paths = []
+    for row in projection.documents:
+        original_relative_paths.append(
+            Path(row.source_path).resolve().relative_to(source_root).as_posix()
+        )
+    original_metadata = source_metadata_from_rules(
+        original_relative_paths,
+        rules=_admission_rules(catalogue),
+    )
+    source_metadata: dict[str, dict[str, object]] = {}
+    for row, original_path in zip(
+        projection.documents,
+        original_relative_paths,
+        strict=True,
+    ):
+        canonical_relative = Path(row.canonical_path).relative_to("canonical").as_posix()
+        source_metadata[canonical_relative] = {
+            **original_metadata[original_path],
+            "source_revision_ref": row.source_ref,
+            "source_projection_ref": row.source_ref,
+            "source_anchor_state": row.anchor_state,
+        }
+    _write_json(output_root / "source_metadata.json", source_metadata)
+
     runtime = {
         "parser_document_processes": args.compile_workers,
         "owner_partitions_per_document": args.owner_partitions,
         "closure_executors_per_document": args.closure_workers,
+        "maximum_transaction_attempts": args.transaction_attempts,
     }
-    with recorder.phase(
-        "compile_pnf",
-        details={
-            **runtime,
-            "parallel_boundary": "document_and_revision_bound_jobs",
-        },
-    ) as phase:
-        compilation, outcomes = compile_directory_postgres_parallel(
-            output_root / "source_projection" / "canonical",
-            context=default_compiler_context(),
-            database_url=args.database_url,
-            workers=args.compile_workers,
-            closure_workers_per_document=args.closure_workers,
-            owner_partitions_per_document=args.owner_partitions,
-            execution_phase="demand_planning",
-            progress=phase,
-        )
-    aggregate_timings = _aggregate_stage_timings(outcomes)
+    guard = OfflineNetworkGuard(
+        allowed_hosts=_allowed_database_hosts(args.database_url)
+    )
+    with guard:
+        with recorder.phase(
+            "compile_curated_pnf",
+            details={**runtime, "offline": True, "admission_enforced": True},
+        ) as phase:
+            result = compile_curated_directory_postgres(
+                projection_root / "canonical",
+                context=default_compiler_context(),
+                database_url=args.database_url,
+                admission_profile=OFFLINE_HCA_REGRESSION_PROFILE,
+                source_metadata=source_metadata,
+                workers=args.compile_workers,
+                closure_workers_per_document=args.closure_workers,
+                owner_partitions_per_document=args.owner_partitions,
+                maximum_transaction_attempts=args.transaction_attempts,
+                progress=phase,
+            )
+    network_receipt = guard.receipt.to_dict()
+    if not network_receipt["external_network_absent"]:
+        raise RuntimeError("offline catalogue recorded external network attempts")
+
+    aggregate = _aggregate_timings(result.outcomes)
+    _write_json(output_root / "source_admission_manifest.json", result.admission)
+    _write_json(output_root / "network_absence_receipt.json", network_receipt)
     _write_json(
         output_root / "document_compilation_timings.json",
         {
-            "schema_version": "sl.document_compilation_timings.v0_2",
+            "schema_version": "sl.document_compilation_timings.v0_3",
             "runtime": runtime,
-            "aggregate": aggregate_timings,
-            "documents": [row.to_dict() for row in outcomes],
+            "aggregate": aggregate,
+            "documents": [row.to_dict() for row in result.outcomes],
         },
     )
-
-    probe_dir = output_root / "legal_pnf_probe"
-    with recorder.phase(
-        "project_legal_ir",
-        total=len(compilation.document_refs),
-        message="document-local PNF/Legal IR/legacy differential probe",
-    ) as phase:
-        subprocess.run(
-            [
-                sys.executable,
-                str(ROOT / "scripts" / "run_legal_pnf_probe.py"),
-                "--input-directory",
-                str(source_root),
-                "--output-dir",
-                str(probe_dir),
-                "--compare-legacy",
-                "--max-files",
-                "500",
-                "--closure-workers",
-                str(args.closure_workers),
-                "--owner-partitions",
-                str(args.owner_partitions),
-            ],
-            check=True,
-        )
-        phase.completed = len(compilation.document_refs)
-
-    recorder.write_json(phase_ledger_path)
     manifest = {
-        "schema_version": "sl.persisted_legal_catalogue_build.v0_3",
+        "schema_version": "sl.persisted_legal_catalogue_build.v0_4",
         "catalogue_ref": catalogue["catalogue_ref"],
-        "provider": provider,
-        "existing_tranche_file_count": copied,
-        "fetched_document_count": len(fetched_documents),
-        "fetched_documents": fetched_documents,
-        "request_governor": governor.summary(),
-        "corpus_ref": compilation.corpus_ref,
-        "document_refs": list(compilation.document_refs),
-        "demand_refs": list(compilation.demand_refs),
-        "failure_refs": list(compilation.failure_refs),
+        "corpus_ref": result.persisted.corpus_ref,
+        "document_refs": list(result.persisted.document_refs),
+        "demand_refs": list(result.persisted.demand_refs),
+        "failure_refs": list(result.persisted.failure_refs),
+        "source_admission_manifest": "source_admission_manifest.json",
+        "network_absence_receipt": "network_absence_receipt.json",
+        "document_compilation_timings": "document_compilation_timings.json",
+        "aggregate_stage_timings": aggregate,
         "runtime": runtime,
-        "document_compilation_timings": (
-            "document_compilation_timings.json"
-        ),
-        "aggregate_stage_timings": aggregate_timings,
-        "phase_ledger": str(phase_ledger_path.relative_to(output_root)),
-        "phase_summary": recorder.to_dict()["phase_summary"],
-        "legal_pnf_probe_root": str(probe_dir.relative_to(output_root)),
-        "parallelism_boundary": (
-            "immutable_document_and_revision_bound_semantic_jobs"
-        ),
-        "logical_owner_granularity": (
-            "document_scope_factor_family"
-        ),
-        "streaming_bidirectional": True,
-        "eventual_consistency": "convergent_append_only",
-        "request_governor_serialized": True,
-        "final_manifest_reduction_serialized": True,
+        "acquisition_supported": False,
+        "governed_acquisition_command": "scripts/acquire_legal_source.py",
         "identity_promoted": False,
         "legal_truth_closed": False,
         "authority": "candidate_catalogue_build_only",
     }
     _write_json(output_root / "catalogue_build_manifest.json", manifest)
     print(json.dumps(manifest, indent=2, sort_keys=True))
-    return 0
+    return 1 if result.persisted.failure_refs else 0
 
 
 if __name__ == "__main__":

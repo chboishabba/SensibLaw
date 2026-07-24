@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from src.pnf.factor_proposals import FactorProposal, reduce_factor_proposals
 from src.policy import fibred_operational_corpus_compilation as module
+from src.policy.algebra import factor_revision_ref
 from src.policy.corpus_compilation import DocumentCompilation, default_compiler_context
 
 
@@ -77,6 +78,11 @@ def _compile(monkeypatch, base: DocumentCompilation) -> DocumentCompilation:
 def test_fibred_wrapper_replaces_existing_compatibility_coordinate(
     monkeypatch,
 ) -> None:
+    monkeypatch.setattr(
+        module,
+        "derive_resolution_demands",
+        lambda graph: ({"demand_ref": "demand:1", "graph_ref": graph.graph_ref},),
+    )
     proposal = FactorProposal(
         document_ref="document:1",
         source_revision_ref="source:1",
@@ -109,6 +115,7 @@ def test_fibred_wrapper_replaces_existing_compatibility_coordinate(
     assert factor["metadata"]["fibre_summary_ref"] == (
         reduction.factors[0].factor_ref
     )
+    assert factor_revision_ref(factor) == factor["metadata"]["factor_revision_ref"]
     assert receipt["replaced_factor_count"] == 1
     assert receipt["added_factor_count"] == 0
     assert artifacts["factor_refinements"] == []
@@ -121,6 +128,8 @@ def test_fibred_wrapper_replaces_existing_compatibility_coordinate(
     assert artifacts["phase_boundary"][
         "constraints_after_fibre_materialisation"
     ] is True
+    assert artifacts["resolution_demands"]
+    assert all(isinstance(row, dict) for row in artifacts["resolution_demands"])
 
 
 def test_fibred_wrapper_adds_new_higher_order_coordinate(monkeypatch) -> None:
@@ -141,6 +150,9 @@ def test_fibred_wrapper_adds_new_higher_order_coordinate(monkeypatch) -> None:
         fibre_kind="composition",
     )
     base, reduction = _base_compilation(proposal)
+    base.artifacts["pnf_graph"]["factors"][0]["metadata"] = {
+        "factor_revision_ref": "factor-revision:stale"
+    }
     compilation = _compile(monkeypatch, base)
     artifacts = compilation.artifacts
     factors = artifacts["pnf_graph"]["factors"]
@@ -151,5 +163,9 @@ def test_fibred_wrapper_adds_new_higher_order_coordinate(monkeypatch) -> None:
         row for row in factors if row["factor_ref"] == reduction.factors[0].factor_ref
     )
     assert added["metadata"]["fibre_summary_ref"] == added["factor_ref"]
+    assert all(
+        factor_revision_ref(row) == row["metadata"]["factor_revision_ref"]
+        for row in factors
+    )
     assert receipt["added_factor_count"] == 1
     assert receipt["replaced_factor_count"] == 0

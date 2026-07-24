@@ -1,4 +1,9 @@
-"""Transactional PostgreSQL persistence for fibred streaming document builds."""
+"""Timed, batched PostgreSQL persistence for one immutable fibred document.
+
+This module preserves the existing compiler and semantic identities. It changes
+only execution: parent-before-child batching, nested persistence timings, and a
+single document transaction suitable for whole-attempt retry by the caller.
+"""
 
 from __future__ import annotations
 
@@ -18,7 +23,17 @@ from src.policy.postgres_corpus_compilation import (
     _validated_canonical_tokens,
 )
 from src.runtime.stage_timing import StageTiming
-from src.storage.postgres import PostgresCompilerStore
+from src.storage.postgres.batched_compiler_store import BatchedPostgresCompilerStore
+from src.storage.postgres.batched_semantic_fibre_store import (
+    persist_semantic_fibre_artifacts_batched,
+)
+from src.storage.postgres.batched_semantic_store import (
+    persist_pnf_graph_batched,
+    persist_resolution_artifacts_batched,
+)
+from src.storage.postgres.batched_streaming_semantic_store import (
+    persist_streaming_semantic_artifacts_batched,
+)
 from src.storage.postgres.binding_candidate_store import (
     persist_binding_candidate_sets,
 )
@@ -27,59 +42,54 @@ from src.storage.postgres.operational_build_store import (
     load_completed_operational_build,
     persist_completed_operational_build,
 )
-from src.storage.postgres.semantic_fibre_store import (
-    persist_semantic_fibre_artifacts,
-)
-from src.storage.postgres.semantic_store import (
-    persist_pnf_graph,
-    persist_resolution_artifacts,
+from src.storage.postgres.proposal_parent_store import (
+    persist_factor_proposal_parents,
 )
 from src.storage.postgres.span_store import persist_licensed_spans
-from src.storage.postgres.streaming_semantic_store import (
-    persist_streaming_semantic_artifacts,
-)
+from src.storage.postgres.stage_timing_store import persist_stage_timings
 
 
-def _with_persistence_timing(
-    ledger: Mapping[str, Any],
+def _elapsed_ms(started_ns: int) -> int:
+    return max(0, (monotonic_ns() - started_ns) // 1_000_000)
+
+
+def _append_timing(
+    ledger: dict[str, Any],
     *,
     document_ref: str,
+    stage: str,
     elapsed_ms: int,
+    details: Mapping[str, Any],
+    input_nodes: int | None = None,
+    output_nodes: int | None = None,
 ) -> dict[str, Any]:
-    result = dict(ledger)
     timings = [dict(row) for row in ledger.get("timings") or ()]
-    timing = StageTiming(
+    row = StageTiming(
         document_ref=document_ref,
-        stage="postgres_persistence",
+        stage=stage,
         ordinal=len(timings),
         elapsed_ms=elapsed_ms,
         backend_ref="postgresql",
-        details={
-            "transaction_scope": "document_immutable_fibred_build",
-            "excludes": [
-                "semantic_stage_timing_insert",
-                "completed_build_receipt_insert",
-            ],
-        },
+        input_nodes=input_nodes,
+        output_nodes=output_nodes,
+        details=dict(details),
     ).to_dict()
-    timings.append(timing)
+    timings.append(row)
     totals = {
         str(key): int(value)
         for key, value in (ledger.get("stage_totals_ms") or {}).items()
     }
-    totals["postgres_persistence"] = (
-        totals.get("postgres_persistence", 0) + elapsed_ms
-    )
-    result["timings"] = timings
-    result["stage_totals_ms"] = {
-        key: totals[key] for key in sorted(totals)
+    totals[stage] = totals.get(stage, 0) + elapsed_ms
+    return {
+        **ledger,
+        "timings": timings,
+        "stage_totals_ms": {key: totals[key] for key in sorted(totals)},
     }
-    return result
 
 
-def persist_streaming_document_compilation(
+def persist_optimized_streaming_document_compilation(
     *,
-    store: PostgresCompilerStore,
+    store: BatchedPostgresCompilerStore,
     corpus_ref: str,
     relative_path: str,
     entry: Mapping[str, Any],
@@ -89,7 +99,7 @@ def persist_streaming_document_compilation(
     closure_workers: int = 2,
     owner_partitions: int = 2,
 ) -> tuple[str, ...]:
-    """Compile and persist one immutable fibred fixed-point document build."""
+    """Compile and persist one document in one immutable transaction."""
 
     document_ref = str(entry["document_ref"])
     content_sha256 = str(entry["content_sha256"])
@@ -109,17 +119,13 @@ def persist_streaming_document_compilation(
         context=context,
     )
     if document_ref != expected_document_ref:
-        raise ValueError(
-            "operational document identity disagrees with canonical text"
-        )
+        raise ValueError("operational document identity disagrees with canonical text")
     if str(entry.get("canonical_text_sha256") or "") != canonical_text_sha256:
         raise ValueError("manifest canonical text hash disagrees with compilation")
     if str(entry.get("media_adapter_ref") or "") != media_adapter_ref:
         raise ValueError("manifest media adapter disagrees with compilation")
     if str(entry.get("adapter_capability_ref") or "") != media_adapter_ref:
-        raise ValueError(
-            "declared media capability disagrees with selected adapter"
-        )
+        raise ValueError("declared media capability disagrees with selected adapter")
 
     build_key_sha256 = _operational_build_key(
         document_ref=document_ref,
@@ -129,13 +135,13 @@ def persist_streaming_document_compilation(
         context=context,
     )
     with store.transaction() as cursor:
-        cached_demand_refs = load_completed_operational_build(
+        cached = load_completed_operational_build(
             cursor,
             document_ref=document_ref,
             compiler_contract_ref=FIBRED_OPERATIONAL_COMPILER_CONTRACT,
             build_key_sha256=build_key_sha256,
         )
-        if cached_demand_refs is not None:
+        if cached is not None:
             store.persist_occurrence(
                 cursor,
                 corpus_ref=corpus_ref,
@@ -143,7 +149,7 @@ def persist_streaming_document_compilation(
                 document_ref=document_ref,
                 state="reused_compilation",
             )
-            return cached_demand_refs
+            return cached
 
     compilation = compile_document_fibred_operational(
         {
@@ -159,18 +165,15 @@ def persist_streaming_document_compilation(
     )
     artifacts = compilation.artifacts
     if str(artifacts.get("build_key_sha256") or "") != build_key_sha256:
-        raise ValueError(
-            "operational compiler build key disagrees with persistence"
-        )
+        raise ValueError("operational compiler build key disagrees with persistence")
     if artifacts.get("operational_compiler_contract") != (
         FIBRED_OPERATIONAL_COMPILER_CONTRACT
     ):
         raise ValueError("catalogue persistence requires the fibred compiler")
     source_normalisation = artifacts.get("source_normalisation") or {}
     if str(source_normalisation.get("adapter_ref") or "") != media_adapter_ref:
-        raise ValueError(
-            "operational compiler media adapter disagrees with persistence"
-        )
+        raise ValueError("operational compiler media adapter disagrees with persistence")
+
     canonical_tokens = _validated_canonical_tokens(
         artifacts=artifacts,
         expected_text=canonical_text,
@@ -187,20 +190,24 @@ def persist_streaming_document_compilation(
         artifacts.get("typed_meets") or ()
     )
     streaming_build = artifacts.get("streaming_semantic_build") or {}
-    stage_timing = artifacts.get("semantic_stage_timing") or {}
+    stage_ledger = dict(artifacts.get("semantic_stage_timing") or {})
     certificate = streaming_build.get("fixed_point_certificate") or {}
     if certificate.get("local_fixed_point") != "reached":
-        raise ValueError(
-            "only locally fixed-point streaming builds may be persisted"
-        )
+        raise ValueError("only locally fixed-point streaming builds may be persisted")
     if not streaming_build.get("one_reduction_authority"):
         raise ValueError("fibred build requires one reduction authority")
     expected_producer_receipt = (
         streaming_build.get("integrated_producer_receipt") or {}
     )
+    proposals = tuple(
+        row
+        for row in streaming_build.get("proposals") or ()
+        if isinstance(row, Mapping)
+    )
 
     persistence_started = monotonic_ns()
     with store.savepoint() as cursor:
+        stage_started = monotonic_ns()
         store.persist_source_document(
             cursor,
             document_ref=compilation.document_ref,
@@ -237,7 +244,23 @@ def persist_streaming_document_compilation(
             document_ref=compilation.document_ref,
             layer=artifacts["annotation_layer"],
         )
-        base_factor_revisions = persist_pnf_graph(
+        stage_ledger = _append_timing(
+            stage_ledger,
+            document_ref=document_ref,
+            stage="postgres.token_lexeme",
+            elapsed_ms=_elapsed_ms(stage_started),
+            input_nodes=len(canonical_tokens),
+            output_nodes=len(canonical_tokens),
+            details={
+                "token_count": len(canonical_tokens),
+                "mention_count": len(artifacts["licensing"].get("mentions") or ()),
+                "batched": True,
+                "canonical_lock_order": "lexeme_key_then_document_children",
+            },
+        )
+
+        stage_started = monotonic_ns()
+        base_factor_revisions = persist_pnf_graph_batched(
             cursor,
             document_ref=compilation.document_ref,
             graph=artifacts["pnf_graph"],
@@ -251,23 +274,29 @@ def persist_streaming_document_compilation(
                     document_ref=compilation.document_ref,
                     factor=resulting,
                 )
-                resulting_factor_revisions[
-                    str(resulting["factor_ref"])
-                ] = revision_ref
-        demand_refs = persist_resolution_artifacts(
+                resulting_factor_revisions[str(resulting["factor_ref"])] = revision_ref
+        stage_ledger = _append_timing(
+            stage_ledger,
+            document_ref=document_ref,
+            stage="postgres.graph_revision",
+            elapsed_ms=_elapsed_ms(stage_started),
+            input_nodes=len(artifacts["pnf_graph"].get("factors") or ()),
+            output_nodes=len(base_factor_revisions),
+            details={"batched": True, "refinement_count": len(refinements)},
+        )
+
+        stage_started = monotonic_ns()
+        demand_refs = persist_resolution_artifacts_batched(
             cursor,
             factor_revisions=resulting_factor_revisions,
             demands=demands,
-            evidence=artifacts.get("local_evidence") or (),
+            evidence=tuple(artifacts.get("local_evidence") or ()),
             meets=meets,
             refinements=refinements,
         )
         persist_binding_candidate_sets(
             cursor,
             candidate_sets=candidate_sets,
-            # The fibred graph is the persisted semantic state.  Legacy
-            # refinements remain compatibility evidence only, so they cannot
-            # create foreign-keyed refinement links in the active build.
             refinements=refinements,
             factor_revisions=base_factor_revisions,
             factor_anchors=factor_anchors,
@@ -276,22 +305,24 @@ def persist_streaming_document_compilation(
             demands=demands,
             validate_indexed_query=True,
         )
-        elapsed_ms = max(
-            0,
-            (monotonic_ns() - persistence_started) // 1_000_000,
+        stage_ledger = _append_timing(
+            stage_ledger,
+            document_ref=document_ref,
+            stage="postgres.resolution_binding",
+            elapsed_ms=_elapsed_ms(stage_started),
+            input_nodes=len(demands) + len(candidate_sets) + len(meets),
+            output_nodes=len(demand_refs),
+            details={
+                "demand_count": len(demands),
+                "candidate_set_count": len(candidate_sets),
+                "typed_meet_count": len(meets),
+                "resolution_children_batched": True,
+            },
         )
-        persisted_stage_timing = _with_persistence_timing(
-            stage_timing,
-            document_ref=compilation.document_ref,
-            elapsed_ms=elapsed_ms,
-        )
-        persist_streaming_semantic_artifacts(
-            cursor,
-            document_ref=compilation.document_ref,
-            streaming_build=streaming_build,
-            stage_timing_ledger=persisted_stage_timing,
-        )
-        persisted_producer_receipt = persist_semantic_fibre_artifacts(
+
+        stage_started = monotonic_ns()
+        persist_factor_proposal_parents(cursor, proposals)
+        persisted_producer_receipt = persist_semantic_fibre_artifacts_batched(
             cursor,
             document_ref=compilation.document_ref,
             observation_deltas=tuple(
@@ -299,11 +330,7 @@ def persist_streaming_document_compilation(
                 for row in streaming_build.get("observation_deltas") or ()
                 if isinstance(row, Mapping)
             ),
-            proposals=tuple(
-                row
-                for row in streaming_build.get("proposals") or ()
-                if isinstance(row, Mapping)
-            ),
+            proposals=proposals,
             solver_jobs=tuple(
                 row
                 for row in streaming_build.get("solver_jobs") or ()
@@ -342,15 +369,82 @@ def persist_streaming_document_compilation(
             if persisted_producer_receipt.fibre_ledger_ref != str(
                 expected_producer_receipt.get("fibre_ledger_ref") or ""
             ):
-                raise ValueError(
-                    "persisted fibre ledger disagrees with compiler receipt"
-                )
+                raise ValueError("persisted fibre ledger disagrees with compiler receipt")
             if persisted_producer_receipt.receipt_ref != str(
                 expected_producer_receipt.get("receipt_ref") or ""
             ):
-                raise ValueError(
-                    "persisted producer receipt disagrees with compiler receipt"
-                )
+                raise ValueError("persisted producer receipt disagrees with compiler receipt")
+        stage_ledger = _append_timing(
+            stage_ledger,
+            document_ref=document_ref,
+            stage="postgres.fibred_ledger",
+            elapsed_ms=_elapsed_ms(stage_started),
+            input_nodes=len(proposals),
+            output_nodes=len(
+                (streaming_build.get("materialized_reduction") or {}).get("factors")
+                or ()
+            ),
+            details={
+                "proposal_count": len(proposals),
+                "coordinate_count": len(
+                    (streaming_build.get("fibred_semantic_build") or {}).get(
+                        "semantic_coordinates"
+                    )
+                    or ()
+                ),
+                "batched": True,
+            },
+        )
+
+        stage_started = monotonic_ns()
+        persist_streaming_semantic_artifacts_batched(
+            cursor,
+            document_ref=compilation.document_ref,
+            streaming_build=streaming_build,
+            stage_timing_ledger=stage_ledger,
+        )
+        receipt_elapsed_ms = _elapsed_ms(stage_started)
+        stage_ledger = _append_timing(
+            stage_ledger,
+            document_ref=document_ref,
+            stage="postgres.receipts",
+            elapsed_ms=receipt_elapsed_ms,
+            input_nodes=len(streaming_build.get("solver_receipts") or ()),
+            output_nodes=len(streaming_build.get("solver_receipts") or ()),
+            details={
+                "solver_receipt_count": len(
+                    streaming_build.get("solver_receipts") or ()
+                ),
+                "state_delta_count": len(streaming_build.get("state_deltas") or ()),
+                "batched": True,
+            },
+        )
+        total_elapsed_ms = _elapsed_ms(persistence_started)
+        stage_ledger = _append_timing(
+            stage_ledger,
+            document_ref=document_ref,
+            stage="postgres_persistence",
+            elapsed_ms=total_elapsed_ms,
+            details={
+                "transaction_scope": "document_immutable_fibred_build",
+                "nested_stage_refs": [
+                    row["timing_ref"]
+                    for row in stage_ledger.get("timings") or ()
+                    if str(row.get("stage") or "").startswith("postgres.")
+                ],
+                "batched": True,
+            },
+        )
+        persist_stage_timings(
+            cursor,
+            document_ref=document_ref,
+            timings=(
+                row
+                for row in stage_ledger.get("timings") or ()
+                if str(row.get("stage") or "")
+                in {"postgres.receipts", "postgres_persistence"}
+            ),
+        )
         persist_completed_operational_build(
             cursor,
             document_ref=compilation.document_ref,
@@ -362,4 +456,4 @@ def persist_streaming_document_compilation(
         return demand_refs
 
 
-__all__ = ["persist_streaming_document_compilation"]
+__all__ = ["persist_optimized_streaming_document_compilation"]

@@ -2741,9 +2741,30 @@ def build_local_typing_carrier(
                 ).to_dict()
             )
 
-    alternative_rows.sort(key=lambda alternative: alternative["type_ref"])
-    if len({row["type_ref"] for row in alternative_rows}) != len(alternative_rows):
-        raise ValueError("local typing emitted duplicate alternative references")
+    # Multiple generic form/structural paths may witness the identical
+    # content-addressed alternative.  They are not competing alternatives;
+    # retain one canonical row and merge its provenance before indexing.
+    deduplicated_alternatives: dict[str, dict[str, Any]] = {}
+    for alternative in alternative_rows:
+        type_ref = str(alternative["type_ref"])
+        prior = deduplicated_alternatives.get(type_ref)
+        if prior is None:
+            deduplicated_alternatives[type_ref] = alternative
+            continue
+        if prior["mention_ref"] != alternative["mention_ref"]:
+            raise ValueError(
+                "local typing duplicate alternative crosses mention identity"
+            )
+        prior["evidence_refs"] = tuple(
+            sorted(
+                set(prior.get("evidence_refs") or ())
+                | set(alternative.get("evidence_refs") or ())
+            )
+        )
+    alternative_rows = sorted(
+        deduplicated_alternatives.values(),
+        key=lambda alternative: alternative["type_ref"],
+    )
     alternatives_by_mention: dict[str, list[str]] = {
         mention_ref: [] for mention_ref in mention_by_ref
     }
@@ -3829,16 +3850,35 @@ def build_mention_licensing_carrier(
                 )
             )
 
-    mention_rows: list[dict[str, Any]] = []
-    license_rows: list[dict[str, Any]] = []
+    normalized_proposed: dict[
+        tuple[int, int], list[tuple[str, tuple[str, ...], tuple[str, ...]]]
+    ] = {}
     for start_char, end_char in sorted(proposed):
         interval = _canonical_token_interval(tokens, start_char, end_char)
         if interval is None:
             continue
         start_token, end_token = interval
+        normalized_interval = (tokens[start_token][1], tokens[end_token - 1][2])
+        normalized_proposed.setdefault(normalized_interval, []).extend(
+            proposed[(start_char, end_char)]
+        )
+
+    mention_rows: list[dict[str, Any]] = []
+    license_rows: list[dict[str, Any]] = []
+    for start_char, end_char in sorted(normalized_proposed):
+        interval = _canonical_token_interval(tokens, start_char, end_char)
+        if interval is None:
+            continue
+        start_token, end_token = interval
+        # Persisted mention coordinates are one canonical token interval.  A
+        # parser phrase can overlap a token boundary; normalize its material
+        # span to that interval instead of emitting internally contradictory
+        # character and token ranges.
+        start_char = tokens[start_token][1]
+        end_char = tokens[end_token - 1][2]
         mention_ref = f"mention:{document}:{start_char}:{end_char}"
         specifications = sorted(
-            proposed[(start_char, end_char)],
+            set(normalized_proposed[(start_char, end_char)]),
             key=lambda specification: _LICENSE_PRIORITY[specification[0]],
         )
         primary_kind = specifications[0][0]

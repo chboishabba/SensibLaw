@@ -221,22 +221,39 @@ class PostgresCompilerStore:
                 "tokens": tokens,
             }
         )
-        lexeme_ids: list[int] = []
-        starts: list[int] = []
-        ends: list[int] = []
-        for surface, start, end in tokens:
-            cursor.execute(
+        # Lexemes are shared immutable vocabulary.  Insert every unique key in
+        # canonical order, then read the complete stable map once.  This avoids
+        # one upsert/update lock per token while preserving token order below.
+        lexeme_keys = tuple(sorted({surface.casefold() for surface, _, _ in tokens}))
+        if lexeme_keys:
+            cursor.executemany(
                 """
                 INSERT INTO language.lexeme
                     (language_ref, normalized_text, lexical_kind_ref)
                 VALUES (%s, %s, %s)
-                ON CONFLICT (language_ref, normalized_text, lexical_kind_ref)
-                DO UPDATE SET normalized_text = EXCLUDED.normalized_text
-                RETURNING lexeme_id
+                ON CONFLICT (language_ref, normalized_text, lexical_kind_ref) DO NOTHING
                 """,
-                (language_ref, surface.casefold(), lexical_kind_ref),
+                [(language_ref, key, lexical_kind_ref) for key in lexeme_keys],
             )
-            lexeme_ids.append(int(cursor.fetchone()[0]))
+            cursor.execute(
+                """
+                SELECT normalized_text, lexeme_id
+                FROM language.lexeme
+                WHERE language_ref = %s AND lexical_kind_ref = %s
+                  AND normalized_text = ANY(%s)
+                """,
+                (language_ref, lexical_kind_ref, list(lexeme_keys)),
+            )
+            lexeme_by_key = {str(row[0]): int(row[1]) for row in cursor.fetchall()}
+            if len(lexeme_by_key) != len(lexeme_keys):
+                raise RuntimeError("lexeme batch did not return every requested key")
+        else:
+            lexeme_by_key = {}
+        lexeme_ids: list[int] = []
+        starts: list[int] = []
+        ends: list[int] = []
+        for surface, start, end in tokens:
+            lexeme_ids.append(lexeme_by_key[surface.casefold()])
             starts.append(start)
             ends.append(end)
         output_sha = _stable_bytes(
@@ -313,7 +330,11 @@ class PostgresCompilerStore:
 
     def count_persisted_tokens(self, cursor: Any, *, document_ref: str) -> int:
         cursor.execute(
-            "SELECT count(*) FROM language.token WHERE document_ref = %s",
+            """
+            SELECT COALESCE(MAX(token_count), 0)
+            FROM language.tokenizer_run
+            WHERE document_ref = %s
+            """,
             (document_ref,),
         )
         return int(cursor.fetchone()[0])

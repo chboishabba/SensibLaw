@@ -11,12 +11,14 @@ replacement-only API.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any, Mapping
 
 from src.language.operator_composition import OPERATOR_COMPOSITION_CONTRACT
 from src.pnf.factor_proposals import INTEGRATED_SEMANTIC_PRODUCER_CONTRACT
 from src.pnf.graph import PNFGraph
 from src.policy.algebra import Factor, TypedAlternative
+from src.policy.algebra.revision_identity import factor_revision_ref
 from src.policy.carriers.canonical import canonical_sha256
 
 
@@ -113,19 +115,7 @@ def _factor_from_reduction(
     role_bindings = dict(reduced.get("role_bindings") or {})
     qualifier_state = dict(reduced.get("qualifier_state") or {})
     fibre_summary_ref = str(reduced["factor_ref"])
-    factor_revision_ref = str(
-        reduced.get("factor_revision_ref")
-        or "factor-revision:"
-        + canonical_sha256(
-            {
-                "factor_ref": factor_ref,
-                "fibre_summary_ref": fibre_summary_ref,
-                "proposal_refs": proposal_refs,
-                "residuals": residuals,
-            }
-        )
-    )
-    return Factor(
+    projected = Factor(
         factor_ref=factor_ref,
         factor_type=str(reduced["factor_type_ref"]),
         alternatives=alternatives,
@@ -134,7 +124,6 @@ def _factor_from_reduction(
             "requires_external_resolution" if residuals else "locally_closed"
         ),
         metadata={
-            "factor_revision_ref": factor_revision_ref,
             "fibre_summary_ref": fibre_summary_ref,
             "semantic_coordinate_ref": str(
                 reduced.get("semantic_coordinate_ref") or ""
@@ -161,6 +150,16 @@ def _factor_from_reduction(
                 INTEGRATED_SEMANTIC_PRODUCER_CONTRACT
             ),
             "authority": "candidate_pnf_only",
+        },
+    )
+    # A fibre summary is evidence for the projected factor, not its revision
+    # identity.  The latter is defined by the complete materialised factor
+    # payload so that persistence can verify it without a special case.
+    return replace(
+        projected,
+        metadata={
+            **projected.metadata,
+            "factor_revision_ref": factor_revision_ref(projected.to_dict()),
         },
     )
 
