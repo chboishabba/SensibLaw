@@ -18,7 +18,12 @@ from src.pnf.constraint_worklist import evaluate_constraint_worklist
 from src.pnf.fibred_build_projection import project_fibred_semantic_build
 from src.pnf.streaming_reduction_projection import project_streaming_reduction
 from src.policy import corpus_compilation as legacy
-from src.policy.algebra import Factor, FactorConstraint, TypedAlternative
+from src.policy.algebra import (
+    Factor,
+    FactorConstraint,
+    TypedAlternative,
+    canonicalize_factor_revision,
+)
 from src.policy.carriers.canonical import canonical_sha256
 from src.policy.operational_corpus_compilation import (
     OPERATIONAL_COMPILER_CONTRACT,
@@ -118,6 +123,18 @@ def _reidentify_graph(graph: PNFGraph) -> PNFGraph:
     return replace(graph, graph_ref=graph_ref)
 
 
+def _canonicalize_factor_revisions(graph: PNFGraph) -> PNFGraph:
+    """Refresh derived revision metadata after fibred materialisation."""
+
+    return replace(
+        graph,
+        factors=tuple(
+            _factor(canonicalize_factor_revision(factor.to_dict()))
+            for factor in graph.factors
+        ),
+    )
+
+
 def compile_document_fibred_operational(
     document_input: Mapping[str, Any],
     compiler_context: legacy.CompilerContext,
@@ -145,7 +162,7 @@ def compile_document_fibred_operational(
         graph=source_graph,
         streaming_build=streaming_build,
     )
-    fibred_graph = _reidentify_graph(fibred_graph)
+    fibred_graph = _canonicalize_factor_revisions(_reidentify_graph(fibred_graph))
     changed_factor_refs = tuple(
         str(ref) for ref in projection_receipt.get("factor_refs") or ()
     )

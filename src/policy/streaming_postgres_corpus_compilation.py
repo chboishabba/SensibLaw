@@ -177,9 +177,6 @@ def persist_streaming_document_compilation(
         expected_sha256=canonical_text_sha256,
     )
     refinements = tuple(artifacts.get("factor_refinements") or ())
-    compatibility_refinements = tuple(
-        artifacts.get("compatibility_factor_refinements") or refinements
-    )
     candidate_sets = tuple(artifacts.get("binding_candidate_sets") or ())
     factor_anchors = tuple(artifacts.get("factor_anchors") or ())
     candidate_set_builds = tuple(
@@ -268,7 +265,10 @@ def persist_streaming_document_compilation(
         persist_binding_candidate_sets(
             cursor,
             candidate_sets=candidate_sets,
-            refinements=compatibility_refinements,
+            # The fibred graph is the persisted semantic state.  Legacy
+            # refinements remain compatibility evidence only, so they cannot
+            # create foreign-keyed refinement links in the active build.
+            refinements=refinements,
             factor_revisions=base_factor_revisions,
             factor_anchors=factor_anchors,
             builds=candidate_set_builds,

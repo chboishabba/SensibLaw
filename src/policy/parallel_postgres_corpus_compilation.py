@@ -14,6 +14,8 @@ from pathlib import Path
 from time import monotonic_ns
 from typing import Any, Callable, Mapping, Sequence
 
+from psycopg import Error as PostgresError
+
 from src.policy.corpus_compilation import CompilerContext, build_corpus_manifest
 from src.policy.fibred_operational_corpus_compilation import (
     FIBRED_OPERATIONAL_COMPILER_CONTRACT,
@@ -182,7 +184,13 @@ def _compile_one(
             closure_workers=closure_workers,
             owner_partitions=owner_partitions,
         )
-    except (OSError, UnicodeDecodeError, ValueError, RuntimeError) as error:
+    except (
+        OSError,
+        UnicodeDecodeError,
+        ValueError,
+        RuntimeError,
+        PostgresError,
+    ) as error:
         with store.transaction() as cursor:
             failure_ref = store.persist_failure(
                 cursor,

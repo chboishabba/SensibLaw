@@ -313,7 +313,11 @@ class PostgresCompilerStore:
 
     def count_persisted_tokens(self, cursor: Any, *, document_ref: str) -> int:
         cursor.execute(
-            "SELECT count(*) FROM language.token WHERE document_ref = %s",
+            """
+            SELECT COALESCE(MAX(token_count), 0)
+            FROM language.tokenizer_run
+            WHERE document_ref = %s
+            """,
             (document_ref,),
         )
         return int(cursor.fetchone()[0])

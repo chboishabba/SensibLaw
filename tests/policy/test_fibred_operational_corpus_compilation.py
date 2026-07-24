@@ -150,6 +150,9 @@ def test_fibred_wrapper_adds_new_higher_order_coordinate(monkeypatch) -> None:
         fibre_kind="composition",
     )
     base, reduction = _base_compilation(proposal)
+    base.artifacts["pnf_graph"]["factors"][0]["metadata"] = {
+        "factor_revision_ref": "factor-revision:stale"
+    }
     compilation = _compile(monkeypatch, base)
     artifacts = compilation.artifacts
     factors = artifacts["pnf_graph"]["factors"]
@@ -160,5 +163,9 @@ def test_fibred_wrapper_adds_new_higher_order_coordinate(monkeypatch) -> None:
         row for row in factors if row["factor_ref"] == reduction.factors[0].factor_ref
     )
     assert added["metadata"]["fibre_summary_ref"] == added["factor_ref"]
+    assert all(
+        factor_revision_ref(row) == row["metadata"]["factor_revision_ref"]
+        for row in factors
+    )
     assert receipt["added_factor_count"] == 1
     assert receipt["replaced_factor_count"] == 0
