@@ -18,6 +18,7 @@ from src.pnf.domain_ir_projection import build_domain_ir
 from src.pnf.fibred_build_projection import project_fibred_semantic_build
 from src.pnf.ir_execution import execute_ir_requests
 from src.pnf.lifecycle_assessment_projection import (
+    annotate_assessment_fibre_elements,
     annotate_assessment_proposals,
 )
 from src.pnf.projection_factor_binding import bind_projection_factor_rows
@@ -212,6 +213,14 @@ def compile_document_fibred_operational(
             if isinstance(row, Mapping)
         ),
     )
+    lifecycle_fibre_elements = annotate_assessment_fibre_elements(
+        proposals=lifecycle_proposal_rows,
+        fibre_elements=tuple(
+            row
+            for row in fibred_build.get("fibre_elements") or ()
+            if isinstance(row, Mapping)
+        ),
+    )
     materialized_reduction = streaming_build.get("materialized_reduction") or {}
     reduced_factor_rows = tuple(
         row
@@ -230,7 +239,7 @@ def compile_document_fibred_operational(
         document_ref=fibred_graph.document_ref,
         proposals=lifecycle_proposal_rows,
         reduced_factors=reduced_factor_rows,
-        fibre_elements=tuple(fibred_build.get("fibre_elements") or ()),
+        fibre_elements=lifecycle_fibre_elements,
         constraint_assessments=assessment_rows,
         reduction_residuals=reduction_residual_rows,
     )
