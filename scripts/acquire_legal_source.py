@@ -115,11 +115,20 @@ def main() -> int:
                 print(receipt.to_dict())
                 return 1
             context = default_compiler_context()
+            canonical_text, canonical_sha256_hex, adapter_ref = (
+                _canonical_source_coordinates(
+                    media_type=str(payload["media_type"]),
+                    source_text=str(payload["canonical_text"]),
+                    source_ref=str(payload["source_revision_ref"]),
+                )
+            )
+            if canonical_sha256_hex != str(payload["canonical_text_sha256"]):
+                raise ValueError("acquisition canonical text digest is not reproducible")
             document_ref = _operational_document_ref(
                 source_content_sha256=str(receipt.content_sha256),
-                canonical_text_sha256=str(payload["canonical_text_sha256"]),
+                canonical_text_sha256=canonical_sha256_hex,
                 media_type=str(payload["media_type"]),
-                media_adapter_ref=context.media_normalization_ref,
+                media_adapter_ref=adapter_ref,
                 context=context,
             )
             admission = admit_source(
@@ -139,8 +148,8 @@ def main() -> int:
                 media_type=str(payload["media_type"]),
                 content_sha256=str(receipt.content_sha256),
                 source_bytes=bytes(payload["raw_bytes"]),
-                canonical_text=str(payload["canonical_text"]),
-                adapter_ref=context.media_normalization_ref,
+                canonical_text=canonical_text,
+                adapter_ref=adapter_ref,
                 adapter_version=context.media_normalization_ref,
                 compiler_context_ref=context.context_ref,
                 normalization_ref=context.media_normalization_ref,
@@ -158,7 +167,7 @@ def main() -> int:
                 jurisdiction_ref=args.jurisdiction_ref,
                 source_role=args.source_role,
                 authority_level=args.authority_level,
-                canonical_text_sha256=str(payload["canonical_text_sha256"]),
+                canonical_text_sha256=canonical_sha256_hex,
                 media_type=str(payload["media_type"]),
                 temporal_refs=tuple(sorted(set(args.temporal_ref))),
                 provider_profile_refs=(args.provider_profile_ref,),
