@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from src.pnf.lifecycle_assessment_projection import (
+    annotate_assessment_fibre_elements,
     annotate_assessment_proposals,
 )
 
@@ -104,3 +105,60 @@ def test_only_incident_constraints_are_attached() -> None:
         "constraint:dependency",
         "constraint:source",
     ]
+
+
+def test_unsupported_and_unresolved_states_are_assessment_undetermined() -> None:
+    proposals = (
+        {"proposal_ref": "proposal:unsupported", "support_state": "unsupported"},
+        {"proposal_ref": "proposal:unresolved", "support_state": "unresolved"},
+    )
+    elements = (
+        {
+            "element_ref": "element:unsupported",
+            "content_ref": "proposal:unsupported",
+            "coordinate_ref": "coordinate:1",
+            "derivation_role": "support",
+        },
+        {
+            "element_ref": "element:unresolved",
+            "content_ref": "proposal:unresolved",
+            "coordinate_ref": "coordinate:2",
+            "derivation_role": "support",
+        },
+    )
+
+    rows = annotate_assessment_fibre_elements(
+        proposals=proposals,
+        fibre_elements=elements,
+    )
+
+    assert [row["derivation_role"] for row in rows] == [
+        "undetermined",
+        "undetermined",
+    ]
+
+
+def test_contested_state_exposes_support_and_contradiction() -> None:
+    proposals = (
+        {"proposal_ref": "proposal:contested", "support_state": "contested"},
+    )
+    elements = (
+        {
+            "element_ref": "element:support",
+            "content_ref": "proposal:contested",
+            "coordinate_ref": "coordinate:1",
+            "derivation_role": "support",
+            "source_refs": ["span:1"],
+        },
+    )
+
+    rows = annotate_assessment_fibre_elements(
+        proposals=proposals,
+        fibre_elements=elements,
+    )
+
+    assert {row["derivation_role"] for row in rows} == {
+        "support",
+        "contradict",
+    }
+    assert all(row["assessment_support_state"] == "contested" for row in rows)
