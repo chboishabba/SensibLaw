@@ -141,7 +141,10 @@ def _demand_rows(
     graph: PNFGraph,
     projection_demands: tuple[Any, ...],
 ) -> tuple[dict[str, Any], ...]:
-    rows = [legacy.canonical_json(row) for row in derive_resolution_demands(graph)]
+    rows = [
+        legacy.canonical_json(row)
+        for row in derive_resolution_demands(graph)
+    ]
     rows.extend(row.to_resolution_demand() for row in projection_demands)
     by_ref = {
         str(row.get("demand_ref") or canonical_sha256(row)): row
@@ -202,6 +205,11 @@ def compile_document_fibred_operational(
         for row in materialized_reduction.get("factors") or ()
         if isinstance(row, Mapping)
     )
+    reduction_residual_rows = tuple(
+        row
+        for row in materialized_reduction.get("residuals") or ()
+        if isinstance(row, Mapping)
+    )
     assessment_rows = tuple(
         row.to_dict() for row in constraint_worklist.assessments
     )
@@ -211,6 +219,7 @@ def compile_document_fibred_operational(
         reduced_factors=reduced_factor_rows,
         fibre_elements=tuple(fibred_build.get("fibre_elements") or ()),
         constraint_assessments=assessment_rows,
+        reduction_residuals=reduction_residual_rows,
     )
     domain_ir = build_domain_ir(
         document_ref=fibred_graph.document_ref,
@@ -251,7 +260,9 @@ def compile_document_fibred_operational(
             "memory_learning_deferred": True,
         }
     )
-    compatibility_refinements = list(artifacts.get("factor_refinements") or ())
+    compatibility_refinements = list(
+        artifacts.get("factor_refinements") or ()
+    )
     phase_boundary = dict(artifacts.get("phase_boundary") or {})
     phase_boundary.update(
         {
@@ -287,8 +298,12 @@ def compile_document_fibred_operational(
             "pnf_graph": fibred_graph.to_dict(),
             "refined_pnf_graph": fibred_graph.to_dict(),
             "semantic_lifecycle": lifecycle_row,
-            "candidate_assessments": lifecycle_row["candidate_assessments"],
-            "admissibility_receipts": lifecycle_row["admissibility_receipts"],
+            "candidate_assessments": lifecycle_row[
+                "candidate_assessments"
+            ],
+            "admissibility_receipts": lifecycle_row[
+                "admissibility_receipts"
+            ],
             "semantic_resolution_receipts": lifecycle_row[
                 "resolution_receipts"
             ],
@@ -307,7 +322,9 @@ def compile_document_fibred_operational(
             "operational_compiler_contract": (
                 FIBRED_OPERATIONAL_COMPILER_CONTRACT
             ),
-            "base_operational_compiler_contract": OPERATIONAL_COMPILER_CONTRACT,
+            "base_operational_compiler_contract": (
+                OPERATIONAL_COMPILER_CONTRACT
+            ),
             "phase_boundary": phase_boundary,
         }
     )
