@@ -3,8 +3,9 @@
 The existing compiler still performs canonical parsing, mention licensing,
 structural typing, local meets, and streaming job execution. This wrapper makes
 the deterministic streamed fibre reduction the PNF materialised view returned
-to persistence and downstream projections, while retaining the pre-fibre
-artifacts as compatibility evidence.
+to persistence and downstream projections, evaluates the constraint frontier
+against that view, and retains pre-fibre artifacts only as compatibility
+evidence.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from dataclasses import replace
 from typing import Any, Mapping
 
 from src.pnf import PNFGraph, derive_resolution_demands
+from src.pnf.constraint_worklist import evaluate_constraint_worklist
 from src.pnf.fibred_build_projection import project_fibred_semantic_build
 from src.pnf.streaming_reduction_projection import project_streaming_reduction
 from src.policy import corpus_compilation as legacy
@@ -144,6 +146,15 @@ def compile_document_fibred_operational(
         streaming_build=streaming_build,
     )
     fibred_graph = _reidentify_graph(fibred_graph)
+    changed_factor_refs = tuple(
+        str(ref) for ref in projection_receipt.get("factor_refs") or ()
+    )
+    constraint_worklist = evaluate_constraint_worklist(
+        document_ref=fibred_graph.document_ref,
+        factor_refs=(row.factor_ref for row in fibred_graph.factors),
+        constraints=fibred_graph.constraints,
+        changed_factor_refs=(changed_factor_refs or None),
+    )
     fibred_build = project_fibred_semantic_build(streaming_build)
     streaming_build.update(
         {
@@ -157,6 +168,7 @@ def compile_document_fibred_operational(
             ],
             "materialized_pnf_graph_ref": fibred_graph.graph_ref,
             "materialized_view_authority": "deterministic_fibrewise_pnf",
+            "constraint_worklist_ref": constraint_worklist.result_ref,
             "one_proposal_contract": True,
             "one_reduction_authority": True,
         }
@@ -169,6 +181,7 @@ def compile_document_fibred_operational(
     phase_boundary.update(
         {
             "fibred_semantic_state": True,
+            "constraints_after_fibre_materialisation": True,
             "one_integrated_producer": True,
             "one_proposal_contract": True,
             "one_reduction_authority": True,
@@ -180,8 +193,15 @@ def compile_document_fibred_operational(
             "pre_fibre_refined_pnf_graph": artifacts.get(
                 "refined_pnf_graph"
             ),
+            "pre_fibre_constraint_assessments": artifacts.get(
+                "constraint_assessments"
+            ),
             "compatibility_factor_refinements": compatibility_refinements,
             "factor_refinements": [],
+            "constraint_assessments": [
+                row.to_dict() for row in constraint_worklist.assessments
+            ],
+            "fibred_constraint_worklist": constraint_worklist.to_dict(),
             "pnf_graph": fibred_graph.to_dict(),
             "refined_pnf_graph": fibred_graph.to_dict(),
             "resolution_demands": [row.to_dict() for row in demands],
