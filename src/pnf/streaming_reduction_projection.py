@@ -3,9 +3,10 @@
 The projection consumes the converged proposal ledger and reduced fibre
 summaries, preserves every proposal alternative and residual, and never re-runs
 parser or operator composition. It is a materialised view, not a second
-semantic authority. Reduced fibre-summary identity remains explicit while the
-source compatibility factor reference is retained when downstream graph APIs
-require replacement at an existing coordinate.
+semantic authority. Reduced fibre-summary identity remains explicit while a
+source compatibility factor reference is retained when one exists. A genuinely
+new composed coordinate is added deterministically rather than forced through a
+replacement-only API.
 """
 
 from __future__ import annotations
@@ -173,6 +174,25 @@ def _is_operator_proposal(row: Mapping[str, Any]) -> bool:
     )
 
 
+def _admit_factor(graph: PNFGraph, factor: Factor[Any]) -> tuple[PNFGraph, str]:
+    known_refs = {row.factor_ref for row in graph.factors}
+    if factor.factor_ref in known_refs:
+        return graph.replace_factor(factor), "replaced"
+    return (
+        PNFGraph(
+            graph_ref=graph.graph_ref,
+            document_ref=graph.document_ref,
+            factors=tuple(
+                sorted((*graph.factors, factor), key=lambda row: row.factor_ref)
+            ),
+            constraints=graph.constraints,
+            relation_refs=graph.relation_refs,
+            residuals=graph.residuals,
+        ),
+        "added",
+    )
+
+
 def project_streaming_reduction(
     *,
     graph: PNFGraph,
@@ -200,19 +220,24 @@ def project_streaming_reduction(
     ]
     result = graph
     factors = []
+    admissions: list[dict[str, str]] = []
     for row in sorted(selected, key=lambda value: str(value["factor_ref"])):
         factor = _factor_from_reduction(
             reduced=row,
             proposals=proposals,
             reduction_ref=reduction_ref,
         )
-        result = result.replace_factor(factor)
+        result, admission = _admit_factor(result, factor)
         factors.append(factor)
+        admissions.append(
+            {"factor_ref": factor.factor_ref, "admission": admission}
+        )
     receipt_identity = {
         "contract_ref": STREAMING_REDUCTION_PROJECTION_CONTRACT,
         "input_graph_ref": graph.graph_ref,
         "streaming_reduction_ref": reduction_ref,
         "factor_refs": [row.factor_ref for row in factors],
+        "admissions": admissions,
         "fibre_summary_refs": sorted(
             {
                 str(row.metadata.get("fibre_summary_ref") or "")
@@ -234,6 +259,12 @@ def project_streaming_reduction(
         + canonical_sha256(receipt_identity),
         "output_graph_ref": result.graph_ref,
         "factor_count": len(factors),
+        "added_factor_count": sum(
+            row["admission"] == "added" for row in admissions
+        ),
+        "replaced_factor_count": sum(
+            row["admission"] == "replaced" for row in admissions
+        ),
         "parser_observation_source": "streaming_observation_ledger",
         "reparsed": False,
         "fibrewise_materialisation": True,
