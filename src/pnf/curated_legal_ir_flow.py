@@ -29,10 +29,15 @@ from src.pnf.legal_ir_parity import (
     compare_identity_snapshots,
     snapshot_from_build_artifacts,
 )
+from src.pnf.legal_ir_projection_bridge import (
+    project_legal_ir_from_domain_ir,
+)
 from src.pnf.legal_source_registry import RegisteredLegalSource
 from src.policy.carriers.canonical import canonical_sha256
 
-SourceLookup = Callable[[NormativeInteractionDemand], Sequence[RegisteredLegalSource]]
+SourceLookup = Callable[
+    [NormativeInteractionDemand], Sequence[RegisteredLegalSource]
+]
 PayloadLookup = Callable[[str], Mapping[str, Any] | None]
 LegalCompiler = Callable[[Mapping[str, Any]], Mapping[str, Any]]
 
@@ -73,14 +78,41 @@ def _factor_projection_rows(
                 "factor_revision_ref": revision_ref,
                 "structural_signature_ref": signature_ref,
                 "role_bindings": dict(metadata.get("role_bindings") or {}),
-                "qualifier_state": dict(metadata.get("qualifier_state") or {}),
+                "qualifier_state": dict(
+                    metadata.get("qualifier_state") or {}
+                ),
                 "wrapper_state": dict(metadata.get("wrapper_state") or {}),
-                "provenance_refs": tuple(metadata.get("provenance_refs") or ()),
+                "provenance_refs": tuple(
+                    metadata.get("provenance_refs") or ()
+                ),
                 "residual_refs": tuple(factor.get("residuals") or ()),
-                "legal_coordinates": dict(metadata.get("legal_coordinates") or {}),
+                "legal_coordinates": dict(
+                    metadata.get("legal_coordinates") or {}
+                ),
             }
         )
     return tuple(rows)
+
+
+def _lawful_legal_ir(
+    legal_compilations: Iterable[Mapping[str, Any]],
+) -> tuple[LegalIRObservation, ...]:
+    artifacts = tuple(_artifacts(row) for row in legal_compilations)
+    domain_rows = tuple(
+        projection
+        for artifact in artifacts
+        for projection in artifact.get("domain_ir_projections") or ()
+        if isinstance(projection, Mapping)
+        and str(projection.get("domain") or "") == "legal"
+    )
+    if domain_rows:
+        return project_legal_ir_from_domain_ir(domain_rows)
+    # Compatibility only for caller-supplied historical fixtures. Active v0_2
+    # compiler builds always expose lawful Domain IR projections.
+    factor_rows = tuple(
+        row for artifact in artifacts for row in _factor_projection_rows(artifact)
+    )
+    return project_legal_ir(factor_rows)
 
 
 @dataclass(frozen=True)
@@ -168,7 +200,7 @@ def run_curated_legal_ir_flow(
         payload = payload_lookup(source_ref)
         if payload is None:
             raise ValueError(
-                f"selected persisted legal source is unavailable: {source_ref}"
+                "selected persisted legal source is unavailable: " f"{source_ref}"
             )
         compilation = compile_legal_source(payload)
         artifacts = _artifacts(compilation)
@@ -179,15 +211,12 @@ def run_curated_legal_ir_flow(
             )
             != "reached"
         ):
-            raise ValueError("selected legal source did not reach local fixed point")
+            raise ValueError(
+                "selected legal source did not reach local fixed point"
+            )
         legal_compilations.append(dict(compilation))
 
-    legal_projection_rows = tuple(
-        row
-        for compilation in legal_compilations
-        for row in _factor_projection_rows(_artifacts(compilation))
-    )
-    legal_ir = project_legal_ir(legal_projection_rows)
+    legal_ir = _lawful_legal_ir(legal_compilations)
     ordinary_factor_rows = tuple(
         row
         for compilation in ordinary
