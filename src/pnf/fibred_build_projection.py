@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping
 
 from src.pnf.factor_proposals import (
     INTEGRATED_SEMANTIC_PRODUCER_CONTRACT,
@@ -10,11 +10,14 @@ from src.pnf.factor_proposals import (
 )
 from src.pnf.integrated_semantic_producer import IntegratedProducerReceipt
 from src.pnf.semantic_fibres import (
+    AxisObligation,
     FibreBoundaryObligation,
     FibreDerivation,
     FibreElement,
+    OntologyAxis,
     SemanticCoordinate,
     SemanticFibreLedger,
+    SemanticTransport,
     fibre_element_from_proposal_row,
 )
 
@@ -65,10 +68,62 @@ def _proposal_from_mapping(row: Mapping[str, Any]) -> FactorProposal:
     )
 
 
+def _transport(row: Mapping[str, Any]) -> SemanticTransport:
+    return SemanticTransport(
+        document_ref=str(row["document_ref"]),
+        source_coordinate_ref=str(row["source_coordinate_ref"]),
+        target_coordinate_ref=str(row["target_coordinate_ref"]),
+        transport_type=str(row["transport_type"]),
+        strength=str(row["strength"]),
+        evidence_refs=tuple(row.get("evidence_refs") or ()),
+        ontology_axis_refs=tuple(row.get("ontology_axis_refs") or ()),
+        allowed_operations=tuple(row.get("allowed_operations") or ()),
+        residual_refs=tuple(row.get("residual_refs") or ()),
+    )
+
+
+def _axis(row: Mapping[str, Any]) -> OntologyAxis:
+    return OntologyAxis(
+        axis_ref=str(row["axis_ref"]),
+        label=str(row["label"]),
+        authority_ref=str(row["authority_ref"]),
+        relation_refs=tuple(row.get("relation_refs") or ()),
+        root_refs=tuple(row.get("root_refs") or ()),
+        open_world=bool(row.get("open_world", True)),
+    )
+
+
+def _axis_obligation(row: Mapping[str, Any]) -> AxisObligation:
+    return AxisObligation(
+        document_ref=str(row["document_ref"]),
+        coordinate_ref=str(row["coordinate_ref"]),
+        axis_ref=str(row["axis_ref"]),
+        obligation_type=str(row["obligation_type"]),
+        trigger_refs=tuple(row.get("trigger_refs") or ()),
+        frontier_refs=tuple(row.get("frontier_refs") or ()),
+        state=str(row.get("state") or "open"),
+        resource_limit_reached=bool(row.get("resource_limit_reached", False)),
+    )
+
+
+def _boundary(row: Mapping[str, Any]) -> FibreBoundaryObligation:
+    return FibreBoundaryObligation(
+        document_ref=str(row["document_ref"]),
+        coordinate_ref=str(row["coordinate_ref"]),
+        scope_ref=str(row["scope_ref"]),
+        boundary_kind=str(row["boundary_kind"]),
+        evidence_refs=tuple(row.get("evidence_refs") or ()),
+        frontier_refs=tuple(row.get("frontier_refs") or ()),
+        required_axis_refs=tuple(row.get("required_axis_refs") or ()),
+        state=str(row.get("state") or "open"),
+        message=str(row.get("message") or ""),
+    )
+
+
 def project_fibred_semantic_build(
     streaming_build: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """Return fibred coordinates, elements, derivations, boundaries, and receipt."""
+    """Return the complete fibred execution view and integrated receipt."""
 
     document_ref = str(streaming_build.get("document_ref") or "")
     coordinates: dict[str, SemanticCoordinate] = {}
@@ -198,7 +253,27 @@ def project_fibred_semantic_build(
             )
         )
 
-    boundaries: list[FibreBoundaryObligation] = []
+    transports = tuple(
+        _transport(row)
+        for row in streaming_build.get("semantic_transports") or ()
+        if isinstance(row, Mapping)
+    )
+    axes = tuple(
+        _axis(row)
+        for row in streaming_build.get("ontology_axes") or ()
+        if isinstance(row, Mapping)
+    )
+    axis_obligations = tuple(
+        _axis_obligation(row)
+        for row in streaming_build.get("axis_obligations") or ()
+        if isinstance(row, Mapping)
+    )
+
+    boundary_by_ref: dict[str, FibreBoundaryObligation] = {}
+    for row in streaming_build.get("fibre_boundary_obligations") or ():
+        if isinstance(row, Mapping):
+            boundary = _boundary(row)
+            boundary_by_ref[boundary.boundary_ref] = boundary
     materialized = streaming_build.get("materialized_reduction") or {}
     for residual in materialized.get("residuals") or ():
         if not isinstance(residual, Mapping):
@@ -210,33 +285,39 @@ def project_fibred_semantic_build(
         if coordinate is None:
             continue
         boundary_kind = str(residual.get("boundary_kind") or "fibre")
-        boundaries.append(
-            FibreBoundaryObligation(
-                document_ref=document_ref,
-                coordinate_ref=coordinate_ref,
-                scope_ref=coordinate.scope_ref,
-                boundary_kind=boundary_kind,
-                evidence_refs=tuple(residual.get("proposal_refs") or ()),
-                frontier_refs=(str(residual.get("residual_ref") or ""),),
-                state=(
-                    "external"
-                    if boundary_kind in {"input_frontier", "ontology_axis"}
-                    else "open"
-                ),
-                message=str(residual.get("message") or ""),
-            )
+        boundary = FibreBoundaryObligation(
+            document_ref=document_ref,
+            coordinate_ref=coordinate_ref,
+            scope_ref=coordinate.scope_ref,
+            boundary_kind=boundary_kind,
+            evidence_refs=tuple(residual.get("proposal_refs") or ()),
+            frontier_refs=(str(residual.get("residual_ref") or ""),),
+            state=(
+                "external"
+                if boundary_kind in {"input_frontier", "ontology_axis"}
+                else "open"
+            ),
+            message=str(residual.get("message") or ""),
         )
+        boundary_by_ref[boundary.boundary_ref] = boundary
 
     ledger = SemanticFibreLedger(
         coordinates=tuple(
             coordinates[key] for key in sorted(coordinates)
         ),
         elements=tuple(sorted(elements, key=lambda row: row.element_ref)),
+        transports=tuple(
+            sorted(transports, key=lambda row: row.transport_ref)
+        ),
         derivations=tuple(
             sorted(derivations, key=lambda row: row.derivation_ref)
         ),
+        ontology_axes=tuple(sorted(axes, key=lambda row: row.axis_ref)),
+        axis_obligations=tuple(
+            sorted(axis_obligations, key=lambda row: row.obligation_ref)
+        ),
         boundary_obligations=tuple(
-            sorted(boundaries, key=lambda row: row.boundary_ref)
+            boundary_by_ref[key] for key in sorted(boundary_by_ref)
         ),
     )
     producer_receipt = IntegratedProducerReceipt(
@@ -265,7 +346,12 @@ def project_fibred_semantic_build(
         "integrated_producer_receipt": producer_receipt.to_dict(),
         "semantic_coordinates": [row.to_dict() for row in ledger.coordinates],
         "fibre_elements": [row.to_dict() for row in ledger.elements],
+        "semantic_transports": [row.to_dict() for row in ledger.transports],
         "fibre_derivations": [row.to_dict() for row in ledger.derivations],
+        "ontology_axes": [row.to_dict() for row in ledger.ontology_axes],
+        "axis_obligations": [
+            row.to_dict() for row in ledger.axis_obligations
+        ],
         "fibre_boundary_obligations": [
             row.to_dict() for row in ledger.boundary_obligations
         ],
