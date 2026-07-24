@@ -17,6 +17,9 @@ from src.pnf.constraint_worklist import evaluate_constraint_worklist
 from src.pnf.domain_ir_projection import build_domain_ir
 from src.pnf.fibred_build_projection import project_fibred_semantic_build
 from src.pnf.ir_execution import execute_ir_requests
+from src.pnf.lifecycle_assessment_projection import (
+    annotate_assessment_proposals,
+)
 from src.pnf.projection_factor_binding import bind_projection_factor_rows
 from src.pnf.semantic_lifecycle import build_semantic_lifecycle
 from src.pnf.streaming_reduction_projection import project_streaming_reduction
@@ -154,39 +157,6 @@ def _demand_rows(
     return tuple(by_ref[key] for key in sorted(by_ref))
 
 
-def _assessment_proposals(
-    proposal_rows: tuple[Mapping[str, Any], ...],
-    work_items: tuple[Any, ...],
-) -> tuple[dict[str, Any], ...]:
-    constraints_by_factor: dict[str, set[str]] = {}
-    for item in work_items:
-        for factor_ref in item.incident_factor_refs:
-            constraints_by_factor.setdefault(str(factor_ref), set()).add(
-                item.constraint_ref
-            )
-    output: list[dict[str, Any]] = []
-    for proposal in proposal_rows:
-        payload = dict(proposal.get("candidate_payload") or {})
-        related_factor_refs = {
-            str(payload.get("source_factor_ref") or ""),
-            *(str(ref) for ref in proposal.get("dependency_factor_refs") or ()),
-        }
-        related_factor_refs.discard("")
-        incident_constraint_refs = {
-            constraint_ref
-            for factor_ref in related_factor_refs
-            for constraint_ref in constraints_by_factor.get(factor_ref, ())
-        }
-        payload["applied_constraint_refs"] = sorted(
-            {
-                *(str(ref) for ref in payload.get("applied_constraint_refs") or ()),
-                *incident_constraint_refs,
-            }
-        )
-        output.append({**dict(proposal), "candidate_payload": payload})
-    return tuple(output)
-
-
 def compile_document_fibred_operational(
     document_input: Mapping[str, Any],
     compiler_context: legacy.CompilerContext,
@@ -233,9 +203,14 @@ def compile_document_fibred_operational(
         for row in streaming_build.get("proposals") or ()
         if isinstance(row, Mapping)
     )
-    lifecycle_proposal_rows = _assessment_proposals(
-        proposal_rows,
-        constraint_worklist.work_items,
+    lifecycle_proposal_rows = annotate_assessment_proposals(
+        proposals=proposal_rows,
+        work_items=constraint_worklist.work_items,
+        coverage_notices=tuple(
+            row
+            for row in streaming_build.get("coverage_notices") or ()
+            if isinstance(row, Mapping)
+        ),
     )
     materialized_reduction = streaming_build.get("materialized_reduction") or {}
     reduced_factor_rows = tuple(
