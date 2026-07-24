@@ -180,9 +180,7 @@ def persist_streaming_document_compilation(
     compatibility_refinements = tuple(
         artifacts.get("compatibility_factor_refinements") or refinements
     )
-    candidate_sets = tuple(
-        artifacts.get("binding_candidate_sets") or ()
-    )
+    candidate_sets = tuple(artifacts.get("binding_candidate_sets") or ())
     factor_anchors = tuple(artifacts.get("factor_anchors") or ())
     candidate_set_builds = tuple(
         artifacts.get("binding_candidate_set_builds") or ()
@@ -200,6 +198,9 @@ def persist_streaming_document_compilation(
         )
     if not streaming_build.get("one_reduction_authority"):
         raise ValueError("fibred build requires one reduction authority")
+    expected_producer_receipt = (
+        streaming_build.get("integrated_producer_receipt") or {}
+    )
 
     persistence_started = monotonic_ns()
     with store.savepoint() as cursor:
@@ -290,7 +291,7 @@ def persist_streaming_document_compilation(
             streaming_build=streaming_build,
             stage_timing_ledger=persisted_stage_timing,
         )
-        persist_semantic_fibre_artifacts(
+        persisted_producer_receipt = persist_semantic_fibre_artifacts(
             cursor,
             document_ref=compilation.document_ref,
             observation_deltas=tuple(
@@ -337,6 +338,19 @@ def persist_streaming_document_compilation(
                 if isinstance(row, Mapping)
             ),
         )
+        if expected_producer_receipt:
+            if persisted_producer_receipt.fibre_ledger_ref != str(
+                expected_producer_receipt.get("fibre_ledger_ref") or ""
+            ):
+                raise ValueError(
+                    "persisted fibre ledger disagrees with compiler receipt"
+                )
+            if persisted_producer_receipt.receipt_ref != str(
+                expected_producer_receipt.get("receipt_ref") or ""
+            ):
+                raise ValueError(
+                    "persisted producer receipt disagrees with compiler receipt"
+                )
         persist_completed_operational_build(
             cursor,
             document_ref=compilation.document_ref,
