@@ -27,6 +27,9 @@ from src.storage.postgres.operational_build_store import (
     load_completed_operational_build,
     persist_completed_operational_build,
 )
+from src.storage.postgres.semantic_fibre_store import (
+    persist_semantic_fibre_artifacts,
+)
 from src.storage.postgres.semantic_store import (
     persist_pnf_graph,
     persist_resolution_artifacts,
@@ -277,6 +280,53 @@ def persist_streaming_document_compilation(
             document_ref=compilation.document_ref,
             streaming_build=streaming_build,
             stage_timing_ledger=persisted_stage_timing,
+        )
+        persist_semantic_fibre_artifacts(
+            cursor,
+            document_ref=compilation.document_ref,
+            observation_deltas=tuple(
+                row
+                for row in streaming_build.get("observation_deltas") or ()
+                if isinstance(row, Mapping)
+            ),
+            proposals=tuple(
+                row
+                for row in streaming_build.get("proposals") or ()
+                if isinstance(row, Mapping)
+            ),
+            solver_jobs=tuple(
+                row
+                for row in streaming_build.get("solver_jobs") or ()
+                if isinstance(row, Mapping)
+            ),
+            solver_receipts=tuple(
+                row
+                for row in streaming_build.get("solver_receipts") or ()
+                if isinstance(row, Mapping)
+            ),
+            materialized_reduction=(
+                streaming_build.get("materialized_reduction") or {}
+            ),
+            transports=tuple(
+                row
+                for row in streaming_build.get("semantic_transports") or ()
+                if isinstance(row, Mapping)
+            ),
+            ontology_axes=tuple(
+                row
+                for row in streaming_build.get("ontology_axes") or ()
+                if isinstance(row, Mapping)
+            ),
+            axis_obligations=tuple(
+                row
+                for row in streaming_build.get("axis_obligations") or ()
+                if isinstance(row, Mapping)
+            ),
+            boundary_obligations=tuple(
+                row
+                for row in streaming_build.get("fibre_boundary_obligations") or ()
+                if isinstance(row, Mapping)
+            ),
         )
         persist_completed_operational_build(
             cursor,
