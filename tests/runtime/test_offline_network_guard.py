@@ -8,7 +8,7 @@ from src.runtime.offline_network_guard import (
 )
 
 
-def test_offline_guard_records_and_rejects_network_attempts() -> None:
+def test_offline_guard_records_and_rejects_external_attempts() -> None:
     guard = OfflineNetworkGuard()
     with pytest.raises(OfflineNetworkViolation):
         with guard:
@@ -16,7 +16,7 @@ def test_offline_guard_records_and_rejects_network_attempts() -> None:
 
     receipt = guard.receipt.to_dict()
     assert receipt["network_attempt_count"] == 1
-    assert receipt["network_absent"] is False
+    assert receipt["external_network_absent"] is False
 
 
 def test_offline_guard_certifies_pure_local_work() -> None:
@@ -26,4 +26,4 @@ def test_offline_guard_certifies_pure_local_work() -> None:
 
     receipt = guard.receipt.to_dict()
     assert receipt["network_attempt_count"] == 0
-    assert receipt["network_absent"] is True
+    assert receipt["external_network_absent"] is True
