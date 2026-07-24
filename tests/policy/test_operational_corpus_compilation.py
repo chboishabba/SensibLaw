@@ -36,7 +36,9 @@ def test_operational_compiler_never_materializes_pairwise_binding(monkeypatch) -
     assert compilation.artifacts["reference_binding_operational_contract"] == (
         REFERENCE_BINDING_CONTRACT_REF
     )
-    assert OPERATIONAL_COMPILER_CONTRACT == "postgres-semantic-compiler:v0_8"
+    assert compilation.artifacts["operational_compiler_contract"] == (
+        OPERATIONAL_COMPILER_CONTRACT
+    )
     assert compilation.artifacts["binding_candidate_sets"]
     assert not any(
         row["evidence_type"] == "typed_binding_candidate"
@@ -70,7 +72,7 @@ def test_operational_html_uses_one_canonical_coordinate_system() -> None:
     canonical_text = artifacts["canonical_text"]
     canonical_sha256 = hashlib.sha256(canonical_text.encode("utf-8")).hexdigest()
 
-    assert OPERATIONAL_COMPILER_CONTRACT == "postgres-semantic-compiler:v0_8"
+    assert artifacts["operational_compiler_contract"] == OPERATIONAL_COMPILER_CONTRACT
     assert artifacts["reference_binding_operational_contract"] == (
         REFERENCE_BINDING_CONTRACT_REF
     )
