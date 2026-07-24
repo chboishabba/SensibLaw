@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from src.pnf.factor_proposals import FactorProposal, reduce_factor_proposals
 from src.policy import fibred_operational_corpus_compilation as module
+from src.policy.algebra import factor_revision_ref
 from src.policy.corpus_compilation import DocumentCompilation, default_compiler_context
 
 
@@ -114,6 +115,7 @@ def test_fibred_wrapper_replaces_existing_compatibility_coordinate(
     assert factor["metadata"]["fibre_summary_ref"] == (
         reduction.factors[0].factor_ref
     )
+    assert factor_revision_ref(factor) == factor["metadata"]["factor_revision_ref"]
     assert receipt["replaced_factor_count"] == 1
     assert receipt["added_factor_count"] == 0
     assert artifacts["factor_refinements"] == []
