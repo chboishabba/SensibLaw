@@ -14,8 +14,12 @@ from src.policy.carriers.canonical import canonical_sha256
 
 DOMAIN_IR_CONTRACT_SCHEMA_VERSION = "sl.pnf.domain_ir_contract.v0_1"
 DOMAIN_IR_PROJECTION_SCHEMA_VERSION = "sl.pnf.domain_ir_projection.v0_1"
-DOMAIN_IR_PROJECTION_RECEIPT_SCHEMA_VERSION = "sl.pnf.domain_ir_projection_receipt.v0_1"
-PROJECTION_LOSS_RECEIPT_SCHEMA_VERSION = "sl.pnf.projection_loss_receipt.v0_1"
+DOMAIN_IR_PROJECTION_RECEIPT_SCHEMA_VERSION = (
+    "sl.pnf.domain_ir_projection_receipt.v0_1"
+)
+PROJECTION_LOSS_RECEIPT_SCHEMA_VERSION = (
+    "sl.pnf.projection_loss_receipt.v0_1"
+)
 PROJECTION_DEMAND_SCHEMA_VERSION = "sl.pnf.projection_demand.v0_1"
 DOMAIN_IR_BUILD_SCHEMA_VERSION = "sl.pnf.domain_ir_build.v0_1"
 
@@ -45,12 +49,17 @@ class DomainIRProjectionContract:
 
     @property
     def contract_ref(self) -> str:
-        return "domain-ir-contract:" + canonical_sha256(self.to_dict(include_ref=False))
+        return "domain-ir-contract:" + canonical_sha256(
+            self.to_dict(include_ref=False)
+        )
 
     def accepts(self, factor_type: str) -> bool:
         return any(
             family == "*"
-            or (family.endswith(".*") and factor_type.startswith(family[:-1]))
+            or (
+                family.endswith(".*")
+                and factor_type.startswith(family[:-1])
+            )
             or family == factor_type
             for family in self.accepted_factor_families
         )
@@ -59,9 +68,15 @@ class DomainIRProjectionContract:
         payload = {
             "schema_version": DOMAIN_IR_CONTRACT_SCHEMA_VERSION,
             **asdict(self),
-            "accepted_factor_families": list(refs(self.accepted_factor_families)),
-            "required_ontology_axis_refs": list(refs(self.required_ontology_axis_refs)),
-            "required_statement_roles": list(refs(self.required_statement_roles)),
+            "accepted_factor_families": list(
+                refs(self.accepted_factor_families)
+            ),
+            "required_ontology_axis_refs": list(
+                refs(self.required_ontology_axis_refs)
+            ),
+            "required_statement_roles": list(
+                refs(self.required_statement_roles)
+            ),
             "preserved_fields": list(refs(self.preserved_fields)),
             "forgotten_fields": list(refs(self.forgotten_fields)),
             "projection_adds_world_truth": False,
@@ -86,7 +101,9 @@ class ProjectionDemand:
 
     @property
     def demand_ref(self) -> str:
-        return "pnf-projection-demand:" + canonical_sha256(self.to_dict(include_ref=False))
+        return "pnf-projection-demand:" + canonical_sha256(
+            self.to_dict(include_ref=False)
+        )
 
     def to_resolution_demand(self) -> dict[str, Any]:
         facets = {
@@ -97,9 +114,14 @@ class ProjectionDemand:
             facets.add("legal.interpretation_unresolved")
         return {
             "demand_ref": self.demand_ref,
+            "document_ref": self.document_ref,
+            "factor_ref": self.source_factor_ref,
             "factor_revision_ref": self.source_factor_ref,
             "origin_pnf_ref": self.source_factor_ref,
             "structural_signature_ref": self.structural_signature_ref,
+            "subject_kind": "domain_ir_projection",
+            "formal_role": self.domain,
+            "scope_ref": "document_local",
             "requested_facets": sorted(facets),
             "priority": self.priority,
             "projection_domain": self.domain,
@@ -139,7 +161,9 @@ class ProjectionLossReceipt:
 
     @property
     def loss_ref(self) -> str:
-        return "projection-loss:" + canonical_sha256(self.to_dict(include_ref=False))
+        return "projection-loss:" + canonical_sha256(
+            self.to_dict(include_ref=False)
+        )
 
     def to_dict(self, *, include_ref: bool = True) -> dict[str, Any]:
         payload = {
@@ -175,7 +199,9 @@ class DomainIRProjectionReceipt:
 
     @property
     def receipt_ref(self) -> str:
-        return "domain-ir-projection-receipt:" + canonical_sha256(self.to_dict(include_ref=False))
+        return "domain-ir-projection-receipt:" + canonical_sha256(
+            self.to_dict(include_ref=False)
+        )
 
     def to_dict(self, *, include_ref: bool = True) -> dict[str, Any]:
         payload = {
@@ -210,7 +236,9 @@ class DomainIRProjection:
 
     @property
     def domain_ir_ref(self) -> str:
-        return f"{self.domain}-ir:" + canonical_sha256(self.to_dict(include_ref=False))
+        return f"{self.domain}-ir:" + canonical_sha256(
+            self.to_dict(include_ref=False)
+        )
 
     def to_dict(self, *, include_ref: bool = True) -> dict[str, Any]:
         payload = {
@@ -249,7 +277,9 @@ class DomainIRBuild:
 
     @property
     def build_ref(self) -> str:
-        return "domain-ir-build:" + canonical_sha256(self.to_dict(include_ref=False))
+        return "domain-ir-build:" + canonical_sha256(
+            self.to_dict(include_ref=False)
+        )
 
     def to_dict(self, *, include_ref: bool = True) -> dict[str, Any]:
         payload = {
