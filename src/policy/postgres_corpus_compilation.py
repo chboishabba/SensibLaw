@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import hashlib
+import sys
 from pathlib import Path
 from typing import Any, Mapping, Sequence
+
+from tqdm.auto import tqdm
 
 from src.ingestion.media_adapter import HtmlDocumentMediaAdapter
 from src.policy.carriers.canonical import canonical_sha256
@@ -455,9 +458,22 @@ def compile_directory_postgres(
     document_refs: list[str] = []
     demand_refs: list[str] = []
     failure_refs: list[str] = []
-    for entry in manifest_row["ordered_documents"]:
-        if entry["status"] != "inventoried":
-            continue
+    ordered_documents = [
+        entry
+        for entry in manifest_row["ordered_documents"]
+        if entry["status"] == "inventoried"
+    ]
+    progress_iter = tqdm(
+        ordered_documents,
+        total=len(ordered_documents),
+        desc=f"{execution_phase}_compile",
+        unit="doc",
+        dynamic_ncols=True,
+        leave=True,
+        file=sys.stderr,
+        disable=not sys.stderr.isatty(),
+    )
+    for entry in progress_iter:
         document_ref = str(entry["document_ref"])
         relative_path = str(entry["relative_path"])
         if document_ref in compiled:
@@ -496,10 +512,16 @@ def compile_directory_postgres(
                         error=error,
                     )
                 )
+            if sys.stderr.isatty():
+                progress_iter.set_postfix_str("failed", refresh=False)
             continue
         compiled.add(document_ref)
         document_refs.append(document_ref)
         demand_refs.extend(refs)
+        if sys.stderr.isatty():
+            progress_iter.set_postfix_str("ok", refresh=False)
+    if sys.stderr.isatty():
+        progress_iter.close()
     return PersistedCompilation(
         corpus_ref=corpus_ref,
         document_refs=tuple(sorted(document_refs)),
