@@ -1,7 +1,7 @@
 """One active semantic flow: compile -> PNF lifecycle -> Domain IR -> follow rows.
 
-This module is the runtime authority for AU/GWB/general profiles.  Lane wrappers
-provide profile configuration only.  SQLite and nested JSON follow graphs are
+This module is the runtime authority for AU/GWB/general profiles. Lane wrappers
+provide profile configuration only. SQLite and nested JSON follow graphs are
 not accepted as runtime semantic inputs.
 """
 
@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from time import perf_counter
-from typing import Any, Callable, Iterable, Mapping, Sequence
+from typing import Any, Callable, Mapping
 
 from src.pnf.pronominal_argument_projection import attach_parser_pronominal_arguments
 from src.pnf.reference_binding import project_pronominal_reference_arguments
@@ -76,7 +76,9 @@ class SemanticSpineResult:
         }
 
 
-def _artifact_rows(artifacts: Mapping[str, Any], key: str) -> tuple[Mapping[str, Any], ...]:
+def _artifact_rows(
+    artifacts: Mapping[str, Any], key: str
+) -> tuple[Mapping[str, Any], ...]:
     return tuple(row for row in artifacts.get(key) or () if isinstance(row, Mapping))
 
 
@@ -101,7 +103,9 @@ def run_postgres_semantic_spine(
     reference_seconds = perf_counter() - reference_started
 
     graph = artifacts.get("refined_pnf_graph") or artifacts.get("pnf_graph") or {}
-    factors = tuple(row for row in graph.get("factors") or () if isinstance(row, Mapping))
+    factors = tuple(
+        row for row in graph.get("factors") or () if isinstance(row, Mapping)
+    )
     durable_factor_refs = {str(row.get("factor_ref") or "") for row in factors}
     demands = tuple(
         row
@@ -115,7 +119,9 @@ def run_postgres_semantic_spine(
     projection_demands = tuple(
         row
         for row in demands
-        if row.get("domain") or row.get("source_resolution_ref") or row.get("resolution_ref")
+        if row.get("domain")
+        or row.get("source_resolution_ref")
+        or row.get("resolution_ref")
     )
     validate_projection_demand_factor_closure(
         demands=projection_demands,
@@ -124,9 +130,15 @@ def run_postgres_semantic_spine(
 
     build_started = perf_counter()
     projection = build_follow_projection_from_canonical_rows(
-        document_ref=str(graph.get("document_ref") or document_input.get("document_ref") or ""),
+        document_ref=str(
+            graph.get("document_ref") or document_input.get("document_ref") or ""
+        ),
         profile_ref=profile.profile_ref,
-        scope_ref=str(document_input.get("scope_ref") or graph.get("document_ref") or "document"),
+        scope_ref=str(
+            document_input.get("scope_ref")
+            or graph.get("document_ref")
+            or "document"
+        ),
         projection_kind=profile.projection_kind,
         factors=factors,
         resolutions=_artifact_rows(artifacts, "semantic_resolution_receipts"),
