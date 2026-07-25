@@ -8,7 +8,7 @@ from typing import Any, Iterable, Mapping
 from src.policy.carriers.canonical import canonical_sha256
 
 
-STAGE_BUILD_KEYS_SCHEMA_VERSION = "sl.pnf.stage_build_keys.v0_1"
+STAGE_BUILD_KEYS_SCHEMA_VERSION = "sl.pnf.stage_build_keys.v0_2"
 
 
 def _refs(values: Iterable[str]) -> tuple[str, ...]:
@@ -87,12 +87,14 @@ def derive_stage_build_keys(
     observation_projection_key = stage_build_key(
         "observation_projection",
         inputs=(parser_key, *_refs(observation_refs)),
-        contract_ref="parser-observation-projection:v0_1",
+        # Parser observations now include pronominal argument evidence used by
+        # generic reference binding; old cache entries are not interchangeable.
+        contract_ref="parser-observation-projection:v0_2",
     )
     base_proposal_key = stage_build_key(
         "base_proposals",
         inputs=(observation_projection_key, *_refs(base_proposal_refs)),
-        contract_ref="semantic-base-proposal:v0_1",
+        contract_ref="semantic-base-proposal:v0_2",
     )
     base_reduction_key = stage_build_key(
         "base_reduction",

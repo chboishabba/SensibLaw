@@ -23,8 +23,7 @@ def bind_projection_factor_rows(
         if row.get("proposal_ref")
     }
     graph_rows = tuple(
-        row.to_dict() if hasattr(row, "to_dict") else dict(row)
-        for row in graph_factors
+        row.to_dict() if hasattr(row, "to_dict") else dict(row) for row in graph_factors
     )
     graph_by_ref = {
         str(row.get("factor_ref") or ""): row
@@ -42,14 +41,17 @@ def bind_projection_factor_rows(
             str((row.get("candidate_payload") or {}).get("source_factor_ref") or "")
             for row in proposal_rows
         } - {""}
-        if len(source_refs) != 1:
+        source_refs &= set(graph_by_ref)
+        if not source_refs:
             output.append(dict(reduced))
             continue
-        source_ref = next(iter(source_refs))
+        # A reduced summary may retain plural alternatives.  Its base factor
+        # FK must nevertheless name a durable graph coordinate.  The stable
+        # anchor below does not select an interpretation: every contributing
+        # source factor remains explicit in metadata and the resolution
+        # receipt still records plurality/conflict.
+        source_ref = min(source_refs)
         source = graph_by_ref.get(source_ref)
-        if source is None:
-            output.append(dict(reduced))
-            continue
         metadata = dict(source.get("metadata") or {})
         provenance = {
             str(ref)
@@ -66,6 +68,7 @@ def bind_projection_factor_rows(
         metadata.update(
             {
                 "fibre_summary_ref": str(reduced.get("factor_ref") or ""),
+                "source_factor_refs": sorted(source_refs),
                 "semantic_coordinate_ref": str(
                     reduced.get("semantic_coordinate_ref") or ""
                 ),
@@ -90,7 +93,11 @@ def bind_projection_factor_rows(
                 "provenance_refs": sorted(
                     {*metadata.get("provenance_refs", ()), *provenance}
                 ),
-                "projection_factor_binding": "persisted_source_factor",
+                "projection_factor_binding": (
+                    "persisted_source_factor"
+                    if len(source_refs) == 1
+                    else "persisted_source_factor_anchor"
+                ),
             }
         )
         output.append(

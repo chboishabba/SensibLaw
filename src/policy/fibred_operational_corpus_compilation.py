@@ -40,9 +40,7 @@ from src.policy.operational_corpus_compilation import (
 )
 
 
-FIBRED_OPERATIONAL_COMPILER_CONTRACT = (
-    "postgres-fibred-semantic-compiler:v0_2"
-)
+FIBRED_OPERATIONAL_COMPILER_CONTRACT = "postgres-fibred-semantic-compiler:v0_2"
 
 
 def _alternative(row: Mapping[str, Any]) -> TypedAlternative[Any]:
@@ -72,9 +70,7 @@ def _constraint(row: Mapping[str, Any]) -> FactorConstraint:
         ),
         required=bool(row.get("required", True)),
         residual_on_failure=(
-            str(row["residual_on_failure"])
-            if row.get("residual_on_failure")
-            else None
+            str(row["residual_on_failure"]) if row.get("residual_on_failure") else None
         ),
     )
 
@@ -148,15 +144,21 @@ def _demand_rows(
     graph: PNFGraph,
     projection_demands: tuple[Any, ...],
 ) -> tuple[dict[str, Any], ...]:
-    rows = [
-        legacy.canonical_json(row)
-        for row in derive_resolution_demands(graph)
-    ]
+    rows = [legacy.canonical_json(row) for row in derive_resolution_demands(graph)]
     rows.extend(row.to_resolution_demand() for row in projection_demands)
-    by_ref = {
-        str(row.get("demand_ref") or canonical_sha256(row)): row
+    durable_factor_refs = {factor.factor_ref for factor in graph.factors}
+    invalid_projection_refs = sorted(
+        str(row.get("factor_ref") or "")
         for row in rows
-    }
+        if str(row.get("subject_kind") or "") == "domain_ir_projection"
+        and str(row.get("factor_ref") or "") not in durable_factor_refs
+    )
+    if invalid_projection_refs:
+        raise ValueError(
+            "projection demands must bind durable graph factors: "
+            + ", ".join(invalid_projection_refs)
+        )
+    by_ref = {str(row.get("demand_ref") or canonical_sha256(row)): row for row in rows}
     return tuple(by_ref[key] for key in sorted(by_ref))
 
 
@@ -178,18 +180,14 @@ def compile_document_fibred_operational(
     artifacts = dict(base.artifacts)
     streaming_build = dict(artifacts.get("streaming_semantic_build") or {})
     source_graph_row = (
-        artifacts.get("refined_pnf_graph")
-        or artifacts.get("pnf_graph")
-        or {}
+        artifacts.get("refined_pnf_graph") or artifacts.get("pnf_graph") or {}
     )
     source_graph = _graph(source_graph_row)
     fibred_graph, projection_receipt = project_streaming_reduction(
         graph=source_graph,
         streaming_build=streaming_build,
     )
-    fibred_graph = _canonicalize_factor_revisions(
-        _reidentify_graph(fibred_graph)
-    )
+    fibred_graph = _canonicalize_factor_revisions(_reidentify_graph(fibred_graph))
     changed_factor_refs = tuple(
         str(ref) for ref in projection_receipt.get("factor_refs") or ()
     )
@@ -234,9 +232,7 @@ def compile_document_fibred_operational(
         for row in materialized_reduction.get("residuals") or ()
         if isinstance(row, Mapping)
     )
-    assessment_rows = tuple(
-        row.to_dict() for row in constraint_worklist.assessments
-    )
+    assessment_rows = tuple(row.to_dict() for row in constraint_worklist.assessments)
     lifecycle = build_admission_aware_semantic_lifecycle(
         document_ref=fibred_graph.document_ref,
         proposals=lifecycle_proposal_rows,
@@ -269,12 +265,8 @@ def compile_document_fibred_operational(
         {
             "fibred_semantic_build": fibred_build,
             "fibre_ledger_ref": fibred_build["fibre_ledger"]["ledger_ref"],
-            "integrated_producer_receipt": fibred_build[
-                "integrated_producer_receipt"
-            ],
-            "fibre_boundary_obligations": fibred_build[
-                "fibre_boundary_obligations"
-            ],
+            "integrated_producer_receipt": fibred_build["integrated_producer_receipt"],
+            "fibre_boundary_obligations": fibred_build["fibre_boundary_obligations"],
             "materialized_pnf_graph_ref": fibred_graph.graph_ref,
             "materialized_view_authority": "deterministic_fibrewise_pnf",
             "constraint_worklist_ref": constraint_worklist.result_ref,
@@ -289,9 +281,7 @@ def compile_document_fibred_operational(
             "memory_learning_deferred": True,
         }
     )
-    compatibility_refinements = list(
-        artifacts.get("factor_refinements") or ()
-    )
+    compatibility_refinements = list(artifacts.get("factor_refinements") or ())
     phase_boundary = dict(artifacts.get("phase_boundary") or {})
     phase_boundary.update(
         {
@@ -314,12 +304,8 @@ def compile_document_fibred_operational(
     artifacts.update(
         {
             "pre_fibre_pnf_graph": artifacts.get("pnf_graph"),
-            "pre_fibre_refined_pnf_graph": artifacts.get(
-                "refined_pnf_graph"
-            ),
-            "pre_fibre_constraint_assessments": artifacts.get(
-                "constraint_assessments"
-            ),
+            "pre_fibre_refined_pnf_graph": artifacts.get("refined_pnf_graph"),
+            "pre_fibre_constraint_assessments": artifacts.get("constraint_assessments"),
             "compatibility_factor_refinements": compatibility_refinements,
             "factor_refinements": [],
             "constraint_assessments": assessment_rows,
@@ -327,33 +313,21 @@ def compile_document_fibred_operational(
             "pnf_graph": fibred_graph.to_dict(),
             "refined_pnf_graph": fibred_graph.to_dict(),
             "semantic_lifecycle": lifecycle_row,
-            "candidate_assessments": lifecycle_row[
-                "candidate_assessments"
-            ],
-            "admissibility_receipts": lifecycle_row[
-                "admissibility_receipts"
-            ],
-            "semantic_resolution_receipts": lifecycle_row[
-                "resolution_receipts"
-            ],
+            "candidate_assessments": lifecycle_row["candidate_assessments"],
+            "admissibility_receipts": lifecycle_row["admissibility_receipts"],
+            "semantic_resolution_receipts": lifecycle_row["resolution_receipts"],
             "domain_ir_build": domain_ir_row,
             "domain_ir_projections": domain_ir_row["projections"],
             "domain_ir_projection_receipts": domain_ir_row["receipts"],
             "projection_loss_receipts": domain_ir_row["losses"],
             "projection_demands": domain_ir_row["demands"],
-            "ir_execution_receipts": [
-                row.to_dict() for row in execution_receipts
-            ],
+            "ir_execution_receipts": [row.to_dict() for row in execution_receipts],
             "resolution_demands": list(demands),
             "streaming_semantic_build": streaming_build,
             "fibred_semantic_build": fibred_build,
             "streaming_reduction_projection": projection_receipt,
-            "operational_compiler_contract": (
-                FIBRED_OPERATIONAL_COMPILER_CONTRACT
-            ),
-            "base_operational_compiler_contract": (
-                OPERATIONAL_COMPILER_CONTRACT
-            ),
+            "operational_compiler_contract": (FIBRED_OPERATIONAL_COMPILER_CONTRACT),
+            "base_operational_compiler_contract": (OPERATIONAL_COMPILER_CONTRACT),
             "phase_boundary": phase_boundary,
         }
     )

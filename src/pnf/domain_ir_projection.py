@@ -96,8 +96,10 @@ DEFAULT_DOMAIN_IR_CONTRACTS = (
 
 
 def _get(value: Any, name: str, default: Any = None) -> Any:
-    return value.get(name, default) if isinstance(value, Mapping) else getattr(
-        value, name, default
+    return (
+        value.get(name, default)
+        if isinstance(value, Mapping)
+        else getattr(value, name, default)
     )
 
 
@@ -112,9 +114,7 @@ def _metadata(factor: Any) -> dict[str, Any]:
 
 def _factor_type(factor: Any) -> str:
     return str(
-        _get(factor, "factor_type_ref", "")
-        or _get(factor, "factor_type", "")
-        or ""
+        _get(factor, "factor_type_ref", "") or _get(factor, "factor_type", "") or ""
     )
 
 
@@ -156,6 +156,34 @@ def _selected(
         if resolution.selected_proposal_ref
         else None
     )
+
+
+def _durable_source_factor_ref(
+    resolution: ResolutionReceipt,
+    factor: Any | None,
+    proposals: Mapping[str, Any],
+) -> str:
+    """Return a graph-factor anchor without selecting a plural reading.
+
+    Fibre summaries are lifecycle identities, not necessarily graph factors.
+    Every projection child that needs a base-factor coordinate is therefore
+    anchored to a source factor carried by its contributing proposal(s).
+    """
+    proposal_refs = (
+        resolution.selected_proposal_ref,
+        *resolution.admitted_proposal_refs,
+        *resolution.retained_alternative_refs,
+    )
+    source_refs = {
+        str(
+            _mapping(proposals[ref], "candidate_payload").get("source_factor_ref") or ""
+        )
+        for ref in proposal_refs
+        if ref and ref in proposals
+    } - {""}
+    if source_refs:
+        return min(source_refs)
+    return _factor_ref(factor) if factor is not None else ""
 
 
 def _statement_role(proposal: Any | None) -> str:
@@ -211,6 +239,7 @@ def _common_demands(
     resolution: ResolutionReceipt,
     factor: Any | None,
     proposal: Any | None,
+    proposals: Mapping[str, Any],
     contract: DomainIRProjectionContract,
 ) -> list[ProjectionDemand]:
     if not resolution.operationally_resolved:
@@ -223,7 +252,9 @@ def _common_demands(
                 document_ref=resolution.document_ref,
                 domain=contract.domain,
                 resolution_ref=resolution.resolution_ref,
-                source_factor_ref=resolution.fibre_summary_ref,
+                source_factor_ref=_durable_source_factor_ref(
+                    resolution, factor, proposals
+                ),
                 structural_signature_ref="",
                 demand_kind=kind,
                 required_refs=resolution.admitted_proposal_refs,
@@ -241,7 +272,9 @@ def _common_demands(
                 document_ref=resolution.document_ref,
                 domain=contract.domain,
                 resolution_ref=resolution.resolution_ref,
-                source_factor_ref=resolution.fibre_summary_ref,
+                source_factor_ref=_durable_source_factor_ref(
+                    resolution, factor, proposals
+                ),
                 structural_signature_ref="",
                 demand_kind="materialized_factor_missing",
                 required_refs=(resolution.fibre_summary_ref,),
@@ -252,7 +285,10 @@ def _common_demands(
         ]
     demands: list[ProjectionDemand] = []
     role = _statement_role(proposal)
-    if contract.required_statement_roles and role not in contract.required_statement_roles:
+    if (
+        contract.required_statement_roles
+        and role not in contract.required_statement_roles
+    ):
         demands.append(
             _demand(
                 resolution,
@@ -334,7 +370,10 @@ def _legal_demands(
                 )
             )
         modality = str(qualifiers.get("modality") or "")
-        if modality in {"", "permission_candidate"} or "modal_sense_unresolved" in residuals:
+        if (
+            modality in {"", "permission_candidate"}
+            or "modal_sense_unresolved" in residuals
+        ):
             demands.append(
                 _demand(
                     resolution,
@@ -361,9 +400,8 @@ def _legal_demands(
             )
         )
     if factor_type == "semantic.legal_transition":
-        temporal = (
-            str(qualifiers.get("effective_time_ref") or "")
-            or str(qualifiers.get("effective_time") or "")
+        temporal = str(qualifiers.get("effective_time_ref") or "") or str(
+            qualifiers.get("effective_time") or ""
         )
         if not temporal or {
             "effective_time_unresolved",
@@ -382,9 +420,7 @@ def _legal_demands(
                 )
             )
     if factor_type == "semantic.legal_authority":
-        authority = roles.get("authority") or str(
-            qualifiers.get("authority_ref") or ""
-        )
+        authority = roles.get("authority") or str(qualifiers.get("authority_ref") or "")
         if not authority:
             demands.append(
                 _demand(
@@ -480,7 +516,7 @@ def project_resolved_factor(
         )
         return DomainIRProjectionResult(contract, None, receipt, None, ())
 
-    demands = _common_demands(resolution, factor, proposal, contract)
+    demands = _common_demands(resolution, factor, proposal, proposals, contract)
     if factor is not None and resolution.operationally_resolved:
         if contract.domain == "legal":
             demands.extend(_legal_demands(resolution, factor))
@@ -489,17 +525,17 @@ def project_resolved_factor(
         else:
             demands.extend(_retrieval_demands(resolution, factor, proposal))
     demands = list(
-        sorted({row.demand_ref: row for row in demands}.values(), key=lambda row: row.demand_ref)
+        sorted(
+            {row.demand_ref: row for row in demands}.values(),
+            key=lambda row: row.demand_ref,
+        )
     )
     if demands or factor is None or proposal is None:
         receipt = DomainIRProjectionReceipt(
             document_ref=resolution.document_ref,
             domain=contract.domain,
             source_resolution_ref=resolution.resolution_ref,
-            source_factor_ref=(
-                _factor_ref(factor) if factor is not None
-                else resolution.fibre_summary_ref
-            ),
+            source_factor_ref=_durable_source_factor_ref(resolution, factor, proposals),
             projection_contract_ref=contract.contract_ref,
             state="blocked",
             selected_proposal_ref=resolution.selected_proposal_ref,
@@ -512,9 +548,7 @@ def project_resolved_factor(
                 )
             ),
         )
-        return DomainIRProjectionResult(
-            contract, None, receipt, None, tuple(demands)
-        )
+        return DomainIRProjectionResult(contract, None, receipt, None, tuple(demands))
 
     roles, qualifiers, metadata = (
         _roles(factor),
@@ -561,9 +595,7 @@ def project_resolved_factor(
         "qualifier_state": qualifiers,
         "statement_role": _statement_role(proposal),
         "ontology_axis_refs": list(_axes(factor, proposal)),
-        "source_span_refs": list(
-            refs(_get(proposal, "source_span_refs", ()) or ())
-        ),
+        "source_span_refs": list(refs(_get(proposal, "source_span_refs", ()) or ())),
     }
     if contract.domain == "legal":
         payload.update(
@@ -639,9 +671,7 @@ def build_domain_ir(
     resolutions: Sequence[ResolutionReceipt],
     factors: Sequence[Any],
     proposals: Sequence[Any],
-    contracts: Sequence[
-        DomainIRProjectionContract
-    ] = DEFAULT_DOMAIN_IR_CONTRACTS,
+    contracts: Sequence[DomainIRProjectionContract] = DEFAULT_DOMAIN_IR_CONTRACTS,
 ) -> DomainIRBuild:
     factor_by_ref = _factor_index(factors)
     proposal_by_ref = {

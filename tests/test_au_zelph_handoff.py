@@ -54,13 +54,20 @@ def test_build_au_zelph_handoff_artifact(tmp_path: Path) -> None:
     assert scorecard_payload["operator_view_count"] >= 5
 
     engine_payload = json.loads(engine_path.read_text(encoding="utf-8"))
-    assert engine_payload["status"] in {"ok", "engine_unavailable"}
-    if engine_payload["status"] == "ok":
+    assert engine_payload["execution_outcome"] in {
+        "executed_with_output",
+        "failed_required_output_contract",
+        "engine_unavailable",
+    }
+    if engine_payload["execution_outcome"] == "executed_with_output":
         triples = {
             (row["subject"], row["predicate"], row["object"])
             for row in engine_payload.get("triples", [])
         }
         assert any(pred == "au_procedural_fact" for _, pred, _ in triples)
+        assert engine_payload["handoff_status"] == "successful"
+    else:
+        assert engine_payload["handoff_status"] == "not_successful_required_output_unmet"
 
 
 def test_build_au_zelph_handoff_supports_multi_source_bundles(tmp_path: Path) -> None:

@@ -260,7 +260,19 @@ def build_handoff_artifact(output_dir: Path, source_bundle_paths: list[Path] | N
     summary_text = _build_summary_text(slice_payload)
     facts_text = _build_facts(slice_payload)
     rules_text = _build_rules()
-    engine_payload = run_zelph_inference(facts_text, rules_text)
+    engine_payload = run_zelph_inference(
+        facts_text,
+        rules_text,
+        required_output_predicates=("au_procedural_fact",),
+    )
+    # A checked artifact is still useful when the optional engine is absent or
+    # produces no matching predicate. The receipt makes that state explicit;
+    # downstream code must not call it a successful Zelph handoff.
+    engine_payload["handoff_status"] = (
+        "successful"
+        if engine_payload["handoff_success"]
+        else "not_successful_required_output_unmet"
+    )
     scorecard_payload = _build_scorecard(slice_payload, str(engine_payload.get("status") or "unknown"))
 
     output_dir.mkdir(parents=True, exist_ok=True)

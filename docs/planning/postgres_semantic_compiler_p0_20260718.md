@@ -5,6 +5,15 @@ Status: active implementation contract
 
 ## Purpose
 
+## Persistence boundary
+
+PostgreSQL is the single active semantic persistence authority. SQLite may be
+used only by explicit historical import/replay fixtures; it is not a parallel
+runtime compiler, review, or follow authority. JSON is emitted only as a
+detached projection at the CLI/UI boundary and is never parsed back as semantic
+input. Derived follow projections are relational, challengeable, and cannot
+promote a candidate or authorize execution.
+
 The PostgreSQL compiler is the durable operational projection of the shared
 semantic compiler. It must persist semantic structure, not merely a
 mention-identity inventory.

@@ -146,15 +146,9 @@ class CandidateAssessment:
             "invalidation_grounds": list(_refs(self.invalidation_grounds)),
             "evidence_refs": list(_refs(self.evidence_refs)),
             "residual_refs": list(_refs(self.residual_refs)),
-            "required_coverage_refs": list(
-                _refs(self.required_coverage_refs)
-            ),
-            "observed_coverage_refs": list(
-                _refs(self.observed_coverage_refs)
-            ),
-            "applied_constraint_refs": list(
-                _refs(self.applied_constraint_refs)
-            ),
+            "required_coverage_refs": list(_refs(self.required_coverage_refs)),
+            "observed_coverage_refs": list(_refs(self.observed_coverage_refs)),
+            "applied_constraint_refs": list(_refs(self.applied_constraint_refs)),
             "semantic_state_promoted": False,
             "truth_closed": False,
         }
@@ -183,23 +177,15 @@ class AdmissibilityReceipt:
 
     @property
     def receipt_ref(self) -> str:
-        return "pnf-admissibility:" + canonical_sha256(
-            self.to_dict(include_ref=False)
-        )
+        return "pnf-admissibility:" + canonical_sha256(self.to_dict(include_ref=False))
 
     def to_dict(self, *, include_ref: bool = True) -> dict[str, Any]:
         payload = {
             "schema_version": ADMISSIBILITY_RECEIPT_SCHEMA_VERSION,
             **asdict(self),
-            "applied_constraint_refs": list(
-                _refs(self.applied_constraint_refs)
-            ),
-            "required_coverage_refs": list(
-                _refs(self.required_coverage_refs)
-            ),
-            "observed_coverage_refs": list(
-                _refs(self.observed_coverage_refs)
-            ),
+            "applied_constraint_refs": list(_refs(self.applied_constraint_refs)),
+            "required_coverage_refs": list(_refs(self.required_coverage_refs)),
+            "observed_coverage_refs": list(_refs(self.observed_coverage_refs)),
             "invalidation_grounds": list(_refs(self.invalidation_grounds)),
             "block_reasons": list(_refs(self.block_reasons)),
             "authority": "admissibility_only",
@@ -232,9 +218,7 @@ class ResolutionReceipt:
             raise ValueError("unsupported semantic resolution state")
         resolved = self.state in {"resolved_unique", "resolved_preferred"}
         if resolved != bool(self.selected_proposal_ref):
-            raise ValueError(
-                "selected proposal must exactly match resolved state"
-            )
+            raise ValueError("selected proposal must exactly match resolved state")
 
     @property
     def operationally_resolved(self) -> bool:
@@ -242,26 +226,16 @@ class ResolutionReceipt:
 
     @property
     def resolution_ref(self) -> str:
-        return "pnf-resolution:" + canonical_sha256(
-            self.to_dict(include_ref=False)
-        )
+        return "pnf-resolution:" + canonical_sha256(self.to_dict(include_ref=False))
 
     def to_dict(self, *, include_ref: bool = True) -> dict[str, Any]:
         payload = {
             "schema_version": RESOLUTION_RECEIPT_SCHEMA_VERSION,
             **asdict(self),
-            "admitted_proposal_refs": list(
-                _refs(self.admitted_proposal_refs)
-            ),
-            "retained_alternative_refs": list(
-                _refs(self.retained_alternative_refs)
-            ),
-            "selection_ground_refs": list(
-                _refs(self.selection_ground_refs)
-            ),
-            "unresolved_residual_refs": list(
-                _refs(self.unresolved_residual_refs)
-            ),
+            "admitted_proposal_refs": list(_refs(self.admitted_proposal_refs)),
+            "retained_alternative_refs": list(_refs(self.retained_alternative_refs)),
+            "selection_ground_refs": list(_refs(self.selection_ground_refs)),
+            "unresolved_residual_refs": list(_refs(self.unresolved_residual_refs)),
             "operationally_resolved": self.operationally_resolved,
             "authority": "semantic_resolution_only",
             "identity_promoted": False,
@@ -290,15 +264,9 @@ class SemanticLifecycleResult:
         payload = {
             "schema_version": SEMANTIC_LIFECYCLE_SCHEMA_VERSION,
             "document_ref": self.document_ref,
-            "candidate_assessments": [
-                row.to_dict() for row in self.assessments
-            ],
-            "admissibility_receipts": [
-                row.to_dict() for row in self.admissions
-            ],
-            "resolution_receipts": [
-                row.to_dict() for row in self.resolutions
-            ],
+            "candidate_assessments": [row.to_dict() for row in self.assessments],
+            "admissibility_receipts": [row.to_dict() for row in self.admissions],
+            "resolution_receipts": [row.to_dict() for row in self.resolutions],
             "stage_order": [
                 "candidate_assessment",
                 "admissibility",
@@ -334,26 +302,16 @@ def assess_factor_proposals(
     output: list[CandidateAssessment] = []
     for proposal in proposals:
         proposal_ref = _proposal_ref(proposal)
-        coordinate = str(
-            _get(proposal, "semantic_coordinate_ref", "") or ""
-        )
+        coordinate = str(_get(proposal, "semantic_coordinate_ref", "") or "")
         payload = _payload(proposal)
         residuals = _refs(_get(proposal, "residuals", ()) or ())
         spans = _refs(_get(proposal, "source_span_refs", ()) or ())
-        observations = _refs(
-            _get(proposal, "input_observation_refs", ()) or ()
-        )
-        dependencies = _refs(
-            _get(proposal, "dependency_factor_refs", ()) or ()
-        )
+        observations = _refs(_get(proposal, "input_observation_refs", ()) or ())
+        dependencies = _refs(_get(proposal, "dependency_factor_refs", ()) or ())
         axes = _refs(_get(proposal, "ontology_axis_refs", ()) or ())
         transports = _refs(_get(proposal, "transport_refs", ()) or ())
-        required = _refs(
-            _get(proposal, "coverage_requirements", ()) or ()
-        )
-        evidence = set(
-            (*spans, *observations, *dependencies, *axes, *transports)
-        )
+        required = _refs(_get(proposal, "coverage_requirements", ()) or ())
+        evidence = set((*spans, *observations, *dependencies, *axes, *transports))
         observed = set(evidence)
         support = contradiction = undetermined = False
         for element in elements.get(coordinate, ()):
@@ -375,18 +333,12 @@ def assess_factor_proposals(
                 evidence.add(element_ref)
                 observed.add(element_ref)
         if coordinate not in elements:
-            role = str(
-                _get(proposal, "derivation_role", "support") or "support"
-            )
+            role = str(_get(proposal, "derivation_role", "support") or "support")
             support = role == "support"
             contradiction = role == "contradict"
             undetermined = role == "undetermined"
 
-        grounds = {
-            ground
-            for residual in residuals
-            if (ground := _ground(residual))
-        }
+        grounds = {ground for residual in residuals if (ground := _ground(residual))}
         if not spans and not observations and not dependencies:
             grounds.add("missing_span")
         if payload.get("semantic_state_promoted") or str(
@@ -410,9 +362,7 @@ def assess_factor_proposals(
                 continue
             applied.append(constraint_ref)
             evidence.update(_refs(row.get("evidence_refs") or ()))
-            residuals = _refs(
-                (*residuals, *tuple(row.get("residual_refs") or ()))
-            )
+            residuals = _refs((*residuals, *tuple(row.get("residual_refs") or ())))
             state = str(row.get("state") or "")
             if state in {"violated", "contradicted", "failed"}:
                 contradiction = True
@@ -423,8 +373,15 @@ def assess_factor_proposals(
         contradiction |= bool(grounds & _DEFINITIVE_GROUNDS)
         if undetermined and not contradiction:
             support &= complete
+        # A constitutive invalidation defeats candidate admissibility.  It is
+        # distinct from a contradictory derivation: the latter may coexist
+        # with support as ``both``, whereas a failed typed meet (or equivalent
+        # definitive ground) means this candidate cannot inhabit the required
+        # semantic space at all.
         if not applicable:
             outcome = "inapplicable"
+        elif grounds & _DEFINITIVE_GROUNDS:
+            outcome = "violated"
         elif support and contradiction:
             outcome = "both"
         elif contradiction:
@@ -435,9 +392,7 @@ def assess_factor_proposals(
             outcome = "undetermined"
         output.append(
             CandidateAssessment(
-                document_ref=str(
-                    _get(proposal, "document_ref", "") or ""
-                ),
+                document_ref=str(_get(proposal, "document_ref", "") or ""),
                 proposal_ref=proposal_ref,
                 semantic_coordinate_ref=coordinate,
                 outcome=outcome,
@@ -464,17 +419,11 @@ def admit_factor_proposals(
         grounds = set(assessment.invalidation_grounds)
         if assessment.outcome == "both":
             state, reasons = "blocked", ("support_and_contradiction",)
-        elif (
-            assessment.outcome == "violated"
-            or grounds & _DEFINITIVE_GROUNDS
-        ):
+        elif assessment.outcome == "violated" or grounds & _DEFINITIVE_GROUNDS:
             state, reasons = "rejected", ("positive_invalidation",)
         elif assessment.outcome == "inapplicable":
             state, reasons = "blocked", ("validation_map_inapplicable",)
-        elif (
-            assessment.outcome == "undetermined"
-            or not assessment.coverage_complete
-        ):
+        elif assessment.outcome == "undetermined" or not assessment.coverage_complete:
             reason = (
                 "insufficient_coverage"
                 if not assessment.coverage_complete
@@ -510,9 +459,7 @@ def _preference(proposal: Any) -> tuple[int, float]:
         "contested": 0,
         "unsupported": -1,
     }
-    state = str(
-        _get(proposal, "support_state", "candidate") or "candidate"
-    )
+    state = str(_get(proposal, "support_state", "candidate") or "candidate")
     return (
         rank.get(state, 0),
         float(_get(proposal, "confidence", 0.0) or 0.0),
@@ -528,9 +475,7 @@ def _conflict_index(
             "incompatible_alternatives"
         ):
             continue
-        proposal_refs = set(
-            _refs(_get(residual, "proposal_refs", ()) or ())
-        )
+        proposal_refs = set(_refs(_get(residual, "proposal_refs", ()) or ()))
         for proposal_ref in proposal_refs:
             output.setdefault(proposal_ref, set()).update(proposal_refs)
     return {key: _refs(values) for key, values in output.items()}
@@ -544,26 +489,17 @@ def resolve_reduced_factors(
     admissions: Sequence[AdmissibilityReceipt],
     reduction_residuals: Sequence[Any] = (),
 ) -> tuple[ResolutionReceipt, ...]:
-    proposal_by_ref = {
-        _proposal_ref(row): row for row in proposals
-    }
-    assessment_by_ref = {
-        row.proposal_ref: row for row in assessments
-    }
-    admission_by_ref = {
-        row.proposal_ref: row for row in admissions
-    }
+    proposal_by_ref = {_proposal_ref(row): row for row in proposals}
+    assessment_by_ref = {row.proposal_ref: row for row in assessments}
+    admission_by_ref = {row.proposal_ref: row for row in admissions}
     conflicts = _conflict_index(reduction_residuals)
     output: list[ResolutionReceipt] = []
     for factor in reduced_factors:
-        proposal_refs = _refs(
-            _get(factor, "proposal_refs", ()) or ()
-        )
+        proposal_refs = _refs(_get(factor, "proposal_refs", ()) or ())
         admitted = tuple(
             ref
             for ref in proposal_refs
-            if admission_by_ref.get(ref)
-            and admission_by_ref[ref].state == "admitted"
+            if admission_by_ref.get(ref) and admission_by_ref[ref].state == "admitted"
         )
         conflict_refs = _refs(
             ref
@@ -594,13 +530,9 @@ def resolve_reduced_factors(
                 for ref in proposal_refs
                 if ref in assessment_by_ref
             ]
-            if related and all(
-                row.outcome == "inapplicable" for row in related
-            ):
+            if related and all(row.outcome == "inapplicable" for row in related):
                 state = "inapplicable"
-            elif any(
-                row.outcome in {"both", "violated"} for row in related
-            ):
+            elif any(row.outcome in {"both", "violated"} for row in related):
                 state = "blocked_conflict"
             else:
                 state = "blocked_insufficient_coverage"
@@ -618,9 +550,7 @@ def resolve_reduced_factors(
                 ),
             )
         )
-        unresolved = set(
-            _refs(_get(factor, "residuals", ()) or ())
-        )
+        unresolved = set(_refs(_get(factor, "residuals", ()) or ()))
         if conflict_refs:
             unresolved.add("incompatible_alternatives")
         for ref in proposal_refs:
@@ -647,9 +577,7 @@ def resolve_reduced_factors(
         output.append(
             ResolutionReceipt(
                 document_ref=document_ref,
-                fibre_summary_ref=str(
-                    _get(factor, "factor_ref", "") or ""
-                ),
+                fibre_summary_ref=str(_get(factor, "factor_ref", "") or ""),
                 semantic_coordinate_ref=str(
                     _get(factor, "semantic_coordinate_ref", "") or ""
                 ),
@@ -658,11 +586,7 @@ def resolve_reduced_factors(
                 admitted_proposal_refs=_refs(admitted),
                 retained_alternative_refs=_refs(
                     (
-                        *(
-                            ref
-                            for ref in proposal_refs
-                            if ref != selected
-                        ),
+                        *(ref for ref in proposal_refs if ref != selected),
                         *conflict_refs,
                     )
                 ),

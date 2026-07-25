@@ -2,9 +2,15 @@
 
 - Location for the Postgres schema migrations; run in lexical order.
 - Apply with `scripts/apply_pg_migrations.sh` (honours `PG*` env vars or `DATABASE_URL`).
-- Designed for fresh databases—no attempt to carry forward SQLite state.
+- PostgreSQL is the sole active semantic persistence spine. SQLite is retained
+  only for bounded legacy import/replay fixtures and must not become a runtime
+  semantic authority.
+- JSON is a detached presentation format. It may be emitted by projections but
+  is never re-ingested as a graph, world-model, or follow-workflow input.
 - Supersedes the ad-hoc SQL under `migrations/` and `schemas/migrations/`, which are kept only for reference.
 - `007_compiler_substrate.sql` is the additive generic compiler runtime. It
   stores immutable declarations, documents, builds/dependencies, shared
   annotations, factorised PNF structure, typed meets, factor revisions, and
   unresolved demands without requiring a legal-ontology row.
+- `024_generic_follow_projection.sql` persists derived-only, challengeable
+  follow projections as rows with FK closure and exposes legal/non-legal views.

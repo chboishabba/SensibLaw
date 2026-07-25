@@ -11,6 +11,7 @@ from typing import Any, Mapping
 
 
 ZELPH_BRIDGE_VERSION = "fact_intake.zelph_bridge.v1"
+ZELPH_EXECUTION_RECEIPT_VERSION = "sl.zelph.execution_receipt.v0_1"
 _ASSERTION_PREDICATES = {"claimed", "denied", "admitted", "alleged"}
 _PROCEDURAL_OUTCOME_PREDICATES = {"ordered", "ruled", "decided_by", "held_that"}
 _DERIVATION_RE = re.compile(r"^\(\s*(.*?)\s*\)\s*⇐")
@@ -86,7 +87,49 @@ def parse_zelph_inference(output: str) -> list[dict[str, str]]:
     return triples
 
 
-def run_zelph_inference(facts: str, rules: str) -> dict[str, Any]:
+def _execution_receipt(
+    *,
+    status: str,
+    stdout: str,
+    stderr: str,
+    triples: list[dict[str, str]],
+    required_output_predicates: tuple[str, ...],
+) -> dict[str, Any]:
+    """Return explicit execution semantics while retaining ``status`` for old clients."""
+
+    emitted = {str(row.get("predicate") or "") for row in triples}
+    missing = sorted(set(required_output_predicates) - emitted)
+    if status == "engine_unavailable":
+        outcome = "engine_unavailable"
+    elif status in {"engine_timeout", "engine_error"}:
+        outcome = "engine_failed"
+    elif missing:
+        outcome = "failed_required_output_contract"
+    elif triples:
+        outcome = "executed_with_output"
+    else:
+        outcome = "executed_no_match"
+    return {
+        # ``status`` is a deprecated transport compatibility field. Consumers
+        # must branch on the unambiguous execution_outcome instead.
+        "status": status,
+        "execution_receipt_version": ZELPH_EXECUTION_RECEIPT_VERSION,
+        "execution_outcome": outcome,
+        "handoff_success": outcome == "executed_with_output",
+        "required_output_predicates": list(required_output_predicates),
+        "missing_required_output_predicates": missing,
+        "stdout": stdout,
+        "stderr": stderr,
+        "triples": triples,
+    }
+
+
+def run_zelph_inference(
+    facts: str,
+    rules: str,
+    *,
+    required_output_predicates: tuple[str, ...] = (),
+) -> dict[str, Any]:
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir_path = Path(tmpdir)
         bundle_path = tmpdir_path / "bundle.zlp"
@@ -105,37 +148,32 @@ def run_zelph_inference(facts: str, rules: str) -> dict[str, Any]:
                 timeout=30,  # Safety timeout for recursive rules
             )
         except FileNotFoundError:
-            return {
-                "status": "engine_unavailable",
-                "stdout": "",
-                "stderr": "zelph command not found",
-                "triples": [],
-            }
+            return _execution_receipt(
+                status="engine_unavailable", stdout="", stderr="zelph command not found",
+                triples=[], required_output_predicates=required_output_predicates,
+            )
         except subprocess.TimeoutExpired:
-            return {
-                "status": "engine_timeout",
-                "stdout": "",
-                "stderr": "Zelph engine timed out (recursive rule limit?)",
-                "triples": [],
-            }
+            return _execution_receipt(
+                status="engine_timeout", stdout="", stderr="Zelph engine timed out (recursive rule limit?)",
+                triples=[], required_output_predicates=required_output_predicates,
+            )
         except subprocess.CalledProcessError as exc:
-            return {
-                "status": "engine_error",
-                "stdout": exc.stdout or "",
-                "stderr": exc.stderr or "",
-                "triples": [],
-            }
+            return _execution_receipt(
+                status="engine_error", stdout=exc.stdout or "", stderr=exc.stderr or "",
+                triples=[], required_output_predicates=required_output_predicates,
+            )
 
         # Debugging: print raw output to stderr if needed
         # print(f"DEBUG: ZELPH STDOUT:\n{result.stdout}", file=sys.stderr)
         # print(f"DEBUG: ZELPH STDERR:\n{result.stderr}", file=sys.stderr)
 
-        return {
-            "status": "ok",
-            "stdout": result.stdout,
-            "stderr": result.stderr,
-            "triples": parse_zelph_inference(result.stdout),
-        }
+        return _execution_receipt(
+            status="ok",
+            stdout=result.stdout,
+            stderr=result.stderr,
+            triples=parse_zelph_inference(result.stdout),
+            required_output_predicates=required_output_predicates,
+        )
 
 
 def workbench_to_zelph_facts(workbench: Mapping[str, Any]) -> str:

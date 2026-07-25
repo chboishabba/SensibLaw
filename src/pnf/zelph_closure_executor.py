@@ -55,9 +55,19 @@ class ZelphClosureExecutor:
         engine_started = monotonic_ns()
         result = run_zelph_inference(facts, self.codec.rules_and_queries(job))
         engine_ms = max(0, (monotonic_ns() - engine_started) // 1_000_000)
-        if result.get("status") != "ok":
+        outcome = result.get("execution_outcome")
+        # Older injected executors exposed only the transport status. Treat
+        # that narrowly as successful execution for compatibility; production
+        # bridge receipts always provide the explicit outcome.
+        if outcome is None and result.get("status") == "ok":
+            outcome = "executed_with_output" if result.get("triples") else "executed_no_match"
+        if outcome not in {
+            "executed_with_output",
+            "executed_no_match",
+        }:
             raise ZelphExecutionError(
-                f"Zelph closure failed: {result.get('status')}: {result.get('stderr')}"
+                "Zelph closure failed: "
+                f"{outcome}: {result.get('stderr')}"
             )
 
         decode_started = monotonic_ns()
