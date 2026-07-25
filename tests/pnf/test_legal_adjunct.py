@@ -23,7 +23,7 @@ def test_bare_action_does_not_schedule_legal_acquisition() -> None:
     assert project_normative_interaction_demands(rows) == ()
 
 
-def test_explicit_legal_facets_create_ready_typed_plan() -> None:
+def test_explicit_legal_facets_without_persisted_source_remain_blocked() -> None:
     rows = (
         {
             "demand_ref": "demand:legal-drive",
@@ -44,7 +44,7 @@ def test_explicit_legal_facets_create_ready_typed_plan() -> None:
     assert len(demands) == 1
     assert demands[0].acquisition_ready is True
     plans = plan_legal_sources(demands)
-    assert plans[0].state == "ready"
+    assert plans[0].state == "blocked_acquisition_required"
     assert plans[0].jurisdiction_ref == "AU"
     assert plans[0].source_role_refs == ("primary_legislation",)
     assert plans[0].authority_level_refs == ("official",)

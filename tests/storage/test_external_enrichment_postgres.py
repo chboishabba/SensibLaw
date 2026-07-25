@@ -66,13 +66,15 @@ def _planner_diagnostic(cursor, corpus_ref: str):
     return cursor.fetchall()
 
 
-def test_fallback_compiler_does_not_plan_untyped_external_lookups(tmp_path) -> None:
-    """The lightweight fallback parser must not turn every token into registry work.
+def test_fallback_compiler_projects_typed_external_lookup_demands_without_pronouns(
+    tmp_path,
+) -> None:
+    """The fallback compiler should emit bounded typed lookup work, not pronouns.
 
     Typed persisted planning is covered by the deterministic planner fixture.
-    This live test instead proves that generic ``semantic.mention_candidate``
-    rows with only ``local_type_unresolved`` remain local work until a parser or
-    reducer supplies entity/lexical shape evidence.
+    This live test proves the PostgreSQL compiler projects evidence-bearing
+    external lookup demands from the source text while leaving the pronoun
+    surface unplanned.
     """
 
     database_url = os.environ.get("DATABASE_URL")
@@ -100,15 +102,18 @@ def test_fallback_compiler_does_not_plan_untyped_external_lookups(tmp_path) -> N
             )
             diagnostic = _planner_diagnostic(cursor, compilation.corpus_ref)
 
-        assert demands == (), diagnostic
-        assert diagnostic
-        assert all(row[1] == "semantic.mention_identity" for row in diagnostic)
+        assert demands
+        surfaces = {row.surface for row in demands}
+        kinds = {row.demand_kind for row in demands}
+        assert "He" not in surfaces
+        assert {"George", "Bush", "Texas"} <= surfaces
+        assert {"entity_identity", "lexical_sense"} <= kinds
         assert all(
-            set(row[3] or ())
-            <= {"document_local_recurrence_unchecked", "local_type_unresolved"}
-            for row in diagnostic
+            row.provenance_refs[-1] == "postgres-external-lookup-plan:v0_1"
+            for row in demands
         )
-        assert all(set(row[4] or ()) == {"semantic.mention_candidate"} for row in diagnostic)
-        assert all(not row[6] for row in diagnostic)
+        assert diagnostic
+        assert any(row[1] == "semantic.mention_identity" for row in diagnostic)
+        assert any(row[1] != "semantic.mention_identity" for row in diagnostic)
     finally:
         store.close()
