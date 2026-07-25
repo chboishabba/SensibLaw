@@ -1,0 +1,153 @@
+name: PostgreSQL single semantic spine
+
+on:
+  push:
+    branches:
+      - agent/postgres-single-spine-runtime-cutover
+  pull_request:
+    paths:
+      - "database/postgres_migrations/024_generic_follow_projection.sql"
+      - "src/policy/follow_projection*.py"
+      - "src/policy/postgres_semantic_spine.py"
+      - "src/storage/postgres/follow_projection_store.py"
+      - "src/fact_intake/postgres_runtime.py"
+      - "src/fact_intake/legacy_sqlite_import.py"
+      - "src/pnf/pronominal_argument_projection.py"
+      - "src/pnf/semantic_lifecycle_spine.py"
+      - "src/zelph_execution.py"
+      - "scripts/au_fact_review.py"
+      - "scripts/build_au_zelph_handoff.py"
+      - "tests/policy/test_follow_projection.py"
+      - "tests/storage/test_follow_projection_store.py"
+      - "tests/pnf/test_pronominal_argument_projection.py"
+      - "tests/pnf/test_semantic_lifecycle_spine.py"
+      - "tests/test_zelph_execution.py"
+      - "docs/dev/PostgreSQLSingleSpineRuntime.md"
+      - ".github/workflows/postgres-single-spine-runtime.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sensiblaw_spine
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sensiblaw_spine"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sensiblaw_spine
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: sensiblaw_spine
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install environment
+        run: |
+          python -m pip install --upgrade pip uv
+          uv sync --frozen --extra test --extra dev
+
+      - name: Apply PostgreSQL migrations
+        run: bash scripts/apply_pg_migrations.sh
+
+      - name: Validate follow schema and authority views
+        run: |
+          uv run python - <<'PY'
+          import os
+          import psycopg
+
+          required = (
+              "pnf_follow_projection",
+              "pnf_follow_node",
+              "pnf_follow_edge",
+              "pnf_follow_edge_evidence",
+              "pnf_follow_edge_provenance",
+              "pnf_follow_edge_admissibility_ground",
+              "pnf_follow_projection_rows",
+              "pnf_follow_edge_rows",
+              "pnf_legal_follow_projection",
+              "pnf_nonlegal_follow_projection",
+          )
+          with psycopg.connect(os.environ["DATABASE_URL"]) as connection:
+              with connection.cursor() as cursor:
+                  for relation in required:
+                      cursor.execute("SELECT to_regclass(%s)", (f"public.{relation}",))
+                      assert cursor.fetchone()[0] == relation
+          PY
+
+      - name: Lint spine surfaces
+        run: |
+          uv run ruff check \
+            src/policy/follow_projection.py \
+            src/policy/follow_projection_builder.py \
+            src/policy/follow_projection_compat.py \
+            src/policy/postgres_semantic_spine.py \
+            src/storage/postgres/follow_projection_store.py \
+            src/fact_intake/postgres_runtime.py \
+            src/fact_intake/legacy_sqlite_import.py \
+            src/pnf/pronominal_argument_projection.py \
+            src/pnf/semantic_lifecycle_spine.py \
+            src/zelph_execution.py \
+            scripts/au_fact_review.py \
+            scripts/build_au_zelph_handoff.py \
+            tests/policy/test_follow_projection.py \
+            tests/storage/test_follow_projection_store.py \
+            tests/pnf/test_pronominal_argument_projection.py \
+            tests/pnf/test_semantic_lifecycle_spine.py \
+            tests/test_zelph_execution.py
+
+      - name: Run focused and PostgreSQL tests
+        run: |
+          uv run pytest -q \
+            tests/policy/test_follow_projection.py \
+            tests/storage/test_follow_projection_store.py \
+            tests/pnf/test_pronominal_argument_projection.py \
+            tests/pnf/test_semantic_lifecycle_spine.py \
+            tests/test_zelph_execution.py \
+            tests/pnf/test_reference_binding.py \
+            tests/pnf/test_binding_candidate_sets.py \
+            tests/test_au_zelph_handoff.py
+
+      - name: Enforce runtime authority policy
+        run: |
+          uv run python - <<'PY'
+          from pathlib import Path
+
+          active = [
+              Path("scripts/au_fact_review.py"),
+              Path("scripts/build_au_zelph_handoff.py"),
+              Path("src/fact_intake/postgres_runtime.py"),
+              Path("src/policy/postgres_semantic_spine.py"),
+          ]
+          for path in active:
+              text = path.read_text(encoding="utf-8")
+              assert "sqlite3.connect" not in text
+              assert "from src.wiki_timeline.sqlite_store" not in text
+          assert "sqlite3" in Path("src/fact_intake/legacy_sqlite_import.py").read_text(encoding="utf-8")
+          PY
+
+      - name: Check patch formatting
+        run: |
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git diff --check origin/main...HEAD
