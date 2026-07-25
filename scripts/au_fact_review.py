@@ -1,219 +1,175 @@
 #!/usr/bin/env python3
+"""AU fact-review CLI over the single PostgreSQL semantic spine.
+
+SQLite is deprecated as a runtime. Historical SQLite fixtures may be carried
+forward only through the explicit ``import-sqlite`` command, after which normal
+runtime reads and writes use PostgreSQL exclusively.
+"""
+
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
-import logging
+import os
 from pathlib import Path
-import sqlite3
 import sys
-from typing import Any, Callable
+from typing import Any, Mapping
 
 _THIS_DIR = Path(__file__).resolve().parent
-if str(_THIS_DIR) not in sys.path:
-    sys.path.insert(0, str(_THIS_DIR))
-
-from cli_runtime import build_progress_callback, configure_cli_logging
 _SENSIBLAW_ROOT = _THIS_DIR.parent
 if str(_SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(_SENSIBLAW_ROOT))
 
-from src.au_semantic.linkage import ensure_au_semantic_schema, import_au_semantic_seed_payload
-from src.au_semantic.semantic import build_au_semantic_report, run_au_semantic_pipeline
-from src.fact_intake import (
-    build_au_fact_review_bundle,
-    build_fact_intake_payload_from_au_semantic_report,
-    persist_fact_intake_payload,
-    record_fact_workflow_link,
+from src.fact_intake.legacy_sqlite_import import import_legacy_sqlite_fixture
+from src.fact_intake.postgres_runtime import require_postgres_runtime_configuration
+from src.policy.corpus_compilation import default_compiler_context
+from src.policy.fibred_operational_corpus_compilation import (
+    compile_document_fibred_operational,
 )
-from src.gwb_us_law.semantic import ensure_gwb_semantic_schema
-from src.wiki_timeline.sqlite_store import load_run_payload_from_normalized
-
-LOGGER = logging.getLogger(__name__)
-ProgressCallback = Callable[[str, dict[str, Any]], None]
-
-
-def _emit_progress(progress_callback: ProgressCallback | None, stage: str, **details: Any) -> None:
-    if progress_callback is None:
-        return
-    progress_callback(stage, details)
+from src.policy.follow_projection_compat import project_au_follow_surface
+from src.policy.postgres_semantic_spine import (
+    AU_FACT_REVIEW_PROFILE,
+    run_postgres_semantic_spine,
+)
 
 
-def _wrap_fact_persist_progress(progress_callback: ProgressCallback | None) -> Callable[[dict[str, Any]], None] | None:
-    if progress_callback is None:
-        return None
-
-    def emit(update: dict[str, Any]) -> None:
-        stage = str(update.get("stage") or "progress")
-        progress_callback(f"fact_persist_{stage}", update)
-
-    return emit
+def _connect(database_url: str):
+    try:
+        import psycopg
+    except ImportError as exc:  # pragma: no cover
+        raise RuntimeError("AU fact review requires psycopg and PostgreSQL") from exc
+    return psycopg.connect(database_url)
 
 
-def _build_bundle_payload(
-    conn: sqlite3.Connection,
-    *,
-    timeline_suffix: str,
-    run_id: str | None,
-    seed_path: Path | None,
-    source_label: str | None,
-    notes: str | None,
-    include_authority_receipts: bool = True,
-    authority_receipt_limit: int = 20,
-    progress_callback: ProgressCallback | None = None,
-) -> dict[str, Any]:
-    if seed_path is not None:
-        _emit_progress(progress_callback, "seed_import_started", path=str(seed_path))
-        import_au_semantic_seed_payload(conn, json.loads(seed_path.read_text(encoding="utf-8")))
-        _emit_progress(progress_callback, "seed_import_finished", path=str(seed_path))
-    _emit_progress(progress_callback, "semantic_pipeline_started", timeline_suffix=timeline_suffix)
-    semantic_run = run_au_semantic_pipeline(
-        conn,
-        timeline_suffix=timeline_suffix,
-        run_id=run_id or None,
+def _document_input(args: argparse.Namespace) -> dict[str, Any]:
+    if args.source_path:
+        path = Path(args.source_path).resolve()
+        text = path.read_text(encoding="utf-8")
+        source_ref = f"source:file:{path}"
+    else:
+        text = str(args.canonical_text or "")
+        source_ref = str(args.source_ref or "source:au-fact-review-cli")
+    if not text.strip():
+        raise ValueError("provide --source-path or --canonical-text")
+    document_ref = str(args.document_ref or "").strip() or (
+        "document:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
     )
-    semantic_run_id = str(semantic_run["run_id"])
-    _emit_progress(progress_callback, "semantic_pipeline_finished", semantic_run_id=semantic_run_id)
-    _emit_progress(progress_callback, "timeline_load_started", semantic_run_id=semantic_run_id)
-    source_payload = load_run_payload_from_normalized(conn, semantic_run_id) or {}
-    source_events = source_payload.get("events") if isinstance(source_payload.get("events"), list) else []
-    _emit_progress(progress_callback, "timeline_load_finished", source_event_count=len(source_events))
-    _emit_progress(progress_callback, "semantic_report_started", semantic_run_id=semantic_run_id)
-    semantic_report = build_au_semantic_report(
-        conn,
-        run_id=semantic_run_id,
-        include_authority_receipts=include_authority_receipts,
-        authority_receipt_limit=authority_receipt_limit,
-    )
-    _emit_progress(progress_callback, "semantic_report_finished", semantic_run_id=semantic_run_id)
-    _emit_progress(progress_callback, "fact_payload_started", semantic_run_id=semantic_run_id)
-    fact_payload = build_fact_intake_payload_from_au_semantic_report(
-        semantic_report,
-        timeline_events=source_events,
-        source_label=source_label,
-        notes=notes,
-    )
-    _emit_progress(progress_callback, "fact_payload_finished", fact_run_id=str(fact_payload["run"]["run_id"]))
-    LOGGER.info("Persisting AU fact-intake payload for %s", fact_payload["run"]["run_id"])
-    fact_persist = persist_fact_intake_payload(
-        conn,
-        fact_payload,
-        progress_callback=_wrap_fact_persist_progress(progress_callback),
-    )
-    fact_run_id = str(fact_payload["run"]["run_id"])
-    workflow_link = record_fact_workflow_link(
-        conn,
-        workflow_kind="au_semantic",
-        workflow_run_id=semantic_run_id,
-        fact_run_id=fact_run_id,
-        source_label=fact_payload["run"].get("source_label"),
-    )
-    _emit_progress(progress_callback, "bundle_build_started", fact_run_id=fact_run_id)
-    bundle = build_au_fact_review_bundle(
-        conn,
-        fact_run_id=fact_run_id,
-        semantic_report=semantic_report,
-        source_events=source_events,
-    )
-    _emit_progress(progress_callback, "bundle_build_finished", fact_run_id=fact_run_id, review_queue_count=len(bundle.get("review_queue", [])))
     return {
-        "semantic_run": semantic_run,
-        "semantic_report": semantic_report,
-        "fact_payload": fact_payload,
-        "fact_persist": fact_persist,
-        "workflow_link": workflow_link,
-        "bundle": bundle,
+        "document_ref": document_ref,
+        "source_ref": source_ref,
+        "media_type": "text/plain",
+        "canonical_text": text,
+        "content_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+        "scope_ref": document_ref,
     }
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Build AU-semantic-backed fact review bundles over the Mary-parity fact substrate.")
-    parser.add_argument("--db-path", type=Path, default=Path(".cache_local/itir.sqlite"))
-    parser.add_argument("--timeline-suffix", default="wiki_timeline_hca_s942025_aoo.json")
-    parser.add_argument("--run-id", default="", help="Optional AU semantic run_id override")
-    parser.add_argument("--seed-path", type=Path, default=None, help="Optional AU linkage seed payload to import first")
-    parser.add_argument("--source-label", default=None, help="Optional source label override for the fact-intake run")
-    parser.add_argument("--notes", default=None, help="Optional notes for the fact-intake run")
-    parser.add_argument(
-        "--no-authority-receipts",
-        action="store_true",
-        help="Disable reuse of persisted authority-ingest receipts in semantic context.",
+def _compile(document_input: Mapping[str, Any]) -> Mapping[str, Any]:
+    compilation = compile_document_fibred_operational(
+        document_input,
+        default_compiler_context(),
+        closure_workers=4,
+        owner_partitions=8,
     )
-    parser.add_argument(
-        "--authority-receipt-limit",
-        type=int,
-        default=20,
-        help="Maximum number of persisted authority receipts to inspect when authority receipt reuse is enabled.",
-    )
-    parser.add_argument("--progress", action="store_true", help="Emit progress to stderr.")
-    parser.add_argument("--progress-format", choices=("human", "json"), default="human", help="Progress renderer for stderr output.")
-    parser.add_argument("--log-level", default="INFO", help="stderr logging level (default: %(default)s).")
-    sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("run", help="Run AU semantic + fact-intake persistence and print summary identifiers/counts")
-    sub.add_parser("bundle", help="Print the full fact.review.bundle.v1 payload")
-    sub.add_parser("report", help="Print the AU semantic report plus fact persistence summary")
+    return {"artifacts": compilation.artifacts}
 
-    args = parser.parse_args(argv)
-    configure_cli_logging(args.log_level)
-    progress_callback = build_progress_callback(enabled=bool(args.progress), fmt=str(args.progress_format))
-    with sqlite3.connect(str(args.db_path)) as conn:
-        conn.row_factory = sqlite3.Row
-        ensure_gwb_semantic_schema(conn)
-        ensure_au_semantic_schema(conn)
-        payload = _build_bundle_payload(
-            conn,
-            timeline_suffix=args.timeline_suffix,
-            run_id=args.run_id.strip() or None,
-            seed_path=args.seed_path,
-            source_label=args.source_label,
-            notes=args.notes,
-            include_authority_receipts=not bool(args.no_authority_receipts),
-            authority_receipt_limit=int(args.authority_receipt_limit),
-            progress_callback=progress_callback,
+
+def _legacy_import(args: argparse.Namespace, database_url: str) -> dict[str, Any]:
+    if not args.sqlite_path:
+        raise ValueError("import-sqlite requires --sqlite-path")
+
+    def reject_unmapped(_connection, rows):
+        # Explicitly bounded reference import: rows are inventoried and rejected
+        # until a table-specific PostgreSQL mapper is declared. This preserves the
+        # no-dual-authority rule and produces a complete discrepancy receipt.
+        return (0, len(tuple(rows)), (), ("table-mapper-not-declared",))
+
+    with _connect(database_url) as connection:
+        receipt = import_legacy_sqlite_fixture(
+            sqlite_path=args.sqlite_path,
+            postgres_connection=connection,
+            table_importers={name: reject_unmapped for name in args.sqlite_table},
         )
+    return receipt.to_dict()
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Build AU fact-review surfaces through the PostgreSQL semantic spine."
+    )
+    parser.add_argument(
+        "--database-url",
+        default=os.environ.get("DATABASE_URL", ""),
+        help="PostgreSQL connection URL; defaults to DATABASE_URL.",
+    )
+    parser.add_argument("--document-ref", default="")
+    parser.add_argument("--source-ref", default="")
+    parser.add_argument("--source-path", default="")
+    parser.add_argument("--canonical-text", default="")
+    parser.add_argument(
+        "--sqlite-path",
+        default="",
+        help="Legacy fixture path; valid only with import-sqlite.",
+    )
+    parser.add_argument(
+        "--sqlite-table",
+        action="append",
+        default=[],
+        help="Historical SQLite table to inventory/import; repeat as needed.",
+    )
+    sub = parser.add_subparsers(dest="command", required=True)
+    sub.add_parser("run", help="Compile, persist, query, and print runtime receipt")
+    sub.add_parser("bundle", help="Print detached presentation response")
+    sub.add_parser("report", help="Print relational follow summary and timings")
+    sub.add_parser("import-sqlite", help="Import/replay a bounded historical SQLite fixture")
+    args = parser.parse_args(argv)
+
+    database_url = require_postgres_runtime_configuration(
+        {"database_url": args.database_url, "sqlite_path": ""}
+    )
+    if args.command == "import-sqlite":
+        output = _legacy_import(args, database_url)
+        print(json.dumps(output, ensure_ascii=False, indent=2, sort_keys=True))
+        return 0
+    if args.sqlite_path:
+        raise ValueError(
+            "--sqlite-path is accepted only by import-sqlite; SQLite cannot drive runtime"
+        )
+
+    document_input = _document_input(args)
+    with _connect(database_url) as connection:
+        result = run_postgres_semantic_spine(
+            connection=connection,
+            document_input=document_input,
+            compile_document=_compile,
+            profile=AU_FACT_REVIEW_PROFILE,
+        )
+
+    surface = project_au_follow_surface(result.follow_projection)
     if args.command == "bundle":
-        output: dict[str, Any] = payload["bundle"]
+        output: dict[str, Any] = {
+            **surface,
+            "runtime_receipt": result.receipt.to_dict(),
+        }
     elif args.command == "report":
         output = {
-            "semanticRun": payload["semantic_run"],
-            "semanticReport": payload["semantic_report"],
-            "factPersist": payload["fact_persist"],
-            "factRunId": payload["fact_payload"]["run"]["run_id"],
-            "bundleSummary": payload["bundle"]["summary"],
-            "operatorViews": payload["bundle"].get("operator_views"),
-            "workflowLink": payload["workflow_link"],
-            "reopenQuery": {
-                "workflowKind": "au_semantic",
-                "workflowRunId": payload["workflow_link"]["workflow_run_id"],
-                "factRunId": payload["workflow_link"]["fact_run_id"],
-                "sourceLabel": payload["workflow_link"]["source_label"],
-            },
-            "latestSourceQuery": {
-                "workflowKind": "au_semantic",
-                "sourceLabel": payload["workflow_link"]["source_label"],
-            },
+            "document_ref": result.receipt.document_ref,
+            "projection_ref": result.receipt.projection_ref,
+            "summary": surface["summary"],
+            "runtime_receipt": result.receipt.to_dict(),
+            "projection_demands": list(
+                result.artifacts.get("projection_demands") or ()
+            ),
+            "legal_ir_projected": sum(
+                1
+                for row in result.artifacts.get("domain_ir_projections") or ()
+                if str(row.get("domain") or "") == "legal"
+            ),
+            "zero_legal_ir_is_valid_when_authority_absent": True,
         }
     else:
-        output = {
-            "semanticRun": payload["semantic_run"],
-            "factPersist": payload["fact_persist"],
-            "semanticRunId": payload["semantic_report"]["run_id"],
-            "factRunId": payload["fact_payload"]["run"]["run_id"],
-            "workflowLink": payload["workflow_link"],
-            "reopenQuery": {
-                "workflowKind": "au_semantic",
-                "workflowRunId": payload["workflow_link"]["workflow_run_id"],
-                "factRunId": payload["workflow_link"]["fact_run_id"],
-                "sourceLabel": payload["workflow_link"]["source_label"],
-            },
-            "latestSourceQuery": {
-                "workflowKind": "au_semantic",
-                "sourceLabel": payload["workflow_link"]["source_label"],
-            },
-            "bundleSummary": payload["bundle"]["summary"],
-            "reviewQueueCount": len(payload["bundle"]["review_queue"]),
-            "chronologyCount": len(payload["bundle"]["chronology"]),
-        }
+        output = result.receipt.to_dict()
     print(json.dumps(output, ensure_ascii=False, indent=2, sort_keys=True))
     return 0
 
