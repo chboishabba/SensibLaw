@@ -58,35 +58,25 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
       - name: Install environment
         run: |
           python -m pip install --upgrade pip uv
           uv sync --frozen --extra test --extra dev
-
       - name: Apply PostgreSQL migrations
         run: bash scripts/apply_pg_migrations.sh
-
       - name: Validate follow schema and authority views
         run: |
           uv run python - <<'PY'
           import os
           import psycopg
-
           required = (
-              "pnf_follow_projection",
-              "pnf_follow_node",
-              "pnf_follow_edge",
-              "pnf_follow_edge_evidence",
-              "pnf_follow_edge_provenance",
-              "pnf_follow_edge_admissibility_ground",
-              "pnf_follow_projection_rows",
-              "pnf_follow_edge_rows",
-              "pnf_legal_follow_projection",
+              "pnf_follow_projection", "pnf_follow_node", "pnf_follow_edge",
+              "pnf_follow_edge_evidence", "pnf_follow_edge_provenance",
+              "pnf_follow_edge_admissibility_ground", "pnf_follow_projection_rows",
+              "pnf_follow_edge_rows", "pnf_legal_follow_projection",
               "pnf_nonlegal_follow_projection",
           )
           with psycopg.connect(os.environ["DATABASE_URL"]) as connection:
@@ -95,7 +85,6 @@ jobs:
                       cursor.execute("SELECT to_regclass(%s)", (f"public.{relation}",))
                       assert cursor.fetchone()[0] == relation
           PY
-
       - name: Lint spine surfaces
         run: |
           uv run ruff check \
@@ -116,7 +105,6 @@ jobs:
             tests/pnf/test_pronominal_argument_projection.py \
             tests/pnf/test_semantic_lifecycle_spine.py \
             tests/test_zelph_execution.py
-
       - name: Run focused and PostgreSQL tests
         run: |
           uv run pytest -q \
@@ -125,15 +113,14 @@ jobs:
             tests/pnf/test_pronominal_argument_projection.py \
             tests/pnf/test_semantic_lifecycle_spine.py \
             tests/test_zelph_execution.py \
-            tests/pnf/test_reference_binding.py \
+            tests/pnf/test_reference_binding_corpus.py \
             tests/pnf/test_binding_candidate_sets.py \
+            tests/storage/test_binding_candidate_store.py \
             tests/test_au_zelph_handoff.py
-
       - name: Enforce runtime authority policy
         run: |
           uv run python - <<'PY'
           from pathlib import Path
-
           active = [
               Path("scripts/au_fact_review.py"),
               Path("scripts/build_au_zelph_handoff.py"),
@@ -146,7 +133,6 @@ jobs:
               assert "from src.wiki_timeline.sqlite_store" not in text
           assert "sqlite3" in Path("src/fact_intake/legacy_sqlite_import.py").read_text(encoding="utf-8")
           PY
-
       - name: Check patch formatting
         run: |
           git fetch --no-tags origin main:refs/remotes/origin/main
