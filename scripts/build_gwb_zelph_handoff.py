@@ -14,14 +14,23 @@ SENSIBLAW_ROOT = REPO_ROOT / "SensibLaw"
 if str(SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(SENSIBLAW_ROOT))
 
-from src.au_semantic.linkage import ensure_au_semantic_schema
-from src.gwb_us_law.linkage import build_gwb_us_law_linkage_report, ensure_gwb_us_law_schema, import_gwb_us_law_seed_payload, run_gwb_us_law_linkage
-from src.gwb_us_law.semantic import build_gwb_semantic_report, ensure_gwb_semantic_schema, run_gwb_semantic_pipeline
-from src.ontology.entity_bridge import ensure_bridge_schema, ensure_seeded_bridge_slice
-from src.wiki_timeline.sqlite_store import persist_wiki_timeline_aoo_run
-from src.zelph_bridge import run_zelph_inference
-from src.policy.compiler_contract import build_gwb_public_handoff_contract
-from src.policy.product_gate import build_product_gate
+from src.au_semantic.linkage import ensure_au_semantic_schema  # noqa: E402
+from src.gwb_us_law.linkage import (  # noqa: E402
+    build_gwb_us_law_linkage_report,
+    ensure_gwb_us_law_schema,
+    import_gwb_us_law_seed_payload,
+    run_gwb_us_law_linkage,
+)
+from src.gwb_us_law.semantic import (  # noqa: E402
+    build_gwb_semantic_report,
+    ensure_gwb_semantic_schema,
+    run_gwb_semantic_pipeline,
+)
+from src.ontology.entity_bridge import ensure_bridge_schema, ensure_seeded_bridge_slice  # noqa: E402
+from src.wiki_timeline.sqlite_store import persist_wiki_timeline_aoo_run  # noqa: E402
+from src.zelph_bridge import run_zelph_inference  # noqa: E402
+from src.policy.compiler_contract import build_gwb_public_handoff_contract  # noqa: E402
+from src.policy.product_gate import build_product_gate  # noqa: E402
 
 ARTIFACT_VERSION = "gwb_public_handoff_v1"
 DEFAULT_OUTPUT_DIR = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / ARTIFACT_VERSION

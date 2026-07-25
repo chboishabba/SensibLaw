@@ -12,7 +12,14 @@ from src.sources.national_archives.brexit_world_model_adapter import (
 
 def test_build_report() -> None:
     payload = json.loads(
-        Path("SensibLaw/tmp_out/gwb_broader_review_v1.json").read_text(encoding="utf-8")
+        (
+            Path(__file__).resolve().parents[1]
+            / "tests"
+            / "fixtures"
+            / "zelph"
+            / "gwb_broader_review_v1"
+            / "gwb_broader_review_v1.json"
+        ).read_text(encoding="utf-8")
     )
 
     world_model = build_world_model(payload)

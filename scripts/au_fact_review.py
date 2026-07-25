@@ -13,24 +13,41 @@ _THIS_DIR = Path(__file__).resolve().parent
 if str(_THIS_DIR) not in sys.path:
     sys.path.insert(0, str(_THIS_DIR))
 
-from cli_runtime import build_progress_callback, configure_cli_logging
+from cli_runtime import build_progress_callback, configure_cli_logging  # noqa: E402
+
 _SENSIBLAW_ROOT = _THIS_DIR.parent
 if str(_SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(_SENSIBLAW_ROOT))
 
-from src.au_semantic.linkage import ensure_au_semantic_schema, import_au_semantic_seed_payload
-from src.au_semantic.semantic import build_au_semantic_report, run_au_semantic_pipeline
-from src.fact_intake import (
+from src.au_semantic.linkage import (  # noqa: E402
+    ensure_au_semantic_schema,
+    import_au_semantic_seed_payload,
+)
+from src.au_semantic.semantic import (  # noqa: E402
+    build_au_semantic_report,
+    run_au_semantic_pipeline,
+)
+from src.fact_intake import (  # noqa: E402
     build_au_fact_review_bundle,
     build_fact_intake_payload_from_au_semantic_report,
     persist_fact_intake_payload,
     record_fact_workflow_link,
 )
-from src.gwb_us_law.semantic import ensure_gwb_semantic_schema
-from src.wiki_timeline.sqlite_store import load_run_payload_from_normalized
+from src.gwb_us_law.semantic import ensure_gwb_semantic_schema  # noqa: E402
+from src.wiki_timeline.sqlite_store import (  # noqa: E402
+    load_run_payload_from_normalized,
+)
 
 LOGGER = logging.getLogger(__name__)
 ProgressCallback = Callable[[str, dict[str, Any]], None]
+
+
+def _json_default(value: Any) -> Any:
+    if isinstance(value, set):
+        return sorted(value)
+    if isinstance(value, frozenset):
+        return sorted(value)
+    raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
 
 
 def _emit_progress(progress_callback: ProgressCallback | None, stage: str, **details: Any) -> None:
@@ -214,7 +231,7 @@ def main(argv: list[str] | None = None) -> int:
             "reviewQueueCount": len(payload["bundle"]["review_queue"]),
             "chronologyCount": len(payload["bundle"]["chronology"]),
         }
-    print(json.dumps(output, ensure_ascii=False, indent=2, sort_keys=True))
+    print(json.dumps(output, ensure_ascii=False, indent=2, sort_keys=True, default=_json_default))
     return 0
 
 

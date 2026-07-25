@@ -132,7 +132,7 @@ def run_zelph_inference(
 ) -> dict[str, Any]:
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir_path = Path(tmpdir)
-        bundle_path = tmpdir_path / "bundle.zlp"
+        bundle_path = tmpdir_path / "bundle.zph"
         bundle_text = facts + "\n\n" + rules
         bundle_path.write_text(bundle_text, encoding="utf-8")
         
@@ -279,7 +279,7 @@ def _native_rule_triples(workbench: Mapping[str, Any]) -> list[dict[str, str]]:
         if "has_context_reason" in all_signals:
             inferred.append({"subject": node, "predicate": "has_context_reason", "object": "True"})
 
-        if ("is_reversion" in observation_predicates or "reversion_edit" in all_signals) and not ("has_context_reason" in all_signals):
+        if ("is_reversion" in observation_predicates or "reversion_edit" in all_signals) and "has_context_reason" not in all_signals:
             inferred.append({"subject": node, "predicate": "signal_class", "object": "Reversion without context"})
 
         if "administrative_edit" in all_signals:

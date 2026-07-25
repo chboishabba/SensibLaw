@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sys
 from typing import Any, Iterable
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -14,14 +15,12 @@ SOURCE_BUNDLE_PATH = (
 )
 DEFAULT_OUTPUT_DIR = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / ARTIFACT_VERSION
 
-import sys
-
 if str(SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(SENSIBLAW_ROOT))
 
-from src.zelph_bridge import run_zelph_inference
-from src.policy.compiler_contract import build_au_public_handoff_contract
-from src.policy.product_gate import build_product_gate
+from src.zelph_bridge import run_zelph_inference  # noqa: E402
+from src.policy.compiler_contract import build_au_public_handoff_contract  # noqa: E402
+from src.policy.product_gate import build_product_gate  # noqa: E402
 
 
 def _sanitize_id(raw: str) -> str:

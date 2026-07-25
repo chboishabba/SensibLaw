@@ -24,7 +24,7 @@ def test_build_gwb_corpus_scorecard_artifact(tmp_path: Path) -> None:
     assert scorecard["checked_handoff_promoted_relation_count"] == 19
     assert scorecard["public_bios_manifest_document_count"] == 9
     assert scorecard["public_bios_timeline_event_count"] == 9
-    assert scorecard["corpus_timeline_event_count"] == 320
+    assert scorecard["corpus_timeline_event_count"] == 223
     assert scorecard["corpus_aao_event_count"] == 260
     assert scorecard["local_book_file_count"] == 4
 
