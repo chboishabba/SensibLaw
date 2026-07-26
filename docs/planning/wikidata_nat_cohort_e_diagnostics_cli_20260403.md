@@ -10,7 +10,7 @@ diagnostic report from the sample axis fixture without touching shared scripts.
 ## Usage
 
 ```
-sensiblaw cohort-e-diagnostics \
+python -m src.cli cohort-e-diagnostics \
   --samples SensibLaw/tests/fixtures/wikidata/wikidata_nat_cohort_e_split_axis_sample_20260403.json \
   --output SensibLaw/tests/fixtures/wikidata/wikidata_nat_cohort_e_diagnostic_report_20260403.json
 ```

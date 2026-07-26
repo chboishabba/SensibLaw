@@ -7,6 +7,29 @@ structured, inspectable outputs instead of opaque summaries. It is used for
 legal/normative review, structured evidence handling, and bounded ontology
 diagnostics such as the current Wikidata work.
 
+## Runtime Authority
+
+The repository is under a documentation freeze while overlapping runtime
+surfaces are consolidated. The normative authority map is
+[`docs/authority_surfaces.md`](docs/authority_surfaces.md).
+
+The single source-tree CLI gateway is:
+
+```bash
+python -m src.cli
+```
+
+The project metadata still declares an installed console alias, but package
+resolution can differ from a source checkout. Until package topology is
+consolidated, new documentation and automation must use `python -m src.cli`.
+The top-level `cli` package is internal implementation and must not be invoked
+directly.
+
+New runtime work must extend one semantic authority. Executor, persistence,
+admission, retry, progress, and lane/profile differences belong in strategies
+or configuration rather than new compiler, parser, router, graph, linkage, or
+world-model implementations.
+
 ## Public Interface Boundary
 
 The supported downstream product boundary now includes a generic bounded
@@ -166,11 +189,12 @@ report's content into truth.
 
 The first P0a parser consolidation slice is implemented: canonical parsing,
 rule extraction, and structural-node construction now live in
-`src.ingestion.section_parser`; `src.section_parser` is a compatibility
-projection that retains historical `Provision` trees and simple section JSON.
-This removes the reverse parser dependency while preserving existing legacy
-callers. Span-only internal storage, one-pass annotation views, and cache keys
-remain subsequent P0a work.
+`src.ingestion.section_parser`. The remaining `src.section_parser` module is a
+deprecated compatibility projection that retains historical `Provision` trees
+and simple section JSON. Its presence still creates import ambiguity: new code
+must not use it, existing callers must migrate, and the projection should be
+removed after its last caller moves. Span-only internal storage, one-pass
+annotation views, and cache keys remain subsequent P0a work.
 
 The first P0b carrier slice is also implemented in
 `src.policy.entity_resolution`. It validates and deterministically serializes
@@ -1289,7 +1313,7 @@ cd SensibLaw
 Useful first commands:
 
 ```bash
-../.venv/bin/python -m sensiblaw.cli --help
+../.venv/bin/python -m src.cli --help
 ../.venv/bin/python -m pytest -q tests/test_wikidata_disjointness.py
 ../.venv/bin/python -m pytest -q tests/test_wikidata_structural_handoff.py
 ```
@@ -1312,9 +1336,9 @@ Note:
 Current operational entry points include:
 
 ```bash
-../.venv/bin/python -m cli.__main__ wikidata build-slice
-../.venv/bin/python -m cli.__main__ wikidata project
-../.venv/bin/python -m cli.__main__ wikidata find-qualifier-drift
+../.venv/bin/python -m src.cli wikidata build-slice
+../.venv/bin/python -m src.cli wikidata project
+../.venv/bin/python -m src.cli wikidata find-qualifier-drift
 ../.venv/bin/python scripts/run_wikidata_qualifier_drift_scan.py
 ```
 
@@ -1326,8 +1350,7 @@ generic ontology cleanup claims.
 If you want to see what the current CLI exposes:
 
 ```bash
-../.venv/bin/python -m sensiblaw.cli --help
-../.venv/bin/python -m cli.__main__ --help
+../.venv/bin/python -m src.cli --help
 ```
 
 ### Checked artifact review
@@ -1391,7 +1414,7 @@ Current status:
 - some lanes still expose lane-local grouped facades as an intermediate step;
   that is better than raw helper sprawl, but it is not the end-state
 - the current canonical operator entrypoint for cross-lane reporting is:
-  `../.venv/bin/python -m cli.__main__ wikidata world-model-lane-summary --input ...`
+  `../.venv/bin/python -m src.cli wikidata world-model-lane-summary --input ...`
 - broader lane rebinding and shared-surface extraction are still the next
   phase
 

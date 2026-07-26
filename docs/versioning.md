@@ -35,7 +35,7 @@ Use the `snapshot(doc_id, as_at)` method to retrieve the version of a document
 in effect on a given date.  The CLI exposes this via:
 
 ```bash
-sensiblaw get --id 1 --as-at 2023-01-01
+python -m src.cli get --id 1 --as-at 2023-01-01
 ```
 
 The returned JSON includes the provenance metadata captured for the selected

@@ -22,7 +22,7 @@ Enable human review, comparison, and export of existing obligation artifacts **w
 ## Deliverables
 1) **review.collection.v1** schema: references to multiple review bundles with labels.
 2) **Streamlit collection view**: bundle picker + side-by-side obligation/activation/topology diffs (structural only).
-3) **Deterministic export pipeline**: `sensiblaw review export` → zip(JSON, PDF render, manifest with hashes).
+3) **Deterministic export pipeline**: `python -m src.cli review export` → zip(JSON, PDF render, manifest with hashes).
 4) **Workflow metadata (optional, side-band)**: `ReviewStatus` (stage, owner, timestamp) stored outside bundles; stripping it yields identical bundle hashes.
 
 ## Tests / Red-flag guards
@@ -49,7 +49,7 @@ Enable human review, comparison, and export of existing obligation artifacts **w
    - New tab “Collections”: bundle picker + structural diff view.
    - Read-only; no mutation controls.
 4) **Export pipeline**
-   - CLI: `python -m sensiblaw.cli review export --collection examples/review_collection_minimal.json`.
+   - CLI: `python -m src.cli review export --collection examples/review_collection_minimal.json`.
    - Outputs: zip (bundles + manifest + optional PDF render).
    - Tests: manifest hashes deterministic across runs.
 

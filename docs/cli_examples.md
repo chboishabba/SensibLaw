@@ -1,11 +1,22 @@
 # CLI Usage Examples
 
+All examples in this document use the canonical source-tree gateway:
+
+```bash
+python -m src.cli --help
+```
+
+The project metadata still declares an installed console alias, but it remains
+package-topology compatibility debt and is not a second authority. The
+top-level `cli` package is internal; do not invoke its `__main__` module in user
+documentation or automation.
+
 ## Obligations (Sprint 7 read-only surfaces)
 
 Extract obligations from text and emit projections or explanations without adding semantics:
 
 ```bash
-sensiblaw obligations --text-file examples/sample.txt \
+python -m src.cli obligations --text-file examples/sample.txt \
   --emit-projections actor action timeline \
   --emit-explanation
 ```
@@ -19,7 +30,7 @@ Outputs JSON with:
 Diff/align two versions while keeping identities stable:
 
 ```bash
-sensiblaw obligations --text-file old.txt \
+python -m src.cli obligations --text-file old.txt \
   --diff-text-file new.txt \
   --emit-obligation-alignment
 ```
@@ -27,7 +38,7 @@ sensiblaw obligations --text-file old.txt \
 Simulate activation using a FactEnvelope:
 
 ```bash
-sensiblaw obligations --text-file doc.txt \
+python -m src.cli obligations --text-file doc.txt \
   --simulate-activation --facts facts.json
 ```
 
@@ -42,7 +53,7 @@ Download specific sections from an Act hosted on AustLII and store them in the
 local database:
 
 ```bash
-sensiblaw austlii-fetch --act https://example.org/act --sections s5,s223
+python -m src.cli austlii-fetch --act https://example.org/act --sections s5,s223
 ```
 
 ## Search AustLII for a known case and fetch one hit
@@ -51,7 +62,7 @@ Use the bounded SINO search seam to select one authority page, then save the
 fetched artifact for local review:
 
 ```bash
-sensiblaw austlii-search \
+python -m src.cli austlii-search \
   --query '"Marvel & Marvel"' \
   --method phrase \
   --pick by_mnc \
@@ -74,7 +85,7 @@ Use the direct AustLII authority seam when you already know the neutral
 citation or explicit AustLII case URL:
 
 ```bash
-sensiblaw austlii-case-fetch \
+python -m src.cli austlii-case-fetch \
   --citation "[2010] FamCAFC 13" \
   --paragraph 100 \
   --paragraph-window 1 \
@@ -91,7 +102,7 @@ happens locally after fetch, and `--db-path` persists the bounded receipt.
 Use the repo-owned JADE seam for a known neutral citation or explicit JADE URL:
 
 ```bash
-sensiblaw jade-fetch \
+python -m src.cli jade-fetch \
   --citation "[2021] FamCA 83" \
   --paragraph 120 \
   --paragraph-window 1 \
@@ -110,7 +121,7 @@ Use the secondary JADE search seam when you start from free text or want the
 operator path to synthesize an exact-MNC `/mnc/...` hit locally:
 
 ```bash
-sensiblaw jade-search \
+python -m src.cli jade-search \
   --query "[2021] FamCA 83" \
   --pick by_mnc \
   --mnc "[2021] FamCA 83" \
@@ -132,7 +143,7 @@ Display the text, extracted rules, provenance and ontology tags for a stored
 section identified by its canonical ID:
 
 ```bash
-sensiblaw view --id s5
+python -m src.cli view --id s5
 ```
 
 Both commands use `data/store.db` by default. Provide `--db` to specify a

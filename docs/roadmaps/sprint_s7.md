@@ -57,7 +57,7 @@ Goal: expose, exercise, and extend the S6 normative surfaces **without inference
 
 ## TODO (implementation-ready checklist)
 - Add FastAPI routes for `/obligations/query`, `/obligations/explain`, `/obligations/alignment`, `/obligations/projections/{view}` using S6 primitives; deterministic JSON + schema versions.
-- Extend CLI (`sensiblaw obligations`) to emit projections (`--emit-projections`) and explanations (`--emit-explanation`); reuse existing alignment flag for diffs.
+- Extend CLI (`python -m src.cli obligations`) to emit projections (`--emit-projections`) and explanations (`--emit-explanation`); reuse existing alignment flag for diffs.
 - Wire snapshot/golden tests for API + CLI outputs (fixtures from sample corpus) as red flags.
 - Keep all new outputs flag-gated and identity-neutral; no activation or cross-doc logic until tracks A/B start.
 - Track A prep: FactEnvelope doc and activation red-flag tests in place; activation simulation is descriptive only and identity-neutral.

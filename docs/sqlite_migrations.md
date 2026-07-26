@@ -1,4 +1,11 @@
-# SQLite Migrations (Ontology DB)
+# Deprecated SQLite Migrations (Ontology DB)
+
+Status: deprecated compatibility track.
+
+PostgreSQL under `database/postgres_migrations/` is the sole active semantic
+persistence and migration authority. The SQLite ontology track remains only
+for bounded historical import/replay fixtures and tests. Do not add new
+runtime semantic features here.
 
 SensibLaw has multiple SQLite schemas in the repo:
 
@@ -15,6 +22,11 @@ This doc references all three so you don't confuse them, but it covers only the
 - Migrations directory: `database/migrations/`
 - Runner: `src/sensiblaw/db/migrations.py` (`MigrationRunner`)
 - Entry point: `src/sensiblaw/db/dao.py` (`ensure_database(connection)`)
+
+The directory currently contains multiple `002_*` files. Lexical execution is
+deterministic, but the duplicated numeric identity is unsafe for human review,
+tooling, and backports. Do not introduce another duplicate prefix or rename an
+already-applied file in place.
 
 ## Idempotency contract
 

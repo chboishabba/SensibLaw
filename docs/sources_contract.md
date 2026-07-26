@@ -49,7 +49,7 @@ No adapter tokenises, parses, deduplicates, or infers. Semantics begin only afte
   case URL or a neutral citation that is deterministically resolved to the
   canonical AustLII case URL before fetch, then perform paragraph/location
   isolation locally on the fetched artifact.
-- `sensiblaw jade-search` is allowed as a secondary operator seam when a user
+- `python -m src.cli jade-search` is allowed as a secondary operator seam when a user
   starts from free text or when the query itself contains the neutral citation;
   exact `jade-fetch` remains the stable recommended core.
 - Use search only to select a concrete authority URL; once bytes are fetched,
@@ -57,9 +57,9 @@ No adapter tokenises, parses, deduplicates, or infers. Semantics begin only afte
   artifact or persisted document, not through repeated live queries.
 - Optional persisted bounded ingest is now allowed for operator-selected
   authorities:
-  `sensiblaw austlii-search --db-path ...` and
-  `sensiblaw jade-fetch --db-path ...` and
-  `sensiblaw jade-search --db-path ...` persist a canonical sqlite receipt with
+  `python -m src.cli austlii-search --db-path ...` and
+  `python -m src.cli jade-fetch --db-path ...` and
+  `python -m src.cli jade-search --db-path ...` persist a canonical sqlite receipt with
   whole-fetch provenance plus bounded selected paragraph segments.
 - Normal AU semantic/fact-review runtime may reuse those persisted receipts as
   a read-only authority-context lane. The intended ordering is:

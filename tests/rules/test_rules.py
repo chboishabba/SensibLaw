@@ -7,7 +7,7 @@ from src.rules.reasoner import check_rules
 
 
 def run_cli(*args: str) -> str:
-    cmd = ["python", "-m", "cli", *args]
+    cmd = ["python", "-m", "src.cli", *args]
     completed = subprocess.run(cmd, capture_output=True, text=True, check=True)
     return completed.stdout.strip()
 

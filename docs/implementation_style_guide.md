@@ -9,8 +9,27 @@ Before writing code, read:
 1. `README.md`
 2. `docs/itir_vs_sl.md`
 3. this file
+4. `docs/authority_surfaces.md`
 
 Agents and contributors should not start coding from local habit alone.
+
+## Single-Authority Rule
+
+Every capability has one semantic authority. Execution, persistence,
+admission, retry, progress, presentation, or lane identity must be expressed
+as an explicit strategy or profile, not as another top-level implementation.
+
+In particular:
+
+- `src.cli:main` is the source-tree CLI gateway;
+- the top-level `cli` package is internal implementation;
+- `src.ingestion.section_parser` owns section parsing;
+- `src.section_parser` is deprecated compatibility output projection;
+- PostgreSQL is the active semantic persistence authority;
+- no new corpus compiler entrypoint may be introduced until the current
+  operational and fibred contracts converge.
+
+See `docs/authority_surfaces.md` for the complete transitional map.
 
 ## Naming Rule
 

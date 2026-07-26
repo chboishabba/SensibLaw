@@ -17,7 +17,7 @@ This remains non-executing and fail-closed.
 
 ## CLI Surface
 
-- `sensiblaw wikidata cohort-d-operator-report-batch --input <batch_input.json> [--output <batch_report.json>]`
+- `python -m src.cli wikidata cohort-d-operator-report-batch --input <batch_input.json> [--output <batch_report.json>]`
 
 ## Pinned Artifacts
 

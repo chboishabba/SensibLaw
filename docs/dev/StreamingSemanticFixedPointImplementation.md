@@ -3,6 +3,11 @@
 This document complements `StreamingSemanticFixedPoint.md` with the concrete implementation
 map and the distinction between active production paths and available extension contracts.
 
+The catalogue path described here is an execution/persistence variant, not a
+second semantic authority. It is not presumed interchangeable with the
+operational compiler until contract and product parity are demonstrated. See
+`docs/authority_surfaces.md`.
+
 ## Active catalogue path
 
 The catalogue compiler currently executes:

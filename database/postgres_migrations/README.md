@@ -14,3 +14,16 @@
   unresolved demands without requiring a legal-ontology row.
 - `024_generic_follow_projection.sql` persists derived-only, challengeable
   follow projections as rows with FK closure and exposes legal/non-legal views.
+
+## Migration identifier guardrail
+
+The directory currently contains duplicate `006_*` and `007_*` prefixes.
+Filename plus content hash remains the applied-migration identity, so an
+already-applied file must not be renamed in place. Until a
+checksum-preserving renumbering plan is complete:
+
+- every new migration must use a previously unused numeric prefix;
+- reviewers must inspect full filenames rather than treating the prefix as a
+  unique identifier;
+- no migration may be copied into the deprecated SQLite or superseded
+  reference tracks.

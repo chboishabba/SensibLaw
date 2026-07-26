@@ -1,14 +1,15 @@
-"""Legacy wrapper for the :mod:`cli` package.
+"""Canonical source-tree gateway for the SensibLaw command line.
 
-This module provides a tiny shim so that existing entry points which
-referenced ``src.cli`` continue to operate.  The real command line
-interface now lives in the top-level :mod:`cli` package.
+Users and repository automation invoke ``python -m src.cli``. The top-level
+:mod:`cli` package contains the command implementation, but is not a separate
+public entry point.
 """
 
 from __future__ import annotations
 
+
 def main() -> None:
-    """Entry point that defers loading the heavy ``cli`` package."""
+    """Load and run the internal command implementation."""
     from cli import main as real_main
 
     real_main()
@@ -19,4 +20,3 @@ __all__ = ["main"]
 
 if __name__ == "__main__":  # pragma: no cover - manual execution helper
     main()
-

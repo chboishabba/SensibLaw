@@ -21,7 +21,7 @@ Implemented in bounded `v0.1` form through:
 - runtime:
   - `src/ontology/wikidata.py`
 - CLI:
-  - `sensiblaw wikidata build-split-plan`
+  - `python -m src.cli wikidata build-split-plan`
 
 ## Contract shape
 Schema version:
@@ -93,7 +93,7 @@ still needs review:
 ## CLI contract
 
 ```bash
-sensiblaw wikidata build-split-plan \
+python -m src.cli wikidata build-split-plan \
   --input path/to/migration_pack.json \
   --output path/to/split_plan.json
 ```

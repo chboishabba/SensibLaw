@@ -9,7 +9,7 @@ operator/reviewer queue from a Cohort D type-probing artifact.
 
 ## Command
 
-- `sensiblaw wikidata cohort-d-operator-review --input <type_probing.json> [--output <operator_review.json>]`
+- `python -m src.cli wikidata cohort-d-operator-review --input <type_probing.json> [--output <operator_review.json>]`
 
 ## Behavior
 

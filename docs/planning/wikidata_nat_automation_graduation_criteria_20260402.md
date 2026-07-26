@@ -146,7 +146,7 @@ Design constraints:
 Next bounded operator/control surface now also exists:
 
 - CLI command:
-  `sensiblaw wikidata automation-graduation-eval --criteria ... --proposal ...`
+  `python -m src.cli wikidata automation-graduation-eval --criteria ... --proposal ...`
 - deterministic report wrapper:
   `build_nat_automation_graduation_report(criteria, proposal)`
 - pinned proposal fixtures:
@@ -158,7 +158,7 @@ Next bounded queue/index surface now also exists:
 - deterministic batch wrapper:
   `build_nat_automation_graduation_batch_report(criteria, proposal_batch)`
 - CLI command:
-  `sensiblaw wikidata automation-graduation-eval-batch --criteria ... --proposal-batch ...`
+  `python -m src.cli wikidata automation-graduation-eval-batch --criteria ... --proposal-batch ...`
 - pinned batch fixture:
   `wikidata_nat_automation_promotion_proposal_batch_20260402.json`
 
@@ -170,7 +170,7 @@ Next bounded measured-evidence surface now also exists:
 - deterministic repeated-run scorecard:
   `build_nat_automation_graduation_evidence_report(criteria, proposal_batches)`
 - CLI command:
-  `sensiblaw wikidata automation-graduation-evidence-report --criteria ... --proposal-batches ...`
+  `python -m src.cli wikidata automation-graduation-evidence-report --criteria ... --proposal-batches ...`
 - pinned repeated-run fixture:
   `wikidata_nat_automation_promotion_proposal_batches_20260402.json`
 
@@ -186,7 +186,7 @@ Next bounded governance-index surface now also exists:
 - deterministic cross-snapshot index:
   `build_nat_automation_graduation_governance_index(criteria, evidence_snapshots)`
 - CLI command:
-  `sensiblaw wikidata automation-graduation-governance-index --criteria ... --evidence-snapshots ...`
+  `python -m src.cli wikidata automation-graduation-governance-index --criteria ... --evidence-snapshots ...`
 - pinned snapshot fixture:
   `wikidata_nat_automation_evidence_snapshots_20260402.json`
 
@@ -202,7 +202,7 @@ Next bounded governance-summary surface now also exists:
 - deterministic repeated-index governance summary:
   `build_nat_automation_graduation_governance_summary(criteria, governance_snapshots)`
 - CLI command:
-  `sensiblaw wikidata automation-graduation-governance-summary --criteria ... --governance-snapshots ...`
+  `python -m src.cli wikidata automation-graduation-governance-summary --criteria ... --governance-snapshots ...`
 - pinned governance-snapshot fixture:
   `wikidata_nat_automation_governance_snapshots_20260402.json`
 

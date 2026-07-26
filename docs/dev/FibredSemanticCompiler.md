@@ -5,6 +5,13 @@
 This document defines the semantic organisation implemented by the SensibLaw
 PNF compiler after the streaming fixed-point tranche.
 
+This is the intended semantic organisation, not a claim that the repository's
+operational and fibred compiler paths are already one implementation. They
+currently publish different compiler contracts and products. The fibred path
+must converge with the operational path through explicit parity work; it must
+not become a second corpus-compiler authority. See
+`docs/authority_surfaces.md`.
+
 `ITIR-suite` is the suite-level control and handoff surface. `SensibLaw` owns the
 substantive deterministic semantic compiler, proposal contract, PNF reduction,
 and immutable build evidence. The fibred algebra therefore lives here rather

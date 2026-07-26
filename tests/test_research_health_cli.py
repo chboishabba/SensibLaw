@@ -35,7 +35,15 @@ def _build_store(tmp_path: Path) -> Path:
 
 
 def _run_cli(db_path: Path) -> dict:
-    cmd = ["python", "-m", "cli", "report", "research-health", "--db", str(db_path)]
+    cmd = [
+        "python",
+        "-m",
+        "src.cli",
+        "report",
+        "research-health",
+        "--db",
+        str(db_path),
+    ]
     completed = subprocess.run(cmd, check=True, capture_output=True, text=True)
     return json.loads(completed.stdout.strip())
 

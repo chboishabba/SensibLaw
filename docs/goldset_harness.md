@@ -16,7 +16,7 @@ Gold set fixtures live under `tests/goldsets/`:
 Run the evaluation from the repository root:
 
 ```bash
-sensiblaw eval goldset
+python -m src.cli eval goldset
 ```
 
 Use `--threshold` to set the minimum precision/recall (defaults to `0.9`).

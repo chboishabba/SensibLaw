@@ -5,10 +5,10 @@ import json
 import sys
 from pathlib import Path
 
-from src.code_observer import observe_paths
-
 
 def handle_observe(args: argparse.Namespace) -> None:
+    from src.code_observer import observe_paths
+
     rows = observe_paths(
         args.root,
         include_globs=args.include_glob,

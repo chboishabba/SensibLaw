@@ -1,7 +1,17 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-Python orchestration lives under `src/` (`sensiblaw`, `sensiblaw_streamlit`, `fastapi`, and `pydantic` packages) with shared utilities in `scripts/` and CLI-ready entry points in `sensiblaw/`. UI assets and experimental dashboards sit in `sensiblaw_streamlit/` and `ui/`, while legal corpora and fixtures reside in `data/` and `examples/`. Keep unit tests in the parallel `tests/` tree; reuse fixtures in `tests/fixtures/` and seeded payloads in `tests/templates/`. Design notes, automation walkthroughs, and deep dives belong in `docs/`.
+Python orchestration lives under `src/`, with the installed product package in
+`src/sensiblaw` and the single source-tree CLI gateway at `src/cli.py`. The
+top-level `cli/` package is internal command implementation, not another
+entrypoint. Repository-root `sensiblaw/`, `fastapi*`, and `pydantic*` paths are
+compatibility or test-shadow debt and must not receive new product behavior.
+Shared utilities live under `scripts/`, but durable operator workflows should
+converge on the CLI gateway. UI assets and experimental dashboards sit in
+`sensiblaw_streamlit/` and `ui/`, while legal corpora and fixtures reside in
+`data/` and `examples/`. Keep unit tests in the parallel `tests/` tree; reuse
+fixtures in `tests/fixtures/` and seeded payloads in `tests/templates/`.
+Design notes, automation walkthroughs, and deep dives belong in `docs/`.
 
 ## Required Reading
 Before writing code, read:
@@ -9,6 +19,7 @@ Before writing code, read:
 - `README.md`
 - `docs/itir_vs_sl.md`
 - `docs/implementation_style_guide.md`
+- `docs/authority_surfaces.md`
 
 Do not start from generic Python repo habits alone. SensibLaw follows ITIR
 style rules that prefer a generic data-in/world-model-out product surface and
@@ -16,6 +27,19 @@ treat lane modules as demos or compatibility shims.
 
 Hard rules:
 
+- `src.cli:main` is the single source-tree CLI gateway. Invoke it with
+  `python -m src.cli`; do not add direct `python -m cli.__main__` calls.
+- One capability has one semantic authority. Concurrency, persistence,
+  admission, progress, UI, or lane identity must be injected as strategy or
+  profile rather than creating another top-level implementation.
+- Do not add another corpus compiler entrypoint while the operational/fibred
+  compiler contracts remain non-equivalent.
+- Do not import `src.section_parser` in new code. It is a deprecated
+  compatibility projection over `src.ingestion.section_parser`.
+- PostgreSQL migrations under `database/postgres_migrations/` are the sole
+  active semantic migration track. SQLite migrations are deprecated; root and
+  schema migration directories are superseded references.
+- Do not add a migration whose numeric prefix already exists in its directory.
 - If the module name already carries the lane or domain, public function names
   must stay generic: `build_report`, `build_case`, `build_contract`,
   `build_receipt`, `attach_receipt`, `load_fixture`, `load_records`.
@@ -91,7 +115,7 @@ Hard rules:
   them as lane-owned primitives.
 
 ## Build, Test, and Development Commands
-Create a virtual environment and install tooling: `pip install -e .[dev,test]`. Run `pytest` for the full Python test suite, and scope to modules with `pytest tests/streaming/test_versioned_store.py`. Format with `ruff format` and lint via `ruff check --fix`; run `ruff check --select I` if imports need sorting. Verify type coverage using `mypy .`. For dashboards, launch `streamlit run streamlit_app.py`. Invoke the CLI with `python -m sensiblaw.cli --help` when iterating locally.
+Create a virtual environment and install tooling: `pip install -e .[dev,test]`. Run `pytest` for the full Python test suite, and scope to modules with `pytest tests/streaming/test_versioned_store.py`. Format with `ruff format` and lint via `ruff check --fix`; run `ruff check --select I` if imports need sorting. Verify type coverage using `mypy .`. For dashboards, launch `streamlit run streamlit_app.py`. Invoke the CLI with `python -m src.cli --help` when iterating locally.
 
 ## Coding Style & Naming Conventions
 Target Python 3.11 features (match statements, typing.Annotated) while keeping modules import-safe for 3.10 fallback. Use 4-space indentation, descriptive snake_case for functions and variables, and PascalCase for Pydantic models and FastAPI routers. Keep module-level constants in UPPER_SNAKE_CASE, and prefer dependency injection over module globals. Format exclusively with Ruff to avoid churn, and ensure new modules expose a concise `__all__` where APIs are intended for reuse.

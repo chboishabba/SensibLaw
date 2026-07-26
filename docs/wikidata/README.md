@@ -28,14 +28,14 @@ Installed form:
 ```bash
 cd SensibLaw
 ../.venv/bin/pip install -e .
-../.venv/bin/sensiblaw wikidata --help
+../.venv/bin/python -m src.cli wikidata --help
 ```
 
 Checkout fallback form, which works even when the console script is not present:
 
 ```bash
 cd SensibLaw
-../.venv/bin/python -m cli.__main__ wikidata --help
+../.venv/bin/python -m src.cli wikidata --help
 ```
 
 The commands below use the fallback form to avoid assuming the `sensiblaw`
@@ -143,7 +143,7 @@ Start with the pinned pilot pack:
 
 ```bash
 cd SensibLaw
-../.venv/bin/python -m cli.__main__ wikidata build-migration-pack \
+../.venv/bin/python -m src.cli wikidata build-migration-pack \
   --input data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/slice.json \
   --source-property P5991 \
   --target-property P14143 \
@@ -154,7 +154,7 @@ Review all rows in a flat CSV:
 
 ```bash
 cd SensibLaw
-../.venv/bin/python -m cli.__main__ wikidata export-migration-pack-openrefine \
+../.venv/bin/python -m src.cli wikidata export-migration-pack-openrefine \
   --input /tmp/p5991_p14143_migration_pack.json \
   --output /tmp/p5991_p14143_openrefine.csv
 ```
@@ -163,7 +163,7 @@ Stage only locally checked-safe rows:
 
 ```bash
 cd SensibLaw
-../.venv/bin/python -m cli.__main__ wikidata export-migration-pack-checked-safe \
+../.venv/bin/python -m src.cli wikidata export-migration-pack-checked-safe \
   --input /tmp/p5991_p14143_migration_pack.json \
   --output /tmp/p5991_p14143_checked_safe.csv
 ```
@@ -172,7 +172,7 @@ If rows need splitting, build the review-only split plan:
 
 ```bash
 cd SensibLaw
-../.venv/bin/python -m cli.__main__ wikidata build-split-plan \
+../.venv/bin/python -m src.cli wikidata build-split-plan \
   --input /tmp/p5991_p14143_migration_pack.json \
   --output /tmp/p5991_p14143_split_plan.json
 ```
@@ -182,7 +182,7 @@ verify the checked-safe subset:
 
 ```bash
 cd SensibLaw
-../.venv/bin/python -m cli.__main__ wikidata verify-migration-pack \
+../.venv/bin/python -m src.cli wikidata verify-migration-pack \
   --input /tmp/p5991_p14143_migration_pack.json \
   --after path/to/after_state_slice.json \
   --output /tmp/p5991_p14143_verification.json
@@ -201,7 +201,7 @@ Run the demonstrator over the pinned Akademiska Hus case:
 
 ```bash
 cd SensibLaw
-../.venv/bin/python -m cli.__main__ wikidata climate-review-demonstrator \
+../.venv/bin/python -m src.cli wikidata climate-review-demonstrator \
   --migration-pack data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/migration_pack.json \
   --climate-text data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/climate_text_source_q10403939_akademiska_hus_scope1_2018_2020.json \
   --review-packet tests/fixtures/wikidata/wikidata_nat_review_packet_20260401.json \
@@ -226,7 +226,7 @@ property migration.
 Generate all hotspot clusters from the current manifest:
 
 ```bash
-PYTHONPATH=SensibLaw .venv/bin/python -m cli.__main__ wikidata hotspot-generate-clusters \
+PYTHONPATH=SensibLaw .venv/bin/python -m src.cli wikidata hotspot-generate-clusters \
   --manifest docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json \
   --output /tmp/wikidata_hotspot_clusters.json
 ```
@@ -234,7 +234,7 @@ PYTHONPATH=SensibLaw .venv/bin/python -m cli.__main__ wikidata hotspot-generate-
 To focus on one pack:
 
 ```bash
-PYTHONPATH=SensibLaw .venv/bin/python -m cli.__main__ wikidata hotspot-generate-clusters \
+PYTHONPATH=SensibLaw .venv/bin/python -m src.cli wikidata hotspot-generate-clusters \
   --manifest docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json \
   --pack-id software_entity_kind_collapse_pack_v0 \
   --output /tmp/software_entity_kind_collapse_clusters.json
@@ -254,7 +254,7 @@ Run the report against the pilot fixture:
 
 ```bash
 cd SensibLaw
-../.venv/bin/python -m cli.__main__ wikidata disjointness-report \
+../.venv/bin/python -m src.cli wikidata disjointness-report \
   --input tests/fixtures/wikidata/disjointness_p2738_pilot_pack_v1/slice.json \
   --output /tmp/wikidata_disjointness_report.json
 ```
@@ -282,7 +282,7 @@ Run the synthetic `Q27968055` packet fixture:
 
 ```bash
 cd SensibLaw
-../.venv/bin/python -m cli.__main__ wikidata compare-candidates \
+../.venv/bin/python -m src.cli wikidata compare-candidates \
   --packet tests/fixtures/wikidata/q27968055_change_review_packet.json \
   --output /tmp/q27968055_change_review_report.json
 ```

@@ -12,14 +12,14 @@ Wikidata task stories, start with:
 
 If you need one machine-runnable snapshot of the current executable Wikidata
 lanes, start with:
-- `../.venv/bin/python -m cli.__main__ wikidata lane-status`
-- `../.venv/bin/python -m cli.__main__ wikidata lane-bundle --lane disjointness_report`
-- `../.venv/bin/python -m cli.__main__ wikidata lane-graph --lane disjointness_report`
-- `../.venv/bin/python -m cli.__main__ wikidata lane-flatness`
-- `../.venv/bin/python -m cli.__main__ wikidata linkage-depth`
-- `../.venv/bin/python -m cli.__main__ wikidata lane-plan --lane climate_review_demonstrator`
-- `../.venv/bin/python -m cli.__main__ wikidata lane-plan --lane nat_live_follow_preflight`
-- `../.venv/bin/python -m cli.__main__ wikidata lane-proof --lane disjointness_report`
+- `../.venv/bin/python -m src.cli wikidata lane-status`
+- `../.venv/bin/python -m src.cli wikidata lane-bundle --lane disjointness_report`
+- `../.venv/bin/python -m src.cli wikidata lane-graph --lane disjointness_report`
+- `../.venv/bin/python -m src.cli wikidata lane-flatness`
+- `../.venv/bin/python -m src.cli wikidata linkage-depth`
+- `../.venv/bin/python -m src.cli wikidata lane-plan --lane climate_review_demonstrator`
+- `../.venv/bin/python -m src.cli wikidata lane-plan --lane nat_live_follow_preflight`
+- `../.venv/bin/python -m src.cli wikidata lane-proof --lane disjointness_report`
 - `../../docs/planning/wikidata_lane_architecture_and_roadmap_20260703.md`
 - `../../docs/planning/wikidata_lanes_zelph_096_status_20260703.md`
 
@@ -60,7 +60,7 @@ If you need one executable bounded packet showing:
 - final held/promotable disposition
 
 use:
-- `../.venv/bin/python -m cli.__main__ wikidata climate-review-demonstrator \
+- `../.venv/bin/python -m src.cli wikidata climate-review-demonstrator \
   --migration-pack data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/migration_pack.json \
   --climate-text data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/climate_text_source_q10403939_akademiska_hus_scope1_2018_2020.json \
   --review-packet tests/fixtures/wikidata/wikidata_nat_review_packet_20260401.json \
@@ -71,7 +71,7 @@ If you want the same runtime as one compact diagram, use:
 
 If you need the first executable bounded ontology-repair candidate comparison
 surface, use:
-- `../.venv/bin/python -m cli.__main__ wikidata compare-candidates \
+- `../.venv/bin/python -m src.cli wikidata compare-candidates \
   --packet tests/fixtures/wikidata/q27968055_change_review_packet.json \
   --output /tmp/q27968055_change_review_report.json`
 
@@ -189,7 +189,7 @@ shared handoff.
     WikiProject Climate change is treated as an upstream proposal/coordination
     layer, not as the semantic truth layer or promotion lattice
   - a first executable migration-review surface now exists:
-    `sensiblaw wikidata build-migration-pack`
+    `python -m src.cli wikidata build-migration-pack`
   - the immediate next promotion gate is now concrete:
     a bounded live `P5991 -> P14143` pilot pack is now pinned at:
     `SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/`
@@ -203,16 +203,16 @@ shared handoff.
     - explicit QIDs when the editor already has a candidate set
     - bounded live discovery from the source property when they do not
   - the first OpenRefine bridge now exists:
-    `sensiblaw wikidata export-migration-pack-openrefine`
+    `python -m src.cli wikidata export-migration-pack-openrefine`
     for flat CSV review surfaces over existing migration packs
   - the first checked-safe export now also exists:
-    `sensiblaw wikidata export-migration-pack-checked-safe`
+    `python -m src.cli wikidata export-migration-pack-checked-safe`
     for flat CSV staging over only the already-safe subset
   - the first bounded post-edit verifier now also exists:
-    `sensiblaw wikidata verify-migration-pack`
+    `python -m src.cli wikidata verify-migration-pack`
     to compare the checked-safe subset against an after-state slice/export
   - the first split-row followthrough artifact now also exists:
-    `sensiblaw wikidata build-split-plan`
+    `python -m src.cli wikidata build-split-plan`
     for review-only `1 -> N` plans over structurally decomposable
     `split_required` slots
   - that split-plan lane is now explicitly treated as the first concrete
@@ -339,7 +339,7 @@ shared handoff.
       can compare the checked-safe candidate set against the after-state slice
       or export before calling the write path complete
     - the lane now also has a bounded sandbox adapter for that same proof step:
-      `sensiblaw wikidata nat-sandbox-post-write-verification`
+      `python -m src.cli wikidata nat-sandbox-post-write-verification`
       verifies a sandbox microbatch packet directly against an observed
       sandbox after-state capture
     - current recommended write-path order:
@@ -353,7 +353,7 @@ shared handoff.
       surfaces beyond packet-only notes:
       - grounding depth:
         `src/ontology/wikidata_grounding_depth.py`
-        plus `sensiblaw wikidata grounding-depth`
+        plus `python -m src.cli wikidata grounding-depth`
       - Cohort B:
         `src/ontology/wikidata_nat_cohort_b_operator_packet.py`,
         `src/ontology/wikidata_nat_cohort_b_operator_queue.py`, and
@@ -363,14 +363,14 @@ shared handoff.
         `src/ontology/wikidata_cohort_c_operator_report_batch.py`
       - Cohort D:
         `src/ontology/wikidata_nat_cohort_d_review.py` plus
-        `sensiblaw wikidata cohort-d-operator-report`
+        `python -m src.cli wikidata cohort-d-operator-report`
       - Cohort E:
         `src/ontology/wikidata_cohort_e_diagnostics.py` plus
         `cli/cohort_e_diagnostics.py`
       - automation graduation:
         `src/ontology/wikidata_nat_automation_graduation.py` plus
-        `sensiblaw wikidata automation-graduation-eval` and
-        `sensiblaw wikidata automation-graduation-eval-batch`
+        `python -m src.cli wikidata automation-graduation-eval` and
+        `python -m src.cli wikidata automation-graduation-eval-batch`
     - current packet coverage now has a first multi-row attachment index:
       `tests/fixtures/wikidata/wikidata_nat_review_packet_attachment_coverage_20260401.json`
       records `15 / 53` packetized held split rows, with the original packet
@@ -460,9 +460,9 @@ shared handoff.
       and report builder:
       `build_nat_automation_graduation_report(...)`
       plus CLI:
-      `sensiblaw wikidata automation-graduation-eval`
+      `python -m src.cli wikidata automation-graduation-eval`
       plus repeated-run evidence CLI:
-      `sensiblaw wikidata automation-graduation-evidence-report`
+      `python -m src.cli wikidata automation-graduation-evidence-report`
   - current honest read:
     - the moonshot gap is now decomposed into real lane-local evidence work,
       not only roadmap language
@@ -707,12 +707,12 @@ shared handoff.
 - Primary local slice:
   - `tests/fixtures/wikidata/live_p31_p279_slice_20260307.json`
 - Current CLI paths:
-  - `sensiblaw wikidata build-slice`
-  - `sensiblaw wikidata project`
-  - `sensiblaw wikidata find-qualifier-drift`
-  - `sensiblaw wikidata hotspot-generate-clusters`
-  - `sensiblaw wikidata hotspot-eval`
-  - `sensiblaw wikidata disjointness-report`
+  - `python -m src.cli wikidata build-slice`
+  - `python -m src.cli wikidata project`
+  - `python -m src.cli wikidata find-qualifier-drift`
+  - `python -m src.cli wikidata hotspot-generate-clusters`
+  - `python -m src.cli wikidata hotspot-eval`
+  - `python -m src.cli wikidata disjointness-report`
 - Current test-suite interface (flag this as the primary local debug surface for
   the sprint):
   - `tests/test_wikidata_cli.py`

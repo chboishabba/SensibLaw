@@ -2,9 +2,12 @@
 
 ## Status
 
-This document describes the implemented offline product path. It is not a
-second legal parser or semantic compiler. All substantive documents use the
-existing fibred PNF compiler and its single deterministic reduction boundary.
+This document describes the implemented offline product path. It is intended
+to become admission, execution, retry, and persistence strategy around one
+semantic compiler. At present it uses the fibred compiler contract and is not
+behaviorally interchangeable with the operational PostgreSQL compiler. It
+must therefore remain transitional until contract and product parity are
+proved. See `docs/authority_surfaces.md`.
 
 ```text
 persisted source catalogue

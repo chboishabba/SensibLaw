@@ -149,7 +149,7 @@ format.
 The CLI exposes the workflow under ``graph inference``:
 
 ```bash
-python -m sensiblaw.cli graph inference train \
+python -m src.cli graph inference train \
   --graph data/knowledge_graph.json \
   --model transe \
   --epochs 25 \
@@ -165,7 +165,7 @@ target a different predicate and ``--top-k`` to limit the number of
 recommendations per case. Persisted predictions can be queried later:
 
 ```bash
-python -m sensiblaw.cli graph inference rank \
+python -m src.cli graph inference rank \
   --case Case#Mabo1992 \
   --sqlite data/graph_applies_predictions.sqlite \
   --top-k 5
@@ -180,7 +180,7 @@ triples. By default the export includes only graph edges; pass
 actor nodes.
 
 ```bash
-python -m sensiblaw.cli graph export \
+python -m src.cli graph export \
   --graph data/knowledge_graph.json \
   --include-external-refs
 ```

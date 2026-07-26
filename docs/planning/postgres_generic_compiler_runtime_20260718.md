@@ -3,6 +3,11 @@
 Date: 2026-07-18
 Status: implementation tranche; database application still environment-bound
 
+Authority note: PostgreSQL is the persistence authority, but the repository
+does not yet have one behaviorally unified directory compiler. Executor and
+persistence variants remain transitional until operational/fibred output
+parity is proved. See `docs/authority_surfaces.md`.
+
 ## Decision
 
 PostgreSQL is the active operational store for new corpus, language, semantic

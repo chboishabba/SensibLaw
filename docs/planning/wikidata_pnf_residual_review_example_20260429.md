@@ -332,7 +332,7 @@ The narrower claim is:
 
 This note now has a bounded runtime companion:
 
-- `../.venv/bin/python -m cli.__main__ wikidata climate-review-demonstrator \
+- `../.venv/bin/python -m src.cli wikidata climate-review-demonstrator \
   --migration-pack data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/migration_pack.json \
   --climate-text data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/climate_text_source_q10403939_akademiska_hus_scope1_2018_2020.json \
   --review-packet tests/fixtures/wikidata/wikidata_nat_review_packet_20260401.json \

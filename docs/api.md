@@ -2,6 +2,19 @@
 
 Read-only, deterministic endpoints that expose existing obligation data. No reasoning, no inference, no identity changes.
 
+## Router authority status
+
+The repository currently has two independent router implementations:
+`src/api/routes.py` and `sensiblaw/api/routes.py`. They expose different
+capabilities and consumers and are therefore competing authorities, not
+aliases.
+
+The consolidation target is one router tree under the installed
+`src/sensiblaw/api` package. Until that merge is complete, this document
+describes behavior but does not designate either current router as the general
+API authority. Do not add a new endpoint to only one router without an
+explicit migration plan. See `docs/authority_surfaces.md`.
+
 ## `POST /obligations/query`
 - **Purpose:** Filter extracted obligations.
 - **Request:**

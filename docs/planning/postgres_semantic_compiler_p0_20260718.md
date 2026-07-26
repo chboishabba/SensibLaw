@@ -3,6 +3,12 @@
 Date: 2026-07-18
 Status: active implementation contract
 
+Authority note: this is the target semantic/persistence contract, not evidence
+that every current directory compiler implements it. In particular, the
+operational and fibred compiler families currently publish different contract
+versions and products. Concurrency must not be treated as a behavior-only
+switch until parity is proved. See `docs/authority_surfaces.md`.
+
 ## Purpose
 
 ## Persistence boundary

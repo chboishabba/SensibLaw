@@ -12,6 +12,11 @@ This note tracks the six-layer architecture that underpins the timeline stream v
 
 These layers provide the shared vocabulary for the Streamline roadmap and its dependencies.
 
+They do not authorize parallel implementations. Parser, compiler, persistence,
+API, follow, linkage, and world-model ownership is recorded separately in
+`docs/authority_surfaces.md`; each capability must remain singular across
+these semantic layers.
+
 For current compiler-shaped legal work, read them with one extra boundary:
 
 - evidence and promoted outcomes remain canonical

@@ -1,7 +1,7 @@
 # End-to-End Query Flow
 
 This document demonstrates the experimental query pipeline that powers
-`sensiblaw query`. The command accepts different forms of user input and
+`python -m src.cli query`. The command accepts different forms of user input and
 converts them into a concept cloud.
 
 The high level steps are:
@@ -21,13 +21,13 @@ The high level steps are:
 ### Question
 
 ```bash
-sensiblaw query --text "Can a native title be extinguished by state law?"
+python -m src.cli query --text "Can a native title be extinguished by state law?"
 ```
 
 ### Keyword search
 
 ```bash
-sensiblaw query --text "native title extinguishment"
+python -m src.cli query --text "native title extinguishment"
 ```
 
 ### Story graph
@@ -46,7 +46,7 @@ Given a minimal story graph JSON file:
 Invoke the command with the path to the file:
 
 ```bash
-sensiblaw query --graph story.json
+python -m src.cli query --graph story.json
 ```
 
 Each of the above inputs will produce a simple concept cloud based on the
@@ -57,5 +57,5 @@ matched tokens.
 Retrieve how later authorities have treated a given case:
 
 ```bash
-sensiblaw query treatment --case case123
+python -m src.cli query treatment --case case123
 ```

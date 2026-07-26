@@ -17,4 +17,4 @@ The Ptolemy lane’s next step is to produce a deterministic operator index over
 - Run the helper after batch reporting to produce an index that maps reference anchors to all qualifier hints seen on nearby policy-risk candidates.
 - Share the index alongside the batch report so reviewers can quickly scan where hold reasons concentrate and how qualifiers spread while a gate remains closed.
 - No automation claims are made; rerun live preview if candidate populations shift before reusing the index.
-- Operators can now run `sensiblaw wikidata cohort-c-operator-digest --inputs <packet1> <packet2> ...` to materialize a governance digest that aggregates hold reasons and reference qualifier penetration across indexes while keeping every row under `promotion_guard: hold`.
+- Operators can now run `python -m src.cli wikidata cohort-c-operator-digest --inputs <packet1> <packet2> ...` to materialize a governance digest that aggregates hold reasons and reference qualifier penetration across indexes while keeping every row under `promotion_guard: hold`.

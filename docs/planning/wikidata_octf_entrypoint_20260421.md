@@ -304,14 +304,14 @@ Local repo invocation used in the existing docs:
 ```bash
 cd SensibLaw
 ../.venv/bin/pip install -e .[dev,test]
-../.venv/bin/python -m cli.__main__ wikidata --help
+../.venv/bin/python -m src.cli wikidata --help
 ```
 
 Climate migration pack:
 
 ```bash
 cd SensibLaw
-../.venv/bin/python -m cli.__main__ wikidata build-migration-pack \
+../.venv/bin/python -m src.cli wikidata build-migration-pack \
   --input data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/slice.json \
   --source-property P5991 \
   --target-property P14143 \
@@ -322,7 +322,7 @@ OpenRefine review export:
 
 ```bash
 cd SensibLaw
-../.venv/bin/python -m cli.__main__ wikidata export-migration-pack-openrefine \
+../.venv/bin/python -m src.cli wikidata export-migration-pack-openrefine \
   --input data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/migration_pack.json \
   --output /tmp/p5991_p14143_openrefine.csv
 ```
@@ -331,7 +331,7 @@ Checked-safe-only export:
 
 ```bash
 cd SensibLaw
-../.venv/bin/python -m cli.__main__ wikidata export-migration-pack-checked-safe \
+../.venv/bin/python -m src.cli wikidata export-migration-pack-checked-safe \
   --input data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/migration_pack.json \
   --output /tmp/p5991_p14143_checked_safe.csv
 ```
@@ -340,7 +340,7 @@ Post-edit verification:
 
 ```bash
 cd SensibLaw
-../.venv/bin/python -m cli.__main__ wikidata verify-migration-pack \
+../.venv/bin/python -m src.cli wikidata verify-migration-pack \
   --input data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/migration_pack.json \
   --after path/to/after_state_slice.json \
   --output /tmp/p5991_p14143_verification.json
@@ -350,7 +350,7 @@ Split-plan review surface:
 
 ```bash
 cd SensibLaw
-../.venv/bin/python -m cli.__main__ wikidata build-split-plan \
+../.venv/bin/python -m src.cli wikidata build-split-plan \
   --input data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/migration_pack.json \
   --output /tmp/p5991_p14143_split_plan.json
 ```
@@ -359,7 +359,7 @@ Cross-lane governance summary:
 
 ```bash
 cd SensibLaw
-../.venv/bin/python -m cli.__main__ wikidata world-model-lane-summary \
+../.venv/bin/python -m src.cli wikidata world-model-lane-summary \
   --input path/to/lane_report_1.json \
   --input path/to/lane_report_2.json \
   --output /tmp/wikidata_world_model_lane_summary.json
@@ -413,7 +413,7 @@ isolated item at a time.
 - CLI:
 
 ```bash
-PYTHONPATH=SensibLaw .venv/bin/python -m cli.__main__ wikidata hotspot-generate-clusters \
+PYTHONPATH=SensibLaw .venv/bin/python -m src.cli wikidata hotspot-generate-clusters \
   --manifest docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json \
   --output /tmp/wikidata_hotspot_clusters.json
 ```
@@ -434,7 +434,7 @@ qualifiers carried by the bounded `P2738` statements.
 
 ```bash
 cd SensibLaw
-../.venv/bin/python -m cli.__main__ wikidata disjointness-report \
+../.venv/bin/python -m src.cli wikidata disjointness-report \
   --input path/to/bounded_disjointness_slice.json \
   --output /tmp/wikidata_disjointness_report.json
 ```

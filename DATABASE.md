@@ -143,13 +143,24 @@ guardrails.
 
 ## Database Migration Tracks
 
-- SQLite migrations live in `database/migrations` and are exercised by tests via `MigrationRunner`.
-  `MigrationRunner` tracks applied migrations in a `schema_migrations` table so `ensure_database()`
-  is safe to call repeatedly.
-- The Postgres-first schema (no data carry-forward) is defined in `database/postgres_migrations`; apply with `scripts/apply_pg_migrations.sh` using your `PG*` env vars or `DATABASE_URL`.
+- **Active:** PostgreSQL migrations live in
+  `database/postgres_migrations/`. This is the sole active semantic schema and
+  persistence track. Apply it with `scripts/apply_pg_migrations.sh` using
+  `PG*` environment variables or `DATABASE_URL`.
+- **Deprecated:** SQLite ontology migrations live in `database/migrations/`.
+  They are retained for bounded historical import/replay fixtures and tests
+  through `MigrationRunner`; they are not a parallel runtime semantic
+  authority.
+- **Superseded reference only:** SQL under `migrations/` and
+  `schemas/migrations/` must not be executed.
 - Migration `007_compiler_substrate.sql` adds the generic compiler substrate:
   immutable declarations and build dependencies, canonical compiler documents,
   shared annotations, factorised PNF graphs/revisions, local typed meets, and
   unresolved demands. These rows intentionally do not require legal-source,
   actor, or event records; later legal bridges must be explicit.
-- Legacy, unrun SQL in `migrations/` and `schemas/migrations/` is superseded by the new Postgres track but retained for reference.
+
+The active PostgreSQL directory currently contains duplicate `006_*` and
+`007_*` numeric prefixes. The deprecated SQLite directory contains duplicate
+`002_*` prefixes. Do not add another duplicate prefix, rename an applied file
+in place, or rely on the numeric prefix as a unique migration identity until a
+checksum-preserving renumbering plan is completed.

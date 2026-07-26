@@ -6,6 +6,11 @@ This document defines the execution contract for the document-local semantic com
 It does not define legal truth, applicability, identity resolution, breach, liability, or
 professional review outcomes. Execution produces candidate semantic evidence only.
 
+Streaming is an execution strategy, not an independent semantic authority. The
+current implementation remains transitional until it preserves the same
+document-compiler contract and products as the operational path. See
+`docs/authority_surfaces.md`.
+
 ## Architectural change
 
 The compiler is no longer modelled as:

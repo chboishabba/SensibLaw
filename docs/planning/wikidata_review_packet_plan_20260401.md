@@ -112,7 +112,7 @@ Update:
 - that grounding lane now also has a reproducible operator path:
   - `SensibLaw/src/ontology/wikidata_grounding_depth.py`
   - `SensibLaw/cli/grounding_depth.py`
-  - `sensiblaw wikidata grounding-depth`
+  - `python -m src.cli wikidata grounding-depth`
 - variant comparison now has a grounded Nat example path: when the split
   payload includes sibling plans from the same cohort, the packet can derive
   a small bounded comparison set automatically, so the comparison lane is no

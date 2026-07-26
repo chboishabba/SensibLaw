@@ -27,7 +27,7 @@ Implemented in bounded `v0.1` form through:
 - runtime:
   - `src/ontology/wikidata.py`
 - CLI:
-  - `sensiblaw wikidata build-migration-pack`
+  - `python -m src.cli wikidata build-migration-pack`
 
 `sensiblaw` is the installed console-script name from `pyproject.toml`. In a
 plain checkout where that script has not been installed, use the module form
@@ -35,7 +35,7 @@ instead:
 
 ```bash
 cd SensibLaw
-../.venv/bin/python -m cli.__main__ wikidata build-migration-pack --help
+../.venv/bin/python -m src.cli wikidata build-migration-pack --help
 ```
 
 ## Bounded live discovery and reconciliation
@@ -558,7 +558,7 @@ Immediate next policy goal:
 Build a pack from a bounded slice:
 
 ```bash
-sensiblaw wikidata build-migration-pack \
+python -m src.cli wikidata build-migration-pack \
   --input path/to/slice.json \
   --source-property P5991 \
   --target-property P14143 \
@@ -621,7 +621,7 @@ One-step materialization plus OpenRefine CSV:
 Export a materialized migration pack to OpenRefine CSV:
 
 ```bash
-sensiblaw wikidata export-migration-pack-openrefine \
+python -m src.cli wikidata export-migration-pack-openrefine \
   --input path/to/migration_pack.json \
   --output path/to/migration_pack_openrefine.csv
 ```
@@ -629,7 +629,7 @@ sensiblaw wikidata export-migration-pack-openrefine \
 Export only the checked-safe subset:
 
 ```bash
-sensiblaw wikidata export-migration-pack-checked-safe \
+python -m src.cli wikidata export-migration-pack-checked-safe \
   --input path/to/migration_pack.json \
   --output path/to/migration_pack_checked_safe.csv
 ```
@@ -637,7 +637,7 @@ sensiblaw wikidata export-migration-pack-checked-safe \
 Verify the checked-safe subset against an after-state slice/export:
 
 ```bash
-sensiblaw wikidata verify-migration-pack \
+python -m src.cli wikidata verify-migration-pack \
   --input path/to/migration_pack.json \
   --after path/to/after_state_slice.json \
   --output path/to/migration_verification.json
@@ -663,7 +663,7 @@ contract:
 - schema:
   `schemas/sl.wikidata_split_plan.v0_1.schema.yaml`
 - CLI:
-  `sensiblaw wikidata build-split-plan`
+  `python -m src.cli wikidata build-split-plan`
 
 Boundary:
 - `MigrationPack` detects and explains split pressure

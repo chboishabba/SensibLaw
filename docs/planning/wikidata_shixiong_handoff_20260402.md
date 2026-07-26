@@ -68,7 +68,7 @@ These pieces are real now:
 - a schema-backed contract:
   `SensibLaw/schemas/sl.wikidata_migration_pack.v1.schema.yaml`
 - a CLI builder:
-  `sensiblaw wikidata build-migration-pack`
+  `python -m src.cli wikidata build-migration-pack`
 - first runtime buckets:
   - `safe_equivalent`
   - `safe_with_reference_transfer`
@@ -77,13 +77,13 @@ These pieces are real now:
   - `split_required`
   - `abstain`
 - checked-safe export:
-  `sensiblaw wikidata export-migration-pack-checked-safe`
+  `python -m src.cli wikidata export-migration-pack-checked-safe`
 - OpenRefine CSV export:
-  `sensiblaw wikidata export-migration-pack-openrefine`
+  `python -m src.cli wikidata export-migration-pack-openrefine`
 - post-edit verification:
-  `sensiblaw wikidata verify-migration-pack`
+  `python -m src.cli wikidata verify-migration-pack`
 - split-plan support for hard rows:
-  `sensiblaw wikidata build-split-plan`
+  `python -m src.cli wikidata build-split-plan`
 
 ## What the first real pilot shows
 

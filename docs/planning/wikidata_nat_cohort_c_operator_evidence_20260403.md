@@ -15,7 +15,7 @@ Strengthen the Cohort C operator evidence surface by packetizing a broader live-
 ## Inputs
 
 - Extended preview fixture: `tests/fixtures/wikidata/wikidata_nat_cohort_c_operator_packet_extension_20260403.json`
-- Operator CLI: `sensiblaw wikidata cohort-c-operator-packet`
+- Operator CLI: `python -m src.cli wikidata cohort-c-operator-packet`
 
 ## ZKP Frame
 
@@ -71,13 +71,13 @@ Strengthen the Cohort C operator evidence surface by packetizing a broader live-
 
 1. Use the fixture to inspect reference anchors before updating classification logs.
 2. Keep `promotion_guard: hold` until a second reviewer confirms the policy risk is mitigated.
-3. Log CLI execution (`sensiblaw wikidata cohort-c-operator-packet`) as part of the fix-it review so the packet ties back to the documented fixture.
+3. Log CLI execution (`python -m src.cli wikidata cohort-c-operator-packet`) as part of the fix-it review so the packet ties back to the documented fixture.
 
 ## Runtime Seam
 
 - The new helper `build_nat_cohort_c_operator_evidence_packet` (see `src/ontology/wikidata_cohort_c_operator_evidence.py`)
   deterministically materializes this richer evidence packet from any Cohort C preview payload.
-- Use `sensiblaw wikidata cohort-c-operator-evidence` to rerun the preview helper, regenerate the fixture, and append the packet hash so operators can confirm the data slice.
-- Run `sensiblaw wikidata cohort-c-operator-report` (or point it at the generated evidence packet via `--input`) to materialize the derived hold/reference summary that operators cite in downstream review logs.
-- Run `sensiblaw wikidata cohort-c-operator-report-batch --inputs <file1> <file2> ...` to merge several evidence packets into one batch summary, keeping every candidate clearly held under the same gating semantics.
+- Use `python -m src.cli wikidata cohort-c-operator-evidence` to rerun the preview helper, regenerate the fixture, and append the packet hash so operators can confirm the data slice.
+- Run `python -m src.cli wikidata cohort-c-operator-report` (or point it at the generated evidence packet via `--input`) to materialize the derived hold/reference summary that operators cite in downstream review logs.
+- Run `python -m src.cli wikidata cohort-c-operator-report-batch --inputs <file1> <file2> ...` to merge several evidence packets into one batch summary, keeping every candidate clearly held under the same gating semantics.
 - The CLI command shares the same fail-closed gate (`review_first_population_scan`) and respects the `promotion_guard: hold` semantics so the evidence remains a review artifact.

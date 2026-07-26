@@ -3,6 +3,13 @@
 Date: 2026-07-18
 Status: local-only corpus orchestration contract
 
+Authority note: this document states the intended single-kernel design. The
+current repository still has semantically non-equivalent operational, fibred,
+parallel, streaming, optimized, and curated compiler paths. Until they pass
+contract and product parity, none of those execution variants should be
+presented as a behavior-preserving substitute for another. See
+`docs/authority_surfaces.md`.
+
 ## Purpose
 
 The directory kernel turns a bounded filesystem corpus into deterministic,

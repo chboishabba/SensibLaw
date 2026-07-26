@@ -1,5 +1,11 @@
 # Curated Legal-IR performance and parity tranche
 
+Authority note: curated compilation is currently a transitional execution,
+admission, retry, and persistence path over the fibred compiler contract. It is
+not yet a strategy of a behaviorally unified corpus compiler and must not be
+substituted for the operational compiler without product-parity evidence. See
+`docs/authority_surfaces.md`.
+
 The offline catalogue boundary is explicit:
 
 ```text

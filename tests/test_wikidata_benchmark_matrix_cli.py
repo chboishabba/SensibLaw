@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_wikidata_benchmark_matrix_cli_defaults_cache_only() -> None:
     proc = subprocess.run(
-        [sys.executable, "-m", "cli", "wikidata", "benchmark-matrix", "--lane", "projection"],
+        [sys.executable, "-m", "src.cli", "wikidata", "benchmark-matrix", "--lane", "projection"],
         cwd=ROOT,
         check=True,
         text=True,

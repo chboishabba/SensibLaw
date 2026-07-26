@@ -16,7 +16,7 @@ governance.
 
 ## CLI Surface
 
-- `sensiblaw wikidata cohort-d-operator-report --input <operator_review.json> [--output <operator_report.json>]`
+- `python -m src.cli wikidata cohort-d-operator-report --input <operator_review.json> [--output <operator_report.json>]`
 
 ## Pinned Artifact
 

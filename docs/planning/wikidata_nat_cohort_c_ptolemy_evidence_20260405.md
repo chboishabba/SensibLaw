@@ -10,12 +10,12 @@ Push the Ptolemy lane by recording a broader operator evidence slice for Cohort 
 
 - Extended evidence fixture `tests/fixtures/wikidata/wikidata_nat_cohort_c_operator_evidence_packet_20260404.json`
 - New broader fixture `tests/fixtures/wikidata/wikidata_nat_cohort_c_ptolemy_evidence_sample_20260405.json`
-- CLI entrypoints: `sensiblaw wikidata cohort-c-operator-evidence` and `sensiblaw wikidata cohort-c-operator-report-batch`
+- CLI entrypoints: `python -m src.cli wikidata cohort-c-operator-evidence` and `python -m src.cli wikidata cohort-c-operator-report-batch`
 
 ## Ptolemy Operator Surface
 
 - The new fixture mirrors a broader live-preview slice (3+ candidates) with per-candidate `reference_anchor`, `preview_hold_reason`, `operator_hold_reason`, and `qualifier_hint` statements.
-- Operators feed the evidence fixture into `sensiblaw wikidata cohort-c-operator-report-batch` along with previously generated packets to produce an aggregated hold/reference summary that always stays within the review-first gate.
+- Operators feed the evidence fixture into `python -m src.cli wikidata cohort-c-operator-report-batch` along with previously generated packets to produce an aggregated hold/reference summary that always stays within the review-first gate.
 - The aggregate summary can be published as governance evidence; every row retains `promotion_guard: hold` and `hold_gate: review_first_population_scan`.
 
 ## Live-Preview/Runtime Boundary

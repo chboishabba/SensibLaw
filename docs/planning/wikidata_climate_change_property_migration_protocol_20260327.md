@@ -811,7 +811,7 @@ review_pack = {
 2. Use the new bounded migration-pack contract for property-to-property review:
    - `docs/planning/wikidata_migration_pack_contract_20260328.md`
    - `schemas/sl.wikidata_migration_pack.v1.schema.yaml`
-3. Use `sensiblaw wikidata build-migration-pack` as the first executable
+3. Use `python -m src.cli wikidata build-migration-pack` as the first executable
    surface for checked-safe subset construction.
 4. Materialize one pinned climate-change migration pack before discussing any
    wider batch.

@@ -22,7 +22,7 @@ packet evidence while keeping every artifact review-first and fail-closed.
 
 - Cohort C population scan fixture: `tests/fixtures/wikidata/wikidata_nat_cohort_c_population_scan_20260402.json`
 - New live preview fixture: `tests/fixtures/wikidata/wikidata_nat_cohort_c_live_preview_extension_20260402.json`
-- Operator packet CLI entrypoint: `sensiblaw wikidata cohort-c-operator-packet`
+- Operator packet CLI entrypoint: `python -m src.cli wikidata cohort-c-operator-packet`
 
 ## ZKP Frame
 

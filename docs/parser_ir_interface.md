@@ -114,6 +114,15 @@ from sensiblaw.interfaces import (
 The public import path should be through `sensiblaw.interfaces`, not through
 private implementation modules.
 
+`src.ingestion.media_adapter.parse_canonical_text(CanonicalText)` is a
+different envelope-building operation with a different return type. New code
+should call its clearer `build_parsed_envelope(...)` name instead of treating
+that private alias as the public parser contract.
+
+`src.section_parser` is also not a public parser surface. It is a deprecated
+compatibility projection over `src.ingestion.section_parser` that returns
+historical output shapes. New callers must not import it.
+
 ## Status Note
 
 At the time of this document:

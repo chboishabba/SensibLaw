@@ -17,7 +17,7 @@ This is a deterministic index layer above batch reporting.
 
 ## CLI Surface
 
-- `sensiblaw wikidata cohort-d-review-control-index --input <index_input.json> [--output <index.json>]`
+- `python -m src.cli wikidata cohort-d-review-control-index --input <index_input.json> [--output <index.json>]`
 
 ## Pinned Artifacts
 
