@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+from contextlib import nullcontext
+import json
 import hashlib
+import os
 import sys
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+import tempfile
+from time import monotonic_ns
+from typing import Any, Callable, Mapping, Sequence
 
 from tqdm.auto import tqdm
 
@@ -17,6 +22,7 @@ from src.policy.operational_corpus_compilation import (
     OPERATIONAL_COMPILER_CONTRACT,
     compile_document_operational,
 )
+from src.runtime.progress import PhaseRecorder
 from src.sensiblaw.interfaces.shared_reducer import tokenize_canonical_with_spans
 from src.storage.postgres import PersistedCompilation, PostgresCompilerStore
 from src.storage.postgres.binding_candidate_store import persist_binding_candidate_sets
@@ -33,6 +39,8 @@ from src.storage.postgres.span_store import persist_licensed_spans
 
 
 PreparedSource = tuple[bytes, str]
+CompilationDocumentExecutor = Callable[..., tuple[str, ...]]
+COMPILATION_STATE_SCHEMA_VERSION = "sl.postgres_corpus_compilation_state.v0_1"
 
 
 def _canonical_source_coordinates(
@@ -390,6 +398,44 @@ def _validate_document_parent_closure(
             )
 
 
+def _atomic_write_json(path: Path, payload: Mapping[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        "w",
+        encoding="utf-8",
+        dir=path.parent,
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        delete=False,
+    ) as handle:
+        json_payload = json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True)
+        handle.write(json_payload + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+        temp_path = Path(handle.name)
+    temp_path.replace(path)
+    parent_fd = os.open(path.parent, os.O_RDONLY)
+    try:
+        os.fsync(parent_fd)
+    finally:
+        os.close(parent_fd)
+
+
+def _load_compilation_state(path: Path | None) -> dict[str, Any] | None:
+    if path is None or not path.exists():
+        return None
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"expected JSON object: {path}")
+    return payload
+
+
+def _save_compilation_state(path: Path | None, payload: Mapping[str, Any]) -> None:
+    if path is None:
+        return
+    _atomic_write_json(path, payload)
+
+
 def persist_document_compilation(
     *,
     store: PostgresCompilerStore,
@@ -401,6 +447,8 @@ def persist_document_compilation(
     context: CompilerContext,
     execution_phase: str,
     batch_index: int,
+    closure_workers: int = 1,
+    owner_partitions: int = 1,
 ) -> tuple[str, ...]:
     """Compile and persist one document transactionally.
 
@@ -657,12 +705,31 @@ def compile_directory_postgres(
     max_file_bytes: int | None = None,
     max_total_bytes: int | None = None,
     execution_phase: str = "local",
+    document_executor: CompilationDocumentExecutor = persist_document_compilation,
+    document_executor_ref: str = "document-executor:postgres-operational:v0_1",
+    document_executor_contract_ref: str = OPERATIONAL_COMPILER_CONTRACT,
+    persistence_strategy_ref: str = "persistence:postgres-savepoint:v0_1",
+    admission_policy_ref: str = "admission:inventoried-only:v0_1",
+    admission_policy: Callable[[Mapping[str, Any]], bool] | None = None,
+    closure_workers: int = 1,
+    owner_partitions: int = 1,
+    progress: PhaseRecorder | None = None,
+    state_path: str | Path | None = None,
+    resume: bool = True,
 ) -> PersistedCompilation:
     """Compile a bounded directory directly into PostgreSQL."""
 
     if execution_phase not in {"inventory", "local", "demand_planning"}:
         raise ValueError("unsupported corpus compilation phase")
+    if closure_workers < 1:
+        raise ValueError("closure_workers must be positive")
+    if owner_partitions < 1:
+        raise ValueError("owner_partitions must be positive")
     root = Path(input_dir).resolve()
+    state_file = Path(state_path).resolve() if state_path is not None else None
+    run_state: dict[str, Any] | None = None
+    if resume:
+        run_state = _load_compilation_state(state_file)
     manifest = build_corpus_manifest(
         root,
         context=context,
@@ -680,6 +747,26 @@ def compile_directory_postgres(
         context=context,
     )
     corpus_ref = str(manifest_row["corpus_ref"])
+    manifest_sha256 = str(manifest_row["manifest_sha256"])
+    if run_state is not None:
+        expected_state = {
+            "schema_version": COMPILATION_STATE_SCHEMA_VERSION,
+            "corpus_ref": corpus_ref,
+            "manifest_sha256": manifest_sha256,
+            "compiler_context_ref": context.context_ref,
+            "execution_phase": execution_phase,
+            "document_executor_ref": document_executor_ref,
+            "document_executor_contract_ref": document_executor_contract_ref,
+            "persistence_strategy_ref": persistence_strategy_ref,
+            "admission_policy_ref": admission_policy_ref,
+        }
+        for key, expected in expected_state.items():
+            observed = run_state.get(key)
+            if observed is not None and str(observed) != str(expected):
+                raise ValueError(
+                    f"compilation resume state mismatch for {key}: "
+                    f"expected={expected} observed={observed}"
+                )
     with store.transaction() as cursor:
         store.persist_context(cursor, context.to_dict())
         store.persist_manifest(cursor, manifest_row)
@@ -690,10 +777,19 @@ def compile_directory_postgres(
     document_refs: list[str] = []
     demand_refs: list[str] = []
     failure_refs: list[str] = []
+    resume_documents = (
+        dict(run_state.get("documents") or {}) if run_state is not None else {}
+    )
+    resume_duplicate_occurrences = [
+        tuple(row)
+        for row in (run_state.get("duplicate_occurrences") or [])
+        if isinstance(row, Sequence) and len(row) == 2
+    ] if run_state is not None else []
     ordered_documents = [
         entry
         for entry in manifest_row["ordered_documents"]
         if entry["status"] == "inventoried"
+        and (admission_policy(entry) if admission_policy is not None else True)
     ]
     progress_iter = tqdm(
         ordered_documents,
@@ -705,93 +801,290 @@ def compile_directory_postgres(
         file=sys.stderr,
         disable=not sys.stderr.isatty(),
     )
-    for batch_index, entry in enumerate(progress_iter, start=1):
-        document_ref = str(entry["document_ref"])
-        relative_path = str(entry["relative_path"])
-        if document_ref in compiled:
-            with store.transaction() as cursor:
-                store.persist_occurrence(
-                    cursor,
-                    corpus_ref=corpus_ref,
-                    relative_path=relative_path,
-                    document_ref=document_ref,
-                    state="duplicate_content_occurrence",
-                )
-            continue
-        try:
-            prepared = prepared_sources.get(relative_path)
-            if prepared is None:
-                source_bytes = (root / relative_path).read_bytes()
-                source_text = source_bytes.decode("utf-8")
-            else:
-                source_bytes, source_text = prepared
-            canonical_text, canonical_text_sha256, media_adapter_ref = (
-                _canonical_source_coordinates(
-                    media_type=str(entry["media_type"]),
-                    source_text=source_text,
-                    source_ref=f"document-source:{document_ref}",
-                )
-            )
-            build_key_sha256 = _operational_build_key(
-                document_ref=document_ref,
-                content_sha256=str(entry["content_sha256"]),
-                canonical_text_sha256=canonical_text_sha256,
-                media_adapter_ref=media_adapter_ref,
-                context=context,
-            )
-            with store.transaction() as cursor:
-                cached_demand_refs = load_completed_operational_build(
-                    cursor,
-                    document_ref=document_ref,
-                    compiler_contract_ref=OPERATIONAL_COMPILER_CONTRACT,
-                    build_key_sha256=build_key_sha256,
-                )
-            if cached_demand_refs is not None:
-                with store.transaction() as cursor:
-                    store.persist_occurrence(
-                        cursor,
-                        corpus_ref=corpus_ref,
-                        relative_path=relative_path,
-                        document_ref=document_ref,
-                        state="reused_compilation",
-                    )
-                compiled.add(document_ref)
+    class _NoopPhaseHandle:
+        def advance(self, **_kwargs: Any) -> None:
+            return None
+
+    progress_phase = (
+        progress.phase(
+            f"postgres_{execution_phase}_compile",
+            total=len(ordered_documents),
+            worker=document_executor_ref,
+            details={
+                "document_executor_ref": document_executor_ref,
+                "document_executor_contract_ref": document_executor_contract_ref,
+                "persistence_strategy_ref": persistence_strategy_ref,
+                "admission_policy_ref": admission_policy_ref,
+                "closure_workers": closure_workers,
+                "owner_partitions": owner_partitions,
+            },
+        )
+        if progress is not None
+        else nullcontext(_NoopPhaseHandle())
+    )
+    state_row: dict[str, Any] = {
+        "schema_version": COMPILATION_STATE_SCHEMA_VERSION,
+        "corpus_ref": corpus_ref,
+        "manifest_sha256": manifest_sha256,
+        "compiler_context_ref": context.context_ref,
+        "execution_phase": execution_phase,
+        "document_executor_ref": document_executor_ref,
+        "document_executor_contract_ref": document_executor_contract_ref,
+        "persistence_strategy_ref": persistence_strategy_ref,
+        "admission_policy_ref": admission_policy_ref,
+        "closure_workers": closure_workers,
+        "owner_partitions": owner_partitions,
+        "root": str(root),
+        "documents": resume_documents,
+        "duplicate_occurrences": resume_duplicate_occurrences,
+        "document_refs": [],
+        "demand_refs": [],
+        "failure_refs": [],
+        "completed_document_count": 0,
+    }
+    compiled.update(
+        {
+            document_ref
+            for document_ref, payload in resume_documents.items()
+            if isinstance(payload, Mapping)
+            and str(payload.get("state") or "") in {
+                "compiled",
+                "reused_compilation",
+            }
+            and str(payload.get("build_key_sha256") or "")
+        }
+    )
+    if resume_documents:
+        for payload in resume_documents.values():
+            if not isinstance(payload, Mapping):
+                continue
+            if str(payload.get("state") or "") not in {
+                "compiled",
+                "reused_compilation",
+            }:
+                continue
+            document_ref = str(payload.get("document_ref") or "")
+            if document_ref:
                 document_refs.append(document_ref)
-                demand_refs.extend(cached_demand_refs)
+                demand_refs.extend(str(ref) for ref in payload.get("demand_refs") or ())
+                if payload.get("failure_ref"):
+                    failure_refs.append(str(payload["failure_ref"]))
+    state_row["document_refs"] = list(document_refs)
+    state_row["demand_refs"] = list(demand_refs)
+    state_row["failure_refs"] = list(failure_refs)
+    state_row["completed_document_count"] = len(document_refs)
+    with progress_phase as phase_handle:
+        if phase_handle is None:
+            phase_handle = _NoopPhaseHandle()
+        for batch_index, entry in enumerate(progress_iter, start=1):
+            document_ref = str(entry["document_ref"])
+            relative_path = str(entry["relative_path"])
+            worker_ref = f"{document_executor_ref}:doc-{batch_index:04d}"
+            if document_ref in compiled:
                 if sys.stderr.isatty():
                     progress_iter.set_postfix_str("reused", refresh=False)
+                phase_handle.advance(
+                    subject_ref=document_ref,
+                    message="reused",
+                    reused=True,
+                    details={
+                        "relative_path": relative_path,
+                        "worker": worker_ref,
+                        "state": "reused_checkpoint",
+                    },
+                    worker=worker_ref,
+                )
                 continue
-            refs = persist_document_compilation(
-                store=store,
-                corpus_ref=corpus_ref,
-                relative_path=relative_path,
-                entry=entry,
-                source_bytes=source_bytes,
-                source_text=source_text,
-                context=context,
-                execution_phase=execution_phase,
-                batch_index=batch_index,
-            )
-        except (OSError, UnicodeDecodeError, ValueError, RuntimeError) as error:
-            with store.transaction() as cursor:
-                failure_refs.append(
-                    store.persist_failure(
+            try:
+                prepared = prepared_sources.get(relative_path)
+                if prepared is None:
+                    source_bytes = (root / relative_path).read_bytes()
+                    source_text = source_bytes.decode("utf-8")
+                else:
+                    source_bytes, source_text = prepared
+                canonical_text, canonical_text_sha256, media_adapter_ref = (
+                    _canonical_source_coordinates(
+                        media_type=str(entry["media_type"]),
+                        source_text=source_text,
+                        source_ref=f"document-source:{document_ref}",
+                    )
+                )
+                build_key_sha256 = _operational_build_key(
+                    document_ref=document_ref,
+                    content_sha256=str(entry["content_sha256"]),
+                    canonical_text_sha256=canonical_text_sha256,
+                    media_adapter_ref=media_adapter_ref,
+                    context=context,
+                )
+                state_entry = resume_documents.get(document_ref)
+                if (
+                    isinstance(state_entry, Mapping)
+                    and str(state_entry.get("build_key_sha256") or "")
+                    == build_key_sha256
+                    and str(state_entry.get("state") or "") in {
+                        "compiled",
+                        "reused_compilation",
+                    }
+                ):
+                    refs = tuple(str(ref) for ref in state_entry.get("demand_refs") or ())
+                    compiled.add(document_ref)
+                    document_refs.append(document_ref)
+                    demand_refs.extend(refs)
+                    if sys.stderr.isatty():
+                        progress_iter.set_postfix_str("reused", refresh=False)
+                    phase_handle.advance(
+                        subject_ref=document_ref,
+                        message="reused",
+                        reused=True,
+                        details={
+                            "relative_path": relative_path,
+                            "worker": str(state_entry.get("worker") or worker_ref),
+                            "state": str(state_entry.get("state") or "reused_compilation"),
+                            "build_key_sha256": build_key_sha256,
+                            "closure_workers": closure_workers,
+                            "owner_partitions": owner_partitions,
+                        },
+                        worker=str(state_entry.get("worker") or worker_ref),
+                    )
+                    continue
+                with store.transaction() as cursor:
+                    cached_demand_refs = load_completed_operational_build(
+                        cursor,
+                        document_ref=document_ref,
+                        compiler_contract_ref=document_executor_contract_ref,
+                        build_key_sha256=build_key_sha256,
+                    )
+                if cached_demand_refs is not None:
+                    with store.transaction() as cursor:
+                        store.persist_occurrence(
+                            cursor,
+                            corpus_ref=corpus_ref,
+                            relative_path=relative_path,
+                            document_ref=document_ref,
+                            state="reused_compilation",
+                        )
+                    compiled.add(document_ref)
+                    document_refs.append(document_ref)
+                    demand_refs.extend(cached_demand_refs)
+                    resume_documents[document_ref] = {
+                        "document_ref": document_ref,
+                        "relative_path": relative_path,
+                        "state": "reused_compilation",
+                        "build_key_sha256": build_key_sha256,
+                        "demand_refs": list(cached_demand_refs),
+                        "worker": worker_ref,
+                    }
+                    _save_compilation_state(state_file, state_row)
+                    if sys.stderr.isatty():
+                        progress_iter.set_postfix_str("reused", refresh=False)
+                    phase_handle.advance(
+                        subject_ref=document_ref,
+                        message="reused",
+                        reused=True,
+                        details={
+                            "relative_path": relative_path,
+                            "worker": worker_ref,
+                            "state": "reused_compilation",
+                            "build_key_sha256": build_key_sha256,
+                            "closure_workers": closure_workers,
+                            "owner_partitions": owner_partitions,
+                        },
+                        worker=worker_ref,
+                    )
+                    continue
+                started_ns = monotonic_ns()
+                refs = document_executor(
+                    store=store,
+                    corpus_ref=corpus_ref,
+                    relative_path=relative_path,
+                    entry=entry,
+                    source_bytes=source_bytes,
+                    source_text=source_text,
+                    context=context,
+                    execution_phase=execution_phase,
+                    batch_index=batch_index,
+                    closure_workers=closure_workers,
+                    owner_partitions=owner_partitions,
+                )
+            except (OSError, UnicodeDecodeError, ValueError, RuntimeError) as error:
+                with store.transaction() as cursor:
+                    failure_ref = store.persist_failure(
                         cursor,
                         target_ref=document_ref,
                         phase_ref="local_compile",
                         error=error,
                     )
+                failure_refs.append(failure_ref)
+                resume_documents[document_ref] = {
+                    "document_ref": document_ref,
+                    "relative_path": relative_path,
+                    "state": "failed",
+                    "failure_ref": failure_ref,
+                    "error_type": type(error).__name__,
+                    "error": str(error),
+                    "worker": worker_ref,
+                }
+                state_row["document_refs"] = list(document_refs)
+                state_row["demand_refs"] = list(demand_refs)
+                state_row["failure_refs"] = list(failure_refs)
+                state_row["completed_document_count"] = len(document_refs)
+                _save_compilation_state(state_file, state_row)
+                if sys.stderr.isatty():
+                    progress_iter.set_postfix_str("failed", refresh=False)
+                phase_handle.advance(
+                    subject_ref=document_ref,
+                    message="failed",
+                    reused=False,
+                    details={
+                        "relative_path": relative_path,
+                        "worker": worker_ref,
+                        "state": "failed",
+                        "error_type": type(error).__name__,
+                        "error": str(error),
+                    },
+                    worker=worker_ref,
                 )
+                continue
+            compiled.add(document_ref)
+            document_refs.append(document_ref)
+            demand_refs.extend(refs)
+            resume_documents[document_ref] = {
+                "document_ref": document_ref,
+                "relative_path": relative_path,
+                "state": "compiled",
+                "build_key_sha256": build_key_sha256,
+                "demand_refs": list(refs),
+                "worker": worker_ref,
+                "elapsed_ms": max(0, (monotonic_ns() - started_ns) // 1_000_000),
+            }
+            state_row["document_refs"] = list(document_refs)
+            state_row["demand_refs"] = list(demand_refs)
+            state_row["failure_refs"] = list(failure_refs)
+            state_row["completed_document_count"] = len(document_refs)
+            _save_compilation_state(state_file, state_row)
             if sys.stderr.isatty():
-                progress_iter.set_postfix_str("failed", refresh=False)
-            continue
-        compiled.add(document_ref)
-        document_refs.append(document_ref)
-        demand_refs.extend(refs)
-        if sys.stderr.isatty():
-            progress_iter.set_postfix_str("ok", refresh=False)
+                progress_iter.set_postfix_str("ok", refresh=False)
+            phase_handle.advance(
+                subject_ref=document_ref,
+                message="compiled",
+                reused=False,
+                details={
+                    "relative_path": relative_path,
+                    "worker": worker_ref,
+                    "state": "compiled",
+                    "build_key_sha256": build_key_sha256,
+                    "closure_workers": closure_workers,
+                    "owner_partitions": owner_partitions,
+                },
+                worker=worker_ref,
+            )
     if sys.stderr.isatty():
         progress_iter.close()
+    state_row["document_refs"] = list(document_refs)
+    state_row["demand_refs"] = list(demand_refs)
+    state_row["failure_refs"] = list(failure_refs)
+    state_row["completed_document_count"] = len(document_refs)
+    _save_compilation_state(state_file, state_row)
     return PersistedCompilation(
         corpus_ref=corpus_ref,
         document_refs=tuple(sorted(document_refs)),

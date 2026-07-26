@@ -14,7 +14,8 @@ import json
 import os
 from pathlib import Path
 import sys
-from typing import Any, Iterable, Mapping
+import tempfile
+from typing import Any, Callable, Iterable, Mapping
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,6 +37,7 @@ from src.pnf.external_reconciliation import (  # noqa: E402
 from src.pnf.legal_adjunct import project_legal_ir  # noqa: E402
 from src.policy.corpus_compilation import default_compiler_context  # noqa: E402
 from src.policy.postgres_corpus_compilation import compile_directory_postgres  # noqa: E402
+from src.runtime.progress import PhaseRecorder  # noqa: E402
 from src.runtime.tranche_pipeline import (  # noqa: E402
     PhaseReceipt,
     TranchePhase,
@@ -90,10 +92,104 @@ def _parse_args() -> argparse.Namespace:
 
 def _json_write(path: Path, value: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(value, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
+    with tempfile.NamedTemporaryFile(
+        "w",
         encoding="utf-8",
+        dir=path.parent,
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        delete=False,
+    ) as handle:
+        handle.write(
+            json.dumps(value, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
+        )
+        handle.flush()
+        os.fsync(handle.fileno())
+        temp_path = Path(handle.name)
+    temp_path.replace(path)
+    parent_fd = os.open(path.parent, os.O_RDONLY)
+    try:
+        os.fsync(parent_fd)
+    finally:
+        os.close(parent_fd)
+
+
+def _json_read(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"expected JSON object: {path}")
+    return payload
+
+
+def _load_tranche_state(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {
+            "schema_version": "sl.complete_tranche_run_state.v0_1",
+            "phases": {},
+            "artifacts": {},
+            "receipts": [],
+        }
+    state = _json_read(path)
+    state.setdefault("schema_version", "sl.complete_tranche_run_state.v0_1")
+    state.setdefault("phases", {})
+    state.setdefault("artifacts", {})
+    state.setdefault("receipts", [])
+    return state
+
+
+def _save_tranche_state(path: Path, state: Mapping[str, Any]) -> None:
+    _json_write(path, dict(state))
+
+
+def _record_phase_checkpoint(
+    *,
+    tranche_state: dict[str, Any],
+    tranche_state_path: Path,
+    phase: TranchePhase,
+    receipt: PhaseReceipt,
+    artifacts: Mapping[str, Any],
+) -> None:
+    tranche_state["phases"][phase.name] = {
+        "phase_ref": phase.phase_ref,
+        "state": receipt.state,
+        "input_refs": list(receipt.input_refs),
+        "output_refs": list(receipt.output_refs),
+        "detail": dict(receipt.detail),
+        "receipt_ref": receipt.receipt_ref,
+    }
+    tranche_state["receipts"] = [
+        row.to_dict() if isinstance(row, PhaseReceipt) else row
+        for row in tranche_state.get("receipts") or []
+        if row is not None
+    ]
+    tranche_state["receipts"].append(receipt.to_dict())
+    tranche_state["artifacts"].update({key: str(value) for key, value in artifacts.items()})
+    tranche_state["last_phase"] = phase.name
+    tranche_state["last_receipt_ref"] = receipt.receipt_ref
+    _save_tranche_state(tranche_state_path, tranche_state)
+
+
+def _load_phase_checkpoint(
+    *,
+    tranche_state: Mapping[str, Any],
+    phase: TranchePhase,
+    output_refs: Iterable[Path],
+    loader: Callable[[], dict[str, Any]],
+) -> tuple[dict[str, Any] | None, PhaseReceipt | None]:
+    phase_state = (tranche_state.get("phases") or {}).get(phase.name)
+    if not isinstance(phase_state, Mapping):
+        return None, None
+    if any(not path.exists() for path in output_refs):
+        return None, None
+    payload = loader()
+    receipt = PhaseReceipt(
+        phase,
+        str(phase_state.get("state") or "completed"),
+        tuple(str(value) for value in phase_state.get("input_refs") or ()),
+        tuple(str(value) for value in phase_state.get("output_refs") or ()),
+        dict(phase_state.get("detail") or {}),
     )
+    return payload, receipt
 
 
 def _serialize_results(rows: Iterable[Any]) -> list[dict[str, Any]]:
@@ -201,19 +297,44 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     receipts: list[PhaseReceipt] = []
     artifacts: dict[str, Any] = {}
+    tranche_state_path = output_dir / "tranche_run_state.json"
+    tranche_state = _load_tranche_state(tranche_state_path)
+    tranche_state.update(
+        {
+            "schema_version": "sl.complete_tranche_run_state.v0_1",
+            "tranche": tranche,
+            "profile_ref": profile.profile_ref,
+            "output_dir": str(output_dir),
+            "database_url": args.database_url,
+        }
+    )
+    _save_tranche_state(tranche_state_path, tranche_state)
 
-    inventory = inventory_profile(profile, repo_root=ROOT)
     inventory_path = output_dir / "source_inventory.json"
-    _json_write(inventory_path, inventory)
-    receipts.append(
-        PhaseReceipt(
+    inventory, inventory_receipt = _load_phase_checkpoint(
+        tranche_state=tranche_state,
+        phase=TranchePhase.SOURCE_INVENTORY,
+        output_refs=(inventory_path,),
+        loader=lambda: _json_read(inventory_path),
+    )
+    if inventory is None:
+        inventory = inventory_profile(profile, repo_root=ROOT)
+        _json_write(inventory_path, inventory)
+        inventory_receipt = PhaseReceipt(
             TranchePhase.SOURCE_INVENTORY,
             "completed",
             (profile.profile_ref,),
             (str(inventory_path),),
             inventory["summary"],
         )
-    )
+        _record_phase_checkpoint(
+            tranche_state=tranche_state,
+            tranche_state_path=tranche_state_path,
+            phase=TranchePhase.SOURCE_INVENTORY,
+            receipt=inventory_receipt,
+            artifacts={"source_inventory": inventory_path},
+        )
+    receipts.append(inventory_receipt)
     artifacts["source_inventory"] = str(inventory_path)
 
     source_roots = [
@@ -248,9 +369,15 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
         acquisition_manifest["network_performed"] = True
         acquisition_manifest["mode"] = "explicit_or_required_seed"
     acquisition_path = output_dir / "source_acquisition.json"
-    _json_write(acquisition_path, acquisition_manifest)
-    receipts.append(
-        PhaseReceipt(
+    acquisition_payload, acquisition_receipt = _load_phase_checkpoint(
+        tranche_state=tranche_state,
+        phase=TranchePhase.SOURCE_ACQUISITION,
+        output_refs=(acquisition_path,),
+        loader=lambda: _json_read(acquisition_path),
+    )
+    if acquisition_payload is None:
+        _json_write(acquisition_path, acquisition_manifest)
+        acquisition_receipt = PhaseReceipt(
             TranchePhase.SOURCE_ACQUISITION,
             "completed" if source_roots else "insufficient_sources",
             (str(inventory_path),),
@@ -264,7 +391,14 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
                 ),
             },
         )
-    )
+        _record_phase_checkpoint(
+            tranche_state=tranche_state,
+            tranche_state_path=tranche_state_path,
+            phase=TranchePhase.SOURCE_ACQUISITION,
+            receipt=acquisition_receipt,
+            artifacts={"source_acquisition": acquisition_path},
+        )
+    receipts.append(acquisition_receipt)
     artifacts["source_acquisition"] = str(acquisition_path)
     if not source_roots:
         raise RuntimeError(f"{tranche} has no available source family")
@@ -292,13 +426,24 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
         raise RuntimeError(f"{tranche} produced no canonical documents")
 
     store = PostgresCompilerStore.connect(args.database_url)
+    compile_progress = PhaseRecorder(stream=sys.stderr, json_lines=False)
+    compile_state_path = output_dir / "local_pnf_compilation_state.json"
     try:
         compilation = compile_directory_postgres(
             output_dir / "source_projection" / "canonical",
             context=default_compiler_context(),
             store=store,
             execution_phase="demand_planning",
+            progress=compile_progress,
+            state_path=compile_state_path,
+            document_executor_ref="document-executor:postgres-operational:v0_1",
+            document_executor_contract_ref="postgres-semantic-compiler:v0_10",
+            persistence_strategy_ref="persistence:postgres-savepoint:v0_1",
+            admission_policy_ref="admission:inventoried-only:v0_1",
+            closure_workers=1,
+            owner_partitions=1,
         )
+        compile_progress.write_json(output_dir / "local_pnf_compile_progress.json")
         compile_payload = {
             "corpus_ref": compilation.corpus_ref,
             "document_refs": list(compilation.document_refs),
@@ -322,6 +467,16 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
             )
         )
         artifacts["local_pnf_compilation"] = str(compile_path)
+        _record_phase_checkpoint(
+            tranche_state=tranche_state,
+            tranche_state_path=tranche_state_path,
+            phase=TranchePhase.LOCAL_PNF_COMPILATION,
+            receipt=receipts[-1],
+            artifacts={
+                "local_pnf_compilation": compile_path,
+                "local_pnf_compile_progress": output_dir / "local_pnf_compile_progress.json",
+            },
+        )
 
         with store.transaction() as cursor:
             local_world = _local_world_summary(cursor, compilation.corpus_ref, profile)
@@ -337,6 +492,13 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
             )
         )
         artifacts["local_world_checkpoint"] = str(local_world_path)
+        _record_phase_checkpoint(
+            tranche_state=tranche_state,
+            tranche_state_path=tranche_state_path,
+            phase=TranchePhase.LOCAL_WORLD_PROJECTION,
+            receipt=receipts[-1],
+            artifacts={"local_world_checkpoint": local_world_path},
+        )
 
         with store.transaction() as cursor:
             demands = load_external_lookup_demands(
@@ -515,11 +677,24 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
                 max_file_bytes=args.max_file_bytes,
             )
             if adjunct_projection.documents:
+                adjunct_progress = PhaseRecorder(stream=sys.stderr, json_lines=False)
+                adjunct_state_path = output_dir / "legal_adjunct_pnf_compilation_state.json"
                 adjunct_compilation = compile_directory_postgres(
                     output_dir / "legal_adjunct_projection" / "canonical",
                     context=default_compiler_context(),
                     store=store,
                     execution_phase="legal_adjunct_demand_planning",
+                    progress=adjunct_progress,
+                    state_path=adjunct_state_path,
+                    document_executor_ref="document-executor:postgres-operational:v0_1",
+                    document_executor_contract_ref="postgres-semantic-compiler:v0_10",
+                    persistence_strategy_ref="persistence:postgres-savepoint:v0_1",
+                    admission_policy_ref="admission:inventoried-only:v0_1",
+                    closure_workers=1,
+                    owner_partitions=1,
+                )
+                adjunct_progress.write_json(
+                    output_dir / "legal_adjunct_pnf_compile_progress.json"
                 )
                 adjunct_corpus_ref = adjunct_compilation.corpus_ref
                 adjunct_compile_payload.update(
@@ -552,6 +727,17 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
             )
         )
         artifacts["legal_adjunct_pnf_compilation"] = str(adjunct_compile_path)
+        _record_phase_checkpoint(
+            tranche_state=tranche_state,
+            tranche_state_path=tranche_state_path,
+            phase=TranchePhase.LEGAL_ADJUNCT_PNF_COMPILATION,
+            receipt=receipts[-1],
+            artifacts={
+                "legal_adjunct_pnf_compilation": adjunct_compile_path,
+                "legal_adjunct_pnf_compile_progress": output_dir
+                / "legal_adjunct_pnf_compile_progress.json",
+            },
+        )
 
         legal_ir_rows: tuple[Any, ...] = ()
         if adjunct_corpus_ref:

@@ -199,6 +199,7 @@ class PhaseHandle:
         reused: bool | None = None,
         details: Mapping[str, Any] | None = None,
         processed_tokens: int = 0,
+        worker: str | None = None,
     ) -> None:
         self.completed += amount
         if reused:
@@ -217,7 +218,7 @@ class PhaseHandle:
                 details=dict(details or {}) or None,
                 started_at=self._started_at,
                 elapsed_ms=elapsed_ms,
-                worker=self.worker,
+                worker=worker or self.worker,
                 reused=reused,
                 processed_tokens=self.processed_tokens or None,
                 total_tokens=self.total_tokens,

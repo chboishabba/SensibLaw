@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from io import StringIO
 import hashlib
+import json
 from pathlib import Path
 
 import pytest
@@ -16,6 +18,7 @@ from src.policy.postgres_corpus_compilation import (
 )
 from src.policy.algebra.revision_identity import factor_revision_ref
 from src.policy.corpus_compilation import DocumentCompilation
+from src.runtime.progress import PhaseRecorder
 
 
 class _Cursor:
@@ -220,3 +223,103 @@ def test_compile_directory_postgres_reuses_completed_documents(
     assert result.demand_refs == ("demand:cached",)
     assert len(result.document_refs) == 1
     assert store.occurrences[0]["state"] == "reused_compilation"
+
+
+def test_compile_directory_postgres_resume_state_skips_completed_documents(
+    monkeypatch, tmp_path: Path
+) -> None:
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "a.txt").write_text("Bush met Bush.", encoding="utf-8")
+    (corpus / "b.txt").write_text("Alice met Bob.", encoding="utf-8")
+
+    store = _Store()
+    load_calls: list[str] = []
+
+    def _load_completed(*_args, **kwargs):
+        load_calls.append(str(kwargs.get("document_ref") or ""))
+        return None
+
+    executor_calls: list[tuple[str, int, int]] = []
+
+    def _document_executor(**kwargs):
+        entry = kwargs["entry"]
+        executor_calls.append(
+            (
+                str(entry["document_ref"]),
+                int(kwargs["closure_workers"]),
+                int(kwargs["owner_partitions"]),
+            )
+        )
+        return (f"demand:{entry['document_ref']}",)
+
+    state_path = tmp_path / "resume_state.json"
+    progress = PhaseRecorder(stream=StringIO(), json_lines=True)
+
+    monkeypatch.setattr(
+        "src.policy.postgres_corpus_compilation.load_completed_operational_build",
+        _load_completed,
+    )
+    first = compile_directory_postgres(
+        corpus,
+        context=default_compiler_context(),
+        store=store,
+        document_executor=_document_executor,
+        document_executor_ref="document-executor:test-operational:v1",
+        document_executor_contract_ref="executor:test-operational:v1",
+        persistence_strategy_ref="persistence:test-savepoint:v1",
+        admission_policy_ref="admission:test:v1",
+        closure_workers=4,
+        owner_partitions=8,
+        progress=progress,
+        state_path=state_path,
+    )
+
+    assert first.failure_refs == ()
+    assert len(first.document_refs) == 2
+    assert len(executor_calls) == 2
+    assert set(load_calls) == set(first.document_refs)
+    assert state_path.exists()
+
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    assert state["document_executor_ref"] == "document-executor:test-operational:v1"
+    assert state["document_executor_contract_ref"] == "executor:test-operational:v1"
+    assert state["persistence_strategy_ref"] == "persistence:test-savepoint:v1"
+    assert state["admission_policy_ref"] == "admission:test:v1"
+    assert state["closure_workers"] == 4
+    assert state["owner_partitions"] == 8
+    assert set(state["documents"]) == set(first.document_refs)
+    assert all(
+        state["documents"][document_ref]["state"] == "compiled"
+        for document_ref in first.document_refs
+    )
+    assert any(
+        event.get("worker") == "document-executor:test-operational:v1:doc-0001"
+        for event in progress.events
+    )
+
+    executor_calls.clear()
+    load_calls.clear()
+    monkeypatch.setattr(
+        "src.policy.postgres_corpus_compilation.load_completed_operational_build",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("resume state should bypass cache lookup")
+        ),
+    )
+    second = compile_directory_postgres(
+        corpus,
+        context=default_compiler_context(),
+        store=store,
+        document_executor=_document_executor,
+        document_executor_ref="document-executor:test-operational:v1",
+        document_executor_contract_ref="executor:test-operational:v1",
+        persistence_strategy_ref="persistence:test-savepoint:v1",
+        admission_policy_ref="admission:test:v1",
+        closure_workers=4,
+        owner_partitions=8,
+        state_path=state_path,
+    )
+
+    assert second == first
+    assert executor_calls == []
+    assert load_calls == []

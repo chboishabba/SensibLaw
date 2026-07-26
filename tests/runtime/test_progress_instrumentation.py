@@ -18,6 +18,7 @@ def test_phase_recorder_emits_durable_timing_and_reuse_events(tmp_path) -> None:
             reused=True,
             details={"worker": "document-1"},
             processed_tokens=12,
+            worker="document-1",
         )
         phase.advance(subject_ref="document:b", reused=False, details={"worker": "document-2"})
 
@@ -32,6 +33,7 @@ def test_phase_recorder_emits_durable_timing_and_reuse_events(tmp_path) -> None:
     assert payload["events"][1]["estimated_completion_at"]
     assert payload["events"][1]["processed_tokens"] == 12
     assert payload["events"][1]["tokens_per_second"] > 0
+    assert payload["events"][1]["worker"] == "document-1"
 
     output = tmp_path / "phase_ledger.json"
     recorder.write_json(output)
