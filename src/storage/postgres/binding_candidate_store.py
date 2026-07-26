@@ -21,7 +21,11 @@ def _persist_factor_anchors(
         factor_ref = str(row["factor_ref"])
         factor_revision_ref = factor_revisions.get(factor_ref)
         if factor_revision_ref is None:
-            continue
+            raise ValueError(
+                "binding factor anchor references an unpersisted factor revision: "
+                f"document_ref={row['document_ref']} factor_ref={factor_ref} "
+                f"factor_revision_ref={row.get('factor_revision_ref')}"
+            )
         cursor.execute(
             """
             INSERT INTO pnf.factor_anchor

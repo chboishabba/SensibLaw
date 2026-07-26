@@ -11,6 +11,7 @@ from tqdm.auto import tqdm
 
 from src.ingestion.media_adapter import HtmlDocumentMediaAdapter
 from src.policy.carriers.canonical import canonical_sha256
+from src.policy.algebra.revision_identity import factor_revision_ref
 from src.policy.corpus_compilation import CompilerContext, build_corpus_manifest
 from src.policy.operational_corpus_compilation import (
     OPERATIONAL_COMPILER_CONTRACT,
@@ -231,6 +232,164 @@ def _validated_canonical_tokens(
     return tokens
 
 
+def _factor_producer_contract(factor: Mapping[str, Any]) -> str:
+    metadata = factor.get("metadata") if isinstance(factor, Mapping) else None
+    if not isinstance(metadata, Mapping):
+        return "unknown"
+    return str(
+        metadata.get("producer_contract")
+        or metadata.get("composition_contract_ref")
+        or metadata.get("operational_compiler_contract")
+        or metadata.get("factor_producer_contract")
+        or "unknown"
+    )
+
+
+def _parent_closure_violation_message(
+    *,
+    document_ref: str,
+    relative_path: str,
+    execution_phase: str,
+    batch_index: int,
+    child_table: str,
+    child_ref: str,
+    parent_table: str,
+    parent_column: str,
+    missing_parent_ref: str,
+    semantic_artifact_type: str,
+    producer_contract: str,
+    persistence_stage: str = "postgres_savepoint",
+    detail: str | None = None,
+) -> str:
+    fields = {
+        "document_ref": document_ref,
+        "relative_path": relative_path,
+        "stage": execution_phase,
+        "batch_index": batch_index,
+        "persistence_stage": persistence_stage,
+        "child_table": child_table,
+        "child_ref": child_ref,
+        "parent_table": parent_table,
+        "parent_column": parent_column,
+        "missing_parent_ref": missing_parent_ref,
+        "semantic_artifact_type": semantic_artifact_type,
+        "producer_contract": producer_contract,
+    }
+    if detail:
+        fields["detail"] = detail
+    return "document parent closure violation: " + " ".join(
+        f"{key}={value}" for key, value in fields.items()
+    )
+
+
+def _validate_document_parent_closure(
+    *,
+    document_ref: str,
+    relative_path: str,
+    execution_phase: str,
+    batch_index: int,
+    base_factor_revisions: Mapping[str, str],
+    resulting_factor_revisions: Mapping[str, str],
+    candidate_sets: Sequence[Mapping[str, Any]],
+    factor_anchors: Sequence[Mapping[str, Any]],
+    refinements: Sequence[Mapping[str, Any]],
+    demands: Sequence[Mapping[str, Any]],
+) -> None:
+    available_factor_revisions = {
+        str(ref_revision)
+        for ref_revision in (
+            *base_factor_revisions.values(),
+            *resulting_factor_revisions.values(),
+        )
+        if ref_revision
+    }
+    for refinement in refinements:
+        prior = refinement.get("prior_factor")
+        resulting = refinement.get("resulting_factor")
+        if not isinstance(prior, Mapping) or not isinstance(resulting, Mapping):
+            continue
+        prior_revision_ref = factor_revision_ref(prior)
+        if prior_revision_ref not in available_factor_revisions:
+            raise ValueError(
+                _parent_closure_violation_message(
+                    document_ref=document_ref,
+                    relative_path=relative_path,
+                    execution_phase=execution_phase,
+                    batch_index=batch_index,
+                    child_table="resolution.refinement",
+                    child_ref=str(refinement.get("refinement_ref") or ""),
+                    parent_table="algebra.factor_revision",
+                    parent_column="factor_revision_ref",
+                    missing_parent_ref=prior_revision_ref,
+                    semantic_artifact_type="factor_refinement",
+                    producer_contract=_factor_producer_contract(prior),
+                )
+            )
+    for candidate_set in candidate_sets:
+        reference_factor_ref = str(candidate_set.get("reference_factor_ref") or "")
+        reference_revision_ref = base_factor_revisions.get(reference_factor_ref)
+        if reference_revision_ref is None:
+            raise ValueError(
+                _parent_closure_violation_message(
+                    document_ref=document_ref,
+                    relative_path=relative_path,
+                    execution_phase=execution_phase,
+                    batch_index=batch_index,
+                    child_table="resolution.binding_candidate_set",
+                    child_ref=str(candidate_set.get("candidate_set_ref") or ""),
+                    parent_table="algebra.factor_revision",
+                    parent_column="reference_factor_revision_ref",
+                    missing_parent_ref=str(
+                        candidate_set.get("reference_factor_revision_ref") or ""
+                    ),
+                    semantic_artifact_type="binding_candidate_set",
+                    producer_contract=_factor_producer_contract(candidate_set),
+                )
+            )
+    for factor_anchor in factor_anchors:
+        factor_ref = str(factor_anchor.get("factor_ref") or "")
+        anchor_revision_ref = base_factor_revisions.get(factor_ref)
+        if anchor_revision_ref is None:
+            raise ValueError(
+                _parent_closure_violation_message(
+                    document_ref=document_ref,
+                    relative_path=relative_path,
+                    execution_phase=execution_phase,
+                    batch_index=batch_index,
+                    child_table="pnf.factor_anchor",
+                    child_ref=str(factor_anchor.get("factor_revision_ref") or ""),
+                    parent_table="algebra.factor_revision",
+                    parent_column="factor_revision_ref",
+                    missing_parent_ref=str(
+                        factor_anchor.get("factor_revision_ref") or ""
+                    ),
+                    semantic_artifact_type="factor_anchor",
+                    producer_contract=_factor_producer_contract(factor_anchor),
+                )
+            )
+    for demand in demands:
+        factor_ref = str(demand.get("factor_ref") or "")
+        demand_revision_ref = resulting_factor_revisions.get(factor_ref)
+        if demand_revision_ref is None:
+            raise ValueError(
+                _parent_closure_violation_message(
+                    document_ref=document_ref,
+                    relative_path=relative_path,
+                    execution_phase=execution_phase,
+                    batch_index=batch_index,
+                    child_table="resolution.demand",
+                    child_ref=str(demand.get("demand_ref") or ""),
+                    parent_table="algebra.factor_revision",
+                    parent_column="factor_revision_ref",
+                    missing_parent_ref=str(
+                        demand.get("factor_revision_ref") or ""
+                    ),
+                    semantic_artifact_type="resolution_demand",
+                    producer_contract=_factor_producer_contract(demand),
+                )
+            )
+
+
 def persist_document_compilation(
     *,
     store: PostgresCompilerStore,
@@ -240,6 +399,8 @@ def persist_document_compilation(
     source_bytes: bytes,
     source_text: str,
     context: CompilerContext,
+    execution_phase: str,
+    batch_index: int,
 ) -> tuple[str, ...]:
     """Compile and persist one document transactionally.
 
@@ -329,87 +490,158 @@ def persist_document_compilation(
     meets = _prepare_meets_for_relational_persistence(
         artifacts.get("typed_meets") or ()
     )
-    with store.savepoint() as cursor:
-        store.persist_source_document(
-            cursor,
-            document_ref=compilation.document_ref,
-            media_type=compilation.media_type,
-            content_sha256=compilation.content_sha256,
-            source_bytes=source_bytes,
-            canonical_text=canonical_text,
-            adapter_ref=media_adapter_ref,
-            adapter_version=context.media_normalization_ref,
-            compiler_context_ref=context.context_ref,
-            normalization_ref=context.media_normalization_ref,
+    base_factor_revisions = {
+        str(factor["factor_ref"]): factor_revision_ref(factor)
+        for factor in tuple((artifacts.get("pnf_graph") or {}).get("factors") or ())
+        if isinstance(factor, Mapping)
+    }
+    resulting_factor_revisions = dict(base_factor_revisions)
+    for refinement in refinements:
+        resulting = refinement.get("resulting_factor")
+        if isinstance(resulting, Mapping):
+            resulting_factor_revisions[str(resulting["factor_ref"])] = (
+                factor_revision_ref(resulting)
+            )
+    demand_refs: tuple[str, ...] = ()
+    _validate_document_parent_closure(
+        document_ref=compilation.document_ref,
+        relative_path=relative_path,
+        execution_phase=execution_phase,
+        batch_index=batch_index,
+        base_factor_revisions=base_factor_revisions,
+        resulting_factor_revisions=resulting_factor_revisions,
+        candidate_sets=candidate_sets,
+        factor_anchors=factor_anchors,
+        refinements=refinements,
+        demands=demands,
+    )
+    try:
+        with store.savepoint() as cursor:
+            store.persist_source_document(
+                cursor,
+                document_ref=compilation.document_ref,
+                media_type=compilation.media_type,
+                content_sha256=compilation.content_sha256,
+                source_bytes=source_bytes,
+                canonical_text=canonical_text,
+                adapter_ref=media_adapter_ref,
+                adapter_version=context.media_normalization_ref,
+                compiler_context_ref=context.context_ref,
+                normalization_ref=context.media_normalization_ref,
+            )
+            store.persist_occurrence(
+                cursor,
+                corpus_ref=corpus_ref,
+                relative_path=relative_path,
+                document_ref=compilation.document_ref,
+                state="compiled",
+            )
+            persist_licensed_spans(
+                cursor,
+                document_ref=compilation.document_ref,
+                mentions=artifacts["licensing"].get("mentions") or (),
+            )
+            store.persist_tokens(
+                cursor,
+                document_ref=compilation.document_ref,
+                tokenizer_ref=context.annotation_backend_ref,
+                tokenizer_version=context.compiler_version,
+                tokens=canonical_tokens,
+            )
+            store.persist_annotation_layer(
+                cursor,
+                document_ref=compilation.document_ref,
+                layer=artifacts["annotation_layer"],
+            )
+            persisted_base_factor_revisions = persist_pnf_graph(
+                cursor,
+                document_ref=compilation.document_ref,
+                graph=artifacts["pnf_graph"],
+            )
+            persisted_resulting_factor_revisions = dict(
+                persisted_base_factor_revisions
+            )
+            for refinement in refinements:
+                resulting = refinement.get("resulting_factor")
+                if isinstance(resulting, Mapping):
+                    revision_ref = persist_factor_revision(
+                        cursor,
+                        document_ref=compilation.document_ref,
+                        factor=resulting,
+                    )
+                    factor_ref = str(resulting["factor_ref"])
+                    persisted_resulting_factor_revisions[factor_ref] = revision_ref
+            _validate_document_parent_closure(
+                document_ref=compilation.document_ref,
+                relative_path=relative_path,
+                execution_phase=execution_phase,
+                batch_index=batch_index,
+                base_factor_revisions=persisted_base_factor_revisions,
+                resulting_factor_revisions=persisted_resulting_factor_revisions,
+                candidate_sets=candidate_sets,
+                factor_anchors=factor_anchors,
+                refinements=refinements,
+                demands=demands,
+            )
+            demand_refs = persist_resolution_artifacts(
+                cursor,
+                factor_revisions=persisted_resulting_factor_revisions,
+                demands=demands,
+                evidence=artifacts.get("local_evidence") or (),
+                meets=meets,
+                refinements=refinements,
+            )
+            persist_binding_candidate_sets(
+                cursor,
+                candidate_sets=candidate_sets,
+                refinements=refinements,
+                factor_revisions=persisted_base_factor_revisions,
+                factor_anchors=factor_anchors,
+                builds=candidate_set_builds,
+                meets=meets,
+                demands=demands,
+                validate_indexed_query=True,
+            )
+            persist_completed_operational_build(
+                cursor,
+                document_ref=compilation.document_ref,
+                compiler_contract_ref=OPERATIONAL_COMPILER_CONTRACT,
+                build_key_sha256=build_key_sha256,
+                graph_ref=str(artifacts["pnf_graph"]["graph_ref"]),
+                demand_refs=demand_refs,
+            )
+            return demand_refs
+    except ValueError:
+        raise
+    except Exception as error:
+        first_refinement = refinements[0] if refinements else {}
+        prior_factor = (
+            first_refinement.get("prior_factor")
+            if isinstance(first_refinement, Mapping)
+            else None
         )
-        store.persist_occurrence(
-            cursor,
-            corpus_ref=corpus_ref,
-            relative_path=relative_path,
-            document_ref=compilation.document_ref,
-            state="compiled",
-        )
-        persist_licensed_spans(
-            cursor,
-            document_ref=compilation.document_ref,
-            mentions=artifacts["licensing"].get("mentions") or (),
-        )
-        store.persist_tokens(
-            cursor,
-            document_ref=compilation.document_ref,
-            tokenizer_ref=context.annotation_backend_ref,
-            tokenizer_version=context.compiler_version,
-            tokens=canonical_tokens,
-        )
-        store.persist_annotation_layer(
-            cursor,
-            document_ref=compilation.document_ref,
-            layer=artifacts["annotation_layer"],
-        )
-        base_factor_revisions = persist_pnf_graph(
-            cursor,
-            document_ref=compilation.document_ref,
-            graph=artifacts["pnf_graph"],
-        )
-        resulting_factor_revisions = dict(base_factor_revisions)
-        for refinement in refinements:
-            resulting = refinement.get("resulting_factor")
-            if isinstance(resulting, Mapping):
-                revision_ref = persist_factor_revision(
-                    cursor,
-                    document_ref=compilation.document_ref,
-                    factor=resulting,
-                )
-                factor_ref = str(resulting["factor_ref"])
-                resulting_factor_revisions[factor_ref] = revision_ref
-        demand_refs = persist_resolution_artifacts(
-            cursor,
-            factor_revisions=resulting_factor_revisions,
-            demands=demands,
-            evidence=artifacts.get("local_evidence") or (),
-            meets=meets,
-            refinements=refinements,
-        )
-        persist_binding_candidate_sets(
-            cursor,
-            candidate_sets=candidate_sets,
-            refinements=refinements,
-            factor_revisions=base_factor_revisions,
-            factor_anchors=factor_anchors,
-            builds=candidate_set_builds,
-            meets=meets,
-            demands=demands,
-            validate_indexed_query=True,
-        )
-        persist_completed_operational_build(
-            cursor,
-            document_ref=compilation.document_ref,
-            compiler_contract_ref=OPERATIONAL_COMPILER_CONTRACT,
-            build_key_sha256=build_key_sha256,
-            graph_ref=str(artifacts["pnf_graph"]["graph_ref"]),
-            demand_refs=demand_refs,
-        )
-        return demand_refs
+        raise RuntimeError(
+            _parent_closure_violation_message(
+                document_ref=compilation.document_ref,
+                relative_path=relative_path,
+                execution_phase=execution_phase,
+                batch_index=batch_index,
+                child_table="resolution.refinement",
+                child_ref=(
+                    str(refinements[0].get("refinement_ref") or "")
+                    if refinements
+                    else ""
+                ),
+                parent_table="algebra.factor_revision",
+                parent_column="factor_revision_ref",
+                missing_parent_ref="unknown",
+                semantic_artifact_type="document_persistence",
+                producer_contract=_factor_producer_contract(prior_factor)
+                if isinstance(prior_factor, Mapping)
+                else "unknown",
+                detail=f"{type(error).__name__}: {error}",
+            )
+        ) from error
 
 
 def compile_directory_postgres(
@@ -473,7 +705,7 @@ def compile_directory_postgres(
         file=sys.stderr,
         disable=not sys.stderr.isatty(),
     )
-    for entry in progress_iter:
+    for batch_index, entry in enumerate(progress_iter, start=1):
         document_ref = str(entry["document_ref"])
         relative_path = str(entry["relative_path"])
         if document_ref in compiled:
@@ -493,6 +725,42 @@ def compile_directory_postgres(
                 source_text = source_bytes.decode("utf-8")
             else:
                 source_bytes, source_text = prepared
+            canonical_text, canonical_text_sha256, media_adapter_ref = (
+                _canonical_source_coordinates(
+                    media_type=str(entry["media_type"]),
+                    source_text=source_text,
+                    source_ref=f"document-source:{document_ref}",
+                )
+            )
+            build_key_sha256 = _operational_build_key(
+                document_ref=document_ref,
+                content_sha256=str(entry["content_sha256"]),
+                canonical_text_sha256=canonical_text_sha256,
+                media_adapter_ref=media_adapter_ref,
+                context=context,
+            )
+            with store.transaction() as cursor:
+                cached_demand_refs = load_completed_operational_build(
+                    cursor,
+                    document_ref=document_ref,
+                    compiler_contract_ref=OPERATIONAL_COMPILER_CONTRACT,
+                    build_key_sha256=build_key_sha256,
+                )
+            if cached_demand_refs is not None:
+                with store.transaction() as cursor:
+                    store.persist_occurrence(
+                        cursor,
+                        corpus_ref=corpus_ref,
+                        relative_path=relative_path,
+                        document_ref=document_ref,
+                        state="reused_compilation",
+                    )
+                compiled.add(document_ref)
+                document_refs.append(document_ref)
+                demand_refs.extend(cached_demand_refs)
+                if sys.stderr.isatty():
+                    progress_iter.set_postfix_str("reused", refresh=False)
+                continue
             refs = persist_document_compilation(
                 store=store,
                 corpus_ref=corpus_ref,
@@ -501,6 +769,8 @@ def compile_directory_postgres(
                 source_bytes=source_bytes,
                 source_text=source_text,
                 context=context,
+                execution_phase=execution_phase,
+                batch_index=batch_index,
             )
         except (OSError, UnicodeDecodeError, ValueError, RuntimeError) as error:
             with store.transaction() as cursor:
