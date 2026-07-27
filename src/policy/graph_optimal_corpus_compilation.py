@@ -3,12 +3,13 @@
 The stable corpus compiler remains the source of data classes, carrier contracts
 and ordinary compiler functions.  ``src.policy`` installs an import-order-stable
 module proxy that forwards those attributes and monkeypatches to the stable
-module while selecting the graph-enabled semantic projection below.
+module while selecting the graph-enabled mention and projection operators below.
 
-The override is guarded because the legacy semantic-layer function resolves its
-collector through a module global.  The tranche objective is intentionally one
-active document at a time, so this bridge preserves that execution invariant
-until the semantic-layer dependency is made explicit in a later refactor.
+The semantic projection override is guarded because the legacy semantic-layer
+function resolves its collector through a module global.  The tranche objective
+is intentionally one active document at a time, so this bridge preserves that
+execution invariant until the semantic-layer dependency is made explicit in a
+later refactor.
 """
 
 from __future__ import annotations
@@ -19,6 +20,10 @@ import os
 from threading import Lock
 from typing import Any, Mapping, Sequence
 
+from src.policy.document_graph_mentions import (
+    DOCUMENT_GRAPH_MENTION_CONTRACT,
+    build_document_mention_licensing_carrier,
+)
 from src.policy.document_graph_projection import (
     DOCUMENT_GRAPH_PROJECTION_CONTRACT,
     collect_document_relational_bundle,
@@ -26,7 +31,7 @@ from src.policy.document_graph_projection import (
 
 
 GRAPH_OPTIMAL_CORPUS_COMPILATION_CONTRACT = (
-    "document-graph-corpus-compilation-bridge:v0_1"
+    "document-graph-corpus-compilation-bridge:v0_2"
 )
 
 _legacy = importlib.import_module("src.policy.corpus_compilation")
@@ -38,14 +43,14 @@ _projection_override_lock = Lock()
 _original_semantic_annotation_layer = _legacy._semantic_annotation_layer
 
 
-def _document_worker_budget(parsed_document: Mapping[str, Any]) -> int:
+def _document_worker_budget(parsed_document: Mapping[str, Any] | None) -> int:
     override = os.getenv("SENSIBLAW_DOCUMENT_WORKERS", "").strip()
     if override:
         try:
             return max(1, min(32, int(override)))
         except ValueError:
             pass
-    receipt = parsed_document.get("parser_receipt") or {}
+    receipt = (parsed_document or {}).get("parser_receipt") or {}
     if isinstance(receipt, Mapping):
         raw = receipt.get("worker_count") or receipt.get("granted_workers") or 1
         try:
@@ -53,6 +58,33 @@ def _document_worker_budget(parsed_document: Mapping[str, Any]) -> int:
         except (TypeError, ValueError):
             pass
     return 1
+
+
+def build_mention_licensing_carrier(
+    *,
+    canonical_text: str,
+    source_ref: str,
+    document_ref: str,
+    context_refs: Sequence[str] = (),
+    parsed_document: Mapping[str, Any] | None = None,
+    tokens: Sequence[tuple[str, int, int]] | None = None,
+    progress_observer=None,
+):
+    """License mentions through token fibres under the active document budget."""
+
+    return build_document_mention_licensing_carrier(
+        canonical_text=canonical_text,
+        source_ref=source_ref,
+        document_ref=document_ref,
+        context_refs=context_refs,
+        parsed_document=parsed_document,
+        tokens=tokens,
+        progress_observer=progress_observer,
+        worker_budget=_document_worker_budget(parsed_document),
+        partitions_per_worker=2,
+        min_parallel_tokens=2_048,
+        verify_serial=False,
+    )
 
 
 def _semantic_annotation_layer(
@@ -97,10 +129,12 @@ def _semantic_annotation_layer(
 def graph_execution_contract() -> dict[str, Any]:
     return {
         "contract_ref": GRAPH_OPTIMAL_CORPUS_COMPILATION_CONTRACT,
+        "mention_contract_ref": DOCUMENT_GRAPH_MENTION_CONTRACT,
         "projection_contract_ref": DOCUMENT_GRAPH_PROJECTION_CONTRACT,
         "semantic_object": "document_graph",
         "physical_partition": "operator_specific_fibre",
         "worker_budget_scope": "active_document",
+        "mention_execution": "process_token_fibres",
         "projection_execution": "process_sentence_fibres",
         "merge": "deterministic_keyed_document_merge",
         "stage_semantic_authority": False,
@@ -112,6 +146,7 @@ def graph_execution_contract() -> dict[str, Any]:
 __all__ = sorted(
     {
         *(name for name in dir(_legacy) if not name.startswith("__")),
+        "DOCUMENT_GRAPH_MENTION_CONTRACT",
         "DOCUMENT_GRAPH_PROJECTION_CONTRACT",
         "GRAPH_OPTIMAL_CORPUS_COMPILATION_CONTRACT",
         "graph_execution_contract",
