@@ -1,16 +1,23 @@
 from __future__ import annotations
 
+import copy
 import json
 import re
 import subprocess
 import sys
 
+from src.policy import entity_resolution as mention_legacy
+from src.policy.document_graph_mentions import (
+    DOCUMENT_GRAPH_MENTION_CONTRACT,
+    build_document_mention_licensing_carrier,
+)
 from src.policy.document_graph_projection import (
     DOCUMENT_GRAPH_PROJECTION_CONTRACT,
     collect_document_relational_bundle,
 )
 from src.sensiblaw.interfaces.shared_reducer import (
     collect_canonical_relational_bundle,
+    tokenize_canonical_with_spans,
 )
 
 
@@ -85,6 +92,80 @@ def _semantic_payload(bundle: dict) -> dict:
         "atoms": bundle["atoms"],
         "relations": bundle["relations"],
     }
+
+
+def _mention_payload(carrier: dict) -> dict:
+    return {
+        key: value
+        for key, value in carrier.items()
+        if key != "licensing_execution_receipt"
+    }
+
+
+def test_parallel_mention_licensing_matches_serial_carrier() -> None:
+    text, parsed = _parsed_fixture()
+    tokens = tuple(tokenize_canonical_with_spans(text))
+    serial = mention_legacy.build_mention_licensing_carrier(
+        canonical_text=text,
+        source_ref="source:test",
+        document_ref="document:test",
+        parsed_document=parsed,
+        tokens=tokens,
+    )
+    parallel = build_document_mention_licensing_carrier(
+        canonical_text=text,
+        source_ref="source:test",
+        document_ref="document:test",
+        parsed_document=parsed,
+        tokens=tokens,
+        worker_budget=4,
+        partitions_per_worker=2,
+        min_parallel_tokens=1,
+        verify_serial=True,
+    )
+
+    assert _mention_payload(parallel) == serial
+    receipt = parallel["licensing_execution_receipt"]
+    assert receipt["contract_ref"] == DOCUMENT_GRAPH_MENTION_CONTRACT
+    assert receipt["execution_mode"] == "process_token_fibres"
+    assert receipt["requested_workers"] == 4
+    assert receipt["granted_workers"] == 4
+    assert receipt["budget_invariant_satisfied"] is True
+    assert receipt["serial_parallel_parity"] is True
+    assert receipt["semantic_fingerprint"] == receipt["serial_fingerprint"]
+    assert receipt["worker_pids"]
+
+
+def test_parallel_mention_licensing_preserves_non_token_aligned_parser_spans() -> None:
+    text, parsed = _parsed_fixture()
+    parsed = copy.deepcopy(parsed)
+    first_sentence_tokens = parsed["sents"][0]["tokens"]
+    first_sentence_tokens[1]["end"] = first_sentence_tokens[2]["end"]
+    first_sentence_tokens[1]["text"] = text[
+        first_sentence_tokens[1]["start"] : first_sentence_tokens[1]["end"]
+    ]
+    tokens = tuple(tokenize_canonical_with_spans(text))
+
+    serial = mention_legacy.build_mention_licensing_carrier(
+        canonical_text=text,
+        source_ref="source:test",
+        document_ref="document:test",
+        parsed_document=parsed,
+        tokens=tokens,
+    )
+    parallel = build_document_mention_licensing_carrier(
+        canonical_text=text,
+        source_ref="source:test",
+        document_ref="document:test",
+        parsed_document=parsed,
+        tokens=tokens,
+        worker_budget=4,
+        partitions_per_worker=2,
+        min_parallel_tokens=1,
+        verify_serial=True,
+    )
+    assert _mention_payload(parallel) == serial
+    assert parallel["licensing_execution_receipt"]["serial_parallel_parity"] is True
 
 
 def test_parallel_projection_matches_serial_document_payload() -> None:
@@ -183,7 +264,7 @@ print(json.dumps({
     )
     payload = json.loads(completed.stdout)
     assert payload["module"] == "src.policy.corpus_compilation"
-    assert payload["contract"] == "document-graph-corpus-compilation-bridge:v0_1"
+    assert payload["contract"] == "document-graph-corpus-compilation-bridge:v0_2"
     assert payload["operational_selected"] is True
     assert payload["postgres_uses_operational"] is True
     assert payload["context_module"] == "src.policy.corpus_compilation"
@@ -198,6 +279,9 @@ def test_compiler_proxy_forwards_monkeypatches(monkeypatch) -> None:
     monkeypatch.setattr(selected, "parse_canonical_text", injected_parser)
     assert selected.parse_canonical_text is injected_parser
     assert selected._proxy_legacy.parse_canonical_text is injected_parser
+    assert selected.build_mention_licensing_carrier is not (
+        selected._proxy_legacy.build_mention_licensing_carrier
+    )
     assert selected._semantic_annotation_layer is not (
         selected._proxy_legacy._semantic_annotation_layer
     )
