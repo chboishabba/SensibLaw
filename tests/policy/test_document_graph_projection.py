@@ -7,6 +7,10 @@ import subprocess
 import sys
 
 from src.policy import entity_resolution as mention_legacy
+from src.policy.document_graph_execution import (
+    DOCUMENT_GRAPH_EXECUTION_CONTRACT,
+    install_document_execution_strategy,
+)
 from src.policy.document_graph_mentions import (
     DOCUMENT_GRAPH_MENTION_CONTRACT,
     build_document_mention_licensing_carrier,
@@ -239,7 +243,7 @@ def test_projection_progress_reports_partition_completion() -> None:
     assert events[-1][1]["batch_index"] == events[-1][1]["total_batches"]
 
 
-def test_tranche_import_order_selects_graph_compilation_proxy() -> None:
+def test_tranche_import_order_uses_one_compiler_authority() -> None:
     script = """
 import json
 from src.policy.corpus_compilation import default_compiler_context
@@ -248,12 +252,13 @@ from src.policy import operational_corpus_compilation as operational
 from src.policy import corpus_compilation as selected
 print(json.dumps({
     'module': selected.__name__,
-    'contract': selected.GRAPH_OPTIMAL_CORPUS_COMPILATION_CONTRACT,
+    'contract': selected.DOCUMENT_GRAPH_EXECUTION_CONTRACT,
     'operational_selected': operational.legacy is selected,
     'postgres_uses_operational': (
         postgres.compile_document_operational is operational.compile_document_operational
     ),
     'context_module': default_compiler_context.__module__,
+    'strategy': selected.document_execution_strategy_receipt(),
 }))
 """
     completed = subprocess.run(
@@ -264,24 +269,33 @@ print(json.dumps({
     )
     payload = json.loads(completed.stdout)
     assert payload["module"] == "src.policy.corpus_compilation"
-    assert payload["contract"] == "document-graph-corpus-compilation-bridge:v0_2"
+    assert payload["contract"] == DOCUMENT_GRAPH_EXECUTION_CONTRACT
     assert payload["operational_selected"] is True
     assert payload["postgres_uses_operational"] is True
     assert payload["context_module"] == "src.policy.corpus_compilation"
+    assert payload["strategy"]["semantic_effect"] == "none"
+    assert payload["strategy"]["semantic_object"] == "document_graph"
 
 
-def test_compiler_proxy_forwards_monkeypatches(monkeypatch) -> None:
+def test_execution_strategy_installation_is_idempotent_and_monkeypatch_safe(
+    monkeypatch,
+) -> None:
     from src.policy import corpus_compilation as selected
+
+    mention_builder = selected.build_mention_licensing_carrier
+    semantic_layer = selected._semantic_annotation_layer
+    assert install_document_execution_strategy(selected) is selected
+    assert selected.build_mention_licensing_carrier is mention_builder
+    assert selected._semantic_annotation_layer is semantic_layer
 
     def injected_parser(text: str):
         return {"text": text, "sents": []}
 
     monkeypatch.setattr(selected, "parse_canonical_text", injected_parser)
     assert selected.parse_canonical_text is injected_parser
-    assert selected._proxy_legacy.parse_canonical_text is injected_parser
     assert selected.build_mention_licensing_carrier is not (
-        selected._proxy_legacy.build_mention_licensing_carrier
+        selected._serial_build_mention_licensing_carrier
     )
     assert selected._semantic_annotation_layer is not (
-        selected._proxy_legacy._semantic_annotation_layer
+        selected._serial_semantic_annotation_layer
     )
