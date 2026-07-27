@@ -1,4 +1,13 @@
-"""Deterministic progress and timing events shared by long-running runtime lanes."""
+"""Deterministic progress and timing events shared by long-running runtime lanes.
+
+Progress has two independent coordinates:
+
+* ``completed`` counts closed outer boundaries only;
+* ``active_stage`` names work that has begun but has not yet closed.
+
+Inner throughput is a named measure vector.  Anonymous ``rate=/s`` values are not
+emitted because a rate without a semantic unit is not interpretable.
+"""
 
 from __future__ import annotations
 
@@ -8,12 +17,12 @@ from datetime import UTC, datetime, timedelta
 import json
 from pathlib import Path
 import sys
-from time import monotonic_ns
 from threading import Event, Lock, Thread
+from time import monotonic_ns
 from typing import Any, Iterator, Mapping, TextIO
 
 
-PROGRESS_SCHEMA_VERSION = "sl.progress_event.v0_3"
+PROGRESS_SCHEMA_VERSION = "sl.progress_event.v0_4"
 PHASE_LEDGER_SCHEMA_VERSION = "sl.phase_ledger.v0_1"
 
 
@@ -24,8 +33,7 @@ def _utc_now() -> str:
 def _format_duration_ms(value_ms: int | None) -> str:
     if value_ms is None:
         return ""
-    seconds = max(0, int(round(value_ms / 1000)))
-    return str(timedelta(seconds=seconds))
+    return str(timedelta(seconds=max(0, int(round(value_ms / 1000)))))
 
 
 def _rate(completed: int | float, elapsed_ms: int) -> float | None:
@@ -34,12 +42,43 @@ def _rate(completed: int | float, elapsed_ms: int) -> float | None:
     return round(float(completed) / (elapsed_ms / 1_000), 3)
 
 
+def _measure_snapshot(
+    measures: Mapping[str, Mapping[str, Any]], elapsed_ms: int
+) -> dict[str, dict[str, Any]]:
+    result: dict[str, dict[str, Any]] = {}
+    for name in sorted(measures):
+        source = dict(measures[name])
+        completed = float(source.get("completed") or 0)
+        total_raw = source.get("total")
+        total = float(total_raw) if total_raw is not None else None
+        unit = str(source.get("unit") or name)
+        rate = _rate(completed, elapsed_ms)
+        row: dict[str, Any] = {
+            "completed": int(completed) if completed.is_integer() else completed,
+            "unit": unit,
+        }
+        if total is not None:
+            row["total"] = int(total) if total.is_integer() else total
+        if rate is not None:
+            row["per_second"] = rate
+            if total is not None and total >= completed:
+                remaining_ms = round((total - completed) / rate * 1_000)
+                row["estimated_remaining_ms"] = max(0, remaining_ms)
+                row["estimated_completion_at"] = (
+                    datetime.now(UTC)
+                    + timedelta(milliseconds=max(0, remaining_ms))
+                ).isoformat()
+        result[name] = row
+    return result
+
+
 @dataclass(frozen=True)
 class ProgressEvent:
     phase: str
     state: str
     completed: int = 0
     total: int | None = None
+    phase_unit: str = "units"
     message: str = ""
     subject_ref: str | None = None
     details: Mapping[str, Any] | None = None
@@ -54,13 +93,9 @@ class ProgressEvent:
     tokens_per_second: float | None = None
     worker: str | None = None
     reused: bool | None = None
-    work_completed: int | None = None
-    work_total: int | None = None
-    work_unit: str | None = None
-    work_elapsed_ms: int | None = None
-    work_units_per_second: float | None = None
-    work_estimated_remaining_ms: int | None = None
-    work_estimated_completion_at: str | None = None
+    active_stage: str | None = None
+    stage_elapsed_ms: int | None = None
+    measures: Mapping[str, Mapping[str, Any]] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
@@ -88,6 +123,7 @@ class PhaseRecorder:
         phase: str,
         *,
         total: int | None = None,
+        phase_unit: str = "units",
         subject_ref: str | None = None,
         message: str = "",
         worker: str | None = None,
@@ -98,6 +134,7 @@ class PhaseRecorder:
             recorder=self,
             phase=phase,
             total=total,
+            phase_unit=phase_unit,
             subject_ref=subject_ref,
             message=message,
             worker=worker,
@@ -147,6 +184,7 @@ class PhaseHandle:
     recorder: PhaseRecorder
     phase: str
     total: int | None = None
+    phase_unit: str = "units"
     subject_ref: str | None = None
     message: str = ""
     worker: str | None = None
@@ -156,12 +194,11 @@ class PhaseHandle:
     processed_tokens: int = 0
     total_tokens: int | None = None
     heartbeat_seconds: float | None = 30.0
-    work_completed: int | None = None
-    work_total: int | None = None
-    work_unit: str | None = None
+    active_stage: str | None = None
+    measures: dict[str, dict[str, Any]] = field(default_factory=dict)
     _started_at: str | None = None
     _started_ns: int | None = None
-    _work_started_ns: int | None = None
+    _stage_started_ns: int | None = None
     _finished: bool = False
     _heartbeat_stop: Event = field(default_factory=Event, init=False, repr=False)
     _heartbeat_thread: Thread | None = field(default=None, init=False, repr=False)
@@ -170,7 +207,6 @@ class PhaseHandle:
     def start(self) -> None:
         self._started_at = _utc_now()
         self._started_ns = monotonic_ns()
-        self._work_started_ns = self._started_ns
         self.recorder.emit(self._event(state="started", elapsed_ms=0))
         if self.heartbeat_seconds is not None and self.heartbeat_seconds > 0:
             self._heartbeat_thread = Thread(
@@ -189,30 +225,47 @@ class PhaseHandle:
         self,
         stage: str,
         *,
+        measures: Mapping[str, Mapping[str, Any]] | None = None,
         work_total: int | None = None,
         work_unit: str | None = None,
         details: Mapping[str, Any] | None = None,
         subject_ref: str | None = None,
         worker: str | None = None,
     ) -> None:
-        """Declare the current inner stage without advancing the outer phase."""
+        """Open an inner stage without advancing any completion counter.
 
+        ``work_total``/``work_unit`` remain as a compatibility shorthand for one
+        named measure.  New call sites should pass ``measures``.
+        """
+
+        declared = {name: dict(value) for name, value in (measures or {}).items()}
+        if work_total is not None or work_unit is not None:
+            unit = str(work_unit or "work_items")
+            declared.setdefault(
+                unit,
+                {"completed": 0, "total": work_total, "unit": unit},
+            )
         with self._state_lock:
-            self.message = stage
-            self.details = {"document_stage": stage, **dict(details or {})}
-            self.work_completed = 0
-            self.work_total = work_total
-            self.work_unit = work_unit
-            self._work_started_ns = monotonic_ns()
+            if self.active_stage is not None:
+                raise RuntimeError(
+                    f"cannot begin {stage!r}; stage {self.active_stage!r} is still active"
+                )
+            self.active_stage = stage
+            self.measures = declared
+            self._stage_started_ns = monotonic_ns()
+            self.details = {**self.details, **dict(details or {})}
             if subject_ref is not None:
                 self.subject_ref = subject_ref
             if worker is not None:
                 self.worker = worker
-        self.recorder.emit(self._event(state="running", elapsed_ms=self.elapsed_ms))
+        self.recorder.emit(
+            self._event(state="stage_started", elapsed_ms=self.elapsed_ms, message=stage)
+        )
 
     def observe(
         self,
         *,
+        measures: Mapping[str, int | float | Mapping[str, Any]] | None = None,
         message: str | None = None,
         work_completed: int | None = None,
         work_total: int | None = None,
@@ -221,24 +274,64 @@ class PhaseHandle:
         subject_ref: str | None = None,
         worker: str | None = None,
     ) -> None:
-        """Emit current inner work and throughput without completing an outer unit."""
+        """Update named inner measures without closing a stage or outer unit."""
 
         with self._state_lock:
-            if message is not None:
-                self.message = message
+            if self.active_stage is None:
+                raise RuntimeError("cannot observe inner work without an active stage")
+            for name, value in (measures or {}).items():
+                if isinstance(value, Mapping):
+                    self.measures[name] = {**self.measures.get(name, {}), **dict(value)}
+                else:
+                    self.measures.setdefault(name, {"unit": name})["completed"] = value
+            if work_completed is not None:
+                unit = str(work_unit or next(iter(self.measures), "work_items"))
+                row = self.measures.setdefault(unit, {"unit": unit})
+                row["completed"] = max(0, work_completed)
+                if work_total is not None:
+                    row["total"] = max(0, work_total)
             if details is not None:
                 self.details = {**self.details, **dict(details)}
-            if work_completed is not None:
-                self.work_completed = max(0, work_completed)
-            if work_total is not None:
-                self.work_total = max(0, work_total)
-            if work_unit is not None:
-                self.work_unit = work_unit
             if subject_ref is not None:
                 self.subject_ref = subject_ref
             if worker is not None:
                 self.worker = worker
-        self.recorder.emit(self._event(state="running", elapsed_ms=self.elapsed_ms))
+        self.recorder.emit(
+            self._event(
+                state="running",
+                elapsed_ms=self.elapsed_ms,
+                message=message or self.active_stage or "",
+            )
+        )
+
+    def complete_stage(
+        self,
+        *,
+        advance_outer: bool = False,
+        amount: int = 1,
+        details: Mapping[str, Any] | None = None,
+    ) -> None:
+        """Close the active stage; optionally close an outer boundary too."""
+
+        with self._state_lock:
+            if self.active_stage is None:
+                raise RuntimeError("cannot complete a stage when none is active")
+            stage = self.active_stage
+            snapshot = _measure_snapshot(self.measures, self.stage_elapsed_ms)
+            if advance_outer:
+                self.completed += amount
+            self.active_stage = None
+            self._stage_started_ns = None
+            self.measures = {}
+            merged = {**self.details, **dict(details or {}), "completed_stage": stage}
+        self.recorder.emit(
+            self._event(
+                state="stage_completed",
+                elapsed_ms=self.elapsed_ms,
+                details={**merged, "final_measures": snapshot},
+                message=stage,
+            )
+        )
 
     def heartbeat(self) -> None:
         if self._finished:
@@ -260,24 +353,25 @@ class PhaseHandle:
         processed_tokens: int = 0,
         worker: str | None = None,
     ) -> None:
+        """Close outer units only; never overwrite the active-stage identity."""
+
         with self._state_lock:
             self.completed += amount
             if reused:
                 self.reused += amount
             self.processed_tokens += max(0, processed_tokens)
-            if message:
-                self.message = message
-            if details is not None:
-                self.details = dict(details)
             if subject_ref is not None:
                 self.subject_ref = subject_ref
             if worker is not None:
                 self.worker = worker
+            event_details = dict(details or {})
         self.recorder.emit(
             self._event(
                 state="running",
                 elapsed_ms=self.elapsed_ms,
                 reused=reused,
+                details=event_details,
+                message=message,
             )
         )
 
@@ -294,30 +388,6 @@ class PhaseHandle:
             ).isoformat(),
         }
 
-    def _work_estimate(self) -> dict[str, Any]:
-        completed = self.work_completed
-        elapsed_ms = self.work_elapsed_ms
-        rate = _rate(completed or 0, elapsed_ms)
-        result: dict[str, Any] = {
-            "work_completed": completed,
-            "work_total": self.work_total,
-            "work_unit": self.work_unit,
-            "work_elapsed_ms": elapsed_ms if self._work_started_ns is not None else None,
-            "work_units_per_second": rate,
-        }
-        if (
-            rate is not None
-            and self.work_total is not None
-            and completed is not None
-            and self.work_total >= completed
-        ):
-            remaining_ms = round((self.work_total - completed) / rate * 1_000)
-            result["work_estimated_remaining_ms"] = max(0, remaining_ms)
-            result["work_estimated_completion_at"] = (
-                datetime.now(UTC) + timedelta(milliseconds=max(0, remaining_ms))
-            ).isoformat()
-        return result
-
     def _event(
         self,
         *,
@@ -325,14 +395,22 @@ class PhaseHandle:
         elapsed_ms: int,
         details: Mapping[str, Any] | None = None,
         reused: bool | None = None,
+        message: str | None = None,
     ) -> ProgressEvent:
         token_rate = _rate(self.processed_tokens, elapsed_ms)
+        stage_elapsed = self.stage_elapsed_ms if self.active_stage is not None else None
+        measures = (
+            _measure_snapshot(self.measures, stage_elapsed or 0)
+            if self.active_stage is not None
+            else None
+        )
         return ProgressEvent(
             phase=self.phase,
             state=state,
             completed=self.completed,
             total=self.total,
-            message=self.message,
+            phase_unit=self.phase_unit,
+            message=self.message if message is None else message,
             subject_ref=self.subject_ref,
             details=dict(details if details is not None else self.details) or None,
             started_at=self._started_at,
@@ -342,8 +420,10 @@ class PhaseHandle:
             processed_tokens=self.processed_tokens or None,
             total_tokens=self.total_tokens,
             tokens_per_second=token_rate,
+            active_stage=self.active_stage,
+            stage_elapsed_ms=stage_elapsed,
+            measures=measures,
             **self._outer_estimate(elapsed_ms),
-            **self._work_estimate(),
         )
 
     @property
@@ -353,14 +433,18 @@ class PhaseHandle:
         return max(0, (monotonic_ns() - self._started_ns) // 1_000_000)
 
     @property
-    def work_elapsed_ms(self) -> int:
-        if self._work_started_ns is None:
+    def stage_elapsed_ms(self) -> int:
+        if self._stage_started_ns is None:
             return 0
-        return max(0, (monotonic_ns() - self._work_started_ns) // 1_000_000)
+        return max(0, (monotonic_ns() - self._stage_started_ns) // 1_000_000)
 
     def finish(self, *, state: str, details: Mapping[str, Any] | None = None) -> None:
         if self._finished:
             return
+        if self.active_stage is not None:
+            raise RuntimeError(
+                f"cannot finish phase while stage {self.active_stage!r} is active"
+            )
         self._finished = True
         self._heartbeat_stop.set()
         if self._heartbeat_thread is not None:
@@ -402,7 +486,7 @@ def emit_progress(
     worker = f" worker={event.worker}" if event.worker else ""
     reuse = " reused" if event.reused else ""
     outer_rate = (
-        f" rate={event.throughput_units_per_second:.3f}/s"
+        f" {event.phase_unit}_rate={event.throughput_units_per_second:.3f}/s"
         if event.throughput_units_per_second is not None
         else ""
     )
@@ -411,28 +495,28 @@ def emit_progress(
         if event.estimated_completion_at
         else ""
     )
-    work = ""
-    if event.work_completed is not None:
-        work_total = f"/{event.work_total}" if event.work_total is not None else ""
-        unit = event.work_unit or "units"
-        work_rate = (
-            f" {event.work_units_per_second:.3f}/{unit}/s"
-            if event.work_units_per_second is not None
-            else ""
-        )
-        work_eta = (
-            f" work_eta={_format_duration_ms(event.work_estimated_remaining_ms)}"
-            if event.work_estimated_remaining_ms is not None
-            else ""
-        )
-        work = f" work={event.work_completed}{work_total} {unit}{work_rate}{work_eta}"
-    token_rate = (
-        f" tokens={event.processed_tokens} ({event.tokens_per_second:.3f}/s)"
-        if event.processed_tokens is not None and event.tokens_per_second is not None
-        else ""
-    )
+    stage = f" active_stage={event.active_stage}" if event.active_stage else ""
+    measure_text = ""
+    if event.measures:
+        chunks = []
+        for name, row in event.measures.items():
+            total_value = f"/{row['total']}" if "total" in row else ""
+            rate_value = (
+                f" {row['per_second']:.3f}/{row['unit']}/s"
+                if "per_second" in row
+                else ""
+            )
+            eta_value = (
+                f" eta={_format_duration_ms(row['estimated_remaining_ms'])}"
+                if "estimated_remaining_ms" in row
+                else ""
+            )
+            chunks.append(
+                f"{name}={row['completed']}{total_value} {row['unit']}{rate_value}{eta_value}"
+            )
+        measure_text = " measures=[" + "; ".join(chunks) + "]"
     print(
-        f"[{event.phase}] {event.state} {event.completed}{total}{subject}{elapsed}{worker}{reuse}{outer_rate}{eta_at}{work}{token_rate}{message}",
+        f"[{event.phase}] {event.state} {event.completed}{total}{subject}{elapsed}{worker}{reuse}{outer_rate}{eta_at}{stage}{measure_text}{message}",
         file=target,
         flush=True,
     )
