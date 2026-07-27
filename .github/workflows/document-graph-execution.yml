@@ -18,6 +18,7 @@ on:
       - "tests/policy/test_operational_corpus_compilation.py"
       - "tests/runtime/test_progress_instrumentation.py"
       - "docs/document_graph_execution.md"
+      - "docs/document_graph_benchmark.md"
       - ".github/workflows/document-graph-execution.yml"
   workflow_dispatch:
 
