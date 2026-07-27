@@ -75,13 +75,14 @@ from .sl_to_sb_observer import (
 )
 
 
-# Corpus compilation remains one semantic authority.  The package installs the
+# Corpus compilation remains one semantic authority. The package installs the
 # default document execution strategy on that module before direct or package
 # imports can expose it to the tranche runner.
 corpus_compilation = importlib.import_module(".corpus_compilation", __name__)
-from .document_graph_execution import install_document_execution_strategy
-
-install_document_execution_strategy(corpus_compilation)
+_document_graph_execution = importlib.import_module(
+    ".document_graph_execution", __name__
+)
+_document_graph_execution.install_document_execution_strategy(corpus_compilation)
 
 
 __all__ = [
