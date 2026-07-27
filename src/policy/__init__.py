@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import sys
 
 from .semantic_promotion import (
     ABSTAINED,
@@ -73,22 +74,33 @@ from .sl_to_sb_observer import (
     SL_TO_SB_ISO_RUN_OBSERVER_KIND,
     build_sl_to_sb_iso_run_observer_payload,
 )
+from .corpus_compilation_proxy import build_corpus_compilation_proxy
 
 
-def __getattr__(name: str):
-    """Resolve the operational compiler through the graph-dataflow bridge.
-
-    Direct imports of ``src.policy.corpus_compilation`` retain the stable legacy
-    module.  Package-level operational imports receive the one-document graph
-    execution bridge without eagerly loading the compiler for unrelated policy
-    consumers.
-    """
-
-    if name == "corpus_compilation":
-        module = importlib.import_module(".graph_optimal_corpus_compilation", __name__)
-        globals()[name] = module
-        return module
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+# Load the stable compiler first so the graph bridge can retain its exact data
+# classes and function globals.  Then replace the public module entry with a
+# forwarding proxy.  Direct imports, package imports and the tranche runner's
+# legacy-first import order now select the same graph-enabled compiler surface.
+_legacy_corpus_compilation = importlib.import_module(".corpus_compilation", __name__)
+_graph_corpus_compilation = importlib.import_module(
+    ".graph_optimal_corpus_compilation", __name__
+)
+corpus_compilation = build_corpus_compilation_proxy(
+    _legacy_corpus_compilation,
+    overrides={
+        "_semantic_annotation_layer": (
+            _graph_corpus_compilation._semantic_annotation_layer
+        ),
+        "DOCUMENT_GRAPH_PROJECTION_CONTRACT": (
+            _graph_corpus_compilation.DOCUMENT_GRAPH_PROJECTION_CONTRACT
+        ),
+        "GRAPH_OPTIMAL_CORPUS_COMPILATION_CONTRACT": (
+            _graph_corpus_compilation.GRAPH_OPTIMAL_CORPUS_COMPILATION_CONTRACT
+        ),
+        "graph_execution_contract": _graph_corpus_compilation.graph_execution_contract,
+    },
+)
+sys.modules[f"{__name__}.corpus_compilation"] = corpus_compilation
 
 
 __all__ = [
