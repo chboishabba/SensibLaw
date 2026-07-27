@@ -1,6 +1,6 @@
 """Install document-scoped execution strategies on the corpus compiler authority.
 
-This module does not define another compiler.  It replaces only execution-policy
+This module does not define another compiler. It replaces only execution-policy
 callables on ``src.policy.corpus_compilation`` while retaining that module's
 semantic types, globals, contracts and import identity.
 """
@@ -92,8 +92,8 @@ def install_document_execution_strategy(
 ) -> ModuleType:
     """Inject execution policy into the existing corpus compiler module.
 
-    Installation is idempotent.  Original semantic callables are retained on
-    private attributes for parity checks, tests and explicit serial fallbacks.
+    Installation is idempotent. Original semantic callables are retained on
+    private attributes for parity checks, tests and exact serial fallbacks.
     """
 
     with _INSTALL_LOCK:
@@ -117,6 +117,19 @@ def install_document_execution_strategy(
             tokens: Sequence[tuple[str, int, int]] | None = None,
             progress_observer: Callable[[Mapping[str, Any]], None] | None = None,
         ) -> dict[str, Any]:
+            worker_budget = _document_worker_budget(parsed_document)
+            if worker_budget <= 1 or (
+                tokens is not None and len(tokens) < strategy.min_parallel_tokens
+            ):
+                return serial_mention_builder(
+                    canonical_text=canonical_text,
+                    source_ref=source_ref,
+                    document_ref=document_ref,
+                    context_refs=context_refs,
+                    parsed_document=parsed_document,
+                    tokens=tokens,
+                    progress_observer=progress_observer,
+                )
             carrier = mention_execution.build_document_mention_licensing_carrier(
                 canonical_text=canonical_text,
                 source_ref=source_ref,
@@ -125,7 +138,7 @@ def install_document_execution_strategy(
                 parsed_document=parsed_document,
                 tokens=tokens,
                 progress_observer=progress_observer,
-                worker_budget=_document_worker_budget(parsed_document),
+                worker_budget=worker_budget,
                 partitions_per_worker=strategy.partitions_per_worker,
                 min_parallel_tokens=strategy.min_parallel_tokens,
                 verify_serial=False,
@@ -147,18 +160,32 @@ def install_document_execution_strategy(
             progress_observer: Callable[[Mapping[str, int]], None] | None = None,
         ):
             worker_budget = _document_worker_budget(parsed_document)
+            min_parallel_sentences = max(
+                4,
+                worker_budget * strategy.min_parallel_sentences_per_worker,
+            )
+            if worker_budget <= 1 or len(
+                parsed_document.get("sents") or ()
+            ) < min_parallel_sentences:
+                return serial_semantic_layer(
+                    document_ref=document_ref,
+                    source_ref=source_ref,
+                    content_sha256=content_sha256,
+                    tokens=tokens,
+                    base_layer=base_layer,
+                    text=text,
+                    parsed_document=parsed_document,
+                    progress_observer=progress_observer,
+                )
             parallel_collector = partial(
                 collect_document_relational_bundle,
                 worker_budget=worker_budget,
                 partitions_per_worker=strategy.partitions_per_worker,
-                min_parallel_sentences=max(
-                    4,
-                    worker_budget * strategy.min_parallel_sentences_per_worker,
-                ),
+                min_parallel_sentences=min_parallel_sentences,
                 verify_serial=False,
             )
             # The stable semantic-layer implementation currently resolves its
-            # reducer through a module global.  Guard the temporary execution
+            # reducer through a module global. Guard the temporary execution
             # substitution under the one-active-document tranche invariant.
             with _PROJECTION_OVERRIDE_LOCK:
                 previous = compiler.collect_canonical_relational_bundle
@@ -182,9 +209,7 @@ def install_document_execution_strategy(
                 progress_observer(_execution_measures(receipt))
             return result
 
-        build_mention_licensing_carrier.__name__ = (
-            serial_mention_builder.__name__
-        )
+        build_mention_licensing_carrier.__name__ = serial_mention_builder.__name__
         build_mention_licensing_carrier.__qualname__ = (
             serial_mention_builder.__qualname__
         )
