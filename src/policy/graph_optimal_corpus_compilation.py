@@ -1,12 +1,12 @@
 """Compatibility bridge from the staged compiler to document-graph execution.
 
 The stable corpus compiler remains the source of data classes, carrier contracts
-and ordinary compiler functions.  ``src.policy`` installs an import-order-stable
+and ordinary compiler functions. ``src.policy`` installs an import-order-stable
 module proxy that forwards those attributes and monkeypatches to the stable
 module while selecting the graph-enabled mention and projection operators below.
 
 The semantic projection override is guarded because the legacy semantic-layer
-function resolves its collector through a module global.  The tranche objective
+function resolves its collector through a module global. The tranche objective
 is intentionally one active document at a time, so this bridge preserves that
 execution invariant until the semantic-layer dependency is made explicit in a
 later refactor.
@@ -29,7 +29,7 @@ from src.policy.document_graph_projection import (
 
 
 # The compatibility module keeps execution plumbing separate from the semantic
-# carrier implementation.  Install the complete parser-observation worker before
+# carrier implementation. Install the complete parser-observation worker before
 # exposing the operator through the corpus compiler proxy.
 mention_execution._mention_worker = scan_mention_partition
 DOCUMENT_GRAPH_MENTION_CONTRACT = mention_execution.DOCUMENT_GRAPH_MENTION_CONTRACT
@@ -67,6 +67,16 @@ def _document_worker_budget(parsed_document: Mapping[str, Any] | None) -> int:
     return 1
 
 
+def _execution_measures(receipt: Mapping[str, Any]) -> dict[str, int]:
+    return {
+        "partitions_completed": int(receipt.get("partition_count") or 0),
+        "worker_leases_granted": int(receipt.get("granted_workers") or 0),
+        "worker_processes_observed": len(receipt.get("worker_pids") or ()),
+        "worker_compute_ms": int(receipt.get("worker_compute_ms") or 0),
+        "owner_merge_ms": int(receipt.get("owner_merge_ms") or 0),
+    }
+
+
 def build_mention_licensing_carrier(
     *,
     canonical_text: str,
@@ -79,7 +89,7 @@ def build_mention_licensing_carrier(
 ):
     """License mentions through token fibres under the active document budget."""
 
-    return build_document_mention_licensing_carrier(
+    carrier = build_document_mention_licensing_carrier(
         canonical_text=canonical_text,
         source_ref=source_ref,
         document_ref=document_ref,
@@ -92,6 +102,10 @@ def build_mention_licensing_carrier(
         min_parallel_tokens=2_048,
         verify_serial=False,
     )
+    receipt = carrier.get("licensing_execution_receipt") or {}
+    if progress_observer is not None and isinstance(receipt, Mapping):
+        progress_observer(_execution_measures(receipt))
+    return carrier
 
 
 def _semantic_annotation_layer(
@@ -119,7 +133,7 @@ def _semantic_annotation_layer(
         previous = _legacy.collect_canonical_relational_bundle
         _legacy.collect_canonical_relational_bundle = parallel_collector
         try:
-            return _original_semantic_annotation_layer(
+            result = _original_semantic_annotation_layer(
                 document_ref=document_ref,
                 source_ref=source_ref,
                 content_sha256=content_sha256,
@@ -131,6 +145,11 @@ def _semantic_annotation_layer(
             )
         finally:
             _legacy.collect_canonical_relational_bundle = previous
+    _semantic_layer, relational_bundle, _atom_span_refs = result
+    receipt = relational_bundle.get("projection_receipt") or {}
+    if progress_observer is not None and isinstance(receipt, Mapping):
+        progress_observer(_execution_measures(receipt))
+    return result
 
 
 def graph_execution_contract() -> dict[str, Any]:
