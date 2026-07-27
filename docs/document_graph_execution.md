@@ -44,9 +44,11 @@ are preferred; refinements must be revision-bound.
 
 ## Invariants
 
-1. **One semantic object**
+1. **One semantic authority and one semantic object**
+   - `src.policy.corpus_compilation` remains the compiler authority.
    - The document graph owns global identity, coordinates, factors, constraints,
      demands and the final digest.
+   - Execution policy is injected as a strategy; it is not another compiler.
    - A fibre never owns an independent semantic graph.
 
 2. **Operator-specific fibres**
@@ -143,7 +145,7 @@ and required coverage barriers are complete
 External or cross-document demands remain explicit residuals and do not block a
 bounded document-local commit.
 
-## Implemented execution cuts
+## Implemented execution strategies
 
 ### Mention licensing
 
@@ -183,35 +185,41 @@ one merged parsed document
   -> one document relational bundle
 ```
 
-Properties of this cut:
+Properties of this strategy:
 
 - workers receive only their sentence partition text and parser observations;
 - no worker invokes a second parser boundary;
 - local atom and relation identifiers are non-authoritative;
 - the owner merges by canonical structural and role keys;
-- document-global first-question behaviour remains compatible with the legacy
+- document-global first-question behaviour remains compatible with the stable
   reducer;
 - the receipt records requested/granted/peak workers, worker PIDs and wall
   intervals, partition sizes, worker compute time, merge time, semantic units,
   fingerprints and the worker-budget invariant.
 
-### Import-order-stable operational routing
+### Canonical compiler injection
 
-The complete tranche runner imports the stable compiler before the PostgreSQL
-operational compiler. A package `__getattr__` hook therefore cannot reliably
-select graph execution.
+`src/policy/document_graph_execution.py` declares execution-only policy and
+installs it idempotently on `src.policy.corpus_compilation`, which remains the
+single compiler module and semantic authority.
 
-`src/policy/corpus_compilation_proxy.py` installs one public module proxy after
-the stable module and graph bridge are loaded. Direct imports, package imports
-and the runner's legacy-first import order all receive the same graph-enabled
-surface. Ordinary reads and monkeypatches forward to the stable compiler module;
-only mention licensing, semantic projection and graph contract fields are local
-overrides.
+The installer:
 
-`src/policy/graph_optimal_corpus_compilation.py` connects those overrides to the
-existing operational compiler without copying the full compiler implementation.
-The semantic-layer collector override is lock-guarded and assumes the tranche
-invariant of one active document.
+- preserves the compiler module's import identity, data classes and function
+  globals;
+- retains the original serial mention and semantic-layer callables for parity,
+  tests and explicit fallback;
+- replaces only mention licensing and relational projection execution;
+- restores exact original serial behaviour below parallel thresholds, so small
+  document artefacts and goldens do not acquire execution-only fields;
+- exposes one strategy receipt with `semantic_effect: none`;
+- publishes completed partition/worker/compute/merge measures to the active
+  progress stage.
+
+The semantic-layer implementation currently resolves its relational collector
+through a module global. The strategy therefore guards that temporary execution
+substitution with a lock under the tranche invariant of one active document.
+This is transitional execution plumbing, not a second semantic authority.
 
 ### Parity tests
 
@@ -223,11 +231,11 @@ Focused tests cover:
 - deterministic relational output for worker budgets 1, 2 and 4;
 - bounded worker receipts and partition progress;
 - the tranche runner's actual legacy-first import order;
-- proxy forwarding of existing compiler monkeypatches.
+- idempotent strategy installation and ordinary compiler monkeypatches.
 
 ## Deliberate limitations
 
-These cuts do **not** yet claim complete graph-optimal execution:
+These strategies do **not** yet claim complete graph-optimal execution:
 
 - parser results are still fully merged before mention and projection jobs begin;
 - mention and projection each create a stage-scoped process executor rather than
