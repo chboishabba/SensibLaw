@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+import importlib
+
 from .semantic_promotion import (
     ABSTAINED,
     CANDIDATE_BASES,
@@ -70,6 +74,23 @@ from .sl_to_sb_observer import (
     build_sl_to_sb_iso_run_observer_payload,
 )
 
+
+def __getattr__(name: str):
+    """Resolve the operational compiler through the graph-dataflow bridge.
+
+    Direct imports of ``src.policy.corpus_compilation`` retain the stable legacy
+    module.  Package-level operational imports receive the one-document graph
+    execution bridge without eagerly loading the compiler for unrelated policy
+    consumers.
+    """
+
+    if name == "corpus_compilation":
+        module = importlib.import_module(".graph_optimal_corpus_compilation", __name__)
+        globals()[name] = module
+        return module
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 __all__ = [
     "ABSTAINED",
     "CANDIDATE_BASES",
@@ -111,6 +132,7 @@ __all__ = [
     "build_relation_candidate",
     "build_sb_to_sl_contract_payload",
     "build_sl_to_sb_iso_run_observer_payload",
+    "corpus_compilation",
     "evaluate_clause",
     "evaluate_control_group",
     "evaluate_control_profile",
