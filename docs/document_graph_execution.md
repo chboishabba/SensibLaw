@@ -3,11 +3,11 @@
 ## Objective
 
 The runtime objective is **minimum time to one committed document**, not balanced
-throughput across a tranche.  One active document receives the complete bounded
+throughput across a tranche. One active document receives the complete bounded
 worker budget until its document-local semantic state reaches a certified fixed
 point and is committed transactionally.
 
-The semantic object is the document graph.  Stages and fibres are execution
+The semantic object is the document graph. Stages and fibres are execution
 constructs only.
 
 ## Core state
@@ -39,7 +39,7 @@ The document state advances through deterministic keyed reduction:
 G_(t+1) = G_t join Delta_1 join ... join Delta_n
 ```
 
-The join must be deterministic and idempotent under replay.  Monotone additions
+The join must be deterministic and idempotent under replay. Monotone additions
 are preferred; refinements must be revision-bound.
 
 ## Invariants
@@ -111,7 +111,7 @@ Priority should favour work that:
 4. has high semantic yield per estimated cost;
 5. touches a bounded low-contention region.
 
-Worker utilisation is evidence, not the objective.  Four busy workers are not
+Worker utilisation is evidence, not the objective. Four busy workers are not
 optimal when three are executing speculative work while one closure-critical
 job blocks commit.
 
@@ -125,7 +125,7 @@ Only these barriers should remain broad:
 - fixed-point certification;
 - transactional commit.
 
-Stage names organise receipts and semantic responsibility.  They must not create
+Stage names organise receipts and semantic responsibility. They must not create
 execution barriers where dependency readiness permits streaming.
 
 ## Fixed-point condition
@@ -143,7 +143,34 @@ and required coverage barriers are complete
 External or cross-document demands remain explicit residuals and do not block a
 bounded document-local commit.
 
-## Implemented first cut
+## Implemented execution cuts
+
+### Mention licensing
+
+`src/policy/document_graph_mentions.py` splits the canonical token carrier into
+bounded token fibres:
+
+```text
+canonical token carrier + parser sentence observations
+  -> process-local lexical/suppression/name/eventuality deltas
+  -> deterministic token-interval normalization
+  -> license-priority reduction
+  -> stable document mention identities
+  -> one mention-licensing carrier
+```
+
+Canonical tokens remain authoritative for lexical admission and suppression.
+Every parser token in each owned sentence is scanned separately for numeric and
+eventuality evidence, including parser spans that do not exactly match one
+canonical token. Proper-name runs remain sentence-local. The owner alone
+normalizes intervals, selects the primary generation reason, creates mention and
+license references, and computes the carrier digest.
+
+The execution receipt records requested/granted/peak workers, per-partition token
+ranges, worker PIDs and wall intervals, worker compute time, owner merge time,
+semantic counts, fingerprints and budget compliance.
+
+### Relational projection
 
 `src/policy/document_graph_projection.py` removes the immediate relational
 projection collapse for operational compilation:
@@ -164,28 +191,52 @@ Properties of this cut:
 - the owner merges by canonical structural and role keys;
 - document-global first-question behaviour remains compatible with the legacy
   reducer;
-- a projection receipt records requested/granted/peak workers, worker PIDs,
-  partition sizes, worker compute time, merge time, semantic fingerprints and
-  the worker-budget invariant;
-- tests verify serial/parallel semantic identity across worker budgets 1, 2 and
-  4.
+- the receipt records requested/granted/peak workers, worker PIDs and wall
+  intervals, partition sizes, worker compute time, merge time, semantic units,
+  fingerprints and the worker-budget invariant.
 
-`src/policy/graph_optimal_corpus_compilation.py` is a compatibility bridge.  It
-allows the existing operational compiler to use this projection cut without
-copying or forking the complete corpus compiler.  The bridge is guarded and
-assumes the tranche invariant of one active document.
+### Import-order-stable operational routing
 
-## Deliberate limitations of the first cut
+The complete tranche runner imports the stable compiler before the PostgreSQL
+operational compiler. A package `__getattr__` hook therefore cannot reliably
+select graph execution.
 
-The first cut does **not** yet claim complete graph-optimal execution:
+`src/policy/corpus_compilation_proxy.py` installs one public module proxy after
+the stable module and graph bridge are loaded. Direct imports, package imports
+and the runner's legacy-first import order all receive the same graph-enabled
+surface. Ordinary reads and monkeypatches forward to the stable compiler module;
+only mention licensing, semantic projection and graph contract fields are local
+overrides.
 
-- parser results are still fully merged before downstream projection begins;
-- mention candidate generation is not yet partition-local;
-- process workers are created for projection rather than retained for the whole
-  document;
+`src/policy/graph_optimal_corpus_compilation.py` connects those overrides to the
+existing operational compiler without copying the full compiler implementation.
+The semantic-layer collector override is lock-guarded and assumes the tranche
+invariant of one active document.
+
+### Parity tests
+
+Focused tests cover:
+
+- exact serial/parallel mention-carrier equality;
+- non-canonical-token-aligned parser evidence;
+- exact serial/parallel relational payload equality;
+- deterministic relational output for worker budgets 1, 2 and 4;
+- bounded worker receipts and partition progress;
+- the tranche runner's actual legacy-first import order;
+- proxy forwarding of existing compiler monkeypatches.
+
+## Deliberate limitations
+
+These cuts do **not** yet claim complete graph-optimal execution:
+
+- parser results are still fully merged before mention and projection jobs begin;
+- mention and projection each create a stage-scoped process executor rather than
+  leasing one persistent executor for the complete document;
+- recurrence and form derivation remain document-owner operations;
 - closure still uses its existing executor;
 - constraint assessment/refinement is not yet a differential dirty-key loop;
-- keyed reducer ownership is still logically represented by the document owner.
+- keyed reducer ownership is still logically represented by the document owner;
+- useful end-to-end speedup has not yet been accepted by benchmark receipts.
 
 These limitations are recorded rather than hidden by calling the implementation
 "fully parallel".
@@ -205,9 +256,9 @@ These limitations are recorded rather than hidden by calling the implementation
    dirty keys.
 6. Replace whole-graph constraint passes with dependency-indexed differential
    work.
-7. Benchmark representative documents with worker budgets 1 and 4; accept the
-   parallel path only when semantic fingerprints match and end-to-end document
-   wall time improves.
+7. Benchmark representative documents with worker budgets 1 and 4; accept each
+   parallel operator only when semantic fingerprints match and end-to-end
+   document wall time improves.
 
 ## Acceptance evidence
 
@@ -215,7 +266,7 @@ A parallel operator is accepted only with receipts showing:
 
 - requested and granted workers;
 - peak simultaneously active workers;
-- worker process identities;
+- worker process identities and wall-clock overlap intervals;
 - partition input sizes;
 - worker compute and coordinator merge time;
 - aggregate and per-worker semantic units;
