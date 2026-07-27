@@ -69,7 +69,11 @@ Differences are policy and enforcement, not architecture.
 ## Next actions (planned)
 - Formal mapping table: ITIR/TIRC primitives → SL primitives (lossless vs lossy).
 - Page-stability invariant test across paginated variants.
-- Large-doc ingest path (chunking + repetition metadata) exposed in both general and legal modes.
+- Large-document parser execution now uses bounded overlapping fibres over one
+  pre-built document structural carrier. Fibre outputs retain global offsets,
+  exact ownership intervals, checkpoint receipts, and cross-fibre debt; they
+  are reconciled before the one document-level PNF fixed point and transactional
+  commit. General and legal-adjunct compilation use the same path.
 
 ## Boundary references
 - `docs/planning/extraction_enrichment_boundary_20260307.md`

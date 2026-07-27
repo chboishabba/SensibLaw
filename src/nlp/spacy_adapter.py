@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+from threading import Lock
 from types import ModuleType
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional
 
@@ -13,6 +14,7 @@ if TYPE_CHECKING:  # pragma: no cover - imported for type checking only
 __all__ = ["parse"]
 
 _DEFAULT_NLP: Optional["Language"] = None
+_DEFAULT_NLP_LOCK = Lock()
 
 
 def _import_spacy() -> ModuleType:
@@ -25,27 +27,29 @@ def _build_default_nlp() -> "Language":
     if _DEFAULT_NLP is not None:
         return _DEFAULT_NLP
 
-    spacy = _import_spacy()
-
-    try:
-        nlp = spacy.load("en_core_web_sm", disable=["ner"])
-    except OSError:
-        nlp = spacy.blank("en")
-
-    if "parser" not in nlp.pipe_names and "senter" not in nlp.pipe_names:
-        if "sentencizer" not in nlp.pipe_names:
-            nlp.add_pipe("sentencizer")
-
-    if "lemmatizer" not in nlp.pipe_names:
+    with _DEFAULT_NLP_LOCK:
+        if _DEFAULT_NLP is not None:
+            return _DEFAULT_NLP
+        spacy = _import_spacy()
         try:
-            lemmatizer = nlp.add_pipe("lemmatizer", config={"mode": "lookup"})
-            lemmatizer.initialize(lambda: [], nlp=nlp)
-        except Exception:
-            if "lemmatizer" in nlp.pipe_names:
-                nlp.remove_pipe("lemmatizer")
+            nlp = spacy.load("en_core_web_sm", disable=["ner"])
+        except OSError:
+            nlp = spacy.blank("en")
 
-    _DEFAULT_NLP = nlp
-    return nlp
+        if "parser" not in nlp.pipe_names and "senter" not in nlp.pipe_names:
+            if "sentencizer" not in nlp.pipe_names:
+                nlp.add_pipe("sentencizer")
+
+        if "lemmatizer" not in nlp.pipe_names:
+            try:
+                lemmatizer = nlp.add_pipe("lemmatizer", config={"mode": "lookup"})
+                lemmatizer.initialize(lambda: [], nlp=nlp)
+            except Exception:
+                if "lemmatizer" in nlp.pipe_names:
+                    nlp.remove_pipe("lemmatizer")
+
+        _DEFAULT_NLP = nlp
+        return nlp
 
 
 def _ensure_sentence_boundaries(nlp: "Language") -> None:
