@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib
-import sys
 
 from .semantic_promotion import (
     ABSTAINED,
@@ -74,39 +73,15 @@ from .sl_to_sb_observer import (
     SL_TO_SB_ISO_RUN_OBSERVER_KIND,
     build_sl_to_sb_iso_run_observer_payload,
 )
-from .corpus_compilation_proxy import build_corpus_compilation_proxy
 
 
-# Load the stable compiler first so the graph bridge can retain its exact data
-# classes and function globals.  Then replace the public module entry with a
-# forwarding proxy.  Direct imports, package imports and the tranche runner's
-# legacy-first import order now select the same graph-enabled compiler surface.
-_legacy_corpus_compilation = importlib.import_module(".corpus_compilation", __name__)
-_graph_corpus_compilation = importlib.import_module(
-    ".graph_optimal_corpus_compilation", __name__
-)
-corpus_compilation = build_corpus_compilation_proxy(
-    _legacy_corpus_compilation,
-    overrides={
-        "build_mention_licensing_carrier": (
-            _graph_corpus_compilation.build_mention_licensing_carrier
-        ),
-        "_semantic_annotation_layer": (
-            _graph_corpus_compilation._semantic_annotation_layer
-        ),
-        "DOCUMENT_GRAPH_MENTION_CONTRACT": (
-            _graph_corpus_compilation.DOCUMENT_GRAPH_MENTION_CONTRACT
-        ),
-        "DOCUMENT_GRAPH_PROJECTION_CONTRACT": (
-            _graph_corpus_compilation.DOCUMENT_GRAPH_PROJECTION_CONTRACT
-        ),
-        "GRAPH_OPTIMAL_CORPUS_COMPILATION_CONTRACT": (
-            _graph_corpus_compilation.GRAPH_OPTIMAL_CORPUS_COMPILATION_CONTRACT
-        ),
-        "graph_execution_contract": _graph_corpus_compilation.graph_execution_contract,
-    },
-)
-sys.modules[f"{__name__}.corpus_compilation"] = corpus_compilation
+# Corpus compilation remains one semantic authority.  The package installs the
+# default document execution strategy on that module before direct or package
+# imports can expose it to the tranche runner.
+corpus_compilation = importlib.import_module(".corpus_compilation", __name__)
+from .document_graph_execution import install_document_execution_strategy
+
+install_document_execution_strategy(corpus_compilation)
 
 
 __all__ = [
