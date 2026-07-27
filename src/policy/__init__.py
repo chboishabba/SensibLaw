@@ -88,8 +88,14 @@ _graph_corpus_compilation = importlib.import_module(
 corpus_compilation = build_corpus_compilation_proxy(
     _legacy_corpus_compilation,
     overrides={
+        "build_mention_licensing_carrier": (
+            _graph_corpus_compilation.build_mention_licensing_carrier
+        ),
         "_semantic_annotation_layer": (
             _graph_corpus_compilation._semantic_annotation_layer
+        ),
+        "DOCUMENT_GRAPH_MENTION_CONTRACT": (
+            _graph_corpus_compilation.DOCUMENT_GRAPH_MENTION_CONTRACT
         ),
         "DOCUMENT_GRAPH_PROJECTION_CONTRACT": (
             _graph_corpus_compilation.DOCUMENT_GRAPH_PROJECTION_CONTRACT
