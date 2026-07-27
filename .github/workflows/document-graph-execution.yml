@@ -6,6 +6,7 @@ on:
       - agent/document-graph-dataflow
   pull_request:
     paths:
+      - "scripts/benchmark_document_graph_execution.py"
       - "src/policy/__init__.py"
       - "src/policy/document_graph_execution.py"
       - "src/policy/document_graph_mention_worker.py"
@@ -41,6 +42,7 @@ jobs:
       - name: Lint document execution surfaces
         run: |
           uv run ruff check \
+            scripts/benchmark_document_graph_execution.py \
             src/policy/__init__.py \
             src/policy/document_graph_execution.py \
             src/policy/document_graph_mention_worker.py \
@@ -52,6 +54,7 @@ jobs:
       - name: Check formatting
         run: |
           uv run ruff format --check \
+            scripts/benchmark_document_graph_execution.py \
             src/policy/__init__.py \
             src/policy/document_graph_execution.py \
             src/policy/document_graph_mention_worker.py \
@@ -59,6 +62,9 @@ jobs:
             src/policy/document_graph_projection.py \
             src/runtime/document_stage_metrics.py \
             tests/policy/test_document_graph_projection.py
+
+      - name: Check benchmark CLI import
+        run: uv run python scripts/benchmark_document_graph_execution.py --help
 
       - name: Run focused compiler regressions
         run: |
