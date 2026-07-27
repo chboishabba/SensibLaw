@@ -10,7 +10,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
+from bisect import bisect_left, bisect_right
 
 from src.sensiblaw.interfaces import (
     parse_canonical_text,
@@ -3772,6 +3773,8 @@ def build_mention_licensing_carrier(
     document_ref: str,
     context_refs: Sequence[str] = (),
     parsed_document: Mapping[str, Any] | None = None,
+    tokens: Sequence[tuple[str, int, int]] | None = None,
+    progress_observer: Callable[[Mapping[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     """Build deterministic, backend-free licenses over a recoverable span lattice.
 
@@ -3787,7 +3790,12 @@ def build_mention_licensing_carrier(
     source = _text(source_ref, "source_ref")
     document = _text(document_ref, "document_ref")
     canonical_context_refs = _refs(context_refs)
-    tokens = tokenize_canonical_with_spans(text)
+    # The operational compiler already owns this canonical token carrier.  Do
+    # not tokenize the document a second time: apart from wasted CPU, a second
+    # pass makes progress and coordinate provenance ambiguous.
+    token_rows = tuple(tokens) if tokens is not None else tuple(
+        tokenize_canonical_with_spans(text)
+    )
     parsed = (
         dict(parsed_document)
         if parsed_document is not None
@@ -3801,7 +3809,30 @@ def build_mention_licensing_carrier(
         tuple[int, int], list[tuple[str, tuple[str, ...], tuple[str, ...]]]
     ] = {}
     suppressed: list[SuppressedSpan] = []
-    for token_index, (token, start_char, end_char) in enumerate(tokens):
+    token_starts = [row[1] for row in token_rows]
+    token_ends = [row[2] for row in token_rows]
+    exact_intervals = {
+        (start, end): (index, index + 1)
+        for index, (_token, start, end) in enumerate(token_rows)
+    }
+
+    def token_interval(start_char: int, end_char: int) -> tuple[int, int] | None:
+        exact = exact_intervals.get((start_char, end_char))
+        if exact is not None:
+            return exact
+        start_index = bisect_left(token_starts, start_char)
+        end_index = bisect_right(token_ends, end_char)
+        if start_index >= end_index:
+            return None
+        if token_starts[start_index] < start_char or token_ends[end_index - 1] > end_char:
+            return None
+        return start_index, end_index
+
+    def observe(**measures: int) -> None:
+        if progress_observer is not None:
+            progress_observer(measures)
+
+    for token_index, (token, start_char, end_char) in enumerate(token_rows):
         normalized = token.strip().lower()
         if not _is_lexical_token(token):
             suppressed.append(
@@ -3821,6 +3852,14 @@ def build_mention_licensing_carrier(
                 _local_types(annotation),
             )
         )
+        if token_index % 2048 == 0:
+            observe(
+                tokens_scanned=token_index + 1,
+                mentions_considered=len(proposed),
+                mentions_licensed=0,
+                forms_derived=0,
+                recurrences_derived=0,
+            )
 
     for start_char, end_char in _name_shaped_phrases(parsed):
         proposed.setdefault((start_char, end_char), []).append(
@@ -3854,11 +3893,11 @@ def build_mention_licensing_carrier(
         tuple[int, int], list[tuple[str, tuple[str, ...], tuple[str, ...]]]
     ] = {}
     for start_char, end_char in sorted(proposed):
-        interval = _canonical_token_interval(tokens, start_char, end_char)
+        interval = token_interval(start_char, end_char)
         if interval is None:
             continue
         start_token, end_token = interval
-        normalized_interval = (tokens[start_token][1], tokens[end_token - 1][2])
+        normalized_interval = (token_rows[start_token][1], token_rows[end_token - 1][2])
         normalized_proposed.setdefault(normalized_interval, []).extend(
             proposed[(start_char, end_char)]
         )
@@ -3866,7 +3905,7 @@ def build_mention_licensing_carrier(
     mention_rows: list[dict[str, Any]] = []
     license_rows: list[dict[str, Any]] = []
     for start_char, end_char in sorted(normalized_proposed):
-        interval = _canonical_token_interval(tokens, start_char, end_char)
+        interval = token_interval(start_char, end_char)
         if interval is None:
             continue
         start_token, end_token = interval
@@ -3874,8 +3913,8 @@ def build_mention_licensing_carrier(
         # parser phrase can overlap a token boundary; normalize its material
         # span to that interval instead of emitting internally contradictory
         # character and token ranges.
-        start_char = tokens[start_token][1]
-        end_char = tokens[end_token - 1][2]
+        start_char = token_rows[start_token][1]
+        end_char = token_rows[end_token - 1][2]
         mention_ref = f"mention:{document}:{start_char}:{end_char}"
         specifications = sorted(
             set(normalized_proposed[(start_char, end_char)]),
@@ -3932,14 +3971,21 @@ def build_mention_licensing_carrier(
         "document_ref": document,
         "canonical_text_sha256": _canonical_digest(text),
         "lattice": {
-            "token_count": len(tokens),
-            "token_boundary_count": len(tokens) + 1,
-            "recoverable_contiguous_span_count": len(tokens) * (len(tokens) + 1) // 2,
+            "token_count": len(token_rows),
+            "token_boundary_count": len(token_rows) + 1,
+            "recoverable_contiguous_span_count": len(token_rows) * (len(token_rows) + 1) // 2,
         },
         "mentions": mention_rows,
         "licenses": license_rows,
         "suppressed_spans": suppressed_rows,
     }
+    observe(
+        tokens_scanned=len(token_rows),
+        mentions_considered=len(proposed),
+        mentions_licensed=len(mention_rows),
+        forms_derived=0,
+        recurrences_derived=0,
+    )
     return {
         **identity,
         "carrier_ref": f"mention-licensing:{_canonical_digest(identity)}",

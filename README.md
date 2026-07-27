@@ -1328,6 +1328,9 @@ Note:
 
 - the test suite expects the superproject venv (`../.venv`)
 - many docs and fixtures assume the full `ITIR-suite` workspace is present
+- spaCy model availability follows that same rule in this workspace: the
+  superproject venv may carry `en_core_web_sm` even when `SensibLaw/.venv`
+  falls back to `spacy.blank("en")`
 
 ## Common Workflows
 

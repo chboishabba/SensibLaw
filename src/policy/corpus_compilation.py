@@ -10,6 +10,7 @@ interpretation.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from bisect import bisect_left
 from dataclasses import replace
 from pathlib import Path
 import hashlib
@@ -17,7 +18,7 @@ import json
 import mimetypes
 import os
 import tempfile
-from typing import Any, Iterable, Mapping, Protocol, Sequence
+from typing import Any, Callable, Iterable, Mapping, Protocol, Sequence
 
 from src.ingestion.media_adapter_contract import MediaAdapterCapability
 from src.ingestion.media_adapter import HtmlDocumentMediaAdapter
@@ -758,6 +759,7 @@ def _semantic_annotation_layer(
     base_layer: AnnotationLayer,
     text: str,
     parsed_document: Mapping[str, Any],
+    progress_observer: Callable[[Mapping[str, int]], None] | None = None,
 ) -> tuple[AnnotationLayer, Mapping[str, Any], dict[str, str]]:
     """Project one public parser observation stream into the annotation graph.
 
@@ -765,7 +767,29 @@ def _semantic_annotation_layer(
     permitted to create a second parser boundary.
     """
 
-    bundle = collect_canonical_relational_bundle(text, parsed_document=parsed_document)
+    def observe_bundle_progress(_event: str, payload: Mapping[str, Any]) -> None:
+        if progress_observer is None:
+            return
+        progress_observer(
+            {
+                "bundle_batches_completed": int(payload.get("batch_index", 0)),
+                "bundle_sentences_scanned": int(payload.get("sentences_done", 0)),
+                "bundle_words_scanned": int(payload.get("words_done", 0)),
+                "bundle_tokens_scanned": int(payload.get("tokens_done", 0)),
+                "semantic_atoms_projected": int(payload.get("atom_count", 0)),
+                "semantic_relations_projected": int(
+                    payload.get("relation_count", 0)
+                ),
+            }
+        )
+
+    bundle = collect_canonical_relational_bundle(
+        text,
+        parsed_document=parsed_document,
+        progress_callback=observe_bundle_progress,
+    )
+    semantic_atoms = tuple(bundle.get("atoms") or ())
+    semantic_relations = tuple(bundle.get("relations") or ())
     parser_receipt = dict(parsed_document.get("parser_receipt") or {})
     parser_tokens = tuple(
         token
@@ -776,6 +800,40 @@ def _semantic_annotation_layer(
         (start_char, end_char): index
         for index, (_token, start_char, end_char) in enumerate(tokens)
     }
+    token_starts = [start_char for _token, start_char, _end_char in tokens]
+    token_ends = [end_char for _token, _start_char, end_char in tokens]
+    parser_token_total = sum(
+        len(sentence.get("tokens") or ())
+        for sentence in parsed_document.get("sents") or ()
+    )
+    sentence_total = len(parsed_document.get("sents") or ())
+    progress_counts = {
+        "parser_tokens_projected": 0,
+        "sentences_projected": 0,
+        "observations_emitted": 0,
+        "deltas_emitted": 0,
+        "relations_projected": 0,
+        "semantic_atoms_projected": 0,
+        "semantic_relations_projected": 0,
+        "token_coverage_lookups": 0,
+    }
+
+    def observe_progress(**updates: int) -> None:
+        if progress_observer is None:
+            return
+        progress_counts.update(updates)
+        progress_observer(dict(progress_counts))
+
+    def covered_token_indexes(start_char: int, end_char: int) -> list[int]:
+        """Return overlapping canonical tokens without rescanning the document."""
+
+        first = bisect_left(token_ends, start_char + 1)
+        last = bisect_left(token_starts, end_char)
+        return [
+            index
+            for index in range(first, last)
+            if token_starts[index] < end_char and token_ends[index] > start_char
+        ]
     parser_span_refs: dict[int, str] = {}
     token_annotations: list[TokenAnnotation] = []
     parser_spans: list[SpanAnnotation] = []
@@ -786,11 +844,8 @@ def _semantic_annotation_layer(
             start_char, end_char = int(token["start"]), int(token["end"])
             canonical_index = token_indexes_by_span.get((start_char, end_char))
             if canonical_index is None:
-                overlapping = [
-                    index
-                    for index, (_surface, token_start, token_end) in enumerate(tokens)
-                    if token_start < end_char and token_end > start_char
-                ]
+                progress_counts["token_coverage_lookups"] += 1
+                overlapping = covered_token_indexes(start_char, end_char)
                 if len(overlapping) == 1:
                     canonical_index = overlapping[0]
             if canonical_index is None:
@@ -831,6 +886,12 @@ def _semantic_annotation_layer(
                         (source_ref,),
                     )
                 )
+            progress_counts["parser_tokens_projected"] += 1
+        progress_counts["sentences_projected"] = sentence_index + 1
+        if (progress_counts["parser_tokens_projected"] % 4096 == 0) or (
+            progress_counts["sentences_projected"] == sentence_total
+        ):
+            observe_progress()
     for token in parser_tokens:
         parser_index = int(token["index"])
         head_index = int(token.get("head_index", parser_index))
@@ -856,6 +917,9 @@ def _semantic_annotation_layer(
                 provenance_refs=(source_ref,),
             )
         )
+        progress_counts["relations_projected"] += 1
+        if progress_counts["relations_projected"] % 4096 == 0:
+            observe_progress()
     parser_relations.append(
         RelationAnnotation(
             relation_ref="parser-capabilities:"
@@ -871,13 +935,10 @@ def _semantic_annotation_layer(
     )
     atom_span_refs: dict[str, str] = {}
     spans: list[SpanAnnotation] = []
-    for atom in bundle.get("atoms") or ():
+    for atom_index, atom in enumerate(semantic_atoms, start=1):
         start_char, end_char = (int(value) for value in atom["span"])
-        covered = [
-            index
-            for index, (_token, token_start, token_end) in enumerate(tokens)
-            if token_start < end_char and token_end > start_char
-        ]
+        progress_counts["token_coverage_lookups"] += 1
+        covered = covered_token_indexes(start_char, end_char)
         if not covered:
             continue
         atom_ref = str(atom["id"])
@@ -910,8 +971,11 @@ def _semantic_annotation_layer(
                 provenance_refs=(source_ref,),
             )
         )
+        progress_counts["semantic_atoms_projected"] = atom_index
+        if atom_index % 4096 == 0:
+            observe_progress()
     relations: list[RelationAnnotation] = []
-    for relation in bundle.get("relations") or ():
+    for relation_index, relation in enumerate(semantic_relations, start=1):
         relation_ref = "semantic-relation:" + canonical_sha256(
             {"document_ref": document_ref, "relation": relation}
         )
@@ -934,6 +998,16 @@ def _semantic_annotation_layer(
                 provenance_refs=(source_ref,),
             )
         )
+        progress_counts["semantic_relations_projected"] = relation_index
+        if relation_index % 4096 == 0:
+            observe_progress()
+    observe_progress(
+        parser_tokens_projected=parser_token_total,
+        sentences_projected=sentence_total,
+        relations_projected=len(parser_relations),
+        semantic_atoms_projected=len(semantic_atoms),
+        semantic_relations_projected=len(semantic_relations),
+    )
     layer = AnnotationLayer(
         layer_ref="annotation-layer:semantic:"
         + canonical_sha256({"base": base_layer.layer_ref, "bundle": bundle}),

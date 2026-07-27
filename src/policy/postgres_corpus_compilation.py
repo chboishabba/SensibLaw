@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 import tempfile
 from time import monotonic_ns
+from concurrent.futures import Future, ProcessPoolExecutor, as_completed
 from typing import Any, Callable, Mapping, Sequence
 
 from tqdm.auto import tqdm
@@ -24,6 +25,7 @@ from src.policy.operational_corpus_compilation import (
     DOCUMENT_COMPILE_STAGE_COUNT,
     compile_document_operational,
 )
+from src.runtime.document_stage_metrics import stage_measure_declaration
 from src.runtime.progress import PhaseRecorder
 from src.sensiblaw.interfaces.shared_reducer import tokenize_canonical_with_spans
 from src.storage.postgres import PersistedCompilation, PostgresCompilerStore
@@ -43,6 +45,119 @@ from src.storage.postgres.span_store import persist_licensed_spans
 PreparedSource = tuple[bytes, str]
 CompilationDocumentExecutor = Callable[..., tuple[str, ...]]
 COMPILATION_STATE_SCHEMA_VERSION = "sl.postgres_corpus_compilation_state.v0_1"
+
+
+def _compile_document_postgres_worker(
+    *,
+    database_url: str,
+    progress: bool,
+    store_kwargs: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Compile one document on an isolated PostgreSQL connection.
+
+    The canonical operational compiler remains the document executor; this
+    wrapper only supplies worker-local persistence and returns a serializable
+    checkpoint result to the scheduler.
+    """
+    store = PostgresCompilerStore.connect(database_url)
+    try:
+        document_ref = str(store_kwargs["document_ref"])
+        worker_ref = str(store_kwargs["worker_ref"])
+        relative_path = str(store_kwargs["relative_path"])
+        try:
+            cached = None
+            with store.transaction() as cursor:
+                cached = load_completed_operational_build(
+                    cursor,
+                    document_ref=document_ref,
+                    compiler_contract_ref=str(store_kwargs["document_executor_contract_ref"]),
+                    build_key_sha256=str(store_kwargs["build_key_sha256"]),
+                )
+            if cached is not None:
+                with store.transaction() as cursor:
+                    store.persist_occurrence(
+                        cursor,
+                        corpus_ref=str(store_kwargs["corpus_ref"]),
+                        relative_path=relative_path,
+                        document_ref=document_ref,
+                        state="reused_compilation",
+                    )
+                return {
+                    "document_ref": document_ref,
+                    "relative_path": relative_path,
+                    "state": "reused_compilation",
+                    "demand_refs": list(cached),
+                    "worker": worker_ref,
+                    "build_key_sha256": str(store_kwargs["build_key_sha256"]),
+                }
+            started_ns = monotonic_ns()
+            worker_progress = (
+                PhaseRecorder(stream=sys.stderr, json_lines=False)
+                if progress is not None
+                else None
+            )
+            with (
+                worker_progress.phase(
+                    f"postgres_{store_kwargs['execution_phase']}_document_compile",
+                    total=DOCUMENT_COMPILE_STAGE_COUNT + 1,
+                    subject_ref=relative_path,
+                    message="document compile",
+                    worker=worker_ref,
+                    details={
+                        "document_ref": document_ref,
+                        "relative_path": relative_path,
+                        "build_key_sha256": str(store_kwargs["build_key_sha256"]),
+                        "execution_phase": str(store_kwargs["execution_phase"]),
+                    },
+                    heartbeat_seconds=30.0,
+                )
+                if worker_progress is not None
+                else nullcontext(None)
+            ) as document_progress:
+                refs = store_kwargs["document_executor"](
+                    store=store,
+                    corpus_ref=str(store_kwargs["corpus_ref"]),
+                    relative_path=relative_path,
+                    entry=store_kwargs["entry"],
+                    source_bytes=store_kwargs["source_bytes"],
+                    source_text=store_kwargs["source_text"],
+                    context=store_kwargs["context"],
+                    execution_phase=str(store_kwargs["execution_phase"]),
+                    batch_index=int(store_kwargs["batch_index"]),
+                    closure_workers=int(store_kwargs["closure_workers"]),
+                    owner_partitions=int(store_kwargs["owner_partitions"]),
+                    parser_workers=int(store_kwargs["parser_workers"]),
+                    parser_limit_chars=int(store_kwargs["parser_limit_chars"]),
+                    parser_target_chars=int(store_kwargs["parser_target_chars"]),
+                    parser_overlap_chars=int(store_kwargs["parser_overlap_chars"]),
+                    parser_checkpoint_dir=store_kwargs["parser_checkpoint_dir"],
+                    progress=document_progress,
+                )
+            return {
+                "document_ref": document_ref,
+                "relative_path": relative_path,
+                "state": "compiled",
+                "demand_refs": list(refs),
+                "worker": worker_ref,
+                "build_key_sha256": str(store_kwargs["build_key_sha256"]),
+                "elapsed_ms": max(0, (monotonic_ns() - started_ns) // 1_000_000),
+            }
+        except (OSError, UnicodeDecodeError, ValueError, RuntimeError) as error:
+            with store.transaction() as cursor:
+                failure_ref = store.persist_failure(
+                    cursor, target_ref=document_ref, phase_ref="local_compile", error=error
+                )
+            return {
+                "document_ref": document_ref,
+                "relative_path": relative_path,
+                "state": "failed",
+                "failure_ref": failure_ref,
+                "error_type": type(error).__name__,
+                "error": str(error),
+                "worker": worker_ref,
+            }
+    finally:
+        store.close()
 
 
 def _canonical_source_coordinates(
@@ -599,6 +714,7 @@ def persist_document_compilation(
             resulting_factor_revisions[str(resulting["factor_ref"])] = (
                 factor_revision_ref(resulting)
             )
+    mentions = tuple(artifacts.get("licensing", {}).get("mentions") or ())
     demand_refs: tuple[str, ...] = ()
     _validate_document_parent_closure(
         document_ref=compilation.document_ref,
@@ -612,118 +728,152 @@ def persist_document_compilation(
         refinements=refinements,
         demands=demands,
     )
+    persistence_stage = (
+        progress.stage(
+            "postgres_persistence",
+            measures=stage_measure_declaration("postgres_persistence"),
+            details={
+                "state": "compiled",
+                "build_key_sha256": build_key_sha256,
+            },
+        )
+        if progress is not None and hasattr(progress, "stage")
+        else nullcontext(None)
+    )
     try:
-        with store.savepoint() as cursor:
-            store.persist_source_document(
-                cursor,
-                document_ref=compilation.document_ref,
-                media_type=compilation.media_type,
-                content_sha256=compilation.content_sha256,
-                source_bytes=source_bytes,
-                canonical_text=canonical_text,
-                adapter_ref=media_adapter_ref,
-                adapter_version=context.media_normalization_ref,
-                compiler_context_ref=context.context_ref,
-                normalization_ref=context.media_normalization_ref,
-            )
-            store.persist_occurrence(
-                cursor,
-                corpus_ref=corpus_ref,
-                relative_path=relative_path,
-                document_ref=compilation.document_ref,
-                state="compiled",
-            )
-            persist_licensed_spans(
-                cursor,
-                document_ref=compilation.document_ref,
-                mentions=artifacts["licensing"].get("mentions") or (),
-            )
-            store.persist_tokens(
-                cursor,
-                document_ref=compilation.document_ref,
-                tokenizer_ref=context.annotation_backend_ref,
-                tokenizer_version=context.compiler_version,
-                tokens=canonical_tokens,
-            )
-            store.persist_annotation_layer(
-                cursor,
-                document_ref=compilation.document_ref,
-                layer=artifacts["annotation_layer"],
-            )
-            persisted_base_factor_revisions = persist_pnf_graph(
-                cursor,
-                document_ref=compilation.document_ref,
-                graph=artifacts["pnf_graph"],
-            )
-            persisted_resulting_factor_revisions = dict(
-                persisted_base_factor_revisions
-            )
-            for refinement in refinements:
-                resulting = refinement.get("resulting_factor")
-                if isinstance(resulting, Mapping):
-                    revision_ref = persist_factor_revision(
-                        cursor,
-                        document_ref=compilation.document_ref,
-                        factor=resulting,
+        with persistence_stage as progress_stage:
+            with store.savepoint() as cursor:
+                store.persist_source_document(
+                    cursor,
+                    document_ref=compilation.document_ref,
+                    media_type=compilation.media_type,
+                    content_sha256=compilation.content_sha256,
+                    source_bytes=source_bytes,
+                    canonical_text=canonical_text,
+                    adapter_ref=media_adapter_ref,
+                    adapter_version=context.media_normalization_ref,
+                    compiler_context_ref=context.context_ref,
+                    normalization_ref=context.media_normalization_ref,
+                )
+                store.persist_occurrence(
+                    cursor,
+                    corpus_ref=corpus_ref,
+                    relative_path=relative_path,
+                    document_ref=compilation.document_ref,
+                    state="compiled",
+                )
+                persist_licensed_spans(
+                    cursor,
+                    document_ref=compilation.document_ref,
+                    mentions=mentions,
+                )
+                store.persist_tokens(
+                    cursor,
+                    document_ref=compilation.document_ref,
+                    tokenizer_ref=context.annotation_backend_ref,
+                    tokenizer_version=context.compiler_version,
+                    tokens=canonical_tokens,
+                )
+                store.persist_annotation_layer(
+                    cursor,
+                    document_ref=compilation.document_ref,
+                    layer=artifacts["annotation_layer"],
+                )
+                persisted_base_factor_revisions = persist_pnf_graph(
+                    cursor,
+                    document_ref=compilation.document_ref,
+                    graph=artifacts["pnf_graph"],
+                )
+                persisted_resulting_factor_revisions = dict(
+                    persisted_base_factor_revisions
+                )
+                for refinement in refinements:
+                    resulting = refinement.get("resulting_factor")
+                    if isinstance(resulting, Mapping):
+                        revision_ref = persist_factor_revision(
+                            cursor,
+                            document_ref=compilation.document_ref,
+                            factor=resulting,
+                        )
+                        factor_ref = str(resulting["factor_ref"])
+                        persisted_resulting_factor_revisions[factor_ref] = revision_ref
+                _validate_document_parent_closure(
+                    document_ref=compilation.document_ref,
+                    relative_path=relative_path,
+                    execution_phase=execution_phase,
+                    batch_index=batch_index,
+                    base_factor_revisions=persisted_base_factor_revisions,
+                    resulting_factor_revisions=persisted_resulting_factor_revisions,
+                    candidate_sets=candidate_sets,
+                    factor_anchors=factor_anchors,
+                    refinements=refinements,
+                    demands=demands,
+                )
+                demand_refs = persist_resolution_artifacts(
+                    cursor,
+                    factor_revisions=persisted_resulting_factor_revisions,
+                    demands=demands,
+                    evidence=artifacts.get("local_evidence") or (),
+                    meets=meets,
+                    refinements=refinements,
+                )
+                persist_binding_candidate_sets(
+                    cursor,
+                    candidate_sets=candidate_sets,
+                    refinements=refinements,
+                    factor_revisions=persisted_base_factor_revisions,
+                    factor_anchors=factor_anchors,
+                    builds=candidate_set_builds,
+                    meets=meets,
+                    demands=demands,
+                    validate_indexed_query=True,
+                )
+                persist_completed_operational_build(
+                    cursor,
+                    document_ref=compilation.document_ref,
+                    compiler_contract_ref=OPERATIONAL_COMPILER_CONTRACT,
+                    build_key_sha256=build_key_sha256,
+                    graph_ref=str(artifacts["pnf_graph"]["graph_ref"]),
+                    demand_refs=demand_refs,
+                )
+                if progress_stage is not None:
+                    progress_stage.observe(
+                        measures={
+                            "rows_written": (
+                                1
+                                + 1
+                                + len(mentions)
+                                + len(canonical_tokens)
+                                + len(persisted_base_factor_revisions)
+                                + len(refinements)
+                                + len(demand_refs)
+                                + len(candidate_sets)
+                                + 1
+                            ),
+                            "bytes_written": (
+                                len(source_bytes)
+                                + len(canonical_text.encode("utf-8"))
+                            ),
+                            "tables_touched": 7,
+                            "statements_executed": (
+                                1
+                                + 1
+                                + 1
+                                + 1
+                                + len(refinements)
+                                + 1
+                                + 1
+                                + 1
+                            ),
+                            "conflicts_avoided": 0,
+                        },
+                        details={
+                            "state": "compiled",
+                            "build_key_sha256": build_key_sha256,
+                            "demand_ref_count": len(demand_refs),
+                        },
                     )
-                    factor_ref = str(resulting["factor_ref"])
-                    persisted_resulting_factor_revisions[factor_ref] = revision_ref
-            _validate_document_parent_closure(
-                document_ref=compilation.document_ref,
-                relative_path=relative_path,
-                execution_phase=execution_phase,
-                batch_index=batch_index,
-                base_factor_revisions=persisted_base_factor_revisions,
-                resulting_factor_revisions=persisted_resulting_factor_revisions,
-                candidate_sets=candidate_sets,
-                factor_anchors=factor_anchors,
-                refinements=refinements,
-                demands=demands,
-            )
-            demand_refs = persist_resolution_artifacts(
-                cursor,
-                factor_revisions=persisted_resulting_factor_revisions,
-                demands=demands,
-                evidence=artifacts.get("local_evidence") or (),
-                meets=meets,
-                refinements=refinements,
-            )
-            persist_binding_candidate_sets(
-                cursor,
-                candidate_sets=candidate_sets,
-                refinements=refinements,
-                factor_revisions=persisted_base_factor_revisions,
-                factor_anchors=factor_anchors,
-                builds=candidate_set_builds,
-                meets=meets,
-                demands=demands,
-                validate_indexed_query=True,
-            )
-            persist_completed_operational_build(
-                cursor,
-                document_ref=compilation.document_ref,
-                compiler_contract_ref=OPERATIONAL_COMPILER_CONTRACT,
-                build_key_sha256=build_key_sha256,
-                graph_ref=str(artifacts["pnf_graph"]["graph_ref"]),
-                demand_refs=demand_refs,
-            )
-            if progress is not None and not getattr(progress, "_finished", False):
-                progress.advance(
-                    message="persistence",
-                    details={
-                        "state": "compiled",
-                        "build_key_sha256": build_key_sha256,
-                        "demand_ref_count": len(demand_refs),
-                    },
-                )
-                progress.finish(
-                    state="completed",
-                    details={
-                        "state": "compiled",
-                        "build_key_sha256": build_key_sha256,
-                    },
-                )
-            return demand_refs
+                return demand_refs
     except ValueError:
         if progress is not None and not getattr(progress, "_finished", False):
             progress.finish(
@@ -800,6 +950,9 @@ def compile_directory_postgres(
     parser_limit_chars: int = 1_000_000,
     parser_target_chars: int = 400_000,
     parser_overlap_chars: int = 8_192,
+    document_workers: int = 1,
+    worker_budget: int | None = None,
+    database_url: str | None = None,
     progress: PhaseRecorder | None = None,
     state_path: str | Path | None = None,
     resume: bool = True,
@@ -815,6 +968,15 @@ def compile_directory_postgres(
         raise ValueError("unsupported corpus compilation phase")
     if closure_workers < 1:
         raise ValueError("closure_workers must be positive")
+    if document_workers < 1:
+        raise ValueError("document_workers must be positive")
+    if worker_budget is None:
+        worker_budget = max(document_workers, closure_workers, parser_workers)
+    if worker_budget < 1:
+        raise ValueError("worker_budget must be positive")
+    scheduled_inner_workers = max(1, worker_budget // document_workers)
+    scheduled_closure_workers = min(closure_workers, scheduled_inner_workers)
+    scheduled_parser_workers = min(parser_workers, scheduled_inner_workers)
     if owner_partitions < 1:
         raise ValueError("owner_partitions must be positive")
     if not 1 <= parser_workers <= 32:
@@ -919,6 +1081,8 @@ def compile_directory_postgres(
                 "parser_limit_chars": parser_limit_chars,
                 "parser_target_chars": parser_target_chars,
                 "parser_overlap_chars": parser_overlap_chars,
+                "document_workers": document_workers,
+                "worker_budget": worker_budget,
             },
         )
         if progress is not None
@@ -939,7 +1103,9 @@ def compile_directory_postgres(
         "parser_workers": parser_workers,
         "parser_limit_chars": parser_limit_chars,
         "parser_target_chars": parser_target_chars,
-        "parser_overlap_chars": parser_overlap_chars,
+                "parser_overlap_chars": parser_overlap_chars,
+                "document_workers": document_workers,
+        "worker_budget": worker_budget,
         "root": str(root),
         "documents": resume_documents,
         "duplicate_occurrences": resume_duplicate_occurrences,
@@ -982,6 +1148,128 @@ def compile_directory_postgres(
     with progress_phase as phase_handle:
         if phase_handle is None:
             phase_handle = _NoopPhaseHandle()
+        if document_workers > 1:
+            if database_url is None:
+                try:
+                    database_url = str(store.connection.info.dsn)
+                except AttributeError as error:
+                    raise ValueError(
+                        "database_url is required for document_workers > 1"
+                    ) from error
+            futures: dict[Future[dict[str, Any]], tuple[str, str, str]] = {}
+            with ProcessPoolExecutor(
+                max_workers=document_workers,
+            ) as executor:
+                for batch_index, entry in enumerate(progress_iter, start=1):
+                    document_ref = str(entry["document_ref"])
+                    relative_path = str(entry["relative_path"])
+                    worker_ref = f"{document_executor_ref}:doc-{batch_index:04d}"
+                    if document_ref in compiled:
+                        phase_handle.advance(
+                            subject_ref=document_ref,
+                            message="reused",
+                            reused=True,
+                            details={"relative_path": relative_path, "worker": worker_ref},
+                            worker=worker_ref,
+                        )
+                        continue
+                    prepared = prepared_sources.get(relative_path)
+                    if prepared is None:
+                        source_bytes = (root / relative_path).read_bytes()
+                        source_text = source_bytes.decode("utf-8")
+                    else:
+                        source_bytes, source_text = prepared
+                    canonical_text, canonical_text_sha256, media_adapter_ref = (
+                        _canonical_source_coordinates(
+                            media_type=str(entry["media_type"]),
+                            source_text=source_text,
+                            source_ref=f"document-source:{document_ref}",
+                        )
+                    )
+                    build_key_sha256 = _operational_build_key(
+                        document_ref=document_ref,
+                        content_sha256=str(entry["content_sha256"]),
+                        canonical_text_sha256=canonical_text_sha256,
+                        media_adapter_ref=media_adapter_ref,
+                        context=context,
+                        parser_workers=scheduled_parser_workers,
+                        parser_limit_chars=parser_limit_chars,
+                        parser_target_chars=parser_target_chars,
+                        parser_overlap_chars=parser_overlap_chars,
+                    )
+                    parser_checkpoint_dir = (
+                        str(state_file.parent / f"{state_file.stem}_chunks" / document_ref.removeprefix("document:"))
+                        if state_file is not None else None
+                    )
+                    payload = {
+                        "document_ref": document_ref,
+                        "relative_path": relative_path,
+                        "worker_ref": worker_ref,
+                        "entry": entry,
+                        "source_bytes": source_bytes,
+                        "source_text": canonical_text,
+                        "context": context,
+                        "execution_phase": execution_phase,
+                        "batch_index": batch_index,
+                        "corpus_ref": corpus_ref,
+                        "build_key_sha256": build_key_sha256,
+                        "document_executor": document_executor,
+                        "document_executor_contract_ref": document_executor_contract_ref,
+                        "closure_workers": scheduled_closure_workers,
+                        "owner_partitions": owner_partitions,
+                        "parser_workers": scheduled_parser_workers,
+                        "parser_limit_chars": parser_limit_chars,
+                        "parser_target_chars": parser_target_chars,
+                        "parser_overlap_chars": parser_overlap_chars,
+                        "parser_checkpoint_dir": parser_checkpoint_dir,
+                    }
+                    future = executor.submit(
+                        _compile_document_postgres_worker,
+                        database_url=database_url,
+                        progress=progress is not None,
+                        store_kwargs=payload,
+                    )
+                    futures[future] = (document_ref, relative_path, worker_ref)
+                for future in as_completed(futures):
+                    document_ref, relative_path, worker_ref = futures[future]
+                    result = future.result()
+                    state = str(result["state"])
+                    if state in {"compiled", "reused_compilation"}:
+                        compiled.add(document_ref)
+                        document_refs.append(document_ref)
+                        demand_refs.extend(str(ref) for ref in result.get("demand_refs") or ())
+                    if result.get("failure_ref"):
+                        failure_refs.append(str(result["failure_ref"]))
+                    resume_documents[document_ref] = result
+                    state_row.update(
+                        document_refs=list(document_refs),
+                        demand_refs=list(demand_refs),
+                        failure_refs=list(failure_refs),
+                        completed_document_count=len(document_refs),
+                    )
+                    _save_compilation_state(state_file, state_row)
+                    phase_handle.advance(
+                        subject_ref=document_ref,
+                        message=state,
+                        reused=state == "reused_compilation",
+                        details={"relative_path": relative_path, "worker": worker_ref, **result},
+                        worker=worker_ref,
+                    )
+            if sys.stderr.isatty():
+                progress_iter.close()
+            state_row.update(
+                document_refs=list(document_refs),
+                demand_refs=list(demand_refs),
+                failure_refs=list(failure_refs),
+                completed_document_count=len(document_refs),
+            )
+            _save_compilation_state(state_file, state_row)
+            return PersistedCompilation(
+                corpus_ref=corpus_ref,
+                document_refs=tuple(sorted(document_refs)),
+                demand_refs=tuple(sorted(set(demand_refs))),
+                failure_refs=tuple(sorted(failure_refs)),
+            )
         for batch_index, entry in enumerate(progress_iter, start=1):
             document_ref = str(entry["document_ref"])
             relative_path = str(entry["relative_path"])
@@ -1021,7 +1309,7 @@ def compile_directory_postgres(
                     canonical_text_sha256=canonical_text_sha256,
                     media_adapter_ref=media_adapter_ref,
                     context=context,
-                    parser_workers=parser_workers,
+                    parser_workers=scheduled_parser_workers,
                     parser_limit_chars=parser_limit_chars,
                     parser_target_chars=parser_target_chars,
                     parser_overlap_chars=parser_overlap_chars,
@@ -1103,6 +1391,18 @@ def compile_directory_postgres(
                     )
                     continue
                 started_ns = monotonic_ns()
+                if hasattr(phase_handle, "observe"):
+                    phase_handle.observe(
+                        subject_ref=relative_path,
+                        message="active document",
+                        details={
+                            "document_ref": document_ref,
+                            "relative_path": relative_path,
+                            "worker": worker_ref,
+                            "state": "running",
+                        },
+                        worker=worker_ref,
+                    )
                 with (
                     progress.phase(
                         f"postgres_{execution_phase}_document_compile",
@@ -1131,9 +1431,9 @@ def compile_directory_postgres(
                         context=context,
                         execution_phase=execution_phase,
                         batch_index=batch_index,
-                        closure_workers=closure_workers,
+                        closure_workers=scheduled_closure_workers,
                         owner_partitions=owner_partitions,
-                        parser_workers=parser_workers,
+                        parser_workers=scheduled_parser_workers,
                         parser_limit_chars=parser_limit_chars,
                         parser_target_chars=parser_target_chars,
                         parser_overlap_chars=parser_overlap_chars,

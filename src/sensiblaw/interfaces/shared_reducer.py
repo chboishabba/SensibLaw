@@ -522,43 +522,54 @@ def collect_canonical_relational_bundle(
                     adjusted["end"] = int(token["end"]) + batch_start_char
                 sent_tokens.append(adjusted)
         token_by_index = {token["index"]: token for token in sent_tokens}
+        children_by_head: dict[int, list[dict[str, Any]]] = {}
+        for child in sent_tokens:
+            children_by_head.setdefault(int(child["head_index"]), []).append(child)
 
-        for token in sent_tokens:
+        for token_index, token in enumerate(sent_tokens, start=1):
             if token["dep"] in predicate_deps and token["pos"] in {"VERB", "AUX"}:
+                direct_children = children_by_head.get(int(token["index"]), ())
                 auxiliary_children = {
                     child["index"]
-                    for child in sent_tokens
+                    for child in direct_children
                     if child["head_index"] == token["index"]
                     and child["dep"] in {"aux", "auxpass"}
                     and child["pos"] == "AUX"
                 }
                 subject_children = [
                     child
-                    for child in sent_tokens
+                    for child in direct_children
                     if (
-                        child["head_index"] == token["index"]
-                        or child["head_index"] in auxiliary_children
+                        child["dep"] in {"nsubj", "nsubjpass"}
+                        and child["pos"] in nounish
                     )
-                    and child["dep"] in {"nsubj", "nsubjpass"}
-                    and child["pos"] in nounish
                 ]
+                subject_children.extend(
+                    child
+                    for auxiliary_index in auxiliary_children
+                    for child in children_by_head.get(int(auxiliary_index), ())
+                    if (
+                        child["dep"] in {"nsubj", "nsubjpass"}
+                        and child["pos"] in nounish
+                    )
+                )
                 object_children = [
                     child
-                    for child in sent_tokens
+                    for child in direct_children
                     if child["head_index"] == token["index"]
                     and child["dep"] in object_deps
                     and child["pos"] in nounish
                 ]
                 oblique_children = [
                     child
-                    for child in sent_tokens
+                    for child in direct_children
                     if child["head_index"] == token["index"]
                     and child["dep"] in {"obl", "pobj", "iobj"}
                     and child["pos"] in nounish
                 ]
                 complement_children = [
                     child
-                    for child in sent_tokens
+                    for child in direct_children
                     if child["head_index"] == token["index"]
                     and child["dep"] in {"attr", "acomp", "ccomp", "xcomp", "oprd"}
                 ]
@@ -569,7 +580,7 @@ def collect_canonical_relational_bundle(
                 ]
                 negation_children = [
                     child
-                    for child in sent_tokens
+                    for child in direct_children
                     if child["head_index"] == token["index"]
                     and (
                         child["dep"] == "neg"
@@ -578,7 +589,7 @@ def collect_canonical_relational_bundle(
                 ]
                 aux_children = [
                     child
-                    for child in sent_tokens
+                    for child in direct_children
                     if child["head_index"] == token["index"]
                     and child["dep"] in {"aux", "auxpass"}
                     and child["pos"] == "AUX"
@@ -699,6 +710,23 @@ def collect_canonical_relational_bundle(
                 append_relation(
                     "temporal",
                     [{"role": "anchor", "atom": anchor_atom.atom_id}],
+                )
+
+            if progress_callback is not None and token_index % 4096 == 0:
+                progress_callback(
+                    "relational_bundle_progress",
+                    {
+                        "batch_index": batch_index,
+                        "total_batches": total_batches,
+                        "sentences_done": sentences_done,
+                        "total_sentences": total_sentences,
+                        "words_done": words_done,
+                        "total_words": total_words,
+                        "tokens_done": token_index,
+                        "total_tokens": len(sent_tokens),
+                        "atom_count": len(atoms_by_key),
+                        "relation_count": len(relations),
+                    },
                 )
 
         is_question, question_span = _detect_question_span(parsed)

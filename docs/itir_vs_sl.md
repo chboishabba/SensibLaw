@@ -73,7 +73,11 @@ Differences are policy and enforcement, not architecture.
   pre-built document structural carrier. Fibre outputs retain global offsets,
   exact ownership intervals, checkpoint receipts, and cross-fibre debt; they
   are reconciled before the one document-level PNF fixed point and transactional
-  commit. General and legal-adjunct compilation use the same path.
+  commit. General and legal-adjunct compilation use the same path. The
+  one-million-character parser limit is a safety ceiling only: adaptive
+  scheduling may partition smaller documents when their estimated character,
+  token, or sentence workload exceeds the fibre target. The workload estimate
+  and scheduling reason are retained in the parser receipt.
 
 ## Boundary references
 - `docs/planning/extraction_enrichment_boundary_20260307.md`

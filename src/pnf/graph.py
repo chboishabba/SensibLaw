@@ -30,12 +30,26 @@ class PNFGraph:
         raise KeyError(factor_ref)
 
     def replace_factor(self, factor: Factor[Any]) -> "PNFGraph":
-        if factor.factor_ref not in {row.factor_ref for row in self.factors}:
+        return self.replace_factors((factor,))
+
+    def replace_factors(
+        self, factors: tuple[Factor[Any], ...] | list[Factor[Any]]
+    ) -> "PNFGraph":
+        """Replace several existing factors in one graph rebuild.
+
+        Refinement stages commonly produce many replacements.  Rebuilding the
+        immutable graph once keeps that operation linear in the graph size
+        instead of rebuilding and validating the full tuple for every factor.
+        """
+
+        replacements = {factor.factor_ref: factor for factor in factors}
+        known_refs = {row.factor_ref for row in self.factors}
+        if not set(replacements).issubset(known_refs):
             raise ValueError("cannot replace an unknown PNF factor")
         return replace(
             self,
             factors=tuple(
-                factor if row.factor_ref == factor.factor_ref else row
+                replacements.get(row.factor_ref, row)
                 for row in self.factors
             ),
         )

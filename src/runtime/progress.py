@@ -262,6 +262,46 @@ class PhaseHandle:
             self._event(state="stage_started", elapsed_ms=self.elapsed_ms, message=stage)
         )
 
+    @contextmanager
+    def stage(
+        self,
+        stage: str,
+        *,
+        measures: Mapping[str, Mapping[str, Any]] | None = None,
+        work_total: int | None = None,
+        work_unit: str | None = None,
+        details: Mapping[str, Any] | None = None,
+        subject_ref: str | None = None,
+        worker: str | None = None,
+        advance_outer: bool = True,
+    ) -> Iterator["PhaseHandle"]:
+        """Open one inner stage and close it deterministically on exit."""
+
+        self.begin_stage(
+            stage,
+            measures=measures,
+            work_total=work_total,
+            work_unit=work_unit,
+            details=details,
+            subject_ref=subject_ref,
+            worker=worker,
+        )
+        try:
+            yield self
+        except BaseException as error:
+            if self.active_stage is not None:
+                self.complete_stage(
+                    advance_outer=False,
+                    details={
+                        "error_type": type(error).__name__,
+                        "error": str(error),
+                    },
+                )
+            raise
+        else:
+            if self.active_stage is not None:
+                self.complete_stage(advance_outer=advance_outer)
+
     def observe(
         self,
         *,
@@ -278,7 +318,11 @@ class PhaseHandle:
 
         with self._state_lock:
             if self.active_stage is None:
-                raise RuntimeError("cannot observe inner work without an active stage")
+                # Late worker callbacks are diagnostic-only and may arrive just
+                # after a stage closes.  Never turn that race into a semantic
+                # compilation failure; the closed stage receipt remains the
+                # authoritative record.
+                return
             for name, value in (measures or {}).items():
                 if isinstance(value, Mapping):
                     self.measures[name] = {**self.measures.get(name, {}), **dict(value)}

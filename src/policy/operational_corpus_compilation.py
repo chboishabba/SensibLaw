@@ -8,6 +8,7 @@ No worker mutates a shared graph and no execution result promotes identity or le
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import hashlib
 from time import monotonic_ns
@@ -35,6 +36,7 @@ from src.pnf.streaming_operator_executor import (
     solve_operator_job,
 )
 from src.policy import corpus_compilation as legacy
+from src.runtime.document_stage_metrics import stage_measure_declaration
 from src.runtime.stage_timing import StageTimingLedger
 
 
@@ -51,19 +53,27 @@ DOCUMENT_COMPILE_STAGE_NAMES = (
 DOCUMENT_COMPILE_STAGE_COUNT = len(DOCUMENT_COMPILE_STAGE_NAMES)
 
 
-def _advance_document_progress(
+@contextmanager
+def _document_stage_progress(
     progress: Any | None,
-    *,
     stage: str,
-    message: str,
+    *,
+    totals: Mapping[str, int | float | None] | None = None,
     details: Mapping[str, Any] | None = None,
-) -> None:
-    if progress is None:
+    subject_ref: str | None = None,
+    worker: str | None = None,
+):
+    if progress is None or not hasattr(progress, "stage"):
+        yield None
         return
-    progress.advance(
-        message=message,
-        details={"document_stage": stage, **dict(details or {})},
-    )
+    with progress.stage(
+        stage,
+        measures=stage_measure_declaration(stage, totals=totals),
+        details=details,
+        subject_ref=subject_ref,
+        worker=worker,
+    ) as handle:
+        yield handle
 
 
 def _base_proposal_from_factor(
@@ -374,43 +384,59 @@ def compile_document_operational(
     timings = StageTimingLedger(document_ref=document_ref)
 
     with timings.stage("canonical_normalization") as stage:
-        if media_type == "text/html":
-            canonical = legacy.HtmlDocumentMediaAdapter(
-                source_artifact_ref=source_ref
-            ).adapt(source_text)
-            text = canonical.text
-            source_normalisation = {
-                "adapter_ref": "media:html:v0_1",
-                "canonical_text_ref": canonical.text_id,
-                "source_media_type": media_type,
-                "warnings": list(canonical.warnings),
-                "authority": "normalisation_only",
-            }
-        else:
-            text = source_text
-            source_normalisation = {
-                "adapter_ref": "media:utf8-text:v0_1",
-                "source_media_type": media_type,
-                "authority": "normalisation_only",
-            }
-        if not text:
-            raise ValueError("source normalisation produced empty canonical text")
-        canonical_text_sha256 = hashlib.sha256(
-            text.encode("utf-8")
-        ).hexdigest()
+        with _document_stage_progress(
+            progress,
+            "canonical_normalization",
+            totals={
+                "input_chars": len(source_text),
+                "output_chars": len(source_text),
+                "input_bytes": len(source_text.encode("utf-8")),
+                "output_bytes": len(source_text.encode("utf-8")),
+            },
+        ) as progress_stage:
+            if media_type == "text/html":
+                canonical = legacy.HtmlDocumentMediaAdapter(
+                    source_artifact_ref=source_ref
+                ).adapt(source_text)
+                text = canonical.text
+                source_normalisation = {
+                    "adapter_ref": "media:html:v0_1",
+                    "canonical_text_ref": canonical.text_id,
+                    "source_media_type": media_type,
+                    "warnings": list(canonical.warnings),
+                    "authority": "normalisation_only",
+                }
+            else:
+                text = source_text
+                source_normalisation = {
+                    "adapter_ref": "media:utf8-text:v0_1",
+                    "source_media_type": media_type,
+                    "authority": "normalisation_only",
+                }
+            if not text:
+                raise ValueError(
+                    "source normalisation produced empty canonical text"
+                )
+            canonical_text_sha256 = hashlib.sha256(
+                text.encode("utf-8")
+            ).hexdigest()
+            if progress_stage is not None:
+                progress_stage.observe(
+                    measures={
+                        "input_chars": len(source_text),
+                        "output_chars": len(text),
+                        "input_bytes": len(source_text.encode("utf-8")),
+                        "output_bytes": len(text.encode("utf-8")),
+                    },
+                    details={
+                        "input_nodes": len(source_text),
+                        "output_nodes": len(text),
+                    },
+                )
         stage.record(
             input_nodes=len(source_text),
             output_nodes=len(text),
         )
-    _advance_document_progress(
-        progress,
-        stage="canonical_normalization",
-        message="canonical_normalization",
-        details={
-            "input_nodes": len(source_text),
-            "output_nodes": len(text),
-        },
-    )
 
     context_payload = compiler_context.to_dict()
     build_key_sha256 = legacy.canonical_sha256(
@@ -435,14 +461,22 @@ def compile_document_operational(
             "annotation_backend_ref": compiler_context.annotation_backend_ref
         },
     ) as stage:
-        parsed_document = parse_document_fibres(
-            document_ref=document_ref,
-            canonical_text=text,
-            parser=legacy.parse_canonical_text,
-            policy=parser_policy,
-            checkpoint_dir=parser_checkpoint_dir,
-            progress=progress,
-        )
+        with _document_stage_progress(
+            progress,
+            "parser_annotation",
+            totals={"fibres": 1},
+            details={
+                "annotation_backend_ref": compiler_context.annotation_backend_ref
+            },
+        ) as progress_stage:
+            parsed_document = parse_document_fibres(
+                document_ref=document_ref,
+                canonical_text=text,
+                parser=legacy.parse_canonical_text,
+                policy=parser_policy,
+                checkpoint_dir=parser_checkpoint_dir,
+                progress=progress_stage,
+            )
         parsed_token_count = sum(
             len(sentence.get("tokens") or ())
             for sentence in parsed_document.get("sents") or ()
@@ -451,61 +485,81 @@ def compile_document_operational(
             tokens_processed=parsed_token_count,
             output_nodes=parsed_token_count,
         )
-    _advance_document_progress(
-        progress,
-        stage="parser_annotation",
-        message="parser_annotation",
-        details={
-            "tokens_processed": parsed_token_count,
-            "output_nodes": parsed_token_count,
-        },
-    )
 
     with timings.stage("coordinate_validation") as stage:
-        tokens = legacy.tokenize_canonical_with_spans(text)
+        with _document_stage_progress(
+            progress,
+            "coordinate_validation",
+            totals={"tokens_checked": len(text)},
+        ) as progress_stage:
+            tokens = legacy.tokenize_canonical_with_spans(text)
+            if progress_stage is not None:
+                progress_stage.observe(
+                    measures={
+                        "tokens_checked": len(tokens),
+                        "spans_checked": len(tokens),
+                        "coordinates_rejected": 0,
+                    },
+                    details={
+                        "tokens_processed": len(tokens),
+                        "output_nodes": len(tokens),
+                    },
+                )
         stage.record(
             tokens_processed=len(tokens),
             output_nodes=len(tokens),
         )
-    _advance_document_progress(
-        progress,
-        stage="coordinate_validation",
-        message="coordinate_validation",
-        details={
-            "tokens_processed": len(tokens),
-            "output_nodes": len(tokens),
-        },
-    )
 
     with timings.stage("mention_licensing") as stage:
-        licensing = legacy.build_mention_licensing_carrier(
-            canonical_text=text,
-            source_ref=source_ref,
-            document_ref=document_ref,
-            parsed_document=parsed_document,
-        )
-        mentions = tuple(licensing["mentions"])
-        recurrence = legacy.build_mention_recurrence_carrier(
-            mentions=mentions
-        )
-        forms = legacy.build_form_derivation_carrier(mentions=mentions)
+        with _document_stage_progress(
+            progress,
+            "mention_licensing",
+            totals={"mentions_licensed": len(tokens)},
+        ) as progress_stage:
+            def observe_mention_work(measures: Mapping[str, Any]) -> None:
+                if (
+                    progress_stage is not None
+                    and getattr(progress_stage, "active_stage", None)
+                    == "mention_licensing"
+                ):
+                    progress_stage.observe(measures=measures)
+
+            licensing = legacy.build_mention_licensing_carrier(
+                canonical_text=text,
+                source_ref=source_ref,
+                document_ref=document_ref,
+                parsed_document=parsed_document,
+                tokens=tokens,
+                progress_observer=observe_mention_work,
+            )
+            mentions = tuple(licensing["mentions"])
+            recurrence = legacy.build_mention_recurrence_carrier(
+                mentions=mentions
+            )
+            forms = legacy.build_form_derivation_carrier(mentions=mentions)
+            if (
+                progress_stage is not None
+                and getattr(progress_stage, "active_stage", None)
+                == "mention_licensing"
+            ):
+                progress_stage.observe(
+                    measures={
+                        "tokens_scanned": len(tokens),
+                        "mentions_considered": len(mentions),
+                        "mentions_licensed": len(mentions),
+                        "recurrences_derived": len(
+                            recurrence.get("recurrences") or ()
+                        ),
+                        "forms_derived": len(forms.get("forms") or ()),
+                    },
+                    details={"form_count": len(forms.get("forms") or ())},
+                )
         stage.record(
             input_nodes=len(tokens),
             output_nodes=len(mentions),
             tokens_processed=len(tokens),
             details={"form_count": len(forms.get("forms") or ())},
         )
-    _advance_document_progress(
-        progress,
-        stage="mention_licensing",
-        message="mention_licensing",
-        details={
-            "input_nodes": len(tokens),
-            "output_nodes": len(mentions),
-            "tokens_processed": len(tokens),
-            "form_count": len(forms.get("forms") or ()),
-        },
-    )
 
     layer = legacy.AnnotationLayer(
         layer_ref="annotation-layer:"
@@ -544,41 +598,56 @@ def compile_document_operational(
     )
 
     with timings.stage("parser_observation_projection") as stage:
-        semantic_layer, relational_bundle, atom_span_refs = (
-            legacy._semantic_annotation_layer(
+        with _document_stage_progress(
+            progress,
+            "parser_observation_projection",
+            totals={"observations_emitted": len(tokens)},
+        ) as progress_stage:
+            semantic_layer, relational_bundle, atom_span_refs = (
+                legacy._semantic_annotation_layer(
+                    document_ref=document_ref,
+                    source_ref=source_ref,
+                    content_sha256=canonical_text_sha256,
+                    tokens=tokens,
+                    base_layer=layer,
+                    text=text,
+                    parsed_document=parsed_document,
+                    progress_observer=(
+                        lambda measures: progress_stage.observe(measures=measures)
+                        if progress_stage is not None
+                        and getattr(progress_stage, "active_stage", None)
+                        == "parser_observation_projection"
+                        else None
+                    ),
+                )
+            )
+            parser_deltas = parser_sentence_deltas(
                 document_ref=document_ref,
-                source_ref=source_ref,
-                content_sha256=canonical_text_sha256,
-                tokens=tokens,
-                base_layer=layer,
-                text=text,
                 parsed_document=parsed_document,
             )
-        )
-        parser_deltas = parser_sentence_deltas(
-            document_ref=document_ref,
-            parsed_document=parsed_document,
-        )
-        observation_count = sum(
-            len(row.observation_refs) for row in parser_deltas
-        )
+            observation_count = sum(
+                len(row.observation_refs) for row in parser_deltas
+            )
+            if progress_stage is not None:
+                progress_stage.observe(
+                    measures={
+                        "sentences_projected": len(
+                            parsed_document.get("sents") or ()
+                        ),
+                        "observations_emitted": observation_count,
+                        "deltas_emitted": len(parser_deltas),
+                        "relations_projected": len(
+                            relational_bundle.get("relations") or ()
+                        ),
+                    },
+                    details={"delta_count": len(parser_deltas)},
+                )
         stage.record(
             input_nodes=len(tokens),
             output_nodes=observation_count,
             tokens_processed=len(tokens),
             details={"delta_count": len(parser_deltas)},
         )
-    _advance_document_progress(
-        progress,
-        stage="parser_observation_projection",
-        message="parser_observation_projection",
-        details={
-            "input_nodes": len(tokens),
-            "output_nodes": observation_count,
-            "tokens_processed": len(tokens),
-            "delta_count": len(parser_deltas),
-        },
-    )
 
     annotation_graph = legacy.AnnotationGraph(
         graph_ref="annotation-graph:"
@@ -619,12 +688,38 @@ def compile_document_operational(
     )
 
     with timings.stage("base_proposal_generation") as stage:
-        semantic_output = legacy.reduce_relational_bundle(
-            document_ref=document_ref,
-            bundle=relational_bundle,
-            atom_span_refs=atom_span_refs,
-            declarations=declarations,
-        )
+        with _document_stage_progress(
+            progress,
+            "base_proposal_generation",
+            totals={
+                "atoms_scanned": len(relational_bundle.get("atoms") or ()),
+            },
+        ) as progress_stage:
+            semantic_output = legacy.reduce_relational_bundle(
+                document_ref=document_ref,
+                bundle=relational_bundle,
+                atom_span_refs=atom_span_refs,
+                declarations=declarations,
+            )
+            if progress_stage is not None:
+                progress_stage.observe(
+                    measures={
+                        "atoms_scanned": len(relational_bundle.get("atoms") or ()),
+                        "relations_scanned": len(
+                            relational_bundle.get("relations") or ()
+                        ),
+                        "proposals_generated": len(semantic_output.factors),
+                        "factors_emitted": len(semantic_output.factors),
+                        "constraints_emitted": len(
+                            semantic_output.constraints
+                        ),
+                    },
+                    details={
+                        "input_nodes": len(relational_bundle.get("atoms") or ()),
+                        "output_nodes": len(semantic_output.factors),
+                        "output_edges": len(semantic_output.relation_refs),
+                    },
+                )
         stage.record(
             input_nodes=len(relational_bundle.get("atoms") or ()),
             output_nodes=len(semantic_output.factors),
@@ -632,18 +727,6 @@ def compile_document_operational(
             input_edges=len(relational_bundle.get("relations") or ()),
             output_edges=len(semantic_output.relation_refs),
         )
-    _advance_document_progress(
-        progress,
-        stage="base_proposal_generation",
-        message="base_proposal_generation",
-        details={
-            "input_nodes": len(relational_bundle.get("atoms") or ()),
-            "output_nodes": len(semantic_output.factors),
-            "proposals_generated": len(semantic_output.factors),
-            "input_edges": len(relational_bundle.get("relations") or ()),
-            "output_edges": len(semantic_output.relation_refs),
-        },
-    )
 
     streaming_build, streaming_metrics = _streaming_semantic_build(
         document_ref=document_ref,
@@ -671,19 +754,58 @@ def compile_document_operational(
     )
 
     with timings.stage("constraint_fixed_point") as stage:
-        constraint_assessments = legacy._constraint_assessments(pnf_graph)
-        local_meet_plan, typed_meets, refinements = (
-            legacy._local_meets_and_refinements(
-                graph=pnf_graph,
-                evidence=local_evidence,
-                constraint_assessments=constraint_assessments,
+        with _document_stage_progress(
+            progress,
+            "constraint_fixed_point",
+            totals={
+                "factors_scanned": len(pnf_graph.factors),
+                "constraints_evaluated": len(pnf_graph.constraints),
+            },
+        ) as progress_stage:
+            constraint_assessments = legacy._constraint_assessments(pnf_graph)
+            local_meet_plan, typed_meets, refinements = (
+                legacy._local_meets_and_refinements(
+                    graph=pnf_graph,
+                    evidence=local_evidence,
+                    constraint_assessments=constraint_assessments,
+                )
             )
-        )
-        refined_pnf_graph = pnf_graph
-        for refinement in refinements:
-            refined_pnf_graph = refined_pnf_graph.replace_factor(
-                refinement.resulting_factor
+            refined_pnf_graph = pnf_graph.replace_factors(
+                [refinement.resulting_factor for refinement in refinements]
             )
+            if progress_stage is not None:
+                progress_stage.observe(
+                    measures={
+                        "factors_scanned": len(pnf_graph.factors),
+                        "constraints_evaluated": len(constraint_assessments),
+                        "assessments_emitted": len(constraint_assessments),
+                        "satisfied": sum(
+                            1
+                            for row in constraint_assessments
+                            if str(row.state) == "satisfied"
+                        ),
+                        "violated": sum(
+                            1
+                            for row in constraint_assessments
+                            if str(row.state) == "violated"
+                        ),
+                        "undetermined": sum(
+                            1
+                            for row in constraint_assessments
+                            if str(row.state) == "undetermined"
+                        ),
+                        "inapplicable": sum(
+                            1
+                            for row in constraint_assessments
+                            if str(row.state) == "inapplicable"
+                        ),
+                    },
+                    details={
+                        "input_nodes": len(pnf_graph.factors),
+                        "output_nodes": len(refined_pnf_graph.factors),
+                        "output_edges": len(refinements),
+                    },
+                )
         stage.record(
             input_nodes=len(pnf_graph.factors),
             output_nodes=len(refined_pnf_graph.factors),
@@ -694,21 +816,6 @@ def compile_document_operational(
                 for row in refinements
             ),
         )
-    _advance_document_progress(
-        progress,
-        stage="constraint_fixed_point",
-        message="constraint_fixed_point",
-        details={
-            "input_nodes": len(pnf_graph.factors),
-            "output_nodes": len(refined_pnf_graph.factors),
-            "input_edges": len(constraint_assessments),
-            "output_edges": len(refinements),
-            "residuals_emitted": sum(
-                len(row.resulting_factor.residuals)
-                for row in refinements
-            ),
-        },
-    )
 
     demands = legacy.derive_resolution_demands(refined_pnf_graph)
     parser_receipt = legacy.canonical_json(

@@ -236,6 +236,47 @@ def test_builds_deterministic_lazy_mention_licenses_with_lattice_receipt(
     )
 
 
+def test_mention_licensing_reuses_tokens_and_reports_incremental_work(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    text = "Alpha met Beta."
+    tokens = (
+        ("Alpha", 0, 5),
+        ("met", 6, 9),
+        ("Beta", 10, 14),
+        (".", 14, 15),
+    )
+    parsed = {
+        "text": text,
+        "sents": [
+            {
+                "tokens": [
+                    {"text": "Alpha", "start": 0, "end": 5, "pos": "PROPN"},
+                    {"text": "met", "start": 6, "end": 9, "pos": "VERB"},
+                    {"text": "Beta", "start": 10, "end": 14, "pos": "PROPN"},
+                    {"text": ".", "start": 14, "end": 15, "pos": "PUNCT"},
+                ]
+            }
+        ],
+    }
+    monkeypatch.setattr(
+        "src.policy.entity_resolution.tokenize_canonical_with_spans",
+        lambda _text: pytest.fail("pre-tokenized carrier should be reused"),
+    )
+    observations: list[dict[str, int]] = []
+    carrier = build_mention_licensing_carrier(
+        canonical_text=text,
+        source_ref="source:demo",
+        document_ref="document:demo",
+        parsed_document=parsed,
+        tokens=tokens,
+        progress_observer=observations.append,
+    )
+    assert carrier["summary"]["materialized_mention_count"] == 3
+    assert observations[-1]["tokens_scanned"] == len(tokens)
+    assert observations[-1]["mentions_licensed"] == 3
+
+
 def test_mention_licenses_reject_unknown_kind_and_do_not_accept_empty_text() -> None:
     with pytest.raises(ValueError, match="canonical_text"):
         build_mention_licensing_carrier(

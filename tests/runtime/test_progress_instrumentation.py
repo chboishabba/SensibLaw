@@ -166,3 +166,29 @@ def test_stage_completion_may_close_exactly_one_outer_boundary() -> None:
     ]
     assert [event["completed"] for event in completed] == [1, 2]
     assert all("active_stage" not in event for event in completed)
+
+
+def test_stage_context_open_observe_and_close() -> None:
+    recorder = PhaseRecorder(stream=StringIO(), json_lines=True)
+    with recorder.phase("document_compile", total=2, heartbeat_seconds=None) as phase:
+        with phase.stage(
+            "parser_annotation",
+            measures=stage_measure_declaration("parser_annotation"),
+        ) as stage:
+            stage.observe(
+                measures={
+                    "fibres": {
+                        "completed": 1,
+                        "total": 2,
+                        "unit": "fibres",
+                    },
+                    "tokens": {"completed": 11, "unit": "tokens"},
+                },
+                details={"document_stage": "parser_annotation"},
+            )
+
+    states = [event["state"] for event in recorder.events]
+    assert states == ["started", "stage_started", "running", "stage_completed", "completed"]
+    assert recorder.events[2]["active_stage"] == "parser_annotation"
+    assert recorder.events[2]["measures"]["fibres"]["total"] == 2
+    assert recorder.events[3]["completed"] == 1

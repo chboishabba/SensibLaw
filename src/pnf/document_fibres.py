@@ -8,7 +8,7 @@ before mention licensing, PNF construction, constraint closure, or persistence.
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 import hashlib
 import json
@@ -18,9 +18,10 @@ import tempfile
 from typing import Any, Callable, Mapping, Sequence
 
 from src.policy.carriers.canonical import canonical_sha256
+from src.sensiblaw.interfaces import parse_canonical_text
 
 
-DOCUMENT_FIBRE_CONTRACT = "parser-document-fibres:v0_1"
+DOCUMENT_FIBRE_CONTRACT = "parser-document-fibres:v0_2"
 DOCUMENT_FIBRE_SCHEMA_VERSION = "sl.pnf.document_fibre.v0_1"
 DOCUMENT_CARRIER_SCHEMA_VERSION = "sl.pnf.document_structural_carrier.v0_1"
 
@@ -33,6 +34,33 @@ class DocumentFibrePolicy:
     target_chars: int = 400_000
     overlap_chars: int = 8_192
     workers: int = 2
+    adaptive_partitioning: bool = True
+
+    def estimate_workload(self, canonical_text: str) -> dict[str, int]:
+        """Return cheap scheduling signals without invoking the parser."""
+
+        return {
+            "canonical_chars": len(canonical_text),
+            "estimated_tokens": max(1, len(canonical_text) // 4),
+            "estimated_sentences": max(
+                1,
+                sum(
+                    canonical_text.count(separator)
+                    for separator in (". ", "! ", "? ", "\n\n")
+                ),
+            ),
+        }
+
+    def should_partition(self, canonical_text: str) -> bool:
+        """Schedule fibres from workload, not the parser safety ceiling."""
+
+        if not self.adaptive_partitioning:
+            return len(canonical_text) >= self.parser_limit_chars
+        workload = self.estimate_workload(canonical_text)
+        return (
+            workload["canonical_chars"] >= self.target_chars
+            or workload["estimated_tokens"] >= max(1, self.target_chars // 4)
+        )
 
     def __post_init__(self) -> None:
         if self.parser_limit_chars < 1:
@@ -56,6 +84,8 @@ class DocumentFibrePolicy:
             "target_chars": self.target_chars,
             "overlap_chars": self.overlap_chars,
             "workers": self.workers,
+            "adaptive_partitioning": self.adaptive_partitioning,
+            "workload_estimator_ref": "chars_tokens_sentences:v0_1",
             "worker_count_semantic_effect": "none",
         }
 
@@ -259,6 +289,23 @@ def _save_checkpoint(
     temp_path.replace(path)
 
 
+def _parsed_document_measure_counts(parsed_document: Mapping[str, Any]) -> dict[str, int]:
+    sentences = tuple(parsed_document.get("sents") or ())
+    token_count = sum(len(sentence.get("tokens") or ()) for sentence in sentences)
+    dependency_count = sum(
+        1
+        for sentence in sentences
+        for token in tuple(sentence.get("tokens") or ())
+        if str(token.get("dep") or "")
+    )
+    return {
+        "fibres": 1,
+        "sentences": len(sentences),
+        "tokens": token_count,
+        "dependencies": dependency_count,
+    }
+
+
 def _parse_fibre(
     *,
     fibre: DocumentFibre,
@@ -279,6 +326,21 @@ def _parse_fibre(
     return fibre, parsed, False
 
 
+def _parse_fibre_process(
+    *,
+    fibre: DocumentFibre,
+    canonical_text: str,
+    checkpoint_dir: Path | None,
+) -> tuple[DocumentFibre, dict[str, Any], bool]:
+    """Process-isolated canonical parser worker for CPU-bound oversized fibres."""
+    return _parse_fibre(
+        fibre=fibre,
+        canonical_text=canonical_text,
+        parser=parse_canonical_text,
+        checkpoint_dir=checkpoint_dir,
+    )
+
+
 def _owner_for_position(
     fibres: Sequence[DocumentFibre],
     position: int,
@@ -295,6 +357,8 @@ def _merge_fibre_parses(
     canonical_text: str,
     parsed_by_ref: Mapping[str, Mapping[str, Any]],
     reused_fibre_count: int,
+    workload_estimate: Mapping[str, int] | None = None,
+    parser_limit_chars: int | None = None,
 ) -> dict[str, Any]:
     selected_sentences: list[dict[str, Any]] = []
     receipts: list[Mapping[str, Any]] = []
@@ -440,6 +504,16 @@ def _merge_fibre_parses(
             "authority": "parser_observation_only",
             "document_structural_carrier": carrier.to_dict(),
             "fibre_count": len(carrier.fibres),
+            "execution_mode": "adaptive_fibres",
+            "worker_count": carrier.policy.workers,
+            "partition_count": len(carrier.fibres),
+            "parallelism_reason": (
+                "workload_threshold"
+                if parser_limit_chars is None
+                or len(canonical_text) < parser_limit_chars
+                else "parser_safety_ceiling"
+            ),
+            "workload_estimate": dict(workload_estimate or {}),
             "reused_fibre_count": reused_fibre_count,
             "cross_fibre_demands": sorted(
                 demands,
@@ -473,13 +547,18 @@ def parse_document_fibres(
     """Parse a document monolithically or as fibres under one output contract."""
 
     selected_policy = policy or DocumentFibrePolicy()
-    if len(canonical_text) < selected_policy.parser_limit_chars:
+    workload = selected_policy.estimate_workload(canonical_text)
+    if not selected_policy.should_partition(canonical_text):
         parsed = dict(parser(canonical_text))
         receipt = dict(parsed.get("parser_receipt") or {})
         receipt.update(
             {
                 "document_fibre_contract": DOCUMENT_FIBRE_CONTRACT,
                 "execution_mode": "whole_document",
+                "worker_count": 1,
+                "partition_count": 1,
+                "parallelism_reason": "below_adaptive_workload_threshold",
+                "workload_estimate": workload,
                 "fibre_count": 1,
                 "reused_fibre_count": 0,
                 "cross_fibre_demands": [],
@@ -494,6 +573,33 @@ def parse_document_fibres(
             }
         )
         parsed["parser_receipt"] = receipt
+        if (
+            progress is not None
+            and hasattr(progress, "observe")
+            and getattr(progress, "active_stage", "parser_annotation")
+            == "parser_annotation"
+        ):
+            counts = _parsed_document_measure_counts(parsed)
+            progress.observe(
+                measures={
+                    name: {
+                        "completed": count,
+                        "unit": name,
+                    }
+                    for name, count in counts.items()
+                },
+                message="parser_fibre",
+                details={
+                    "document_stage": "parser_annotation",
+                    "fibre_ref": "document-fibre:whole_document",
+                    "fibre_sequence_no": 0,
+                    "fibre_count": 1,
+                    "owner_start": 0,
+                    "owner_end": len(canonical_text),
+                    "reused": False,
+                    "execution_mode": "whole_document",
+                },
+            )
         return parsed
 
     carrier = build_document_structural_carrier(
@@ -506,13 +612,20 @@ def parse_document_fibres(
     )
     results: dict[str, Mapping[str, Any]] = {}
     reused_count = 0
-    with ThreadPoolExecutor(max_workers=selected_policy.workers) as pool:
+    completed_fibres = 0
+    # The canonical parser releases too little GIL for thread pools to scale on
+    # large fibres.  Use isolated processes for the public parser spine; retain
+    # a thread fallback for injected test/adaptor parsers that may not be
+    # importable in a child process.
+    process_parser = getattr(parser, "__module__", "") == "src.sensiblaw.interfaces.parser_adapter"
+    pool_type = ProcessPoolExecutor if process_parser else ThreadPoolExecutor
+    with pool_type(max_workers=selected_policy.workers) as pool:
         futures = {
             pool.submit(
-                _parse_fibre,
+                _parse_fibre_process if process_parser else _parse_fibre,
                 fibre=fibre,
                 canonical_text=canonical_text,
-                parser=parser,
+                **({} if process_parser else {"parser": parser}),
                 checkpoint_dir=resolved_checkpoint_dir,
             ): fibre
             for fibre in carrier.fibres
@@ -521,25 +634,64 @@ def parse_document_fibres(
             fibre, parsed, reused = future.result()
             results[fibre.fibre_ref] = parsed
             reused_count += int(reused)
+            completed_fibres += 1
             if progress is not None:
-                progress.advance(
-                    amount=0,
-                    message="parser_fibre",
-                    reused=reused,
-                    details={
-                        "document_stage": "parser_annotation",
-                        "fibre_ref": fibre.fibre_ref,
-                        "fibre_sequence_no": fibre.sequence_no,
-                        "fibre_count": len(carrier.fibres),
-                        "owner_start": fibre.owner_start,
-                        "owner_end": fibre.owner_end,
-                    },
-                )
+                if (
+                    hasattr(progress, "observe")
+                    and getattr(progress, "active_stage", "parser_annotation")
+                    == "parser_annotation"
+                ):
+                    progress.observe(
+                        measures={
+                            "fibres": {
+                                "completed": completed_fibres,
+                                "total": len(carrier.fibres),
+                                "unit": "fibres",
+                            },
+                            "sentences": {
+                                "completed": sum(
+                                    len(doc.get("sents") or ())
+                                    for doc in results.values()
+                                ),
+                                "unit": "sentences",
+                            },
+                            "tokens": {
+                                "completed": sum(
+                                    len(sentence.get("tokens") or ())
+                                    for doc in results.values()
+                                    for sentence in tuple(doc.get("sents") or ())
+                                ),
+                                "unit": "tokens",
+                            },
+                            "dependencies": {
+                                "completed": sum(
+                                    1
+                                    for doc in results.values()
+                                    for sentence in tuple(doc.get("sents") or ())
+                                    for token in tuple(sentence.get("tokens") or ())
+                                    if str(token.get("dep") or "")
+                                ),
+                                "unit": "dependencies",
+                            },
+                        },
+                        message="parser_fibre",
+                        details={
+                            "document_stage": "parser_annotation",
+                            "fibre_ref": fibre.fibre_ref,
+                            "fibre_sequence_no": fibre.sequence_no,
+                            "fibre_count": len(carrier.fibres),
+                            "owner_start": fibre.owner_start,
+                            "owner_end": fibre.owner_end,
+                            "reused": reused,
+                        },
+                    )
     return _merge_fibre_parses(
         carrier=carrier,
         canonical_text=canonical_text,
         parsed_by_ref=results,
         reused_fibre_count=reused_count,
+        workload_estimate=workload,
+        parser_limit_chars=selected_policy.parser_limit_chars,
     )
 
 

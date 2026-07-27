@@ -39,6 +39,12 @@ The spaCy pipeline underpins tokenisation, entity recognition, and rule harvesti
 * The higher-level adapter in `src/nlp/spacy_adapter.py` attempts to load `en_core_web_sm` with NER disabled, falling back to `spacy.blank("en")` as needed. It guarantees sentence boundaries by adding a `sentencizer` when the pipeline lacks parsing components, and initialises a lookup lemmatiser where possible so every token exposes a lemma even when statistical resources are missing.【F:src/nlp/spacy_adapter.py†L18-L61】【F:src/nlp/spacy_adapter.py†L63-L92】
 * `parse()` enforces string inputs, ensures the chosen pipeline can emit sentences, and serialises each sentence span into `{text,start,end,tokens}` records where every token carries text, lemma, POS, dependency label, and character offsets. The helper collapses the pipeline output into `{text, sents}` for downstream consumers.【F:src/nlp/spacy_adapter.py†L94-L140】
 
+In this workspace, the spaCy model is typically available from the
+superproject root venv (`../.venv`) rather than the SensibLaw-local venv. If
+`SensibLaw/.venv` lacks `en_core_web_sm`, the adapter still works, but it will
+run with the blank-English fallback and therefore report reduced parser
+capabilities in the receipt.
+
 ### 2.3 Legal named-entity enrichment
 
 * `_ensure_entity_ruler()` guarantees an `EntityRuler` component is inserted (before `ner` when present), configures it to preserve existing entities, and hydrates it from `patterns/legal_patterns.jsonl`. Each pattern provides labelled templates for references to Acts, cases, and provisions.【F:src/pipeline/ner.py†L33-L82】【F:patterns/legal_patterns.jsonl†L1-L4】

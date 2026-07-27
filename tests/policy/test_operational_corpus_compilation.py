@@ -117,12 +117,51 @@ def test_operational_compiler_emits_document_stage_progress() -> None:
         )
 
     assert compilation.status == "compiled"
+    started_messages = [
+        event["message"]
+        for event in recorder.events
+        if event["phase"] == "document_compile" and event["state"] == "stage_started"
+    ]
+    completed_messages = [
+        event["message"]
+        for event in recorder.events
+        if event["phase"] == "document_compile" and event["state"] == "stage_completed"
+    ]
     running_messages = [
         event["message"]
         for event in recorder.events
         if event["phase"] == "document_compile" and event["state"] == "running"
     ]
-    assert running_messages == list(DOCUMENT_COMPILE_STAGE_NAMES)
+    assert started_messages == list(DOCUMENT_COMPILE_STAGE_NAMES)
+    assert completed_messages == list(DOCUMENT_COMPILE_STAGE_NAMES)
+    assert "parser_fibre" in running_messages
+    assert "parser_annotation" not in running_messages
+    assert all(
+        event.get("active_stage") == "parser_annotation"
+        for event in recorder.events
+        if event["message"] == "parser_fibre"
+    )
+    projection_events = [
+        event
+        for event in recorder.events
+        if event["phase"] == "document_compile"
+        and event.get("active_stage") == "parser_observation_projection"
+        and event["state"] == "running"
+    ]
+    assert projection_events
+    assert any(
+        (
+            event.get("measures", {}).get("parser_tokens_projected", {}).get(
+                "completed", 0
+            )
+            > 0
+        )
+        for event in projection_events
+    )
+    assert any(
+        "semantic_atoms_projected" in event.get("measures", {})
+        for event in projection_events
+    )
 
 
 def test_operational_compiler_chunks_oversized_parser_input(
@@ -158,7 +197,7 @@ def test_operational_compiler_chunks_oversized_parser_input(
 
     receipt = compilation.artifacts["parser_receipt"]
     assert compilation.status == "compiled"
-    assert receipt["contract_ref"] == "parser-document-fibres:v0_1"
+    assert receipt["contract_ref"] == "parser-document-fibres:v0_2"
     assert receipt["fibre_count"] > 1
     assert observed_lengths
     assert max(observed_lengths) < 100

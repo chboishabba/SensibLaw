@@ -89,8 +89,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--document-workers",
         type=int,
-        default=4,
-        help="Parallel document compiler workers for the PostgreSQL compile phase.",
+        default=1,
+        help="Concurrent documents; inner stages borrow from the shared worker budget.",
     )
     parser.add_argument(
         "--closure-workers",
@@ -109,6 +109,12 @@ def _parse_args() -> argparse.Namespace:
         type=int,
         default=2,
         help="Parser-fibre workers used only for oversized documents.",
+    )
+    parser.add_argument(
+        "--worker-budget",
+        type=int,
+        default=4,
+        help="Total CPU worker budget shared across documents and inner stages.",
     )
     parser.add_argument(
         "--parser-limit-chars",
@@ -491,6 +497,9 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
             parser_limit_chars=args.parser_limit_chars,
             parser_target_chars=args.parser_target_chars,
             parser_overlap_chars=args.parser_overlap_chars,
+            document_workers=args.document_workers,
+            worker_budget=args.worker_budget,
+            database_url=args.database_url,
         )
         compile_progress.write_json(output_dir / "local_pnf_compile_progress.json")
         compile_payload = {
@@ -745,6 +754,9 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
                     parser_limit_chars=args.parser_limit_chars,
                     parser_target_chars=args.parser_target_chars,
                     parser_overlap_chars=args.parser_overlap_chars,
+                    document_workers=args.document_workers,
+                    worker_budget=args.worker_budget,
+                    database_url=args.database_url,
                 )
                 adjunct_progress.write_json(
                     output_dir / "legal_adjunct_pnf_compile_progress.json"

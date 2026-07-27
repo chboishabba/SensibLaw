@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+from io import StringIO
 
 from src.pnf.document_fibres import (
     DocumentFibrePolicy,
     build_document_structural_carrier,
     parse_document_fibres,
 )
+from src.runtime.document_stage_metrics import stage_measure_declaration
+from src.runtime.progress import PhaseRecorder
 
 
 def _parser_calls(calls: list[str]):
@@ -120,3 +123,66 @@ def test_parser_fibres_reconstruct_one_document_and_reuse_checkpoints(
     assert second["parser_receipt"]["cross_fibre_fixed_point"][
         "fibre_semantic_authority"
     ] is False
+
+
+def test_parser_fibres_report_typed_stage_progress(tmp_path: Path) -> None:
+    text = ("Alpha beta gamma delta.\n\n" * 12).strip()
+    policy = DocumentFibrePolicy(
+        parser_limit_chars=100,
+        target_chars=40,
+        overlap_chars=5,
+        workers=2,
+    )
+    recorder = PhaseRecorder(stream=StringIO(), json_lines=True)
+    with recorder.phase(
+        "document_compile", total=1, heartbeat_seconds=None
+    ) as phase:
+        with phase.stage(
+            "parser_annotation",
+            measures=stage_measure_declaration("parser_annotation"),
+        ) as stage:
+            parsed = parse_document_fibres(
+                document_ref="document:test",
+                canonical_text=text,
+                parser=_parser_calls([]),
+                policy=policy,
+                checkpoint_dir=tmp_path,
+                progress=stage,
+            )
+
+    running_events = [
+        event
+        for event in recorder.events
+        if event["state"] == "running"
+        and event.get("active_stage") == "parser_annotation"
+    ]
+    assert running_events
+    assert running_events[-1]["measures"]["fibres"]["completed"] >= 1
+    assert running_events[-1]["measures"]["tokens"]["completed"] > 0
+    assert parsed["parser_receipt"]["fibre_count"] >= 1
+
+
+def test_adaptive_partitioning_is_independent_of_parser_safety_limit(
+    tmp_path: Path,
+) -> None:
+    text = ("Alpha beta gamma delta.\n\n" * 12).strip()
+    policy = DocumentFibrePolicy(
+        parser_limit_chars=1_000,
+        target_chars=40,
+        overlap_chars=5,
+        workers=2,
+    )
+    parsed = parse_document_fibres(
+        document_ref="document:adaptive",
+        canonical_text=text,
+        parser=_parser_calls([]),
+        policy=policy,
+        checkpoint_dir=tmp_path,
+    )
+
+    assert len(text) < policy.parser_limit_chars
+    assert parsed["parser_receipt"]["execution_mode"] == "adaptive_fibres"
+    assert parsed["parser_receipt"]["parallelism_reason"] == "workload_threshold"
+    assert parsed["parser_receipt"]["worker_count"] == policy.workers
+    assert parsed["parser_receipt"]["partition_count"] >= 2
+    assert parsed["parser_receipt"]["workload_estimate"]["canonical_chars"] == len(text)
