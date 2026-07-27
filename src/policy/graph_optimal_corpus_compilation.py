@@ -20,15 +20,22 @@ import os
 from threading import Lock
 from typing import Any, Mapping, Sequence
 
-from src.policy.document_graph_mentions import (
-    DOCUMENT_GRAPH_MENTION_CONTRACT,
-    build_document_mention_licensing_carrier,
-)
+from src.policy import document_graph_mentions as mention_execution
+from src.policy.document_graph_mention_worker import scan_mention_partition
 from src.policy.document_graph_projection import (
     DOCUMENT_GRAPH_PROJECTION_CONTRACT,
     collect_document_relational_bundle,
 )
 
+
+# The compatibility module keeps execution plumbing separate from the semantic
+# carrier implementation.  Install the complete parser-observation worker before
+# exposing the operator through the corpus compiler proxy.
+mention_execution._mention_worker = scan_mention_partition
+DOCUMENT_GRAPH_MENTION_CONTRACT = mention_execution.DOCUMENT_GRAPH_MENTION_CONTRACT
+build_document_mention_licensing_carrier = (
+    mention_execution.build_document_mention_licensing_carrier
+)
 
 GRAPH_OPTIMAL_CORPUS_COMPILATION_CONTRACT = (
     "document-graph-corpus-compilation-bridge:v0_2"
