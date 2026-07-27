@@ -1,8 +1,9 @@
 """Compatibility bridge from the staged compiler to document-graph execution.
 
-The existing operational compiler imports ``corpus_compilation`` through the
-``src.policy`` package.  This module forwards that complete legacy surface while
-replacing only relational projection with process-isolated sentence fibres.
+The stable corpus compiler remains the source of data classes, carrier contracts
+and ordinary compiler functions.  ``src.policy`` installs an import-order-stable
+module proxy that forwards those attributes and monkeypatches to the stable
+module while selecting the graph-enabled semantic projection below.
 
 The override is guarded because the legacy semantic-layer function resolves its
 collector through a module global.  The tranche objective is intentionally one
