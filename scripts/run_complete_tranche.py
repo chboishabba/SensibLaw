@@ -83,6 +83,24 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--microbatch-size", type=int, default=16)
     parser.add_argument("--request-budget-per-provider", type=int, default=64)
     parser.add_argument("--candidate-limit", type=int, default=5)
+    parser.add_argument(
+        "--document-workers",
+        type=int,
+        default=4,
+        help="Parallel document compiler workers for the PostgreSQL compile phase.",
+    )
+    parser.add_argument(
+        "--closure-workers",
+        type=int,
+        default=4,
+        help="Closure workers per document for the PostgreSQL compile phase.",
+    )
+    parser.add_argument(
+        "--owner-partitions",
+        type=int,
+        default=8,
+        help="Owner partitions per document for the PostgreSQL compile phase.",
+    )
     parser.add_argument("--no-wiktionary", action="store_true")
     args = parser.parse_args()
     if not args.database_url:
@@ -440,8 +458,8 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
             document_executor_contract_ref="postgres-semantic-compiler:v0_10",
             persistence_strategy_ref="persistence:postgres-savepoint:v0_1",
             admission_policy_ref="admission:inventoried-only:v0_1",
-            closure_workers=1,
-            owner_partitions=1,
+            closure_workers=args.closure_workers,
+            owner_partitions=args.owner_partitions,
         )
         compile_progress.write_json(output_dir / "local_pnf_compile_progress.json")
         compile_payload = {
@@ -690,8 +708,8 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
                     document_executor_contract_ref="postgres-semantic-compiler:v0_10",
                     persistence_strategy_ref="persistence:postgres-savepoint:v0_1",
                     admission_policy_ref="admission:inventoried-only:v0_1",
-                    closure_workers=1,
-                    owner_partitions=1,
+                    closure_workers=args.closure_workers,
+                    owner_partitions=args.owner_partitions,
                 )
                 adjunct_progress.write_json(
                     output_dir / "legal_adjunct_pnf_compile_progress.json"

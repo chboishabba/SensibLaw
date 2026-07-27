@@ -3,10 +3,21 @@ from __future__ import annotations
 import json
 import logging
 import sys
+from datetime import timedelta
 from typing import Any, Callable
 
 
 ProgressCallback = Callable[[str, dict[str, Any]], None]
+
+
+def _format_duration(value_seconds: Any) -> str | None:
+    if value_seconds is None:
+        return None
+    try:
+        seconds = max(0, int(round(float(value_seconds))))
+    except (TypeError, ValueError):
+        return None
+    return str(timedelta(seconds=seconds))
 
 
 def configure_cli_logging(level_name: str) -> None:
@@ -56,25 +67,28 @@ def _human_progress(stage: str, details: dict[str, Any]) -> None:
     section = str(details.get("section") or "").strip()
     completed = details.get("completed")
     total = details.get("total")
-    elapsed = details.get("elapsed_seconds")
+    elapsed = _format_duration(details.get("elapsed_seconds"))
     rate = details.get("items_per_second")
-    eta = details.get("eta_seconds_remaining")
+    eta = _format_duration(details.get("eta_seconds_remaining"))
     interval = details.get("eta_confidence_interval_seconds")
     confidence = str(details.get("eta_confidence") or "").strip()
     message = str(details.get("message") or "").strip()
     status = str(details.get("status") or "").strip()
+    eta_at = str(details.get("eta_at") or details.get("estimated_completion_at") or "").strip()
 
     parts: list[str] = [f"[progress] {stage}"]
     if section:
         parts.append(f"section={section}")
     if completed is not None and total is not None:
         parts.append(f"{completed}/{total}")
-    if elapsed is not None:
-        parts.append(f"elapsed={elapsed}s")
+    if elapsed:
+        parts.append(f"elapsed={elapsed}")
     if rate is not None:
         parts.append(f"rate={rate}/s")
-    if eta is not None:
-        parts.append(f"eta={eta}s")
+    if eta:
+        parts.append(f"eta={eta}")
+    if eta_at:
+        parts.append(f"eta_at={eta_at}")
     if interval is not None:
         parts.append(f"eta_band={interval}")
     if confidence:
@@ -114,8 +128,9 @@ def _build_bar_progress_callback() -> ProgressCallback:
         section = str(details.get("section") or stage).strip()
         completed = details.get("completed")
         total = details.get("total")
-        elapsed = details.get("elapsed_seconds")
-        eta = details.get("eta_seconds_remaining")
+        elapsed = _format_duration(details.get("elapsed_seconds"))
+        eta = _format_duration(details.get("eta_seconds_remaining"))
+        eta_at = str(details.get("eta_at") or details.get("estimated_completion_at") or "").strip()
         message = str(details.get("message") or "").strip()
         status = str(details.get("status") or "").strip()
 
@@ -132,10 +147,12 @@ def _build_bar_progress_callback() -> ProgressCallback:
         filled = int(round(ratio * width))
         bar = "#" * filled + "-" * (width - filled)
         parts = [f"\r[{bar}] {completed}/{total}", section]
-        if elapsed is not None:
-            parts.append(f"elapsed={elapsed}s")
-        if eta is not None:
-            parts.append(f"eta={eta}s")
+        if elapsed:
+            parts.append(f"elapsed={elapsed}")
+        if eta:
+            parts.append(f"eta={eta}")
+        if eta_at:
+            parts.append(f"eta_at={eta_at}")
         if message:
             parts.append(f"- {message}")
         line = " ".join(parts)

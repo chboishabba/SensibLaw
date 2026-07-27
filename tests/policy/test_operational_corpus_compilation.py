@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import hashlib
+from io import StringIO
 
 from src.pnf.reference_binding import REFERENCE_BINDING_CONTRACT_REF
 from src.policy import corpus_compilation as legacy
 from src.policy.corpus_compilation import default_compiler_context
 from src.policy.operational_corpus_compilation import (
+    DOCUMENT_COMPILE_STAGE_NAMES,
     OPERATIONAL_COMPILER_CONTRACT,
     compile_document_operational,
 )
+from src.runtime.progress import PhaseRecorder
 
 
 def test_operational_compiler_never_materializes_pairwise_binding(monkeypatch) -> None:
@@ -89,3 +92,34 @@ def test_operational_html_uses_one_canonical_coordinate_system() -> None:
         start = int(mention["start_char"])
         end = int(mention["end_char"])
         assert canonical_text[start:end] == mention["canonical_surface"]
+
+
+def test_operational_compiler_emits_document_stage_progress() -> None:
+    text = "Ada entered the hall. She spoke."
+    recorder = PhaseRecorder(stream=StringIO(), json_lines=True)
+    with recorder.phase(
+        "document_compile",
+        total=len(DOCUMENT_COMPILE_STAGE_NAMES),
+        subject_ref="document:operational-test",
+        message="document compile",
+        worker="document-test",
+    ) as phase:
+        compilation = compile_document_operational(
+            {
+                "document_ref": "document:operational-test",
+                "content_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+                "media_type": "text/plain",
+                "canonical_text": text,
+                "source_ref": "source:operational-test",
+            },
+            default_compiler_context(),
+            progress=phase,
+        )
+
+    assert compilation.status == "compiled"
+    running_messages = [
+        event["message"]
+        for event in recorder.events
+        if event["phase"] == "document_compile" and event["state"] == "running"
+    ]
+    assert running_messages == list(DOCUMENT_COMPILE_STAGE_NAMES)

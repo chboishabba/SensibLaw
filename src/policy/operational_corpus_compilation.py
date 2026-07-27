@@ -34,6 +34,31 @@ from src.runtime.stage_timing import StageTimingLedger
 
 
 OPERATIONAL_COMPILER_CONTRACT = "postgres-semantic-compiler:v0_10"
+DOCUMENT_COMPILE_STAGE_NAMES = (
+    "canonical_normalization",
+    "parser_annotation",
+    "coordinate_validation",
+    "mention_licensing",
+    "parser_observation_projection",
+    "base_proposal_generation",
+    "constraint_fixed_point",
+)
+DOCUMENT_COMPILE_STAGE_COUNT = len(DOCUMENT_COMPILE_STAGE_NAMES)
+
+
+def _advance_document_progress(
+    progress: Any | None,
+    *,
+    stage: str,
+    message: str,
+    details: Mapping[str, Any] | None = None,
+) -> None:
+    if progress is None:
+        return
+    progress.advance(
+        message=message,
+        details={"document_stage": stage, **dict(details or {})},
+    )
 
 
 def _base_proposal_from_factor(
@@ -296,6 +321,7 @@ def compile_document_operational(
     *,
     closure_workers: int = 2,
     owner_partitions: int = 2,
+    progress: Any | None = None,
 ) -> legacy.DocumentCompilation:
     """Compile one document through the streaming local fixed-point boundary."""
 
@@ -360,6 +386,15 @@ def compile_document_operational(
             input_nodes=len(source_text),
             output_nodes=len(text),
         )
+    _advance_document_progress(
+        progress,
+        stage="canonical_normalization",
+        message="canonical_normalization",
+        details={
+            "input_nodes": len(source_text),
+            "output_nodes": len(text),
+        },
+    )
 
     context_payload = compiler_context.to_dict()
     build_key_sha256 = legacy.canonical_sha256(
@@ -391,6 +426,15 @@ def compile_document_operational(
             tokens_processed=parsed_token_count,
             output_nodes=parsed_token_count,
         )
+    _advance_document_progress(
+        progress,
+        stage="parser_annotation",
+        message="parser_annotation",
+        details={
+            "tokens_processed": parsed_token_count,
+            "output_nodes": parsed_token_count,
+        },
+    )
 
     with timings.stage("coordinate_validation") as stage:
         tokens = legacy.tokenize_canonical_with_spans(text)
@@ -398,6 +442,15 @@ def compile_document_operational(
             tokens_processed=len(tokens),
             output_nodes=len(tokens),
         )
+    _advance_document_progress(
+        progress,
+        stage="coordinate_validation",
+        message="coordinate_validation",
+        details={
+            "tokens_processed": len(tokens),
+            "output_nodes": len(tokens),
+        },
+    )
 
     with timings.stage("mention_licensing") as stage:
         licensing = legacy.build_mention_licensing_carrier(
@@ -417,6 +470,17 @@ def compile_document_operational(
             tokens_processed=len(tokens),
             details={"form_count": len(forms.get("forms") or ())},
         )
+    _advance_document_progress(
+        progress,
+        stage="mention_licensing",
+        message="mention_licensing",
+        details={
+            "input_nodes": len(tokens),
+            "output_nodes": len(mentions),
+            "tokens_processed": len(tokens),
+            "form_count": len(forms.get("forms") or ()),
+        },
+    )
 
     layer = legacy.AnnotationLayer(
         layer_ref="annotation-layer:"
@@ -479,6 +543,17 @@ def compile_document_operational(
             tokens_processed=len(tokens),
             details={"delta_count": len(parser_deltas)},
         )
+    _advance_document_progress(
+        progress,
+        stage="parser_observation_projection",
+        message="parser_observation_projection",
+        details={
+            "input_nodes": len(tokens),
+            "output_nodes": observation_count,
+            "tokens_processed": len(tokens),
+            "delta_count": len(parser_deltas),
+        },
+    )
 
     annotation_graph = legacy.AnnotationGraph(
         graph_ref="annotation-graph:"
@@ -532,6 +607,18 @@ def compile_document_operational(
             input_edges=len(relational_bundle.get("relations") or ()),
             output_edges=len(semantic_output.relation_refs),
         )
+    _advance_document_progress(
+        progress,
+        stage="base_proposal_generation",
+        message="base_proposal_generation",
+        details={
+            "input_nodes": len(relational_bundle.get("atoms") or ()),
+            "output_nodes": len(semantic_output.factors),
+            "proposals_generated": len(semantic_output.factors),
+            "input_edges": len(relational_bundle.get("relations") or ()),
+            "output_edges": len(semantic_output.relation_refs),
+        },
+    )
 
     streaming_build, streaming_metrics = _streaming_semantic_build(
         document_ref=document_ref,
@@ -582,6 +669,21 @@ def compile_document_operational(
                 for row in refinements
             ),
         )
+    _advance_document_progress(
+        progress,
+        stage="constraint_fixed_point",
+        message="constraint_fixed_point",
+        details={
+            "input_nodes": len(pnf_graph.factors),
+            "output_nodes": len(refined_pnf_graph.factors),
+            "input_edges": len(constraint_assessments),
+            "output_edges": len(refinements),
+            "residuals_emitted": sum(
+                len(row.resulting_factor.residuals)
+                for row in refinements
+            ),
+        },
+    )
 
     demands = legacy.derive_resolution_demands(refined_pnf_graph)
     stage_keys = derive_stage_build_keys(
@@ -674,6 +776,7 @@ def compile_document_operational(
         ],
         "streaming_semantic_build": streaming_build,
         "semantic_stage_timing": timings.to_dict(),
+        "operational_compiler_contract": OPERATIONAL_COMPILER_CONTRACT,
         "semantic_runtime_configuration": {
             "closure_workers": closure_workers,
             "owner_partitions": owner_partitions,

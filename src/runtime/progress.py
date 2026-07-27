@@ -21,6 +21,13 @@ def _utc_now() -> str:
     return datetime.now(UTC).isoformat()
 
 
+def _format_duration_ms(value_ms: int | None) -> str:
+    if value_ms is None:
+        return ""
+    seconds = max(0, int(round(value_ms / 1000)))
+    return str(timedelta(seconds=seconds))
+
+
 @dataclass(frozen=True)
 class ProgressEvent:
     phase: str
@@ -289,16 +296,20 @@ def emit_progress(
     total = f"/{event.total}" if event.total is not None else ""
     subject = f" {event.subject_ref}" if event.subject_ref else ""
     message = f" — {event.message}" if event.message else ""
-    elapsed = f" {event.elapsed_ms}ms" if event.elapsed_ms is not None else ""
+    elapsed = (
+        f" elapsed={_format_duration_ms(event.elapsed_ms)}"
+        if event.elapsed_ms is not None
+        else ""
+    )
     worker = f" worker={event.worker}" if event.worker else ""
     reuse = " reused" if event.reused else ""
-    estimate = (
-        f" eta={event.estimated_remaining_ms}ms"
-        if event.estimated_remaining_ms is not None
+    eta_at = (
+        f" eta_at={event.estimated_completion_at}"
+        if event.estimated_completion_at
         else ""
     )
     print(
-        f"[{event.phase}] {event.state} {event.completed}{total}{subject}{elapsed}{worker}{reuse}{estimate}{message}",
+        f"[{event.phase}] {event.state} {event.completed}{total}{subject}{elapsed}{worker}{reuse}{eta_at}{message}",
         file=target,
         flush=True,
     )

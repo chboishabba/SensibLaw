@@ -20,6 +20,7 @@ from src.policy.algebra.revision_identity import factor_revision_ref
 from src.policy.corpus_compilation import CompilerContext, build_corpus_manifest
 from src.policy.operational_corpus_compilation import (
     OPERATIONAL_COMPILER_CONTRACT,
+    DOCUMENT_COMPILE_STAGE_COUNT,
     compile_document_operational,
 )
 from src.runtime.progress import PhaseRecorder
@@ -449,6 +450,7 @@ def persist_document_compilation(
     batch_index: int,
     closure_workers: int = 1,
     owner_partitions: int = 1,
+    progress: Any | None = None,
 ) -> tuple[str, ...]:
     """Compile and persist one document transactionally.
 
@@ -505,6 +507,23 @@ def persist_document_compilation(
                 document_ref=document_ref,
                 state="reused_compilation",
             )
+            if progress is not None and not getattr(progress, "_finished", False):
+                progress.advance(
+                    amount=DOCUMENT_COMPILE_STAGE_COUNT + 1,
+                    message="reused",
+                    reused=True,
+                    details={
+                        "state": "reused_compilation",
+                        "build_key_sha256": build_key_sha256,
+                    },
+                )
+                progress.finish(
+                    state="completed",
+                    details={
+                        "state": "reused_compilation",
+                        "build_key_sha256": build_key_sha256,
+                    },
+                )
             return cached_demand_refs
 
     compilation = compile_document_operational(
@@ -516,6 +535,7 @@ def persist_document_compilation(
             "source_ref": source_ref,
         },
         context,
+        progress=progress,
     )
     artifacts = compilation.artifacts
     if str(artifacts.get("build_key_sha256") or "") != build_key_sha256:
@@ -658,10 +678,44 @@ def persist_document_compilation(
                 graph_ref=str(artifacts["pnf_graph"]["graph_ref"]),
                 demand_refs=demand_refs,
             )
+            if progress is not None and not getattr(progress, "_finished", False):
+                progress.advance(
+                    message="persistence",
+                    details={
+                        "state": "compiled",
+                        "build_key_sha256": build_key_sha256,
+                        "demand_ref_count": len(demand_refs),
+                    },
+                )
+                progress.finish(
+                    state="completed",
+                    details={
+                        "state": "compiled",
+                        "build_key_sha256": build_key_sha256,
+                    },
+                )
             return demand_refs
     except ValueError:
+        if progress is not None and not getattr(progress, "_finished", False):
+            progress.finish(
+                state="failed",
+                details={
+                    "state": "failed",
+                    "build_key_sha256": build_key_sha256,
+                },
+            )
         raise
     except Exception as error:
+        if progress is not None and not getattr(progress, "_finished", False):
+            progress.finish(
+                state="failed",
+                details={
+                    "state": "failed",
+                    "build_key_sha256": build_key_sha256,
+                    "error_type": type(error).__name__,
+                    "error": str(error),
+                },
+            )
         first_refinement = refinements[0] if refinements else {}
         prior_factor = (
             first_refinement.get("prior_factor")
@@ -993,18 +1047,37 @@ def compile_directory_postgres(
                     )
                     continue
                 started_ns = monotonic_ns()
-                refs = document_executor(
-                    store=store,
-                    corpus_ref=corpus_ref,
-                    relative_path=relative_path,
-                    entry=entry,
-                    source_bytes=source_bytes,
-                    source_text=source_text,
-                    context=context,
-                    execution_phase=execution_phase,
-                    batch_index=batch_index,
-                    closure_workers=closure_workers,
-                    owner_partitions=owner_partitions,
+                with (
+                    progress.phase(
+                        f"postgres_{execution_phase}_document_compile",
+                        total=DOCUMENT_COMPILE_STAGE_COUNT + 1,
+                        subject_ref=relative_path,
+                        message="document compile",
+                        worker=worker_ref,
+                        details={
+                            "document_ref": document_ref,
+                            "relative_path": relative_path,
+                            "build_key_sha256": build_key_sha256,
+                            "execution_phase": execution_phase,
+                        },
+                        heartbeat_seconds=30.0,
+                    )
+                    if progress is not None
+                    else nullcontext(None)
+                ) as document_progress:
+                    refs = document_executor(
+                        store=store,
+                        corpus_ref=corpus_ref,
+                        relative_path=relative_path,
+                        entry=entry,
+                        source_bytes=source_bytes,
+                        source_text=source_text,
+                        context=context,
+                        execution_phase=execution_phase,
+                        batch_index=batch_index,
+                        closure_workers=closure_workers,
+                        owner_partitions=owner_partitions,
+                        progress=document_progress,
                 )
             except (OSError, UnicodeDecodeError, ValueError, RuntimeError) as error:
                 with store.transaction() as cursor:
