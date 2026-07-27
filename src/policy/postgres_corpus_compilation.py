@@ -15,6 +15,7 @@ from typing import Any, Callable, Mapping, Sequence
 from tqdm.auto import tqdm
 
 from src.ingestion.media_adapter import HtmlDocumentMediaAdapter
+from src.pnf.document_fibres import DOCUMENT_FIBRE_CONTRACT, DocumentFibrePolicy
 from src.policy.carriers.canonical import canonical_sha256
 from src.policy.algebra.revision_identity import factor_revision_ref
 from src.policy.corpus_compilation import CompilerContext, build_corpus_manifest
@@ -170,7 +171,17 @@ def _operational_build_key(
     canonical_text_sha256: str,
     media_adapter_ref: str,
     context: CompilerContext,
+    parser_workers: int = 2,
+    parser_limit_chars: int = 1_000_000,
+    parser_target_chars: int = 400_000,
+    parser_overlap_chars: int = 8_192,
 ) -> str:
+    parser_policy = DocumentFibrePolicy(
+        workers=parser_workers,
+        parser_limit_chars=parser_limit_chars,
+        target_chars=parser_target_chars,
+        overlap_chars=parser_overlap_chars,
+    )
     return canonical_sha256(
         {
             "document_ref": document_ref,
@@ -179,6 +190,8 @@ def _operational_build_key(
             "media_adapter_ref": media_adapter_ref,
             "context": context.to_dict(),
             "compiler_contract": OPERATIONAL_COMPILER_CONTRACT,
+            "document_fibre_contract": DOCUMENT_FIBRE_CONTRACT,
+            "document_fibre_policy": parser_policy.to_dict(),
             "closure_workers_semantic_effect": "none",
             "owner_partitions_semantic_effect": "none",
         }
@@ -450,6 +463,11 @@ def persist_document_compilation(
     batch_index: int,
     closure_workers: int = 1,
     owner_partitions: int = 1,
+    parser_workers: int = 2,
+    parser_limit_chars: int = 1_000_000,
+    parser_target_chars: int = 400_000,
+    parser_overlap_chars: int = 8_192,
+    parser_checkpoint_dir: str | None = None,
     progress: Any | None = None,
 ) -> tuple[str, ...]:
     """Compile and persist one document transactionally.
@@ -491,6 +509,10 @@ def persist_document_compilation(
         canonical_text_sha256=canonical_text_sha256,
         media_adapter_ref=media_adapter_ref,
         context=context,
+        parser_workers=parser_workers,
+        parser_limit_chars=parser_limit_chars,
+        parser_target_chars=parser_target_chars,
+        parser_overlap_chars=parser_overlap_chars,
     )
     with store.transaction() as cursor:
         cached_demand_refs = load_completed_operational_build(
@@ -535,6 +557,13 @@ def persist_document_compilation(
             "source_ref": source_ref,
         },
         context,
+        closure_workers=closure_workers,
+        owner_partitions=owner_partitions,
+        parser_workers=parser_workers,
+        parser_limit_chars=parser_limit_chars,
+        parser_target_chars=parser_target_chars,
+        parser_overlap_chars=parser_overlap_chars,
+        parser_checkpoint_dir=parser_checkpoint_dir,
         progress=progress,
     )
     artifacts = compilation.artifacts
@@ -767,18 +796,29 @@ def compile_directory_postgres(
     admission_policy: Callable[[Mapping[str, Any]], bool] | None = None,
     closure_workers: int = 1,
     owner_partitions: int = 1,
+    parser_workers: int = 2,
+    parser_limit_chars: int = 1_000_000,
+    parser_target_chars: int = 400_000,
+    parser_overlap_chars: int = 8_192,
     progress: PhaseRecorder | None = None,
     state_path: str | Path | None = None,
     resume: bool = True,
 ) -> PersistedCompilation:
     """Compile a bounded directory directly into PostgreSQL."""
 
-    if execution_phase not in {"inventory", "local", "demand_planning"}:
+    if execution_phase not in {
+        "inventory",
+        "local",
+        "demand_planning",
+        "legal_adjunct_demand_planning",
+    }:
         raise ValueError("unsupported corpus compilation phase")
     if closure_workers < 1:
         raise ValueError("closure_workers must be positive")
     if owner_partitions < 1:
         raise ValueError("owner_partitions must be positive")
+    if not 1 <= parser_workers <= 32:
+        raise ValueError("parser_workers must be between 1 and 32")
     root = Path(input_dir).resolve()
     state_file = Path(state_path).resolve() if state_path is not None else None
     run_state: dict[str, Any] | None = None
@@ -813,6 +853,10 @@ def compile_directory_postgres(
             "document_executor_contract_ref": document_executor_contract_ref,
             "persistence_strategy_ref": persistence_strategy_ref,
             "admission_policy_ref": admission_policy_ref,
+            "parser_workers": parser_workers,
+            "parser_limit_chars": parser_limit_chars,
+            "parser_target_chars": parser_target_chars,
+            "parser_overlap_chars": parser_overlap_chars,
         }
         for key, expected in expected_state.items():
             observed = run_state.get(key)
@@ -871,6 +915,10 @@ def compile_directory_postgres(
                 "admission_policy_ref": admission_policy_ref,
                 "closure_workers": closure_workers,
                 "owner_partitions": owner_partitions,
+                "parser_workers": parser_workers,
+                "parser_limit_chars": parser_limit_chars,
+                "parser_target_chars": parser_target_chars,
+                "parser_overlap_chars": parser_overlap_chars,
             },
         )
         if progress is not None
@@ -888,6 +936,10 @@ def compile_directory_postgres(
         "admission_policy_ref": admission_policy_ref,
         "closure_workers": closure_workers,
         "owner_partitions": owner_partitions,
+        "parser_workers": parser_workers,
+        "parser_limit_chars": parser_limit_chars,
+        "parser_target_chars": parser_target_chars,
+        "parser_overlap_chars": parser_overlap_chars,
         "root": str(root),
         "documents": resume_documents,
         "duplicate_occurrences": resume_duplicate_occurrences,
@@ -969,6 +1021,10 @@ def compile_directory_postgres(
                     canonical_text_sha256=canonical_text_sha256,
                     media_adapter_ref=media_adapter_ref,
                     context=context,
+                    parser_workers=parser_workers,
+                    parser_limit_chars=parser_limit_chars,
+                    parser_target_chars=parser_target_chars,
+                    parser_overlap_chars=parser_overlap_chars,
                 )
                 state_entry = resume_documents.get(document_ref)
                 if (
@@ -1077,8 +1133,21 @@ def compile_directory_postgres(
                         batch_index=batch_index,
                         closure_workers=closure_workers,
                         owner_partitions=owner_partitions,
+                        parser_workers=parser_workers,
+                        parser_limit_chars=parser_limit_chars,
+                        parser_target_chars=parser_target_chars,
+                        parser_overlap_chars=parser_overlap_chars,
+                        parser_checkpoint_dir=(
+                            str(
+                                state_file.parent
+                                / f"{state_file.stem}_chunks"
+                                / document_ref.removeprefix("document:")
+                            )
+                            if state_file is not None
+                            else None
+                        ),
                         progress=document_progress,
-                )
+                    )
             except (OSError, UnicodeDecodeError, ValueError, RuntimeError) as error:
                 with store.transaction() as cursor:
                     failure_ref = store.persist_failure(

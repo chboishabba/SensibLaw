@@ -75,7 +75,19 @@ cannot use the shared CLI lifecycle.
 The existing compiler modules do not differ only by throughput:
 
 - `compile_directory_postgres` uses `compile_document_operational` and the
-  `postgres-semantic-compiler:v0_10` contract.
+  `postgres-semantic-compiler:v0_11` contract. Oversized inputs are parser
+  execution fibres over one document structural carrier; chunk outputs do not
+  become independent semantic graphs or document identities.
+
+  The active large-document contract is:
+
+  - exact, disjoint ownership intervals over canonical document coordinates;
+  - bounded bilateral context overlap selected below the parser safety limit;
+  - parallel physical parsing with deterministic global token/span coordinates;
+  - atomic per-fibre checkpoints keyed by source, policy, and interval identity;
+  - explicit cross-fibre demand and fixed-point receipts;
+  - one document-level mention, PNF, constraint, and demand computation;
+  - one PostgreSQL savepoint commit after document reconciliation.
 - parallel and curated paths use `compile_document_fibred_operational` and the
   `postgres-fibred-semantic-compiler:v0_2` contract.
 - persistence, retry, admission-receipt, and progress behavior also differ.

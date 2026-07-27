@@ -13,6 +13,11 @@ import hashlib
 from time import monotonic_ns
 from typing import Any, Mapping, Sequence
 
+from src.pnf.document_fibres import (
+    DOCUMENT_FIBRE_CONTRACT,
+    DocumentFibrePolicy,
+    parse_document_fibres,
+)
 from src.pnf.factor_proposals import FactorProposal
 from src.pnf.operational_reference_binding import (
     build_operational_reference_binding_artifacts,
@@ -33,7 +38,7 @@ from src.policy import corpus_compilation as legacy
 from src.runtime.stage_timing import StageTimingLedger
 
 
-OPERATIONAL_COMPILER_CONTRACT = "postgres-semantic-compiler:v0_10"
+OPERATIONAL_COMPILER_CONTRACT = "postgres-semantic-compiler:v0_11"
 DOCUMENT_COMPILE_STAGE_NAMES = (
     "canonical_normalization",
     "parser_annotation",
@@ -321,6 +326,11 @@ def compile_document_operational(
     *,
     closure_workers: int = 2,
     owner_partitions: int = 2,
+    parser_workers: int = 2,
+    parser_limit_chars: int = 1_000_000,
+    parser_target_chars: int = 400_000,
+    parser_overlap_chars: int = 8_192,
+    parser_checkpoint_dir: str | None = None,
     progress: Any | None = None,
 ) -> legacy.DocumentCompilation:
     """Compile one document through the streaming local fixed-point boundary."""
@@ -329,6 +339,12 @@ def compile_document_operational(
         raise ValueError("closure_workers must be between 1 and 32")
     if not 1 <= owner_partitions <= 128:
         raise ValueError("owner_partitions must be between 1 and 128")
+    parser_policy = DocumentFibrePolicy(
+        workers=parser_workers,
+        parser_limit_chars=parser_limit_chars,
+        target_chars=parser_target_chars,
+        overlap_chars=parser_overlap_chars,
+    )
     media_type = legacy.require_text(
         document_input.get("media_type"),
         "media_type",
@@ -405,6 +421,8 @@ def compile_document_operational(
             "media_adapter_ref": source_normalisation["adapter_ref"],
             "context": context_payload,
             "compiler_contract": OPERATIONAL_COMPILER_CONTRACT,
+            "document_fibre_contract": DOCUMENT_FIBRE_CONTRACT,
+            "document_fibre_policy": parser_policy.to_dict(),
             "closure_workers_semantic_effect": "none",
             "owner_partitions_semantic_effect": "none",
         }
@@ -417,7 +435,14 @@ def compile_document_operational(
             "annotation_backend_ref": compiler_context.annotation_backend_ref
         },
     ) as stage:
-        parsed_document = legacy.parse_canonical_text(text)
+        parsed_document = parse_document_fibres(
+            document_ref=document_ref,
+            canonical_text=text,
+            parser=legacy.parse_canonical_text,
+            policy=parser_policy,
+            checkpoint_dir=parser_checkpoint_dir,
+            progress=progress,
+        )
         parsed_token_count = sum(
             len(sentence.get("tokens") or ())
             for sentence in parsed_document.get("sents") or ()
@@ -686,6 +711,15 @@ def compile_document_operational(
     )
 
     demands = legacy.derive_resolution_demands(refined_pnf_graph)
+    parser_receipt = legacy.canonical_json(
+        parsed_document.get("parser_receipt") or {}
+    )
+    cross_fibre_demands = list(
+        parser_receipt.get("cross_fibre_demands") or ()
+    )
+    cross_fibre_fixed_point = dict(
+        parser_receipt.get("cross_fibre_fixed_point") or {}
+    )
     stage_keys = derive_stage_build_keys(
         canonical_text_digest=canonical_text_sha256,
         parser_contract_ref=str(
@@ -736,9 +770,12 @@ def compile_document_operational(
             )
         ],
         "annotation_layer": layer.to_dict(),
-        "parser_receipt": legacy.canonical_json(
-            parsed_document.get("parser_receipt") or {}
+        "parser_receipt": parser_receipt,
+        "document_structural_carrier": parser_receipt.get(
+            "document_structural_carrier"
         ),
+        "cross_fibre_demands": cross_fibre_demands,
+        "cross_fibre_fixed_point": cross_fibre_fixed_point,
         "annotation_graph": {
             "graph_ref": annotation_graph.graph_ref,
             "layer_refs": [layer.layer_ref, semantic_layer.layer_ref],
@@ -780,6 +817,10 @@ def compile_document_operational(
         "semantic_runtime_configuration": {
             "closure_workers": closure_workers,
             "owner_partitions": owner_partitions,
+            "parser_workers": parser_workers,
+            "parser_limit_chars": parser_limit_chars,
+            "parser_target_chars": parser_target_chars,
+            "parser_overlap_chars": parser_overlap_chars,
             "semantic_effect": "none",
         },
         "phase_boundary": {
@@ -794,6 +835,11 @@ def compile_document_operational(
             "pairwise_binding_evidence_materialized": False,
             "streaming_bidirectional": True,
             "shared_graph_mutation": False,
+            "chunks_are_execution_partitions": True,
+            "document_is_semantic_object": True,
+            "cross_fibre_unresolved_demand_count": int(
+                cross_fibre_fixed_point.get("unresolved_demand_count") or 0
+            ),
         },
     }
     operational_artifacts = build_operational_reference_binding_artifacts(

@@ -123,3 +123,43 @@ def test_operational_compiler_emits_document_stage_progress() -> None:
         if event["phase"] == "document_compile" and event["state"] == "running"
     ]
     assert running_messages == list(DOCUMENT_COMPILE_STAGE_NAMES)
+
+
+def test_operational_compiler_chunks_oversized_parser_input(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    text = ("Ada entered the hall. She spoke.\n\n" * 8).strip()
+    observed_lengths: list[int] = []
+    original = legacy.parse_canonical_text
+
+    def bounded_parser(value: str):
+        observed_lengths.append(len(value))
+        if len(value) >= 100:
+            raise AssertionError("oversized text reached parser boundary")
+        return original(value)
+
+    monkeypatch.setattr(legacy, "parse_canonical_text", bounded_parser)
+    compilation = compile_document_operational(
+        {
+            "document_ref": "document:operational-fibre-test",
+            "content_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+            "media_type": "text/plain",
+            "canonical_text": text,
+            "source_ref": "source:operational-fibre-test",
+        },
+        default_compiler_context(),
+        parser_workers=2,
+        parser_limit_chars=100,
+        parser_target_chars=40,
+        parser_overlap_chars=5,
+        parser_checkpoint_dir=str(tmp_path),
+    )
+
+    receipt = compilation.artifacts["parser_receipt"]
+    assert compilation.status == "compiled"
+    assert receipt["contract_ref"] == "parser-document-fibres:v0_1"
+    assert receipt["fibre_count"] > 1
+    assert observed_lengths
+    assert max(observed_lengths) < 100
+    assert receipt["cross_fibre_fixed_point"]["semantic_object"] == "document"

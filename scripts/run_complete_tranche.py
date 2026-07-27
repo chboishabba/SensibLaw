@@ -36,7 +36,10 @@ from src.pnf.external_reconciliation import (  # noqa: E402
 )
 from src.pnf.legal_adjunct import project_legal_ir  # noqa: E402
 from src.policy.corpus_compilation import default_compiler_context  # noqa: E402
-from src.policy.postgres_corpus_compilation import compile_directory_postgres  # noqa: E402
+from src.policy.postgres_corpus_compilation import (  # noqa: E402
+    OPERATIONAL_COMPILER_CONTRACT,
+    compile_directory_postgres,
+)
 from src.runtime.progress import PhaseRecorder  # noqa: E402
 from src.runtime.tranche_pipeline import (  # noqa: E402
     PhaseReceipt,
@@ -100,6 +103,30 @@ def _parse_args() -> argparse.Namespace:
         type=int,
         default=8,
         help="Owner partitions per document for the PostgreSQL compile phase.",
+    )
+    parser.add_argument(
+        "--parser-workers",
+        type=int,
+        default=2,
+        help="Parser-fibre workers used only for oversized documents.",
+    )
+    parser.add_argument(
+        "--parser-limit-chars",
+        type=int,
+        default=1_000_000,
+        help="Safety threshold above which parser-fibre execution is required.",
+    )
+    parser.add_argument(
+        "--parser-target-chars",
+        type=int,
+        default=400_000,
+        help="Owned characters per oversized-document parser fibre.",
+    )
+    parser.add_argument(
+        "--parser-overlap-chars",
+        type=int,
+        default=8_192,
+        help="Bilateral context overlap for parser fibres.",
     )
     parser.add_argument("--no-wiktionary", action="store_true")
     args = parser.parse_args()
@@ -455,11 +482,15 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
             progress=compile_progress,
             state_path=compile_state_path,
             document_executor_ref="document-executor:postgres-operational:v0_1",
-            document_executor_contract_ref="postgres-semantic-compiler:v0_10",
+            document_executor_contract_ref=OPERATIONAL_COMPILER_CONTRACT,
             persistence_strategy_ref="persistence:postgres-savepoint:v0_1",
             admission_policy_ref="admission:inventoried-only:v0_1",
             closure_workers=args.closure_workers,
             owner_partitions=args.owner_partitions,
+            parser_workers=args.parser_workers,
+            parser_limit_chars=args.parser_limit_chars,
+            parser_target_chars=args.parser_target_chars,
+            parser_overlap_chars=args.parser_overlap_chars,
         )
         compile_progress.write_json(output_dir / "local_pnf_compile_progress.json")
         compile_payload = {
@@ -705,11 +736,15 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
                     progress=adjunct_progress,
                     state_path=adjunct_state_path,
                     document_executor_ref="document-executor:postgres-operational:v0_1",
-                    document_executor_contract_ref="postgres-semantic-compiler:v0_10",
+                    document_executor_contract_ref=OPERATIONAL_COMPILER_CONTRACT,
                     persistence_strategy_ref="persistence:postgres-savepoint:v0_1",
                     admission_policy_ref="admission:inventoried-only:v0_1",
                     closure_workers=args.closure_workers,
                     owner_partitions=args.owner_partitions,
+                    parser_workers=args.parser_workers,
+                    parser_limit_chars=args.parser_limit_chars,
+                    parser_target_chars=args.parser_target_chars,
+                    parser_overlap_chars=args.parser_overlap_chars,
                 )
                 adjunct_progress.write_json(
                     output_dir / "legal_adjunct_pnf_compile_progress.json"
