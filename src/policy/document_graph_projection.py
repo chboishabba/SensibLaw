@@ -10,9 +10,8 @@ from __future__ import annotations
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
-import json
 import os
-from time import monotonic_ns
+from time import time_ns
 from typing import Any, Callable, Mapping, Sequence
 
 from src.policy.carriers.canonical import canonical_sha256
@@ -31,6 +30,7 @@ class ProjectionPartition:
     end_char: int
     sentences: tuple[Mapping[str, Any], ...]
     token_count: int
+    word_count: int
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -39,6 +39,7 @@ class ProjectionPartition:
             "end_char": self.end_char,
             "sentence_count": len(self.sentences),
             "token_count": self.token_count,
+            "word_count": self.word_count,
         }
 
 
@@ -49,6 +50,10 @@ def _sentence_start(sentence: Mapping[str, Any]) -> int:
 def _sentence_end(sentence: Mapping[str, Any]) -> int:
     start = _sentence_start(sentence)
     return int(sentence.get("end", sentence.get("end_char", start)))
+
+
+def _sentence_word_count(sentence: Mapping[str, Any]) -> int:
+    return len([part for part in str(sentence.get("text") or "").split() if part])
 
 
 def _partition_sentences(
@@ -105,6 +110,7 @@ def _partition_sentences(
                 end_char=_sentence_end(group[-1]),
                 sentences=tuple(group),
                 token_count=sum(len(sentence.get("tokens") or ()) for sentence in group),
+                word_count=sum(_sentence_word_count(sentence) for sentence in group),
             )
         )
     return tuple(partitions)
@@ -178,14 +184,14 @@ def _numeric_local_id(value: str, prefix: str) -> tuple[int, str]:
 
 
 def _projection_worker(payload: Mapping[str, Any]) -> dict[str, Any]:
-    started_ns = monotonic_ns()
+    started_ns = time_ns()
     text = str(payload["text"])
     parsed = {
         "text": text,
         "sents": tuple(payload["sentences"]),
     }
     bundle = collect_canonical_relational_bundle(text, parsed_document=parsed)
-    ended_ns = monotonic_ns()
+    ended_ns = time_ns()
     return {
         "sequence_no": int(payload["sequence_no"]),
         "partition": dict(payload["partition"]),
@@ -223,7 +229,7 @@ def _merge_partition_results(
     parsed_document: Mapping[str, Any],
     results: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
-    merge_started_ns = monotonic_ns()
+    merge_started_ns = time_ns()
     atoms_by_key: dict[tuple[str, int, int], dict[str, Any]] = {}
     atom_id_by_key: dict[tuple[str, int, int], str] = {}
     relations: list[dict[str, Any]] = []
@@ -289,7 +295,7 @@ def _merge_partition_results(
             _numeric_local_id(str(atom["id"]), "a"),
         ),
     )
-    merge_ended_ns = monotonic_ns()
+    merge_ended_ns = time_ns()
     return {
         "version": "relational_bundle_v1",
         "canonical_text": canonical_text,
@@ -346,6 +352,7 @@ def collect_document_relational_bundle(
                 "semantic_fingerprint": fingerprint,
                 "serial_fingerprint": fingerprint,
                 "serial_parallel_parity": True,
+                "budget_invariant_satisfied": True,
                 "authority": "execution_receipt_only",
             },
         }
@@ -369,10 +376,13 @@ def collect_document_relational_bundle(
         partitions_per_worker=partitions_per_worker,
     )
     granted_workers = min(worker_budget, len(partitions))
-    execution_started_ns = monotonic_ns()
+    execution_started_ns = time_ns()
     results: list[dict[str, Any]] = []
     completed_sentences = 0
     completed_tokens = 0
+    completed_words = 0
+    total_tokens = sum(len(sentence.get("tokens") or ()) for sentence in sentences)
+    total_words = sum(_sentence_word_count(sentence) for sentence in sentences)
     with ProcessPoolExecutor(
         max_workers=granted_workers,
     ) as executor:
@@ -392,6 +402,7 @@ def collect_document_relational_bundle(
             partition = futures[future]
             completed_sentences += len(partition.sentences)
             completed_tokens += partition.token_count
+            completed_words += partition.word_count
             if progress_callback is not None:
                 progress_callback(
                     "relational_bundle_progress",
@@ -400,10 +411,10 @@ def collect_document_relational_bundle(
                         "total_batches": len(partitions),
                         "sentences_done": completed_sentences,
                         "total_sentences": len(sentences),
+                        "words_done": completed_words,
+                        "total_words": total_words,
                         "tokens_done": completed_tokens,
-                        "total_tokens": sum(
-                            len(sentence.get("tokens") or ()) for sentence in sentences
-                        ),
+                        "total_tokens": total_tokens,
                         "atom_count": sum(
                             len(row["bundle"].get("atoms") or ()) for row in results
                         ),
@@ -418,7 +429,7 @@ def collect_document_relational_bundle(
         parsed_document=parsed_document,
         results=results,
     )
-    execution_ended_ns = monotonic_ns()
+    execution_ended_ns = time_ns()
     semantic_payload = _semantic_payload(merged)
     parallel_fingerprint = canonical_sha256(semantic_payload)
     serial_fingerprint: str | None = None
@@ -434,27 +445,40 @@ def collect_document_relational_bundle(
         if not parity:
             raise ValueError("parallel relational projection disagrees with serial payload")
 
+    peak_active_workers = _peak_active_workers(results)
+    partition_receipts = [
+        {
+            **dict(result["partition"]),
+            "worker_pid": int(result["worker_pid"]),
+            "started_ns": int(result["started_ns"]),
+            "ended_ns": int(result["ended_ns"]),
+            "compute_ms": int(result["compute_ms"]),
+        }
+        for result in sorted(results, key=lambda row: int(row["sequence_no"]))
+    ]
     receipt = {
         "contract_ref": DOCUMENT_GRAPH_PROJECTION_CONTRACT,
         "execution_mode": "process_sentence_fibres",
         "requested_workers": worker_budget,
         "granted_workers": granted_workers,
-        "peak_active_workers": _peak_active_workers(results),
+        "peak_active_workers": peak_active_workers,
         "partition_count": len(partitions),
-        "partitions": [
-            dict(result["partition"])
-            for result in sorted(results, key=lambda row: int(row["sequence_no"]))
-        ],
+        "partitions": partition_receipts,
         "worker_pids": sorted({int(result["worker_pid"]) for result in results}),
         "worker_compute_ms": sum(int(result["compute_ms"]) for result in results),
         "owner_merge_ms": int(merged.pop("merge_ms")),
         "wall_elapsed_ms": max(
             0, (execution_ended_ns - execution_started_ns) // 1_000_000
         ),
+        "sentences_projected": len(sentences),
+        "tokens_projected": total_tokens,
+        "words_projected": total_words,
+        "atoms_projected": len(semantic_payload["atoms"]),
+        "relations_projected": len(semantic_payload["relations"]),
         "semantic_fingerprint": parallel_fingerprint,
         "serial_fingerprint": serial_fingerprint,
         "serial_parallel_parity": parity,
-        "budget_invariant_satisfied": _peak_active_workers(results) <= worker_budget,
+        "budget_invariant_satisfied": peak_active_workers <= worker_budget,
         "semantic_object": "document",
         "fibre_semantic_authority": False,
         "authority": "execution_receipt_only",
