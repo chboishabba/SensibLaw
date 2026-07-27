@@ -4,6 +4,9 @@ from io import StringIO
 import json
 from time import sleep
 
+import pytest
+
+from src.runtime.document_stage_metrics import stage_measure_declaration
 from src.runtime.progress import PhaseRecorder
 
 
@@ -11,7 +14,9 @@ def test_phase_recorder_emits_durable_timing_and_reuse_events(tmp_path) -> None:
     stream = StringIO()
     recorder = PhaseRecorder(stream=stream, json_lines=True)
 
-    with recorder.phase("compile_pnf", total=2, details={"workers": 2}) as phase:
+    with recorder.phase(
+        "compile_pnf", total=2, phase_unit="documents", details={"workers": 2}
+    ) as phase:
         sleep(0.001)
         phase.advance(
             subject_ref="document:a",
@@ -43,18 +48,14 @@ def test_phase_recorder_emits_durable_timing_and_reuse_events(tmp_path) -> None:
     lines = [json.loads(line) for line in stream.getvalue().splitlines()]
     assert lines[0]["state"] == "started"
     assert lines[-1]["state"] == "completed"
-    assert all(row["schema_version"] == "sl.progress_event.v0_3" for row in lines)
+    assert all(row["schema_version"] == "sl.progress_event.v0_4" for row in lines)
 
 
 def test_failed_phase_records_error_without_hiding_exception() -> None:
     recorder = PhaseRecorder(stream=StringIO(), json_lines=True)
-    try:
+    with pytest.raises(ValueError, match="bad projection"):
         with recorder.phase("project_legal_ir"):
             raise ValueError("bad projection")
-    except ValueError:
-        pass
-    else:
-        raise AssertionError("expected ValueError")
 
     event = recorder.events[-1]
     assert event["state"] == "failed"
@@ -64,70 +65,104 @@ def test_failed_phase_records_error_without_hiding_exception() -> None:
 
 def test_phase_heartbeat_reports_estimate_while_no_units_finish() -> None:
     recorder = PhaseRecorder(stream=StringIO(), json_lines=True)
-    with recorder.phase("compile_pnf", total=2, heartbeat_seconds=0.001) as phase:
+    with recorder.phase(
+        "compile_pnf", total=2, phase_unit="documents", heartbeat_seconds=0.001
+    ) as phase:
         phase.advance(subject_ref="document:a")
         sleep(0.003)
 
     heartbeat = next(event for event in recorder.events if event["state"] == "heartbeat")
     assert heartbeat["completed"] == 1
     assert heartbeat["estimated_remaining_ms"] >= 0
+    assert "active_stage" not in heartbeat
 
 
-def test_inner_stage_throughput_is_independent_of_outer_document_progress() -> None:
+def test_last_completion_label_never_becomes_active_stage() -> None:
+    recorder = PhaseRecorder(stream=StringIO(), json_lines=True)
+    with recorder.phase("document_compile", total=8, heartbeat_seconds=None) as phase:
+        phase.advance(message="coordinate_validation")
+        phase.heartbeat()
+
+    heartbeat = next(event for event in recorder.events if event["state"] == "heartbeat")
+    assert heartbeat["completed"] == 1
+    assert "active_stage" not in heartbeat
+    assert heartbeat.get("message") != "coordinate_validation"
+
+
+def test_named_measure_vector_is_independent_of_outer_progress() -> None:
     stream = StringIO()
     recorder = PhaseRecorder(stream=stream, json_lines=False)
 
     with recorder.phase(
         "postgres_demand_planning_compile",
         total=10,
+        phase_unit="documents",
         subject_ref="document:0007",
         heartbeat_seconds=None,
     ) as phase:
-        phase.advance(message="documents", details={"document_stage": "document_start"})
+        phase.advance(message="reused_document")
         phase.begin_stage(
-            "constraint_assessments",
-            work_total=100,
-            work_unit="assessments",
-            details={"factor_count": 40},
+            "constraint_assessment",
+            measures=stage_measure_declaration(
+                "constraint_assessment",
+                totals={
+                    "factors_scanned": 40,
+                    "constraints_evaluated": 100,
+                    "assessments_emitted": 100,
+                },
+            ),
         )
         sleep(0.001)
         phase.observe(
-            work_completed=25,
-            details={"accepted": 4, "rejected": 21},
+            measures={
+                "factors_scanned": 20,
+                "constraints_evaluated": 25,
+                "assessments_emitted": 25,
+                "satisfied": 4,
+                "violated": 3,
+                "undetermined": 18,
+            }
         )
+        phase.heartbeat()
+        phase.complete_stage()
 
-    event = next(
+    heartbeat = next(
         row
         for row in recorder.events
-        if row.get("message") == "constraint_assessments"
-        and row.get("work_completed") == 25
+        if row.get("state") == "heartbeat"
+        and row.get("active_stage") == "constraint_assessment"
     )
-    assert event["completed"] == 1
-    assert event["work_total"] == 100
-    assert event["work_unit"] == "assessments"
-    assert event["work_units_per_second"] > 0
-    assert event["work_estimated_remaining_ms"] >= 0
-    assert event["details"]["factor_count"] == 40
-    assert event["details"]["accepted"] == 4
-    assert "work=25/100 assessments" in stream.getvalue()
-    assert "constraint_assessments" in stream.getvalue()
+    assert heartbeat["completed"] == 1
+    assert heartbeat["measures"]["constraints_evaluated"]["total"] == 100
+    assert heartbeat["measures"]["constraints_evaluated"]["per_second"] > 0
+    assert heartbeat["measures"]["satisfied"]["completed"] == 4
+    assert "constraints_evaluated=25/100 constraints" in stream.getvalue()
+    assert "active_stage=constraint_assessment" in stream.getvalue()
 
 
-def test_heartbeat_preserves_current_inner_stage_and_rate() -> None:
+def test_stage_lifecycle_cannot_overlap_or_leak_at_phase_finish() -> None:
     recorder = PhaseRecorder(stream=StringIO(), json_lines=True)
-    with recorder.phase("compile_pnf", heartbeat_seconds=None) as phase:
-        phase.begin_stage(
-            "closure_executor_evaluation",
-            work_total=8,
-            work_unit="jobs",
-        )
-        sleep(0.001)
-        phase.observe(work_completed=3)
-        phase.heartbeat()
+    phase_context = recorder.phase("compile_pnf", heartbeat_seconds=None)
+    phase = phase_context.__enter__()
+    phase.begin_stage("parser_annotation", measures={"tokens": {"unit": "tokens"}})
+    with pytest.raises(RuntimeError, match="still active"):
+        phase.begin_stage("coordinate_validation")
+    with pytest.raises(RuntimeError, match="cannot finish phase"):
+        phase_context.__exit__(None, None, None)
+    phase.complete_stage()
+    phase.finish(state="completed")
 
-    heartbeat = next(event for event in recorder.events if event["state"] == "heartbeat")
-    assert heartbeat["message"] == "closure_executor_evaluation"
-    assert heartbeat["work_completed"] == 3
-    assert heartbeat["work_total"] == 8
-    assert heartbeat["work_units_per_second"] > 0
-    assert heartbeat["details"]["heartbeat"] is True
+
+def test_stage_completion_may_close_exactly_one_outer_boundary() -> None:
+    recorder = PhaseRecorder(stream=StringIO(), json_lines=True)
+    with recorder.phase("document_compile", total=8, heartbeat_seconds=None) as phase:
+        phase.begin_stage("canonical_normalization")
+        phase.complete_stage(advance_outer=True)
+        phase.begin_stage("parser_annotation")
+        phase.complete_stage(advance_outer=True)
+
+    completed = [
+        event for event in recorder.events if event["state"] == "stage_completed"
+    ]
+    assert [event["completed"] for event in completed] == [1, 2]
+    assert all("active_stage" not in event for event in completed)
