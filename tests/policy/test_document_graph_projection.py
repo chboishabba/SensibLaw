@@ -110,6 +110,8 @@ def test_parallel_projection_matches_serial_document_payload() -> None:
     assert receipt["peak_active_workers"] <= 4
     assert receipt["serial_parallel_parity"] is True
     assert receipt["semantic_fingerprint"] == receipt["serial_fingerprint"]
+    assert receipt["worker_pids"]
+    assert all("worker_pid" in row and "compute_ms" in row for row in receipt["partitions"])
     assert all(
         row["end_char"] - row["start_char"] < len(text)
         for row in receipt["partitions"]
@@ -150,16 +152,27 @@ def test_projection_progress_reports_partition_completion() -> None:
     assert events[-1][1]["tokens_done"] == sum(
         len(sentence["tokens"]) for sentence in parsed["sents"]
     )
+    assert events[-1][1]["words_done"] == sum(
+        len(sentence["text"].split()) for sentence in parsed["sents"]
+    )
     assert events[-1][1]["batch_index"] == events[-1][1]["total_batches"]
 
 
-def test_operational_import_selects_graph_compilation_bridge() -> None:
+def test_tranche_import_order_selects_graph_compilation_proxy() -> None:
     script = """
 import json
+from src.policy.corpus_compilation import default_compiler_context
+from src.policy import postgres_corpus_compilation as postgres
 from src.policy import operational_corpus_compilation as operational
+from src.policy import corpus_compilation as selected
 print(json.dumps({
-    'module': operational.legacy.__name__,
-    'contract': operational.legacy.GRAPH_OPTIMAL_CORPUS_COMPILATION_CONTRACT,
+    'module': selected.__name__,
+    'contract': selected.GRAPH_OPTIMAL_CORPUS_COMPILATION_CONTRACT,
+    'operational_selected': operational.legacy is selected,
+    'postgres_uses_operational': (
+        postgres.compile_document_operational is operational.compile_document_operational
+    ),
+    'context_module': default_compiler_context.__module__,
 }))
 """
     completed = subprocess.run(
@@ -169,5 +182,22 @@ print(json.dumps({
         text=True,
     )
     payload = json.loads(completed.stdout)
-    assert payload["module"] == "src.policy.graph_optimal_corpus_compilation"
+    assert payload["module"] == "src.policy.corpus_compilation"
     assert payload["contract"] == "document-graph-corpus-compilation-bridge:v0_1"
+    assert payload["operational_selected"] is True
+    assert payload["postgres_uses_operational"] is True
+    assert payload["context_module"] == "src.policy.corpus_compilation"
+
+
+def test_compiler_proxy_forwards_monkeypatches(monkeypatch) -> None:
+    from src.policy import corpus_compilation as selected
+
+    def injected_parser(text: str):
+        return {"text": text, "sents": []}
+
+    monkeypatch.setattr(selected, "parse_canonical_text", injected_parser)
+    assert selected.parse_canonical_text is injected_parser
+    assert selected._proxy_legacy.parse_canonical_text is injected_parser
+    assert selected._semantic_annotation_layer is not (
+        selected._proxy_legacy._semantic_annotation_layer
+    )
