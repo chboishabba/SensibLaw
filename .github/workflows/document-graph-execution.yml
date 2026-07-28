@@ -7,16 +7,19 @@ on:
   pull_request:
     paths:
       - "scripts/benchmark_document_graph_execution.py"
+      - "scripts/plot_progress_metrics.py"
       - "src/policy/__init__.py"
       - "src/policy/document_graph_execution.py"
       - "src/policy/document_graph_mention_worker.py"
       - "src/policy/document_graph_mentions.py"
       - "src/policy/document_graph_projection.py"
       - "src/runtime/document_stage_metrics.py"
+      - "src/runtime/progress_plot.py"
       - "tests/policy/test_document_graph_projection.py"
       - "tests/policy/test_entity_resolution.py"
       - "tests/policy/test_operational_corpus_compilation.py"
       - "tests/runtime/test_progress_instrumentation.py"
+      - "tests/runtime/test_progress_plot.py"
       - "docs/document_graph_execution.md"
       - "docs/document_graph_benchmark.md"
       - ".github/workflows/document-graph-execution.yml"
@@ -44,28 +47,36 @@ jobs:
         run: |
           uv run ruff check \
             scripts/benchmark_document_graph_execution.py \
+            scripts/plot_progress_metrics.py \
             src/policy/__init__.py \
             src/policy/document_graph_execution.py \
             src/policy/document_graph_mention_worker.py \
             src/policy/document_graph_mentions.py \
             src/policy/document_graph_projection.py \
             src/runtime/document_stage_metrics.py \
-            tests/policy/test_document_graph_projection.py
+            src/runtime/progress_plot.py \
+            tests/policy/test_document_graph_projection.py \
+            tests/runtime/test_progress_plot.py
 
       - name: Check formatting
         run: |
           uv run ruff format --check \
             scripts/benchmark_document_graph_execution.py \
+            scripts/plot_progress_metrics.py \
             src/policy/__init__.py \
             src/policy/document_graph_execution.py \
             src/policy/document_graph_mention_worker.py \
             src/policy/document_graph_mentions.py \
             src/policy/document_graph_projection.py \
             src/runtime/document_stage_metrics.py \
-            tests/policy/test_document_graph_projection.py
+            src/runtime/progress_plot.py \
+            tests/policy/test_document_graph_projection.py \
+            tests/runtime/test_progress_plot.py
 
-      - name: Check benchmark CLI import
-        run: uv run python scripts/benchmark_document_graph_execution.py --help
+      - name: Check diagnostic CLIs
+        run: |
+          uv run python scripts/benchmark_document_graph_execution.py --help
+          uv run python scripts/plot_progress_metrics.py --help
 
       - name: Run focused compiler regressions
         run: |
@@ -73,4 +84,5 @@ jobs:
             tests/policy/test_document_graph_projection.py \
             tests/policy/test_entity_resolution.py \
             tests/policy/test_operational_corpus_compilation.py \
-            tests/runtime/test_progress_instrumentation.py
+            tests/runtime/test_progress_instrumentation.py \
+            tests/runtime/test_progress_plot.py
