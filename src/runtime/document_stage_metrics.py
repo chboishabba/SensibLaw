@@ -1,6 +1,6 @@
 """Named throughput measures for document compilation stages.
 
-The registry is descriptive only.  Compiler loops remain authoritative for the
+The registry is descriptive only. Compiler loops remain authoritative for the
 observed counters and must update them while work is in progress.
 """
 
@@ -68,6 +68,15 @@ DOCUMENT_STAGE_MEASURES: dict[str, tuple[tuple[str, str], ...]] = {
         ("dirty_groups_reduced", "groups"),
         ("duplicates_collapsed", "proposals"),
         ("residuals_emitted", "residuals"),
+        ("pending_jobs", "jobs"),
+        ("in_flight_jobs", "jobs"),
+        ("dirty_groups", "groups"),
+        ("rss_bytes", "bytes"),
+        ("process_tree_rss_bytes", "bytes"),
+        ("retained_jobs", "jobs"),
+        ("retained_receipts", "receipts"),
+        ("deferred_jobs", "jobs"),
+        ("pressure_events", "events"),
     ),
     "pnf_graph_construction": (
         ("factors_materialized", "factors"),
