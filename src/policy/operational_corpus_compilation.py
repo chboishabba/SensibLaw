@@ -104,9 +104,7 @@ def _pnf_graph_records(graph: Any) -> dict[str, Any]:
         ],
         "constraints": [
             row.to_dict()
-            for row in sorted(
-                graph.constraints, key=lambda value: value.constraint_ref
-            )
+            for row in sorted(graph.constraints, key=lambda value: value.constraint_ref)
         ],
         "relation_refs": sorted(graph.relation_refs),
         "residuals": sorted(graph.residuals),
@@ -792,6 +790,11 @@ def compile_document_operational(
                     ),
                 },
             )
+        # These lookup maps feed only local typing/diagnostics.  Keep their
+        # derived carriers, but release the document-wide intermediate maps
+        # before the resource gate that protects streaming closure.
+        del atom_mentions
+        del parser_observation_refs
 
     with timings.stage("base_proposal_generation") as stage:
         with _document_stage_progress(
@@ -831,6 +834,7 @@ def compile_document_operational(
             input_edges=len(relational_bundle.get("relations") or ()),
             output_edges=len(semantic_output.relation_refs),
         )
+    del atom_span_refs
 
     with _document_stage_progress(
         progress,

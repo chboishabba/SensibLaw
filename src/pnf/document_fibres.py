@@ -8,14 +8,13 @@ before mention licensing, PNF construction, constraint closure, or persistence.
 
 from __future__ import annotations
 
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-from concurrent.futures.process import BrokenProcessPool
-from dataclasses import dataclass
 import hashlib
 import json
 import os
-from pathlib import Path
 import tempfile
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable, Iterator, Mapping, MutableMapping, Sequence
 
 from src.policy.carriers.canonical import canonical_sha256
@@ -23,8 +22,10 @@ from src.runtime.active_document_resources import (
     ActiveDocumentResourceGuard,
     DocumentResourceLimitError,
 )
-from src.sensiblaw.interfaces import parse_canonical_text
-
+from src.sensiblaw.interfaces import (
+    parse_canonical_text,
+    release_canonical_parser_runtime,
+)
 
 DOCUMENT_FIBRE_CONTRACT = "parser-document-fibres:v0_2"
 DOCUMENT_FIBRE_SCHEMA_VERSION = "sl.pnf.document_fibre.v0_1"
@@ -62,10 +63,9 @@ class DocumentFibrePolicy:
         if not self.adaptive_partitioning:
             return len(canonical_text) >= self.parser_limit_chars
         workload = self.estimate_workload(canonical_text)
-        return (
-            workload["canonical_chars"] >= self.target_chars
-            or workload["estimated_tokens"] >= max(1, self.target_chars // 4)
-        )
+        return workload["canonical_chars"] >= self.target_chars or workload[
+            "estimated_tokens"
+        ] >= max(1, self.target_chars // 4)
 
     def __post_init__(self) -> None:
         if self.parser_limit_chars < 1:
@@ -171,7 +171,9 @@ class _OwnedSentenceSequence(Sequence[Mapping[str, Any]]):
     def __iter__(self) -> Iterator[Mapping[str, Any]]:
         yield from self._carrier._iter_sentences()
 
-    def __getitem__(self, index: int | slice) -> Mapping[str, Any] | tuple[Mapping[str, Any], ...]:
+    def __getitem__(
+        self, index: int | slice
+    ) -> Mapping[str, Any] | tuple[Mapping[str, Any], ...]:
         if isinstance(index, slice):
             return tuple(self)[index]
         if index < 0:
@@ -266,7 +268,7 @@ class DocumentSentenceCarrier(Mapping[str, Any]):
                         }
                     )
                 yield {
-                    "text": self._canonical_text[row["start"]:row["end"]],
+                    "text": self._canonical_text[row["start"] : row["end"]],
                     "start": row["start"],
                     "end": row["end"],
                     "tokens": merged_tokens,
@@ -480,8 +482,12 @@ def _save_fibre_summary(
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     path = _summary_path(checkpoint_dir, fibre)
     with tempfile.NamedTemporaryFile(
-        "w", encoding="utf-8", dir=checkpoint_dir, prefix=f".{path.name}.",
-        suffix=".tmp", delete=False,
+        "w",
+        encoding="utf-8",
+        dir=checkpoint_dir,
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        delete=False,
     ) as handle:
         json.dump(summary, handle, ensure_ascii=False, sort_keys=True)
         handle.write("\n")
@@ -508,7 +514,9 @@ def _load_fibre_summary(
     return payload
 
 
-def _parsed_document_measure_counts(parsed_document: Mapping[str, Any]) -> dict[str, int]:
+def _parsed_document_measure_counts(
+    parsed_document: Mapping[str, Any],
+) -> dict[str, int]:
     sentences = tuple(parsed_document.get("sents") or ())
     token_count = sum(len(sentence.get("tokens") or ()) for sentence in sentences)
     dependency_count = sum(
@@ -535,7 +543,7 @@ def _parse_fibre(
     checkpoint = _load_checkpoint(checkpoint_dir, fibre)
     if checkpoint is not None:
         return fibre, checkpoint, True
-    context = canonical_text[fibre.context_start:fibre.context_end]
+    context = canonical_text[fibre.context_start : fibre.context_end]
     if len(context) >= 1_000_000:
         raise ValueError("document fibre exceeds parser safety limit")
     parsed = dict(parser(context))
@@ -543,21 +551,6 @@ def _parse_fibre(
         raise ValueError("parser fibre output disagrees with canonical context")
     _save_checkpoint(checkpoint_dir, fibre, parsed)
     return fibre, parsed, False
-
-
-def _parse_fibre_process(
-    *,
-    fibre: DocumentFibre,
-    canonical_text: str,
-    checkpoint_dir: Path | None,
-) -> tuple[DocumentFibre, dict[str, Any], bool]:
-    """Process-isolated canonical parser worker for CPU-bound oversized fibres."""
-    return _parse_fibre(
-        fibre=fibre,
-        canonical_text=canonical_text,
-        parser=parse_canonical_text,
-        checkpoint_dir=checkpoint_dir,
-    )
 
 
 def _parse_fibre_summary(
@@ -576,7 +569,9 @@ def _parse_fibre_summary(
         parser=selected_parser,
         checkpoint_dir=checkpoint_dir,
     )
-    summary = _load_fibre_summary(checkpoint_dir, parsed_fibre) if checkpoint_dir else None
+    summary = (
+        _load_fibre_summary(checkpoint_dir, parsed_fibre) if checkpoint_dir else None
+    )
     if summary is None:
         summary = _save_fibre_summary(checkpoint_dir, parsed_fibre, parsed)
     del parsed
@@ -655,6 +650,9 @@ def _build_streaming_parser_receipt(
     reused_fibre_count: int,
     workload_estimate: Mapping[str, int],
     parser_limit_chars: int,
+    execution_backend: str,
+    peak_in_flight_fibres: int,
+    parser_runtime_released: bool,
 ) -> tuple[dict[str, Any], int]:
     """Derive document receipt metadata without recreating document sentences."""
 
@@ -677,7 +675,9 @@ def _build_streaming_parser_receipt(
         for demand in summary.get("cross_fibre_demands") or ():
             if isinstance(demand, Mapping):
                 row = dict(demand)
-                row["token_global_index"] = token_cursor + int(row["token_global_index"])
+                row["token_global_index"] = token_cursor + int(
+                    row["token_global_index"]
+                )
                 row["head_global_index"] = token_cursor + int(row["head_global_index"])
                 demands.append(row)
         token_cursor += int(summary.get("owned_token_count") or 0)
@@ -704,18 +704,26 @@ def _build_streaming_parser_receipt(
             "document_structural_carrier": carrier.to_dict(),
             "fibre_count": len(carrier.fibres),
             "execution_mode": "adaptive_fibres",
+            "execution_backend": execution_backend,
             "worker_count": carrier.policy.workers,
+            "peak_in_flight_fibres": peak_in_flight_fibres,
+            "parser_runtime_released": parser_runtime_released,
             "partition_count": len(carrier.fibres),
             "parallelism_reason": (
                 "workload_threshold"
-                if len(carrier.fibres) > 1 and carrier.canonical_length < parser_limit_chars
+                if len(carrier.fibres) > 1
+                and carrier.canonical_length < parser_limit_chars
                 else "parser_safety_ceiling"
             ),
             "workload_estimate": dict(workload_estimate),
             "reused_fibre_count": reused_fibre_count,
-            "cross_fibre_demands": sorted(demands, key=lambda row: str(row["demand_ref"])),
+            "cross_fibre_demands": sorted(
+                demands, key=lambda row: str(row["demand_ref"])
+            ),
             "cross_fibre_fixed_point": {
-                "state": "closed" if unresolved_count == 0 else "bounded_with_residuals",
+                "state": "closed"
+                if unresolved_count == 0
+                else "bounded_with_residuals",
                 "iterations": 1,
                 "layer": "parser_observation",
                 "unresolved_demand_count": unresolved_count,
@@ -780,9 +788,7 @@ def _merge_fibre_parses(
         )
     )
 
-    token_rows: list[
-        tuple[tuple[str, int], tuple[int, int, str], dict[str, Any]]
-    ] = []
+    token_rows: list[tuple[tuple[str, int], tuple[int, int, str], dict[str, Any]]] = []
     for sentence in selected_sentences:
         fibre = sentence["fibre"]
         for token in sentence["tokens"]:
@@ -818,9 +824,7 @@ def _merge_fibre_parses(
                 token_owner = _owner_for_position(carrier.fibres, token_key[0])
                 head_owner = _owner_for_position(carrier.fibres, head_key[0])
                 demand_state = (
-                    "resolved"
-                    if token_owner.fibre_ref != head_owner.fibre_ref
-                    else ""
+                    "resolved" if token_owner.fibre_ref != head_owner.fibre_ref else ""
                 )
             if demand_state:
                 demands.append(
@@ -851,7 +855,7 @@ def _merge_fibre_parses(
             )
         merged_sentences.append(
             {
-                "text": canonical_text[int(sentence["start"]):int(sentence["end"])],
+                "text": canonical_text[int(sentence["start"]) : int(sentence["end"])],
                 "start": int(sentence["start"]),
                 "end": int(sentence["end"]),
                 "tokens": merged_tokens,
@@ -860,9 +864,7 @@ def _merge_fibre_parses(
         )
         sentence["tokens"] = []
 
-    capability_keys = sorted(
-        {str(key) for row in capabilities for key in row}
-    )
+    capability_keys = sorted({str(key) for row in capabilities for key in row})
     merged_capabilities = {
         key: all(bool(row.get(key, False)) for row in capabilities)
         for key in capability_keys
@@ -902,9 +904,7 @@ def _merge_fibre_parses(
             ),
             "cross_fibre_fixed_point": {
                 "state": (
-                    "closed"
-                    if unresolved_count == 0
-                    else "bounded_with_residuals"
+                    "closed" if unresolved_count == 0 else "bounded_with_residuals"
                 ),
                 "iterations": 1,
                 "layer": "parser_observation",
@@ -930,67 +930,47 @@ def parse_document_fibres(
     selected_policy = policy or DocumentFibrePolicy()
     resource_guard = ActiveDocumentResourceGuard(document_ref=document_ref)
     workload = selected_policy.estimate_workload(canonical_text)
-    process_parser = (
-        getattr(parser, "__module__", "")
-        == "src.sensiblaw.interfaces.parser_adapter"
-    )
+    release_runtime = parser is parse_canonical_text
     if not selected_policy.should_partition(canonical_text):
-        # The public parser owns a sizeable optional NLP runtime.  Keep it in
-        # the same disposable worker boundary used by partitioned documents so
-        # a short document does not retain that runtime through graph identity,
-        # closure, and persistence merely because it did not need splitting.
-        if process_parser:
-            whole_fibre = DocumentFibre(
-                document_ref=document_ref,
-                fibre_ref="document-fibre:whole_document",
-                sequence_no=0,
-                owner_start=0,
-                owner_end=len(canonical_text),
-                context_start=0,
-                context_end=len(canonical_text),
-                text_sha256=hashlib.sha256(canonical_text.encode("utf-8")).hexdigest(),
-            )
-            try:
-                with ProcessPoolExecutor(max_workers=1) as pool:
-                    _fibre, parsed, _reused = pool.submit(
-                        _parse_fibre_process,
-                        fibre=whole_fibre,
-                        canonical_text=canonical_text,
-                        checkpoint_dir=None,
-                    ).result()
-                    _parser_execution_checkpoint(
-                        resource_guard,
-                        fibre=whole_fibre,
-                        active_batch_size=1,
-                        reusable_partition_refs=(whole_fibre.fibre_ref,),
-                    )
-            except BrokenProcessPool as error:
-                payload = _parser_execution_checkpoint(
-                    resource_guard,
-                    fibre=whole_fibre,
-                    active_batch_size=1,
-                    reusable_partition_refs=(whole_fibre.fibre_ref,),
-                )
-                payload.update(
-                    {
-                        "resource_limit_reached": True,
-                        "worker_lost": True,
-                        "fibre_ref": whole_fibre.fibre_ref,
-                        "checkpoint_refs": [],
-                        "worker_error": str(error),
-                    }
-                )
-                resource_guard._write_receipt(payload)
-                raise DocumentResourceLimitError(payload) from error
-            parsed = dict(parsed)
-        else:
-            parsed = dict(parser(canonical_text))
+        whole_fibre = DocumentFibre(
+            document_ref=document_ref,
+            fibre_ref="document-fibre:whole_document",
+            sequence_no=0,
+            owner_start=0,
+            owner_end=len(canonical_text),
+            context_start=0,
+            context_end=len(canonical_text),
+            text_sha256=hashlib.sha256(canonical_text.encode("utf-8")).hexdigest(),
+        )
+        # Parser workers share one in-process runtime.  This deliberately
+        # avoids spawning one large NLP model per physical fibre.
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            _fibre, parsed, _reused = pool.submit(
+                _parse_fibre,
+                fibre=whole_fibre,
+                canonical_text=canonical_text,
+                parser=parser,
+                checkpoint_dir=None,
+            ).result()
+        runtime_released = (
+            release_canonical_parser_runtime() if release_runtime else False
+        )
+        _parser_execution_checkpoint(
+            resource_guard,
+            fibre=whole_fibre,
+            active_batch_size=0,
+            reusable_partition_refs=(whole_fibre.fibre_ref,),
+        )
+        parsed = dict(parsed)
         receipt = dict(parsed.get("parser_receipt") or {})
         receipt.update(
             {
                 "document_fibre_contract": DOCUMENT_FIBRE_CONTRACT,
                 "execution_mode": "whole_document",
+                "execution_backend": "thread_pool",
                 "worker_count": 1,
+                "peak_in_flight_fibres": 1,
+                "parser_runtime_released": runtime_released,
                 "partition_count": 1,
                 "parallelism_reason": "below_adaptive_workload_threshold",
                 "workload_estimate": workload,
@@ -1057,67 +1037,51 @@ def parse_document_fibres(
         "tokens": 0,
         "dependencies": 0,
     }
-    # The canonical parser releases too little GIL for thread pools to scale on
-    # large fibres.  Use isolated processes for the public parser spine; retain
-    # a thread fallback for injected test/adaptor parsers that may not be
-    # importable in a child process.
-    pool_type = ProcessPoolExecutor if process_parser else ThreadPoolExecutor
-    with pool_type(max_workers=selected_policy.workers) as pool:
-        futures = {
-            pool.submit(
-                _parse_fibre_summary,
-                fibre=fibre,
-                canonical_text=canonical_text,
-                checkpoint_dir=resolved_checkpoint_dir,
-                **({} if process_parser else {"parser": parser}),
-            ): fibre
-            for fibre in carrier.fibres
-        }
-        for future in as_completed(futures):
-            expected_fibre = futures[future]
-            try:
-                fibre, summary, reused = future.result()
-            except BrokenProcessPool as error:
-                checkpoint_refs = tuple(
-                    str(_checkpoint_path(resolved_checkpoint_dir, row))
-                    for row in carrier.fibres
-                    if _load_checkpoint(resolved_checkpoint_dir, row) is not None
-                )
-                payload = _parser_execution_checkpoint(
-                    resource_guard,
-                    fibre=expected_fibre,
-                    active_batch_size=len(futures) - completed_fibres,
-                    reusable_partition_refs=tuple(
-                        row.fibre_ref for row in carrier.fibres
-                        if _load_checkpoint(resolved_checkpoint_dir, row) is not None
-                    ),
-                    checkpoint_refs=checkpoint_refs,
-                )
-                payload.update(
-                    {
-                        "resource_limit_reached": True,
-                        "worker_lost": True,
-                        "fibre_ref": expected_fibre.fibre_ref,
-                        "checkpoint_refs": list(checkpoint_refs),
-                        "worker_error": str(error),
-                    }
-                )
-                resource_guard._write_receipt(payload)
-                raise DocumentResourceLimitError(payload) from error
+    completed_fibre_refs: set[str] = set()
+    peak_in_flight_fibres = 0
+    fibre_iterator = iter(carrier.fibres)
+    with ThreadPoolExecutor(max_workers=selected_policy.workers) as pool:
+        futures: dict[Any, DocumentFibre] = {}
+        exhausted = False
+        while futures or not exhausted:
+            while not exhausted and len(futures) < selected_policy.workers:
+                try:
+                    pending_fibre = next(fibre_iterator)
+                except StopIteration:
+                    exhausted = True
+                    break
+                futures[
+                    pool.submit(
+                        _parse_fibre_summary,
+                        fibre=pending_fibre,
+                        canonical_text=canonical_text,
+                        checkpoint_dir=resolved_checkpoint_dir,
+                        parser=parser,
+                    )
+                ] = pending_fibre
+                peak_in_flight_fibres = max(peak_in_flight_fibres, len(futures))
+            if not futures:
+                continue
+            completed, _pending = wait(futures, return_when=FIRST_COMPLETED)
+            future = next(iter(completed))
+            futures.pop(future)
+            fibre, summary, reused = future.result()
             reused_count += int(reused)
             completed_fibres += 1
+            completed_fibre_refs.add(fibre.fibre_ref)
             for key in completed_counts:
                 completed_counts[key] += int(summary["counts"][key])
+            completed_rows = tuple(
+                row for row in carrier.fibres if row.fibre_ref in completed_fibre_refs
+            )
             _parser_execution_checkpoint(
                 resource_guard,
                 fibre=fibre,
-                active_batch_size=len(futures) - completed_fibres,
-                reusable_partition_refs=tuple(
-                    row.fibre_ref for row in carrier.fibres[:completed_fibres]
-                ),
+                active_batch_size=len(futures),
+                reusable_partition_refs=tuple(row.fibre_ref for row in completed_rows),
                 checkpoint_refs=tuple(
                     str(_checkpoint_path(resolved_checkpoint_dir, row))
-                    for row in carrier.fibres[:completed_fibres]
+                    for row in completed_rows
                 ),
             )
             if progress is not None:
@@ -1155,14 +1119,20 @@ def parse_document_fibres(
                             "owner_start": fibre.owner_start,
                             "owner_end": fibre.owner_end,
                             "reused": reused,
+                            "execution_backend": "thread_pool",
+                            "in_flight_fibres": len(futures),
                         },
                     )
+    runtime_released = release_canonical_parser_runtime() if release_runtime else False
     parser_receipt, sentence_count = _build_streaming_parser_receipt(
         carrier=carrier,
         checkpoint_dir=resolved_checkpoint_dir,
         reused_fibre_count=reused_count,
         workload_estimate=workload,
         parser_limit_chars=selected_policy.parser_limit_chars,
+        execution_backend="thread_pool",
+        peak_in_flight_fibres=peak_in_flight_fibres,
+        parser_runtime_released=runtime_released,
     )
     return DocumentSentenceCarrier(
         carrier=carrier,

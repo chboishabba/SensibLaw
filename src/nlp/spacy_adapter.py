@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import ctypes
+import gc
 import importlib
 from threading import Lock
 from types import ModuleType
@@ -11,7 +13,7 @@ if TYPE_CHECKING:  # pragma: no cover - imported for type checking only
     from spacy.language import Language
     from spacy.tokens import Doc, Span, Token
 
-__all__ = ["parse"]
+__all__ = ["parse", "release_default_nlp"]
 
 _DEFAULT_NLP: Optional["Language"] = None
 _DEFAULT_NLP_LOCK = Lock()
@@ -58,6 +60,24 @@ def _ensure_sentence_boundaries(nlp: "Language") -> None:
         return
     if "sentencizer" not in nlp.pipe_names:
         nlp.add_pipe("sentencizer")
+
+
+def release_default_nlp() -> bool:
+    """Release the cached default pipeline after a checkpoint-backed parse."""
+
+    global _DEFAULT_NLP
+    with _DEFAULT_NLP_LOCK:
+        released = _DEFAULT_NLP is not None
+        _DEFAULT_NLP = None
+    if released:
+        gc.collect()
+        # CPython may retain arenas after releasing model weights.  Trimming is
+        # an optional Linux allocator hint and does not affect parser output.
+        try:
+            ctypes.CDLL(None).malloc_trim(0)
+        except (AttributeError, OSError):  # pragma: no cover - platform allocator
+            pass
+    return released
 
 
 def _iter_sentences(doc: "Doc") -> Iterable["Span"]:

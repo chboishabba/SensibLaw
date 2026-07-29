@@ -12,11 +12,10 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from pathlib import Path
 import sys
 import tempfile
+from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
-
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -67,7 +66,9 @@ from src.storage.postgres.legal_adjunct_planner import (  # noqa: E402
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--tranche", required=True, choices=("GWB", "AU", "BREXIT", "ALL"))
+    parser.add_argument(
+        "--tranche", required=True, choices=("GWB", "AU", "BREXIT", "ALL")
+    )
     parser.add_argument("--database-url", default=os.environ.get("DATABASE_URL"))
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--offline", action="store_true")
@@ -81,6 +82,15 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--follow-documents", type=int, default=20)
     parser.add_argument("--max-source-files", type=int)
     parser.add_argument("--max-file-bytes", type=int)
+    parser.add_argument(
+        "--input-path",
+        type=Path,
+        action="append",
+        help=(
+            "Explicit source file or directory. When supplied, it replaces the "
+            "profile's default source roots while retaining its configuration."
+        ),
+    )
     parser.add_argument("--plan-limit", type=int, default=1_000)
     parser.add_argument("--legal-plan-limit", type=int, default=500)
     parser.add_argument("--microbatch-size", type=int, default=16)
@@ -214,7 +224,9 @@ def _record_phase_checkpoint(
         if row is not None
     ]
     tranche_state["receipts"].append(receipt.to_dict())
-    tranche_state["artifacts"].update({key: str(value) for key, value in artifacts.items()})
+    tranche_state["artifacts"].update(
+        {key: str(value) for key, value in artifacts.items()}
+    )
     tranche_state["last_phase"] = phase.name
     tranche_state["last_receipt_ref"] = receipt.receipt_ref
     _save_tranche_state(tranche_state_path, tranche_state)
@@ -253,7 +265,11 @@ def _write_follow_sources(result: Any, output_dir: Path) -> tuple[Path, dict[str
     documents: list[dict[str, Any]] = []
     for index, followed in enumerate(result.documents, start=1):
         document = followed.document
-        suffix = ".html" if document.media_type in {"text/html", "application/xhtml+xml"} else ".txt"
+        suffix = (
+            ".html"
+            if document.media_type in {"text/html", "application/xhtml+xml"}
+            else ".txt"
+        )
         path = raw_dir / f"{index:04d}{suffix}"
         path.write_bytes(document.raw_bytes)
         documents.append(
@@ -388,21 +404,36 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
     receipts.append(inventory_receipt)
     artifacts["source_inventory"] = str(inventory_path)
 
-    source_roots = [
-        ROOT / family.path
-        for family in profile.source_families
-        if family.path and (ROOT / family.path).exists()
-    ]
+    explicit_source_paths = tuple(path.resolve() for path in (args.input_path or ()))
+    if explicit_source_paths:
+        missing_paths = [path for path in explicit_source_paths if not path.exists()]
+        if missing_paths:
+            raise ValueError(
+                "explicit input paths do not exist: "
+                + ", ".join(str(path) for path in missing_paths)
+            )
+        source_roots = list(explicit_source_paths)
+    else:
+        source_roots = [
+            ROOT / family.path
+            for family in profile.source_families
+            if family.path and (ROOT / family.path).exists()
+        ]
     acquisition_manifest: dict[str, Any] = {
         "schema_version": "sl.tranche_seed_acquisition.v0_2",
         "documents": [],
         "receipts": [],
         "network_performed": False,
-        "mode": "explicit_seed_only",
+        "mode": "explicit_input_only"
+        if explicit_source_paths
+        else "explicit_seed_only",
+        "explicit_input_paths": [str(path) for path in explicit_source_paths],
         "authority": "source_acquisition_only",
     }
     seed_follow_required = not source_roots and bool(profile.legal_follow_profile)
-    seed_follow_requested = args.seed_legal_follow and bool(profile.legal_follow_profile)
+    seed_follow_requested = args.seed_legal_follow and bool(
+        profile.legal_follow_profile
+    )
     if (
         (seed_follow_required or seed_follow_requested)
         and not args.skip_legal_follow
@@ -436,7 +467,9 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
             {
                 "network_performed": acquisition_manifest["network_performed"],
                 "source_root_count": len(source_roots),
-                "followed_document_count": len(acquisition_manifest.get("documents") or ()),
+                "followed_document_count": len(
+                    acquisition_manifest.get("documents") or ()
+                ),
                 "broad_legal_follow_was_explicit_or_required": bool(
                     acquisition_manifest["network_performed"]
                 ),
@@ -513,7 +546,9 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
         receipts.append(
             PhaseReceipt(
                 TranchePhase.LOCAL_PNF_COMPILATION,
-                "completed" if not compilation.failure_refs else "completed_with_failures",
+                "completed"
+                if not compilation.failure_refs
+                else "completed_with_failures",
                 (str(projection_path),),
                 (compilation.corpus_ref, str(compile_path)),
                 {
@@ -532,7 +567,8 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
             receipt=receipts[-1],
             artifacts={
                 "local_pnf_compilation": compile_path,
-                "local_pnf_compile_progress": output_dir / "local_pnf_compile_progress.json",
+                "local_pnf_compile_progress": output_dir
+                / "local_pnf_compile_progress.json",
             },
         )
 
@@ -705,11 +741,15 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
         receipts.append(
             PhaseReceipt(
                 TranchePhase.LEGAL_ADJUNCT_ACQUISITION,
-                "completed" if legal_roots else ("skipped_offline" if args.offline else "no_ready_plans"),
+                "completed"
+                if legal_roots
+                else ("skipped_offline" if args.offline else "no_ready_plans"),
                 (str(legal_plan_path),),
                 (str(legal_acquisition_path),),
                 {
-                    "ready_plan_count": sum(row.state == "ready" for row in legal_plans),
+                    "ready_plan_count": sum(
+                        row.state == "ready" for row in legal_plans
+                    ),
                     "acquired_source_root_count": len(legal_roots),
                     "network_performed": bool(legal_roots),
                 },
@@ -736,7 +776,9 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
             )
             if adjunct_projection.documents:
                 adjunct_progress = PhaseRecorder(stream=sys.stderr, json_lines=False)
-                adjunct_state_path = output_dir / "legal_adjunct_pnf_compilation_state.json"
+                adjunct_state_path = (
+                    output_dir / "legal_adjunct_pnf_compilation_state.json"
+                )
                 adjunct_compilation = compile_directory_postgres(
                     output_dir / "legal_adjunct_projection" / "canonical",
                     context=default_compiler_context(),
@@ -807,7 +849,9 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
         legal_ir_rows: tuple[Any, ...] = ()
         if adjunct_corpus_ref:
             with store.transaction() as cursor:
-                legal_pnf_rows = load_legal_pnf_rows(cursor, corpus_ref=adjunct_corpus_ref)
+                legal_pnf_rows = load_legal_pnf_rows(
+                    cursor, corpus_ref=adjunct_corpus_ref
+                )
             legal_ir_rows = project_legal_ir(legal_pnf_rows)
         legal_ir_payload = {
             "schema_version": "sl.legal_ir_projection.v0_1",
@@ -893,7 +937,9 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
                 (str(review_path),),
                 {
                     "review_packet_count": len(review_payload["review_packets"]),
-                    "overlap_signal_count": len(review_payload["candidate_overlap_signals"]),
+                    "overlap_signal_count": len(
+                        review_payload["candidate_overlap_signals"]
+                    ),
                     "legal_plan_count": len(legal_plans),
                     "promotion_count": 0,
                 },

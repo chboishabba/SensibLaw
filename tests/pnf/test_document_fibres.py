@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import os
+import threading
+from io import StringIO
 from pathlib import Path
 from typing import Any
-from io import StringIO
 
 from src.pnf.document_fibres import (
     DocumentFibrePolicy,
@@ -117,12 +119,14 @@ def test_parser_fibres_reconstruct_one_document_and_reuse_checkpoints(
     assert len(first_calls) == first["parser_receipt"]["fibre_count"]
     assert second_calls == []
     assert second["parser_receipt"]["reused_fibre_count"] == len(first_calls)
-    assert second["parser_receipt"]["cross_fibre_fixed_point"][
-        "semantic_object"
-    ] == "document"
-    assert second["parser_receipt"]["cross_fibre_fixed_point"][
-        "fibre_semantic_authority"
-    ] is False
+    assert (
+        second["parser_receipt"]["cross_fibre_fixed_point"]["semantic_object"]
+        == "document"
+    )
+    assert (
+        second["parser_receipt"]["cross_fibre_fixed_point"]["fibre_semantic_authority"]
+        is False
+    )
 
 
 def test_parser_fibres_report_typed_stage_progress(tmp_path: Path) -> None:
@@ -134,9 +138,7 @@ def test_parser_fibres_report_typed_stage_progress(tmp_path: Path) -> None:
         workers=2,
     )
     recorder = PhaseRecorder(stream=StringIO(), json_lines=True)
-    with recorder.phase(
-        "document_compile", total=1, heartbeat_seconds=None
-    ) as phase:
+    with recorder.phase("document_compile", total=1, heartbeat_seconds=None) as phase:
         with phase.stage(
             "parser_annotation",
             measures=stage_measure_declaration("parser_annotation"),
@@ -188,6 +190,41 @@ def test_adaptive_partitioning_is_independent_of_parser_safety_limit(
     assert parsed["parser_receipt"]["workload_estimate"]["canonical_chars"] == len(text)
 
 
+def test_public_parser_fibres_share_one_process_and_bound_in_flight_work(
+    tmp_path: Path,
+) -> None:
+    text = ("Alpha beta gamma delta.\n\n" * 30).strip()
+    process_ids: list[int] = []
+    thread_ids: list[int] = []
+    delegate = _parser_calls([])
+
+    def parser(value: str) -> dict[str, Any]:
+        process_ids.append(os.getpid())
+        thread_ids.append(threading.get_ident())
+        return delegate(value)
+
+    policy = DocumentFibrePolicy(
+        parser_limit_chars=120,
+        target_chars=40,
+        overlap_chars=5,
+        workers=2,
+    )
+    parsed = parse_document_fibres(
+        document_ref="document:threaded-parser",
+        canonical_text=text,
+        parser=parser,
+        policy=policy,
+        checkpoint_dir=tmp_path,
+    )
+
+    receipt = parsed["parser_receipt"]
+    assert set(process_ids) == {os.getpid()}
+    assert thread_ids
+    assert receipt["execution_backend"] == "thread_pool"
+    assert 1 <= receipt["peak_in_flight_fibres"] <= policy.workers
+    assert receipt["fibre_count"] > policy.workers
+
+
 def test_fibred_parse_replays_owned_sentences_without_a_merged_list(
     tmp_path: Path,
 ) -> None:
@@ -208,11 +245,19 @@ def test_fibred_parse_replays_owned_sentences_without_a_merged_list(
     sentences = parsed["sents"]
     assert not isinstance(sentences, list)
     first = [
-        (sentence["start"], sentence["end"], tuple(token["index"] for token in sentence["tokens"]))
+        (
+            sentence["start"],
+            sentence["end"],
+            tuple(token["index"] for token in sentence["tokens"]),
+        )
         for sentence in sentences
     ]
     second = [
-        (sentence["start"], sentence["end"], tuple(token["index"] for token in sentence["tokens"]))
+        (
+            sentence["start"],
+            sentence["end"],
+            tuple(token["index"] for token in sentence["tokens"]),
+        )
         for sentence in sentences
     ]
 
