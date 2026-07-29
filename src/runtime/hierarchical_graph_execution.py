@@ -1,10 +1,12 @@
 """Persistent mini/midi/mega graph hierarchy for bounded document execution.
 
-The hierarchy is a physical execution carrier.  It does not replace the canonical
-PNF document graph.  Leaves own bounded source intervals, internal nodes reference
-immutable child graph revisions and introduce only cross-child structure, indexes,
-and unresolved demands.  Logical descendant unions are never instructions to
-flatten child interiors into a new Python collection.
+The hierarchy is a physical execution carrier. It does not replace the canonical
+PNF document graph. Leaves own bounded source intervals. Internal nodes reference
+immutable child graph revisions and introduce only cross-child structure,
+indexes, revisions, and unresolved demands.
+
+Logical descendant unions are never instructions to flatten child interiors into
+new Python collections.
 """
 
 from __future__ import annotations
@@ -58,7 +60,12 @@ class CarrierInterval:
         return self.start <= other.start and other.end <= self.end
 
     def to_dict(self) -> dict[str, object]:
-        return {"start": self.start, "end": self.end, "unit": self.unit, "size": self.size}
+        return {
+            "start": self.start,
+            "end": self.end,
+            "unit": self.unit,
+            "size": self.size,
+        }
 
 
 @dataclass(frozen=True)
@@ -73,9 +80,11 @@ class GraphInterface:
     index_refs: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
-        for value in self._all_sequences():
-            if tuple(value) != tuple(sorted(set(value))):
-                raise ValueError("graph interface references must be sorted and unique")
+        for refs in self._all_sequences():
+            if refs != tuple(sorted(set(refs))):
+                raise ValueError(
+                    "graph interface references must be sorted and unique"
+                )
 
     def _all_sequences(self) -> tuple[tuple[str, ...], ...]:
         return (
@@ -89,13 +98,21 @@ class GraphInterface:
 
     @property
     def reference_count(self) -> int:
-        return sum(len(value) for value in self._all_sequences())
+        return sum(len(refs) for refs in self._all_sequences())
 
     def merged(self, *others: "GraphInterface") -> "GraphInterface":
         rows = (self, *others)
 
         def union(name: str) -> tuple[str, ...]:
-            return tuple(sorted({ref for row in rows for ref in getattr(row, name)}))
+            return tuple(
+                sorted(
+                    {
+                        ref
+                        for row in rows
+                        for ref in getattr(row, name)
+                    }
+                )
+            )
 
         return GraphInterface(
             boundary_vertex_refs=union("boundary_vertex_refs"),
@@ -111,8 +128,12 @@ class GraphInterface:
             "boundary_vertex_refs": list(self.boundary_vertex_refs),
             "dependency_keys": list(self.dependency_keys),
             "recurrence_keys": list(self.recurrence_keys),
-            "constraint_frontier_refs": list(self.constraint_frontier_refs),
-            "unresolved_demand_refs": list(self.unresolved_demand_refs),
+            "constraint_frontier_refs": list(
+                self.constraint_frontier_refs
+            ),
+            "unresolved_demand_refs": list(
+                self.unresolved_demand_refs
+            ),
             "index_refs": list(self.index_refs),
             "reference_count": self.reference_count,
         }
@@ -126,6 +147,17 @@ class HierarchyCoverageCertificate:
     required_child_refs: tuple[str, ...]
     locally_fixed_point: bool
     unresolved_locally_satisfiable_demands: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        for refs in (
+            self.completed_child_refs,
+            self.required_child_refs,
+            self.unresolved_locally_satisfiable_demands,
+        ):
+            if refs != tuple(sorted(set(refs))):
+                raise ValueError(
+                    "coverage references must be sorted and unique"
+                )
 
     @property
     def complete(self) -> bool:
@@ -152,7 +184,7 @@ class HierarchyCoverageCertificate:
 
 @dataclass(frozen=True)
 class PersistentGraphNode:
-    """Physical graph node: child refs plus structure introduced at this level."""
+    """Physical graph node: child refs plus structure added at this level."""
 
     document_ref: str
     node_ref: str
@@ -179,11 +211,14 @@ class PersistentGraphNode:
             self.revision_transition_refs,
         ):
             if refs != tuple(sorted(set(refs))):
-                raise ValueError("graph node references must be sorted and unique")
+                raise ValueError(
+                    "graph node references must be sorted and unique"
+                )
 
     @property
     def graph_ref(self) -> str:
-        return f"hierarchical-graph:{canonical_sha256(self.identity_payload())}"
+        digest = canonical_sha256(self.identity_payload())
+        return f"hierarchical-graph:{digest}"
 
     @property
     def newly_materialized_reference_count(self) -> int:
@@ -202,12 +237,18 @@ class PersistentGraphNode:
             "kind": self.kind.value,
             "carrier": self.carrier.to_dict(),
             "child_graph_refs": list(self.child_graph_refs),
-            "introduced_vertex_refs": list(self.introduced_vertex_refs),
+            "introduced_vertex_refs": list(
+                self.introduced_vertex_refs
+            ),
             "introduced_edge_refs": list(self.introduced_edge_refs),
-            "revision_transition_refs": list(self.revision_transition_refs),
+            "revision_transition_refs": list(
+                self.revision_transition_refs
+            ),
             "interface": self.interface.to_dict(),
             "revision": self.revision,
-            "coverage": self.coverage.to_dict() if self.coverage else None,
+            "coverage": (
+                self.coverage.to_dict() if self.coverage else None
+            ),
         }
 
     def overlay(self, delta: "HierarchyDelta") -> "PersistentGraphNode":
@@ -216,10 +257,16 @@ class PersistentGraphNode:
         return replace(
             self,
             introduced_vertex_refs=tuple(
-                sorted(set(self.introduced_vertex_refs) | set(delta.introduced_vertex_refs))
+                sorted(
+                    set(self.introduced_vertex_refs)
+                    | set(delta.introduced_vertex_refs)
+                )
             ),
             introduced_edge_refs=tuple(
-                sorted(set(self.introduced_edge_refs) | set(delta.introduced_edge_refs))
+                sorted(
+                    set(self.introduced_edge_refs)
+                    | set(delta.introduced_edge_refs)
+                )
             ),
             revision_transition_refs=tuple(
                 sorted(
@@ -233,7 +280,10 @@ class PersistentGraphNode:
         )
 
     def to_dict(self) -> dict[str, object]:
-        return {**self.identity_payload(), "graph_ref": self.graph_ref}
+        return {
+            **self.identity_payload(),
+            "graph_ref": self.graph_ref,
+        }
 
 
 @dataclass(frozen=True)
@@ -254,13 +304,24 @@ class HierarchyJob:
             raise ValueError("hierarchy job identity is required")
         if self.level < 0:
             raise ValueError("hierarchy job level must be non-negative")
+        for refs in (
+            self.input_graph_refs,
+            self.input_revision_refs,
+            self.output_owner_keys,
+        ):
+            if refs != tuple(sorted(set(refs))):
+                raise ValueError(
+                    "hierarchy job references must be sorted and unique"
+                )
         for value in (
             self.estimated_compute_units,
             self.estimated_peak_memory_bytes,
             self.estimated_output_bytes,
         ):
             if value < 0:
-                raise ValueError("hierarchy job estimates must be non-negative")
+                raise ValueError(
+                    "hierarchy job estimates must be non-negative"
+                )
 
 
 @dataclass(frozen=True)
@@ -279,6 +340,15 @@ class HierarchyDelta:
     def __post_init__(self) -> None:
         if not self.node_ref:
             raise ValueError("node_ref is required")
+        for refs in (
+            self.introduced_vertex_refs,
+            self.introduced_edge_refs,
+            self.revision_transition_refs,
+        ):
+            if refs != tuple(sorted(set(refs))):
+                raise ValueError(
+                    "hierarchy delta references must be sorted and unique"
+                )
         for value in (
             self.work_units,
             self.input_bytes,
@@ -286,7 +356,9 @@ class HierarchyDelta:
             self.descendant_bytes_reconstructed,
         ):
             if value < 0:
-                raise ValueError("hierarchy delta metrics must be non-negative")
+                raise ValueError(
+                    "hierarchy delta metrics must be non-negative"
+                )
 
 
 @dataclass(frozen=True)
@@ -327,10 +399,18 @@ class HierarchyPlan:
         for index in range(leaf_count):
             carrier = CarrierInterval(
                 index * leaf_capacity,
-                min((index + 1) * leaf_capacity, primitive_unit_count),
+                min(
+                    (index + 1) * leaf_capacity,
+                    primitive_unit_count,
+                ),
                 unit,
             )
-            node_ref = cls._node_ref(document_ref, 0, index, carrier)
+            node_ref = cls._node_ref(
+                document_ref,
+                level=0,
+                ordinal=index,
+                carrier=carrier,
+            )
             carriers[node_ref] = carrier
             leaves.append(node_ref)
         levels.append(tuple(leaves))
@@ -341,14 +421,19 @@ class HierarchyPlan:
         level = 1
         while len(current) > 1:
             parents: list[str] = []
-            for index in range(0, len(current), arity):
-                children = current[index : index + arity]
+            for start in range(0, len(current), arity):
+                children = current[start : start + arity]
                 carrier = CarrierInterval(
                     carriers[children[0]].start,
                     carriers[children[-1]].end,
                     unit,
                 )
-                parent_ref = cls._node_ref(document_ref, level, index // arity, carrier)
+                parent_ref = cls._node_ref(
+                    document_ref,
+                    level=level,
+                    ordinal=start // arity,
+                    carrier=carrier,
+                )
                 carriers[parent_ref] = carrier
                 children_by_node[parent_ref] = tuple(children)
                 for child_ref in children:
@@ -375,6 +460,7 @@ class HierarchyPlan:
     @staticmethod
     def _node_ref(
         document_ref: str,
+        *,
         level: int,
         ordinal: int,
         carrier: CarrierInterval,
@@ -399,7 +485,16 @@ class HierarchyPlan:
 
     @property
     def node_count(self) -> int:
-        return sum(len(level) for level in self.node_refs_by_level)
+        return sum(
+            len(node_refs)
+            for node_refs in self.node_refs_by_level
+        )
+
+    @property
+    def relaxed_node_bound(self) -> float:
+        leaf_count = len(self.leaf_refs)
+        geometric = self.arity / (self.arity - 1) * leaf_count
+        return geometric + self.depth
 
     def level_of(self, node_ref: str) -> int:
         for level, refs in enumerate(self.node_refs_by_level):
@@ -412,19 +507,37 @@ class HierarchyPlan:
             raise ValueError("offset outside document carrier")
         return self.leaf_refs[offset // self.leaf_capacity]
 
-    def lowest_sufficient_node_for_offsets(self, offsets: Iterable[int]) -> str:
-        leaves = {self.leaf_for_offset(offset) for offset in offsets}
+    def lowest_sufficient_node_for_offsets(
+        self,
+        offsets: Iterable[int],
+    ) -> str:
+        leaves = {
+            self.leaf_for_offset(offset)
+            for offset in offsets
+        }
         if not leaves:
-            raise ValueError("at least one support offset is required")
+            raise ValueError(
+                "at least one support offset is required"
+            )
         return self.lowest_common_ancestor(tuple(sorted(leaves)))
 
-    def lowest_common_ancestor(self, node_refs: Sequence[str]) -> str:
+    def lowest_common_ancestor(
+        self,
+        node_refs: Sequence[str],
+    ) -> str:
         if not node_refs:
             raise ValueError("at least one node_ref is required")
-        chains = [self._ancestor_chain(node_ref) for node_ref in node_refs]
-        common = set(chains[0]).intersection(*map(set, chains[1:]))
+        chains = [
+            self._ancestor_chain(node_ref)
+            for node_ref in node_refs
+        ]
+        common = set(chains[0]).intersection(
+            *(set(chain) for chain in chains[1:])
+        )
         if not common:
-            raise ValueError("nodes do not belong to one hierarchy")
+            raise ValueError(
+                "nodes do not belong to one hierarchy"
+            )
         return min(common, key=self.level_of)
 
     def _ancestor_chain(self, node_ref: str) -> tuple[str, ...]:
@@ -443,7 +556,7 @@ class HierarchyComplexityReceipt:
     arity: int
     leaf_count: int
     node_count: int
-    maximum_node_bound: float
+    relaxed_node_bound: float
     total_work_units: int
     interface_reference_work: int
     cross_relation_work: int
@@ -462,24 +575,32 @@ class HierarchyComplexityReceipt:
             "arity": self.arity,
             "leaf_count": self.leaf_count,
             "node_count": self.node_count,
-            "maximum_node_bound": self.maximum_node_bound,
-            "node_bound_satisfied": self.node_count <= self.maximum_node_bound,
+            "relaxed_node_bound": self.relaxed_node_bound,
+            "node_bound_satisfied": (
+                self.node_count <= self.relaxed_node_bound
+            ),
             "total_work_units": self.total_work_units,
-            "interface_reference_work": self.interface_reference_work,
+            "interface_reference_work": (
+                self.interface_reference_work
+            ),
             "cross_relation_work": self.cross_relation_work,
             "demand_work": self.demand_work,
             "revision_work": self.revision_work,
-            "descendant_bytes_reconstructed": self.descendant_bytes_reconstructed,
+            "descendant_bytes_reconstructed": (
+                self.descendant_bytes_reconstructed
+            ),
             "flattening_free": self.flattening_free,
         }
 
 
 @dataclass
 class HierarchicalGraphCoordinator:
-    """Unlock leaf/branch/root jobs as immutable child coverage completes."""
+    """Unlock leaves, parents, and revision cones as coverage changes."""
 
     plan: HierarchyPlan
-    nodes: dict[str, PersistentGraphNode] = field(default_factory=dict)
+    nodes: dict[str, PersistentGraphNode] = field(
+        default_factory=dict
+    )
     _completed: set[str] = field(default_factory=set)
     _enqueued: set[str] = field(default_factory=set)
     _ready: deque[str] = field(default_factory=deque)
@@ -491,11 +612,21 @@ class HierarchicalGraphCoordinator:
     _descendant_bytes_reconstructed: int = 0
 
     def __post_init__(self) -> None:
-        if self.nodes:
-            return
-        for level, node_refs in enumerate(self.plan.node_refs_by_level):
+        if not self.nodes:
+            self._initialise_nodes()
+        for leaf_ref in self.plan.leaf_refs:
+            if leaf_ref not in self._completed:
+                self._enqueue(leaf_ref)
+
+    def _initialise_nodes(self) -> None:
+        for level, node_refs in enumerate(
+            self.plan.node_refs_by_level
+        ):
             for node_ref in node_refs:
-                children = self.plan.children_by_node.get(node_ref, ())
+                children = self.plan.children_by_node.get(
+                    node_ref,
+                    (),
+                )
                 if level == 0:
                     kind = HierarchyNodeKind.LEAF
                 elif node_ref == self.plan.root_ref:
@@ -503,9 +634,12 @@ class HierarchicalGraphCoordinator:
                 else:
                     kind = HierarchyNodeKind.BRANCH
                 child_graph_refs = tuple(
-                    sorted(self.nodes[child_ref].graph_ref for child_ref in children)
+                    sorted(
+                        self.nodes[child_ref].graph_ref
+                        for child_ref in children
+                    )
                 )
-                certificate = HierarchyCoverageCertificate(
+                coverage = HierarchyCoverageCertificate(
                     node_ref=node_ref,
                     state=(
                         HierarchyCoverageState.READY
@@ -523,27 +657,60 @@ class HierarchicalGraphCoordinator:
                     kind=kind,
                     carrier=self.plan.carriers[node_ref],
                     child_graph_refs=child_graph_refs,
-                    coverage=certificate,
+                    coverage=coverage,
                 )
-        for leaf_ref in self.plan.leaf_refs:
-            self._enqueue(leaf_ref)
 
     def _enqueue(self, node_ref: str) -> None:
-        if node_ref in self._enqueued or node_ref in self._completed:
+        if node_ref in self._enqueued:
             return
         self._enqueued.add(node_ref)
         self._ready.append(node_ref)
+
+    def _estimated_compute_units(
+        self,
+        node_ref: str,
+    ) -> int:
+        node = self.nodes[node_ref]
+        if node.kind is HierarchyNodeKind.LEAF:
+            return node.carrier.size
+        children = self.plan.children_by_node.get(node_ref, ())
+        return max(
+            1,
+            sum(
+                self.nodes[child].interface.reference_count
+                for child in children
+            ),
+        )
 
     def ready_jobs(self) -> tuple[ScheduledJob[HierarchyJob], ...]:
         jobs: list[ScheduledJob[HierarchyJob]] = []
         while self._ready:
             node_ref = self._ready.popleft()
             node = self.nodes[node_ref]
+            children = self.plan.children_by_node.get(node_ref, ())
             input_graph_refs = tuple(
-                sorted(self.nodes[child].graph_ref for child in self.plan.children_by_node.get(node_ref, ()))
+                sorted(
+                    self.nodes[child].graph_ref
+                    for child in children
+                )
             )
+            input_revision_refs = tuple(
+                sorted(
+                    f"{child}:{self.nodes[child].revision}"
+                    for child in children
+                )
+            )
+            job_payload = {
+                "node_ref": node_ref,
+                "revision": node.revision,
+                "input_graph_refs": input_graph_refs,
+                "input_revision_refs": input_revision_refs,
+            }
             job = HierarchyJob(
-                job_ref=f"hierarchy-job:{canonical_sha256({'node_ref': node_ref, 'revision': node.revision, 'inputs': input_graph_refs})}",
+                job_ref=(
+                    "hierarchy-job:"
+                    + canonical_sha256(job_payload)
+                ),
                 operator_ref=(
                     "hierarchy.leaf.solve"
                     if node.kind is HierarchyNodeKind.LEAF
@@ -552,12 +719,11 @@ class HierarchicalGraphCoordinator:
                 node_ref=node_ref,
                 level=node.level,
                 input_graph_refs=input_graph_refs,
-                input_revision_refs=tuple(
-                    f"{child}:{self.nodes[child].revision}"
-                    for child in self.plan.children_by_node.get(node_ref, ())
-                ),
+                input_revision_refs=input_revision_refs,
                 output_owner_keys=(node_ref,),
-                estimated_compute_units=node.carrier.size,
+                estimated_compute_units=(
+                    self._estimated_compute_units(node_ref)
+                ),
                 estimated_peak_memory_bytes=0,
                 estimated_output_bytes=0,
             )
@@ -576,41 +742,139 @@ class HierarchicalGraphCoordinator:
             )
         return tuple(jobs)
 
-    def admit(self, job: HierarchyJob, delta: HierarchyDelta) -> tuple[ScheduledJob[HierarchyJob], ...]:
+    def admit(
+        self,
+        job: HierarchyJob,
+        delta: HierarchyDelta,
+    ) -> tuple[ScheduledJob[HierarchyJob], ...]:
         if job.node_ref != delta.node_ref:
-            raise ValueError("hierarchy result belongs to another job")
+            raise ValueError(
+                "hierarchy result belongs to another job"
+            )
         node = self.nodes[job.node_ref]
+        expected_inputs = tuple(
+            sorted(
+                self.nodes[child].graph_ref
+                for child in self.plan.children_by_node.get(
+                    job.node_ref,
+                    (),
+                )
+            )
+        )
+        if job.input_graph_refs != expected_inputs:
+            raise ValueError(
+                "hierarchy result is stale for current child revisions"
+            )
         if delta.coverage is None or not delta.coverage.complete:
-            raise ValueError("hierarchy node may complete only with a fixed-point coverage certificate")
+            raise ValueError(
+                "hierarchy node may complete only with a fixed-point "
+                "coverage certificate"
+            )
+
         self.nodes[job.node_ref] = node.overlay(delta)
         self._completed.add(job.node_ref)
+        self._enqueued.discard(job.node_ref)
         self._total_work_units += delta.work_units
-        self._interface_reference_work += delta.interface.reference_count
-        self._cross_relation_work += len(delta.introduced_edge_refs)
-        self._demand_work += len(delta.interface.unresolved_demand_refs)
-        self._revision_work += len(delta.revision_transition_refs)
-        self._descendant_bytes_reconstructed += delta.descendant_bytes_reconstructed
+        self._interface_reference_work += (
+            delta.interface.reference_count
+        )
+        self._cross_relation_work += len(
+            delta.introduced_edge_refs
+        )
+        self._demand_work += len(
+            delta.interface.unresolved_demand_refs
+        )
+        self._revision_work += len(
+            delta.revision_transition_refs
+        )
+        self._descendant_bytes_reconstructed += (
+            delta.descendant_bytes_reconstructed
+        )
 
         parent_ref = self.plan.parent_by_node.get(job.node_ref)
         if parent_ref is not None:
-            children = self.plan.children_by_node[parent_ref]
-            completed_children = tuple(sorted(set(children) & self._completed))
-            parent = self.nodes[parent_ref]
-            ready = completed_children == tuple(sorted(children))
-            parent_coverage = HierarchyCoverageCertificate(
-                node_ref=parent_ref,
-                state=(HierarchyCoverageState.READY if ready else HierarchyCoverageState.WAITING),
-                completed_child_refs=completed_children,
+            self._refresh_parent(parent_ref)
+        return self.ready_jobs()
+
+    def _refresh_parent(self, parent_ref: str) -> None:
+        children = self.plan.children_by_node[parent_ref]
+        completed_children = tuple(
+            sorted(set(children) & self._completed)
+        )
+        ready = completed_children == tuple(sorted(children))
+        parent = self.nodes[parent_ref]
+        coverage = HierarchyCoverageCertificate(
+            node_ref=parent_ref,
+            state=(
+                HierarchyCoverageState.READY
+                if ready
+                else HierarchyCoverageState.WAITING
+            ),
+            completed_child_refs=completed_children,
+            required_child_refs=tuple(sorted(children)),
+            locally_fixed_point=False,
+        )
+        self.nodes[parent_ref] = replace(
+            parent,
+            child_graph_refs=tuple(
+                sorted(
+                    self.nodes[child].graph_ref
+                    for child in children
+                )
+            ),
+            coverage=coverage,
+        )
+        if ready:
+            self._enqueue(parent_ref)
+
+    def invalidate_node(
+        self,
+        node_ref: str,
+        *,
+        locally_satisfiable_demand_refs: Iterable[str] = (),
+    ) -> tuple[ScheduledJob[HierarchyJob], ...]:
+        """Re-open one node and invalidate ancestor certificates.
+
+        Durable prior graph revisions remain addressable by their old graph refs;
+        this coordinator only advances the active revision pointer.
+        """
+
+        if node_ref not in self.nodes:
+            raise KeyError(node_ref)
+        demands = tuple(
+            sorted(set(locally_satisfiable_demand_refs))
+        )
+        node = self.nodes[node_ref]
+        children = self.plan.children_by_node.get(node_ref, ())
+        if children and not set(children).issubset(self._completed):
+            raise ValueError(
+                "cannot re-open a parent before child coverage completes"
+            )
+
+        self._completed.discard(node_ref)
+        self._enqueued.discard(node_ref)
+        self.nodes[node_ref] = replace(
+            node,
+            coverage=HierarchyCoverageCertificate(
+                node_ref=node_ref,
+                state=HierarchyCoverageState.READY,
+                completed_child_refs=tuple(sorted(children)),
                 required_child_refs=tuple(sorted(children)),
                 locally_fixed_point=False,
+                unresolved_locally_satisfiable_demands=demands,
+            ),
+        )
+        self._enqueue(node_ref)
+
+        ancestor = self.plan.parent_by_node.get(node_ref)
+        while ancestor is not None:
+            self._completed.discard(ancestor)
+            self._enqueued.discard(ancestor)
+            self._ready = deque(
+                ref for ref in self._ready if ref != ancestor
             )
-            self.nodes[parent_ref] = replace(
-                parent,
-                child_graph_refs=tuple(sorted(self.nodes[child].graph_ref for child in children)),
-                coverage=parent_coverage,
-            )
-            if ready:
-                self._enqueue(parent_ref)
+            self._refresh_parent(ancestor)
+            ancestor = self.plan.parent_by_node.get(ancestor)
         return self.ready_jobs()
 
     @property
@@ -624,20 +888,23 @@ class HierarchicalGraphCoordinator:
         )
 
     def complexity_receipt(self) -> HierarchyComplexityReceipt:
-        leaf_count = len(self.plan.leaf_refs)
         return HierarchyComplexityReceipt(
             primitive_units=self.plan.primitive_unit_count,
             leaf_capacity=self.plan.leaf_capacity,
             arity=self.plan.arity,
-            leaf_count=leaf_count,
+            leaf_count=len(self.plan.leaf_refs),
             node_count=self.plan.node_count,
-            maximum_node_bound=(self.plan.arity / (self.plan.arity - 1)) * leaf_count,
+            relaxed_node_bound=self.plan.relaxed_node_bound,
             total_work_units=self._total_work_units,
-            interface_reference_work=self._interface_reference_work,
+            interface_reference_work=(
+                self._interface_reference_work
+            ),
             cross_relation_work=self._cross_relation_work,
             demand_work=self._demand_work,
             revision_work=self._revision_work,
-            descendant_bytes_reconstructed=self._descendant_bytes_reconstructed,
+            descendant_bytes_reconstructed=(
+                self._descendant_bytes_reconstructed
+            ),
         )
 
     def fixed_point_certificate(self) -> dict[str, object]:
@@ -646,14 +913,17 @@ class HierarchicalGraphCoordinator:
             sorted(
                 node_ref
                 for node_ref, node in self.nodes.items()
-                if node.coverage is None or not node.coverage.complete
+                if node.coverage is None
+                or not node.coverage.complete
             )
         )
         return {
             "document_ref": self.plan.document_ref,
             "root_node_ref": self.plan.root_ref,
             "root_graph_ref": root.graph_ref,
-            "root_coverage_complete": bool(root.coverage and root.coverage.complete),
+            "root_coverage_complete": bool(
+                root.coverage and root.coverage.complete
+            ),
             "completed_node_count": len(self._completed),
             "node_count": self.plan.node_count,
             "waiting_node_refs": list(waiting),
