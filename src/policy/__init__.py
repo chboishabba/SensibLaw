@@ -1,11 +1,11 @@
+import os
+
 from .semantic_promotion import (
     ABSTAINED,
     CANDIDATE_BASES,
     CANDIDATE_CONFLICT,
-    derive_relation_semantic_basis,
     CONTESTED_CANDIDATE_SCHEMA_VERSION,
     HOTSPOT_PACK_CANDIDATE_SCHEMA_VERSION,
-    RELATION_CANDIDATE_SCHEMA_VERSION,
     MANDATORY_CONTESTED_CANDIDATE_FIELDS,
     MANDATORY_HOTSPOT_PACK_CANDIDATE_FIELDS,
     MANDATORY_RELATION_CANDIDATE_FIELDS,
@@ -13,11 +13,13 @@ from .semantic_promotion import (
     PROMOTED_FALSE,
     PROMOTED_TRUE,
     PROMOTION_STATUSES,
+    RELATION_CANDIDATE_SCHEMA_VERSION,
     SEMANTIC_PROMOTION_VERSION,
     TRUTH_BEARING_FIELDS,
     build_contested_claim_candidate,
     build_hotspot_pack_candidate,
     build_relation_candidate,
+    derive_relation_semantic_basis,
     promote_contested_claim,
     promote_hotspot_pack_candidate,
     promote_relation_candidate,
@@ -26,8 +28,8 @@ from .semantic_promotion import (
     validate_relation_candidate,
 )
 from .proposition_contradiction_taxonomy import (
-    PROPOSITION_CONTRADICTION_TAXONOMY_VERSION,
     PROPOSITION_CONTRADICTION_LABELS,
+    PROPOSITION_CONTRADICTION_TAXONOMY_VERSION,
     build_proposition_contradiction_taxonomy,
     validate_proposition_contradiction_label,
 )
@@ -46,8 +48,8 @@ from .control_profiles import (
 )
 from .control_evidence import (
     COMPLIANCE_EVIDENCE_BUNDLE_SCHEMA_VERSION,
-    SB_TO_SL_CONSUMER_CONTRACT_VERSION,
     SB_TO_SL_ALLOWED_FIELDS,
+    SB_TO_SL_CONSUMER_CONTRACT_VERSION,
     SB_TO_SL_FORBIDDEN_FIELDS,
     build_compliance_evidence_bundle,
     build_sb_to_sl_contract_payload,
@@ -69,6 +71,22 @@ from .sl_to_sb_observer import (
     SL_TO_SB_ISO_RUN_OBSERVER_KIND,
     build_sl_to_sb_iso_run_observer_payload,
 )
+
+
+def _bounded_execution_enabled() -> bool:
+    value = os.environ.get("SENSIBLAW_BOUNDED_DOCUMENT_EXECUTION", "1")
+    return value.strip().lower() not in {"0", "false", "no", "off"}
+
+
+if _bounded_execution_enabled():
+    # Execution-strategy installation only: corpus_compilation and
+    # operational_corpus_compilation remain the sole semantic authorities.
+    from .bounded_operational_execution import (
+        install_bounded_operational_execution,
+    )
+
+    install_bounded_operational_execution()
+
 
 __all__ = [
     "ABSTAINED",
