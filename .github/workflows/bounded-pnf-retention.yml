@@ -4,25 +4,20 @@ on:
   push:
     branches:
       - agent/bounded-pnf-retention
+      - agent/repair-corpus-progress-stage-lifecycle
   pull_request:
     paths:
-      - "src/runtime/document_execution_policy.py"
-      - "src/runtime/bounded_document_scheduler.py"
-      - "src/runtime/document_stage_metrics.py"
-      - "src/runtime/hierarchical_graph_execution.py"
-      - "src/runtime/document_complexity_model.py"
-      - "src/pnf/bounded_streaming_owner.py"
-      - "src/policy/__init__.py"
-      - "src/policy/bounded_operational_execution.py"
-      - "src/policy/indexed_projection_execution.py"
-      - "tests/runtime/test_document_execution_policy.py"
-      - "tests/runtime/test_bounded_document_scheduler.py"
-      - "tests/runtime/test_hierarchical_graph_execution.py"
-      - "tests/runtime/test_document_complexity_model.py"
-      - "tests/pnf/test_bounded_streaming_owner.py"
-      - "tests/policy/test_bounded_operational_execution.py"
-      - "tests/policy/test_indexed_projection_execution.py"
+      - "src/pnf/**"
+      - "src/policy/**"
+      - "src/runtime/**"
+      - "src/storage/postgres/**"
+      - "scripts/run_complete_tranche.py"
+      - "scripts/run_strict_tranche_acceptance.py"
+      - "tests/pnf/**"
+      - "tests/policy/**"
+      - "tests/runtime/**"
       - "docs/bounded_document_execution.md"
+      - "docs/hierarchical_graph_execution.md"
       - ".github/workflows/bounded-pnf-retention.yml"
   workflow_dispatch:
 
@@ -47,6 +42,7 @@ jobs:
       - name: Lint bounded execution surfaces
         run: |
           uv run ruff check \
+            src/pnf/__init__.py \
             src/runtime/document_execution_policy.py \
             src/runtime/bounded_document_scheduler.py \
             src/runtime/document_stage_metrics.py \
@@ -56,17 +52,22 @@ jobs:
             src/policy/__init__.py \
             src/policy/bounded_operational_execution.py \
             src/policy/indexed_projection_execution.py \
+            src/policy/manifest_stream_validation.py \
+            scripts/run_strict_tranche_acceptance.py \
             tests/runtime/test_document_execution_policy.py \
             tests/runtime/test_bounded_document_scheduler.py \
             tests/runtime/test_hierarchical_graph_execution.py \
             tests/runtime/test_document_complexity_model.py \
+            tests/runtime/test_acceptance_entrypoints.py \
             tests/pnf/test_bounded_streaming_owner.py \
             tests/policy/test_bounded_operational_execution.py \
-            tests/policy/test_indexed_projection_execution.py
+            tests/policy/test_indexed_projection_execution.py \
+            tests/policy/test_manifest_stream_validation.py
 
       - name: Check formatting
         run: |
           uv run ruff format --check \
+            src/pnf/__init__.py \
             src/runtime/document_execution_policy.py \
             src/runtime/bounded_document_scheduler.py \
             src/runtime/document_stage_metrics.py \
@@ -76,13 +77,17 @@ jobs:
             src/policy/__init__.py \
             src/policy/bounded_operational_execution.py \
             src/policy/indexed_projection_execution.py \
+            src/policy/manifest_stream_validation.py \
+            scripts/run_strict_tranche_acceptance.py \
             tests/runtime/test_document_execution_policy.py \
             tests/runtime/test_bounded_document_scheduler.py \
             tests/runtime/test_hierarchical_graph_execution.py \
             tests/runtime/test_document_complexity_model.py \
+            tests/runtime/test_acceptance_entrypoints.py \
             tests/pnf/test_bounded_streaming_owner.py \
             tests/policy/test_bounded_operational_execution.py \
-            tests/policy/test_indexed_projection_execution.py
+            tests/policy/test_indexed_projection_execution.py \
+            tests/policy/test_manifest_stream_validation.py
 
       - name: Run bounded execution regressions
         run: |
@@ -91,9 +96,11 @@ jobs:
             tests/runtime/test_bounded_document_scheduler.py \
             tests/runtime/test_hierarchical_graph_execution.py \
             tests/runtime/test_document_complexity_model.py \
+            tests/runtime/test_acceptance_entrypoints.py \
             tests/pnf/test_bounded_streaming_owner.py \
             tests/pnf/test_streaming_fixed_point.py \
             tests/policy/test_bounded_operational_execution.py \
             tests/policy/test_indexed_projection_execution.py \
+            tests/policy/test_manifest_stream_validation.py \
             tests/policy/test_operational_corpus_compilation.py \
             tests/policy/test_fibred_operational_corpus_compilation.py
