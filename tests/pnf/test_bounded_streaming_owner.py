@@ -99,7 +99,10 @@ def test_bounded_owner_preserves_materialized_reduction_parity() -> None:
         )
     )
 
-    assert bounded.materialized_reduction.to_dict() == legacy.materialized_reduction.to_dict()
+    assert (
+        bounded.materialized_reduction.to_dict()
+        == legacy.materialized_reduction.to_dict()
+    )
     assert bounded.fixed_point_certificate().local_fixed_point_reached is True
 
 
@@ -135,13 +138,27 @@ def test_production_compaction_releases_diagnostic_history() -> None:
 
     receipt = owner.compact_retained_history()
     counts = owner.retention_counts()
+    artifact = owner.to_dict()
 
     assert counts["jobs"] == 0
     assert counts["receipts"] == 0
     assert counts["state_deltas"] == 0
+    assert counts["compact_jobs"] == 2
+    assert counts["compact_receipts"] == 2
     assert counts["compact_receipt_refs"] == 2
     assert receipt["compaction_count"] == 1
     assert len(owner.materialized_reduction.factors) == 2
+
+    assert len(artifact["solver_jobs"]) == 2
+    assert len(artifact["solver_receipts"]) == 2
+    assert all(row["payload_compacted"] for row in artifact["solver_jobs"])
+    assert all(
+        row["proposals_compacted"] for row in artifact["solver_receipts"]
+    )
+    assert all(
+        "observation_delta" not in row for row in artifact["solver_jobs"]
+    )
+    assert all("proposals" not in row for row in artifact["solver_receipts"])
 
 
 def test_proposals_are_indexed_by_owner_key() -> None:
