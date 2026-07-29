@@ -84,7 +84,13 @@ if _bounded_execution_enabled():
     from .bounded_operational_execution import (
         install_bounded_operational_execution,
     )
+    from .indexed_projection_execution import (
+        indexed_projection_enabled,
+        install_indexed_projection_execution,
+    )
 
+    if indexed_projection_enabled():
+        install_indexed_projection_execution()
     install_bounded_operational_execution()
 
 
