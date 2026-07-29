@@ -14,12 +14,14 @@ on:
       - "src/pnf/bounded_streaming_owner.py"
       - "src/policy/__init__.py"
       - "src/policy/bounded_operational_execution.py"
+      - "src/policy/indexed_projection_execution.py"
       - "tests/runtime/test_document_execution_policy.py"
       - "tests/runtime/test_bounded_document_scheduler.py"
       - "tests/runtime/test_hierarchical_graph_execution.py"
       - "tests/runtime/test_document_complexity_model.py"
       - "tests/pnf/test_bounded_streaming_owner.py"
       - "tests/policy/test_bounded_operational_execution.py"
+      - "tests/policy/test_indexed_projection_execution.py"
       - "docs/bounded_document_execution.md"
       - ".github/workflows/bounded-pnf-retention.yml"
   workflow_dispatch:
@@ -53,12 +55,14 @@ jobs:
             src/pnf/bounded_streaming_owner.py \
             src/policy/__init__.py \
             src/policy/bounded_operational_execution.py \
+            src/policy/indexed_projection_execution.py \
             tests/runtime/test_document_execution_policy.py \
             tests/runtime/test_bounded_document_scheduler.py \
             tests/runtime/test_hierarchical_graph_execution.py \
             tests/runtime/test_document_complexity_model.py \
             tests/pnf/test_bounded_streaming_owner.py \
-            tests/policy/test_bounded_operational_execution.py
+            tests/policy/test_bounded_operational_execution.py \
+            tests/policy/test_indexed_projection_execution.py
 
       - name: Check formatting
         run: |
@@ -71,12 +75,14 @@ jobs:
             src/pnf/bounded_streaming_owner.py \
             src/policy/__init__.py \
             src/policy/bounded_operational_execution.py \
+            src/policy/indexed_projection_execution.py \
             tests/runtime/test_document_execution_policy.py \
             tests/runtime/test_bounded_document_scheduler.py \
             tests/runtime/test_hierarchical_graph_execution.py \
             tests/runtime/test_document_complexity_model.py \
             tests/pnf/test_bounded_streaming_owner.py \
-            tests/policy/test_bounded_operational_execution.py
+            tests/policy/test_bounded_operational_execution.py \
+            tests/policy/test_indexed_projection_execution.py
 
       - name: Run bounded execution regressions
         run: |
@@ -88,5 +94,6 @@ jobs:
             tests/pnf/test_bounded_streaming_owner.py \
             tests/pnf/test_streaming_fixed_point.py \
             tests/policy/test_bounded_operational_execution.py \
+            tests/policy/test_indexed_projection_execution.py \
             tests/policy/test_operational_corpus_compilation.py \
             tests/policy/test_fibred_operational_corpus_compilation.py
