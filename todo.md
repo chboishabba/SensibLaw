@@ -1,5 +1,18 @@
 # SensibLaw TODO
 
+- [DONE 2026-07-29] Bound operational streaming-closure frontier admission:
+  batch sentence deltas, index coverage completion, avoid completed-job
+  payload duplication, and expose admission/lease progress before restarting
+  document 0008. Focused parity and a 12,000-character document-0008 smoke
+  run leased and completed closure work. Hierarchical graph execution remains
+  deferred until a full canonical run proves bounded behavior.
+
+- [P0 2026-07-29] Bound and instrument the post-projection allocation path.
+  The full document-0008 trial reached 7.5 GiB RSS before `streaming_closure`
+  began, so its closure memory controller could not apply backpressure or
+  write a resource checkpoint. Name and batch graph/semantic-output
+  materialisation before another full run.
+
 - [DONE 2026-07-28] Document the local PostgreSQL authority and endpoint
   matrix, including the distinction between the previous disposable 5433
   tranche cluster, the persistent 55432 legacy surface, and temporary debug

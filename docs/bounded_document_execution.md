@@ -101,6 +101,25 @@ consumers continue. This drains retained work instead of producing another
 unbounded generation. An `on_lease` callback moves semantic jobs from pending
 to in-flight only when a worker actually receives them.
 
+## Bounded frontier admission
+
+The scheduler must not wait for a complete document frontier. Sentence-local
+observation deltas are admitted in bounded batches; each batch activates its
+ready closure jobs and drains them before the next batch is admitted. This
+keeps the ready frontier bounded and makes the first lease observable before
+the full document has been traversed.
+
+Coverage completion is indexed by `(scope_ref, barrier)`. Admission therefore
+does not scan every prior coverage notice for each incoming delta. Production
+retention does not duplicate full delta payloads into completed job history;
+the canonical observation artifact remains available for fibred projection and
+persistence.
+
+The existing `streaming_closure` stage remains the sole named lifecycle stage.
+It reports `current_kernel` as diagnostic context and publishes deltas
+admitted, ready jobs, leases, retained observations, RSS, and completion
+counters through its declared measures.
+
 ## Canonical compiler integration
 
 Bounded execution is installed as an execution strategy on
@@ -112,11 +131,13 @@ The bounded strategy now controls `streaming_closure`:
 
 1. parser observation deltas enter the indexed owner;
 2. base proposals reduce through owner-key buckets;
-3. closure jobs enter one bounded ready frontier;
-4. the scheduler leases at most the configured in-flight limit;
+3. sentence-local deltas enter bounded admission batches rather than one
+   complete ready frontier;
+4. the scheduler leases each ready batch at the configured in-flight limit;
 5. each receipt is admitted and its dirty group reduced immediately;
 6. completed full jobs and receipts are released in production mode;
-7. RSS, process-tree RSS, pending jobs, in-flight jobs, dirty groups, and
+7. RSS, process-tree RSS, pending jobs, in-flight jobs, dirty groups, retained
+   observations, and
    retention counts are emitted through the named stage callback;
 8. fixed-point certification and outward artifacts retain the existing
    canonical contracts.
@@ -124,6 +145,26 @@ The bounded strategy now controls `streaming_closure`:
 This is a bounded closure executor, not yet the final persistent document-wide
 process pool. Parser, mention, projection, closure, and persistence do not yet
 share one executor.
+
+## Immutable projection partitions
+
+The document-fibre ownership intervals also define immutable projection
+partitions.  A partition stores only owned parser observations, annotation and
+relation record references, layer-segment references, and explicit boundary
+demands.  It is reusable only for an exact document source digest, structural
+carrier, interval, parser/reducer contract, and build key.
+
+`document_projection_join` is the sole semantic boundary.  It verifies ordered
+contiguous coverage, exact-once owned annotation coordinates, matching build
+identity, and boundary-demand references before it emits the document manifest.
+The existing document-level typing, reduction, closure, PNF and demand work
+then runs once; partitions never independently publish a semantic document.
+
+Logical layer manifests are ordered immutable annotation-record references, so
+their `layer_ref` and the ref-only `AnnotationGraph` identity do not depend on
+partition scheduling.  PostgreSQL migration `025_document_projection_manifests`
+persists partition rows first and publishes the document projection manifest in
+the surrounding document savepoint.
 
 ## Configuration
 
@@ -139,6 +180,7 @@ SENSIBLAW_DOCUMENT_HARD_MEMORY_MIB=6144
 SENSIBLAW_DOCUMENT_RECOVERY_MEMORY_MIB=4608
 SENSIBLAW_DOCUMENT_QUEUE_LIMIT_MIB=64
 SENSIBLAW_DOCUMENT_MAX_IN_FLIGHT=8
+SENSIBLAW_DOCUMENT_FRONTIER_BATCH_SIZE=32
 SENSIBLAW_DOCUMENT_COMPACTION_ATTEMPTS=3
 SENSIBLAW_DOCUMENT_MINIMUM_RECOVERY_MIB=64
 SENSIBLAW_RESOURCE_CHECKPOINT_DIR=/tmp/sensiblaw-resource-checkpoints
@@ -151,11 +193,16 @@ counts.
 
 ## Remaining integration order
 
-1. validate focused compiler, fibred projection, and import-order parity;
-2. run document 0008 alone under the configured soft and hard limits;
-3. retain its stage/resource ledger and pressure checkpoint, if any;
-4. replace the closure thread pool with the persistent active-document process
+1. validate bounded frontier admission, focused compiler, fibred projection,
+   and import-order parity;
+2. run reduced document-0008 smoke work and require visible leasing;
+3. extend the same resource and progress contract through post-projection
+   graph construction before rerunning document 0008 under soft and hard
+   limits;
+4. retain the document-0008 stage/resource ledger and pressure checkpoint, if
+   any;
+5. replace the closure thread pool with the persistent active-document process
    pool after worker payloads are proven serialisable and bounded;
-5. move constraint/refinement work onto differential dirty-key jobs;
-6. add incremental private persistence and atomic publication;
-7. only then restart the complete tranche.
+6. move constraint/refinement work onto differential dirty-key jobs;
+7. add incremental private persistence and atomic publication;
+8. only then restart the complete tranche.

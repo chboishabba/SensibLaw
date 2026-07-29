@@ -43,6 +43,7 @@ class DocumentExecutionPolicy:
 
     worker_budget: int = 4
     max_in_flight_jobs: int = 8
+    frontier_batch_size: int = 32
     queue_limit_bytes: int = 64 * MIB
     soft_memory_limit_bytes: int = 5 * 1024 * MIB
     hard_memory_limit_bytes: int = 6 * 1024 * MIB
@@ -56,6 +57,8 @@ class DocumentExecutionPolicy:
             raise ValueError("worker_budget must be positive")
         if self.max_in_flight_jobs < 1:
             raise ValueError("max_in_flight_jobs must be positive")
+        if self.frontier_batch_size < 1:
+            raise ValueError("frontier_batch_size must be positive")
         if self.queue_limit_bytes < 1:
             raise ValueError("queue_limit_bytes must be positive")
         if self.soft_memory_limit_bytes < 1:
@@ -95,12 +98,16 @@ class DocumentExecutionPolicy:
         )
         if queued_bytes >= self.queue_limit_bytes and producer:
             return 0
-        if pressure_state in {
-            PressureState.THROTTLED,
-            PressureState.COMPACTING,
-            PressureState.RECOVERING,
-            PressureState.BOUNDED_STOP,
-        } and producer:
+        if (
+            pressure_state
+            in {
+                PressureState.THROTTLED,
+                PressureState.COMPACTING,
+                PressureState.RECOVERING,
+                PressureState.BOUNDED_STOP,
+            }
+            and producer
+        ):
             return min(capacity, self.producer_lease_limit_under_pressure)
         if pressure_state is PressureState.BOUNDED_STOP:
             return 0

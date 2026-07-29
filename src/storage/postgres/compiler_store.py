@@ -10,6 +10,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from dataclasses import dataclass
 import hashlib
+import json
 from typing import Any, Iterator, Mapping, Sequence
 
 from src.policy.carriers.canonical import canonical_sha256
@@ -410,6 +411,112 @@ class PostgresCompilerStore:
                     str(relation["right_ref"]),
                 ),
             )
+
+    def persist_projection_manifests(
+        self,
+        cursor: Any,
+        *,
+        partitions: Sequence[Mapping[str, Any]],
+        manifest: Mapping[str, Any],
+    ) -> None:
+        """Persist immutable partition payloads before atomically publishing join.
+
+        Callers invoke this inside the document savepoint.  Thus a failed or
+        incomplete join cannot publish a document projection manifest.
+        """
+
+        document_ref = str(manifest["document_ref"])
+        build_key = str(manifest["build_key_sha256"])
+        ordered = sorted(partitions, key=lambda row: int(row["sequence_no"]))
+        for expected, row in enumerate(ordered):
+            if int(row["sequence_no"]) != expected:
+                raise ValueError("projection partitions must be ordered exactly once")
+            cursor.execute(
+                """
+                INSERT INTO compiler_projection_partition
+                    (partition_ref, document_ref, source_sha256, carrier_ref,
+                     build_key_sha256, sequence_no, owner_start, owner_end,
+                     context_start, context_end, parser_contract_ref,
+                     reducer_contract_ref, payload, payload_sha256)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s)
+                ON CONFLICT (partition_ref) DO NOTHING
+                """,
+                (
+                    str(row["partition_ref"]),
+                    document_ref,
+                    _digest_bytes(str(row["source_sha256"])),
+                    str(row["carrier_ref"]),
+                    _digest_bytes(str(row["build_key_sha256"])),
+                    int(row["sequence_no"]),
+                    int(row["owner_start"]),
+                    int(row["owner_end"]),
+                    int(row["context_start"]),
+                    int(row["context_end"]),
+                    str(row["parser_contract_ref"]),
+                    str(row["reducer_contract_ref"]),
+                    json.dumps(dict(row), sort_keys=True),
+                    _stable_bytes(row),
+                ),
+            )
+        if tuple(str(row["partition_ref"]) for row in ordered) != tuple(
+            manifest.get("partition_refs") or ()
+        ):
+            raise ValueError(
+                "document projection manifest does not name every partition"
+            )
+        cursor.execute(
+            """
+            INSERT INTO compiler_document_projection_manifest
+                (manifest_ref, document_ref, source_sha256, carrier_ref,
+                 build_key_sha256, graph_ref, payload, manifest_sha256)
+            VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb, %s)
+            ON CONFLICT (manifest_ref) DO NOTHING
+            """,
+            (
+                str(manifest["manifest_ref"]),
+                document_ref,
+                _digest_bytes(str(manifest["source_sha256"])),
+                str(manifest["carrier_ref"]),
+                _digest_bytes(build_key),
+                str(manifest["graph_ref"]),
+                json.dumps(dict(manifest), sort_keys=True),
+                _stable_bytes(manifest),
+            ),
+        )
+        for row in ordered:
+            cursor.execute(
+                """INSERT INTO compiler_document_projection_member
+                   (manifest_ref, partition_ref, sequence_no)
+                   VALUES (%s, %s, %s) ON CONFLICT DO NOTHING""",
+                (
+                    str(manifest["manifest_ref"]),
+                    str(row["partition_ref"]),
+                    int(row["sequence_no"]),
+                ),
+            )
+
+    def load_document_projection_manifest(
+        self, cursor: Any, *, document_ref: str, build_key_sha256: str
+    ) -> Mapping[str, Any] | None:
+        """Read a versioned projection manifest without hydrating layer payloads."""
+
+        cursor.execute(
+            """
+            SELECT payload
+            FROM compiler_document_projection_manifest
+            WHERE document_ref = %s AND build_key_sha256 = %s
+            """,
+            (document_ref, _digest_bytes(build_key_sha256)),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        payload = row[0]
+        if isinstance(payload, str):
+            payload = json.loads(payload)
+        if not isinstance(payload, Mapping):
+            raise RuntimeError("stored document projection manifest is not an object")
+        return dict(payload)
 
     def persist_failure(
         self, cursor: Any, *, target_ref: str, phase_ref: str, error: Exception

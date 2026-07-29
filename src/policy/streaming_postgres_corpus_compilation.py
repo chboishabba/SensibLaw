@@ -67,13 +67,9 @@ def _with_persistence_timing(
         str(key): int(value)
         for key, value in (ledger.get("stage_totals_ms") or {}).items()
     }
-    totals["postgres_persistence"] = (
-        totals.get("postgres_persistence", 0) + elapsed_ms
-    )
+    totals["postgres_persistence"] = totals.get("postgres_persistence", 0) + elapsed_ms
     result["timings"] = timings
-    result["stage_totals_ms"] = {
-        key: totals[key] for key in sorted(totals)
-    }
+    result["stage_totals_ms"] = {key: totals[key] for key in sorted(totals)}
     return result
 
 
@@ -109,17 +105,13 @@ def persist_streaming_document_compilation(
         context=context,
     )
     if document_ref != expected_document_ref:
-        raise ValueError(
-            "operational document identity disagrees with canonical text"
-        )
+        raise ValueError("operational document identity disagrees with canonical text")
     if str(entry.get("canonical_text_sha256") or "") != canonical_text_sha256:
         raise ValueError("manifest canonical text hash disagrees with compilation")
     if str(entry.get("media_adapter_ref") or "") != media_adapter_ref:
         raise ValueError("manifest media adapter disagrees with compilation")
     if str(entry.get("adapter_capability_ref") or "") != media_adapter_ref:
-        raise ValueError(
-            "declared media capability disagrees with selected adapter"
-        )
+        raise ValueError("declared media capability disagrees with selected adapter")
 
     build_key_sha256 = _operational_build_key(
         document_ref=document_ref,
@@ -159,9 +151,7 @@ def persist_streaming_document_compilation(
     )
     artifacts = compilation.artifacts
     if str(artifacts.get("build_key_sha256") or "") != build_key_sha256:
-        raise ValueError(
-            "operational compiler build key disagrees with persistence"
-        )
+        raise ValueError("operational compiler build key disagrees with persistence")
     if artifacts.get("operational_compiler_contract") != (
         FIBRED_OPERATIONAL_COMPILER_CONTRACT
     ):
@@ -179,9 +169,7 @@ def persist_streaming_document_compilation(
     refinements = tuple(artifacts.get("factor_refinements") or ())
     candidate_sets = tuple(artifacts.get("binding_candidate_sets") or ())
     factor_anchors = tuple(artifacts.get("factor_anchors") or ())
-    candidate_set_builds = tuple(
-        artifacts.get("binding_candidate_set_builds") or ()
-    )
+    candidate_set_builds = tuple(artifacts.get("binding_candidate_set_builds") or ())
     demands = tuple(artifacts.get("resolution_demands") or ())
     meets = _prepare_meets_for_relational_persistence(
         artifacts.get("typed_meets") or ()
@@ -190,14 +178,10 @@ def persist_streaming_document_compilation(
     stage_timing = artifacts.get("semantic_stage_timing") or {}
     certificate = streaming_build.get("fixed_point_certificate") or {}
     if certificate.get("local_fixed_point") != "reached":
-        raise ValueError(
-            "only locally fixed-point streaming builds may be persisted"
-        )
+        raise ValueError("only locally fixed-point streaming builds may be persisted")
     if not streaming_build.get("one_reduction_authority"):
         raise ValueError("fibred build requires one reduction authority")
-    expected_producer_receipt = (
-        streaming_build.get("integrated_producer_receipt") or {}
-    )
+    expected_producer_receipt = streaming_build.get("integrated_producer_receipt") or {}
 
     persistence_started = monotonic_ns()
     with store.savepoint() as cursor:
@@ -237,6 +221,11 @@ def persist_streaming_document_compilation(
             document_ref=compilation.document_ref,
             layer=artifacts["annotation_layer"],
         )
+        store.persist_projection_manifests(
+            cursor,
+            partitions=artifacts.get("projection_partition_manifests") or (),
+            manifest=artifacts["document_projection_manifest"],
+        )
         base_factor_revisions = persist_pnf_graph(
             cursor,
             document_ref=compilation.document_ref,
@@ -251,9 +240,7 @@ def persist_streaming_document_compilation(
                     document_ref=compilation.document_ref,
                     factor=resulting,
                 )
-                resulting_factor_revisions[
-                    str(resulting["factor_ref"])
-                ] = revision_ref
+                resulting_factor_revisions[str(resulting["factor_ref"])] = revision_ref
         demand_refs = persist_resolution_artifacts(
             cursor,
             factor_revisions=resulting_factor_revisions,

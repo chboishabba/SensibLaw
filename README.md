@@ -35,6 +35,12 @@ admission, retry, progress, and lane/profile differences belong in strategies
 or configuration rather than new compiler, parser, router, graph, linkage, or
 world-model implementations.
 
+The active large-document closure strategy admits sentence-local work through
+a bounded frontier. It reports admission, activation, queueing, and execution
+through the existing document progress ledger, while the canonical operational
+compiler remains the semantic authority. Persistent hierarchy reductions remain
+an execution follow-up rather than a second compiler path.
+
 ## Public Interface Boundary
 
 The supported downstream product boundary now includes a generic bounded

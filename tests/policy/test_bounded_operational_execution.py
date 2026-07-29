@@ -46,6 +46,43 @@ def _delta(document_ref: str = "document:test") -> ObservationDelta:
     )
 
 
+def _deltas(document_ref: str, count: int) -> tuple[ObservationDelta, ...]:
+    return tuple(
+        ObservationDelta(
+            document_ref=document_ref,
+            batch_ref=f"batch:{sequence_no}",
+            scope_ref=f"document-sentence:{document_ref}:{sequence_no}",
+            sequence_no=sequence_no,
+            parser_contract="parser:test:v1",
+            observation_refs=(f"observation:{sequence_no}",),
+            observations=(
+                {
+                    "observation_ref": f"observation:{sequence_no}",
+                    "observation_type": "parser.token",
+                    "token": {
+                        "index": sequence_no,
+                        "text": "must",
+                        "lemma": "must",
+                        "start": sequence_no * 5,
+                        "end": sequence_no * 5 + 4,
+                        "dep": "ROOT",
+                        "head_index": sequence_no,
+                        "pos": "AUX",
+                    },
+                },
+            ),
+            token_start=sequence_no,
+            token_end=sequence_no + 1,
+            char_start=sequence_no * 5,
+            char_end=sequence_no * 5 + 4,
+            token_count=1,
+            coverage_barrier="sentence",
+            coverage_complete=True,
+        )
+        for sequence_no in range(count)
+    )
+
+
 def test_policy_package_installs_one_bounded_execution_strategy() -> None:
     assert operational._streaming_semantic_build is (
         bounded.bounded_streaming_semantic_build
@@ -122,3 +159,86 @@ def test_unrecoverable_pressure_writes_resumable_checkpoint(
     durable = json.loads(paths[0].read_text(encoding="utf-8"))
     assert durable["state"] == "bounded_stop"
     assert durable["pending_job_refs"] == checkpoint["pending_job_refs"]
+
+
+def test_frontier_batches_lease_before_all_deltas_are_admitted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("SENSIBLAW_DOCUMENT_FRONTIER_BATCH_SIZE", "1")
+    monkeypatch.setattr(bounded, "current_process_rss_bytes", lambda: 16 * 1024 * 1024)
+    monkeypatch.setattr(
+        bounded,
+        "current_process_tree_rss_bytes",
+        lambda: 16 * 1024 * 1024,
+    )
+    events: list[dict[str, object]] = []
+    deltas = _deltas("document:batched", 3)
+
+    build, metrics = bounded.bounded_streaming_semantic_build(
+        document_ref="document:batched",
+        source_ref="source:batched",
+        observation_deltas=deltas,
+        base_factors=(),
+        timings=StageTimingLedger(document_ref="document:batched"),
+        closure_workers=1,
+        owner_partitions=1,
+        progress_observer=lambda payload: events.append(dict(payload)),
+    )
+
+    first_completed = next(
+        event for event in events if event.get("jobs_completed", 0) == 1
+    )
+    assert first_completed["deltas_admitted"] == 1
+    assert metrics["closure_job_count"] == len(deltas)
+    assert build["bounded_execution"]["scheduler_receipt"]["jobs_completed"] == len(
+        deltas
+    )
+    assert {
+        event["current_kernel"] for event in events if "current_kernel" in event
+    } >= {
+        "observation_delta_admission",
+        "ready_frontier_construction",
+        "scheduled_job_submission",
+        "closure_receipt_reduction",
+    }
+
+
+def test_bounded_frontier_preserves_serial_factor_and_certificate_parity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("SENSIBLAW_DOCUMENT_FRONTIER_BATCH_SIZE", "1")
+    monkeypatch.setattr(bounded, "current_process_rss_bytes", lambda: 16 * 1024 * 1024)
+    monkeypatch.setattr(
+        bounded,
+        "current_process_tree_rss_bytes",
+        lambda: 16 * 1024 * 1024,
+    )
+    deltas = _deltas("document:parity", 3)
+    serial_build, _ = operational._serial_streaming_semantic_build(
+        document_ref="document:parity",
+        source_ref="source:parity",
+        observation_deltas=deltas,
+        base_factors=(),
+        timings=StageTimingLedger(document_ref="document:parity"),
+        closure_workers=1,
+        owner_partitions=1,
+    )
+    bounded_build, _ = bounded.bounded_streaming_semantic_build(
+        document_ref="document:parity",
+        source_ref="source:parity",
+        observation_deltas=deltas,
+        base_factors=(),
+        timings=StageTimingLedger(document_ref="document:parity"),
+        closure_workers=1,
+        owner_partitions=1,
+    )
+
+    assert (
+        bounded_build["materialized_reduction"]
+        == serial_build["materialized_reduction"]
+    )
+    assert (
+        bounded_build["fixed_point_certificate"]["local_fixed_point"]
+        == serial_build["fixed_point_certificate"]["local_fixed_point"]
+        == "reached"
+    )

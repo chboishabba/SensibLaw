@@ -1640,10 +1640,6 @@ def compile_document(
         ),
         provenance_refs=(source_ref,),
     )
-    annotation_graph = AnnotationGraph(
-        graph_ref="annotation-graph:" + canonical_sha256(layer.to_dict()),
-        layers=(layer,),
-    )
     semantic_layer, relational_bundle, atom_span_refs = _semantic_annotation_layer(
         document_ref=document_ref,
         source_ref=source_ref,
@@ -1653,11 +1649,7 @@ def compile_document(
         text=text,
         parsed_document=parsed_document,
     )
-    annotation_graph = AnnotationGraph(
-        graph_ref="annotation-graph:"
-        + canonical_sha256({"layers": [layer.to_dict(), semantic_layer.to_dict()]}),
-        layers=(layer, semantic_layer),
-    )
+    annotation_graph = AnnotationGraph.from_layers((layer, semantic_layer))
     declarations = default_semantic_reduction_declarations()
     atom_mentions = _atom_mention_refs(
         semantic_layer=semantic_layer,

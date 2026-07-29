@@ -122,9 +122,7 @@ def persist_optimized_streaming_document_compilation(
         context=context,
     )
     if document_ref != expected_document_ref:
-        raise ValueError(
-            "operational document identity disagrees with canonical text"
-        )
+        raise ValueError("operational document identity disagrees with canonical text")
     if str(entry.get("canonical_text_sha256") or "") != canonical_text_sha256:
         raise ValueError("manifest canonical text hash disagrees with compilation")
     if str(entry.get("media_adapter_ref") or "") != media_adapter_ref:
@@ -189,9 +187,7 @@ def persist_optimized_streaming_document_compilation(
     refinements = tuple(artifacts.get("factor_refinements") or ())
     candidate_sets = tuple(artifacts.get("binding_candidate_sets") or ())
     factor_anchors = tuple(artifacts.get("factor_anchors") or ())
-    candidate_set_builds = tuple(
-        artifacts.get("binding_candidate_set_builds") or ()
-    )
+    candidate_set_builds = tuple(artifacts.get("binding_candidate_set_builds") or ())
     demands = tuple(artifacts.get("resolution_demands") or ())
     meets = _prepare_meets_for_relational_persistence(
         artifacts.get("typed_meets") or ()
@@ -200,16 +196,12 @@ def persist_optimized_streaming_document_compilation(
     stage_ledger = dict(artifacts.get("semantic_stage_timing") or {})
     certificate = streaming_build.get("fixed_point_certificate") or {}
     if certificate.get("local_fixed_point") != "reached":
-        raise ValueError(
-            "only locally fixed-point streaming builds may be persisted"
-        )
+        raise ValueError("only locally fixed-point streaming builds may be persisted")
     if not streaming_build.get("one_reduction_authority"):
         raise ValueError("fibred build requires one reduction authority")
     if not streaming_build.get("reduction_is_not_resolution"):
         raise ValueError("semantic lifecycle must separate reduction and resolution")
-    expected_producer_receipt = (
-        streaming_build.get("integrated_producer_receipt") or {}
-    )
+    expected_producer_receipt = streaming_build.get("integrated_producer_receipt") or {}
     proposals = tuple(
         row
         for row in streaming_build.get("proposals") or ()
@@ -255,6 +247,11 @@ def persist_optimized_streaming_document_compilation(
             document_ref=compilation.document_ref,
             layer=artifacts["annotation_layer"],
         )
+        store.persist_projection_manifests(
+            cursor,
+            partitions=artifacts.get("projection_partition_manifests") or (),
+            manifest=artifacts["document_projection_manifest"],
+        )
         stage_ledger = _append_timing(
             stage_ledger,
             document_ref=document_ref,
@@ -264,13 +261,9 @@ def persist_optimized_streaming_document_compilation(
             output_nodes=len(canonical_tokens),
             details={
                 "token_count": len(canonical_tokens),
-                "mention_count": len(
-                    artifacts["licensing"].get("mentions") or ()
-                ),
+                "mention_count": len(artifacts["licensing"].get("mentions") or ()),
                 "batched": True,
-                "canonical_lock_order": (
-                    "lexeme_key_then_document_children"
-                ),
+                "canonical_lock_order": ("lexeme_key_then_document_children"),
             },
         )
 
@@ -289,9 +282,7 @@ def persist_optimized_streaming_document_compilation(
                     document_ref=compilation.document_ref,
                     factor=resulting,
                 )
-                resulting_factor_revisions[str(resulting["factor_ref"])] = (
-                    revision_ref
-                )
+                resulting_factor_revisions[str(resulting["factor_ref"])] = revision_ref
         stage_ledger = _append_timing(
             stage_ledger,
             document_ref=document_ref,
@@ -363,53 +354,48 @@ def persist_optimized_streaming_document_compilation(
         )
 
         stage_started = monotonic_ns()
-        persisted_producer_receipt = (
-            persist_semantic_fibre_artifacts_batched(
-                cursor,
-                document_ref=compilation.document_ref,
-                observation_deltas=tuple(
-                    row
-                    for row in streaming_build.get("observation_deltas") or ()
-                    if isinstance(row, Mapping)
-                ),
-                proposals=proposals,
-                solver_jobs=tuple(
-                    row
-                    for row in streaming_build.get("solver_jobs") or ()
-                    if isinstance(row, Mapping)
-                ),
-                solver_receipts=tuple(
-                    row
-                    for row in streaming_build.get("solver_receipts") or ()
-                    if isinstance(row, Mapping)
-                ),
-                materialized_reduction=(
-                    streaming_build.get("materialized_reduction") or {}
-                ),
-                transports=tuple(
-                    row
-                    for row in streaming_build.get("semantic_transports") or ()
-                    if isinstance(row, Mapping)
-                ),
-                ontology_axes=tuple(
-                    row
-                    for row in streaming_build.get("ontology_axes") or ()
-                    if isinstance(row, Mapping)
-                ),
-                axis_obligations=tuple(
-                    row
-                    for row in streaming_build.get("axis_obligations") or ()
-                    if isinstance(row, Mapping)
-                ),
-                boundary_obligations=tuple(
-                    row
-                    for row in streaming_build.get(
-                        "fibre_boundary_obligations"
-                    )
-                    or ()
-                    if isinstance(row, Mapping)
-                ),
-            )
+        persisted_producer_receipt = persist_semantic_fibre_artifacts_batched(
+            cursor,
+            document_ref=compilation.document_ref,
+            observation_deltas=tuple(
+                row
+                for row in streaming_build.get("observation_deltas") or ()
+                if isinstance(row, Mapping)
+            ),
+            proposals=proposals,
+            solver_jobs=tuple(
+                row
+                for row in streaming_build.get("solver_jobs") or ()
+                if isinstance(row, Mapping)
+            ),
+            solver_receipts=tuple(
+                row
+                for row in streaming_build.get("solver_receipts") or ()
+                if isinstance(row, Mapping)
+            ),
+            materialized_reduction=(
+                streaming_build.get("materialized_reduction") or {}
+            ),
+            transports=tuple(
+                row
+                for row in streaming_build.get("semantic_transports") or ()
+                if isinstance(row, Mapping)
+            ),
+            ontology_axes=tuple(
+                row
+                for row in streaming_build.get("ontology_axes") or ()
+                if isinstance(row, Mapping)
+            ),
+            axis_obligations=tuple(
+                row
+                for row in streaming_build.get("axis_obligations") or ()
+                if isinstance(row, Mapping)
+            ),
+            boundary_obligations=tuple(
+                row
+                for row in streaming_build.get("fibre_boundary_obligations") or ()
+                if isinstance(row, Mapping)
+            ),
         )
         if expected_producer_receipt:
             if persisted_producer_receipt.fibre_ledger_ref != str(
@@ -431,17 +417,15 @@ def persist_optimized_streaming_document_compilation(
             elapsed_ms=_elapsed_ms(stage_started),
             input_nodes=len(proposals),
             output_nodes=len(
-                (
-                    streaming_build.get("materialized_reduction") or {}
-                ).get("factors")
+                (streaming_build.get("materialized_reduction") or {}).get("factors")
                 or ()
             ),
             details={
                 "proposal_count": len(proposals),
                 "coordinate_count": len(
-                    (
-                        streaming_build.get("fibred_semantic_build") or {}
-                    ).get("semantic_coordinates")
+                    (streaming_build.get("fibred_semantic_build") or {}).get(
+                        "semantic_coordinates"
+                    )
                     or ()
                 ),
                 "batched": True,
@@ -466,9 +450,7 @@ def persist_optimized_streaming_document_compilation(
                 "solver_receipt_count": len(
                     streaming_build.get("solver_receipts") or ()
                 ),
-                "state_delta_count": len(
-                    streaming_build.get("state_deltas") or ()
-                ),
+                "state_delta_count": len(streaming_build.get("state_deltas") or ()),
                 "batched": True,
             },
         )
@@ -478,9 +460,7 @@ def persist_optimized_streaming_document_compilation(
             stage="postgres_persistence",
             elapsed_ms=_elapsed_ms(persistence_started),
             details={
-                "transaction_scope": (
-                    "document_immutable_fibred_build"
-                ),
+                "transaction_scope": ("document_immutable_fibred_build"),
                 "nested_stage_refs": [
                     row["timing_ref"]
                     for row in stage_ledger.get("timings") or ()

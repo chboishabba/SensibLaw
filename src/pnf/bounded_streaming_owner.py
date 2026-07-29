@@ -37,14 +37,32 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
     ):
         super().__init__(document_ref=document_ref, partition_count=partition_count)
         self.retention = retention or DocumentRetentionPolicy()
-        self._proposals_by_owner: dict[
-            OwnerKey, dict[str, FactorProposal]
-        ] = defaultdict(dict)
+        self._proposals_by_owner: dict[OwnerKey, dict[str, FactorProposal]] = (
+            defaultdict(dict)
+        )
         self._known_dependency_refs: set[str] = set()
         self._compact_jobs: dict[str, dict[str, Any]] = {}
         self._compact_receipts: dict[str, dict[str, Any]] = {}
         self._compact_receipt_refs: set[str] = set()
+        self._complete_coverage: set[tuple[str, str]] = set()
         self._compaction_count = 0
+
+    def admit_observation_delta(self, delta: ObservationDelta) -> StateDelta:
+        """Index sentence coverage before canonical job activation."""
+
+        if delta.coverage_complete:
+            self._complete_coverage.add((delta.scope_ref, delta.coverage_barrier))
+        return super().admit_observation_delta(delta)
+
+    def admit_coverage_notice(self, notice: Any) -> StateDelta:
+        """Keep coverage lookup bounded while retaining canonical notices."""
+
+        if notice.state == "complete":
+            self._complete_coverage.add((notice.scope_ref, notice.barrier))
+        return super().admit_coverage_notice(notice)
+
+    def coverage_complete(self, *, scope_ref: str, barrier: str) -> bool:
+        return (scope_ref, barrier) in self._complete_coverage
 
     def _advance(
         self,
@@ -81,9 +99,7 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
             "declaration_ref": job.declaration_ref,
             "input_revision": job.input_revision,
             "input_refs": list(job.input_refs),
-            "input_delta_ref": str(
-                job.input_payload.get("input_delta_ref") or ""
-            ),
+            "input_delta_ref": str(job.input_payload.get("input_delta_ref") or ""),
             "rule_set_revision": job.rule_set_revision,
             "coverage_requirements": list(job.coverage_requirements),
             "assumptions": list(job.assumptions),
@@ -307,9 +323,7 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
                 before_factors - after_factors
             )
             self._known_dependency_refs.update(after_factors)
-            changed_factors.update(
-                before_factors.symmetric_difference(after_factors)
-            )
+            changed_factors.update(before_factors.symmetric_difference(after_factors))
             before_residuals = (
                 {row.residual_ref for row in before.residuals} if before else set()
             )
@@ -342,15 +356,14 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
         return {
             "jobs_released": before["jobs"] - after["jobs"],
             "receipts_released": before["receipts"] - after["receipts"],
-            "state_deltas_released": (
-                before["state_deltas"] - after["state_deltas"]
-            ),
+            "state_deltas_released": (before["state_deltas"] - after["state_deltas"]),
             "compaction_count": self._compaction_count,
         }
 
     def retention_counts(self) -> dict[str, int]:
         return {
             "observation_deltas": len(self._observation_deltas),
+            "coverage_index_entries": len(self._complete_coverage),
             "proposals": len(self._proposals),
             "proposal_owner_groups": len(self._proposals_by_owner),
             "jobs": len(self._jobs),
@@ -373,8 +386,7 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
             ]
         if not self.retention.full_receipts:
             payload["solver_receipts"] = [
-                self._compact_receipts[key]
-                for key in sorted(self._compact_receipts)
+                self._compact_receipts[key] for key in sorted(self._compact_receipts)
             ]
         payload["retention_mode"] = self.retention.mode.value
         payload["retention_counts"] = self.retention_counts()

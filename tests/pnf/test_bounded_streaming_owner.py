@@ -126,13 +126,28 @@ def test_jobs_use_bounded_observation_slice_not_complete_delta_serialization() -
     assert "char_start" not in compact_delta
 
 
+def test_coverage_completion_uses_the_bounded_owner_index() -> None:
+    owner = BoundedStreamingSemanticOwner(document_ref="document:1")
+    owner.register_declarations((_declaration(),))
+    delta = _delta(0)
+    owner.admit_observation_delta(delta)
+
+    # The canonical notice remains available for artifacts, but lookup must
+    # not degrade into a scan over that growing collection.
+    owner._coverage_notices.clear()
+
+    assert owner.coverage_complete(
+        scope_ref=delta.scope_ref,
+        barrier=delta.coverage_barrier,
+    )
+    assert owner.retention_counts()["coverage_index_entries"] == 1
+
+
 def test_production_compaction_releases_diagnostic_history() -> None:
     owner = _run(
         BoundedStreamingSemanticOwner(
             document_ref="document:1",
-            retention=DocumentRetentionPolicy(
-                mode=RetentionMode.PRODUCTION_COMPACT
-            ),
+            retention=DocumentRetentionPolicy(mode=RetentionMode.PRODUCTION_COMPACT),
         )
     )
 
@@ -152,12 +167,8 @@ def test_production_compaction_releases_diagnostic_history() -> None:
     assert len(artifact["solver_jobs"]) == 2
     assert len(artifact["solver_receipts"]) == 2
     assert all(row["payload_compacted"] for row in artifact["solver_jobs"])
-    assert all(
-        row["proposals_compacted"] for row in artifact["solver_receipts"]
-    )
-    assert all(
-        "observation_delta" not in row for row in artifact["solver_jobs"]
-    )
+    assert all(row["proposals_compacted"] for row in artifact["solver_receipts"])
+    assert all("observation_delta" not in row for row in artifact["solver_jobs"])
     assert all("proposals" not in row for row in artifact["solver_receipts"])
 
 

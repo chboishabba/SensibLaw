@@ -1,3 +1,14 @@
+# 2026-07-29
+
+- Bound streaming-closure frontier construction in the canonical operational
+  compiler. Sentence-local observation deltas now admit in configurable
+  batches and drain through the existing scheduler before the next batch,
+  rather than materialising one complete document job frontier. Coverage
+  completion is indexed by scope and barrier, and closure progress now exposes
+  admission, ready, lease, retention, RSS, and current-kernel context through
+  the existing lifecycle ledger. Serial execution remains available for parity
+  diagnosis; persistent hierarchy integration remains deferred.
+
 # 2026-07-28
 
 - Enclose post-parser operational document compilation in named progress

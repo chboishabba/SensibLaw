@@ -14,7 +14,7 @@ import json
 import os
 from pathlib import Path
 from time import monotonic_ns
-from typing import Any, Mapping, Sequence
+from typing import Any, Iterable, Mapping, Sequence
 
 from src.pnf.bounded_streaming_owner import BoundedStreamingSemanticOwner
 from src.pnf.streaming_fixed_point import CoverageNotice, PythonClosureExecutor
@@ -83,6 +83,7 @@ def execution_policy_from_environment(*, worker_budget: int) -> DocumentExecutio
             "SENSIBLAW_DOCUMENT_MAX_IN_FLIGHT",
             max(2, worker_budget * 2),
         ),
+        frontier_batch_size=_integer_env("SENSIBLAW_DOCUMENT_FRONTIER_BATCH_SIZE", 32),
         queue_limit_bytes=(
             _integer_env("SENSIBLAW_DOCUMENT_QUEUE_LIMIT_MIB", 64) * MIB
         ),
@@ -115,11 +116,7 @@ def retention_policy_from_environment() -> DocumentRetentionPolicy:
 
 def _resident_bytes(pid: int) -> int:
     try:
-        pages = int(
-            Path(f"/proc/{pid}/statm")
-            .read_text(encoding="ascii")
-            .split()[1]
-        )
+        pages = int(Path(f"/proc/{pid}/statm").read_text(encoding="ascii").split()[1])
         return pages * int(os.sysconf("SC_PAGE_SIZE"))
     except (OSError, ValueError, IndexError):
         return 0
@@ -129,8 +126,7 @@ def _child_pids(pid: int) -> tuple[int, ...]:
     children_path = Path(f"/proc/{pid}/task/{pid}/children")
     try:
         direct = tuple(
-            int(value)
-            for value in children_path.read_text(encoding="ascii").split()
+            int(value) for value in children_path.read_text(encoding="ascii").split()
         )
     except (OSError, ValueError):
         return ()
@@ -187,6 +183,13 @@ def _estimated_job_output_bytes(job: Any) -> int:
     return max(1_024, len(job.input_refs) * 96 + len(observations) * 512)
 
 
+def _batches(rows: Sequence[Any], size: int) -> Iterable[Sequence[Any]]:
+    """Yield deterministic bounded slices without copying the full frontier."""
+
+    for start in range(0, len(rows), size):
+        yield rows[start : start + size]
+
+
 def bounded_streaming_semantic_build(
     *,
     document_ref: str,
@@ -213,17 +216,8 @@ def bounded_streaming_semantic_build(
     )
     declaration = operator_streaming_declaration()
     owner.register_declarations((declaration,))
-    for delta in observation_deltas:
-        owner.admit_observation_delta(delta)
-
     all_observation_refs = tuple(
-        sorted(
-            {
-                ref
-                for delta in observation_deltas
-                for ref in delta.observation_refs
-            }
-        )
+        sorted({ref for delta in observation_deltas for ref in delta.observation_refs})
     )
     with timings.stage("base_proposal_reduction") as stage:
         base_proposals = tuple(
@@ -251,9 +245,13 @@ def bounded_streaming_semantic_build(
     closure = PythonClosureExecutor(
         {STREAMING_OPERATOR_DECLARATION_REF: solve_operator_job}
     )
-    receipts: list[Any] = []
     completed_input_refs = 0
     completed_proposals = 0
+    completed_receipt_count = 0
+    derived_proposal_refs: set[str] = set()
+    admitted_delta_count = 0
+    ready_job_count = 0
+    leased_job_count = 0
     pressure_checkpoints: list[dict[str, Any]] = []
     reduction_elapsed_ms = 0
 
@@ -282,30 +280,36 @@ def bounded_streaming_semantic_build(
             "retention": owner.retention_counts(),
             "pending_job_refs": sorted(owner._pending_jobs),
             "in_flight_job_refs": sorted(owner._in_flight_jobs),
-            "completed_job_signature_count": len(
-                owner._completed_job_signatures
-            ),
+            "completed_job_signature_count": len(owner._completed_job_signatures),
         }
         pressure_checkpoints.append(row)
         _write_checkpoint(document_ref, row)
 
     def on_lease(scheduled: ScheduledJob[Any]) -> None:
+        nonlocal leased_job_count
         job = owner._pending_jobs.pop(scheduled.job_ref, None)
         if job is None:
             raise ValueError("scheduler leased a job outside the owner frontier")
         owner._in_flight_jobs[job.job_ref] = job
+        leased_job_count += 1
 
     def admit(scheduled: ScheduledJob[Any], receipt: Any):
-        nonlocal completed_input_refs, completed_proposals, reduction_elapsed_ms
+        nonlocal completed_input_refs
+        nonlocal completed_proposals
+        nonlocal completed_receipt_count
+        nonlocal reduction_elapsed_ms
         reduction_started = monotonic_ns()
         owner.admit_solver_receipt(receipt)
         owner.reduce_dirty_groups()
         reduction_elapsed_ms += max(
             0, (monotonic_ns() - reduction_started) // 1_000_000
         )
-        receipts.append(receipt)
         completed_input_refs += len(receipt.input_refs)
         completed_proposals += len(receipt.proposals)
+        completed_receipt_count += 1
+        derived_proposal_refs.update(
+            proposal.proposal_ref for proposal in receipt.proposals
+        )
         snapshot = sample_resources(
             0,
             len(owner._pending_jobs),
@@ -315,7 +319,10 @@ def bounded_streaming_semantic_build(
             counts = owner.retention_counts()
             progress_observer(
                 {
-                    "jobs_completed": len(receipts),
+                    "jobs_completed": completed_receipt_count,
+                    "deltas_admitted": admitted_delta_count,
+                    "closure_jobs_ready": ready_job_count,
+                    "closure_jobs_leased": leased_job_count,
                     "input_refs_processed": completed_input_refs,
                     "proposals_emitted": completed_proposals,
                     "pending_jobs": len(owner._pending_jobs),
@@ -325,37 +332,11 @@ def bounded_streaming_semantic_build(
                     "process_tree_rss_bytes": snapshot.process_tree_rss_bytes,
                     "retained_jobs": counts["jobs"],
                     "retained_receipts": counts["receipts"],
+                    "retained_observation_deltas": counts["observation_deltas"],
+                    "current_kernel": "closure_receipt_reduction",
                 }
             )
         return ()
-
-    scheduled_jobs = tuple(
-        ScheduledJob(
-            job_ref=job.job_ref,
-            payload=job,
-            work_class=WorkClass.CLOSURE_CONSUMER,
-            priority=job.priority,
-            criticality=max(0, 1_000 - job.priority),
-            estimated_output_bytes=_estimated_job_output_bytes(job),
-        )
-        for job in sorted(
-            owner._pending_jobs.values(),
-            key=lambda row: (row.priority, row.job_ref),
-        )
-    )
-
-    with timings.stage("composition_generation") as stage:
-        stage.record(
-            input_nodes=len(all_observation_refs),
-            output_nodes=len(scheduled_jobs),
-            details={
-                "owner_partitions": owner_partitions,
-                "closure_workers": closure_workers,
-                "bounded_leasing": True,
-                "max_in_flight_jobs": policy.max_in_flight_jobs,
-                "queue_limit_bytes": policy.queue_limit_bytes,
-            },
-        )
 
     with timings.stage(
         "closure_executor_evaluation",
@@ -380,14 +361,90 @@ def bounded_streaming_semantic_build(
                 checkpoint=checkpoint,
                 on_lease=on_lease,
             )
-            scheduler.extend(scheduled_jobs)
+            for batch in _batches(
+                observation_deltas,
+                policy.frontier_batch_size,
+            ):
+                if progress_observer is not None:
+                    progress_observer(
+                        {
+                            "deltas_admitted": admitted_delta_count,
+                            "closure_jobs_ready": ready_job_count,
+                            "closure_jobs_leased": leased_job_count,
+                            "jobs_completed": completed_receipt_count,
+                            "pending_jobs": len(owner._pending_jobs),
+                            "in_flight_jobs": len(owner._in_flight_jobs),
+                            "retained_observation_deltas": len(
+                                owner._observation_deltas
+                            ),
+                            "current_kernel": "observation_delta_admission",
+                        }
+                    )
+                for delta in batch:
+                    owner.admit_observation_delta(delta)
+                    admitted_delta_count += 1
+
+                batch_jobs = tuple(
+                    ScheduledJob(
+                        job_ref=job.job_ref,
+                        payload=job,
+                        work_class=WorkClass.CLOSURE_CONSUMER,
+                        priority=job.priority,
+                        criticality=max(0, 1_000 - job.priority),
+                        estimated_output_bytes=_estimated_job_output_bytes(job),
+                    )
+                    for job in sorted(
+                        owner._pending_jobs.values(),
+                        key=lambda row: (row.priority, row.job_ref),
+                    )
+                )
+                ready_job_count += len(batch_jobs)
+                if progress_observer is not None:
+                    progress_observer(
+                        {
+                            "deltas_admitted": admitted_delta_count,
+                            "closure_jobs_ready": ready_job_count,
+                            "closure_jobs_leased": leased_job_count,
+                            "jobs_completed": completed_receipt_count,
+                            "pending_jobs": len(owner._pending_jobs),
+                            "in_flight_jobs": len(owner._in_flight_jobs),
+                            "retained_observation_deltas": len(
+                                owner._observation_deltas
+                            ),
+                            "current_kernel": "ready_frontier_construction",
+                        }
+                    )
+                scheduler.extend(batch_jobs)
+                scheduler_receipt = scheduler.run()
+                if scheduler_receipt.bounded_stop:
+                    break
+                if progress_observer is not None:
+                    counts = owner.retention_counts()
+                    progress_observer(
+                        {
+                            "deltas_admitted": admitted_delta_count,
+                            "closure_jobs_ready": ready_job_count,
+                            "closure_jobs_leased": leased_job_count,
+                            "jobs_completed": scheduler_receipt.jobs_completed,
+                            "pending_jobs": len(owner._pending_jobs),
+                            "in_flight_jobs": len(owner._in_flight_jobs),
+                            "retained_jobs": counts["jobs"],
+                            "retained_receipts": counts["receipts"],
+                            "retained_observation_deltas": counts["observation_deltas"],
+                            "rss_bytes": current_process_rss_bytes(),
+                            "process_tree_rss_bytes": (
+                                current_process_tree_rss_bytes()
+                            ),
+                            "current_kernel": "scheduled_job_submission",
+                        }
+                    )
             scheduler_receipt = scheduler.run()
         closure_stage.record(
             input_nodes=completed_input_refs,
             output_nodes=completed_proposals,
             proposals_generated=completed_proposals,
             details={
-                "job_count": len(scheduled_jobs),
+                "job_count": ready_job_count,
                 "scheduler": scheduler_receipt.to_dict(),
             },
         )
@@ -407,6 +464,19 @@ def bounded_streaming_semantic_build(
         raise DocumentResourceLimitError(final_checkpoint)
 
     materialized = owner.materialized_reduction
+    with timings.stage("composition_generation") as stage:
+        stage.record(
+            input_nodes=len(all_observation_refs),
+            output_nodes=ready_job_count,
+            details={
+                "owner_partitions": owner_partitions,
+                "closure_workers": closure_workers,
+                "bounded_leasing": True,
+                "frontier_batch_size": policy.frontier_batch_size,
+                "max_in_flight_jobs": policy.max_in_flight_jobs,
+                "queue_limit_bytes": policy.queue_limit_bytes,
+            },
+        )
     timings.append(
         stage="composition_proposal_reduction",
         elapsed_ms=reduction_elapsed_ms,
@@ -418,7 +488,7 @@ def bounded_streaming_semantic_build(
         residuals_emitted=len(materialized.residuals),
         details={
             "overlaps_with": "closure_executor_evaluation",
-            "streamed_receipt_count": len(receipts),
+            "streamed_receipt_count": completed_receipt_count,
             "indexed_owner_reduction": True,
         },
     )
@@ -457,6 +527,7 @@ def bounded_streaming_semantic_build(
             "policy": {
                 "worker_budget": policy.worker_budget,
                 "max_in_flight_jobs": policy.max_in_flight_jobs,
+                "frontier_batch_size": policy.frontier_batch_size,
                 "queue_limit_bytes": policy.queue_limit_bytes,
                 "soft_memory_limit_bytes": policy.soft_memory_limit_bytes,
                 "hard_memory_limit_bytes": policy.hard_memory_limit_bytes,
@@ -477,15 +548,9 @@ def bounded_streaming_semantic_build(
         "base_factor_count": len(base_reduction.factors),
         "base_factor_refs": tuple(row.factor_ref for row in base_reduction.factors),
         "base_residual_count": len(base_reduction.residuals),
-        "closure_job_count": len(scheduled_jobs),
+        "closure_job_count": ready_job_count,
         "derived_proposal_count": completed_proposals,
-        "derived_proposal_refs": tuple(
-            sorted(
-                proposal.proposal_ref
-                for receipt in receipts
-                for proposal in receipt.proposals
-            )
-        ),
+        "derived_proposal_refs": tuple(sorted(derived_proposal_refs)),
         "materialized_factor_count": len(materialized.factors),
         "materialized_factor_refs": tuple(
             row.factor_ref for row in materialized.factors
@@ -504,9 +569,7 @@ def install_bounded_operational_execution() -> bool:
 
     if getattr(operational, _INSTALL_MARKER, False):
         return False
-    operational._serial_streaming_semantic_build = (
-        operational._streaming_semantic_build
-    )
+    operational._serial_streaming_semantic_build = operational._streaming_semantic_build
     operational._streaming_semantic_build = bounded_streaming_semantic_build
     setattr(operational, _INSTALL_MARKER, True)
     return True

@@ -70,7 +70,9 @@ def _compile_document_postgres_worker(
                 cached = load_completed_operational_build(
                     cursor,
                     document_ref=document_ref,
-                    compiler_contract_ref=str(store_kwargs["document_executor_contract_ref"]),
+                    compiler_contract_ref=str(
+                        store_kwargs["document_executor_contract_ref"]
+                    ),
                     build_key_sha256=str(store_kwargs["build_key_sha256"]),
                 )
             if cached is not None:
@@ -145,7 +147,10 @@ def _compile_document_postgres_worker(
         except (OSError, UnicodeDecodeError, ValueError, RuntimeError) as error:
             with store.transaction() as cursor:
                 failure_ref = store.persist_failure(
-                    cursor, target_ref=document_ref, phase_ref="local_compile", error=error
+                    cursor,
+                    target_ref=document_ref,
+                    phase_ref="local_compile",
+                    error=error,
                 )
             return {
                 "document_ref": document_ref,
@@ -166,9 +171,11 @@ def _canonical_source_coordinates(
     """Return the deterministic text coordinate system used by the compiler."""
 
     if media_type == "text/html":
-        canonical_text = HtmlDocumentMediaAdapter(
-            source_artifact_ref=source_ref
-        ).adapt(source_text).text
+        canonical_text = (
+            HtmlDocumentMediaAdapter(source_artifact_ref=source_ref)
+            .adapt(source_text)
+            .text
+        )
         adapter_ref = "media:html:v0_1"
     else:
         canonical_text = source_text
@@ -344,10 +351,14 @@ def _validated_canonical_tokens(
 
     canonical_text = artifacts.get("canonical_text")
     if canonical_text != expected_text:
-        raise ValueError("operational compiler canonical text disagrees with persistence")
+        raise ValueError(
+            "operational compiler canonical text disagrees with persistence"
+        )
     canonical_text_sha256 = str(artifacts.get("canonical_text_sha256") or "")
     if canonical_text_sha256 != expected_sha256:
-        raise ValueError("operational compiler canonical text hash disagrees with persistence")
+        raise ValueError(
+            "operational compiler canonical text hash disagrees with persistence"
+        )
     tokens = tuple(tokenize_canonical_with_spans(expected_text))
     mentions = tuple((artifacts.get("licensing") or {}).get("mentions") or ())
     for mention in mentions:
@@ -518,9 +529,7 @@ def _validate_document_parent_closure(
                     child_ref=str(demand.get("demand_ref") or ""),
                     parent_table="algebra.factor_revision",
                     parent_column="factor_revision_ref",
-                    missing_parent_ref=str(
-                        demand.get("factor_revision_ref") or ""
-                    ),
+                    missing_parent_ref=str(demand.get("factor_revision_ref") or ""),
                     semantic_artifact_type="resolution_demand",
                     producer_contract=_factor_producer_contract(demand),
                 )
@@ -686,7 +695,9 @@ def persist_document_compilation(
         raise ValueError("operational compiler build key disagrees with persistence")
     source_normalisation = artifacts.get("source_normalisation") or {}
     if str(source_normalisation.get("adapter_ref") or "") != media_adapter_ref:
-        raise ValueError("operational compiler media adapter disagrees with persistence")
+        raise ValueError(
+            "operational compiler media adapter disagrees with persistence"
+        )
     canonical_tokens = _validated_canonical_tokens(
         artifacts=artifacts,
         expected_text=canonical_text,
@@ -695,9 +706,7 @@ def persist_document_compilation(
     refinements = tuple(artifacts.get("factor_refinements") or ())
     candidate_sets = tuple(artifacts.get("binding_candidate_sets") or ())
     factor_anchors = tuple(artifacts.get("factor_anchors") or ())
-    candidate_set_builds = tuple(
-        artifacts.get("binding_candidate_set_builds") or ()
-    )
+    candidate_set_builds = tuple(artifacts.get("binding_candidate_set_builds") or ())
     demands = tuple(artifacts.get("resolution_demands") or ())
     meets = _prepare_meets_for_relational_persistence(
         artifacts.get("typed_meets") or ()
@@ -779,6 +788,11 @@ def persist_document_compilation(
                     document_ref=compilation.document_ref,
                     layer=artifacts["annotation_layer"],
                 )
+                store.persist_projection_manifests(
+                    cursor,
+                    partitions=artifacts.get("projection_partition_manifests") or (),
+                    manifest=artifacts["document_projection_manifest"],
+                )
                 persisted_base_factor_revisions = persist_pnf_graph(
                     cursor,
                     document_ref=compilation.document_ref,
@@ -851,19 +865,11 @@ def persist_document_compilation(
                                 + 1
                             ),
                             "bytes_written": (
-                                len(source_bytes)
-                                + len(canonical_text.encode("utf-8"))
+                                len(source_bytes) + len(canonical_text.encode("utf-8"))
                             ),
                             "tables_touched": 7,
                             "statements_executed": (
-                                1
-                                + 1
-                                + 1
-                                + 1
-                                + len(refinements)
-                                + 1
-                                + 1
-                                + 1
+                                1 + 1 + 1 + 1 + len(refinements) + 1 + 1 + 1
                             ),
                             "conflicts_avoided": 0,
                         },
@@ -1040,11 +1046,15 @@ def compile_directory_postgres(
     resume_documents = (
         dict(run_state.get("documents") or {}) if run_state is not None else {}
     )
-    resume_duplicate_occurrences = [
-        tuple(row)
-        for row in (run_state.get("duplicate_occurrences") or [])
-        if isinstance(row, Sequence) and len(row) == 2
-    ] if run_state is not None else []
+    resume_duplicate_occurrences = (
+        [
+            tuple(row)
+            for row in (run_state.get("duplicate_occurrences") or [])
+            if isinstance(row, Sequence) and len(row) == 2
+        ]
+        if run_state is not None
+        else []
+    )
     ordered_documents = [
         entry
         for entry in manifest_row["ordered_documents"]
@@ -1061,6 +1071,7 @@ def compile_directory_postgres(
         file=sys.stderr,
         disable=not sys.stderr.isatty(),
     )
+
     class _NoopPhaseHandle:
         def advance(self, **_kwargs: Any) -> None:
             return None
@@ -1103,8 +1114,8 @@ def compile_directory_postgres(
         "parser_workers": parser_workers,
         "parser_limit_chars": parser_limit_chars,
         "parser_target_chars": parser_target_chars,
-                "parser_overlap_chars": parser_overlap_chars,
-                "document_workers": document_workers,
+        "parser_overlap_chars": parser_overlap_chars,
+        "document_workers": document_workers,
         "worker_budget": worker_budget,
         "root": str(root),
         "documents": resume_documents,
@@ -1119,7 +1130,8 @@ def compile_directory_postgres(
             document_ref
             for document_ref, payload in resume_documents.items()
             if isinstance(payload, Mapping)
-            and str(payload.get("state") or "") in {
+            and str(payload.get("state") or "")
+            in {
                 "compiled",
                 "reused_compilation",
             }
@@ -1169,7 +1181,10 @@ def compile_directory_postgres(
                             subject_ref=document_ref,
                             message="reused",
                             reused=True,
-                            details={"relative_path": relative_path, "worker": worker_ref},
+                            details={
+                                "relative_path": relative_path,
+                                "worker": worker_ref,
+                            },
                             worker=worker_ref,
                         )
                         continue
@@ -1198,8 +1213,13 @@ def compile_directory_postgres(
                         parser_overlap_chars=parser_overlap_chars,
                     )
                     parser_checkpoint_dir = (
-                        str(state_file.parent / f"{state_file.stem}_chunks" / document_ref.removeprefix("document:"))
-                        if state_file is not None else None
+                        str(
+                            state_file.parent
+                            / f"{state_file.stem}_chunks"
+                            / document_ref.removeprefix("document:")
+                        )
+                        if state_file is not None
+                        else None
                     )
                     payload = {
                         "document_ref": document_ref,
@@ -1237,7 +1257,9 @@ def compile_directory_postgres(
                     if state in {"compiled", "reused_compilation"}:
                         compiled.add(document_ref)
                         document_refs.append(document_ref)
-                        demand_refs.extend(str(ref) for ref in result.get("demand_refs") or ())
+                        demand_refs.extend(
+                            str(ref) for ref in result.get("demand_refs") or ()
+                        )
                     if result.get("failure_ref"):
                         failure_refs.append(str(result["failure_ref"]))
                     resume_documents[document_ref] = result
@@ -1252,7 +1274,11 @@ def compile_directory_postgres(
                         subject_ref=document_ref,
                         message=state,
                         reused=state == "reused_compilation",
-                        details={"relative_path": relative_path, "worker": worker_ref, **result},
+                        details={
+                            "relative_path": relative_path,
+                            "worker": worker_ref,
+                            **result,
+                        },
                         worker=worker_ref,
                     )
             if sys.stderr.isatty():
@@ -1319,12 +1345,15 @@ def compile_directory_postgres(
                     isinstance(state_entry, Mapping)
                     and str(state_entry.get("build_key_sha256") or "")
                     == build_key_sha256
-                    and str(state_entry.get("state") or "") in {
+                    and str(state_entry.get("state") or "")
+                    in {
                         "compiled",
                         "reused_compilation",
                     }
                 ):
-                    refs = tuple(str(ref) for ref in state_entry.get("demand_refs") or ())
+                    refs = tuple(
+                        str(ref) for ref in state_entry.get("demand_refs") or ()
+                    )
                     compiled.add(document_ref)
                     document_refs.append(document_ref)
                     demand_refs.extend(refs)
@@ -1337,7 +1366,9 @@ def compile_directory_postgres(
                         details={
                             "relative_path": relative_path,
                             "worker": str(state_entry.get("worker") or worker_ref),
-                            "state": str(state_entry.get("state") or "reused_compilation"),
+                            "state": str(
+                                state_entry.get("state") or "reused_compilation"
+                            ),
                             "build_key_sha256": build_key_sha256,
                             "closure_workers": closure_workers,
                             "owner_partitions": owner_partitions,

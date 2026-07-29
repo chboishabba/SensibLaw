@@ -548,8 +548,36 @@ def parse_document_fibres(
 
     selected_policy = policy or DocumentFibrePolicy()
     workload = selected_policy.estimate_workload(canonical_text)
+    process_parser = (
+        getattr(parser, "__module__", "")
+        == "src.sensiblaw.interfaces.parser_adapter"
+    )
     if not selected_policy.should_partition(canonical_text):
-        parsed = dict(parser(canonical_text))
+        # The public parser owns a sizeable optional NLP runtime.  Keep it in
+        # the same disposable worker boundary used by partitioned documents so
+        # a short document does not retain that runtime through graph identity,
+        # closure, and persistence merely because it did not need splitting.
+        if process_parser:
+            whole_fibre = DocumentFibre(
+                document_ref=document_ref,
+                fibre_ref="document-fibre:whole_document",
+                sequence_no=0,
+                owner_start=0,
+                owner_end=len(canonical_text),
+                context_start=0,
+                context_end=len(canonical_text),
+                text_sha256=hashlib.sha256(canonical_text.encode("utf-8")).hexdigest(),
+            )
+            with ProcessPoolExecutor(max_workers=1) as pool:
+                _fibre, parsed, _reused = pool.submit(
+                    _parse_fibre_process,
+                    fibre=whole_fibre,
+                    canonical_text=canonical_text,
+                    checkpoint_dir=None,
+                ).result()
+            parsed = dict(parsed)
+        else:
+            parsed = dict(parser(canonical_text))
         receipt = dict(parsed.get("parser_receipt") or {})
         receipt.update(
             {
@@ -617,7 +645,6 @@ def parse_document_fibres(
     # large fibres.  Use isolated processes for the public parser spine; retain
     # a thread fallback for injected test/adaptor parsers that may not be
     # importable in a child process.
-    process_parser = getattr(parser, "__module__", "") == "src.sensiblaw.interfaces.parser_adapter"
     pool_type = ProcessPoolExecutor if process_parser else ThreadPoolExecutor
     with pool_type(max_workers=selected_policy.workers) as pool:
         futures = {
