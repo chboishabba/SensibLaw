@@ -84,7 +84,10 @@ def test_scheduler_reassigns_workers_until_frontier_drains() -> None:
 
 
 def test_pressure_defers_producer_while_consumer_drains_then_restores_it() -> None:
-    rss_values = iter((110, 75, 75, 75, 75, 75, 75, 75))
+    # The first compaction reduces RSS but leaves it above the soft limit.  This
+    # forces producer deferral while the consumer drains; the next scheduler
+    # sample crosses the recovery target and restores the producer.
+    rss_values = iter((110, 105, 75, 75, 75, 75, 75, 75))
     compact_calls: list[bool] = []
     execution_order: list[str] = []
 
