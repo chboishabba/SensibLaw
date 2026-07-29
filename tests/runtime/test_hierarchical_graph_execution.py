@@ -1,0 +1,182 @@
+from __future__ import annotations
+
+from concurrent.futures import ThreadPoolExecutor
+
+from src.runtime.bounded_document_scheduler import BoundedDocumentScheduler
+from src.runtime.document_execution_policy import (
+    DocumentExecutionPolicy,
+    ResourceSnapshot,
+)
+from src.runtime.hierarchical_graph_execution import (
+    GraphInterface,
+    HierarchicalGraphCoordinator,
+    HierarchyCoverageCertificate,
+    HierarchyCoverageState,
+    HierarchyDelta,
+    HierarchyNodeKind,
+    HierarchyPlan,
+)
+
+
+MIB = 1024 * 1024
+
+
+def _policy() -> DocumentExecutionPolicy:
+    return DocumentExecutionPolicy(
+        worker_budget=4,
+        max_in_flight_jobs=4,
+        queue_limit_bytes=64 * MIB,
+        soft_memory_limit_bytes=512 * MIB,
+        hard_memory_limit_bytes=768 * MIB,
+        recovery_target_bytes=384 * MIB,
+    )
+
+
+def _completed_delta(coordinator: HierarchicalGraphCoordinator, job):
+    node = coordinator.nodes[job.node_ref]
+    children = coordinator.plan.children_by_node.get(job.node_ref, ())
+    interface = GraphInterface(
+        boundary_vertex_refs=(f"boundary:{job.node_ref}",),
+        dependency_keys=(f"dependency:{job.node_ref}",),
+        unresolved_demand_refs=(),
+        index_refs=(f"index:{job.node_ref}",),
+    )
+    return HierarchyDelta(
+        node_ref=job.node_ref,
+        introduced_vertex_refs=(f"vertex:{job.node_ref}",),
+        introduced_edge_refs=(
+            ()
+            if node.kind is HierarchyNodeKind.LEAF
+            else (f"cross-edge:{job.node_ref}",)
+        ),
+        interface=interface,
+        coverage=HierarchyCoverageCertificate(
+            node_ref=job.node_ref,
+            state=HierarchyCoverageState.COMPLETE,
+            completed_child_refs=tuple(sorted(children)),
+            required_child_refs=tuple(sorted(children)),
+            locally_fixed_point=True,
+        ),
+        work_units=node.carrier.size,
+        output_bytes=128,
+        descendant_bytes_reconstructed=0,
+    )
+
+
+def test_plan_builds_bounded_four_ary_hierarchy_and_lca_placement() -> None:
+    plan = HierarchyPlan.build(
+        document_ref="document:hierarchy",
+        primitive_unit_count=16 * 4096,
+        leaf_capacity=4096,
+        arity=4,
+        unit="atoms",
+    )
+
+    assert len(plan.leaf_refs) == 16
+    assert plan.depth == 2
+    assert plan.node_count == 21
+    assert plan.lowest_sufficient_node_for_offsets((1, 4095)) == plan.leaf_refs[0]
+
+    same_branch = plan.lowest_sufficient_node_for_offsets((1, 4 * 4096 - 1))
+    assert plan.level_of(same_branch) == 1
+
+    document_wide = plan.lowest_sufficient_node_for_offsets((1, 15 * 4096))
+    assert document_wide == plan.root_ref
+
+
+def test_workers_solve_leaves_then_unlock_branches_and_root() -> None:
+    plan = HierarchyPlan.build(
+        document_ref="document:hierarchy",
+        primitive_unit_count=16 * 4096,
+        leaf_capacity=4096,
+        arity=4,
+        unit="atoms",
+    )
+    coordinator = HierarchicalGraphCoordinator(plan)
+    execution_levels: list[int] = []
+
+    def execute(job):
+        execution_levels.append(job.level)
+        return _completed_delta(coordinator, job)
+
+    def admit(scheduled, delta):
+        return coordinator.admit(scheduled.payload, delta)
+
+    def sample(queued: int, pending: int, in_flight: int) -> ResourceSnapshot:
+        return ResourceSnapshot(
+            rss_bytes=128 * MIB,
+            process_tree_rss_bytes=128 * MIB,
+            queued_bytes=queued,
+            pending_jobs=pending,
+            in_flight_jobs=in_flight,
+        )
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        scheduler = BoundedDocumentScheduler(
+            executor=pool,
+            execute=execute,
+            admit=admit,
+            sample_resources=sample,
+            compact=lambda: None,
+            policy=_policy(),
+        )
+        scheduler.extend(coordinator.ready_jobs())
+        receipt = scheduler.run()
+
+    assert receipt.jobs_completed == plan.node_count
+    assert execution_levels.count(0) == 16
+    assert execution_levels.count(1) == 4
+    assert execution_levels.count(2) == 1
+    assert coordinator.fixed_point_reached is True
+    assert coordinator.fixed_point_certificate()["waiting_node_refs"] == []
+
+
+def test_parent_graphs_reference_children_without_flattening_descendants() -> None:
+    plan = HierarchyPlan.build(
+        document_ref="document:hierarchy",
+        primitive_unit_count=4 * 4096,
+        leaf_capacity=4096,
+        arity=4,
+        unit="atoms",
+    )
+    coordinator = HierarchicalGraphCoordinator(plan)
+
+    for scheduled in coordinator.ready_jobs():
+        coordinator.admit(
+            scheduled.payload,
+            _completed_delta(coordinator, scheduled.payload),
+        )
+
+    root_job = coordinator.ready_jobs()[0]
+    coordinator.admit(
+        root_job.payload,
+        _completed_delta(coordinator, root_job.payload),
+    )
+
+    root = coordinator.nodes[plan.root_ref]
+    child_graph_refs = tuple(
+        sorted(coordinator.nodes[child].graph_ref for child in plan.leaf_refs)
+    )
+    complexity = coordinator.complexity_receipt()
+
+    assert root.child_graph_refs == child_graph_refs
+    assert len(root.introduced_vertex_refs) == 1
+    assert len(root.introduced_edge_refs) == 1
+    assert complexity.flattening_free is True
+    assert complexity.descendant_bytes_reconstructed == 0
+    assert complexity.total_work_units == 8 * 4096
+
+
+def test_rejects_parent_completion_before_child_coverage() -> None:
+    plan = HierarchyPlan.build(
+        document_ref="document:hierarchy",
+        primitive_unit_count=4 * 4096,
+        leaf_capacity=4096,
+        arity=4,
+    )
+    coordinator = HierarchicalGraphCoordinator(plan)
+    root = coordinator.nodes[plan.root_ref]
+
+    assert root.coverage is not None
+    assert root.coverage.state is HierarchyCoverageState.WAITING
+    assert coordinator.ready_jobs() == ()
