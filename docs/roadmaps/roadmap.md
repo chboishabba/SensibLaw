@@ -650,4 +650,704 @@ The spaCy pipeline now underpins tokenisation, sentence segmentation, NER, and r
 
 1. **Pipeline verification** — Lock deterministic token and sentence boundaries across the spaCy adapters, including tests for the modules listed in `docs/nlp_pipelines.md`.
 2. **Ontology binding** — Map rule-atom fields into ontology tables with repeatable ingestion jobs and round-trip validation (RuleAtom → DB → graph export).
+
+
+
+
+
+# Considered optimisation target
+
+If this can be improved further it obviously should...
+
+For this compiler, **one worker owning a text segment from start to finish is probably not globally optimal**.
+
+It has one attractive property: locality. The worker can keep its parser objects, token arrays, local mentions, relations, and temporary indexes hot in memory and avoid serialising them between processes.
+
+But it creates a more serious problem: **the useful partition changes as the document graph evolves**.
+
+A text segment is a good partition for:
+
+* parsing;
+* token-local mention extraction;
+* sentence-local relations;
+* provenance projection.
+
+It is a poor permanent partition for:
+
+* recurrence classes spanning the document;
+* coreference and antecedent candidates;
+* factor families;
+* cross-segment constraints;
+* closure demands;
+* refinements;
+* graph-connected components.
+
+So the best design is a **hybrid**:
+
+> Workers temporarily own bounded text fibres through the local extraction path, then release them. Afterward, the same persistent worker pool is reassigned to graph-keyed jobs.
+
+## Option A: segment owned from start to finish
+
+```text
+worker 1 owns segment A
+worker 2 owns segment B
+worker 3 owns segment C
+worker 4 owns segment D
+```
+
+Each worker parses, mentions, projects, proposes, closes, and persists its segment.
+
+### Advantages
+
+* excellent cache and object locality;
+* minimal inter-process transfer during extraction;
+* simpler lifecycle for parser objects;
+* easy ownership of offsets and boundary overlap;
+* temporary objects can die together when the fibre finishes.
+
+### Problems
+
+#### Load imbalance
+
+Segments do not have equal semantic cost.
+
+```text
+A: 20 seconds
+B: 25 seconds
+C: 40 seconds
+D: 18 minutes
+```
+
+Three workers finish and sit idle while D continues.
+
+#### Cross-segment graph work
+
+A factor originating in segment A may depend on:
+
+* a mention in C;
+* a recurrence group containing A, B and D;
+* a constraint component spanning the whole document;
+* evidence discovered later in another fibre.
+
+Either workers must communicate extensively or one global reconciliation phase must redo much of the work.
+
+#### Memory retention
+
+A slow segment owner may retain its complete parser and semantic state for a long time. If all workers retain their segment graphs until final reconciliation, memory still grows with the whole document.
+
+#### Bad final topology
+
+Text locality and semantic locality diverge. Permanent text ownership risks turning execution partitions into semantic authorities, which is exactly what the fibre model is intended to avoid.
+
+## Option B: pure shared worker pool
+
+```text
+all ready jobs
+→ shared priority queue
+→ next free worker
+```
+
+### Advantages
+
+* strong load balancing;
+* no idle cores while independent work remains;
+* operator-specific partitioning;
+* closure and refinement can follow graph dependencies;
+* easier critical-path prioritisation.
+
+### Problems
+
+* more object serialisation and process communication;
+* worse cache locality;
+* repeated loading of related state;
+* risk of creating excessively tiny jobs;
+* scheduler and reducer complexity;
+* passing parser-heavy objects between workers may be expensive or impossible.
+
+## The optimal hybrid
+
+Use **fibre affinity**, not permanent fibre ownership.
+
+### Local extraction residency
+
+Give a worker a text fibre and let it run a fused local sequence:
+
+```text
+parse fibre
+→ project parser observations
+→ extract local mentions
+→ derive local atoms and relations
+→ emit compact semantic delta
+→ release fibre state
+```
+
+This preserves the main locality advantage.
+
+Do not return the full parser object after each micro-stage. The fibre remains worker-resident long enough to avoid unnecessary transfer.
+
+### Global graph work
+
+After the compact delta is admitted:
+
+```text
+recurrence grouping
+constraint assessment
+closure
+refinement
+demand resolution
+```
+
+become graph-keyed jobs in the shared pool.
+
+The worker that handled the text fibre can take those jobs too, but it does not own them permanently.
+
+## Recommended flow
+
+```text
+persistent four-worker pool
+        │
+        ▼
+text-fibre jobs
+  each job performs:
+    parse
+    local mention extraction
+    local relational projection
+    local proposal construction
+        │
+        ▼
+compact immutable deltas
+        │
+        ▼
+keyed document reducers
+        │
+        ▼
+graph-derived jobs:
+  recurrence
+  constraints
+  closure
+  refinement
+  demands
+        │
+        ▼
+same worker pool
+```
+
+This means the initial task is coarser than one parser call:
+
+```text
+local_fibre_pipeline(fibre)
+```
+
+rather than:
+
+```text
+parse(fibre)
+project(fibre)
+mention(fibre)
+```
+
+as separately scheduled jobs.
+
+That reduces communication and keeps data hot.
+
+## Use more fibres than workers
+
+Even with temporary fibre ownership, do not make exactly four giant text segments.
+
+For four workers, something like 8–16 cost-balanced fibres is better:
+
+```text
+worker finishes fibre 1
+→ takes fibre 5
+
+worker finishes fibre 2
+→ takes fibre 6
+```
+
+This handles uneven document structure while retaining locality within each fibre.
+
+The target fibre size should be based on measured execution cost, not only characters. Sentence count, token count, candidate amplification, and prior timings are better signals.
+
+## Boundary handling
+
+Each fibre should have:
+
+* a disjoint owned interval;
+* bounded context overlap;
+* global coordinates;
+* an “owner of start position emits” rule;
+* explicit unresolved boundary demands.
+
+The worker may inspect overlap evidence but only emit authoritative local proposals for its owned region.
+
+Cross-boundary work is then routed as a small reconciliation job rather than merging independent segment graphs.
+
+## Memory behaviour
+
+The fibre worker should return something compact:
+
+```text
+LocalSemanticDelta:
+    source fibre reference
+    observation rows
+    mention proposals
+    atom/relation proposals
+    local factors
+    boundary demands
+    provenance hashes
+```
+
+Once accepted or persisted:
+
+* discard the parser object;
+* discard sentence-local scratch;
+* discard candidate scan structures;
+* recycle the worker after a bounded number of large fibres if allocator fragmentation is high.
+
+The graph-wide phase should load only bounded owner-key regions, not all local deltas back into RAM.
+
+## Scheduling preference
+
+The scheduler can preserve soft affinity:
+
+```text
+if worker 2 already has cached state for owner key K:
+    prefer assigning K-related work to worker 2
+else:
+    assign to any free worker
+```
+
+Affinity is an optimisation hint, not an ownership invariant.
+
+This gives some locality without allowing a slow or blocked fibre to strand a CPU.
+
+## Which is more optimal?
+
+For only the initial parser-to-local-proposal path:
+
+> **One worker retaining a text segment through the fused local pipeline is more efficient.**
+
+For the entire PNF/document solve:
+
+> **A dynamic worker pool is more efficient and architecturally correct.**
+
+So the right answer is not one or the other:
+
+> **Use coarse, worker-resident text-fibre jobs for local extraction; then dynamically reassign the persistent pool to semantic fibres and demand-cone jobs.**
+
+That preserves cache locality where text locality is real, and preserves load balancing and graph correctness once semantic dependencies stop respecting text boundaries.
+
+Yes. At this point we should stop reasoning by intuition alone and formalise the execution problem against the actual PNF/fibre algebra.
+
+The important result will probably be:
+
+> **Text-fibre residency is optimal for local monotone extraction; dynamic demand-cone scheduling is optimal for graph closure.**
+
+But we should derive that from the dependency and memory structure rather than assume it.
+
+## 1. Formalise the evolving document state
+
+Let
+
+[
+G_t=(S_t,F_t,C_t,R_t,D_t),
+]
+
+where:
+
+* (S_t): structural/parser observations;
+* (F_t): PNF factor revisions;
+* (C_t): constraints;
+* (R_t): residual and refinement state;
+* (D_t): unresolved demands.
+
+A worker job is an operator application
+
+[
+j=(O_j,I_j,K_j,\widehat c_j,\widehat m_j),
+]
+
+with:
+
+* (O_j): operator;
+* (I_j): required input revisions;
+* (K_j): output ownership keys;
+* (\widehat c_j): estimated compute cost;
+* (\widehat m_j): estimated peak memory.
+
+It returns an immutable delta:
+
+[
+\Delta_j=
+(\Delta S_j,\Delta F_j,\Delta C_j,\Delta R_j,\Delta D_j).
+]
+
+The document state advances by deterministic reduction:
+
+[
+G_{t+1}=G_t\sqcup\Delta_j.
+]
+
+The join should be idempotent and monotone wherever possible.
+
+## 2. State the real optimisation objective
+
+We are not merely maximising CPU utilisation.
+
+The primary objective is:
+
+[
+\min T_{\mathrm{commit}},
+]
+
+subject to:
+
+[
+M(t)\le M_{\max},
+]
+
+[
+N_{\mathrm{active}}(t)\le W,
+]
+
+and semantic invariance:
+
+[
+\operatorname{Normalise}(G_{\mathrm{parallel}})
+===============================================
+
+\operatorname{Normalise}(G_{\mathrm{serial}}).
+]
+
+Here (W=4) for the current machine budget.
+
+A practical objective can include penalties:
+
+[
+J=
+T_{\mathrm{commit}}
++\lambda_M\max_t(M(t)-M_{\mathrm{soft}})*+
++\lambda_C C*{\mathrm{communication}}
++\lambda_R C_{\mathrm{recomputation}}.
+]
+
+This captures why “four busy cores” is not automatically optimal. A schedule that saturates all cores but generates an unbounded proposal backlog is worse than one that temporarily idles a producer and finishes without OOM.
+
+## 3. Model the job dependency graph
+
+Construct a directed acyclic graph for one bounded iteration—or a dynamic dependency graph over the whole fixed-point process:
+
+[
+H=(V,E).
+]
+
+Each node is a job. An edge
+
+[
+i\to j
+]
+
+means job (j) requires a revision or coverage certificate produced by (i).
+
+The lower bound on completion time is the critical path:
+
+[
+T_{\mathrm{commit}}
+\ge
+\max_{\pi\in\operatorname{Paths}(H)}
+\sum_{j\in\pi} c_j.
+]
+
+There is also the total-work bound:
+
+[
+T_{\mathrm{commit}}
+\ge
+\frac{\sum_j c_j}{W}.
+]
+
+Thus:
+
+[
+T_{\mathrm{commit}}
+\ge
+\max\left(
+\operatorname{CriticalPath}(H),
+\frac{\operatorname{Work}(H)}{W}
+\right).
+]
+
+The scheduler should minimise how far the actual execution sits above this bound.
+
+## 4. Compare permanent segment ownership formally
+
+Suppose the document is split into fibres (\phi_1,\dots,\phi_n).
+
+Permanent text ownership assigns:
+
+[
+a(\phi_i)=w_k
+]
+
+for the entire compilation.
+
+Its cost is approximately:
+
+[
+T_{\mathrm{segment}}
+====================
+
+\max_k
+\sum_{\phi_i:a(\phi_i)=w_k}
+L(\phi_i)
++
+T_{\mathrm{cross}}
++
+T_{\mathrm{global}},
+]
+
+where (L(\phi_i)) is the complete local processing cost.
+
+This works well only when:
+
+1. fibre costs are balanced;
+2. most dependencies stay inside fibres;
+3. global reconciliation is small;
+4. retained fibre state fits comfortably in memory.
+
+Those conditions do not hold for PNF closure. Recurrence, binding, constraints and residual dependencies cross textual partitions.
+
+Define the cut weight:
+
+[
+\operatorname{Cut}(\Phi)
+========================
+
+\sum_{(u,v)\in E}
+w_{uv},
+\mathbf 1[\phi(u)\neq\phi(v)].
+]
+
+Text fibres probably minimise cut weight for parsing and sentence-local extraction, but not for semantic closure.
+
+## 5. Operator-specific fibres
+
+For each operator (O), choose a partition:
+
+[
+\Phi_O={\phi_{O,1},\dots,\phi_{O,n_O}}.
+]
+
+The preferred partition minimises:
+
+[
+Q(\Phi_O)
+=========
+
+C_{\mathrm{compute}}(\Phi_O)
++
+C_{\mathrm{imbalance}}(\Phi_O)
++
+C_{\mathrm{cut}}(\Phi_O)
++
+C_{\mathrm{transfer}}(\Phi_O)
++
+C_{\mathrm{memory}}(\Phi_O).
+]
+
+This gives concrete fibre choices:
+
+| Operator                | Natural ownership key               |
+| ----------------------- | ----------------------------------- |
+| Parser/local extraction | Text or sentence interval           |
+| Mention recurrence      | Canonical mention form              |
+| Relational reduction    | Predicate/eventuality neighbourhood |
+| Factor reduction        | Factor family and subject key       |
+| Constraint assessment   | Constraint-connected component      |
+| Closure                 | Dirty dependency component          |
+| Refinement              | Factor revision key                 |
+| Demand resolution       | Demand equivalence class            |
+
+That is the algebraic reason permanent text ownership is not globally optimal.
+
+## 6. Derive the hybrid scheduling rule
+
+Let (A(j,w)) be an affinity benefit when worker (w) already holds useful local state for job (j).
+
+Then assign ready jobs by approximately maximising:
+
+[
+\operatorname{score}(j,w)
+=========================
+
+\frac{
+\operatorname{criticality}(j)
+\operatorname{unlock}(j)
+\operatorname{yield}(j)
++
+A(j,w)
+}{
+\widehat c_j
++
+\lambda_m\widehat m_j
++
+\lambda_q Q_{\mathrm{output}}(j)
++
+\lambda_x C_{\mathrm{transfer}}(j,w)
+}.
+]
+
+This yields:
+
+* strong affinity for a worker to finish the local extraction chain for its resident text fibre;
+* reassignment once the output becomes graph-keyed;
+* priority for reducers and persistence when queues or memory grow;
+* priority for closure jobs lying on the critical path.
+
+Affinity becomes a benefit, not a permanent ownership law.
+
+## 7. Add memory conservation equations
+
+Let queue (q) contain (n_q(t)) deltas with average size (\bar m_q). Then:
+
+[
+M(t)
+====
+
+M_{\mathrm{indexes}}(t)
++
+M_{\mathrm{workers}}(t)
++
+\sum_q n_q(t)\bar m_q
++
+M_{\mathrm{retained}}(t).
+]
+
+The OOM suggests that (M_{\mathrm{retained}}) currently contains multiple generations:
+
+[
+M_{\mathrm{retained}}
+\supset
+M_{\mathrm{jobs}}
++
+M_{\mathrm{receipts}}
++
+M_{\mathrm{proposals}}
++
+M_{G}
++
+M_{G'}
++
+M_{\mathrm{refinements}}
++
+M_{\mathrm{serialised}}.
+]
+
+Production mode should instead approach:
+
+[
+M_{\mathrm{retained}}
+\approx
+M_{\mathrm{compact\ indexes}}
++
+M_{\mathrm{dirty\ frontier}}
++
+M_{\mathrm{bounded\ batches}}.
+]
+
+Backpressure follows directly. For queue (q):
+
+[
+n_q(t)\bar m_q\ge B_q
+\quad\Longrightarrow\quad
+\text{suspend producers of }q
+]
+
+and prioritise consumers.
+
+## 8. Fixed point as a worklist algebra
+
+Let (K_t) be dirty keys and (J_t) ready jobs.
+
+A delta changes keys:
+
+[
+K_{t+1}
+=======
+
+\left(K_t\setminus\operatorname{resolved}(\Delta)\right)
+\cup
+\operatorname{dependents}(\Delta).
+]
+
+Jobs are generated by:
+
+[
+J_{t+1}
+=======
+
+\operatorname{ready}(G_{t+1},K_{t+1}).
+]
+
+The local document fixed point is:
+
+[
+J_t=\varnothing,
+\qquad
+K_t=\varnothing,
+\qquad
+\operatorname{inflight}_t=0,
+]
+
+with coverage complete and no locally satisfiable unresolved demands.
+
+This avoids repeatedly scanning all 449,478 factors and 301,075 constraints.
+
+## 9. What to measure concretely
+
+For each job class and fibre policy, record:
+
+* work units;
+* wall and CPU time;
+* peak RSS delta;
+* input/output bytes;
+* proposals per input unit;
+* accepted semantic yield;
+* dependency fan-out;
+* queue wait;
+* reducer contention;
+* cross-fibre demand count;
+* recomputation count.
+
+Then estimate:
+
+[
+\widehat c_j=f_O(\text{tokens},\text{candidates},\text{factors},\text{fan-out}),
+]
+
+[
+\widehat m_j=g_O(\text{input bytes},\text{expected output},\text{alternatives}).
+]
+
+The scheduler can begin with simple linear estimates and update them from receipts.
+
+## Concrete conclusion
+
+The formalism supports this execution architecture:
+
+1. **Persistent document-wide worker pool.**
+2. **Coarse worker-resident text-fibre jobs** for parsing through local proposal extraction.
+3. **Compact delta admission** into the shared graph.
+4. **Dynamic repartitioning by semantic keys** after local extraction.
+5. **Critical-path and demand-driven scheduling.**
+6. **Memory-aware backpressure.**
+7. **Differential dirty-key closure.**
+8. **Incremental private persistence with atomic final publication.**
+
+So yes: formalising it is worthwhile because it converts “maybe use worker affinity” into a testable optimisation problem. It also gives us a criterion for every implementation choice:
+
+> Does this partition reduce critical-path time and communication while respecting the memory bound and preserving the canonical fixed point?
+
+That should become a small architecture/algebra module in SensibLaw—not necessarily an elaborate generic scheduler initially, but explicit types and receipts for jobs, ownership keys, deltas, dependencies, memory estimates, queue pressure and fixed-point state.
+
 3. **Legal-BERT workflow introduction** — Bring the planned Legal-BERT semantic layer online to enrich actor classes, interest detection, and wrong-type inference ahead of graph persistence, reusing the spaCy spans and dependency candidates already defined in `docs/nlp_pipelines.md`.
