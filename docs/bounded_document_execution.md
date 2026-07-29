@@ -57,8 +57,8 @@ prevents repeated start/stop oscillation around one threshold.
 `DocumentRetentionPolicy` controls whether execution history remains in RAM:
 
 - `audit_full` retains jobs, full receipts, state deltas, and observation bodies;
-- `production_compact` retains semantic state and compact references, but not
-  completed execution generations;
+- `production_compact` retains semantic state and compact derivation records,
+  but not completed execution generations or duplicated proposal bodies;
 - `benchmark_verified` retains the evidence needed for serial/parallel parity
   without defaulting to the complete audit ledger.
 
@@ -70,9 +70,13 @@ prevents repeated start/stop oscillation around one threshold.
 - `OwnerKey -> proposal` buckets;
 - an incremental known-factor dependency set;
 - compact operator job payloads;
-- compact receipt references;
+- compact reference-only job and receipt rows for provenance;
 - explicit release of completed jobs, full receipts, and state deltas;
 - retention and compaction receipts.
+
+The compact records preserve the fibred derivation and integrated-producer
+contracts. They do not retain parser observation bodies or proposal objects a
+second time.
 
 The owner still returns immutable state deltas and uses the existing canonical
 proposal reducer. It does not mutate a shared graph and does not promote legal
@@ -94,22 +98,64 @@ Work is classified as:
 
 When memory or queued output is high, producer leases become zero while
 consumers continue. This drains retained work instead of producing another
-unbounded generation.
+unbounded generation. An `on_lease` callback moves semantic jobs from pending
+to in-flight only when a worker actually receives them.
 
-## Current integration boundary
+## Canonical compiler integration
 
-This PR establishes and tests the resource contract and bounded owner in
-isolation. It deliberately does not yet replace the canonical PostgreSQL
-compiler path. The next integration step is to route the streaming-closure
-stage through the bounded owner and scheduler after parity tests pass, then add
-single-document document-0008 acceptance with retained pressure and RSS
-receipts.
+Bounded execution is installed as an execution strategy on
+`src.policy.operational_corpus_compilation`. It does not introduce another
+compiler authority. The existing `_streaming_semantic_build` function remains
+available as `_serial_streaming_semantic_build` for parity diagnosis.
 
-The order is intentional:
+The bounded strategy now controls `streaming_closure`:
 
-1. prove owner reduction parity;
-2. prove pressure relief and bounded stopping;
-3. route one stage through the bounded path;
-4. run document 0008 under a soft limit;
-5. only then expand to a persistent document-wide process pool and incremental
-   private persistence.
+1. parser observation deltas enter the indexed owner;
+2. base proposals reduce through owner-key buckets;
+3. closure jobs enter one bounded ready frontier;
+4. the scheduler leases at most the configured in-flight limit;
+5. each receipt is admitted and its dirty group reduced immediately;
+6. completed full jobs and receipts are released in production mode;
+7. RSS, process-tree RSS, pending jobs, in-flight jobs, dirty groups, and
+   retention counts are emitted through the named stage callback;
+8. fixed-point certification and outward artifacts retain the existing
+   canonical contracts.
+
+This is a bounded closure executor, not yet the final persistent document-wide
+process pool. Parser, mention, projection, closure, and persistence do not yet
+share one executor.
+
+## Configuration
+
+Bounded execution is enabled by default. Set
+`SENSIBLAW_BOUNDED_DOCUMENT_EXECUTION=0` for serial/parity diagnosis.
+
+The operator-facing controls are:
+
+```text
+SENSIBLAW_DOCUMENT_RETENTION_MODE=production_compact
+SENSIBLAW_DOCUMENT_SOFT_MEMORY_MIB=5120
+SENSIBLAW_DOCUMENT_HARD_MEMORY_MIB=6144
+SENSIBLAW_DOCUMENT_RECOVERY_MEMORY_MIB=4608
+SENSIBLAW_DOCUMENT_QUEUE_LIMIT_MIB=64
+SENSIBLAW_DOCUMENT_MAX_IN_FLIGHT=8
+SENSIBLAW_DOCUMENT_COMPACTION_ATTEMPTS=3
+SENSIBLAW_DOCUMENT_MINIMUM_RECOVERY_MIB=64
+SENSIBLAW_RESOURCE_CHECKPOINT_DIR=/tmp/sensiblaw-resource-checkpoints
+```
+
+The checkpoint directory is optional. When configured, pressure checkpoints are
+written atomically as JSON. A bounded stop retains pending and in-flight job
+references, completed-signature count, resource measurements, and retention
+counts.
+
+## Remaining integration order
+
+1. validate focused compiler, fibred projection, and import-order parity;
+2. run document 0008 alone under the configured soft and hard limits;
+3. retain its stage/resource ledger and pressure checkpoint, if any;
+4. replace the closure thread pool with the persistent active-document process
+   pool after worker payloads are proven serialisable and bounded;
+5. move constraint/refinement work onto differential dirty-key jobs;
+6. add incremental private persistence and atomic publication;
+7. only then restart the complete tranche.
