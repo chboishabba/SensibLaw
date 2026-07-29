@@ -1,16 +1,15 @@
 """Bounded execution strategy for the canonical operational document compiler.
 
-This module does not define a second compiler.  It installs one execution-only
+This module does not define a second compiler. It installs one execution-only
 strategy into :mod:`src.policy.operational_corpus_compilation`: the existing
 ``_streaming_semantic_build`` seam is routed through the indexed bounded owner
-and a persistent, bounded closure executor.  Semantic identities, reducers,
+and a persistent, bounded closure executor. Semantic identities, reducers,
 fixed-point certificates, and the outward artifact contract remain canonical.
 """
 
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import replace
 import json
 import os
 from pathlib import Path
@@ -84,20 +83,18 @@ def execution_policy_from_environment(*, worker_budget: int) -> DocumentExecutio
             "SENSIBLAW_DOCUMENT_MAX_IN_FLIGHT",
             max(2, worker_budget * 2),
         ),
-        queue_limit_bytes=_integer_env(
-            "SENSIBLAW_DOCUMENT_QUEUE_LIMIT_MIB", 64
-        )
-        * MIB,
+        queue_limit_bytes=(
+            _integer_env("SENSIBLAW_DOCUMENT_QUEUE_LIMIT_MIB", 64) * MIB
+        ),
         soft_memory_limit_bytes=soft_mib * MIB,
         hard_memory_limit_bytes=hard_mib * MIB,
         recovery_target_bytes=recovery_mib * MIB,
         max_compaction_attempts=_integer_env(
             "SENSIBLAW_DOCUMENT_COMPACTION_ATTEMPTS", 3
         ),
-        minimum_recovery_bytes=_integer_env(
-            "SENSIBLAW_DOCUMENT_MINIMUM_RECOVERY_MIB", 64
-        )
-        * MIB,
+        minimum_recovery_bytes=(
+            _integer_env("SENSIBLAW_DOCUMENT_MINIMUM_RECOVERY_MIB", 64) * MIB
+        ),
     )
 
 
@@ -183,8 +180,7 @@ def _write_checkpoint(document_ref: str, payload: Mapping[str, Any]) -> None:
 
 def _estimated_job_output_bytes(job: Any) -> int:
     # Input refs and token dictionaries are the best bounded estimate available
-    # before an operator runs.  This is deliberately conservative and feeds
-    # backpressure only; it is not a semantic measurement.
+    # before an operator runs. This feeds backpressure only; it is not semantic.
     payload = dict(job.input_payload or {})
     delta = dict(payload.get("observation_delta") or {})
     observations = tuple(delta.get("observations") or ())
@@ -255,13 +251,6 @@ def bounded_streaming_semantic_build(
     closure = PythonClosureExecutor(
         {STREAMING_OPERATOR_DECLARATION_REF: solve_operator_job}
     )
-    ready_jobs = owner.drain_ready_jobs(limit=policy.max_in_flight_jobs)
-    # Return leased jobs to pending state; the bounded scheduler is the sole
-    # authority that marks each job in flight as it is submitted.
-    for job in ready_jobs:
-        owner._in_flight_jobs.pop(job.job_ref, None)
-        owner._pending_jobs[job.job_ref] = job
-
     receipts: list[Any] = []
     completed_input_refs = 0
     completed_proposals = 0
@@ -300,6 +289,12 @@ def bounded_streaming_semantic_build(
         pressure_checkpoints.append(row)
         _write_checkpoint(document_ref, row)
 
+    def on_lease(scheduled: ScheduledJob[Any]) -> None:
+        job = owner._pending_jobs.pop(scheduled.job_ref, None)
+        if job is None:
+            raise ValueError("scheduler leased a job outside the owner frontier")
+        owner._in_flight_jobs[job.job_ref] = job
+
     def admit(scheduled: ScheduledJob[Any], receipt: Any):
         nonlocal completed_input_refs, completed_proposals, reduction_elapsed_ms
         reduction_started = monotonic_ns()
@@ -311,8 +306,13 @@ def bounded_streaming_semantic_build(
         receipts.append(receipt)
         completed_input_refs += len(receipt.input_refs)
         completed_proposals += len(receipt.proposals)
-        snapshot = sample_resources(0, len(owner._pending_jobs), len(owner._in_flight_jobs))
+        snapshot = sample_resources(
+            0,
+            len(owner._pending_jobs),
+            len(owner._in_flight_jobs),
+        )
         if progress_observer is not None:
+            counts = owner.retention_counts()
             progress_observer(
                 {
                     "jobs_completed": len(receipts),
@@ -323,8 +323,8 @@ def bounded_streaming_semantic_build(
                     "dirty_groups": len(owner._dirty_groups),
                     "rss_bytes": snapshot.rss_bytes,
                     "process_tree_rss_bytes": snapshot.process_tree_rss_bytes,
-                    "retained_jobs": owner.retention_counts()["jobs"],
-                    "retained_receipts": owner.retention_counts()["receipts"],
+                    "retained_jobs": counts["jobs"],
+                    "retained_receipts": counts["receipts"],
                 }
             )
         return ()
@@ -338,9 +338,11 @@ def bounded_streaming_semantic_build(
             criticality=max(0, 1_000 - job.priority),
             estimated_output_bytes=_estimated_job_output_bytes(job),
         )
-        for job in sorted(owner._pending_jobs.values(), key=lambda row: (row.priority, row.job_ref))
+        for job in sorted(
+            owner._pending_jobs.values(),
+            key=lambda row: (row.priority, row.job_ref),
+        )
     )
-    owner._pending_jobs.clear()
 
     with timings.stage("composition_generation") as stage:
         stage.record(
@@ -376,6 +378,7 @@ def bounded_streaming_semantic_build(
                 compact=owner.compact_retained_history,
                 policy=policy,
                 checkpoint=checkpoint,
+                on_lease=on_lease,
             )
             scheduler.extend(scheduled_jobs)
             scheduler_receipt = scheduler.run()
@@ -390,13 +393,17 @@ def bounded_streaming_semantic_build(
         )
 
     if scheduler_receipt.bounded_stop:
-        final_checkpoint = pressure_checkpoints[-1] if pressure_checkpoints else {
-            "document_ref": document_ref,
-            "resource_limit_reached": True,
-            "state": "bounded_stop",
-            "checkpoint_retained": False,
-            "scheduler": scheduler_receipt.to_dict(),
-        }
+        final_checkpoint = (
+            pressure_checkpoints[-1]
+            if pressure_checkpoints
+            else {
+                "document_ref": document_ref,
+                "resource_limit_reached": True,
+                "state": "bounded_stop",
+                "checkpoint_retained": False,
+                "scheduler": scheduler_receipt.to_dict(),
+            }
+        )
         raise DocumentResourceLimitError(final_checkpoint)
 
     materialized = owner.materialized_reduction
@@ -432,7 +439,7 @@ def bounded_streaming_semantic_build(
         )
 
     scopes = sorted({delta.scope_ref for delta in observation_deltas})
-    # Preserve the established artifact contract for persistence.  Compact mode
+    # Preserve the established artifact contract for persistence. Compact mode
     # removes completed execution history before this one final serialization.
     build = {
         **owner.to_dict(),
@@ -497,7 +504,9 @@ def install_bounded_operational_execution() -> bool:
 
     if getattr(operational, _INSTALL_MARKER, False):
         return False
-    operational._serial_streaming_semantic_build = operational._streaming_semantic_build
+    operational._serial_streaming_semantic_build = (
+        operational._streaming_semantic_build
+    )
     operational._streaming_semantic_build = bounded_streaming_semantic_build
     setattr(operational, _INSTALL_MARKER, True)
     return True
