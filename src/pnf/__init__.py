@@ -1,11 +1,20 @@
 """Factorized PNF graph and fibred semantic compiler primitives."""
 
+# ruff: noqa: E402
+
 # Publish the neutral graph/demand authority before modules that import policy
 # helpers.  ``binding_candidate_sets`` depends on ``src.policy.carriers``;
 # importing it first allowed policy initialisation to re-enter this package
 # before PNFGraph/derive_resolution_demands existed.
 from .graph import PNFGraph
-from .demands import derive_resolution_demands
+
+
+def derive_resolution_demands(*args, **kwargs):
+    """Lazily expose demand projection across the policy/PNF import seam."""
+
+    from .demands import derive_resolution_demands as _derive_resolution_demands
+
+    return _derive_resolution_demands(*args, **kwargs)
 
 from .binding_candidate_sets import (
     BindingAccessibilityDeclaration,
@@ -122,6 +131,12 @@ from .streaming_fixed_point import (
 from .streaming_reduction_metrics import install_streaming_reduction_metrics
 
 install_streaming_reduction_metrics()
+
+# Complete the deferred policy strategy installation now that all PNF exports
+# used by the operational compiler exist.
+from src.policy import install_execution_strategies
+
+install_execution_strategies()
 
 __all__ = [
     "INTEGRATED_SEMANTIC_PRODUCER_CONTRACT",

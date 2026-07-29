@@ -24,6 +24,7 @@ from src.policy.artifact_projection import (
     ArtifactManifestReader,
     iter_verified_records,
 )
+from src.policy.manifest_stream_validation import ManifestParentClosureValidator
 from src.policy.corpus_compilation import CompilerContext, build_corpus_manifest
 from src.policy.operational_corpus_compilation import (
     OPERATIONAL_COMPILER_CONTRACT,
@@ -109,6 +110,79 @@ def _verify_descriptor(
 
     for _batch in iter_verified_records(reader, descriptor, batch_size=256):
         pass
+
+
+def _persist_streamed_candidate_builds(
+    cursor: Any, rows: Sequence[Mapping[str, Any]]
+) -> None:
+    """Persist explicit build descriptors after their candidate sets exist."""
+
+    payloads = []
+    for row in rows:
+        identity = {
+            "generator_build_ref": row["generator_build_ref"],
+            "reference_factor_revision_ref": row["reference_factor_revision_ref"],
+            "document_pnf_index_ref": row.get("document_pnf_index_ref"),
+            "accessibility_declaration_ref": row["accessibility_declaration_ref"],
+            "compatibility_declaration_ref": row["compatibility_declaration_ref"],
+            "referential_type_ref": row["referential_type_ref"],
+        }
+        payloads.append(
+            (
+                str(row["generator_build_ref"]),
+                str(row["candidate_set_ref"]),
+                str(row["reference_factor_revision_ref"]),
+                str(row.get("document_pnf_index_ref") or ""),
+                str(row["accessibility_declaration_ref"]),
+                str(row["compatibility_declaration_ref"]),
+                str(row["referential_type_ref"]),
+                canonical_sha256(identity),
+            )
+        )
+    if payloads:
+        cursor.executemany(
+            """
+            INSERT INTO execution.binding_candidate_set_build
+                (generator_build_ref, candidate_set_ref,
+                 reference_factor_revision_ref, document_pnf_index_ref,
+                 accessibility_declaration_ref, compatibility_declaration_ref,
+                 referential_type_ref, build_key_sha256, build_state_ref)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'completed')
+            ON CONFLICT (generator_build_ref) DO UPDATE SET
+                candidate_set_ref = EXCLUDED.candidate_set_ref,
+                reference_factor_revision_ref = EXCLUDED.reference_factor_revision_ref,
+                document_pnf_index_ref = EXCLUDED.document_pnf_index_ref,
+                accessibility_declaration_ref = EXCLUDED.accessibility_declaration_ref,
+                compatibility_declaration_ref = EXCLUDED.compatibility_declaration_ref,
+                referential_type_ref = EXCLUDED.referential_type_ref,
+                build_key_sha256 = EXCLUDED.build_key_sha256
+            """,
+            payloads,
+        )
+
+
+def _persist_streamed_candidate_links(
+    cursor: Any, *, kind: str, rows: Sequence[Mapping[str, Any]]
+) -> None:
+    """Write generic candidate-set links from a verified descriptor batch."""
+
+    specifications = {
+        "refinement": ("refinement_ref", "resolution.refinement_candidate_set"),
+        "meet": ("meet_ref", "resolution.meet_candidate_set"),
+        "demand": ("demand_ref", "resolution.demand_candidate_set"),
+    }
+    source_column, table = specifications[kind]
+    links = [
+        (str(row[source_column]), str(candidate_set_ref))
+        for row in rows
+        for candidate_set_ref in row.get("candidate_set_refs") or ()
+    ]
+    if links:
+        cursor.executemany(
+            f"INSERT INTO {table} ({source_column}, candidate_set_ref) "
+            "VALUES (%s, %s) ON CONFLICT DO NOTHING",
+            links,
+        )
 
 
 def _compile_document_postgres_worker(
@@ -822,6 +896,7 @@ def persist_document_compilation(
             )
     mentions = tuple(artifacts.get("licensing", {}).get("mentions") or ())
     demand_refs: tuple[str, ...] = ()
+    closure_counts: Mapping[str, int | str | bool] = {}
     persistence_guard = ActiveDocumentResourceGuard(document_ref=document_ref)
     reusable_partition_refs = tuple(
         str(row.get("partition_ref"))
@@ -926,10 +1001,12 @@ def persist_document_compilation(
                     pnf_metadata = _descriptor_metadata(reader, pnf_descriptor)
                     persisted_graph_ref = str(pnf_metadata["graph_ref"])
                     persisted_base_factor_revisions: dict[str, str] = {}
+                    closure_validator = ManifestParentClosureValidator()
                     # Factors include their alternatives and residuals, so this
                     # native writer preserves those child rows without a second
                     # factor/alternative/residual collection.
                     for factors in _iter_descriptor_family(reader, pnf_descriptor, "factors"):
+                        closure_validator.admit_factors(factors)
                         persisted_base_factor_revisions.update(
                             persist_pnf_graph(
                                 cursor,
@@ -941,6 +1018,7 @@ def persist_document_compilation(
                     refinement_descriptor = artifacts.get("factor_refinements")
                     if _is_manifest_descriptor(refinement_descriptor):
                         for rows in _iter_descriptor_family(reader, refinement_descriptor, "rows"):
+                            closure_validator.admit_refinements(rows)
                             for refinement in rows:
                                 resulting = refinement.get("resulting_factor")
                                 if isinstance(resulting, Mapping):
@@ -955,6 +1033,10 @@ def persist_document_compilation(
                         if not _is_manifest_descriptor(descriptor):
                             continue
                         for rows in _iter_descriptor_family(reader, descriptor, "rows"):
+                            if argument == "meets":
+                                closure_validator.admit_meets(rows)
+                            elif argument == "demands":
+                                closure_validator.admit_demands(rows)
                             kwargs: dict[str, Any] = {"demands": (), "evidence": (), "meets": (), "refinements": ()}
                             kwargs[argument] = _prepare_meets_for_relational_persistence(rows) if argument == "meets" else rows
                             demand_refs_list.extend(persist_resolution_artifacts(
@@ -963,17 +1045,33 @@ def persist_document_compilation(
                     anchor_descriptor = artifacts.get("factor_anchors")
                     if _is_manifest_descriptor(anchor_descriptor):
                         for rows in _iter_descriptor_family(reader, anchor_descriptor, "rows"):
+                            closure_validator.admit_anchors(rows)
                             persist_binding_candidate_sets(cursor, candidate_sets=(), refinements=(),
                                 factor_revisions=persisted_base_factor_revisions, factor_anchors=rows)
                     set_descriptor = artifacts.get("binding_candidate_sets")
                     if _is_manifest_descriptor(set_descriptor):
                         for rows in _iter_descriptor_family(reader, set_descriptor, "rows"):
+                            closure_validator.admit_candidate_sets(rows)
                             persist_binding_candidate_sets(cursor, candidate_sets=rows, refinements=(),
                                 factor_revisions=persisted_base_factor_revisions, validate_indexed_query=True)
+                    build_descriptor = artifacts.get("binding_candidate_set_builds")
+                    if _is_manifest_descriptor(build_descriptor):
+                        for rows in _iter_descriptor_family(reader, build_descriptor, "rows"):
+                            closure_validator.admit_candidate_builds(rows)
+                            _persist_streamed_candidate_builds(cursor, rows)
+                    # Candidate sets now exist, so replay only the narrow link
+                    # fields from their independently verified source streams.
+                    for key, kind in (("factor_refinements", "refinement"), ("typed_meets", "meet"), ("resolution_demands", "demand")):
+                        descriptor = artifacts.get(key)
+                        if _is_manifest_descriptor(descriptor):
+                            for rows in _iter_descriptor_family(reader, descriptor, "rows"):
+                                _persist_streamed_candidate_links(cursor, kind=kind, rows=rows)
+                    closure_receipt = closure_validator.finalize()
+                    closure_counts = closure_receipt.to_dict()
                     # A descriptor is a persistence receipt too: consume every
                     # declared stream, including projections not stored in SQL.
                     for value in artifacts.values():
-                        if _is_manifest_descriptor(value) and value.get("artifact_key") in {"refined_pnf_graph", "relational_bundle", "semantic_annotation_layer", "canonical_token_rows", "binding_candidate_set_builds"}:
+                        if _is_manifest_descriptor(value) and value.get("artifact_key") in {"refined_pnf_graph", "relational_bundle", "semantic_annotation_layer", "canonical_token_rows"}:
                             _verify_descriptor(reader, value)
                     demand_refs = tuple(sorted(set(demand_refs_list)))
                 else:
@@ -1017,6 +1115,7 @@ def persist_document_compilation(
                         "factors": len(persisted_base_factor_revisions),
                         "refinements": len(refinements),
                         "demands": len(demand_refs),
+                        **closure_counts,
                     },
                     reusable_partition_refs=reusable_partition_refs,
                 )

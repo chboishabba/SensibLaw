@@ -1,4 +1,5 @@
 import os
+import sys
 
 from .semantic_promotion import (
     ABSTAINED,
@@ -78,20 +79,45 @@ def _bounded_execution_enabled() -> bool:
     return value.strip().lower() not in {"0", "false", "no", "off"}
 
 
-if _bounded_execution_enabled():
+_execution_strategies_installed = False
+_execution_strategies_installing = False
+
+
+def install_execution_strategies() -> None:
+    """Install execution policy after the neutral PNF package is available."""
+
+    global _execution_strategies_installed, _execution_strategies_installing
+    if (
+        _execution_strategies_installed
+        or _execution_strategies_installing
+        or not _bounded_execution_enabled()
+    ):
+        return
+    _execution_strategies_installing = True
     # Execution-strategy installation only: corpus_compilation and
     # operational_corpus_compilation remain the sole semantic authorities.
-    from .bounded_operational_execution import (
-        install_bounded_operational_execution,
-    )
-    from .indexed_projection_execution import (
-        indexed_projection_enabled,
-        install_indexed_projection_execution,
-    )
+    try:
+        from .bounded_operational_execution import (
+            install_bounded_operational_execution,
+        )
+        from .indexed_projection_execution import (
+            indexed_projection_enabled,
+            install_indexed_projection_execution,
+        )
 
-    if indexed_projection_enabled():
-        install_indexed_projection_execution()
-    install_bounded_operational_execution()
+        if indexed_projection_enabled():
+            install_indexed_projection_execution()
+        install_bounded_operational_execution()
+        _execution_strategies_installed = True
+    finally:
+        _execution_strategies_installing = False
+
+
+# PNF imports generic policy carriers.  Installing strategies while that
+# package is still importing re-enters its binding modules; PNF calls the
+# explicit installer once its neutral exports are complete.
+if "src.pnf.binding_candidate_sets" not in sys.modules:
+    install_execution_strategies()
 
 
 __all__ = [
