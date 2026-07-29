@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import hashlib
 from time import monotonic_ns
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 from src.pnf.document_fibres import (
     DOCUMENT_FIBRE_CONTRACT,
@@ -43,6 +43,7 @@ from src.pnf.streaming_operator_executor import (
     solve_operator_job,
 )
 from src.policy import corpus_compilation as legacy
+from src.policy.artifact_projection import ArtifactProjectionPolicy, project_artifacts
 from src.runtime.document_stage_metrics import stage_measure_declaration
 from src.runtime.active_document_resources import (
     ActiveDocumentResourceGuard,
@@ -50,6 +51,67 @@ from src.runtime.active_document_resources import (
     NullDocumentProgress,
 )
 from src.runtime.stage_timing import StageTimingLedger
+
+
+def _annotation_layer_records(layer: Any) -> dict[str, Any]:
+    """Project one layer without a whole-layer ``to_dict`` allocation."""
+
+    return {
+        "schema_version": "sl.annotation_layer.v0_1",
+        "layer_ref": layer.layer_ref,
+        "tokenizer_ref": layer.tokenizer_ref,
+        "text_sha256": layer.text_sha256,
+        "token_annotations": [
+            row.to_dict()
+            for row in sorted(
+                layer.token_annotations,
+                key=lambda value: (value.token_index, value.annotation_type),
+            )
+        ],
+        "span_annotations": [
+            row.to_dict()
+            for row in sorted(
+                layer.span_annotations,
+                key=lambda value: (
+                    value.start_token,
+                    value.end_token,
+                    value.span_ref,
+                ),
+            )
+        ],
+        "relation_annotations": [
+            row.to_dict()
+            for row in sorted(
+                layer.relation_annotations,
+                key=lambda value: value.relation_ref,
+            )
+        ],
+        "provenance_refs": sorted(layer.provenance_refs),
+        "authority": "annotation_only",
+    }
+
+
+def _pnf_graph_records(graph: Any) -> dict[str, Any]:
+    """Project graph record families without a whole-graph ``to_dict`` call."""
+
+    return {
+        "schema_version": "sl.pnf_graph.v0_1",
+        "graph_ref": graph.graph_ref,
+        "document_ref": graph.document_ref,
+        "factors": [
+            row.to_dict()
+            for row in sorted(graph.factors, key=lambda value: value.factor_ref)
+        ],
+        "constraints": [
+            row.to_dict()
+            for row in sorted(
+                graph.constraints, key=lambda value: value.constraint_ref
+            )
+        ],
+        "relation_refs": sorted(graph.relation_refs),
+        "residuals": sorted(graph.residuals),
+        "authority": "candidate_only",
+    }
 
 
 OPERATIONAL_COMPILER_CONTRACT = "postgres-semantic-compiler:v0_11"
@@ -340,6 +402,9 @@ def compile_document_operational(
     parser_overlap_chars: int = 8_192,
     parser_checkpoint_dir: str | None = None,
     progress: Any | None = None,
+    artifact_projection_policy: ArtifactProjectionPolicy | None = None,
+    projection_partition_persistence: Callable[[Sequence[Mapping[str, Any]]], None]
+    | None = None,
 ) -> legacy.DocumentCompilation:
     """Compile one document through the streaming local fixed-point boundary."""
 
@@ -772,6 +837,19 @@ def compile_document_operational(
         "streaming_closure",
         totals={"jobs_completed": None},
     ) as progress_stage:
+        # No closure job may allocate from an already pressured projection.
+        # This is deliberately a restart-from-document boundary: changing the
+        # fibre policy after pressure would change execution policy silently.
+        resource_guard.checkpoint(
+            stage="streaming_closure",
+            current_kernel="artifact_projection",
+            retained_indexes=(
+                len(parser_deltas)
+                + len(semantic_output.factors)
+                + len(relational_bundle.get("relations") or ())
+            ),
+            fail_on_soft_pressure=True,
+        )
 
         def observe_closure_progress(payload: Mapping[str, Any]) -> None:
             if progress_stage is None:
@@ -1014,6 +1092,10 @@ def compile_document_operational(
                 boundary_demand_refs=demand_refs,
             )
         )
+    if projection_partition_persistence is not None:
+        # Persistence is execution policy injected into the sole semantic
+        # compiler. Partition rows are reusable metadata, never a document.
+        projection_partition_persistence(tuple(row.to_dict() for row in partitions))
     projection_manifest = document_projection_join(
         partitions=partitions,
         logical_layers=(base_logical_layer, semantic_logical_layer),
@@ -1040,7 +1122,7 @@ def compile_document_operational(
             legacy.canonical_json(row)
             for row in legacy.summarize_untyped_diagnostics(unresolved_span_diagnostics)
         ],
-        "annotation_layer": layer.to_dict(),
+        "annotation_layer": _annotation_layer_records(layer),
         "parser_receipt": parser_receipt,
         "document_structural_carrier": parser_receipt.get(
             "document_structural_carrier"
@@ -1057,7 +1139,7 @@ def compile_document_operational(
             semantic_logical_layer.to_dict(),
         ],
         "document_projection_manifest": projection_manifest.to_dict(),
-        "semantic_annotation_layer": semantic_layer.to_dict(),
+        "semantic_annotation_layer": _annotation_layer_records(semantic_layer),
         "relational_bundle": legacy.canonical_json(relational_bundle),
         "semantic_reduction_declarations": [row.to_dict() for row in declarations],
         "compiler_declarations": [
@@ -1070,8 +1152,8 @@ def compile_document_operational(
         "constraint_assessments": [row.to_dict() for row in constraint_assessments],
         "local_evidence": [row.to_dict() for row in local_evidence],
         "local_meet_plan": [legacy.canonical_json(row) for row in local_meet_plan],
-        "pnf_graph": pnf_graph.to_dict(),
-        "refined_pnf_graph": refined_pnf_graph.to_dict(),
+        "pnf_graph": _pnf_graph_records(pnf_graph),
+        "refined_pnf_graph": _pnf_graph_records(refined_pnf_graph),
         "resolution_demands": [legacy.canonical_json(row) for row in demands],
         "typed_meets": [row.to_dict() for row in typed_meets],
         "factor_refinements": [row.to_dict() for row in refinements],
@@ -1107,11 +1189,32 @@ def compile_document_operational(
         },
     }
     operational_artifacts = build_operational_reference_binding_artifacts(artifacts)
+    resource_guard.checkpoint(
+        stage="demand_derivation",
+        current_kernel="artifact_projection",
+        retained_indexes=len(operational_artifacts),
+        reusable_partition_refs=tuple(row.partition_ref for row in partitions),
+    )
+    projected_artifacts, artifact_reader = project_artifacts(
+        operational_artifacts,
+        policy=artifact_projection_policy or ArtifactProjectionPolicy.production(),
+    )
+    resource_guard.checkpoint(
+        stage="demand_derivation",
+        current_kernel="artifact_projection_release",
+        persisted_counts={
+            key: int(value.get("record_count") or 0)
+            for key, value in projected_artifacts.items()
+            if isinstance(value, Mapping) and value.get("representation") == "manifest"
+        },
+        reusable_partition_refs=tuple(row.partition_ref for row in partitions),
+    )
     return legacy.DocumentCompilation(
         document_ref=document_ref,
         content_sha256=content_sha256,
         media_type=media_type,
-        artifacts=operational_artifacts,
+        artifacts=projected_artifacts,
+        artifact_reader=artifact_reader,
     )
 
 

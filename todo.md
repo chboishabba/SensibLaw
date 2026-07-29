@@ -1,5 +1,12 @@
 # SensibLaw TODO
 
+- [DONE 2026-07-29] Replace parser-receipt aggregation over all checkpoint
+  payloads with atomic compact per-fibre summaries. Worker loss is now
+  parent-visible and fail-closed with a `parser_fibre_execution` resource
+  receipt; no automatic fibre-size retry is permitted. The next acceptance
+  gate is the full document-0008 subprocess under 512/576 MiB, including its
+  receipt and RSS plateau capture.
+
 - [DONE 2026-07-29] Bound operational streaming-closure frontier admission:
   batch sentence deltas, index coverage completion, avoid completed-job
   payload duplication, and expose admission/lease progress before restarting
@@ -2482,3 +2489,22 @@ Acceptance for P0a-P0d:
   derivation now have named progress stages and closure-loop cumulative
   counters. Plotting should use only rates with at least two changing samples;
   final totals remain separate.
+# Manifest-backed document publication
+
+- [ ] Replace the merged fibred parser dictionary with a replayable,
+  checkpoint-backed owned-sentence carrier; prove repeated iteration preserves
+  sentence/token/dependency coordinates without retaining all physical parses.
+- [ ] Keep production artifact keys stable while returning versioned manifest
+  descriptors; materialised artifacts require an explicit injected
+  compatibility policy.
+- [ ] Stream annotation, relation, factor, constraint, assessment, refinement,
+  and demand families into their existing generic PostgreSQL schemas in
+  bounded batches with deterministic ordered digests.
+- [ ] Correct migration 025 so immutable partition/build metadata lives under
+  `execution` and no authoritative `public.compiler_*` tables are introduced.
+- [ ] Publish completed build/manifest and compiled occurrence atomically after
+  coverage, demand, join, fixed-point, persistence, and digest validation.
+- [ ] Reject every unexplained overlap; require exact owned deduplication or an
+  explicit boundary demand.
+- [ ] Pass strict 12k and full document 0008 under 512 MiB soft / 576 MiB hard
+  limits with named kernel resource receipts.

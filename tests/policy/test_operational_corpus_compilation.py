@@ -8,13 +8,22 @@ import pytest
 from src.pnf.reference_binding import REFERENCE_BINDING_CONTRACT_REF
 from src.policy import corpus_compilation as legacy
 from src.policy.corpus_compilation import default_compiler_context
+from src.policy.artifact_projection import ArtifactProjectionPolicy
 from src.policy.operational_corpus_compilation import (
     DOCUMENT_COMPILE_STAGE_NAMES,
     OPERATIONAL_COMPILER_CONTRACT,
-    compile_document_operational,
+    compile_document_operational as _compile_document_operational,
 )
 from src.runtime.progress import PhaseRecorder
 from src.runtime.active_document_resources import DocumentResourceLimitError
+
+
+def compile_document_operational(*args, **kwargs):
+    kwargs.setdefault(
+        "artifact_projection_policy",
+        ArtifactProjectionPolicy.materialised_compatibility(),
+    )
+    return _compile_document_operational(*args, **kwargs)
 
 
 def test_operational_compiler_never_materializes_pairwise_binding(monkeypatch) -> None:

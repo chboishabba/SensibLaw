@@ -36,10 +36,12 @@ def test_document_projection_manifest_is_partition_independent() -> None:
         build_partition_manifest(
             fibre=_fibre(0, 0, 5), carrier_ref="carrier:1", source_sha256="b" * 64,
             build_key_sha256="c" * 64, parser_contract_ref="parser:1", reducer_contract_ref="reducer:1",
+            annotation_record_refs=("annotation:0",),
         ),
         build_partition_manifest(
             fibre=_fibre(1, 5, 10), carrier_ref="carrier:1", source_sha256="b" * 64,
             build_key_sha256="c" * 64, parser_contract_ref="parser:1", reducer_contract_ref="reducer:1",
+            annotation_record_refs=("annotation:1",),
         ),
     ]
     manifest = document_projection_join(partitions=parts, logical_layers=(logical,), canonical_length=10)
@@ -65,3 +67,23 @@ def test_document_projection_join_rejects_noncontiguous_ownership() -> None:
     ]
     with pytest.raises(ValueError, match="contiguous"):
         document_projection_join(partitions=parts, logical_layers=(logical,), canonical_length=10)
+
+
+def test_document_projection_join_rejects_unexplained_overlap() -> None:
+    logical = build_logical_layer_manifest(
+        document_ref="document:manifest", source_sha256="b" * 64, layer={}
+    )
+    parts = [
+        build_partition_manifest(
+            fibre=_fibre(0, 0, 5), carrier_ref="carrier:1", source_sha256="b" * 64,
+            build_key_sha256="c" * 64, parser_contract_ref="parser:1", reducer_contract_ref="reducer:1",
+        ),
+        build_partition_manifest(
+            fibre=_fibre(1, 5, 10), carrier_ref="carrier:1", source_sha256="b" * 64,
+            build_key_sha256="c" * 64, parser_contract_ref="parser:1", reducer_contract_ref="reducer:1",
+        ),
+    ]
+    with pytest.raises(ValueError, match="explicit boundary demand"):
+        document_projection_join(
+            partitions=parts, logical_layers=(logical,), canonical_length=10
+        )

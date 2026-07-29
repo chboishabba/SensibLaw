@@ -9,15 +9,20 @@ before mention licensing, PNF construction, constraint closure, or persistence.
 from __future__ import annotations
 
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from concurrent.futures.process import BrokenProcessPool
 from dataclasses import dataclass
 import hashlib
 import json
 import os
 from pathlib import Path
 import tempfile
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any, Callable, Iterator, Mapping, MutableMapping, Sequence
 
 from src.policy.carriers.canonical import canonical_sha256
+from src.runtime.active_document_resources import (
+    ActiveDocumentResourceGuard,
+    DocumentResourceLimitError,
+)
 from src.sensiblaw.interfaces import parse_canonical_text
 
 
@@ -153,6 +158,124 @@ class DocumentStructuralCarrier:
         return payload
 
 
+class _OwnedSentenceSequence(Sequence[Mapping[str, Any]]):
+    """Replay owned parser sentences one physical fibre at a time."""
+
+    def __init__(self, carrier: "DocumentSentenceCarrier", sentence_count: int):
+        self._carrier = carrier
+        self._sentence_count = sentence_count
+
+    def __len__(self) -> int:
+        return self._sentence_count
+
+    def __iter__(self) -> Iterator[Mapping[str, Any]]:
+        yield from self._carrier._iter_sentences()
+
+    def __getitem__(self, index: int | slice) -> Mapping[str, Any] | tuple[Mapping[str, Any], ...]:
+        if isinstance(index, slice):
+            return tuple(self)[index]
+        if index < 0:
+            index += self._sentence_count
+        if not 0 <= index < self._sentence_count:
+            raise IndexError(index)
+        for sentence_index, sentence in enumerate(self):
+            if sentence_index == index:
+                return sentence
+        raise IndexError(index)
+
+
+class DocumentSentenceCarrier(Mapping[str, Any]):
+    """Checkpoint-backed document parser mapping with a bounded sentence view.
+
+    It intentionally preserves the historical mapping shape while ensuring that
+    a caller cannot retain every physical parser response merely by receiving a
+    fibred parse result.  Each iteration reloads and releases one owned fibre.
+    """
+
+    def __init__(
+        self,
+        *,
+        carrier: DocumentStructuralCarrier,
+        canonical_text: str,
+        checkpoint_dir: Path,
+        parser_receipt: Mapping[str, Any],
+        sentence_count: int,
+        temporary_checkpoint_dir: tempfile.TemporaryDirectory[str] | None = None,
+    ) -> None:
+        self._carrier = carrier
+        self._canonical_text = canonical_text
+        self._checkpoint_dir = checkpoint_dir
+        self._parser_receipt = dict(parser_receipt)
+        self._sentences = _OwnedSentenceSequence(self, sentence_count)
+        self._temporary_checkpoint_dir = temporary_checkpoint_dir
+
+    def __getitem__(self, key: str) -> Any:
+        if key == "text":
+            return self._canonical_text
+        if key == "sents":
+            return self._sentences
+        if key == "parser_receipt":
+            return self._parser_receipt
+        raise KeyError(key)
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(("text", "sents", "parser_receipt"))
+
+    def __len__(self) -> int:
+        return 3
+
+    def close(self) -> None:
+        """Release an internally-created checkpoint directory, if any."""
+
+        if self._temporary_checkpoint_dir is not None:
+            self._temporary_checkpoint_dir.cleanup()
+            self._temporary_checkpoint_dir = None
+
+    def __del__(self) -> None:
+        self.close()
+
+    def _iter_sentences(self) -> Iterator[Mapping[str, Any]]:
+        token_cursor = 0
+        for fibre in self._carrier.fibres:
+            parsed = _load_checkpoint(self._checkpoint_dir, fibre)
+            if parsed is None:
+                raise ValueError(f"missing parser checkpoint for {fibre.fibre_ref}")
+            selected = list(_owned_sentence_rows(fibre=fibre, parsed_document=parsed))
+            local_to_global: dict[int, int] = {}
+            for row in selected:
+                for token in row["tokens"]:
+                    local_to_global[int(token.get("index", 0))] = token_cursor
+                    token_cursor += 1
+            for row in selected:
+                merged_tokens: list[dict[str, Any]] = []
+                for token in row["tokens"]:
+                    local_index = int(token.get("index", 0))
+                    local_head = int(token.get("head_index", local_index))
+                    global_start = fibre.context_start + int(token.get("start", 0))
+                    global_end = fibre.context_start + int(
+                        token.get("end", token.get("start", 0))
+                    )
+                    global_index = local_to_global[local_index]
+                    merged_tokens.append(
+                        {
+                            **token,
+                            "index": global_index,
+                            "head_index": local_to_global.get(local_head, global_index),
+                            "start": global_start,
+                            "end": global_end,
+                        }
+                    )
+                yield {
+                    "text": self._canonical_text[row["start"]:row["end"]],
+                    "start": row["start"],
+                    "end": row["end"],
+                    "tokens": merged_tokens,
+                    "fibre_ref": fibre.fibre_ref,
+                }
+            del selected
+            del parsed
+
+
 def _safe_owner_end(text: str, *, start: int, desired: int, target: int) -> int:
     """Choose a stable structural boundary without invoking a second parser."""
 
@@ -239,6 +362,13 @@ def _checkpoint_path(checkpoint_dir: Path, fibre: DocumentFibre) -> Path:
     return checkpoint_dir / f"{digest}.json"
 
 
+def _summary_path(checkpoint_dir: Path, fibre: DocumentFibre) -> Path:
+    """Return the compact accounting sidecar for a fibre checkpoint."""
+
+    digest = fibre.fibre_ref.removeprefix("document-fibre:")
+    return checkpoint_dir / f"{digest}.summary.json"
+
+
 def _load_checkpoint(
     checkpoint_dir: Path | None,
     fibre: DocumentFibre,
@@ -287,6 +417,95 @@ def _save_checkpoint(
         os.fsync(handle.fileno())
         temp_path = Path(handle.name)
     temp_path.replace(path)
+
+
+def _build_fibre_summary(
+    *, fibre: DocumentFibre, parsed_document: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Extract receipt-only state while the worker still owns its parse.
+
+    The parent must never reopen every parser payload just to create a document
+    receipt.  This sidecar intentionally contains only counts, parser receipt
+    metadata, and unresolved head endpoints needed by the document receipt.
+    """
+
+    selected = tuple(_owned_sentence_rows(fibre=fibre, parsed_document=parsed_document))
+    counts = _parsed_document_measure_counts(parsed_document)
+    token_cursor = 0
+    cross_fibre_demands: list[dict[str, Any]] = []
+    for row in selected:
+        local_indexes = {int(token.get("index", 0)) for token in row["tokens"]}
+        for token in row["tokens"]:
+            local_index = int(token.get("index", 0))
+            local_head = int(token.get("head_index", local_index))
+            if local_head not in local_indexes:
+                token_start = fibre.context_start + int(token.get("start", 0))
+                cross_fibre_demands.append(
+                    {
+                        "demand_ref": "cross-fibre-demand:"
+                        + canonical_sha256(
+                            {
+                                "document_ref": fibre.document_ref,
+                                "token": (token_start, str(token.get("text") or "")),
+                                "head": local_head,
+                            }
+                        ),
+                        "demand_type": "dependency_endpoint",
+                        "state": "unresolved",
+                        "token_global_index": token_cursor,
+                        "head_global_index": token_cursor,
+                        "source_fibre_ref": fibre.fibre_ref,
+                    }
+                )
+            token_cursor += 1
+    return {
+        "contract_ref": DOCUMENT_FIBRE_CONTRACT,
+        "fibre": fibre.to_dict(),
+        "counts": counts,
+        "owned_sentence_count": len(selected),
+        "owned_token_count": token_cursor,
+        "parser_receipt": dict(parsed_document.get("parser_receipt") or {}),
+        "cross_fibre_demands": cross_fibre_demands,
+    }
+
+
+def _save_fibre_summary(
+    checkpoint_dir: Path | None,
+    fibre: DocumentFibre,
+    parsed_document: Mapping[str, Any],
+) -> dict[str, Any]:
+    summary = _build_fibre_summary(fibre=fibre, parsed_document=parsed_document)
+    if checkpoint_dir is None:
+        return summary
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    path = _summary_path(checkpoint_dir, fibre)
+    with tempfile.NamedTemporaryFile(
+        "w", encoding="utf-8", dir=checkpoint_dir, prefix=f".{path.name}.",
+        suffix=".tmp", delete=False,
+    ) as handle:
+        json.dump(summary, handle, ensure_ascii=False, sort_keys=True)
+        handle.write("\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+        temporary = Path(handle.name)
+    temporary.replace(path)
+    return summary
+
+
+def _load_fibre_summary(
+    checkpoint_dir: Path, fibre: DocumentFibre
+) -> dict[str, Any] | None:
+    path = _summary_path(checkpoint_dir, fibre)
+    if not path.exists():
+        return None
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if (
+        not isinstance(payload, dict)
+        or payload.get("contract_ref") != DOCUMENT_FIBRE_CONTRACT
+        or payload.get("fibre") != fibre.to_dict()
+    ):
+        return None
+    return payload
 
 
 def _parsed_document_measure_counts(parsed_document: Mapping[str, Any]) -> dict[str, int]:
@@ -341,6 +560,29 @@ def _parse_fibre_process(
     )
 
 
+def _parse_fibre_summary(
+    *,
+    fibre: DocumentFibre,
+    canonical_text: str,
+    checkpoint_dir: Path | None,
+    parser: Callable[[str], Mapping[str, Any]] | None = None,
+) -> tuple[DocumentFibre, dict[str, Any], bool]:
+    """Persist one physical parse and return only bounded accounting metadata."""
+
+    selected_parser = parse_canonical_text if parser is None else parser
+    parsed_fibre, parsed, reused = _parse_fibre(
+        fibre=fibre,
+        canonical_text=canonical_text,
+        parser=selected_parser,
+        checkpoint_dir=checkpoint_dir,
+    )
+    summary = _load_fibre_summary(checkpoint_dir, parsed_fibre) if checkpoint_dir else None
+    if summary is None:
+        summary = _save_fibre_summary(checkpoint_dir, parsed_fibre, parsed)
+    del parsed
+    return parsed_fibre, summary, reused
+
+
 def _owner_for_position(
     fibres: Sequence[DocumentFibre],
     position: int,
@@ -351,11 +593,145 @@ def _owner_for_position(
     return fibres[-1]
 
 
+def _parser_execution_checkpoint(
+    guard: ActiveDocumentResourceGuard,
+    *,
+    fibre: DocumentFibre,
+    active_batch_size: int,
+    reusable_partition_refs: tuple[str, ...],
+    checkpoint_refs: tuple[str, ...] = (),
+) -> dict[str, Any]:
+    """Sample the parser worker boundary and enrich every terminal receipt."""
+
+    try:
+        payload = guard.checkpoint(
+            stage="parser_annotation",
+            current_kernel="parser_fibre_execution",
+            active_batch_size=active_batch_size,
+            reusable_partition_refs=reusable_partition_refs,
+        )
+    except DocumentResourceLimitError as error:
+        payload = dict(error.checkpoint)
+        payload.update(
+            {
+                "fibre_ref": fibre.fibre_ref,
+                "checkpoint_refs": list(checkpoint_refs),
+            }
+        )
+        guard._write_receipt(payload)
+        raise DocumentResourceLimitError(payload) from error
+    return payload
+
+
+def _owned_sentence_rows(
+    *,
+    fibre: DocumentFibre,
+    parsed_document: Mapping[str, Any],
+) -> Iterator[dict[str, Any]]:
+    """Yield this fibre's owned sentences with global character coordinates."""
+
+    for sentence_no, sentence in enumerate(parsed_document.get("sents") or ()):
+        if not isinstance(sentence, Mapping):
+            continue
+        start = fibre.context_start + int(sentence.get("start", 0))
+        end = fibre.context_start + int(sentence.get("end", sentence.get("start", 0)))
+        if fibre.owner_start <= start < fibre.owner_end:
+            yield {
+                "sentence_no": sentence_no,
+                "start": start,
+                "end": end,
+                "tokens": tuple(
+                    dict(token)
+                    for token in sentence.get("tokens") or ()
+                    if isinstance(token, Mapping)
+                ),
+            }
+
+
+def _build_streaming_parser_receipt(
+    *,
+    carrier: DocumentStructuralCarrier,
+    checkpoint_dir: Path,
+    reused_fibre_count: int,
+    workload_estimate: Mapping[str, int],
+    parser_limit_chars: int,
+) -> tuple[dict[str, Any], int]:
+    """Derive document receipt metadata without recreating document sentences."""
+
+    receipts: list[Mapping[str, Any]] = []
+    capabilities: list[Mapping[str, Any]] = []
+    demands: list[dict[str, Any]] = []
+    sentence_count = 0
+    token_cursor = 0
+    for fibre in carrier.fibres:
+        summary = _load_fibre_summary(checkpoint_dir, fibre)
+        if summary is None:
+            raise ValueError(f"missing parser summary for {fibre.fibre_ref}")
+        receipt = summary.get("parser_receipt") or {}
+        if isinstance(receipt, Mapping):
+            receipts.append(receipt)
+            capability = receipt.get("capabilities") or {}
+            if isinstance(capability, Mapping):
+                capabilities.append(capability)
+        sentence_count += int(summary.get("owned_sentence_count") or 0)
+        for demand in summary.get("cross_fibre_demands") or ():
+            if isinstance(demand, Mapping):
+                row = dict(demand)
+                row["token_global_index"] = token_cursor + int(row["token_global_index"])
+                row["head_global_index"] = token_cursor + int(row["head_global_index"])
+                demands.append(row)
+        token_cursor += int(summary.get("owned_token_count") or 0)
+
+    capability_keys = sorted({str(key) for row in capabilities for key in row})
+    merged_capabilities = {
+        key: all(bool(row.get(key, False)) for row in capabilities)
+        for key in capability_keys
+    }
+    parser_contracts = sorted(
+        {
+            str(row.get("contract_ref") or row.get("backend_ref") or "")
+            for row in receipts
+        }
+    )
+    unresolved_count = len(demands)
+    return (
+        {
+            "contract_ref": DOCUMENT_FIBRE_CONTRACT,
+            "backend_ref": "parser:document-fibres",
+            "upstream_parser_contract_refs": parser_contracts,
+            "capabilities": merged_capabilities,
+            "authority": "parser_observation_only",
+            "document_structural_carrier": carrier.to_dict(),
+            "fibre_count": len(carrier.fibres),
+            "execution_mode": "adaptive_fibres",
+            "worker_count": carrier.policy.workers,
+            "partition_count": len(carrier.fibres),
+            "parallelism_reason": (
+                "workload_threshold"
+                if len(carrier.fibres) > 1 and carrier.canonical_length < parser_limit_chars
+                else "parser_safety_ceiling"
+            ),
+            "workload_estimate": dict(workload_estimate),
+            "reused_fibre_count": reused_fibre_count,
+            "cross_fibre_demands": sorted(demands, key=lambda row: str(row["demand_ref"])),
+            "cross_fibre_fixed_point": {
+                "state": "closed" if unresolved_count == 0 else "bounded_with_residuals",
+                "iterations": 1,
+                "layer": "parser_observation",
+                "unresolved_demand_count": unresolved_count,
+                "semantic_object": "document",
+                "fibre_semantic_authority": False,
+            },
+        },
+        sentence_count,
+    )
+
+
 def _merge_fibre_parses(
     *,
     carrier: DocumentStructuralCarrier,
     canonical_text: str,
-    parsed_by_ref: Mapping[str, Mapping[str, Any]],
+    parsed_by_ref: MutableMapping[str, Mapping[str, Any]],
     reused_fibre_count: int,
     workload_estimate: Mapping[str, int] | None = None,
     parser_limit_chars: int | None = None,
@@ -364,7 +740,9 @@ def _merge_fibre_parses(
     receipts: list[Mapping[str, Any]] = []
     capabilities: list[Mapping[str, Any]] = []
     for fibre in carrier.fibres:
-        parsed = parsed_by_ref[fibre.fibre_ref]
+        # The merged document is the only retained parser carrier. Release each
+        # physical fibre as soon as its owned observations have been copied.
+        parsed = parsed_by_ref.pop(fibre.fibre_ref)
         receipt = parsed.get("parser_receipt") or {}
         if isinstance(receipt, Mapping):
             receipts.append(receipt)
@@ -418,6 +796,8 @@ def _merge_fibre_parses(
     ordered_keys = sorted({row[1] for row in token_rows})
     global_index_by_key = {key: index for index, key in enumerate(ordered_keys)}
     key_by_local = {local: key for local, key, _token in token_rows}
+    del token_rows
+    del ordered_keys
 
     demands: list[dict[str, Any]] = []
     merged_sentences: list[dict[str, Any]] = []
@@ -478,6 +858,7 @@ def _merge_fibre_parses(
                 "fibre_ref": fibre.fibre_ref,
             }
         )
+        sentence["tokens"] = []
 
     capability_keys = sorted(
         {str(key) for row in capabilities for key in row}
@@ -547,6 +928,7 @@ def parse_document_fibres(
     """Parse a document monolithically or as fibres under one output contract."""
 
     selected_policy = policy or DocumentFibrePolicy()
+    resource_guard = ActiveDocumentResourceGuard(document_ref=document_ref)
     workload = selected_policy.estimate_workload(canonical_text)
     process_parser = (
         getattr(parser, "__module__", "")
@@ -568,13 +950,38 @@ def parse_document_fibres(
                 context_end=len(canonical_text),
                 text_sha256=hashlib.sha256(canonical_text.encode("utf-8")).hexdigest(),
             )
-            with ProcessPoolExecutor(max_workers=1) as pool:
-                _fibre, parsed, _reused = pool.submit(
-                    _parse_fibre_process,
+            try:
+                with ProcessPoolExecutor(max_workers=1) as pool:
+                    _fibre, parsed, _reused = pool.submit(
+                        _parse_fibre_process,
+                        fibre=whole_fibre,
+                        canonical_text=canonical_text,
+                        checkpoint_dir=None,
+                    ).result()
+                    _parser_execution_checkpoint(
+                        resource_guard,
+                        fibre=whole_fibre,
+                        active_batch_size=1,
+                        reusable_partition_refs=(whole_fibre.fibre_ref,),
+                    )
+            except BrokenProcessPool as error:
+                payload = _parser_execution_checkpoint(
+                    resource_guard,
                     fibre=whole_fibre,
-                    canonical_text=canonical_text,
-                    checkpoint_dir=None,
-                ).result()
+                    active_batch_size=1,
+                    reusable_partition_refs=(whole_fibre.fibre_ref,),
+                )
+                payload.update(
+                    {
+                        "resource_limit_reached": True,
+                        "worker_lost": True,
+                        "fibre_ref": whole_fibre.fibre_ref,
+                        "checkpoint_refs": [],
+                        "worker_error": str(error),
+                    }
+                )
+                resource_guard._write_receipt(payload)
+                raise DocumentResourceLimitError(payload) from error
             parsed = dict(parsed)
         else:
             parsed = dict(parser(canonical_text))
@@ -635,12 +1042,21 @@ def parse_document_fibres(
         canonical_text=canonical_text,
         policy=selected_policy,
     )
-    resolved_checkpoint_dir = (
-        Path(checkpoint_dir).resolve() if checkpoint_dir is not None else None
-    )
-    results: dict[str, Mapping[str, Any]] = {}
+    temporary_checkpoint_dir: tempfile.TemporaryDirectory[str] | None = None
+    if checkpoint_dir is None:
+        temporary_checkpoint_dir = tempfile.TemporaryDirectory(
+            prefix="sensiblaw-document-fibres-"
+        )
+        resolved_checkpoint_dir = Path(temporary_checkpoint_dir.name)
+    else:
+        resolved_checkpoint_dir = Path(checkpoint_dir).resolve()
     reused_count = 0
     completed_fibres = 0
+    completed_counts = {
+        "sentences": 0,
+        "tokens": 0,
+        "dependencies": 0,
+    }
     # The canonical parser releases too little GIL for thread pools to scale on
     # large fibres.  Use isolated processes for the public parser spine; retain
     # a thread fallback for injected test/adaptor parsers that may not be
@@ -649,19 +1065,61 @@ def parse_document_fibres(
     with pool_type(max_workers=selected_policy.workers) as pool:
         futures = {
             pool.submit(
-                _parse_fibre_process if process_parser else _parse_fibre,
+                _parse_fibre_summary,
                 fibre=fibre,
                 canonical_text=canonical_text,
-                **({} if process_parser else {"parser": parser}),
                 checkpoint_dir=resolved_checkpoint_dir,
+                **({} if process_parser else {"parser": parser}),
             ): fibre
             for fibre in carrier.fibres
         }
         for future in as_completed(futures):
-            fibre, parsed, reused = future.result()
-            results[fibre.fibre_ref] = parsed
+            expected_fibre = futures[future]
+            try:
+                fibre, summary, reused = future.result()
+            except BrokenProcessPool as error:
+                checkpoint_refs = tuple(
+                    str(_checkpoint_path(resolved_checkpoint_dir, row))
+                    for row in carrier.fibres
+                    if _load_checkpoint(resolved_checkpoint_dir, row) is not None
+                )
+                payload = _parser_execution_checkpoint(
+                    resource_guard,
+                    fibre=expected_fibre,
+                    active_batch_size=len(futures) - completed_fibres,
+                    reusable_partition_refs=tuple(
+                        row.fibre_ref for row in carrier.fibres
+                        if _load_checkpoint(resolved_checkpoint_dir, row) is not None
+                    ),
+                    checkpoint_refs=checkpoint_refs,
+                )
+                payload.update(
+                    {
+                        "resource_limit_reached": True,
+                        "worker_lost": True,
+                        "fibre_ref": expected_fibre.fibre_ref,
+                        "checkpoint_refs": list(checkpoint_refs),
+                        "worker_error": str(error),
+                    }
+                )
+                resource_guard._write_receipt(payload)
+                raise DocumentResourceLimitError(payload) from error
             reused_count += int(reused)
             completed_fibres += 1
+            for key in completed_counts:
+                completed_counts[key] += int(summary["counts"][key])
+            _parser_execution_checkpoint(
+                resource_guard,
+                fibre=fibre,
+                active_batch_size=len(futures) - completed_fibres,
+                reusable_partition_refs=tuple(
+                    row.fibre_ref for row in carrier.fibres[:completed_fibres]
+                ),
+                checkpoint_refs=tuple(
+                    str(_checkpoint_path(resolved_checkpoint_dir, row))
+                    for row in carrier.fibres[:completed_fibres]
+                ),
+            )
             if progress is not None:
                 if (
                     hasattr(progress, "observe")
@@ -676,28 +1134,15 @@ def parse_document_fibres(
                                 "unit": "fibres",
                             },
                             "sentences": {
-                                "completed": sum(
-                                    len(doc.get("sents") or ())
-                                    for doc in results.values()
-                                ),
+                                "completed": completed_counts["sentences"],
                                 "unit": "sentences",
                             },
                             "tokens": {
-                                "completed": sum(
-                                    len(sentence.get("tokens") or ())
-                                    for doc in results.values()
-                                    for sentence in tuple(doc.get("sents") or ())
-                                ),
+                                "completed": completed_counts["tokens"],
                                 "unit": "tokens",
                             },
                             "dependencies": {
-                                "completed": sum(
-                                    1
-                                    for doc in results.values()
-                                    for sentence in tuple(doc.get("sents") or ())
-                                    for token in tuple(sentence.get("tokens") or ())
-                                    if str(token.get("dep") or "")
-                                ),
+                                "completed": completed_counts["dependencies"],
                                 "unit": "dependencies",
                             },
                         },
@@ -712,13 +1157,20 @@ def parse_document_fibres(
                             "reused": reused,
                         },
                     )
-    return _merge_fibre_parses(
+    parser_receipt, sentence_count = _build_streaming_parser_receipt(
         carrier=carrier,
-        canonical_text=canonical_text,
-        parsed_by_ref=results,
+        checkpoint_dir=resolved_checkpoint_dir,
         reused_fibre_count=reused_count,
         workload_estimate=workload,
         parser_limit_chars=selected_policy.parser_limit_chars,
+    )
+    return DocumentSentenceCarrier(
+        carrier=carrier,
+        canonical_text=canonical_text,
+        checkpoint_dir=resolved_checkpoint_dir,
+        parser_receipt=parser_receipt,
+        sentence_count=sentence_count,
+        temporary_checkpoint_dir=temporary_checkpoint_dir,
     )
 
 
@@ -726,6 +1178,7 @@ __all__ = [
     "DOCUMENT_FIBRE_CONTRACT",
     "DocumentFibre",
     "DocumentFibrePolicy",
+    "DocumentSentenceCarrier",
     "DocumentStructuralCarrier",
     "build_document_structural_carrier",
     "parse_document_fibres",

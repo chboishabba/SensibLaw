@@ -291,6 +291,7 @@ class DocumentCompilation:
     content_sha256: str
     media_type: str
     artifacts: Mapping[str, Any]
+    artifact_reader: Any | None = None
     status: str = "compiled"
     failure: Mapping[str, Any] | None = None
 

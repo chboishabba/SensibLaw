@@ -96,7 +96,17 @@ class ActiveDocumentResourceGuard:
             "process_tree_rss_bytes": current_process_tree_rss_bytes(),
         }
 
-    def checkpoint(self, *, stage: str, current_kernel: str) -> dict[str, Any]:
+    def checkpoint(
+        self,
+        *,
+        stage: str,
+        current_kernel: str,
+        active_batch_size: int = 0,
+        retained_indexes: int = 0,
+        persisted_counts: Mapping[str, int] | None = None,
+        reusable_partition_refs: tuple[str, ...] = (),
+        fail_on_soft_pressure: bool = False,
+    ) -> dict[str, Any]:
         resources = self.sample()
         observed = max(resources.values())
         soft_pressure = observed >= self.soft_limit_bytes
@@ -114,11 +124,20 @@ class ActiveDocumentResourceGuard:
             "soft_memory_limit_bytes": self.soft_limit_bytes,
             "hard_memory_limit_bytes": self.hard_limit_bytes,
             "soft_pressure": soft_pressure,
+            "active_batch_size": active_batch_size,
+            "retained_indexes": retained_indexes,
+            "persisted_counts": dict(persisted_counts or {}),
+            "reusable_partition_refs": list(reusable_partition_refs),
             "restart_from_document": True,
             "partial_state_resumable": False,
         }
-        if observed >= self.hard_limit_bytes:
+        if observed >= self.hard_limit_bytes or (
+            fail_on_soft_pressure and observed >= self.soft_limit_bytes
+        ):
             payload["resource_limit_reached"] = True
+            payload["resource_limit_kind"] = (
+                "hard" if observed >= self.hard_limit_bytes else "soft"
+            )
             self._write_receipt(payload)
             raise DocumentResourceLimitError(payload)
         return payload

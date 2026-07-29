@@ -1,5 +1,18 @@
 # COMPACTIFIED_CONTEXT
 
+## 2026-07-29 — replayable fibred parser carrier
+
+- The adaptive document parser now returns a checkpoint-backed,
+  re-iterable owned-sentence mapping for partitioned documents. Physical parse
+  results are persisted then released; each consumer iteration reloads one
+  owned fibre and reconstructs the stable global token/dependency coordinates.
+  This is an execution-only carrier under the existing one-document parser
+  authority.
+- Focused carrier and compiler tests pass. The resource-gated full 0008 run is
+  still not accepted: direct full-input harnesses terminate after the carrier
+  phase without a guard receipt, so the downstream resource path and harness
+  must be instrumented before this result can be promoted.
+
 ## 2026-07-15 — WD bridge architecture context refresh
 
 - Resolved archived thread:
@@ -436,3 +449,15 @@ Compact snapshot of the current architecture and next seam.
   invented antecedent.  The shared local-type carrier now includes propositions
   so composition observations compile generically.  GWB proper and AU-mini
   local proofs completed without network or readiness.
+# 2026-07-29 manifest-backed publication decision
+
+Production document compilation preserves existing artifact keys but publishes
+versioned manifest descriptors, not whole-document dictionaries.  Explicit
+materialisation is compatibility/debug policy only.  Projection partitions are
+reusable execution evidence under exact source/carrier/interval/parser/reducer/
+build identity; the document join remains the sole semantic authority.
+PostgreSQL migration 025 must use existing generic language/algebra/pnf/
+resolution authorities and keep only partition/build metadata in `execution`.
+Completed build visibility and occurrence compilation are one final
+transaction after digest verification.  Acceptance requires strict 12k and
+full document 0008 below 512 MiB soft / 576 MiB hard limits.

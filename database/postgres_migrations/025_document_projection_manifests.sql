@@ -1,8 +1,8 @@
 BEGIN;
 
--- Immutable physical projection partitions.  They are execution and reuse
--- units only; a document manifest is required before semantic publication.
-CREATE TABLE IF NOT EXISTS compiler_projection_partition (
+-- Execution metadata only. Semantic rows remain in language, algebra, pnf,
+-- and resolution; these tables do not create a second compiler authority.
+CREATE TABLE IF NOT EXISTS execution.document_projection_partition (
     partition_ref TEXT PRIMARY KEY,
     document_ref TEXT NOT NULL REFERENCES corpus.document(document_ref),
     source_sha256 BYTEA NOT NULL,
@@ -21,7 +21,21 @@ CREATE TABLE IF NOT EXISTS compiler_projection_partition (
     UNIQUE (document_ref, build_key_sha256, sequence_no)
 );
 
-CREATE TABLE IF NOT EXISTS compiler_document_projection_manifest (
+CREATE TABLE IF NOT EXISTS execution.artifact_manifest (
+    manifest_ref TEXT PRIMARY KEY,
+    document_ref TEXT NOT NULL REFERENCES corpus.document(document_ref),
+    build_key_sha256 BYTEA NOT NULL,
+    artifact_key TEXT NOT NULL,
+    representation_ref TEXT NOT NULL CHECK (representation_ref = 'manifest'),
+    root_ref TEXT NOT NULL,
+    ordered_digest BYTEA NOT NULL,
+    record_count BIGINT NOT NULL CHECK (record_count >= 0),
+    reader_contract_ref TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (document_ref, build_key_sha256, artifact_key)
+);
+
+CREATE TABLE IF NOT EXISTS execution.document_projection_manifest (
     manifest_ref TEXT PRIMARY KEY,
     document_ref TEXT NOT NULL REFERENCES corpus.document(document_ref),
     source_sha256 BYTEA NOT NULL,
@@ -34,9 +48,12 @@ CREATE TABLE IF NOT EXISTS compiler_document_projection_manifest (
     UNIQUE (document_ref, build_key_sha256)
 );
 
-CREATE TABLE IF NOT EXISTS compiler_document_projection_member (
-    manifest_ref TEXT NOT NULL REFERENCES compiler_document_projection_manifest(manifest_ref) ON DELETE CASCADE,
-    partition_ref TEXT NOT NULL REFERENCES compiler_projection_partition(partition_ref),
+CREATE TABLE IF NOT EXISTS execution.document_projection_member (
+    manifest_ref TEXT NOT NULL
+        REFERENCES execution.document_projection_manifest(manifest_ref)
+        ON DELETE CASCADE,
+    partition_ref TEXT NOT NULL
+        REFERENCES execution.document_projection_partition(partition_ref),
     sequence_no INTEGER NOT NULL,
     PRIMARY KEY (manifest_ref, partition_ref),
     UNIQUE (manifest_ref, sequence_no)

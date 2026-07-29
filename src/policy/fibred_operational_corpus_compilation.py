@@ -27,6 +27,7 @@ from src.pnf.semantic_lifecycle_pipeline import (
 )
 from src.pnf.streaming_reduction_projection import project_streaming_reduction
 from src.policy import corpus_compilation as legacy
+from src.policy.artifact_projection import ArtifactProjectionPolicy
 from src.policy.algebra import (
     Factor,
     FactorConstraint,
@@ -176,6 +177,7 @@ def compile_document_fibred_operational(
         compiler_context,
         closure_workers=closure_workers,
         owner_partitions=owner_partitions,
+        artifact_projection_policy=ArtifactProjectionPolicy.materialised_compatibility(),
     )
     artifacts = dict(base.artifacts)
     streaming_build = dict(artifacts.get("streaming_semantic_build") or {})

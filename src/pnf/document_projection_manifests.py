@@ -362,13 +362,19 @@ def document_projection_join(
         coordinates.update(partition.annotation_record_refs)
     if cursor != canonical_length:
         raise ValueError("partition ownership does not cover canonical document")
-    if any(
-        not row.boundary_demand_refs and row.context_start < row.owner_start
-        for row in ordered[1:]
-    ):
-        # Overlap is permitted only when it has been deduplicated (no duplicate
-        # owned coordinates) or made explicit at the document boundary.
-        pass
+    unresolved_overlaps = [
+        row.partition_ref
+        for row in ordered
+        if (row.context_start < row.owner_start or row.context_end > row.owner_end)
+        and not row.annotation_record_refs
+        and not row.relation_record_refs
+        and not row.boundary_demand_refs
+    ]
+    if unresolved_overlaps:
+        raise ValueError(
+            "overlap requires exactly-owned records or an explicit boundary demand: "
+            + ", ".join(unresolved_overlaps)
+        )
     layers = tuple(logical_layers)
     if not layers or any(
         row.document_ref != first.document_ref
@@ -386,6 +392,7 @@ def document_projection_join(
         "owner_end": canonical_length,
         "exactly_once": True,
         "owned_annotation_coordinates": len(coordinates),
+        "overlap_validation": "exact_owner_or_boundary_demand",
     }
     manifest_identity = {
         "document_ref": first.document_ref,

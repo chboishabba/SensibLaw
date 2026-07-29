@@ -122,6 +122,14 @@ counters through its declared measures.
 
 ## Canonical compiler integration
 
+Parser fibres write two atomic execution artifacts: the reusable parse
+checkpoint and a compact summary/receipt. The parent constructs its document
+receipt from summaries only; it does not reload every parse payload. At each
+fibre completion it samples process-tree RSS. A lost parser process is treated
+as a terminal resource event, writing a `parser_fibre_execution` receipt with
+the active fibre and reusable checkpoint references before raising
+`DocumentResourceLimitError`. It never silently retries with smaller fibres.
+
 Bounded execution is installed as an execution strategy on
 `src.policy.operational_corpus_compilation`. It does not introduce another
 compiler authority. The existing `_streaming_semantic_build` function remains
@@ -146,7 +154,7 @@ This is a bounded closure executor, not yet the final persistent document-wide
 process pool. Parser, mention, projection, closure, and persistence do not yet
 share one executor.
 
-## Immutable projection partitions
+## Manifest-backed document publication
 
 The document-fibre ownership intervals also define immutable projection
 partitions.  A partition stores only owned parser observations, annotation and
@@ -162,9 +170,46 @@ then runs once; partitions never independently publish a semantic document.
 
 Logical layer manifests are ordered immutable annotation-record references, so
 their `layer_ref` and the ref-only `AnnotationGraph` identity do not depend on
-partition scheduling.  PostgreSQL migration `025_document_projection_manifests`
-persists partition rows first and publishes the document projection manifest in
-the surrounding document savepoint.
+partition scheduling.
+
+Production artifact projection is manifest-backed.  The existing artifact keys
+remain stable, but their values are versioned descriptors containing the
+representation, manifest/root reference, ordered digest, record count, and
+reader contract.  Whole-layer and whole-graph dictionaries are available only
+through the explicitly injected materialised compatibility policy.  Partition
+size and scheduling never select this policy.
+
+The parser-to-projection handoff is a replayable owned-sentence carrier, not a
+merged document dictionary.  Each physical parse is checkpointed, then released
+from the parent process.  Consumers may re-iterate the carrier; each iteration
+loads one owned fibre at a time, assigns the same canonical global token and
+dependency coordinates, and releases that fibre before advancing.  This is an
+execution representation only: it preserves the one document-level parser
+observation stream and does not give fibres semantic authority.
+
+The compiler streams immutable record families in bounded batches.  Annotation
+records use the existing `language` schema; factors and constraints use
+`algebra`; graph membership uses `pnf`; refinements and demands use
+`resolution`.  Migration `025_document_projection_manifests` stores only
+execution/build metadata in `execution`; it does not create another
+authoritative public compiler schema.
+
+Publication order is normative:
+
+1. persist or exactly reuse immutable projection partitions;
+2. validate exact coverage, duplicate ownership, and boundary demands;
+3. run the sole document join and document fixed point;
+4. stream semantic record families and verify their ordered digests;
+5. insert the completed document manifest/build and mark the occurrence
+   compiled in one transaction.
+
+A failure or bounded resource stop before step 5 leaves no published document.
+Persisted partitions are execution evidence and may be reused only when source
+hash, carrier, owner/context intervals, parser contract, reducer/projection
+contract, and build key all match.
+
+Overlap is never silently accepted.  Every overlap observation must either map
+to exactly one owned record or produce an explicit boundary demand.
 
 ## Configuration
 
@@ -196,13 +241,15 @@ counts.
 1. validate bounded frontier admission, focused compiler, fibred projection,
    and import-order parity;
 2. run reduced document-0008 smoke work and require visible leasing;
-3. extend the same resource and progress contract through post-projection
-   graph construction before rerunning document 0008 under soft and hard
+3. extend the same resource and progress contract through named
+   `artifact_projection`, `postgres_persistence`, and `document_publication`
+   kernels before rerunning document 0008 under 512 MiB soft and 576 MiB hard
    limits;
 4. retain the document-0008 stage/resource ledger and pressure checkpoint, if
    any;
 5. replace the closure thread pool with the persistent active-document process
    pool after worker payloads are proven serialisable and bounded;
 6. move constraint/refinement work onto differential dirty-key jobs;
-7. add incremental private persistence and atomic publication;
+7. validate strict 12k and full document 0008 with bounded batch/release
+   resource receipts and a plateau or saw-tooth memory profile;
 8. only then restart the complete tranche.

@@ -60,6 +60,12 @@ class OperatorCandidate:
     kind: str
     polarity: str = "none"
 
+    @property
+    def proposal_ref(self) -> str:
+        """Expose the immutable proposal identity without duplicating it."""
+
+        return self.proposal.proposal_ref
+
 
 def normalized_operator_candidates(job: SolverJob) -> tuple[OperatorCandidate, ...]:
     tokens = _tokens(job)

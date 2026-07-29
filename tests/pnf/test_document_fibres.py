@@ -186,3 +186,56 @@ def test_adaptive_partitioning_is_independent_of_parser_safety_limit(
     assert parsed["parser_receipt"]["worker_count"] == policy.workers
     assert parsed["parser_receipt"]["partition_count"] >= 2
     assert parsed["parser_receipt"]["workload_estimate"]["canonical_chars"] == len(text)
+
+
+def test_fibred_parse_replays_owned_sentences_without_a_merged_list(
+    tmp_path: Path,
+) -> None:
+    text = ("Alpha beta gamma delta.\n\n" * 12).strip()
+    parsed = parse_document_fibres(
+        document_ref="document:streaming-carrier",
+        canonical_text=text,
+        parser=_parser_calls([]),
+        policy=DocumentFibrePolicy(
+            parser_limit_chars=100,
+            target_chars=40,
+            overlap_chars=5,
+            workers=2,
+        ),
+        checkpoint_dir=tmp_path,
+    )
+
+    sentences = parsed["sents"]
+    assert not isinstance(sentences, list)
+    first = [
+        (sentence["start"], sentence["end"], tuple(token["index"] for token in sentence["tokens"]))
+        for sentence in sentences
+    ]
+    second = [
+        (sentence["start"], sentence["end"], tuple(token["index"] for token in sentence["tokens"]))
+        for sentence in sentences
+    ]
+
+    assert first == second
+    assert len(first) == len(sentences)
+
+
+def test_document_receipt_uses_compact_fibre_summaries(tmp_path: Path) -> None:
+    text = ("Alpha beta gamma delta.\n\n" * 12).strip()
+    parsed = parse_document_fibres(
+        document_ref="document:summary-only",
+        canonical_text=text,
+        parser=_parser_calls([]),
+        policy=DocumentFibrePolicy(
+            parser_limit_chars=100, target_chars=40, overlap_chars=5, workers=2
+        ),
+        checkpoint_dir=tmp_path,
+    )
+
+    summaries = tuple(tmp_path.glob("*.summary.json"))
+    checkpoints = tuple(tmp_path.glob("*.json"))
+    assert len(summaries) == parsed["parser_receipt"]["fibre_count"]
+    assert len(checkpoints) == len(summaries) * 2
+    summary = summaries[0].read_text(encoding="utf-8")
+    assert '"owned_sentence_count"' in summary
+    assert '"parsed_document"' not in summary

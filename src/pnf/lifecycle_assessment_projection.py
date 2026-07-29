@@ -107,6 +107,11 @@ def annotate_assessment_fibre_elements(
         row = dict(element)
         proposal_ref = str(row.get("content_ref") or "")
         state = proposal_state.get(proposal_ref)
+        if state == "contested":
+            # Both assessment elements describe the same contested support;
+            # the original support element must carry the state as well as its
+            # emitted contradiction companion.
+            row["assessment_support_state"] = "contested"
         if state in {"unsupported", "unresolved"}:
             row["derivation_role"] = "undetermined"
             row["assessment_support_state"] = state
