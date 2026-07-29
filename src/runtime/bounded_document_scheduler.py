@@ -9,7 +9,7 @@ closure-consumer jobs continue draining the frontier.
 from __future__ import annotations
 
 from collections import deque
-from concurrent.futures import Executor, Future, wait, FIRST_COMPLETED
+from concurrent.futures import FIRST_COMPLETED, Executor, Future, wait
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Callable, Deque, Generic, Iterable, Mapping, TypeVar
@@ -112,11 +112,14 @@ class BoundedDocumentScheduler(Generic[JobT, ResultT]):
         *,
         executor: Executor,
         execute: Callable[[JobT], ResultT],
-        admit: Callable[[ScheduledJob[JobT], ResultT], Iterable[ScheduledJob[JobT]]],
+        admit: Callable[
+            [ScheduledJob[JobT], ResultT], Iterable[ScheduledJob[JobT]]
+        ],
         sample_resources: Callable[[int, int, int], ResourceSnapshot],
         compact: Callable[[], None],
         policy: DocumentExecutionPolicy,
         checkpoint: Callable[[PressureDecision, ResourceSnapshot], None] | None = None,
+        on_lease: Callable[[ScheduledJob[JobT]], None] | None = None,
     ):
         self.executor = executor
         self.execute = execute
@@ -125,6 +128,7 @@ class BoundedDocumentScheduler(Generic[JobT, ResultT]):
         self.compact = compact
         self.policy = policy
         self.checkpoint = checkpoint
+        self.on_lease = on_lease
         self.pressure = MemoryPressureController(policy)
         self._state: _SchedulerState[JobT, ResultT] = _SchedulerState()
 
@@ -158,9 +162,9 @@ class BoundedDocumentScheduler(Generic[JobT, ResultT]):
             self._lease_ready(decision.state)
 
             if not self._state.in_flight:
-                # Producers may be deferred while no consumer is ready.  Rather
+                # Producers may be deferred while no consumer is ready. Rather
                 # than spin forever, take another pressure sample; if memory is
-                # below the soft limit the next iteration restores producers.
+                # below the recovery target the next iteration restores them.
                 if self._state.deferred and not self._state.ready:
                     continue
                 break
@@ -233,6 +237,8 @@ class BoundedDocumentScheduler(Generic[JobT, ResultT]):
                     kept.append(scheduled)
                 continue
 
+            if self.on_lease is not None:
+                self.on_lease(scheduled)
             future = self.executor.submit(self.execute, scheduled.payload)
             self._state.in_flight[future] = scheduled
             self._state.submitted += 1
