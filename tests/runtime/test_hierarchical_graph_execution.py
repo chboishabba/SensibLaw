@@ -140,14 +140,16 @@ def test_parent_graphs_reference_children_without_flattening_descendants() -> No
         unit="atoms",
     )
     coordinator = HierarchicalGraphCoordinator(plan)
+    unlocked = ()
 
     for scheduled in coordinator.ready_jobs():
-        coordinator.admit(
+        unlocked = coordinator.admit(
             scheduled.payload,
             _completed_delta(coordinator, scheduled.payload),
         )
 
-    root_job = coordinator.ready_jobs()[0]
+    assert len(unlocked) == 1
+    root_job = unlocked[0]
     coordinator.admit(
         root_job.payload,
         _completed_delta(coordinator, root_job.payload),
@@ -167,7 +169,7 @@ def test_parent_graphs_reference_children_without_flattening_descendants() -> No
     assert complexity.total_work_units == 8 * 4096
 
 
-def test_rejects_parent_completion_before_child_coverage() -> None:
+def test_parent_waits_while_leaf_jobs_are_ready() -> None:
     plan = HierarchyPlan.build(
         document_ref="document:hierarchy",
         primitive_unit_count=4 * 4096,
@@ -176,7 +178,9 @@ def test_rejects_parent_completion_before_child_coverage() -> None:
     )
     coordinator = HierarchicalGraphCoordinator(plan)
     root = coordinator.nodes[plan.root_ref]
+    leaf_jobs = coordinator.ready_jobs()
 
     assert root.coverage is not None
     assert root.coverage.state is HierarchyCoverageState.WAITING
-    assert coordinator.ready_jobs() == ()
+    assert len(leaf_jobs) == 4
+    assert all(job.payload.level == 0 for job in leaf_jobs)
