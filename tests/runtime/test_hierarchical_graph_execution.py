@@ -45,7 +45,8 @@ def _completed_delta(coordinator: HierarchicalGraphCoordinator, job):
         node.carrier.size
         if node.kind is HierarchyNodeKind.LEAF
         else sum(
-            coordinator.nodes[child].interface.reference_count for child in children
+            coordinator.nodes[child].interface.reference_count
+            for child in children
         )
     )
     return HierarchyDelta(
@@ -70,6 +71,19 @@ def _completed_delta(coordinator: HierarchicalGraphCoordinator, job):
     )
 
 
+def _solve_one_level(
+    coordinator: HierarchicalGraphCoordinator,
+    jobs,
+):
+    unlocked = ()
+    for scheduled in jobs:
+        unlocked = coordinator.admit(
+            scheduled.payload,
+            _completed_delta(coordinator, scheduled.payload),
+        )
+    return unlocked
+
+
 def test_plan_builds_bounded_four_ary_hierarchy_and_lca_placement() -> None:
     plan = HierarchyPlan.build(
         document_ref="document:hierarchy",
@@ -82,12 +96,19 @@ def test_plan_builds_bounded_four_ary_hierarchy_and_lca_placement() -> None:
     assert len(plan.leaf_refs) == 16
     assert plan.depth == 2
     assert plan.node_count == 21
-    assert plan.lowest_sufficient_node_for_offsets((1, 4095)) == plan.leaf_refs[0]
+    assert plan.node_count <= plan.relaxed_node_bound
+    assert plan.lowest_sufficient_node_for_offsets((1, 4095)) == (
+        plan.leaf_refs[0]
+    )
 
-    same_branch = plan.lowest_sufficient_node_for_offsets((1, 4 * 4096 - 1))
+    same_branch = plan.lowest_sufficient_node_for_offsets(
+        (1, 4 * 4096 - 1)
+    )
     assert plan.level_of(same_branch) == 1
 
-    document_wide = plan.lowest_sufficient_node_for_offsets((1, 15 * 4096))
+    document_wide = plan.lowest_sufficient_node_for_offsets(
+        (1, 15 * 4096)
+    )
     assert document_wide == plan.root_ref
 
 
@@ -109,7 +130,11 @@ def test_workers_solve_leaves_then_unlock_branches_and_root() -> None:
     def admit(scheduled, delta):
         return coordinator.admit(scheduled.payload, delta)
 
-    def sample(queued: int, pending: int, in_flight: int) -> ResourceSnapshot:
+    def sample(
+        queued: int,
+        pending: int,
+        in_flight: int,
+    ) -> ResourceSnapshot:
         return ResourceSnapshot(
             rss_bytes=128 * MIB,
             process_tree_rss_bytes=128 * MIB,
@@ -135,7 +160,9 @@ def test_workers_solve_leaves_then_unlock_branches_and_root() -> None:
     assert execution_levels.count(1) == 4
     assert execution_levels.count(2) == 1
     assert coordinator.fixed_point_reached is True
-    assert coordinator.fixed_point_certificate()["waiting_node_refs"] == []
+    assert coordinator.fixed_point_certificate()[
+        "waiting_node_refs"
+    ] == []
 
 
 def test_parent_graphs_reference_children_without_flattening_descendants() -> None:
@@ -147,16 +174,14 @@ def test_parent_graphs_reference_children_without_flattening_descendants() -> No
         unit="atoms",
     )
     coordinator = HierarchicalGraphCoordinator(plan)
-    unlocked = ()
+    root_jobs = _solve_one_level(
+        coordinator,
+        coordinator.ready_jobs(),
+    )
 
-    for scheduled in coordinator.ready_jobs():
-        unlocked = coordinator.admit(
-            scheduled.payload,
-            _completed_delta(coordinator, scheduled.payload),
-        )
-
-    assert len(unlocked) == 1
-    root_job = unlocked[0]
+    assert len(root_jobs) == 1
+    root_job = root_jobs[0]
+    assert root_job.payload.estimated_compute_units == 12
     coordinator.admit(
         root_job.payload,
         _completed_delta(coordinator, root_job.payload),
@@ -164,7 +189,10 @@ def test_parent_graphs_reference_children_without_flattening_descendants() -> No
 
     root = coordinator.nodes[plan.root_ref]
     child_graph_refs = tuple(
-        sorted(coordinator.nodes[child].graph_ref for child in plan.leaf_refs)
+        sorted(
+            coordinator.nodes[child].graph_ref
+            for child in plan.leaf_refs
+        )
     )
     complexity = coordinator.complexity_receipt()
 
@@ -174,6 +202,59 @@ def test_parent_graphs_reference_children_without_flattening_descendants() -> No
     assert complexity.flattening_free is True
     assert complexity.descendant_bytes_reconstructed == 0
     assert complexity.total_work_units == 4 * 4096 + 12
+
+
+def test_revision_cone_reopens_leaf_and_invalidates_only_ancestors() -> None:
+    plan = HierarchyPlan.build(
+        document_ref="document:hierarchy-revision",
+        primitive_unit_count=4 * 4096,
+        leaf_capacity=4096,
+        arity=4,
+        unit="atoms",
+    )
+    coordinator = HierarchicalGraphCoordinator(plan)
+    root_jobs = _solve_one_level(
+        coordinator,
+        coordinator.ready_jobs(),
+    )
+    root_job = root_jobs[0]
+    coordinator.admit(
+        root_job.payload,
+        _completed_delta(coordinator, root_job.payload),
+    )
+    prior_root_ref = coordinator.nodes[plan.root_ref].graph_ref
+    unchanged_leaf_refs = {
+        leaf_ref: coordinator.nodes[leaf_ref].graph_ref
+        for leaf_ref in plan.leaf_refs[1:]
+    }
+
+    reopened = coordinator.invalidate_node(
+        plan.leaf_refs[0],
+        locally_satisfiable_demand_refs=("demand:cross-leaf",),
+    )
+
+    assert len(reopened) == 1
+    assert reopened[0].payload.node_ref == plan.leaf_refs[0]
+    assert coordinator.fixed_point_reached is False
+    revised_root_jobs = coordinator.admit(
+        reopened[0].payload,
+        _completed_delta(coordinator, reopened[0].payload),
+    )
+    assert len(revised_root_jobs) == 1
+    coordinator.admit(
+        revised_root_jobs[0].payload,
+        _completed_delta(
+            coordinator,
+            revised_root_jobs[0].payload,
+        ),
+    )
+
+    assert coordinator.fixed_point_reached is True
+    assert coordinator.nodes[plan.root_ref].graph_ref != prior_root_ref
+    assert {
+        leaf_ref: coordinator.nodes[leaf_ref].graph_ref
+        for leaf_ref in plan.leaf_refs[1:]
+    } == unchanged_leaf_refs
 
 
 def test_parent_waits_while_leaf_jobs_are_ready() -> None:
