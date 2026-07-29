@@ -8,10 +8,14 @@ on:
     paths:
       - "src/runtime/document_execution_policy.py"
       - "src/runtime/bounded_document_scheduler.py"
+      - "src/runtime/document_stage_metrics.py"
       - "src/pnf/bounded_streaming_owner.py"
+      - "src/policy/__init__.py"
+      - "src/policy/bounded_operational_execution.py"
       - "tests/runtime/test_document_execution_policy.py"
       - "tests/runtime/test_bounded_document_scheduler.py"
       - "tests/pnf/test_bounded_streaming_owner.py"
+      - "tests/policy/test_bounded_operational_execution.py"
       - "docs/bounded_document_execution.md"
       - ".github/workflows/bounded-pnf-retention.yml"
   workflow_dispatch:
@@ -39,20 +43,28 @@ jobs:
           uv run ruff check \
             src/runtime/document_execution_policy.py \
             src/runtime/bounded_document_scheduler.py \
+            src/runtime/document_stage_metrics.py \
             src/pnf/bounded_streaming_owner.py \
+            src/policy/__init__.py \
+            src/policy/bounded_operational_execution.py \
             tests/runtime/test_document_execution_policy.py \
             tests/runtime/test_bounded_document_scheduler.py \
-            tests/pnf/test_bounded_streaming_owner.py
+            tests/pnf/test_bounded_streaming_owner.py \
+            tests/policy/test_bounded_operational_execution.py
 
       - name: Check formatting
         run: |
           uv run ruff format --check \
             src/runtime/document_execution_policy.py \
             src/runtime/bounded_document_scheduler.py \
+            src/runtime/document_stage_metrics.py \
             src/pnf/bounded_streaming_owner.py \
+            src/policy/__init__.py \
+            src/policy/bounded_operational_execution.py \
             tests/runtime/test_document_execution_policy.py \
             tests/runtime/test_bounded_document_scheduler.py \
-            tests/pnf/test_bounded_streaming_owner.py
+            tests/pnf/test_bounded_streaming_owner.py \
+            tests/policy/test_bounded_operational_execution.py
 
       - name: Run bounded execution regressions
         run: |
@@ -60,4 +72,7 @@ jobs:
             tests/runtime/test_document_execution_policy.py \
             tests/runtime/test_bounded_document_scheduler.py \
             tests/pnf/test_bounded_streaming_owner.py \
-            tests/pnf/test_streaming_fixed_point.py
+            tests/pnf/test_streaming_fixed_point.py \
+            tests/policy/test_bounded_operational_execution.py \
+            tests/policy/test_operational_corpus_compilation.py \
+            tests/policy/test_fibred_operational_corpus_compilation.py
