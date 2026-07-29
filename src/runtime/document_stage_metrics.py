@@ -49,6 +49,11 @@ DOCUMENT_STAGE_MEASURES: dict[str, tuple[tuple[str, str], ...]] = {
         ("bundle_words_scanned", "words"),
         ("bundle_tokens_scanned", "tokens"),
     ),
+    "local_typing_diagnostics": (
+        ("mentions_considered", "mentions"),
+        ("typing_hypotheses_derived", "hypotheses"),
+        ("diagnostics_evaluated", "diagnostics"),
+    ),
     "base_proposal_generation": (
         ("atoms_scanned", "atoms"),
         ("relations_scanned", "relations"),

@@ -47,8 +47,13 @@ DOCUMENT_COMPILE_STAGE_NAMES = (
     "coordinate_validation",
     "mention_licensing",
     "parser_observation_projection",
+    "local_typing_diagnostics",
     "base_proposal_generation",
-    "constraint_fixed_point",
+    "streaming_closure",
+    "pnf_graph_construction",
+    "constraint_assessment",
+    "meet_refinement",
+    "demand_derivation",
 )
 DOCUMENT_COMPILE_STAGE_COUNT = len(DOCUMENT_COMPILE_STAGE_NAMES)
 
@@ -148,6 +153,7 @@ def _streaming_semantic_build(
     timings: StageTimingLedger,
     closure_workers: int,
     owner_partitions: int,
+    progress_observer: Any | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Reduce base proposals and stream revision-bound closure receipts."""
 
@@ -236,6 +242,18 @@ def _streaming_semantic_build(
                         (monotonic_ns() - reduction_started) // 1_000_000,
                     )
                     receipts.append(receipt)
+                    if progress_observer is not None:
+                        progress_observer(
+                            {
+                                "jobs_completed": len(receipts),
+                                "input_refs_processed": sum(
+                                    len(row.input_refs) for row in receipts
+                                ),
+                                "proposals_emitted": sum(
+                                    len(row.proposals) for row in receipts
+                                ),
+                            }
+                        )
         closure_stage.record(
             input_nodes=sum(len(job.input_refs) for job in jobs),
             output_nodes=sum(len(row.proposals) for row in receipts),
@@ -657,35 +675,59 @@ def compile_document_operational(
         layers=(layer, semantic_layer),
     )
     declarations = legacy.default_semantic_reduction_declarations()
-    atom_mentions = legacy._atom_mention_refs(
-        semantic_layer=semantic_layer,
-        atom_span_refs=atom_span_refs,
-        mentions=mentions,
-    )
-    parser_observation_refs = legacy._parser_observation_refs_by_mention(
-        semantic_layer=semantic_layer,
-        mentions=mentions,
-    )
-    structural_hypotheses = legacy.derive_relational_type_hypotheses(
-        bundle=relational_bundle,
-        atom_mention_refs=atom_mentions,
-        declarations=declarations,
-    )
-    local_typing = legacy.build_local_typing_carrier(
-        mentions=mentions,
-        forms=forms["forms"],
-        structural_hypotheses=structural_hypotheses,
-    )
-    unresolved_span_diagnostics = legacy.diagnose_untyped_mentions(
-        mentions=mentions,
-        local_typing=local_typing,
-        bundle=relational_bundle,
-        atom_mention_refs=atom_mentions,
-        parser_observation_refs=parser_observation_refs,
-        parser_capabilities=(
-            parsed_document.get("parser_receipt") or {}
-        ).get("capabilities", {}),
-    )
+    with _document_stage_progress(
+        progress,
+        "local_typing_diagnostics",
+        totals={
+            "mentions_considered": len(mentions),
+            "typing_hypotheses_derived": len(relational_bundle.get("atoms") or ()),
+            "diagnostics_evaluated": len(mentions),
+        },
+    ) as progress_stage:
+        atom_mentions = legacy._atom_mention_refs(
+            semantic_layer=semantic_layer,
+            atom_span_refs=atom_span_refs,
+            mentions=mentions,
+        )
+        parser_observation_refs = legacy._parser_observation_refs_by_mention(
+            semantic_layer=semantic_layer,
+            mentions=mentions,
+        )
+        structural_hypotheses = legacy.derive_relational_type_hypotheses(
+            bundle=relational_bundle,
+            atom_mention_refs=atom_mentions,
+            declarations=declarations,
+        )
+        local_typing = legacy.build_local_typing_carrier(
+            mentions=mentions,
+            forms=forms["forms"],
+            structural_hypotheses=structural_hypotheses,
+        )
+        unresolved_span_diagnostics = legacy.diagnose_untyped_mentions(
+            mentions=mentions,
+            local_typing=local_typing,
+            bundle=relational_bundle,
+            atom_mention_refs=atom_mentions,
+            parser_observation_refs=parser_observation_refs,
+            parser_capabilities=(
+                parsed_document.get("parser_receipt") or {}
+            ).get("capabilities", {}),
+        )
+        if progress_stage is not None:
+            progress_stage.observe(
+                measures={
+                    "mentions_considered": len(mentions),
+                    "typing_hypotheses_derived": len(structural_hypotheses),
+                    "diagnostics_evaluated": len(unresolved_span_diagnostics),
+                },
+                details={
+                    "atom_mention_refs": len(atom_mentions),
+                    "parser_observation_ref_mentions": len(parser_observation_refs),
+                    "local_type_alternatives": len(
+                        local_typing.get("local_type_alternatives") or ()
+                    ),
+                },
+            )
 
     with timings.stage("base_proposal_generation") as stage:
         with _document_stage_progress(
@@ -728,41 +770,94 @@ def compile_document_operational(
             output_edges=len(semantic_output.relation_refs),
         )
 
-    streaming_build, streaming_metrics = _streaming_semantic_build(
-        document_ref=document_ref,
-        source_ref=source_ref,
-        observation_deltas=parser_deltas,
-        base_factors=semantic_output.factors,
-        timings=timings,
-        closure_workers=closure_workers,
-        owner_partitions=owner_partitions,
-    )
+    with _document_stage_progress(
+        progress,
+        "streaming_closure",
+        totals={"jobs_completed": None},
+    ) as progress_stage:
+        streaming_build, streaming_metrics = _streaming_semantic_build(
+            document_ref=document_ref,
+            source_ref=source_ref,
+            observation_deltas=parser_deltas,
+            base_factors=semantic_output.factors,
+            timings=timings,
+            closure_workers=closure_workers,
+            owner_partitions=owner_partitions,
+            progress_observer=(
+                (
+                    lambda measures: progress_stage.observe(measures=measures)
+                    if progress_stage is not None
+                    else None
+                )
+            ),
+        )
+        if progress_stage is not None:
+            progress_stage.observe(
+                measures={
+                    "jobs_completed": streaming_metrics["closure_job_count"],
+                    "proposals_emitted": streaming_metrics[
+                        "derived_proposal_count"
+                    ],
+                    "dirty_groups_reduced": streaming_metrics[
+                        "materialized_factor_count"
+                    ],
+                }
+            )
 
     local_evidence = legacy._local_evidence(
         document_ref=document_ref,
         recurrence=recurrence,
         local_typing=local_typing,
     )
-    pnf_graph = legacy._build_pnf_graph(
-        document_ref=document_ref,
-        mentions=mentions,
-        local_types=local_typing["local_type_alternatives"],
-        semantic_factors=semantic_output.factors,
-        semantic_constraints=semantic_output.constraints,
-        semantic_relation_refs=semantic_output.relation_refs,
-        source_ref=source_ref,
-    )
+    with _document_stage_progress(
+        progress,
+        "pnf_graph_construction",
+        totals={
+            "factors_materialized": len(semantic_output.factors),
+            "constraints_materialized": len(semantic_output.constraints),
+            "relations_materialized": len(semantic_output.relation_refs),
+        },
+    ) as progress_stage:
+        pnf_graph = legacy._build_pnf_graph(
+            document_ref=document_ref,
+            mentions=mentions,
+            local_types=local_typing["local_type_alternatives"],
+            semantic_factors=semantic_output.factors,
+            semantic_constraints=semantic_output.constraints,
+            semantic_relation_refs=semantic_output.relation_refs,
+            source_ref=source_ref,
+        )
+        if progress_stage is not None:
+            progress_stage.observe(
+                measures={
+                    "factors_materialized": len(pnf_graph.factors),
+                    "constraints_materialized": len(pnf_graph.constraints),
+                    "relations_materialized": len(pnf_graph.relation_refs),
+                    "residuals_materialized": sum(
+                        len(row.residuals) for row in pnf_graph.factors
+                    ),
+                }
+            )
 
     with timings.stage("constraint_fixed_point") as stage:
         with _document_stage_progress(
             progress,
-            "constraint_fixed_point",
-            totals={
-                "factors_scanned": len(pnf_graph.factors),
-                "constraints_evaluated": len(pnf_graph.constraints),
-            },
-        ) as progress_stage:
+            "constraint_assessment",
+            totals={"constraints_evaluated": len(pnf_graph.constraints)},
+        ) as assessment_progress:
             constraint_assessments = legacy._constraint_assessments(pnf_graph)
+            if assessment_progress is not None:
+                assessment_progress.observe(
+                    measures={
+                        "constraints_evaluated": len(constraint_assessments),
+                        "assessments_emitted": len(constraint_assessments),
+                    }
+                )
+        with _document_stage_progress(
+            progress,
+            "meet_refinement",
+            totals={"candidate_meets_considered": len(constraint_assessments)},
+        ) as refinement_progress:
             local_meet_plan, typed_meets, refinements = (
                 legacy._local_meets_and_refinements(
                     graph=pnf_graph,
@@ -770,42 +865,18 @@ def compile_document_operational(
                     constraint_assessments=constraint_assessments,
                 )
             )
-            refined_pnf_graph = pnf_graph.replace_factors(
-                [refinement.resulting_factor for refinement in refinements]
-            )
-            if progress_stage is not None:
-                progress_stage.observe(
+            if refinement_progress is not None:
+                refinement_progress.observe(
                     measures={
-                        "factors_scanned": len(pnf_graph.factors),
-                        "constraints_evaluated": len(constraint_assessments),
-                        "assessments_emitted": len(constraint_assessments),
-                        "satisfied": sum(
-                            1
-                            for row in constraint_assessments
-                            if str(row.state) == "satisfied"
-                        ),
-                        "violated": sum(
-                            1
-                            for row in constraint_assessments
-                            if str(row.state) == "violated"
-                        ),
-                        "undetermined": sum(
-                            1
-                            for row in constraint_assessments
-                            if str(row.state) == "undetermined"
-                        ),
-                        "inapplicable": sum(
-                            1
-                            for row in constraint_assessments
-                            if str(row.state) == "inapplicable"
-                        ),
-                    },
-                    details={
-                        "input_nodes": len(pnf_graph.factors),
-                        "output_nodes": len(refined_pnf_graph.factors),
-                        "output_edges": len(refinements),
-                    },
+                        "candidate_meets_considered": len(constraint_assessments),
+                        "typed_meets_accepted": len(typed_meets),
+                        "refinements_proposed": len(refinements),
+                        "refinements_applied": len(refinements),
+                    }
                 )
+        refined_pnf_graph = pnf_graph.replace_factors(
+            [refinement.resulting_factor for refinement in refinements]
+        )
         stage.record(
             input_nodes=len(pnf_graph.factors),
             output_nodes=len(refined_pnf_graph.factors),
@@ -817,7 +888,20 @@ def compile_document_operational(
             ),
         )
 
-    demands = legacy.derive_resolution_demands(refined_pnf_graph)
+    with _document_stage_progress(
+        progress,
+        "demand_derivation",
+        totals={"factors_scanned": len(refined_pnf_graph.factors)},
+    ) as progress_stage:
+        demands = legacy.derive_resolution_demands(refined_pnf_graph)
+        if progress_stage is not None:
+            progress_stage.observe(
+                measures={
+                    "factors_scanned": len(refined_pnf_graph.factors),
+                    "demands_emitted": len(demands),
+                    "demands_unresolved": len(demands),
+                }
+            )
     parser_receipt = legacy.canonical_json(
         parsed_document.get("parser_receipt") or {}
     )

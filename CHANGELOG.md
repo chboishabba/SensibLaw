@@ -1,3 +1,17 @@
+# 2026-07-28
+
+- Enclose post-parser operational document compilation in named progress
+  stages for local typing/diagnostics, streaming closure, PNF construction,
+  constraint assessment/refinement, and demand derivation. Streaming closure
+  now emits cumulative job, input-reference, and proposal counters as jobs
+  complete, making CPU-bound gaps visible during long runs.
+
+- Document the local PostgreSQL authority and cluster map. The previous full
+  tranche target is explicitly recorded as the disposable 5433
+  `sensiblaw_tranche` database; persistent and debug clusters are identified
+  separately so operators do not mistake a running PostgreSQL process for the
+  active compiler authority.
+
 # 2026-07-19
 
 - Add the first operational external PNF enrichment phase. Local compilation

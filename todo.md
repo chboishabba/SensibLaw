@@ -1,5 +1,10 @@
 # SensibLaw TODO
 
+- [DONE 2026-07-28] Document the local PostgreSQL authority and endpoint
+  matrix, including the distinction between the previous disposable 5433
+  tranche cluster, the persistent 55432 legacy surface, and temporary debug
+  clusters. See `docs/postgres_runtime.md`.
+
 - [P0] Validate the merged set-valued PNF binding tranche against the focused
   compiler suite, migration application, GWB proper, and AU proof corpus.
   Candidate sets must remain candidate-only; no antecedent, identity, truth,
@@ -2458,3 +2463,9 @@ Acceptance for P0a-P0d:
 - [x] Add focused policy/CLI tests and run the pinned 232/3,562 derivation.
 - [x] Reconcile legacy A4/A5/H4 acceptance values and record the completed
   behavior in the changelog.
+- [x] Instrument every CPU-heavy post-parser document-compiler region before
+  restarting the tranche: local typing/diagnostics, base proposals, streaming
+  closure, PNF construction, constraint assessment/refinement, and demand
+  derivation now have named progress stages and closure-loop cumulative
+  counters. Plotting should use only rates with at least two changing samples;
+  final totals remain separate.

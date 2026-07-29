@@ -1391,8 +1391,8 @@ def compile_directory_postgres(
                     )
                     continue
                 started_ns = monotonic_ns()
-                if hasattr(phase_handle, "observe"):
-                    phase_handle.observe(
+                if hasattr(phase_handle, "heartbeat"):
+                    phase_handle.heartbeat(
                         subject_ref=relative_path,
                         message="active document",
                         details={

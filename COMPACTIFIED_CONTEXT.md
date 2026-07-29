@@ -354,6 +354,21 @@ Compact snapshot of the current architecture and next seam.
   proof fixtures rather than semantic profiles. The workspace previously had
   only the older legal PostgreSQL migrations, so the compiler substrate starts
   as an additive generic schema rather than claiming runtime parity.
+- 2026-07-28 PostgreSQL endpoint clarification: the previous full tranche run
+  used the disposable `/tmp/sensiblaw-pgdata` cluster on port `5433`, database
+  `sensiblaw_tranche`, with output under `/tmp/sensiblaw-tranche-out`. The
+  persistent `/home/c/.local/share/sensiblaw/postgres-18` cluster on `55432`
+  is a separate legacy public-table surface, and `55434` is a debug cluster.
+  See `docs/postgres_runtime.md`; never select a target from port/process
+  presence alone.
+- 2026-07-28 compiler observability decision: the ALL run on document 0007
+  remained CPU-bound for more than 40 minutes after
+  `parser_observation_projection` completed, with no active document stage.
+  The next implementation slice must enclose local typing/diagnostics,
+  streaming closure, PNF construction, constraint work, and demand derivation
+  in named progress stages and publish current-kernel cumulative counters.
+  Final-only counters must not be presented as throughput. The stalled run was
+  stopped before instrumentation changes.
 - 2026-07-18 PostgreSQL runtime checkpoint: migration `007` is applied to the
   persistent user-owned PostgreSQL 18 development cluster. A `gwb-mini` proof
   persisted 3 documents, 40 PNF factors, and 29 unresolved demands; an

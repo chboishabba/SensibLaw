@@ -13,6 +13,11 @@ The repository is under a documentation freeze while overlapping runtime
 surfaces are consolidated. The normative authority map is
 [`docs/authority_surfaces.md`](docs/authority_surfaces.md).
 
+Local PostgreSQL endpoint and cluster selection are documented in
+[`docs/postgres_runtime.md`](docs/postgres_runtime.md). Do not assume that a
+running local PostgreSQL process or default port is the current semantic
+compiler target.
+
 The single source-tree CLI gateway is:
 
 ```bash
