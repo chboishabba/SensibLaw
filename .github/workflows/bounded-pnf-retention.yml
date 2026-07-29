@@ -9,11 +9,15 @@ on:
       - "src/runtime/document_execution_policy.py"
       - "src/runtime/bounded_document_scheduler.py"
       - "src/runtime/document_stage_metrics.py"
+      - "src/runtime/hierarchical_graph_execution.py"
+      - "src/runtime/document_complexity_model.py"
       - "src/pnf/bounded_streaming_owner.py"
       - "src/policy/__init__.py"
       - "src/policy/bounded_operational_execution.py"
       - "tests/runtime/test_document_execution_policy.py"
       - "tests/runtime/test_bounded_document_scheduler.py"
+      - "tests/runtime/test_hierarchical_graph_execution.py"
+      - "tests/runtime/test_document_complexity_model.py"
       - "tests/pnf/test_bounded_streaming_owner.py"
       - "tests/policy/test_bounded_operational_execution.py"
       - "docs/bounded_document_execution.md"
@@ -44,11 +48,15 @@ jobs:
             src/runtime/document_execution_policy.py \
             src/runtime/bounded_document_scheduler.py \
             src/runtime/document_stage_metrics.py \
+            src/runtime/hierarchical_graph_execution.py \
+            src/runtime/document_complexity_model.py \
             src/pnf/bounded_streaming_owner.py \
             src/policy/__init__.py \
             src/policy/bounded_operational_execution.py \
             tests/runtime/test_document_execution_policy.py \
             tests/runtime/test_bounded_document_scheduler.py \
+            tests/runtime/test_hierarchical_graph_execution.py \
+            tests/runtime/test_document_complexity_model.py \
             tests/pnf/test_bounded_streaming_owner.py \
             tests/policy/test_bounded_operational_execution.py
 
@@ -58,11 +66,15 @@ jobs:
             src/runtime/document_execution_policy.py \
             src/runtime/bounded_document_scheduler.py \
             src/runtime/document_stage_metrics.py \
+            src/runtime/hierarchical_graph_execution.py \
+            src/runtime/document_complexity_model.py \
             src/pnf/bounded_streaming_owner.py \
             src/policy/__init__.py \
             src/policy/bounded_operational_execution.py \
             tests/runtime/test_document_execution_policy.py \
             tests/runtime/test_bounded_document_scheduler.py \
+            tests/runtime/test_hierarchical_graph_execution.py \
+            tests/runtime/test_document_complexity_model.py \
             tests/pnf/test_bounded_streaming_owner.py \
             tests/policy/test_bounded_operational_execution.py
 
@@ -71,6 +83,8 @@ jobs:
           uv run pytest --maxfail=1 -q \
             tests/runtime/test_document_execution_policy.py \
             tests/runtime/test_bounded_document_scheduler.py \
+            tests/runtime/test_hierarchical_graph_execution.py \
+            tests/runtime/test_document_complexity_model.py \
             tests/pnf/test_bounded_streaming_owner.py \
             tests/pnf/test_streaming_fixed_point.py \
             tests/policy/test_bounded_operational_execution.py \
