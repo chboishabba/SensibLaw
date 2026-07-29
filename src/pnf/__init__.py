@@ -1,5 +1,12 @@
 """Factorized PNF graph and fibred semantic compiler primitives."""
 
+# Publish the neutral graph/demand authority before modules that import policy
+# helpers.  ``binding_candidate_sets`` depends on ``src.policy.carriers``;
+# importing it first allowed policy initialisation to re-enter this package
+# before PNFGraph/derive_resolution_demands existed.
+from .graph import PNFGraph
+from .demands import derive_resolution_demands
+
 from .binding_candidate_sets import (
     BindingAccessibilityDeclaration,
     BindingCandidateMember,
@@ -10,7 +17,6 @@ from .binding_candidate_sets import (
     compact_binding_artifacts,
 )
 from .closure import ClosureContract, assess_pnf_closure
-from .demands import derive_resolution_demands
 from .domain_ir import (
     DomainIRBuild,
     DomainIRProjection,
@@ -42,7 +48,6 @@ from .factor_proposals import (
     proposal_build_key,
     reduce_factor_proposals,
 )
-from .graph import PNFGraph
 from .integrated_semantic_producer import (
     IntegratedProducerContract,
     IntegratedProducerReceipt,
