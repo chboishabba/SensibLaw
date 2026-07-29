@@ -1,6 +1,6 @@
 """Bounded-memory execution view over the canonical streaming semantic owner.
 
-The canonical algebra remains in :mod:`src.pnf.streaming_fixed_point`.  This
+The canonical algebra remains in :mod:`src.pnf.streaming_fixed_point`. This
 subclass changes only execution retention and indexes: proposals are bucketed by
 ``OwnerKey``, known factor dependencies are maintained incrementally, jobs carry
 a bounded observation slice rather than a complete serialised delta, and audit
@@ -37,8 +37,12 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
     ):
         super().__init__(document_ref=document_ref, partition_count=partition_count)
         self.retention = retention or DocumentRetentionPolicy()
-        self._proposals_by_owner: dict[OwnerKey, dict[str, FactorProposal]] = defaultdict(dict)
+        self._proposals_by_owner: dict[
+            OwnerKey, dict[str, FactorProposal]
+        ] = defaultdict(dict)
         self._known_dependency_refs: set[str] = set()
+        self._compact_jobs: dict[str, dict[str, Any]] = {}
+        self._compact_receipts: dict[str, dict[str, Any]] = {}
         self._compact_receipt_refs: set[str] = set()
         self._compaction_count = 0
 
@@ -67,6 +71,47 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
         if not self.retention.state_deltas and self._state_deltas:
             self._state_deltas.clear()
         return delta
+
+    @staticmethod
+    def _compact_job_row(job: SolverJob) -> dict[str, Any]:
+        return {
+            "schema_version": "sl.pnf.solver_job.compact.v0_1",
+            "job_ref": job.job_ref,
+            "owner_key": job.owner_key.to_dict(),
+            "declaration_ref": job.declaration_ref,
+            "input_revision": job.input_revision,
+            "input_refs": list(job.input_refs),
+            "input_delta_ref": str(
+                job.input_payload.get("input_delta_ref") or ""
+            ),
+            "rule_set_revision": job.rule_set_revision,
+            "coverage_requirements": list(job.coverage_requirements),
+            "assumptions": list(job.assumptions),
+            "priority": job.priority,
+            "payload_compacted": True,
+        }
+
+    @staticmethod
+    def _compact_receipt_row(receipt: SolverReceipt) -> dict[str, Any]:
+        return {
+            "schema_version": "sl.pnf.solver_receipt.compact.v0_1",
+            "receipt_ref": receipt.receipt_ref,
+            "job_ref": receipt.job_ref,
+            "owner_key": receipt.owner_key.to_dict(),
+            "input_revision": receipt.input_revision,
+            "input_refs": list(receipt.input_refs),
+            "rule_set_revision": receipt.rule_set_revision,
+            "proposal_refs": sorted(
+                proposal.proposal_ref for proposal in receipt.proposals
+            ),
+            "residuals": list(receipt.residuals),
+            "assumptions": list(receipt.assumptions),
+            "coverage_requirements": list(receipt.coverage_requirements),
+            "metrics": dict(receipt.metrics),
+            "backend_ref": receipt.backend_ref,
+            "proposals_compacted": True,
+            "semantic_state_promoted": False,
+        }
 
     def _activate_declarations_for_delta(
         self,
@@ -136,6 +181,7 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
                 coverage_requirements=(declaration.coverage_barrier,),
                 priority=declaration.priority,
             )
+            self._compact_jobs.setdefault(job.job_ref, self._compact_job_row(job))
             if self.retention.completed_jobs:
                 self._jobs.setdefault(job.job_ref, job)
             if (
@@ -186,14 +232,22 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
         prior = self.revision
         job = self._in_flight_jobs.pop(receipt.job_ref, None)
         if job is None:
-            if receipt.receipt_ref in self._compact_receipt_refs or receipt.receipt_ref in self._receipts:
+            if (
+                receipt.receipt_ref in self._compact_receipt_refs
+                or receipt.receipt_ref in self._receipts
+            ):
                 return self._advance(prior_revision=prior)
             raise ValueError("solver receipt does not match an in-flight job")
-        if receipt.input_refs != job.input_refs or receipt.rule_set_revision != job.rule_set_revision:
+        if (
+            receipt.input_refs != job.input_refs
+            or receipt.rule_set_revision != job.rule_set_revision
+        ):
             raise ValueError("solver receipt input contract disagrees with job")
         missing_inputs = set(receipt.input_refs) - self._observation_refs
         if missing_inputs:
-            raise ValueError("solver receipt refers to unavailable or superseded inputs")
+            raise ValueError(
+                "solver receipt refers to unavailable or superseded inputs"
+            )
 
         signature = canonical_sha256(
             {
@@ -204,6 +258,10 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
         )
         self._completed_job_signatures.add(signature)
         self._compact_receipt_refs.add(receipt.receipt_ref)
+        self._compact_receipts.setdefault(
+            receipt.receipt_ref,
+            self._compact_receipt_row(receipt),
+        )
         if self.retention.full_receipts:
             self._receipts[receipt.receipt_ref] = receipt
         if not self.retention.completed_jobs:
@@ -241,11 +299,17 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
                 known_dependency_refs=self._known_dependency_refs,
             )
             self._reductions[key] = reduction
-            before_factors = {row.factor_ref for row in before.factors} if before else set()
+            before_factors = (
+                {row.factor_ref for row in before.factors} if before else set()
+            )
             after_factors = {row.factor_ref for row in reduction.factors}
-            self._known_dependency_refs.difference_update(before_factors - after_factors)
+            self._known_dependency_refs.difference_update(
+                before_factors - after_factors
+            )
             self._known_dependency_refs.update(after_factors)
-            changed_factors.update(before_factors.symmetric_difference(after_factors))
+            changed_factors.update(
+                before_factors.symmetric_difference(after_factors)
+            )
             before_residuals = (
                 {row.residual_ref for row in before.residuals} if before else set()
             )
@@ -278,7 +342,9 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
         return {
             "jobs_released": before["jobs"] - after["jobs"],
             "receipts_released": before["receipts"] - after["receipts"],
-            "state_deltas_released": before["state_deltas"] - after["state_deltas"],
+            "state_deltas_released": (
+                before["state_deltas"] - after["state_deltas"]
+            ),
             "compaction_count": self._compaction_count,
         }
 
@@ -288,14 +354,32 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
             "proposals": len(self._proposals),
             "proposal_owner_groups": len(self._proposals_by_owner),
             "jobs": len(self._jobs),
+            "compact_jobs": len(self._compact_jobs),
             "pending_jobs": len(self._pending_jobs),
             "in_flight_jobs": len(self._in_flight_jobs),
             "receipts": len(self._receipts),
+            "compact_receipts": len(self._compact_receipts),
             "compact_receipt_refs": len(self._compact_receipt_refs),
             "state_deltas": len(self._state_deltas),
             "reductions": len(self._reductions),
             "known_dependency_refs": len(self._known_dependency_refs),
         }
+
+    def to_dict(self) -> dict[str, Any]:
+        payload = super().to_dict()
+        if not self.retention.completed_jobs:
+            payload["solver_jobs"] = [
+                self._compact_jobs[key] for key in sorted(self._compact_jobs)
+            ]
+        if not self.retention.full_receipts:
+            payload["solver_receipts"] = [
+                self._compact_receipts[key]
+                for key in sorted(self._compact_receipts)
+            ]
+        payload["retention_mode"] = self.retention.mode.value
+        payload["retention_counts"] = self.retention_counts()
+        payload["compact_execution_evidence"] = True
+        return payload
 
     def compact_summary(self) -> dict[str, Any]:
         reduction = self.materialized_reduction
