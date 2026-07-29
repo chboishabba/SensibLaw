@@ -41,6 +41,13 @@ def _completed_delta(coordinator: HierarchicalGraphCoordinator, job):
         unresolved_demand_refs=(),
         index_refs=(f"index:{job.node_ref}",),
     )
+    work_units = (
+        node.carrier.size
+        if node.kind is HierarchyNodeKind.LEAF
+        else sum(
+            coordinator.nodes[child].interface.reference_count for child in children
+        )
+    )
     return HierarchyDelta(
         node_ref=job.node_ref,
         introduced_vertex_refs=(f"vertex:{job.node_ref}",),
@@ -57,7 +64,7 @@ def _completed_delta(coordinator: HierarchicalGraphCoordinator, job):
             required_child_refs=tuple(sorted(children)),
             locally_fixed_point=True,
         ),
-        work_units=node.carrier.size,
+        work_units=work_units,
         output_bytes=128,
         descendant_bytes_reconstructed=0,
     )
@@ -166,7 +173,7 @@ def test_parent_graphs_reference_children_without_flattening_descendants() -> No
     assert len(root.introduced_edge_refs) == 1
     assert complexity.flattening_free is True
     assert complexity.descendant_bytes_reconstructed == 0
-    assert complexity.total_work_units == 8 * 4096
+    assert complexity.total_work_units == 4 * 4096 + 12
 
 
 def test_parent_waits_while_leaf_jobs_are_ready() -> None:
