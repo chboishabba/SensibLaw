@@ -42,7 +42,9 @@ mentions and `K` real overlaps, the target is output-sensitive:
 O(A + M + K)
 ```
 
-rather than `O(A × M)`.
+rather than `O(A × M)`. A left interval is owned by its start coordinate, but
+its leaf interface is extended through the interval's real end so a match that
+crosses a leaf boundary is not lost.
 
 The local-typing stage is decomposed into named kernels:
 
@@ -54,20 +56,50 @@ The local-typing stage is decomposed into named kernels:
 - `diagnostic_summary`.
 
 Each kernel records elapsed time, input/output counts, RSS, PSS and USS. Matching
-kernels additionally record leaf work and actual match counts.
+kernels additionally record leaf work and actual match counts. Structural
+hypotheses, local-type carriers and diagnostics are also divided into immutable
+bounded leaves and checkpointed independently.
+
+## Process-backed execution without parser duplication
+
+The measured local-typing and closure kernels are Python CPU work. Thread pools
+alone cannot guarantee use of more than one CPU core. Production therefore has
+an opt-in bounded process pool for semantic leaves and pure solver jobs:
+
+```text
+SENSIBLAW_SEMANTIC_PROCESS_WORKERS=4
+SENSIBLAW_TYPING_OVERLAP_PROCESS_WORKERS=4
+SENSIBLAW_SEMANTIC_MP_CONTEXT=forkserver
+```
+
+Workers receive only bounded JSON-like typing leaves or immutable `SolverJob`
+values. They do **not** receive or load:
+
+- spaCy or the parser pipeline;
+- the complete parsed document;
+- the annotation graph;
+- the full relational bundle;
+- the complete semantic worktree.
+
+The parent process remains the sole document semantic owner. It merges immutable
+leaf outputs, admits solver receipts and performs deterministic reductions. The
+process pool is destroyed before PostgreSQL persistence. The exact acceptance
+receipt records worker PIDs and fails unless at least two distinct semantic
+worker processes actually performed work.
 
 ## Mini, midi and mega typing graphs
 
-Typing overlap work is assigned to bounded token-coordinate leaves. A leaf
-checkpoint contains:
+Typing overlap, structural-hypothesis, local-carrier and diagnostic work is
+assigned to bounded leaves. A leaf checkpoint contains:
 
 - source, parser and typing-contract identity;
-- exact owned carrier interval;
+- exact owned carrier or ordered input identity;
 - input and output digests;
-- overlap records;
-- boundary interface references;
+- immutable semantic output records;
+- boundary interface references where applicable;
 - an exact-coverage and local-fixed-point certificate;
-- elapsed and complexity receipts.
+- elapsed and complexity receipts;
+- the worker PID that produced it.
 
 Missing leaves may execute concurrently. Completed leaves are immutable and
 reused after a stopped run. Parent nodes store child graph references and
@@ -83,18 +115,38 @@ The physical root graph reference may change with leaf capacity or arity. The
 canonical output digest only, so worker count, completion order and partition
 layout have no semantic effect.
 
+## Typing checkpoint and resume
+
+The durable path is:
+
+```text
+parser-fibre checkpoints
+→ overlap leaf checkpoints
+→ structural-hypothesis leaf checkpoints
+→ local-type-carrier leaf checkpoints
+→ diagnostic leaf checkpoints
+→ typing hierarchy root receipts
+```
+
+A stopped run reuses every completed leaf whose source hash, parser contract,
+typing contract, input identity and build key still match. The compiler does not
+claim that arbitrary in-memory Python state is resumable.
+
 ## Closure
 
-The bounded semantic owner and scheduler already lease immutable jobs by
-semantic `OwnerKey`, not by permanent text ownership. The new execution surface
-adds:
+The bounded semantic owner and scheduler lease immutable jobs by semantic
+`OwnerKey`, not by permanent text ownership. Pure operator solving can run in
+the bounded semantic process pool; receipt admission and factor reduction remain
+transactional in the one document owner. The execution surface adds:
 
 - per-reduction-batch proposal and factor-scan accounting;
 - settled-group rescan counts;
 - changed-factor and revision counts;
+- dependency fan-out;
 - closure progress samples with RSS/PSS/USS;
 - pure solver-receipt checkpoints keyed by `job_ref`;
-- deterministic solver-receipt replay after interruption.
+- deterministic solver-receipt replay after interruption;
+- worker-PID evidence for actual process parallelism.
 
 Receipt replay skips completed solver work. Admission and deterministic owner
 reduction are currently replayed when rebuilding the owner; the receipt states
@@ -125,21 +177,26 @@ assuming they are inevitable. It records:
 This report is diagnostic. It does not delete or merge semantic rows. Any later
 deduplication must first prove semantic parity.
 
-## Checkpoint roots
+## Checkpoint and execution controls
 
-Set a durable semantic checkpoint directory:
+Set a durable semantic checkpoint directory and bounded work policy:
 
 ```text
 SENSIBLAW_SEMANTIC_CHECKPOINT_DIR=/path/to/semantic-checkpoints
 SENSIBLAW_TYPING_WORKERS=4
 SENSIBLAW_TYPING_LEAF_CAPACITY=4096
 SENSIBLAW_TYPING_HIERARCHY_ARITY=4
+SENSIBLAW_TYPING_RELATION_LEAF_SIZE=4096
+SENSIBLAW_TYPING_MENTION_LEAF_SIZE=4096
+SENSIBLAW_SEMANTIC_PROCESS_WORKERS=4
+SENSIBLAW_TYPING_OVERLAP_PROCESS_WORKERS=4
 ```
 
 Failure injection is available for tests:
 
 ```text
 SENSIBLAW_TYPING_STOP_AFTER_LEAVES=N
+SENSIBLAW_TYPING_TAIL_STOP_AFTER_LEAVES=N
 SENSIBLAW_CLOSURE_STOP_AFTER_RECEIPTS=N
 ```
 
@@ -150,7 +207,8 @@ These controls stop only after immutable outputs have been written.
 Reuse the failed trial output root so its parser state and four parser-fibre
 checkpoints remain available. Keep one parser worker because parser concurrency
 is not the measured bottleneck and the committed checkpoint/build identity was
-created with one. Use four workers for typing and closure:
+created with one. Use four **process-backed semantic workers** for typing and
+closure:
 
 ```bash
 uv run python scripts/run_exact_0008_parallel_acceptance.py \
@@ -167,22 +225,28 @@ uv run python scripts/run_exact_0008_parallel_acceptance.py \
 
 The wrapper delegates compilation and SQL publication verification to the
 strict acceptance runner. It compares local-typing and closure time with the
-serial failed baseline. A failed baseline cannot prove final semantic parity;
-a subsequent successful or resumed run can be supplied with
-`--reference-semantic-receipt` to compare logical layer refs, annotation graph,
-logical typing refs, manifest descriptors, stage build keys and publication
-identity.
+serial failed baseline, requires multiple observed semantic worker PIDs and
+captures the resource and amplification reports. A failed baseline cannot prove
+final semantic parity; a subsequent successful or resumed run can be supplied
+with `--reference-semantic-receipt` to compare logical layer refs, annotation
+graph, logical typing refs, manifest descriptors, stage build keys and
+publication identity.
+
+The default 6/8 GiB limits in this runner are provisional machine-safety bounds,
+not optimisation acceptance thresholds. The report must still expose retained
+state, peak RSS/PSS/USS and work amplification.
 
 ## Acceptance invariants
 
 A tranche result is acceptable only when:
 
 1. exact parser owner coverage remains complete;
-2. one- and four-worker fixture outputs agree;
+2. canonical and partitioned fixture outputs agree;
 3. valid leaf capacities have the same logical typing identity;
 4. completed leaves and solver receipts are reused after injected stops;
 5. hierarchy nodes reconstruct zero descendant bytes;
-6. closure reaches the same document fixed point;
-7. manifest digests and SQL publication verification succeed;
-8. exactly one completed build and compiled occurrence are visible;
-9. no physical partition field enters semantic parity.
+6. at least two distinct semantic worker PIDs performed work;
+7. closure reaches the same document fixed point;
+8. manifest digests and SQL publication verification succeed;
+9. exactly one completed build and compiled occurrence are visible;
+10. no physical partition field enters semantic parity.
