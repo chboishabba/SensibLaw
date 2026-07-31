@@ -8,7 +8,6 @@ persistence.
 
 from __future__ import annotations
 
-from collections import Counter
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import json
 import multiprocessing
@@ -16,7 +15,7 @@ import os
 from pathlib import Path
 from threading import Lock
 from time import monotonic_ns
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence, TypeVar
 
 from src.policy.carriers.canonical import canonical_sha256
 
@@ -26,6 +25,7 @@ TAIL_ROOT_SCHEMA_VERSION = "sensiblaw.typing-value-hierarchy.v1"
 PROCESS_EXECUTION_CONTRACT = "semantic-process-leaves:v1"
 _INSTALL_MARKER = "_parallel_typing_tail_installed"
 
+T = TypeVar("T")
 _POOL: ProcessPoolExecutor | None = None
 _POOL_WORKERS = 0
 _POOL_LOCK = Lock()
@@ -166,7 +166,9 @@ def _leaf_path(root: Path | None, operation: str, leaf_ref: str) -> Path | None:
     return root / operation / f"{safe}.json"
 
 
-def _load_leaf(path: Path | None, *, leaf_ref: str, input_digest: str) -> dict[str, Any] | None:
+def _load_leaf(
+    path: Path | None, *, leaf_ref: str, input_digest: str
+) -> dict[str, Any] | None:
     if path is None or not path.exists():
         return None
     payload = _read_json(path)
@@ -262,7 +264,11 @@ def _hierarchy_receipt(
         "output_digest": output_digest,
         "levels": levels,
         "worker_pids": sorted(
-            {int(row.get("worker_pid") or 0) for row in leaves if row.get("worker_pid")}
+            {
+                int(row.get("worker_pid") or 0)
+                for row in leaves
+                if row.get("worker_pid")
+            }
         ),
         "computed_leaf_count": sum(not bool(row.get("reused")) for row in leaves),
         "reused_leaf_count": sum(bool(row.get("reused")) for row in leaves),
@@ -299,10 +305,7 @@ def _execute_leaves(
             }
         )
         leaf_ref = "typing-leaf:" + canonical_sha256(
-            {
-                "operation": operation,
-                "input_digest": input_digest,
-            }
+            {"operation": operation, "input_digest": input_digest}
         )
         cached = _load_leaf(
             _leaf_path(root, operation, leaf_ref),
@@ -327,7 +330,9 @@ def _execute_leaves(
         )
 
     newly_completed = 0
-    stop_after = _integer_env("SENSIBLAW_TYPING_TAIL_STOP_AFTER_LEAVES", 0, minimum=0)
+    stop_after = _integer_env(
+        "SENSIBLAW_TYPING_TAIL_STOP_AFTER_LEAVES", 0, minimum=0
+    )
     for ordinal, worker_result in future_rows:
         input_identity = input_identities[ordinal]
         input_digest = canonical_sha256(
@@ -360,10 +365,11 @@ def _execute_leaves(
             _atomic_write_json(path, payload)
         leaves[ordinal] = payload
         newly_completed += 1
+        output_items = len(value) if hasattr(value, "__len__") else 1
         context.sample(
             f"local_typing_diagnostics:{operation}",
             phase="typing_leaf_completed",
-            counts={"leaf_ordinal": ordinal, "output_items": len(value)},
+            counts={"leaf_ordinal": ordinal, "output_items": output_items},
             details={
                 "leaf_ref": leaf_ref,
                 "worker_pid": payload["worker_pid"],
@@ -387,12 +393,19 @@ def _execute_leaves(
         arity=context.hierarchy_arity,
     )
     receipt["elapsed_ns"] = monotonic_ns() - started
+    receipt["complexity"] = {
+        "input_leaf_count": len(payloads),
+        "document_rescan_per_leaf": False,
+        "target": "O(inputs + outputs + hierarchy_interfaces)",
+    }
     context.typing_receipts[operation] = receipt
     return output, receipt
 
 
-def _chunked[T](rows: Sequence[T], size: int) -> tuple[tuple[T, ...], ...]:
-    return tuple(tuple(rows[offset : offset + size]) for offset in range(0, len(rows), size))
+def _chunked(rows: Sequence[T], size: int) -> tuple[tuple[T, ...], ...]:
+    return tuple(
+        tuple(rows[offset : offset + size]) for offset in range(0, len(rows), size)
+    )
 
 
 def _structural_sort_key(row: Mapping[str, Any]) -> tuple[Any, ...]:
@@ -422,10 +435,7 @@ def install_parallel_typing_tail() -> bool:
 
     from src.policy import corpus_compilation as legacy
     from src.policy import operational_corpus_compilation as operational
-    from src.policy.parallel_semantic_execution import (
-        _CONTEXT,
-        _context_for_document,
-    )
+    from src.policy.parallel_semantic_execution import _CONTEXT, _context_for_document
 
     if getattr(operational, _INSTALL_MARKER, False):
         return False
@@ -446,13 +456,12 @@ def install_parallel_typing_tail() -> bool:
         relations = tuple(bundle.get("relations") or ())
         if not relations:
             return current_derive(*args, **kwargs)
+        started = monotonic_ns()
         leaf_size = _integer_env("SENSIBLAW_TYPING_RELATION_LEAF_SIZE", 4096)
         chunks = _chunked(relations, leaf_size)
-        payloads = []
-        identities = []
-        declaration_identity = [
-            _mapping(value) for value in declarations or ()
-        ]
+        declaration_identity = [_mapping(value) for value in declarations or ()]
+        payloads: list[dict[str, Any]] = []
+        identities: list[dict[str, Any]] = []
         for chunk in chunks:
             atom_refs = {
                 str(role.get("atom") or "")
@@ -495,13 +504,28 @@ def install_parallel_typing_tail() -> bool:
                 )
             )
 
-        result, _receipt = _execute_leaves(
+        result, receipt = _execute_leaves(
             operation="structural_hypothesis_derivation",
             context=context,
             payloads=payloads,
             input_identities=identities,
             worker=_derive_hypothesis_worker,
             merge=merge,
+        )
+        context.sample(
+            "local_typing_diagnostics:structural_hypothesis_derivation",
+            phase="kernel_completed",
+            counts={
+                "relations": len(relations),
+                "structural_hypotheses": len(result),
+                "leaf_count": receipt["leaf_count"],
+            },
+            details={
+                "process_backed": _process_workers() > 1,
+                "worker_pids": receipt["worker_pids"],
+                "logical_typing_ref": receipt["logical_typing_ref"],
+            },
+            elapsed_ns=monotonic_ns() - started,
         )
         return result
 
@@ -516,6 +540,7 @@ def install_parallel_typing_tail() -> bool:
         authority = str(kwargs.get("authority") or "candidate_only")
         if not mentions:
             return current_build_typing(*args, **kwargs)
+        started = monotonic_ns()
         leaf_size = _integer_env("SENSIBLAW_TYPING_MENTION_LEAF_SIZE", 4096)
         mention_rows = sorted(
             (_mapping(value) for value in mentions),
@@ -524,20 +549,28 @@ def install_parallel_typing_tail() -> bool:
                 str(row.get("mention_ref") or ""),
             ),
         )
-        form_rows = [_mapping(value) for value in forms]
-        structural_rows = [_mapping(value) for value in structural]
+        forms_by_mention: dict[str, list[dict[str, Any]]] = {}
+        for value in forms:
+            row = _mapping(value)
+            forms_by_mention.setdefault(str(row.get("mention_ref") or ""), []).append(
+                row
+            )
+        structural_by_mention: dict[str, list[dict[str, Any]]] = {}
+        for value in structural:
+            row = _mapping(value)
+            structural_by_mention.setdefault(
+                str(row.get("mention_ref") or ""), []
+            ).append(row)
         rule_identity = [_mapping(value) for value in typing_rules]
-        payloads = []
-        identities = []
+        payloads: list[dict[str, Any]] = []
+        identities: list[dict[str, Any]] = []
         for chunk in _chunked(mention_rows, leaf_size):
             refs = {str(row["mention_ref"]) for row in chunk}
             chunk_forms = tuple(
-                row for row in form_rows if str(row.get("mention_ref") or "") in refs
+                row for ref in refs for row in forms_by_mention.get(ref, ())
             )
             chunk_structural = tuple(
-                row
-                for row in structural_rows
-                if str(row.get("mention_ref") or "") in refs
+                row for ref in refs for row in structural_by_mention.get(ref, ())
             )
             payloads.append(
                 {
@@ -551,7 +584,9 @@ def install_parallel_typing_tail() -> bool:
             identities.append(
                 {
                     "mention_refs": sorted(refs),
-                    "form_refs": sorted(str(row.get("form_ref") or "") for row in chunk_forms),
+                    "form_refs": sorted(
+                        str(row.get("form_ref") or "") for row in chunk_forms
+                    ),
                     "structural_hypotheses": chunk_structural,
                     "typing_rules": rule_identity,
                     "authority": authority,
@@ -625,19 +660,38 @@ def install_parallel_typing_tail() -> bool:
                     "structural_hypothesis_count": len(structural_output),
                     "local_type_alternative_count": len(alternatives),
                     "coverage_state_counts": {
-                        state: sum(row["coverage_state"] == state for row in coverage)
+                        state: sum(
+                            row["coverage_state"] == state for row in coverage
+                        )
                         for state in sorted(_COVERAGE_STATES)
                     },
                 },
             }
 
-        result, _receipt = _execute_leaves(
+        result, receipt = _execute_leaves(
             operation="local_type_carrier_build",
             context=context,
             payloads=payloads,
             input_identities=identities,
             worker=_local_typing_worker,
             merge=merge,
+        )
+        context.sample(
+            "local_typing_diagnostics:local_type_carrier_build",
+            phase="kernel_completed",
+            counts={
+                "mentions": len(mentions),
+                "local_type_alternatives": len(
+                    result.get("local_type_alternatives") or ()
+                ),
+                "leaf_count": receipt["leaf_count"],
+            },
+            details={
+                "process_backed": _process_workers() > 1,
+                "worker_pids": receipt["worker_pids"],
+                "logical_typing_ref": receipt["logical_typing_ref"],
+            },
+            elapsed_ns=monotonic_ns() - started,
         )
         return result
 
@@ -653,6 +707,7 @@ def install_parallel_typing_tail() -> bool:
         parser_capabilities = dict(kwargs.get("parser_capabilities") or {})
         if not mentions:
             return current_diagnose(*args, **kwargs)
+        started = monotonic_ns()
         leaf_size = _integer_env("SENSIBLAW_TYPING_MENTION_LEAF_SIZE", 4096)
         mention_rows = sorted(
             (_mapping(value) for value in mentions),
@@ -661,35 +716,51 @@ def install_parallel_typing_tail() -> bool:
                 str(row.get("mention_ref") or ""),
             ),
         )
-        relations = tuple(bundle.get("relations") or ())
-        payloads = []
-        identities = []
-        for chunk in _chunked(mention_rows, leaf_size):
+        chunks = _chunked(mention_rows, leaf_size)
+        mention_leaf = {
+            str(row["mention_ref"]): ordinal
+            for ordinal, chunk in enumerate(chunks)
+            for row in chunk
+        }
+        relations_by_leaf: dict[int, list[Mapping[str, Any]]] = {
+            ordinal: [] for ordinal in range(len(chunks))
+        }
+        for relation in bundle.get("relations") or ():
+            leaf_ordinals = {
+                mention_leaf[mention_ref]
+                for role in relation.get("roles") or ()
+                for mention_ref in atom_mentions.get(str(role.get("atom") or ""), ())
+                if mention_ref in mention_leaf
+            }
+            for ordinal in leaf_ordinals:
+                relations_by_leaf[ordinal].append(relation)
+        coverage_by_mention = {
+            str(row.get("mention_ref") or ""): row
+            for row in local_typing.get("coverage_pressure") or ()
+        }
+        forms_by_mention: dict[str, list[Mapping[str, Any]]] = {}
+        for row in local_typing.get("forms") or ():
+            forms_by_mention.setdefault(str(row.get("mention_ref") or ""), []).append(
+                row
+            )
+        payloads: list[dict[str, Any]] = []
+        identities: list[dict[str, Any]] = []
+        for ordinal, chunk in enumerate(chunks):
             refs = {str(row["mention_ref"]) for row in chunk}
             subset_atom_mentions = {
                 atom_ref: tuple(ref for ref in mention_refs if ref in refs)
                 for atom_ref, mention_refs in atom_mentions.items()
                 if any(ref in refs for ref in mention_refs)
             }
-            relevant_atoms = set(subset_atom_mentions)
-            subset_relations = tuple(
-                relation
-                for relation in relations
-                if any(
-                    str(role.get("atom") or "") in relevant_atoms
-                    for role in relation.get("roles") or ()
-                )
-            )
+            subset_relations = tuple(relations_by_leaf[ordinal])
             subset_local = {
                 "coverage_pressure": [
-                    row
-                    for row in local_typing.get("coverage_pressure") or ()
-                    if str(row.get("mention_ref") or "") in refs
+                    coverage_by_mention[ref]
+                    for ref in sorted(refs)
+                    if ref in coverage_by_mention
                 ],
                 "forms": [
-                    row
-                    for row in local_typing.get("forms") or ()
-                    if str(row.get("mention_ref") or "") in refs
+                    row for ref in sorted(refs) for row in forms_by_mention.get(ref, ())
                 ],
             }
             subset_parser = {
@@ -731,13 +802,28 @@ def install_parallel_typing_tail() -> bool:
                 )
             )
 
-        result, _receipt = _execute_leaves(
+        result, receipt = _execute_leaves(
             operation="untyped_diagnostic_generation",
             context=context,
             payloads=payloads,
             input_identities=identities,
             worker=_diagnostic_worker,
             merge=merge,
+        )
+        context.sample(
+            "local_typing_diagnostics:untyped_diagnostic_generation",
+            phase="kernel_completed",
+            counts={
+                "mentions": len(mentions),
+                "diagnostics": len(result),
+                "leaf_count": receipt["leaf_count"],
+            },
+            details={
+                "process_backed": _process_workers() > 1,
+                "worker_pids": receipt["worker_pids"],
+                "logical_typing_ref": receipt["logical_typing_ref"],
+            },
+            elapsed_ns=monotonic_ns() - started,
         )
         return result
 
@@ -773,6 +859,9 @@ def install_parallel_typing_tail() -> bool:
         finally:
             shutdown_semantic_process_pool()
 
+    legacy._serial_derive_relational_type_hypotheses = current_derive
+    legacy._serial_build_local_typing_carrier = current_build_typing
+    legacy._serial_diagnose_untyped_mentions = current_diagnose
     legacy.derive_relational_type_hypotheses = derive_wrapper
     legacy.build_local_typing_carrier = build_typing_wrapper
     legacy.diagnose_untyped_mentions = diagnose_wrapper
