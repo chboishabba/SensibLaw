@@ -34,15 +34,23 @@ class OverlapQueryReceipt:
 
 @dataclass(frozen=True)
 class _IntervalNode:
-    center: int
-    crossing_by_start: tuple[IntervalRecord, ...]
-    crossing_by_end: tuple[IntervalRecord, ...]
+    """One start-ordered interval node with a left-subtree pruning bound."""
+
+    record: IntervalRecord
+    max_end: int
     left: "_IntervalNode | None" = None
     right: "_IntervalNode | None" = None
 
 
 class TokenIntervalIndex:
-    """Read-only interval tree with O(log n + k) overlap queries."""
+    """Read-only balanced interval tree with output-sensitive overlap queries.
+
+    Nodes are ordered by interval start. ``max_end`` stores the greatest end
+    coordinate in each subtree, allowing a query to skip every left subtree
+    that cannot extend past the query start. The start ordering independently
+    prevents descent into right subtrees whose records all begin at or beyond
+    the query end.
+    """
 
     def __init__(self, records: Iterable[IntervalRecord]):
         rows = tuple(sorted(set(records), key=lambda row: (row.start, row.end, row.ref)))
@@ -53,33 +61,20 @@ class TokenIntervalIndex:
     def _build(cls, rows: Sequence[IntervalRecord]) -> _IntervalNode | None:
         if not rows:
             return None
-        midpoints = sorted((row.start + row.end) // 2 for row in rows)
-        center = midpoints[len(midpoints) // 2]
-        left: list[IntervalRecord] = []
-        right: list[IntervalRecord] = []
-        crossing: list[IntervalRecord] = []
-        for row in rows:
-            if row.end <= center:
-                left.append(row)
-            elif row.start > center:
-                right.append(row)
-            else:
-                crossing.append(row)
-        if not crossing:
-            pivot = rows[len(rows) // 2]
-            crossing.append(pivot)
-            left = [row for row in rows if row != pivot and row.end <= center]
-            right = [row for row in rows if row != pivot and row.start > center]
+        midpoint = len(rows) // 2
+        record = rows[midpoint]
+        left = cls._build(rows[:midpoint])
+        right = cls._build(rows[midpoint + 1 :])
+        max_end = max(
+            record.end,
+            left.max_end if left is not None else record.end,
+            right.max_end if right is not None else record.end,
+        )
         return _IntervalNode(
-            center=center,
-            crossing_by_start=tuple(
-                sorted(crossing, key=lambda row: (row.start, row.end, row.ref))
-            ),
-            crossing_by_end=tuple(
-                sorted(crossing, key=lambda row: (-row.end, row.start, row.ref))
-            ),
-            left=cls._build(tuple(left)),
-            right=cls._build(tuple(right)),
+            record=record,
+            max_end=max_end,
+            left=left,
+            right=right,
         )
 
     def overlapping_with_receipt(
@@ -87,35 +82,28 @@ class TokenIntervalIndex:
     ) -> tuple[tuple[str, ...], OverlapQueryReceipt]:
         if start < 0 or end <= start:
             raise ValueError("query coordinates must form a non-empty half-open range")
-        matches: set[str] = set()
+        matches: list[str] = []
         node_visits = 0
         candidate_checks = 0
 
         def visit(node: _IntervalNode | None) -> None:
             nonlocal node_visits, candidate_checks
-            if node is None:
+            if node is None or node.max_end <= start:
                 return
             node_visits += 1
-            if end <= node.center:
-                for row in node.crossing_by_start:
-                    candidate_checks += 1
-                    if row.start >= end:
-                        break
-                    matches.add(row.ref)
+
+            if node.left is not None and node.left.max_end > start:
                 visit(node.left)
-                return
-            if start > node.center:
-                for row in node.crossing_by_end:
-                    candidate_checks += 1
-                    if row.end <= start:
-                        break
-                    matches.add(row.ref)
+
+            candidate_checks += 1
+            row = node.record
+            if row.start < end and row.end > start:
+                matches.append(row.ref)
+
+            # Every record in the right subtree starts at or after this node.
+            # Once the current start reaches the query end, none can overlap.
+            if row.start < end:
                 visit(node.right)
-                return
-            candidate_checks += len(node.crossing_by_start)
-            matches.update(row.ref for row in node.crossing_by_start)
-            visit(node.left)
-            visit(node.right)
 
         visit(self._root)
         result = tuple(sorted(matches))
