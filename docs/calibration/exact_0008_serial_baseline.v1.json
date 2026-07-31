@@ -1,0 +1,70 @@
+{
+  "schema_version": "sensiblaw.exact-0008-serial-baseline.v1",
+  "document_ref": "document:6e759a79285c465410ebb420795b0aaf1a2c663a0c3af7a1845d9520c7acc57c",
+  "compiler_contract_ref": "postgres-semantic-compiler:v0_11",
+  "corpus_ref": "corpus:d4739c951820c846d8649905c71e262ef32bebe6bf4f698c70502127ddcd2204",
+  "manifest_sha256": "b125fed2b915950d85589f82a6448e75d81e59c583f51f23dedeb274efd8c2cc",
+  "configuration": {
+    "worker_budget": 1,
+    "document_workers": 1,
+    "parser_workers": 1,
+    "closure_workers": 1,
+    "owner_partitions": 1,
+    "parser_limit_chars": 1000000,
+    "parser_target_chars": 400000,
+    "parser_overlap_chars": 8192
+  },
+  "parser_checkpoints": {
+    "parser_contract_ref": "parser-document-fibres:v0_2",
+    "checkpoint_digest": "c47722d9e47d4d78fb2b239a6c6dde482eb78cb3875cebb69a4b3d4c8092d74f",
+    "checkpoint_refs": [
+      "document-fibre:a6d65f55c60b18cdc1641888780bb9bf7f7f36900b4dd6b4f25e6a762bf7f2ac",
+      "document-fibre:aa416883fba5f08b3405ad1e525fd1eac51482f6a68d19184fa09aeb0572de4b",
+      "document-fibre:823501e220b159a57ec6f6e2d0d03c2ec52d011ab94034803efccb7dc2eea9c1",
+      "document-fibre:db5f93d4b92f47520e05609f84d7993f10e775aaffcd82442d9afd4d0901b167"
+    ],
+    "fibre_text_sha256": [
+      "d56cb1bf9ef532bbc34c3dc128e025e96f509e3a00ea2ec012397b54ed5a32d4",
+      "e4f2408635e48e5c21e4bf44f20d41cb9a34083d1d6c75eb4e731e2f226ceea4",
+      "4272d2ead0d79bf56da8675be0ef612b1c9e15ceef1f324ab7d2d86c9afbecb6",
+      "bf6c5be73ddf46b2074c9ade019bc1b2276e3b452df5b6e93421aff6e3936cf7"
+    ],
+    "fibre_count": 4,
+    "canonical_character_count": 1375469,
+    "owned_sentence_count": 12710,
+    "owned_token_count": 271689,
+    "context_token_count": 281514,
+    "processed_parser_tokens_reported": 279532,
+    "exact_owner_coverage": true,
+    "context_overlap_is_execution_only": true
+  },
+  "runtime": {
+    "measurement_quality": "approximate_from_failed_trace",
+    "local_typing_diagnostics_seconds": 9300,
+    "streaming_closure_seconds": 4680,
+    "other_stages_seconds": 420,
+    "estimated_total_seconds": 14400,
+    "observed_peak_rss_bytes": 4552662016
+  },
+  "semantic_counts": {
+    "local_type_alternatives": 254554,
+    "typed_meets": 229494,
+    "refinements": 214479,
+    "demands": 305275,
+    "factor_scans": 449478,
+    "output_nodes": 251426
+  },
+  "failure": {
+    "failure_refs": [
+      "failure:928951fbaa06d5bd2b519cb1f66b88aa38d226af58ecfba19b46e701393ed7a6"
+    ],
+    "error_type": "DocumentResourceLimitError",
+    "error": "document compilation stopped at a resource checkpoint",
+    "completed_document_count": 0,
+    "compiler_publication_state": "not_started",
+    "sql_publication_audit": "not_asserted_by_this baseline; acceptance runner must query it"
+  },
+  "comparison_role": "serial_failed_trace_baseline",
+  "semantic_output_identity": null,
+  "publication_identity": null
+}
