@@ -20,6 +20,19 @@ class IntervalRecord:
 
 
 @dataclass(frozen=True)
+class OverlapQueryReceipt:
+    start: int
+    end: int
+    match_count: int
+    node_visits: int
+    candidate_checks: int
+
+    @property
+    def work_units(self) -> int:
+        return self.node_visits + self.candidate_checks
+
+
+@dataclass(frozen=True)
 class _IntervalNode:
     center: int
     crossing_by_start: tuple[IntervalRecord, ...]
@@ -69,16 +82,23 @@ class TokenIntervalIndex:
             right=cls._build(tuple(right)),
         )
 
-    def overlapping(self, start: int, end: int) -> tuple[str, ...]:
+    def overlapping_with_receipt(
+        self, start: int, end: int
+    ) -> tuple[tuple[str, ...], OverlapQueryReceipt]:
         if start < 0 or end <= start:
             raise ValueError("query coordinates must form a non-empty half-open range")
         matches: set[str] = set()
+        node_visits = 0
+        candidate_checks = 0
 
         def visit(node: _IntervalNode | None) -> None:
+            nonlocal node_visits, candidate_checks
             if node is None:
                 return
+            node_visits += 1
             if end <= node.center:
                 for row in node.crossing_by_start:
+                    candidate_checks += 1
                     if row.start >= end:
                         break
                     matches.add(row.ref)
@@ -86,17 +106,30 @@ class TokenIntervalIndex:
                 return
             if start > node.center:
                 for row in node.crossing_by_end:
+                    candidate_checks += 1
                     if row.end <= start:
                         break
                     matches.add(row.ref)
                 visit(node.right)
                 return
+            candidate_checks += len(node.crossing_by_start)
             matches.update(row.ref for row in node.crossing_by_start)
             visit(node.left)
             visit(node.right)
 
         visit(self._root)
-        return tuple(sorted(matches))
+        result = tuple(sorted(matches))
+        return result, OverlapQueryReceipt(
+            start=start,
+            end=end,
+            match_count=len(result),
+            node_visits=node_visits,
+            candidate_checks=candidate_checks,
+        )
+
+    def overlapping(self, start: int, end: int) -> tuple[str, ...]:
+        result, _receipt = self.overlapping_with_receipt(start, end)
+        return result
 
 
-__all__ = ["IntervalRecord", "TokenIntervalIndex"]
+__all__ = ["IntervalRecord", "OverlapQueryReceipt", "TokenIntervalIndex"]
