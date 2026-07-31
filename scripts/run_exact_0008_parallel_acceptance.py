@@ -106,7 +106,11 @@ def _kernel_seconds(
         if not isinstance(row, Mapping) or row.get("phase") != "kernel_completed":
             continue
         stage = str(row.get("stage") or "")
-        selected = stage == exact_stage if exact_stage is not None else stage.startswith(prefix)
+        selected = (
+            stage == exact_stage
+            if exact_stage is not None
+            else stage.startswith(prefix)
+        )
         if selected:
             total += int(row.get("elapsed_ns") or 0)
     return total / 1_000_000_000
@@ -120,7 +124,7 @@ def _process_parallelism(receipt: Mapping[str, Any]) -> dict[str, Any]:
         for pid in hierarchy.get("worker_pids") or ()
         if int(pid) > 0
     }
-    closure_counters = (receipt.get("closure_audit") or {})
+    closure_counters = receipt.get("closure_audit") or {}
     closure_pids = {
         int(str(key).split(":", maxsplit=1)[1])
         for key, value in closure_counters.items()
@@ -173,6 +177,7 @@ def main() -> int:
         str(args.worker_budget),
         "--offline",
         "--skip-legal-follow",
+        "--calibration",
     ]
     environment = os.environ.copy()
     environment.update(
@@ -241,13 +246,10 @@ def main() -> int:
             if local_typing_seconds > 0
             else None
         ),
-        "serial_closure_seconds": baseline_runtime.get(
-            "streaming_closure_seconds"
-        ),
+        "serial_closure_seconds": baseline_runtime.get("streaming_closure_seconds"),
         "parallel_closure_seconds": closure_seconds,
         "closure_speedup": (
-            float(baseline_runtime["streaming_closure_seconds"])
-            / closure_seconds
+            float(baseline_runtime["streaming_closure_seconds"]) / closure_seconds
             if closure_seconds > 0
             else None
         ),
@@ -277,8 +279,14 @@ def main() -> int:
         }
     process_execution = _process_parallelism(semantic_receipt)
 
+    strict_completed = strict_receipt.get("state") in {"completed", "calibrated"}
+    rollback_verified = (
+        strict_receipt.get("publication_verification", {}).get("publication_mode")
+        == "rolled_back"
+    )
     accepted = (
-        bool(strict_receipt.get("accepted"))
+        strict_completed
+        and rollback_verified
         and semantic_receipt.get("state") == "completed"
         and process_execution["parallel_process_execution_observed"]
         and parity.get("semantic_parity") is not False

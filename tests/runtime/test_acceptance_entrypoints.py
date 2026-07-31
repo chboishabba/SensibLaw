@@ -79,7 +79,9 @@ def test_semantic_worker_import_does_not_load_spacy_runtime() -> None:
 
 def test_strict_acceptance_derives_limits_from_observed_peak() -> None:
     root = Path(__file__).resolve().parents[2]
-    namespace = runpy.run_path(str(root / "scripts" / "run_strict_tranche_acceptance.py"))
+    namespace = runpy.run_path(
+        str(root / "scripts" / "run_strict_tranche_acceptance.py")
+    )
 
     limits = namespace["_derived_limits"]({"rss_bytes": 600 * 1024 * 1024})
 
@@ -116,6 +118,14 @@ def test_exact_acceptance_requires_observed_semantic_processes() -> None:
     assert observed["distinct_semantic_worker_pids"] == [101, 102, 103, 104]
     assert observed["parallel_process_execution_observed"] is True
     assert serial["parallel_process_execution_observed"] is False
+
+
+def test_parallel_acceptance_is_explicitly_rolled_back() -> None:
+    root = Path(__file__).resolve().parents[2]
+    # The executable command is assembled in main; assert the source contract
+    # directly so a future runner edit cannot silently publish calibration rows.
+    source = (root / "scripts" / "run_exact_0008_parallel_acceptance.py").read_text()
+    assert '"--calibration"' in source
 
 
 def test_resource_guard_retains_all_stage_checkpoints_only_when_requested(
