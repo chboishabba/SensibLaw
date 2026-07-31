@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+from concurrent.futures import ProcessPoolExecutor
+import multiprocessing
 import runpy
 from pathlib import Path
+import subprocess
+import sys
 
 import pytest
 
 from src.runtime.active_document_resources import ActiveDocumentResourceGuard
+from src.runtime.semantic_worker_probe import probe_semantic_worker_imports
 
 
 @pytest.mark.parametrize(
@@ -28,6 +33,48 @@ def test_acceptance_entrypoint_imports_without_pnf_cycle(
         runpy.run_path(str(script), run_name="__main__")
     except SystemExit as error:
         assert error.code == 0
+
+
+def test_public_interface_import_does_not_load_spacy_runtime() -> None:
+    root = Path(__file__).resolve().parents[2]
+    command = [
+        sys.executable,
+        "-c",
+        (
+            "import sys; "
+            "import src.sensiblaw.interfaces; "
+            "assert 'src.nlp.spacy_adapter' not in sys.modules; "
+            "assert 'spacy' not in sys.modules"
+        ),
+    ]
+
+    completed = subprocess.run(
+        command,
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+
+
+def test_semantic_worker_import_does_not_load_spacy_runtime() -> None:
+    start_method = (
+        "forkserver"
+        if "forkserver" in multiprocessing.get_all_start_methods()
+        else "spawn"
+    )
+    with ProcessPoolExecutor(
+        max_workers=1,
+        mp_context=multiprocessing.get_context(start_method),
+    ) as executor:
+        probe = executor.submit(probe_semantic_worker_imports).result(timeout=60)
+
+    assert probe["policy_worker_module_loaded"] is True
+    assert probe["spacy_loaded"] is False
+    assert probe["spacy_adapter_loaded"] is False
+    assert probe["parser_runtime_loaded"] is False
 
 
 def test_strict_acceptance_derives_limits_from_observed_peak() -> None:
