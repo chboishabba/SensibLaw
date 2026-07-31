@@ -11,6 +11,7 @@ from typing import Any, Mapping
 
 
 SCHEMA_VERSION = "sensiblaw.exact-0008-serial-baseline.v1"
+PARSER_CHECKPOINT_SET_SCHEMA_VERSION = "sensiblaw.parser-checkpoint-set.v1"
 
 
 def _json(path: Path) -> dict[str, Any]:
@@ -18,6 +19,17 @@ def _json(path: Path) -> dict[str, Any]:
     if not isinstance(value, Mapping):
         raise ValueError(f"expected JSON object: {path}")
     return dict(value)
+
+
+def _canonical_sha256(value: object) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            value,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
 
 
 def _parse_args() -> argparse.Namespace:
@@ -61,19 +73,35 @@ def _parser_coverage(root: Path) -> dict[str, Any]:
             raise ValueError("parser owner coverage is not contiguous and exact")
     if int(rows[0]["owner_start"]) != 0:
         raise ValueError("parser owner coverage does not begin at zero")
-    canonical_rows = [
-        json.dumps(summary, sort_keys=True, separators=(",", ":"))
-        for summary in summaries
+
+    document_ref = next(iter(document_refs))
+    parser_contract_ref = next(iter(contract_refs))
+    identity_rows = [
+        {
+            "sequence_no": int(row["sequence_no"]),
+            "fibre_ref": str(row["fibre_ref"]),
+            "owner_start": int(row["owner_start"]),
+            "owner_end": int(row["owner_end"]),
+            "context_start": int(row["context_start"]),
+            "context_end": int(row["context_end"]),
+            "text_sha256": str(row.get("text_sha256") or ""),
+        }
+        for row in rows
     ]
-    checkpoint_digest = hashlib.sha256(
-        ("[" + ",".join(canonical_rows) + "]").encode("utf-8")
-    ).hexdigest()
+    checkpoint_identity = {
+        "schema_version": PARSER_CHECKPOINT_SET_SCHEMA_VERSION,
+        "document_ref": document_ref,
+        "parser_contract_ref": parser_contract_ref,
+        "fibres": identity_rows,
+    }
     return {
-        "document_ref": next(iter(document_refs)),
-        "parser_contract_ref": next(iter(contract_refs)),
-        "checkpoint_digest": checkpoint_digest,
+        "document_ref": document_ref,
+        "parser_contract_ref": parser_contract_ref,
+        "checkpoint_identity_schema_version": PARSER_CHECKPOINT_SET_SCHEMA_VERSION,
+        "checkpoint_digest": _canonical_sha256(checkpoint_identity),
         "checkpoint_refs": [str(row["fibre_ref"]) for row in rows],
         "fibre_text_sha256": [str(row.get("text_sha256") or "") for row in rows],
+        "fibre_identity_rows": identity_rows,
         "fibre_count": len(rows),
         "canonical_character_count": int(rows[-1]["owner_end"]),
         "owned_sentence_count": sum(
@@ -122,6 +150,51 @@ def build_baseline(args: argparse.Namespace) -> dict[str, Any]:
     )
     if any(configuration[key] != 1 for key in serial_keys):
         raise ValueError("baseline is not the expected one-worker serial trace")
+
+    stage_timeline = [
+        {
+            "stage": "local_typing_diagnostics",
+            "elapsed_seconds": args.local_typing_seconds,
+            "share_of_estimated_runtime": (
+                args.local_typing_seconds
+                / (
+                    args.local_typing_seconds
+                    + args.streaming_closure_seconds
+                    + args.other_seconds
+                )
+            ),
+            "measurement_quality": "approximate_from_failed_trace",
+            "kernel_breakdown_available": False,
+        },
+        {
+            "stage": "streaming_closure",
+            "elapsed_seconds": args.streaming_closure_seconds,
+            "share_of_estimated_runtime": (
+                args.streaming_closure_seconds
+                / (
+                    args.local_typing_seconds
+                    + args.streaming_closure_seconds
+                    + args.other_seconds
+                )
+            ),
+            "measurement_quality": "approximate_from_failed_trace",
+            "kernel_breakdown_available": False,
+        },
+        {
+            "stage": "all_other_stages",
+            "elapsed_seconds": args.other_seconds,
+            "share_of_estimated_runtime": (
+                args.other_seconds
+                / (
+                    args.local_typing_seconds
+                    + args.streaming_closure_seconds
+                    + args.other_seconds
+                )
+            ),
+            "measurement_quality": "approximate_from_failed_trace",
+            "kernel_breakdown_available": False,
+        },
+    ]
     return {
         "schema_version": SCHEMA_VERSION,
         "document_ref": coverage["document_ref"],
@@ -130,6 +203,7 @@ def build_baseline(args: argparse.Namespace) -> dict[str, Any]:
         "manifest_sha256": str(state.get("manifest_sha256") or ""),
         "configuration": configuration,
         "parser_checkpoints": coverage,
+        "stage_timeline": stage_timeline,
         "runtime": {
             "measurement_quality": "approximate_from_failed_trace",
             "local_typing_diagnostics_seconds": args.local_typing_seconds,
@@ -143,6 +217,7 @@ def build_baseline(args: argparse.Namespace) -> dict[str, Any]:
             "observed_peak_rss_bytes": args.peak_rss_bytes,
         },
         "semantic_counts": {
+            "measurement_quality": "reported_by_failed_compiler_trace",
             "processed_parser_tokens": args.processed_parser_tokens,
             "local_type_alternatives": args.local_type_alternatives,
             "typed_meets": args.typed_meets,
