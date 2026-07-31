@@ -6,6 +6,10 @@ This module exposes the existing deterministic parser, transcript-header,
 operational-structure, and pre-semantic normalization helpers through the
 public ``sensiblaw.interfaces`` package so downstream consumers do not need
 to import ``src.*`` modules directly.
+
+The spaCy adapter is deliberately imported only when parsing or release is
+invoked. Importing compiler, fibre, or semantic-worker surfaces must not load a
+parser runtime into those processes.
 """
 
 from typing import Any
@@ -15,12 +19,6 @@ from ._compat import install_src_package_aliases
 install_src_package_aliases()
 
 try:
-    from src.nlp.spacy_adapter import (
-        parse as _parse_with_spacy,
-    )
-    from src.nlp.spacy_adapter import (
-        release_default_nlp as _release_default_nlp,
-    )
     from src.text.message_transcript import (
         MessageHeader,
         TimeRangeHeader,
@@ -59,13 +57,17 @@ except ModuleNotFoundError:  # pragma: no cover - cross-product import path
 def parse_canonical_text(text: str) -> dict[str, Any]:
     """Return deterministic sentence/token structure for canonical text."""
 
-    return _parse_with_spacy(text)
+    from src.nlp.spacy_adapter import parse as parse_with_spacy
+
+    return parse_with_spacy(text)
 
 
 def release_canonical_parser_runtime() -> bool:
     """Release the cached parser runtime after checkpointed parser work."""
 
-    return _release_default_nlp()
+    from src.nlp.spacy_adapter import release_default_nlp
+
+    return release_default_nlp()
 
 
 def collect_canonical_operational_structure_occurrences(
@@ -116,20 +118,3 @@ def strip_presemantic_enumeration_prefix(text: str) -> str:
     """Strip a leading enumeration prefix from text."""
 
     return _strip_enumeration_prefix(text)
-
-
-__all__ = [
-    "MessageHeader",
-    "StructureOccurrence",
-    "TimeRangeHeader",
-    "collect_canonical_operational_structure_occurrences",
-    "parse_canonical_message_header",
-    "parse_canonical_text",
-    "parse_canonical_time_range_header",
-    "release_canonical_parser_runtime",
-    "split_presemantic_semicolon_clauses",
-    "split_presemantic_text_clauses",
-    "split_presemantic_text_segments",
-    "strip_presemantic_enumeration_prefix",
-    "tokenize_presemantic_text",
-]
