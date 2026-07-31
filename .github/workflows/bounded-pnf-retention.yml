@@ -62,6 +62,7 @@ jobs:
             src/policy/bounded_operational_execution.py \
             src/policy/indexed_projection_execution.py \
             src/policy/parallel_semantic_execution.py \
+            src/policy/parallel_typing_tail.py \
             src/policy/semantic_receipt_enrichment.py \
             src/policy/manifest_stream_validation.py \
             scripts/run_strict_tranche_acceptance.py \
@@ -81,6 +82,7 @@ jobs:
             tests/policy/test_bounded_operational_execution.py \
             tests/policy/test_indexed_projection_execution.py \
             tests/policy/test_parallel_semantic_execution.py \
+            tests/policy/test_parallel_typing_tail.py \
             tests/policy/test_semantic_receipt_enrichment.py \
             tests/policy/test_manifest_stream_validation.py
 
@@ -102,6 +104,7 @@ jobs:
             src/policy/bounded_operational_execution.py \
             src/policy/indexed_projection_execution.py \
             src/policy/parallel_semantic_execution.py \
+            src/policy/parallel_typing_tail.py \
             src/policy/semantic_receipt_enrichment.py \
             src/policy/manifest_stream_validation.py \
             scripts/run_strict_tranche_acceptance.py \
@@ -121,6 +124,7 @@ jobs:
             tests/policy/test_bounded_operational_execution.py \
             tests/policy/test_indexed_projection_execution.py \
             tests/policy/test_parallel_semantic_execution.py \
+            tests/policy/test_parallel_typing_tail.py \
             tests/policy/test_semantic_receipt_enrichment.py \
             tests/policy/test_manifest_stream_validation.py
 
@@ -142,6 +146,7 @@ jobs:
             tests/policy/test_bounded_operational_execution.py \
             tests/policy/test_indexed_projection_execution.py \
             tests/policy/test_parallel_semantic_execution.py \
+            tests/policy/test_parallel_typing_tail.py \
             tests/policy/test_semantic_receipt_enrichment.py \
             tests/policy/test_manifest_stream_validation.py \
             tests/policy/test_operational_corpus_compilation.py \
