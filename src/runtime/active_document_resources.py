@@ -131,6 +131,7 @@ class ActiveDocumentResourceGuard:
             "restart_from_document": True,
             "partial_state_resumable": False,
         }
+        self._write_checkpoint(payload)
         if observed >= self.hard_limit_bytes or (
             fail_on_soft_pressure and observed >= self.soft_limit_bytes
         ):
@@ -151,6 +152,28 @@ class ActiveDocumentResourceGuard:
             for value in self.document_ref
         )
         path = Path(root) / f"{safe}.resource-checkpoint.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = path.with_suffix(path.suffix + ".tmp")
+        temporary.write_text(json.dumps(dict(payload), indent=2, sort_keys=True) + "\n")
+        temporary.replace(path)
+
+    def _write_checkpoint(self, payload: Mapping[str, Any]) -> None:
+        """Retain stage samples only when an acceptance calibration asks for them."""
+
+        if os.environ.get("SENSIBLAW_RESOURCE_CHECKPOINT_ALL") != "1":
+            return
+        root = os.environ.get("SENSIBLAW_RESOURCE_CHECKPOINT_DIR")
+        if not root:
+            return
+        safe_document = "".join(
+            value if value.isalnum() or value in "-_." else "_"
+            for value in self.document_ref
+        )
+        safe_stage = "".join(
+            value if value.isalnum() or value in "-_." else "_"
+            for value in f"{payload['active_stage']}.{payload['current_kernel']}"
+        )
+        path = Path(root) / f"{safe_document}.{safe_stage}.resource-checkpoint.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         temporary = path.with_suffix(path.suffix + ".tmp")
         temporary.write_text(json.dumps(dict(payload), indent=2, sort_keys=True) + "\n")

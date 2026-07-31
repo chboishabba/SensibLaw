@@ -776,6 +776,7 @@ def persist_document_compilation(
         parser_target_chars=parser_target_chars,
         parser_overlap_chars=parser_overlap_chars,
     )
+    calibration_mode = os.environ.get("SENSIBLAW_TRANCHE_CALIBRATION") == "1"
     with store.transaction() as cursor:
         cached_demand_refs = load_completed_operational_build(
             cursor,
@@ -783,7 +784,7 @@ def persist_document_compilation(
             compiler_contract_ref=OPERATIONAL_COMPILER_CONTRACT,
             build_key_sha256=build_key_sha256,
         )
-        if cached_demand_refs is not None:
+        if cached_demand_refs is not None and not calibration_mode:
             store.persist_occurrence(
                 cursor,
                 corpus_ref=corpus_ref,
@@ -1627,6 +1628,7 @@ def compile_directory_postgres(
                 state_entry = resume_documents.get(document_ref)
                 if (
                     isinstance(state_entry, Mapping)
+                    and os.environ.get("SENSIBLAW_TRANCHE_CALIBRATION") != "1"
                     and str(state_entry.get("build_key_sha256") or "")
                     == build_key_sha256
                     and str(state_entry.get("state") or "")
@@ -1667,7 +1669,10 @@ def compile_directory_postgres(
                         compiler_contract_ref=document_executor_contract_ref,
                         build_key_sha256=build_key_sha256,
                     )
-                if cached_demand_refs is not None:
+                if (
+                    cached_demand_refs is not None
+                    and os.environ.get("SENSIBLAW_TRANCHE_CALIBRATION") != "1"
+                ):
                     with store.transaction() as cursor:
                         store.persist_occurrence(
                             cursor,

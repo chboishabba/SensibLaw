@@ -64,6 +64,14 @@ from src.storage.postgres.legal_adjunct_planner import (  # noqa: E402
 )
 
 
+class _CalibrationRollback(RuntimeError):
+    """Carry a completed calibration result out of an intentionally rolled back run."""
+
+    def __init__(self, compilation: Any):
+        self.compilation = compilation
+        super().__init__("calibration transaction rolled back")
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -145,6 +153,15 @@ def _parse_args() -> argparse.Namespace:
         help="Bilateral context overlap for parser fibres.",
     )
     parser.add_argument("--no-wiktionary", action="store_true")
+    parser.add_argument(
+        "--calibration",
+        action="store_true",
+        help=(
+            "Run the normal local compiler and persistence path inside one "
+            "rolled-back PostgreSQL transaction, then stop before downstream "
+            "phases. This never publishes a completed build or occurrence."
+        ),
+    )
     args = parser.parse_args()
     if not args.database_url:
         parser.error("--database-url or DATABASE_URL is required")
@@ -513,27 +530,45 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
     compile_progress = PhaseRecorder(stream=sys.stderr, json_lines=False)
     compile_state_path = output_dir / "local_pnf_compilation_state.json"
     try:
-        compilation = compile_directory_postgres(
-            output_dir / "source_projection" / "canonical",
-            context=default_compiler_context(),
-            store=store,
-            execution_phase="demand_planning",
-            progress=compile_progress,
-            state_path=compile_state_path,
-            document_executor_ref="document-executor:postgres-operational:v0_1",
-            document_executor_contract_ref=OPERATIONAL_COMPILER_CONTRACT,
-            persistence_strategy_ref="persistence:postgres-savepoint:v0_1",
-            admission_policy_ref="admission:inventoried-only:v0_1",
-            closure_workers=args.closure_workers,
-            owner_partitions=args.owner_partitions,
-            parser_workers=args.parser_workers,
-            parser_limit_chars=args.parser_limit_chars,
-            parser_target_chars=args.parser_target_chars,
-            parser_overlap_chars=args.parser_overlap_chars,
-            document_workers=args.document_workers,
-            worker_budget=args.worker_budget,
-            database_url=args.database_url,
-        )
+        compile_kwargs = {
+            "context": default_compiler_context(),
+            "store": store,
+            "execution_phase": "demand_planning",
+            "progress": compile_progress,
+            "state_path": compile_state_path,
+            "document_executor_ref": "document-executor:postgres-operational:v0_1",
+            "document_executor_contract_ref": OPERATIONAL_COMPILER_CONTRACT,
+            "persistence_strategy_ref": "persistence:postgres-savepoint:v0_1",
+            "admission_policy_ref": "admission:inventoried-only:v0_1",
+            "closure_workers": args.closure_workers,
+            "owner_partitions": args.owner_partitions,
+            "parser_workers": args.parser_workers,
+            "parser_limit_chars": args.parser_limit_chars,
+            "parser_target_chars": args.parser_target_chars,
+            "parser_overlap_chars": args.parser_overlap_chars,
+            "document_workers": args.document_workers,
+            "worker_budget": args.worker_budget,
+            "database_url": args.database_url,
+        }
+        if args.calibration:
+            # ``PostgresCompilerStore.transaction`` nests as savepoints under
+            # this outer transaction, so this exercises source, partition,
+            # artifact and publication writes exactly as production does while
+            # the final exception rolls every write back atomically.
+            try:
+                with store.connection.transaction():
+                    calibration_compilation = compile_directory_postgres(
+                        output_dir / "source_projection" / "canonical",
+                        **compile_kwargs,
+                    )
+                    raise _CalibrationRollback(calibration_compilation)
+            except _CalibrationRollback as rollback:
+                compilation = rollback.compilation
+        else:
+            compilation = compile_directory_postgres(
+                output_dir / "source_projection" / "canonical",
+                **compile_kwargs,
+            )
         compile_progress.write_json(output_dir / "local_pnf_compile_progress.json")
         compile_payload = {
             "corpus_ref": compilation.corpus_ref,
@@ -571,6 +606,32 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
                 / "local_pnf_compile_progress.json",
             },
         )
+
+        if compilation.failure_refs:
+            raise RuntimeError(
+                "local PNF compilation produced failure refs: "
+                + ", ".join(compilation.failure_refs)
+            )
+
+        if args.calibration:
+            calibration_path = output_dir / "tranche_calibration.json"
+            calibration = {
+                "schema_version": "sl.complete_tranche_calibration.v0_1",
+                "tranche": tranche,
+                "profile_ref": profile.profile_ref,
+                "publication_mode": "rolled_back",
+                "source_projection": str(projection_path),
+                "local_pnf_compilation": str(compile_path),
+                "document_refs": list(compilation.document_refs),
+                "failure_refs": list(compilation.failure_refs),
+            }
+            _json_write(calibration_path, calibration)
+            print(f"tranche={tranche} calibration={calibration_path}")
+            return {
+                "profile": profile.to_dict(),
+                "calibration": calibration,
+                "calibration_ref": str(calibration_path),
+            }
 
         with store.transaction() as cursor:
             local_world = _local_world_summary(cursor, compilation.corpus_ref, profile)
@@ -973,14 +1034,24 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
 
 def main() -> int:
     args = _parse_args()
+    if args.calibration:
+        # The compiler consults this only to bypass completed-build reuse. The
+        # outer transaction in ``_run_one`` remains the publication boundary.
+        os.environ["SENSIBLAW_TRANCHE_CALIBRATION"] = "1"
     tranches = ("GWB", "AU", "BREXIT") if args.tranche == "ALL" else (args.tranche,)
     checkpoints = [_run_one(args, tranche) for tranche in tranches]
     summary = {
-        "schema_version": "sl.three_tranche_run.v0_2",
+        "schema_version": (
+            "sl.complete_tranche_calibration_summary.v0_1"
+            if args.calibration
+            else "sl.three_tranche_run.v0_2"
+        ),
         "tranches": [row["profile"]["tranche"] for row in checkpoints],
-        "checkpoint_refs": [
-            row["phase_receipts"][-1]["receipt_ref"] for row in checkpoints
-        ],
+        "checkpoint_refs": (
+            [row["calibration_ref"] for row in checkpoints]
+            if args.calibration
+            else [row["phase_receipts"][-1]["receipt_ref"] for row in checkpoints]
+        ),
         "authority": "execution_summary_only",
     }
     _json_write(args.output_root.resolve() / "three_tranche_summary.json", summary)

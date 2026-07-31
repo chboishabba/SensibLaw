@@ -14,6 +14,7 @@ import argparse
 import hashlib
 import json
 import os
+import signal
 import subprocess
 import sys
 import tempfile
@@ -54,6 +55,14 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--owner-partitions", type=int, default=8)
     parser.add_argument("--parser-workers", type=int, default=2)
     parser.add_argument("--worker-budget", type=int, default=4)
+    parser.add_argument(
+        "--calibration",
+        action="store_true",
+        help=(
+            "Run the local compiler and persistence path inside one rolled-back "
+            "transaction and emit a non-publishing calibration receipt."
+        ),
+    )
     args = parser.parse_args()
     if not args.database_url:
         parser.error("--database-url or DATABASE_URL is required")
@@ -103,12 +112,30 @@ def _migration_hashes() -> dict[str, str]:
     return result
 
 
-def _resident_bytes(pid: int) -> int:
+def _process_memory(pid: int) -> dict[str, int | None]:
+    """Read Linux RSS/PSS/USS; PSS/USS are unavailable without smaps_rollup."""
+
+    result: dict[str, int | None] = {
+        "rss_bytes": None,
+        "pss_bytes": None,
+        "uss_bytes": None,
+    }
     try:
-        pages = int(Path(f"/proc/{pid}/statm").read_text(encoding="ascii").split()[1])
-        return pages * int(os.sysconf("SC_PAGE_SIZE"))
+        for line in Path(f"/proc/{pid}/smaps_rollup").read_text(encoding="ascii").splitlines():
+            key, _, value = line.partition(":")
+            if key == "Rss":
+                result["rss_bytes"] = int(value.split()[0]) * 1024
+            elif key == "Pss":
+                result["pss_bytes"] = int(value.split()[0]) * 1024
+            elif key in {"Private_Clean", "Private_Dirty"}:
+                result["uss_bytes"] = (result["uss_bytes"] or 0) + int(value.split()[0]) * 1024
     except (OSError, ValueError, IndexError):
-        return 0
+        try:
+            pages = int(Path(f"/proc/{pid}/statm").read_text(encoding="ascii").split()[1])
+            result["rss_bytes"] = pages * int(os.sysconf("SC_PAGE_SIZE"))
+        except (OSError, ValueError, IndexError):
+            pass
+    return result
 
 
 def _child_pids(pid: int) -> tuple[int, ...]:
@@ -135,10 +162,31 @@ def _child_pids(pid: int) -> tuple[int, ...]:
     return tuple(result)
 
 
-def _process_tree_rss(pid: int) -> int:
-    return _resident_bytes(pid) + sum(
-        _resident_bytes(child) for child in _child_pids(pid)
-    )
+def _process_tree_memory(pid: int) -> dict[str, int | None]:
+    rows = [_process_memory(candidate) for candidate in (pid, *_child_pids(pid))]
+    result: dict[str, int | None] = {}
+    for key in ("rss_bytes", "pss_bytes", "uss_bytes"):
+        values = [value for row in rows if (value := row[key]) is not None]
+        result[key] = sum(values) if values else None
+    return result
+
+
+def _round_up(value: int, quantum: int = 64 * MIB) -> int:
+    return ((value + quantum - 1) // quantum) * quantum
+
+
+def _derived_limits(peak_resources: Mapping[str, int]) -> dict[str, dict[str, int]]:
+    """Derive declared limits from an observed clean calibration peak."""
+
+    return {
+        key.removesuffix("_bytes"): {
+            "observed_peak_bytes": value,
+            "soft_limit_bytes": _round_up((value * 105 + 99) // 100),
+            "hard_limit_bytes": _round_up((value * 120 + 99) // 100),
+        }
+        for key, value in peak_resources.items()
+        if value > 0
+    }
 
 
 def _command(args: argparse.Namespace) -> list[str]:
@@ -172,6 +220,8 @@ def _command(args: argparse.Namespace) -> list[str]:
         command.append("--offline")
     if args.skip_legal_follow:
         command.append("--skip-legal-follow")
+    if args.calibration:
+        command.append("--calibration")
     return command
 
 
@@ -311,62 +361,111 @@ def main() -> int:
         {
             "DATABASE_URL": args.database_url,
             "SENSIBLAW_DOCUMENT_RETENTION_MODE": "production_compact",
-            "SENSIBLAW_DOCUMENT_SOFT_MEMORY_MIB": str(args.soft_memory_mib),
-            "SENSIBLAW_DOCUMENT_HARD_MEMORY_MIB": str(args.hard_memory_mib),
             "SENSIBLAW_RESOURCE_CHECKPOINT_DIR": str(checkpoints),
+            "SENSIBLAW_RESOURCE_CHECKPOINT_ALL": "1",
             "PYTHONUNBUFFERED": "1",
         }
     )
+    if args.calibration:
+        # Calibration observes the complete curve. The compiler's ordinary
+        # 5/6 GiB diagnostic guard remains a last-resort safety boundary, but
+        # the historical acceptance cap must not truncate the measurement.
+        environment.pop("SENSIBLAW_DOCUMENT_SOFT_MEMORY_MIB", None)
+        environment.pop("SENSIBLAW_DOCUMENT_HARD_MEMORY_MIB", None)
+    else:
+        environment.update(
+            {
+                "SENSIBLAW_DOCUMENT_SOFT_MEMORY_MIB": str(args.soft_memory_mib),
+                "SENSIBLAW_DOCUMENT_HARD_MEMORY_MIB": str(args.hard_memory_mib),
+            }
+        )
     command = _command(args)
     started_at = datetime.now(UTC).isoformat()
-    peak_rss = 0
+    peak_resources = {"rss_bytes": 0, "pss_bytes": 0, "uss_bytes": 0}
     sample_count = 0
     hard_limit = args.hard_memory_mib * MIB
     observed_hard_breach = False
 
-    with stdout_path.open("wb") as stdout, stderr_path.open("wb") as stderr:
-        process = subprocess.Popen(
-            command,
-            cwd=ROOT,
-            env=environment,
-            stdout=stdout,
-            stderr=stderr,
-        )
-        stop = threading.Event()
+    _atomic_json(
+        receipt_path,
+        {
+            "schema_version": "sl.strict_tranche_acceptance.v0_2",
+            "state": "started",
+            "accepted": False,
+            "started_at": started_at,
+            "command": command,
+        },
+    )
+    process: subprocess.Popen[bytes] | None = None
+    stop = threading.Event()
+    terminal_signal: int | None = None
+    returncode: int | None = None
 
-        def sample() -> None:
-            nonlocal peak_rss, sample_count, observed_hard_breach
-            with rss_path.open("a", encoding="utf-8") as stream:
-                while not stop.wait(args.sample_seconds):
-                    rss = _process_tree_rss(process.pid)
-                    peak_rss = max(peak_rss, rss)
-                    sample_count += 1
-                    observed_hard_breach = observed_hard_breach or rss > hard_limit
-                    stream.write(
-                        json.dumps(
-                            {
-                                "observed_at": datetime.now(UTC).isoformat(),
-                                "pid": process.pid,
-                                "process_tree_rss_bytes": rss,
-                            },
-                            sort_keys=True,
+    def _signal_handler(signum: int, _frame: Any) -> None:
+        nonlocal terminal_signal
+        terminal_signal = signum
+        if process is not None and process.poll() is None:
+            process.terminate()
+
+    old_handlers = {
+        signum: signal.signal(signum, _signal_handler)
+        for signum in (signal.SIGINT, signal.SIGTERM)
+    }
+    try:
+        with stdout_path.open("wb") as stdout, stderr_path.open("wb") as stderr:
+            process = subprocess.Popen(command, cwd=ROOT, env=environment, stdout=stdout, stderr=stderr)
+
+            def sample() -> None:
+                nonlocal sample_count, observed_hard_breach
+                assert process is not None
+                with rss_path.open("a", encoding="utf-8") as stream:
+                    while not stop.wait(args.sample_seconds):
+                        resources = _process_tree_memory(process.pid)
+                        for key, value in resources.items():
+                            if value is not None:
+                                peak_resources[key] = max(peak_resources[key], value)
+                        sample_count += 1
+                        observed_hard_breach = observed_hard_breach or (resources["rss_bytes"] or 0) > hard_limit
+                        stream.write(
+                            json.dumps(
+                                {
+                                    "observed_at": datetime.now(UTC).isoformat(),
+                                    "pid": process.pid,
+                                    "process_tree_rss_bytes": resources["rss_bytes"],
+                                    "process_tree_pss_bytes": resources["pss_bytes"],
+                                    "process_tree_uss_bytes": resources["uss_bytes"],
+                                },
+                                sort_keys=True,
+                            )
+                            + "\n"
                         )
-                        + "\n"
-                    )
-                    stream.flush()
+                        stream.flush()
 
-        sampler = threading.Thread(target=sample, name="acceptance-rss", daemon=True)
-        sampler.start()
-        returncode = process.wait()
+            sampler = threading.Thread(target=sample, name="acceptance-memory", daemon=True)
+            sampler.start()
+            returncode = process.wait()
+            stop.set()
+            sampler.join(timeout=max(1.0, args.sample_seconds * 2))
+    finally:
         stop.set()
-        sampler.join(timeout=max(1.0, args.sample_seconds * 2))
+        for signum, handler in old_handlers.items():
+            signal.signal(signum, handler)
 
     checkpoint_files = sorted(
         str(path.relative_to(acceptance_root)) for path in checkpoints.glob("*.json")
     )
-    accepted = returncode == 0 and not observed_hard_breach
+    run_succeeded = (
+        returncode == 0
+        and terminal_signal is None
+        and (args.calibration or not observed_hard_breach)
+    )
+    accepted = not args.calibration and run_succeeded
     failure_reason = None
-    if returncode != 0:
+    if args.calibration and run_succeeded:
+        failure_reason = None
+    elif terminal_signal is not None:
+        failure_reason = f"acceptance harness received signal {terminal_signal}"
+    elif returncode != 0:
         failure_reason = f"tranche runner exited with status {returncode}"
     elif observed_hard_breach:
         failure_reason = "observed process-tree RSS exceeded the hard limit"
@@ -374,32 +473,41 @@ def main() -> int:
         accepted = False
         failure_reason = "hard memory breach had no resource checkpoint"
     publication = (
-        _verify_explicit_publication(args) if returncode == 0 else {"state": "not_run"}
+        {"state": "not_requested", "publication_mode": "rolled_back"}
+        if args.calibration
+        else (_verify_explicit_publication(args) if returncode == 0 else {"state": "not_run"})
     )
-    if publication["state"] == "not_verified":
+    if not args.calibration and publication["state"] == "not_verified":
         accepted = False
         failure_reason = "explicit input publication verification failed"
 
     receipt = {
-        "schema_version": "sl.strict_tranche_acceptance.v0_1",
+        "schema_version": "sl.strict_tranche_acceptance.v0_2",
+        "state": (
+            "calibrated"
+            if args.calibration and run_succeeded
+            else ("completed" if accepted else ("signalled" if terminal_signal is not None else "failed"))
+        ),
         "accepted": accepted,
         "failure_reason": failure_reason,
         "started_at": started_at,
         "completed_at": datetime.now(UTC).isoformat(),
         "command": command,
         "returncode": returncode,
+        "signal": terminal_signal,
         "repository": {
             "commit": _git_value("rev-parse", "HEAD"),
             "branch": _git_value("branch", "--show-current"),
             "status_porcelain": _git_value("status", "--porcelain"),
         },
         "environment": {
-            key: environment[key]
+            key: environment.get(key)
             for key in (
                 "SENSIBLAW_DOCUMENT_RETENTION_MODE",
                 "SENSIBLAW_DOCUMENT_SOFT_MEMORY_MIB",
                 "SENSIBLAW_DOCUMENT_HARD_MEMORY_MIB",
                 "SENSIBLAW_RESOURCE_CHECKPOINT_DIR",
+                "SENSIBLAW_RESOURCE_CHECKPOINT_ALL",
             )
         },
         "database_url_redacted": args.database_url.split("@")[-1],
@@ -416,11 +524,24 @@ def main() -> int:
         "publication_verification": publication,
         "resources": {
             "sample_count": sample_count,
-            "peak_process_tree_rss_bytes": peak_rss,
+            "peak_process_tree_rss_bytes": peak_resources["rss_bytes"],
+            "peak_process_tree_pss_bytes": peak_resources["pss_bytes"],
+            "peak_process_tree_uss_bytes": peak_resources["uss_bytes"],
             "soft_limit_bytes": args.soft_memory_mib * MIB,
             "hard_limit_bytes": hard_limit,
             "hard_limit_observed": observed_hard_breach,
         },
+        "calibration": (
+            {
+                "publication_mode": "rolled_back",
+                "derived_limits": _derived_limits(peak_resources),
+                "trial_count": 1,
+                "minimum_required_trials": 3,
+                "state": "single_trial_requires_two_matching_repeats",
+            }
+            if args.calibration
+            else None
+        ),
         "artifacts": {
             "stdout": str(stdout_path),
             "stderr": str(stderr_path),
@@ -431,7 +552,7 @@ def main() -> int:
     }
     _atomic_json(receipt_path, receipt)
     print(json.dumps(receipt, indent=2, sort_keys=True))
-    return 0 if accepted else 1
+    return 0 if run_succeeded else 1
 
 
 if __name__ == "__main__":
