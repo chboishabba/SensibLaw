@@ -1,9 +1,16 @@
 from __future__ import annotations
 
 from src.language.annotations import AnnotationLayer, SpanAnnotation
+from src.pnf.factor_proposals import FactorProposal
+from src.pnf.streaming_fixed_point import (
+    OwnerKey,
+    PythonClosureExecutor,
+    SolverJob,
+)
 from src.policy import corpus_compilation as legacy
 from src.policy import operational_corpus_compilation as operational
 from src.policy.parallel_semantic_execution import (
+    _solver_receipt_from_row,
     indexed_atom_mention_refs,
     indexed_parser_observation_refs_by_mention,
 )
@@ -81,3 +88,41 @@ def test_indexed_parser_observation_matching_preserves_canonical_output() -> Non
         "mention:2": ("parser:1", "parser:2"),
         "mention:3": ("parser:3",),
     }
+
+
+def test_solver_receipt_round_trip_preserves_content_identity() -> None:
+    owner = OwnerKey("document:1", "sentence:1", "semantic.test")
+    job = SolverJob(
+        owner_key=owner,
+        declaration_ref="declaration:test",
+        input_revision=3,
+        input_refs=("observation:1",),
+        input_payload={"observations": []},
+        rule_set_revision="v1",
+        coverage_requirements=("coverage:1",),
+    )
+
+    def solve(value: SolverJob) -> tuple[FactorProposal, ...]:
+        return (
+            FactorProposal(
+                document_ref=value.owner_key.document_ref,
+                source_revision_ref="source:1",
+                factor_type_ref="semantic.test",
+                source_span_refs=(value.owner_key.scope_ref,),
+                input_observation_refs=value.input_refs,
+                dependency_factor_refs=(),
+                structural_signature="signature:test",
+                role_bindings={},
+                qualifier_state={},
+                producer_contract="producer:test",
+                declaration_revision=value.rule_set_revision,
+                candidate_payload={"value": "candidate"},
+            ),
+        )
+
+    receipt = PythonClosureExecutor({"declaration:test": solve}).execute(job)
+    replayed = _solver_receipt_from_row(receipt.to_dict())
+
+    assert replayed.receipt_ref == receipt.receipt_ref
+    assert replayed.proposals[0].proposal_ref == receipt.proposals[0].proposal_ref
+    assert replayed.to_dict() == receipt.to_dict()
