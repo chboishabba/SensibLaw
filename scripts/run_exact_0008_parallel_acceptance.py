@@ -11,13 +11,15 @@ import subprocess
 import sys
 from typing import Any, Mapping
 
-from src.runtime.semantic_parity import (
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.runtime.semantic_parity import (  # noqa: E402
     compare_semantic_surfaces,
     semantic_surface_from_execution_receipt,
 )
-
-
-ROOT = Path(__file__).resolve().parents[1]
 
 
 def _parse_args() -> argparse.Namespace:
@@ -67,7 +69,6 @@ def _parse_args() -> argparse.Namespace:
     for name in (
         "typing_workers",
         "typing_leaf_capacity",
-        "typing_arity",
         "closure_workers",
         "owner_partitions",
         "parser_workers",
@@ -75,6 +76,8 @@ def _parse_args() -> argparse.Namespace:
     ):
         if int(getattr(args, name)) < 1:
             parser.error(f"--{name.replace('_', '-')} must be positive")
+    if args.typing_arity < 2:
+        parser.error("--typing-arity must be at least two")
     return args
 
 
@@ -103,10 +106,7 @@ def _kernel_seconds(
         if not isinstance(row, Mapping) or row.get("phase") != "kernel_completed":
             continue
         stage = str(row.get("stage") or "")
-        if exact_stage is not None:
-            selected = stage == exact_stage
-        else:
-            selected = stage.startswith(prefix)
+        selected = stage == exact_stage if exact_stage is not None else stage.startswith(prefix)
         if selected:
             total += int(row.get("elapsed_ns") or 0)
     return total / 1_000_000_000
@@ -249,9 +249,11 @@ def main() -> int:
             "failed_serial_baseline_has_no_semantic_output_identity": True,
         }
 
-    accepted = bool(strict_receipt.get("accepted")) and semantic_receipt.get(
-        "state"
-    ) == "completed" and (parity.get("semantic_parity") is not False)
+    accepted = (
+        bool(strict_receipt.get("accepted"))
+        and semantic_receipt.get("state") == "completed"
+        and parity.get("semantic_parity") is not False
+    )
     report = {
         **started,
         "state": "accepted" if accepted else "failed",
