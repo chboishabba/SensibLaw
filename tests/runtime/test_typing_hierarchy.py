@@ -10,6 +10,12 @@ from src.runtime.typing_hierarchy import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _serial_test_execution(monkeypatch) -> None:
+    monkeypatch.setenv("SENSIBLAW_SEMANTIC_PROCESS_WORKERS", "1")
+    monkeypatch.setenv("SENSIBLAW_TYPING_OVERLAP_PROCESS_WORKERS", "1")
+
+
 def _identity() -> TypingExecutionIdentity:
     return TypingExecutionIdentity(
         document_ref="document:typing-test",
@@ -126,6 +132,23 @@ def test_completed_typing_leaves_are_reused_after_stop(tmp_path) -> None:
     assert resumed == fresh
     assert resumed_receipt["logical_typing_ref"] == fresh_receipt["logical_typing_ref"]
     assert resumed_receipt["reused_leaf_count"] >= 1
+
+
+def test_left_interval_crossing_leaf_boundary_keeps_external_match(tmp_path) -> None:
+    result, receipt = execute_partitioned_overlap(
+        operation="atom-mention-matching",
+        identity=_identity(),
+        left_records=(IntervalRecord("atom:cross", 3, 7),),
+        right_records=(IntervalRecord("mention:outside", 5, 6),),
+        workers=2,
+        leaf_capacity=4,
+        checkpoint_root=tmp_path,
+    )
+
+    assert result == {"atom:cross": ("mention:outside",)}
+    assert receipt["complexity"]["cross_boundary_left_extent_included"] is True
+    leaf_nodes = [node for node in receipt["nodes"] if node["level"] == 0]
+    assert any(node["boundary_interface_ref_count"] > 0 for node in leaf_nodes)
 
 
 def test_hierarchy_never_reconstructs_descendant_payloads(tmp_path) -> None:
