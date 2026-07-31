@@ -1,0 +1,32 @@
+{
+  "authority": "document_projection_only",
+  "contract_ref": "source-family-canonical-projection:v0_1",
+  "documents": [
+    {
+      "adapter_ref": "media:epub-text:v0_1",
+      "anchor_state": "derived_text_with_source_anchor",
+      "canonical_chars": 1375469,
+      "canonical_path": "canonical/0001_e55d3729b512.txt",
+      "canonical_sha256": "c99c49fc15d73404f6c667991ed77accebbd26b6db4e4e87a798e112da60386d",
+      "media_type": "application/epub+zip",
+      "raw_bytes": 1230177,
+      "raw_path": "raw/0001_e55d3729b512.epub",
+      "raw_sha256": "e55d3729b512b59bee35aea84a9f12ac55ee5f0e5b60d0f08c80a90975b380bc",
+      "source_path": "/tmp/sensiblaw-0008-publication-acceptance.WedDDQ/tranche-output/gwb/source_projection/raw/0008_e55d3729b512.epub",
+      "source_ref": "source:e55d3729b512b59bee35aea84a9f12ac55ee5f0e5b60d0f08c80a90975b380bc",
+      "warnings": []
+    }
+  ],
+  "failures": [],
+  "ignored_paths": [],
+  "roots": [
+    "/tmp/sensiblaw-0008-publication-acceptance.WedDDQ/tranche-output/gwb/source_projection/raw/0008_e55d3729b512.epub"
+  ],
+  "schema_version": "sl.source_projection_manifest.v0_1",
+  "summary": {
+    "canonical_chars": 1375469,
+    "document_count": 1,
+    "failure_count": 0,
+    "raw_bytes": 1230177
+  }
+}

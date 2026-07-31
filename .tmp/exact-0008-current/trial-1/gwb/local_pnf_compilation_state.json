@@ -1,0 +1,38 @@
+{
+  "admission_policy_ref": "admission:inventoried-only:v0_1",
+  "closure_workers": 1,
+  "compiler_context_ref": "compiler-context:local-only:v0_1",
+  "completed_document_count": 0,
+  "corpus_ref": "corpus:d4739c951820c846d8649905c71e262ef32bebe6bf4f698c70502127ddcd2204",
+  "demand_refs": [],
+  "document_executor_contract_ref": "postgres-semantic-compiler:v0_11",
+  "document_executor_ref": "document-executor:postgres-operational:v0_1",
+  "document_refs": [],
+  "document_workers": 1,
+  "documents": {
+    "document:6e759a79285c465410ebb420795b0aaf1a2c663a0c3af7a1845d9520c7acc57c": {
+      "document_ref": "document:6e759a79285c465410ebb420795b0aaf1a2c663a0c3af7a1845d9520c7acc57c",
+      "error": "document compilation stopped at a resource checkpoint",
+      "error_type": "DocumentResourceLimitError",
+      "failure_ref": "failure:928951fbaa06d5bd2b519cb1f66b88aa38d226af58ecfba19b46e701393ed7a6",
+      "relative_path": "0001_e55d3729b512.txt",
+      "state": "failed",
+      "worker": "document-executor:postgres-operational:v0_1:doc-0001"
+    }
+  },
+  "duplicate_occurrences": [],
+  "execution_phase": "demand_planning",
+  "failure_refs": [
+    "failure:928951fbaa06d5bd2b519cb1f66b88aa38d226af58ecfba19b46e701393ed7a6"
+  ],
+  "manifest_sha256": "b125fed2b915950d85589f82a6448e75d81e59c583f51f23dedeb274efd8c2cc",
+  "owner_partitions": 1,
+  "parser_limit_chars": 1000000,
+  "parser_overlap_chars": 8192,
+  "parser_target_chars": 400000,
+  "parser_workers": 1,
+  "persistence_strategy_ref": "persistence:postgres-savepoint:v0_1",
+  "root": "/home/c/Documents/code/ITIR-suite/SensibLaw/.tmp/exact-0008-current/trial-1/gwb/source_projection/canonical",
+  "schema_version": "sl.postgres_corpus_compilation_state.v0_1",
+  "worker_budget": 1
+}
