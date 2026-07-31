@@ -13,11 +13,16 @@ on:
       - "src/storage/postgres/**"
       - "scripts/run_complete_tranche.py"
       - "scripts/run_strict_tranche_acceptance.py"
+      - "scripts/run_exact_0008_calibration.py"
+      - "scripts/run_exact_0008_parallel_acceptance.py"
+      - "scripts/normalize_exact_0008_baseline.py"
       - "tests/pnf/**"
       - "tests/policy/**"
       - "tests/runtime/**"
       - "docs/bounded_document_execution.md"
       - "docs/hierarchical_graph_execution.md"
+      - "docs/parallel_semantic_execution.md"
+      - "docs/calibration/**"
       - ".github/workflows/bounded-pnf-retention.yml"
   workflow_dispatch:
 
@@ -48,20 +53,32 @@ jobs:
             src/runtime/document_stage_metrics.py \
             src/runtime/hierarchical_graph_execution.py \
             src/runtime/document_complexity_model.py \
+            src/runtime/interval_overlap.py \
+            src/runtime/typing_hierarchy.py \
+            src/runtime/semantic_amplification.py \
+            src/runtime/semantic_parity.py \
             src/pnf/bounded_streaming_owner.py \
             src/policy/__init__.py \
             src/policy/bounded_operational_execution.py \
             src/policy/indexed_projection_execution.py \
+            src/policy/parallel_semantic_execution.py \
             src/policy/manifest_stream_validation.py \
             scripts/run_strict_tranche_acceptance.py \
+            scripts/run_exact_0008_parallel_acceptance.py \
+            scripts/normalize_exact_0008_baseline.py \
             tests/runtime/test_document_execution_policy.py \
             tests/runtime/test_bounded_document_scheduler.py \
             tests/runtime/test_hierarchical_graph_execution.py \
             tests/runtime/test_document_complexity_model.py \
             tests/runtime/test_acceptance_entrypoints.py \
+            tests/runtime/test_interval_overlap.py \
+            tests/runtime/test_typing_hierarchy.py \
+            tests/runtime/test_semantic_amplification.py \
+            tests/runtime/test_semantic_parity.py \
             tests/pnf/test_bounded_streaming_owner.py \
             tests/policy/test_bounded_operational_execution.py \
             tests/policy/test_indexed_projection_execution.py \
+            tests/policy/test_parallel_semantic_execution.py \
             tests/policy/test_manifest_stream_validation.py
 
       - name: Check formatting
@@ -73,20 +90,32 @@ jobs:
             src/runtime/document_stage_metrics.py \
             src/runtime/hierarchical_graph_execution.py \
             src/runtime/document_complexity_model.py \
+            src/runtime/interval_overlap.py \
+            src/runtime/typing_hierarchy.py \
+            src/runtime/semantic_amplification.py \
+            src/runtime/semantic_parity.py \
             src/pnf/bounded_streaming_owner.py \
             src/policy/__init__.py \
             src/policy/bounded_operational_execution.py \
             src/policy/indexed_projection_execution.py \
+            src/policy/parallel_semantic_execution.py \
             src/policy/manifest_stream_validation.py \
             scripts/run_strict_tranche_acceptance.py \
+            scripts/run_exact_0008_parallel_acceptance.py \
+            scripts/normalize_exact_0008_baseline.py \
             tests/runtime/test_document_execution_policy.py \
             tests/runtime/test_bounded_document_scheduler.py \
             tests/runtime/test_hierarchical_graph_execution.py \
             tests/runtime/test_document_complexity_model.py \
             tests/runtime/test_acceptance_entrypoints.py \
+            tests/runtime/test_interval_overlap.py \
+            tests/runtime/test_typing_hierarchy.py \
+            tests/runtime/test_semantic_amplification.py \
+            tests/runtime/test_semantic_parity.py \
             tests/pnf/test_bounded_streaming_owner.py \
             tests/policy/test_bounded_operational_execution.py \
             tests/policy/test_indexed_projection_execution.py \
+            tests/policy/test_parallel_semantic_execution.py \
             tests/policy/test_manifest_stream_validation.py
 
       - name: Run bounded execution regressions
@@ -97,10 +126,15 @@ jobs:
             tests/runtime/test_hierarchical_graph_execution.py \
             tests/runtime/test_document_complexity_model.py \
             tests/runtime/test_acceptance_entrypoints.py \
+            tests/runtime/test_interval_overlap.py \
+            tests/runtime/test_typing_hierarchy.py \
+            tests/runtime/test_semantic_amplification.py \
+            tests/runtime/test_semantic_parity.py \
             tests/pnf/test_bounded_streaming_owner.py \
             tests/pnf/test_streaming_fixed_point.py \
             tests/policy/test_bounded_operational_execution.py \
             tests/policy/test_indexed_projection_execution.py \
+            tests/policy/test_parallel_semantic_execution.py \
             tests/policy/test_manifest_stream_validation.py \
             tests/policy/test_operational_corpus_compilation.py \
             tests/policy/test_fibred_operational_corpus_compilation.py
