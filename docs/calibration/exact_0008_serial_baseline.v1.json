@@ -16,7 +16,8 @@
   },
   "parser_checkpoints": {
     "parser_contract_ref": "parser-document-fibres:v0_2",
-    "checkpoint_digest": "c47722d9e47d4d78fb2b239a6c6dde482eb78cb3875cebb69a4b3d4c8092d74f",
+    "checkpoint_identity_schema_version": "sensiblaw.parser-checkpoint-set.v1",
+    "checkpoint_digest": "a505bec685d4bebf8d841bb89723f463a8815ebbfda25b1a937589587eb2d33d",
     "checkpoint_refs": [
       "document-fibre:a6d65f55c60b18cdc1641888780bb9bf7f7f36900b4dd6b4f25e6a762bf7f2ac",
       "document-fibre:aa416883fba5f08b3405ad1e525fd1eac51482f6a68d19184fa09aeb0572de4b",
@@ -29,6 +30,44 @@
       "4272d2ead0d79bf56da8675be0ef612b1c9e15ceef1f324ab7d2d86c9afbecb6",
       "bf6c5be73ddf46b2074c9ade019bc1b2276e3b452df5b6e93421aff6e3936cf7"
     ],
+    "fibre_identity_rows": [
+      {
+        "sequence_no": 0,
+        "fibre_ref": "document-fibre:a6d65f55c60b18cdc1641888780bb9bf7f7f36900b4dd6b4f25e6a762bf7f2ac",
+        "owner_start": 0,
+        "owner_end": 400243,
+        "context_start": 0,
+        "context_end": 408435,
+        "text_sha256": "d56cb1bf9ef532bbc34c3dc128e025e96f509e3a00ea2ec012397b54ed5a32d4"
+      },
+      {
+        "sequence_no": 1,
+        "fibre_ref": "document-fibre:aa416883fba5f08b3405ad1e525fd1eac51482f6a68d19184fa09aeb0572de4b",
+        "owner_start": 400243,
+        "owner_end": 798567,
+        "context_start": 392051,
+        "context_end": 806759,
+        "text_sha256": "e4f2408635e48e5c21e4bf44f20d41cb9a34083d1d6c75eb4e731e2f226ceea4"
+      },
+      {
+        "sequence_no": 2,
+        "fibre_ref": "document-fibre:823501e220b159a57ec6f6e2d0d03c2ec52d011ab94034803efccb7dc2eea9c1",
+        "owner_start": 798567,
+        "owner_end": 1199500,
+        "context_start": 790375,
+        "context_end": 1207692,
+        "text_sha256": "4272d2ead0d79bf56da8675be0ef612b1c9e15ceef1f324ab7d2d86c9afbecb6"
+      },
+      {
+        "sequence_no": 3,
+        "fibre_ref": "document-fibre:db5f93d4b92f47520e05609f84d7993f10e775aaffcd82442d9afd4d0901b167",
+        "owner_start": 1199500,
+        "owner_end": 1375469,
+        "context_start": 1191308,
+        "context_end": 1375469,
+        "text_sha256": "bf6c5be73ddf46b2074c9ade019bc1b2276e3b452df5b6e93421aff6e3936cf7"
+      }
+    ],
     "fibre_count": 4,
     "canonical_character_count": 1375469,
     "owned_sentence_count": 12710,
@@ -38,6 +77,29 @@
     "exact_owner_coverage": true,
     "context_overlap_is_execution_only": true
   },
+  "stage_timeline": [
+    {
+      "stage": "local_typing_diagnostics",
+      "elapsed_seconds": 9300,
+      "share_of_estimated_runtime": 0.6458333333333334,
+      "measurement_quality": "approximate_from_failed_trace",
+      "kernel_breakdown_available": false
+    },
+    {
+      "stage": "streaming_closure",
+      "elapsed_seconds": 4680,
+      "share_of_estimated_runtime": 0.325,
+      "measurement_quality": "approximate_from_failed_trace",
+      "kernel_breakdown_available": false
+    },
+    {
+      "stage": "all_other_stages",
+      "elapsed_seconds": 420,
+      "share_of_estimated_runtime": 0.029166666666666667,
+      "measurement_quality": "approximate_from_failed_trace",
+      "kernel_breakdown_available": false
+    }
+  ],
   "runtime": {
     "measurement_quality": "approximate_from_failed_trace",
     "local_typing_diagnostics_seconds": 9300,
@@ -47,6 +109,8 @@
     "observed_peak_rss_bytes": 4552662016
   },
   "semantic_counts": {
+    "measurement_quality": "reported_by_failed_compiler_trace",
+    "processed_parser_tokens": 279532,
     "local_type_alternatives": 254554,
     "typed_meets": 229494,
     "refinements": 214479,
@@ -62,7 +126,7 @@
     "error": "document compilation stopped at a resource checkpoint",
     "completed_document_count": 0,
     "compiler_publication_state": "not_started",
-    "sql_publication_audit": "not_asserted_by_this baseline; acceptance runner must query it"
+    "sql_publication_audit": "not_asserted_by this baseline; acceptance runner must query it"
   },
   "comparison_role": "serial_failed_trace_baseline",
   "semantic_output_identity": null,
