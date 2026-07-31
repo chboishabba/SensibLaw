@@ -1,11 +1,18 @@
 from __future__ import annotations
 
+import multiprocessing
+
+import pytest
+
 from src.language.annotations import AnnotationLayer, SpanAnnotation
 from src.pnf.factor_proposals import FactorProposal
 from src.pnf.streaming_fixed_point import (
+    ObservationDelta,
     OwnerKey,
     PythonClosureExecutor,
     SolverJob,
+    StreamingDeclaration,
+    StreamingSemanticOwner,
 )
 from src.policy import corpus_compilation as legacy
 from src.policy import operational_corpus_compilation as operational
@@ -16,6 +23,7 @@ from src.policy.parallel_semantic_execution import (
     _solver_receipt_from_row,
     indexed_atom_mention_refs,
     indexed_parser_observation_refs_by_mention,
+    prepare_closure_activation_leaves,
 )
 
 
@@ -69,6 +77,62 @@ def _proposal(value: SolverJob) -> FactorProposal:
         producer_contract="producer:test",
         declaration_revision=value.rule_set_revision,
         candidate_payload={"value": "candidate"},
+    )
+
+
+def _activation_delta(sequence_no: int) -> ObservationDelta:
+    return ObservationDelta(
+        document_ref="document:activation",
+        batch_ref=f"batch:{sequence_no}",
+        scope_ref=f"sentence:{sequence_no}",
+        sequence_no=sequence_no,
+        parser_contract="parser:test",
+        observation_refs=(f"observation:{sequence_no}",),
+        observations=(
+            {
+                "observation_ref": f"observation:{sequence_no}",
+                "observation_type": "parser.token",
+                "token": {"index": sequence_no, "text": "must"},
+            },
+        ),
+        token_start=sequence_no,
+        token_end=sequence_no + 1,
+        char_start=sequence_no,
+        char_end=sequence_no + 1,
+        token_count=1,
+        coverage_barrier="sentence",
+        coverage_complete=True,
+    )
+
+
+def _activation_declaration() -> StreamingDeclaration:
+    return StreamingDeclaration(
+        declaration_ref="declaration:activation",
+        producer_ref="producer:activation",
+        requires=("parser.token",),
+        optional=(),
+        emits=("semantic.activation",),
+        scope_kind="sentence",
+        coverage_barrier="sentence",
+        affected_index="semantic.activation",
+        declaration_revision="v1",
+        priority=1,
+    )
+
+
+def _activation_context(tmp_path, leaf_size: int) -> SemanticExecutionContext:
+    return SemanticExecutionContext(
+        document_ref="document:activation",
+        source_sha256="source-sha",
+        parser_contract_ref="parser:test",
+        build_key_sha256="build-key",
+        typing_workers=1,
+        leaf_capacity=4,
+        hierarchy_arity=2,
+        checkpoint_root=tmp_path,
+        resource_ledger=None,
+        run_ref="semantic-execution:activation",
+        closure_activation_leaf_size=leaf_size,
     )
 
 
@@ -173,3 +237,87 @@ def test_second_closure_execution_replays_checkpoint_without_solver(tmp_path) ->
     assert context.closure_counters["receipts_reused"] == 1
     checkpoint = context.closure_receipt_path(job.job_ref)
     assert checkpoint is not None and checkpoint.exists()
+
+
+def test_closure_activation_leaves_preserve_canonical_admission_and_job_identity(
+    tmp_path,
+) -> None:
+    deltas = tuple(reversed(tuple(_activation_delta(index) for index in range(6))))
+    results = []
+    for leaf_size in (1, 2, 64):
+        context = _activation_context(tmp_path / str(leaf_size), leaf_size)
+        prepared = prepare_closure_activation_leaves(
+            context=context, observation_deltas=deltas
+        )
+        owner = StreamingSemanticOwner(document_ref="document:activation")
+        owner.register_declarations((_activation_declaration(),))
+        for delta in prepared:
+            owner.admit_observation_delta(delta)
+        jobs = owner.drain_ready_jobs()
+        executor = PythonClosureExecutor(
+            {"declaration:activation": lambda job: (_proposal(job),)}
+        )
+        for job in jobs:
+            owner.admit_solver_receipt(executor.execute(job))
+            owner.reduce_dirty_groups()
+        results.append(
+            (
+                tuple(delta.delta_ref for delta in prepared),
+                tuple(job.job_ref for job in jobs),
+                tuple(row.receipt_ref for row in owner.ledger.receipts),
+                owner.fixed_point_certificate().certificate_ref,
+                owner.to_dict()["ledger"],
+            )
+        )
+        assert context.closure_activation["leaf_count"] == (6 + leaf_size - 1) // leaf_size
+    assert results[0] == results[1] == results[2]
+
+
+def test_closure_activation_leaves_restart_without_additional_worker_computation(
+    tmp_path,
+) -> None:
+    deltas = tuple(_activation_delta(index) for index in range(3))
+    first = _activation_context(tmp_path, 1)
+    second = _activation_context(tmp_path, 1)
+    assert prepare_closure_activation_leaves(context=first, observation_deltas=deltas)
+    assert prepare_closure_activation_leaves(context=second, observation_deltas=deltas)
+    assert first.closure_activation["computed_leaf_count"] == 3
+    assert second.closure_activation["computed_leaf_count"] == 0
+    assert second.closure_activation["reused_leaf_count"] == 3
+
+
+@pytest.mark.skipif(
+    "fork" not in multiprocessing.get_all_start_methods(),
+    reason="process-backed activation preflight requires fork on this platform",
+)
+def test_process_backed_closure_activation_is_a_parallel_preflight_gate(
+    monkeypatch, tmp_path
+) -> None:
+    from src.policy.parallel_typing_tail import shutdown_semantic_process_pool
+
+    monkeypatch.setenv("SENSIBLAW_SEMANTIC_PROCESS_WORKERS", "2")
+    monkeypatch.setenv("SENSIBLAW_SEMANTIC_MP_CONTEXT", "fork")
+    context = _activation_context(tmp_path, 1)
+    deltas = tuple(_activation_delta(index) for index in range(16))
+    try:
+        prepared = prepare_closure_activation_leaves(
+            context=context, observation_deltas=deltas
+        )
+    finally:
+        shutdown_semantic_process_pool()
+
+    owner = StreamingSemanticOwner(document_ref="document:activation")
+    owner.register_declarations((_activation_declaration(),))
+    for delta in prepared:
+        owner.admit_observation_delta(delta)
+    jobs = owner.drain_ready_jobs()
+    executor = PythonClosureExecutor(
+        {"declaration:activation": lambda job: (_proposal(job),)}
+    )
+    for job in jobs:
+        owner.admit_solver_receipt(executor.execute(job))
+        owner.reduce_dirty_groups()
+    assert len(jobs) == len(deltas)
+    assert len(owner.ledger.receipts) == len(deltas)
+    assert owner.fixed_point_certificate().local_fixed_point_reached is True
+    assert len(context.closure_activation["worker_pids"]) >= 2

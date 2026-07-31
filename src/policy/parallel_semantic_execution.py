@@ -9,6 +9,7 @@ amplification receipts.
 from __future__ import annotations
 
 from collections import Counter
+from concurrent.futures import as_completed
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 import json
@@ -41,6 +42,8 @@ T = TypeVar("T")
 _INSTALL_MARKER = "_parallel_semantic_execution_installed"
 SEMANTIC_EXECUTION_SCHEMA_VERSION = "sensiblaw.semantic-execution-receipt.v1"
 CLOSURE_REPLAY_CONTRACT = "closure-receipt-replay:v1"
+CLOSURE_ACTIVATION_LEAF_SCHEMA_VERSION = "sensiblaw.closure-activation-leaf.v1"
+CLOSURE_ACTIVATION_CONTRACT = "closure-activation-leaves:v1"
 
 
 def _integer_env(name: str, default: int, *, minimum: int = 1) -> int:
@@ -86,10 +89,12 @@ class SemanticExecutionContext:
     checkpoint_root: Path | None
     resource_ledger: ExecutionResourceLedger | None
     run_ref: str
+    closure_activation_leaf_size: int = 512
     kernel_timeline: list[dict[str, Any]] = field(default_factory=list)
     typing_receipts: dict[str, dict[str, Any]] = field(default_factory=dict)
     closure_events: list[dict[str, Any]] = field(default_factory=list)
     closure_counters: Counter[str] = field(default_factory=Counter)
+    closure_activation: dict[str, Any] = field(default_factory=dict)
     amplification: dict[str, Any] = field(default_factory=dict)
     state: str = "running"
     error: dict[str, str] | None = None
@@ -115,6 +120,12 @@ class SemanticExecutionContext:
         if self.checkpoint_root is None:
             return None
         return self.checkpoint_root / "closure-receipts"
+
+    @property
+    def closure_activation_checkpoint_root(self) -> Path | None:
+        if self.checkpoint_root is None:
+            return None
+        return self.checkpoint_root / "closure-activation"
 
     def sample(
         self,
@@ -175,10 +186,12 @@ class SemanticExecutionContext:
             "build_key_sha256": self.build_key_sha256,
             "typing_contract_ref": TYPING_EXECUTION_CONTRACT,
             "closure_replay_contract_ref": CLOSURE_REPLAY_CONTRACT,
+            "closure_activation_contract_ref": CLOSURE_ACTIVATION_CONTRACT,
             "configuration": {
                 "typing_workers": self.typing_workers,
                 "typing_leaf_capacity": self.leaf_capacity,
                 "hierarchy_arity": self.hierarchy_arity,
+                "closure_activation_leaf_size": self.closure_activation_leaf_size,
             },
             "state": self.state,
             "error": self.error,
@@ -186,6 +199,7 @@ class SemanticExecutionContext:
             "typing_hierarchies": dict(sorted(self.typing_receipts.items())),
             "closure_audit": {
                 "events": list(self.closure_events),
+                "activation": dict(self.closure_activation),
                 **closure,
             },
             "amplification": dict(self.amplification),
@@ -534,6 +548,9 @@ def _build_context(
         hierarchy_arity=_integer_env(
             "SENSIBLAW_TYPING_HIERARCHY_ARITY", 4, minimum=2
         ),
+        closure_activation_leaf_size=_integer_env(
+            "SENSIBLAW_CLOSURE_ACTIVATION_LEAF_SIZE", 512
+        ),
         checkpoint_root=checkpoint_root,
         resource_ledger=kwargs.get("resource_ledger"),
         run_ref="semantic-execution:"
@@ -546,6 +563,180 @@ def _build_context(
             }
         ),
     )
+
+
+def _closure_activation_leaf_path(root: Path | None, leaf_ref: str) -> Path | None:
+    if root is None:
+        return None
+    return root / f"{leaf_ref.replace(':', '_')}.json"
+
+
+def _load_closure_activation_leaf(
+    path: Path | None, *, leaf_ref: str, input_digest: str
+) -> dict[str, Any] | None:
+    if path is None or not path.exists():
+        return None
+    payload = _read_json(path)
+    if (
+        payload is None
+        or payload.get("schema_version") != CLOSURE_ACTIVATION_LEAF_SCHEMA_VERSION
+        or payload.get("contract_ref") != CLOSURE_ACTIVATION_CONTRACT
+        or payload.get("leaf_ref") != leaf_ref
+        or payload.get("input_digest") != input_digest
+    ):
+        return None
+    value = payload.get("value")
+    if canonical_sha256(value) != payload.get("output_digest"):
+        return None
+    if not isinstance(value, list) or any(
+        not isinstance(row, Mapping) or "checkpoint_payload" not in row
+        for row in value
+    ):
+        return None
+    return payload
+
+
+def prepare_closure_activation_leaves(
+    *,
+    context: SemanticExecutionContext,
+    observation_deltas: Sequence[Any],
+) -> tuple[Any, ...]:
+    """Checkpoint physical activation preparation without changing owner authority."""
+
+    from src.policy.parallel_typing_tail import (
+        _pool,
+        prepare_closure_activation_leaf_worker,
+    )
+
+    ordered = tuple(
+        sorted(observation_deltas, key=lambda row: (int(row.sequence_no), row.delta_ref))
+    )
+    chunks = tuple(
+        ordered[offset : offset + context.closure_activation_leaf_size]
+        for offset in range(0, len(ordered), context.closure_activation_leaf_size)
+    )
+    started = monotonic_ns()
+    leaves: list[dict[str, Any] | None] = [None] * len(chunks)
+    pending: dict[Any, tuple[int, str, str, Path | None]] = {}
+    reused = 0
+    computed = 0
+    worker_pids: set[int] = set()
+    for ordinal, chunk in enumerate(chunks):
+        rows = [row.to_dict() for row in chunk]
+        input_digest = canonical_sha256(rows)
+        leaf_ref = "closure-activation:" + canonical_sha256(
+            {"ordinal": ordinal, "input_digest": input_digest}
+        )
+        path = _closure_activation_leaf_path(
+            context.closure_activation_checkpoint_root, leaf_ref
+        )
+        cached = _load_closure_activation_leaf(
+            path, leaf_ref=leaf_ref, input_digest=input_digest
+        )
+        if cached is not None:
+            leaves[ordinal] = cached
+            reused += 1
+            continue
+        payload = {"deltas": rows}
+        executor = _pool()
+        if executor is None:
+            result = prepare_closure_activation_leaf_worker(payload)
+            value = result["value"]
+            pid = int(result["pid"])
+            leaf = {
+                "schema_version": CLOSURE_ACTIVATION_LEAF_SCHEMA_VERSION,
+                "contract_ref": CLOSURE_ACTIVATION_CONTRACT,
+                "leaf_ref": leaf_ref,
+                "input_digest": input_digest,
+                "value": value,
+                "output_digest": canonical_sha256(value),
+                "worker_pid": pid,
+            }
+            if path is not None:
+                _atomic_write_json(path, leaf)
+            leaves[ordinal] = leaf
+            computed += 1
+            worker_pids.add(pid)
+        else:
+            pending[executor.submit(prepare_closure_activation_leaf_worker, payload)] = (
+                ordinal,
+                leaf_ref,
+                input_digest,
+                path,
+            )
+    for future in as_completed(pending):
+        ordinal, leaf_ref, input_digest, path = pending[future]
+        result = future.result()
+        value = result["value"]
+        pid = int(result["pid"])
+        leaf = {
+            "schema_version": CLOSURE_ACTIVATION_LEAF_SCHEMA_VERSION,
+            "contract_ref": CLOSURE_ACTIVATION_CONTRACT,
+            "leaf_ref": leaf_ref,
+            "input_digest": input_digest,
+            "value": value,
+            "output_digest": canonical_sha256(value),
+            "worker_pid": pid,
+        }
+        if path is not None:
+            _atomic_write_json(path, leaf)
+        leaves[ordinal] = leaf
+        computed += 1
+        worker_pids.add(pid)
+        stop_after = _integer_env(
+            "SENSIBLAW_CLOSURE_ACTIVATION_STOP_AFTER_LEAVES", 0, minimum=0
+        )
+        if stop_after and computed >= stop_after:
+            raise RuntimeError(
+                f"stopped after {computed} checkpointed closure activation leaves"
+            )
+    completed = [leaf for leaf in leaves if leaf is not None]
+    if len(completed) != len(chunks):
+        raise RuntimeError("closure activation ended without complete leaf coverage")
+    prepared = [row for leaf in completed for row in leaf["value"]]
+    expected = [row.delta_ref for row in ordered]
+    if [row["delta_ref"] for row in prepared] != expected:
+        raise ValueError("closure activation leaf order disagrees with canonical deltas")
+    originals = {row.delta_ref: row for row in ordered}
+    for row in prepared:
+        original = originals[row["delta_ref"]]
+        if row["delta_digest"] != canonical_sha256(original.to_dict()):
+            raise ValueError("closure activation leaf identity disagrees with delta")
+        checkpoint = dict(row.get("checkpoint_payload") or {})
+        if (
+            checkpoint.get("delta_ref") != original.delta_ref
+            or int(checkpoint.get("sequence_no", -1)) != original.sequence_no
+            or tuple(checkpoint.get("observation_refs") or ())
+            != tuple(sorted(original.observation_refs))
+        ):
+            raise ValueError("closure activation checkpoint payload disagrees with delta")
+    elapsed_ns = monotonic_ns() - started
+    context.closure_activation = {
+        "contract_ref": CLOSURE_ACTIVATION_CONTRACT,
+        "configured_leaf_size": context.closure_activation_leaf_size,
+        "leaf_count": len(chunks),
+        "computed_leaf_count": computed,
+        "reused_leaf_count": reused,
+        "worker_pids": sorted(worker_pids),
+        "activation_elapsed_ns": elapsed_ns,
+        "admission_order": "sequence_no_delta_ref_ascending",
+        "ready_job_count": 0,
+        "admission_elapsed_ns": 0,
+    }
+    with context.lock:
+        context.closure_counters["activation_leaf_count"] = len(chunks)
+        context.closure_counters["activation_leaves_computed"] = computed
+        context.closure_counters["activation_leaves_reused"] = reused
+        for pid in worker_pids:
+            context.closure_counters[f"activation_worker_pid:{pid}"] += 1
+    context.sample(
+        "streaming_closure:activation",
+        phase="closure_activation_completed",
+        counts={"leaf_count": len(chunks), "computed_leaf_count": computed, "reused_leaf_count": reused},
+        details=dict(context.closure_activation),
+        elapsed_ns=elapsed_ns,
+    )
+    return ordered
 
 
 def install_parallel_semantic_execution() -> bool:
@@ -582,6 +773,7 @@ def install_parallel_semantic_execution() -> bool:
     original_compile = operational.compile_document_operational
     original_streaming = operational._streaming_semantic_build
     original_reduce_dirty = BoundedStreamingSemanticOwner.reduce_dirty_groups
+    original_admit_observation = BoundedStreamingSemanticOwner.admit_observation_delta
     original_execute = PythonClosureExecutor.execute
 
     def derive_wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -751,6 +943,18 @@ def install_parallel_semantic_execution() -> bool:
             )
         return result
 
+    def admit_observation_wrapper(self: Any, delta: Any) -> Any:
+        context = _context_for_document(delta.document_ref)
+        started = monotonic_ns()
+        result = original_admit_observation(self, delta)
+        if context is not None and context.closure_activation:
+            with context.lock:
+                context.closure_activation["admission_elapsed_ns"] = int(
+                    context.closure_activation.get("admission_elapsed_ns") or 0
+                ) + (monotonic_ns() - started)
+                context.closure_counters["activation_deltas_admitted"] += 1
+        return result
+
     def execute_wrapper(self: Any, job: Any) -> Any:
         context = _context_for_document(job.owner_key.document_ref)
         if context is None:
@@ -814,11 +1018,22 @@ def install_parallel_semantic_execution() -> bool:
                 last_kernel = kernel
 
         kwargs["progress_observer"] = audited
+        if context is not None:
+            deltas = kwargs.get("observation_deltas")
+            if deltas is None:
+                raise ValueError("streaming closure requires named observation_deltas")
+            kwargs["observation_deltas"] = prepare_closure_activation_leaves(
+                context=context,
+                observation_deltas=tuple(deltas),
+            )
         started = monotonic_ns()
         result = original_streaming(*args, **kwargs)
         if context is not None:
             _build, metrics = result
             with context.lock:
+                context.closure_activation["ready_job_count"] = int(
+                    metrics.get("closure_job_count") or 0
+                )
                 context.closure_counters["jobs_completed"] = int(
                     metrics.get("closure_job_count") or 0
                 )
@@ -905,6 +1120,7 @@ def install_parallel_semantic_execution() -> bool:
     legacy.derive_resolution_demands = demands_wrapper
     operational.build_operational_reference_binding_artifacts = binding_wrapper
     BoundedStreamingSemanticOwner.reduce_dirty_groups = reduce_dirty_wrapper
+    BoundedStreamingSemanticOwner.admit_observation_delta = admit_observation_wrapper
     PythonClosureExecutor.execute = execute_wrapper
     operational._streaming_semantic_build = streaming_wrapper
     operational.compile_document_operational = compile_wrapper
@@ -915,10 +1131,13 @@ def install_parallel_semantic_execution() -> bool:
 
 
 __all__ = [
+    "CLOSURE_ACTIVATION_CONTRACT",
+    "CLOSURE_ACTIVATION_LEAF_SCHEMA_VERSION",
     "CLOSURE_REPLAY_CONTRACT",
     "SEMANTIC_EXECUTION_SCHEMA_VERSION",
     "SemanticExecutionContext",
     "indexed_atom_mention_refs",
     "indexed_parser_observation_refs_by_mention",
     "install_parallel_semantic_execution",
+    "prepare_closure_activation_leaves",
 ]

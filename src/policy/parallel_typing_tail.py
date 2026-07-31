@@ -156,6 +156,53 @@ def _solve_operator_job_worker(job: Any) -> dict[str, Any]:
     return {"pid": os.getpid(), "value": tuple(solve_operator_job(job))}
 
 
+def prepare_closure_activation_leaf_worker(
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Prepare an immutable, non-semantic closure-admission leaf.
+
+    The document owner deliberately receives neither a reduced delta nor a
+    worker-selected job from this function.  It uses the returned identity and
+    compact operator input only to validate/reuse physical execution work,
+    then admits its original deltas in canonical sequence order.
+    """
+
+    prepared: list[dict[str, Any]] = []
+    for row in payload["deltas"]:
+        observations = tuple(row.get("observations") or ())
+        observation_types = tuple(
+            sorted(
+                {
+                    str(value.get("observation_type") or value.get("type_ref") or "")
+                    for value in observations
+                }
+            )
+        )
+        prepared.append(
+            {
+                "delta_ref": str(row["delta_ref"]),
+                "sequence_no": int(row["sequence_no"]),
+                "observation_refs": tuple(sorted(str(value) for value in row.get("observation_refs") or ())),
+                "observation_types": observation_types,
+                "compact_operator_input": {
+                    "scope_ref": str(row["scope_ref"]),
+                    "coverage_barrier": str(row["coverage_barrier"]),
+                    "coverage_complete": bool(row["coverage_complete"]),
+                    "observation_count": len(observations),
+                },
+                "delta_digest": canonical_sha256(row),
+                "checkpoint_payload": {
+                    "delta_ref": str(row["delta_ref"]),
+                    "sequence_no": int(row["sequence_no"]),
+                    "observation_refs": tuple(
+                        sorted(str(value) for value in row.get("observation_refs") or ())
+                    ),
+                },
+            }
+        )
+    return {"pid": os.getpid(), "value": prepared}
+
+
 def _leaf_path(root: Path | None, operation: str, leaf_ref: str) -> Path | None:
     if root is None:
         return None
@@ -875,5 +922,6 @@ def install_parallel_typing_tail() -> bool:
 __all__ = [
     "PROCESS_EXECUTION_CONTRACT",
     "install_parallel_typing_tail",
+    "prepare_closure_activation_leaf_worker",
     "shutdown_semantic_process_pool",
 ]

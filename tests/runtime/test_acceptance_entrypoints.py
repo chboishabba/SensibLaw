@@ -105,6 +105,7 @@ def test_exact_acceptance_requires_observed_semantic_processes() -> None:
             "closure_audit": {
                 "process_worker_pid:104": 3,
                 "process_worker_pid:105": 0,
+                "activation": {"worker_pids": [106, 107]},
             },
         }
     )
@@ -115,7 +116,8 @@ def test_exact_acceptance_requires_observed_semantic_processes() -> None:
         }
     )
 
-    assert observed["distinct_semantic_worker_pids"] == [101, 102, 103, 104]
+    assert observed["distinct_semantic_worker_pids"] == [101, 102, 103, 104, 106, 107]
+    assert observed["closure_activation_worker_pids"] == [106, 107]
     assert observed["parallel_process_execution_observed"] is True
     assert serial["parallel_process_execution_observed"] is False
 

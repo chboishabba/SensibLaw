@@ -52,6 +52,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--typing-leaf-capacity", type=int, default=4096)
     parser.add_argument("--typing-arity", type=int, default=4)
     parser.add_argument("--closure-workers", type=int, default=4)
+    parser.add_argument("--closure-activation-leaf-size", type=int, default=512)
     parser.add_argument("--owner-partitions", type=int, default=8)
     parser.add_argument(
         "--parser-workers",
@@ -70,6 +71,7 @@ def _parse_args() -> argparse.Namespace:
         "typing_workers",
         "typing_leaf_capacity",
         "closure_workers",
+        "closure_activation_leaf_size",
         "owner_partitions",
         "parser_workers",
         "worker_budget",
@@ -130,10 +132,22 @@ def _process_parallelism(receipt: Mapping[str, Any]) -> dict[str, Any]:
         for key, value in closure_counters.items()
         if str(key).startswith("process_worker_pid:") and int(value or 0) > 0
     }
-    observed = typing_pids | closure_pids
+    activation = closure_counters.get("activation") or {}
+    activation_pids = {
+        int(pid)
+        for pid in activation.get("worker_pids") or ()
+        if int(pid) > 0
+    }
+    activation_pids.update(
+        int(str(key).split(":", maxsplit=1)[1])
+        for key, value in closure_counters.items()
+        if str(key).startswith("activation_worker_pid:") and int(value or 0) > 0
+    )
+    observed = typing_pids | closure_pids | activation_pids
     return {
         "typing_worker_pids": sorted(typing_pids),
         "closure_worker_pids": sorted(closure_pids),
+        "closure_activation_worker_pids": sorted(activation_pids),
         "distinct_semantic_worker_pids": sorted(observed),
         "distinct_semantic_worker_count": len(observed),
         "parallel_process_execution_observed": len(observed) >= 2,
@@ -189,6 +203,9 @@ def main() -> int:
             "SENSIBLAW_TYPING_LEAF_CAPACITY": str(args.typing_leaf_capacity),
             "SENSIBLAW_TYPING_HIERARCHY_ARITY": str(args.typing_arity),
             "SENSIBLAW_SEMANTIC_PROCESS_WORKERS": str(semantic_process_workers),
+            "SENSIBLAW_CLOSURE_ACTIVATION_LEAF_SIZE": str(
+                args.closure_activation_leaf_size
+            ),
             "SENSIBLAW_DOCUMENT_RETENTION_MODE": "production_compact",
         }
     )
@@ -202,6 +219,7 @@ def main() -> int:
             "typing_leaf_capacity": args.typing_leaf_capacity,
             "typing_arity": args.typing_arity,
             "closure_workers": args.closure_workers,
+            "closure_activation_leaf_size": args.closure_activation_leaf_size,
             "owner_partitions": args.owner_partitions,
             "parser_workers": args.parser_workers,
             "worker_budget": args.worker_budget,
@@ -284,11 +302,19 @@ def main() -> int:
         strict_receipt.get("publication_verification", {}).get("publication_mode")
         == "rolled_back"
     )
+    activation = (semantic_receipt.get("closure_audit") or {}).get("activation") or {}
+    closure_jobs_completed = int(
+        (semantic_receipt.get("closure_audit") or {}).get("jobs_completed") or 0
+    )
     accepted = (
         strict_completed
         and rollback_verified
         and semantic_receipt.get("state") == "completed"
         and process_execution["parallel_process_execution_observed"]
+        and len(process_execution["closure_activation_worker_pids"]) >= 2
+        and int(activation.get("leaf_count") or 0) > 0
+        and int(activation.get("ready_job_count") or 0) > 0
+        and closure_jobs_completed > 0
         and parity.get("semantic_parity") is not False
     )
     report = {
