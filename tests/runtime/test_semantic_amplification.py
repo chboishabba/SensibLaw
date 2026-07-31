@@ -41,6 +41,19 @@ def test_meet_and_refinement_amplification_counts_noops_and_duplicates() -> None
     assert report["refinements_by_transition"] == {"open->closed": 2, "open->open": 1}
 
 
+def test_amplification_uses_content_identity_for_transitional_metadata() -> None:
+    prior = _factor(state="open", value="a")
+    resulting = _factor(state="closed", value="b")
+    resulting["metadata"] = {"factor_revision_ref": "legacy:transition"}
+
+    report = meet_refinement_report(
+        (), ({"prior_factor": prior, "resulting_factor": resulting},)
+    )
+
+    assert report["refinement_count"] == 1
+    assert report["no_op_refinement_count"] == 0
+
+
 def test_demand_report_finds_reference_and_semantic_duplicates() -> None:
     row = {
         "demand_ref": "demand:1",

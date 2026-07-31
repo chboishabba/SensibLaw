@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any, Mapping, Sequence
 
-from src.policy.algebra.revision_identity import factor_revision_ref
+from src.policy.algebra.revision_identity import computed_factor_revision_ref
 
 
 def _row(value: Any) -> dict[str, Any]:
@@ -42,8 +42,11 @@ def meet_refinement_report(
         if not isinstance(prior, Mapping) or not isinstance(resulting, Mapping):
             transitions["unknown"] += 1
             continue
-        prior_revision = factor_revision_ref(prior)
-        resulting_revision = factor_revision_ref(resulting)
+        # This is diagnostic telemetry.  Use the canonical content-derived
+        # identity without rejecting transitional metadata; persistence and
+        # manifest validation retain strict explicit-reference checks.
+        prior_revision = computed_factor_revision_ref(prior)
+        resulting_revision = computed_factor_revision_ref(resulting)
         resulting_revisions.append(resulting_revision)
         transitions[
             f"{prior.get('closure_state', 'unknown')}->{resulting.get('closure_state', 'unknown')}"
@@ -88,11 +91,7 @@ def demand_report(demands: Sequence[Any]) -> dict[str, Any]:
         for row in rows
     )
     keys = [_demand_key(row) for row in rows]
-    refs = [
-        str(row.get("demand_ref") or "")
-        for row in rows
-        if row.get("demand_ref")
-    ]
+    refs = [str(row.get("demand_ref") or "") for row in rows if row.get("demand_ref")]
     return {
         "demand_count": len(rows),
         "demands_by_subject_kind": dict(sorted(kinds.items())),
@@ -106,8 +105,7 @@ def candidate_set_report(artifacts: Mapping[str, Any]) -> dict[str, Any]:
     sets = tuple(artifacts.get("binding_candidate_sets") or ())
     rows = [_row(value) for value in sets]
     sizes = [
-        int(row.get("member_count") or len(row.get("members") or ()))
-        for row in rows
+        int(row.get("member_count") or len(row.get("members") or ())) for row in rows
     ]
     histogram = Counter(
         "0"
