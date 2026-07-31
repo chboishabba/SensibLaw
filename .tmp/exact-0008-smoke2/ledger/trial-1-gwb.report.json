@@ -1,0 +1,459 @@
+{
+  "classification": "transient_peak",
+  "document_ref": "tranche:gwb",
+  "environment": {
+    "calibration": true,
+    "compiler": "GCC 15.2.1 20260209",
+    "compiler_contract": "postgres-semantic-compiler:v0_11",
+    "fingerprint": "7e697bab719e0bea24170e304f2fe35e4e3dc20f231fbc142974af4a7da08927",
+    "implementation": "CPython",
+    "kernel": "7.1.3-2-cachyos-bore",
+    "machine": "x86_64",
+    "platform": "Linux-7.1.3-2-cachyos-bore-x86_64-with-glibc2.43",
+    "python": "3.12.13",
+    "source_projection_ref": "/home/c/Documents/code/ITIR-suite/SensibLaw/.tmp/exact-0008-smoke2/trial-1/gwb/source_projection/manifest.json",
+    "tranche": "GWB"
+  },
+  "final": {
+    "batch_rows": 0,
+    "details": {
+      "publication_mode": "rolled_back"
+    },
+    "elapsed_ns": 2512617507,
+    "gc_counts": [
+      13,
+      0,
+      0
+    ],
+    "kernel": "7.1.3-2-cachyos-bore",
+    "payload_bytes": 0,
+    "phase": "publication",
+    "post_gc": true,
+    "pss_bytes": 541669376,
+    "resource_source": "proc_smaps_rollup",
+    "rss_bytes": 554409984,
+    "semantic_counts": {},
+    "sequence": 53,
+    "stage": "publication:rolled_back",
+    "uss_bytes": 539312128
+  },
+  "peak": {
+    "batch_rows": 0,
+    "details": {
+      "publication": "completed_build_and_occurrence"
+    },
+    "elapsed_ns": 2399060827,
+    "gc_counts": [
+      13,
+      0,
+      0
+    ],
+    "kernel": "7.1.3-2-cachyos-bore",
+    "payload_bytes": 0,
+    "phase": "postgres_persistence",
+    "post_gc": true,
+    "pss_bytes": 542316544,
+    "resource_source": "proc_smaps_rollup",
+    "rss_bytes": 555057152,
+    "semantic_counts": {
+      "persisted_rows": 7
+    },
+    "sequence": 51,
+    "stage": "transaction_commit:after",
+    "uss_bytes": 539963392
+  },
+  "peak_stage": "transaction_commit:after",
+  "post_gc_sample_count": 2,
+  "run_ref": "exact-0008:trial-1:gwb",
+  "sample_count": 54,
+  "schema_version": "sensiblaw.ownership-report.v1",
+  "stage_increments": {
+    "artifact_handoff:annotation_layer": {
+      "peak_pss_bytes": 542042112,
+      "peak_rss_bytes": 554782720,
+      "peak_uss_bytes": 539684864,
+      "sample_count": 1,
+      "semantic_counts": {
+        "annotation_records": 3,
+        "licensed_parser_tokens": 6,
+        "parser_sentences": 1
+      }
+    },
+    "artifact_projection:after": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {
+        "manifest_reader_source_families": 12
+      }
+    },
+    "canonical_normalization:after": {
+      "peak_pss_bytes": 485397504,
+      "peak_rss_bytes": 497496064,
+      "peak_uss_bytes": 483364864,
+      "sample_count": 1,
+      "semantic_counts": {
+        "canonical_text_bytes": 36
+      }
+    },
+    "canonical_normalization:before": {
+      "peak_pss_bytes": 485385216,
+      "peak_rss_bytes": 497483776,
+      "peak_uss_bytes": 483348480,
+      "sample_count": 1,
+      "semantic_counts": {
+        "source_input_bytes": 36
+      }
+    },
+    "descriptor_generation:annotation_layer": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:annotation_layer:complete": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:binding_candidate_set_builds": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:binding_candidate_set_builds:complete": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:binding_candidate_sets": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:binding_candidate_sets:complete": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:factor_anchors": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:factor_anchors:complete": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:factor_refinements": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:factor_refinements:complete": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:local_evidence": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:local_evidence:complete": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:pnf_graph": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:pnf_graph:complete": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:refined_pnf_graph": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:refined_pnf_graph:complete": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:relational_bundle": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:relational_bundle:complete": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:resolution_demands": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:resolution_demands:complete": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:semantic_annotation_layer": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:semantic_annotation_layer:complete": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:typed_meets": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "descriptor_generation:typed_meets:complete": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "manifest_replay:after_inventory": {
+      "peak_pss_bytes": 485181440,
+      "peak_rss_bytes": 497274880,
+      "peak_uss_bytes": 483147776,
+      "sample_count": 1,
+      "semantic_counts": {
+        "manifest_documents": 1
+      }
+    },
+    "manifest_replay:annotation_layer": {
+      "peak_pss_bytes": 542238720,
+      "peak_rss_bytes": 554979328,
+      "peak_uss_bytes": 539881472,
+      "sample_count": 2,
+      "semantic_counts": {}
+    },
+    "manifest_replay:factor_anchors": {
+      "peak_pss_bytes": 542287872,
+      "peak_rss_bytes": 555028480,
+      "peak_uss_bytes": 539934720,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "manifest_replay:factor_refinements": {
+      "peak_pss_bytes": 542304256,
+      "peak_rss_bytes": 555044864,
+      "peak_uss_bytes": 539947008,
+      "sample_count": 2,
+      "semantic_counts": {}
+    },
+    "manifest_replay:local_evidence": {
+      "peak_pss_bytes": 542271488,
+      "peak_rss_bytes": 555012096,
+      "peak_uss_bytes": 539914240,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "manifest_replay:pnf_graph": {
+      "peak_pss_bytes": 542255104,
+      "peak_rss_bytes": 554995712,
+      "peak_uss_bytes": 539897856,
+      "sample_count": 2,
+      "semantic_counts": {}
+    },
+    "manifest_replay:refined_pnf_graph": {
+      "peak_pss_bytes": 542312448,
+      "peak_rss_bytes": 555053056,
+      "peak_uss_bytes": 539959296,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "manifest_replay:relational_bundle": {
+      "peak_pss_bytes": 542308352,
+      "peak_rss_bytes": 555048960,
+      "peak_uss_bytes": 539955200,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "manifest_replay:resolution_demands": {
+      "peak_pss_bytes": 542308352,
+      "peak_rss_bytes": 555048960,
+      "peak_uss_bytes": 539951104,
+      "sample_count": 2,
+      "semantic_counts": {}
+    },
+    "manifest_replay:semantic_annotation_layer": {
+      "peak_pss_bytes": 542308352,
+      "peak_rss_bytes": 555048960,
+      "peak_uss_bytes": 539951104,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "manifest_replay:typed_meets": {
+      "peak_pss_bytes": 542308352,
+      "peak_rss_bytes": 555048960,
+      "peak_uss_bytes": 539951104,
+      "sample_count": 2,
+      "semantic_counts": {}
+    },
+    "occurrence_publication:after": {
+      "peak_pss_bytes": 542316544,
+      "peak_rss_bytes": 555057152,
+      "peak_uss_bytes": 539959296,
+      "sample_count": 1,
+      "semantic_counts": {
+        "persisted_demands": 7,
+        "persisted_factors": 9,
+        "persisted_refinements": 0
+      }
+    },
+    "parser_annotation:after": {
+      "peak_pss_bytes": 542029824,
+      "peak_rss_bytes": 554770432,
+      "peak_uss_bytes": 539680768,
+      "sample_count": 1,
+      "semantic_counts": {
+        "parser_sentences": 1,
+        "parser_tokens": 6
+      }
+    },
+    "postgres_persistence:before": {
+      "peak_pss_bytes": 485364736,
+      "peak_rss_bytes": 497463296,
+      "peak_uss_bytes": 483328000,
+      "sample_count": 1,
+      "semantic_counts": {
+        "source_bytes": 36
+      }
+    },
+    "postgres_persistence:compiled_artifacts": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {
+        "artifact_families": 54,
+        "manifest_source_families": 12
+      }
+    },
+    "publication:rolled_back": {
+      "peak_pss_bytes": 541669376,
+      "peak_rss_bytes": 554409984,
+      "peak_uss_bytes": 539312128,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "semantic_artifacts:before_projection": {
+      "peak_pss_bytes": 542205952,
+      "peak_rss_bytes": 554946560,
+      "peak_uss_bytes": 539848704,
+      "sample_count": 1,
+      "semantic_counts": {
+        "base_factors": 9,
+        "candidate_sets": 0,
+        "closure_jobs": 1,
+        "closure_receipts": 0,
+        "demands": 7,
+        "proposals": 5,
+        "refined_factors": 9,
+        "refinements": 5,
+        "relational_atoms": 0,
+        "relational_relations": 0
+      }
+    },
+    "source_projection:after": {
+      "peak_pss_bytes": 478655488,
+      "peak_rss_bytes": 490426368,
+      "peak_uss_bytes": 476635136,
+      "sample_count": 1,
+      "semantic_counts": {
+        "manifest_documents": 1
+      }
+    },
+    "stage_ledger:after_compilation": {
+      "peak_pss_bytes": 541669376,
+      "peak_rss_bytes": 554409984,
+      "peak_uss_bytes": 539312128,
+      "sample_count": 1,
+      "semantic_counts": {
+        "compiled_documents": 1,
+        "demands": 7,
+        "failures": 0
+      }
+    },
+    "tranche:start": {
+      "peak_pss_bytes": 478638080,
+      "peak_rss_bytes": 490348544,
+      "peak_uss_bytes": 476622848,
+      "sample_count": 1,
+      "semantic_counts": {}
+    },
+    "transaction_commit:after": {
+      "peak_pss_bytes": 542316544,
+      "peak_rss_bytes": 555057152,
+      "peak_uss_bytes": 539963392,
+      "sample_count": 1,
+      "semantic_counts": {
+        "persisted_rows": 7
+      }
+    }
+  },
+  "transient_peak_pss_bytes": 647168
+}

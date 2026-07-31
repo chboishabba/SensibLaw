@@ -1,0 +1,94 @@
+{
+  "authority": "inventory_only",
+  "profile": {
+    "authority_priority": [
+      "official_us_legal_sources",
+      "source_documents",
+      "wikidata_structural_index"
+    ],
+    "jurisdiction": "US",
+    "legal_follow_profile": "US",
+    "local_projection_adapters": [
+      "projection:generic-pnf-world:v0_1",
+      "projection:gwb-broader-corpus-braid:v1"
+    ],
+    "profile_ref": "tranche-profile:gwb:v0_1",
+    "provider_refs": [
+      "wikidata",
+      "wiktionary"
+    ],
+    "source_families": [
+      {
+        "authority_class": "secondary_or_official_biographical",
+        "family_ref": "source-family:gwb-public-bios:v1",
+        "path": "demo/ingest/gwb/public_bios_v1/raw",
+        "required": true,
+        "source_kind": "public_biography_html"
+      },
+      {
+        "authority_class": "secondary_and_first_person_sources",
+        "family_ref": "source-family:gwb-books:v1",
+        "path": "demo/ingest/gwb",
+        "required": true,
+        "source_kind": "book_pdf_epub"
+      }
+    ],
+    "tranche": "GWB"
+  },
+  "source_families": [
+    {
+      "authority_class": "secondary_or_official_biographical",
+      "exists": true,
+      "family_ref": "source-family:gwb-public-bios:v1",
+      "file_count": 6,
+      "files": [
+        "demo/ingest/gwb/public_bios_v1/raw/0001_gwb_public_bios_web_https_georgewbush-whitehouse.archives.gov_president_biography.html.html",
+        "demo/ingest/gwb/public_bios_v1/raw/0002_gwb_public_bios_web_https_www.britannica.com_biography_George-W-Bush.html",
+        "demo/ingest/gwb/public_bios_v1/raw/0003_gwb_public_bios_web_https_www.whitehousehistory.org_bios_george-w-bush.html",
+        "demo/ingest/gwb/public_bios_v1/raw/0004_gwb_public_bios_web_https_www.georgewbushlibrary.gov_bush-family_george-w-bush.html",
+        "demo/ingest/gwb/public_bios_v1/raw/0005_gwb_public_bios_web_https_www.bushcenter.org_about-us_the-bush-family_george-w-bush.html",
+        "demo/ingest/gwb/public_bios_v1/raw/0006_gwb_public_bios_web_https_millercenter.org_president_gwbush_life-in-brief.html"
+      ],
+      "path": "demo/ingest/gwb/public_bios_v1/raw",
+      "required": true,
+      "requires_acquisition": false,
+      "source_kind": "public_biography_html"
+    },
+    {
+      "authority_class": "secondary_and_first_person_sources",
+      "exists": true,
+      "family_ref": "source-family:gwb-books:v1",
+      "file_count": 19,
+      "files": [
+        "demo/ingest/gwb/Bush family._ Bush, George_ Bush, George Walker_ Bush, Jeb_ Bush - Jeb and the Bush crime family _ the inside story of an American dynasty (2016, Skyhorse Publishing, Inc.) - libgen.li.epub",
+        "demo/ingest/gwb/Bush family._Bush, George_Bush, George Walker_Baker, Russ - Family of secrets_ the Bush dynasty, the powerful forces that put it in the White House, and what their influence means for Ame (2009, Bloomsbury Publishing Plc_Bloomsb - libgen.li.epub",
+        "demo/ingest/gwb/Bush, George_Bush, George H._Nelson, Michael_Perry, Barbara Ann - 41 - Inside the Presidency of George H. W. Bush (2014, Cornell University Press, in association with the University of Virginia's Miller Center) - libgen.li.pdf",
+        "demo/ingest/gwb/[Decision Points 1 ] Bush, George W - Decision Points (2010, Crown Publishers) - libgen.li.epub",
+        "demo/ingest/gwb/corpus_v1/wiki_timeline_gwb_corpus_v1.json",
+        "demo/ingest/gwb/corpus_v1/wiki_timeline_gwb_corpus_v1_aoo.json",
+        "demo/ingest/gwb/gwb_public_bios_v1.json",
+        "demo/ingest/gwb/public_bios_v1/manifest.json",
+        "demo/ingest/gwb/public_bios_v1/raw/0001_gwb_public_bios_web_https_georgewbush-whitehouse.archives.gov_president_biography.html.html",
+        "demo/ingest/gwb/public_bios_v1/raw/0002_gwb_public_bios_web_https_www.britannica.com_biography_George-W-Bush.html",
+        "demo/ingest/gwb/public_bios_v1/raw/0003_gwb_public_bios_web_https_www.whitehousehistory.org_bios_george-w-bush.html",
+        "demo/ingest/gwb/public_bios_v1/raw/0004_gwb_public_bios_web_https_www.georgewbushlibrary.gov_bush-family_george-w-bush.html",
+        "demo/ingest/gwb/public_bios_v1/raw/0005_gwb_public_bios_web_https_www.bushcenter.org_about-us_the-bush-family_george-w-bush.html",
+        "demo/ingest/gwb/public_bios_v1/raw/0006_gwb_public_bios_web_https_millercenter.org_president_gwbush_life-in-brief.html",
+        "demo/ingest/gwb/public_bios_v1/timeline.json",
+        "demo/ingest/gwb/public_bios_v1/timeline_graph.json",
+        "demo/ingest/gwb/public_bios_v1/wiki_timeline_gwb_public_bios_v1.json",
+        "demo/ingest/gwb/public_bios_v1/wiki_timeline_gwb_public_bios_v1_aoo.json",
+        "demo/ingest/gwb/public_bios_v1/wiki_timeline_gwb_public_bios_v1_rich.json"
+      ],
+      "path": "demo/ingest/gwb",
+      "required": true,
+      "requires_acquisition": false,
+      "source_kind": "book_pdf_epub"
+    }
+  ],
+  "summary": {
+    "acquisition_required_count": 0,
+    "available_family_count": 2,
+    "declared_family_count": 2
+  }
+}

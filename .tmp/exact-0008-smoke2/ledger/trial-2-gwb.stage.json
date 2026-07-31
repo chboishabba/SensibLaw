@@ -1,0 +1,98 @@
+{
+  "run_ref": "exact-0008:trial-2:gwb",
+  "samples": [
+    {
+      "batch_rows": 0,
+      "details": {},
+      "elapsed_ns": 15634936,
+      "gc_counts": [
+        514,
+        7,
+        10
+      ],
+      "kernel": "7.1.3-2-cachyos-bore",
+      "payload_bytes": 0,
+      "phase": "lifecycle",
+      "post_gc": false,
+      "pss_bytes": 476947456,
+      "resource_source": "proc_smaps_rollup",
+      "rss_bytes": 488620032,
+      "semantic_counts": {},
+      "sequence": 0,
+      "stage": "tranche:start",
+      "uss_bytes": 474931200
+    },
+    {
+      "batch_rows": 0,
+      "details": {},
+      "elapsed_ns": 40674697,
+      "gc_counts": [
+        11,
+        8,
+        10
+      ],
+      "kernel": "7.1.3-2-cachyos-bore",
+      "payload_bytes": 0,
+      "phase": "artifact_projection",
+      "post_gc": false,
+      "pss_bytes": 477002752,
+      "resource_source": "proc_smaps_rollup",
+      "rss_bytes": 488734720,
+      "semantic_counts": {
+        "manifest_documents": 1
+      },
+      "sequence": 1,
+      "stage": "source_projection:after",
+      "uss_bytes": 474980352
+    },
+    {
+      "batch_rows": 0,
+      "details": {},
+      "elapsed_ns": 2701550743,
+      "gc_counts": [
+        31,
+        0,
+        0
+      ],
+      "kernel": "7.1.3-2-cachyos-bore",
+      "payload_bytes": 0,
+      "phase": "stage_ledger",
+      "post_gc": false,
+      "pss_bytes": 540616704,
+      "resource_source": "proc_smaps_rollup",
+      "rss_bytes": 553242624,
+      "semantic_counts": {
+        "compiled_documents": 1,
+        "demands": 7,
+        "failures": 0
+      },
+      "sequence": 52,
+      "stage": "stage_ledger:after_compilation",
+      "uss_bytes": 538263552
+    },
+    {
+      "batch_rows": 0,
+      "details": {
+        "publication_mode": "rolled_back"
+      },
+      "elapsed_ns": 2786606425,
+      "gc_counts": [
+        13,
+        0,
+        0
+      ],
+      "kernel": "7.1.3-2-cachyos-bore",
+      "payload_bytes": 0,
+      "phase": "publication",
+      "post_gc": true,
+      "pss_bytes": 540616704,
+      "resource_source": "proc_smaps_rollup",
+      "rss_bytes": 553242624,
+      "semantic_counts": {},
+      "sequence": 53,
+      "stage": "publication:rolled_back",
+      "uss_bytes": 538263552
+    }
+  ],
+  "schema_version": "sensiblaw.stage-ledger.v1"
+}

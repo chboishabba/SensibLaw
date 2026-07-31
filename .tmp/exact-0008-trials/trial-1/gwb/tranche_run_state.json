@@ -1,0 +1,85 @@
+{
+  "artifacts": {
+    "source_acquisition": "/home/c/Documents/code/ITIR-suite/SensibLaw/.tmp/exact-0008-trials/trial-1/gwb/source_acquisition.json",
+    "source_inventory": "/home/c/Documents/code/ITIR-suite/SensibLaw/.tmp/exact-0008-trials/trial-1/gwb/source_inventory.json"
+  },
+  "database_url": "postgresql://postgres@127.0.0.1:5433/sensiblaw_tranche",
+  "last_phase": "SOURCE_ACQUISITION",
+  "last_receipt_ref": "tranche-phase-receipt:588714016a463741c6f89e2d8b2f6ecf3ba12217011c17206c9311e1e27e712c",
+  "output_dir": "/home/c/Documents/code/ITIR-suite/SensibLaw/.tmp/exact-0008-trials/trial-1/gwb",
+  "phases": {
+    "SOURCE_ACQUISITION": {
+      "detail": {
+        "broad_legal_follow_was_explicit_or_required": false,
+        "followed_document_count": 0,
+        "network_performed": false,
+        "source_root_count": 1
+      },
+      "input_refs": [
+        "/home/c/Documents/code/ITIR-suite/SensibLaw/.tmp/exact-0008-trials/trial-1/gwb/source_inventory.json"
+      ],
+      "output_refs": [
+        "/home/c/Documents/code/ITIR-suite/SensibLaw/.tmp/exact-0008-trials/trial-1/gwb/source_acquisition.json"
+      ],
+      "phase_ref": "tranche-phase:source_acquisition:v0_2",
+      "receipt_ref": "tranche-phase-receipt:588714016a463741c6f89e2d8b2f6ecf3ba12217011c17206c9311e1e27e712c",
+      "state": "completed"
+    },
+    "SOURCE_INVENTORY": {
+      "detail": {
+        "acquisition_required_count": 0,
+        "available_family_count": 2,
+        "declared_family_count": 2
+      },
+      "input_refs": [
+        "tranche-profile:gwb:v0_1"
+      ],
+      "output_refs": [
+        "/home/c/Documents/code/ITIR-suite/SensibLaw/.tmp/exact-0008-trials/trial-1/gwb/source_inventory.json"
+      ],
+      "phase_ref": "tranche-phase:source_inventory:v0_2",
+      "receipt_ref": "tranche-phase-receipt:e385fbcdfcece9fa080cfb12d38d1a386e76af82050a343537cc702eb0483cf5",
+      "state": "completed"
+    }
+  },
+  "profile_ref": "tranche-profile:gwb:v0_1",
+  "receipts": [
+    {
+      "authority": "execution_receipt_only",
+      "detail": {
+        "acquisition_required_count": 0,
+        "available_family_count": 2,
+        "declared_family_count": 2
+      },
+      "input_refs": [
+        "tranche-profile:gwb:v0_1"
+      ],
+      "output_refs": [
+        "/home/c/Documents/code/ITIR-suite/SensibLaw/.tmp/exact-0008-trials/trial-1/gwb/source_inventory.json"
+      ],
+      "phase_ref": "tranche-phase:source_inventory:v0_2",
+      "receipt_ref": "tranche-phase-receipt:e385fbcdfcece9fa080cfb12d38d1a386e76af82050a343537cc702eb0483cf5",
+      "state": "completed"
+    },
+    {
+      "authority": "execution_receipt_only",
+      "detail": {
+        "broad_legal_follow_was_explicit_or_required": false,
+        "followed_document_count": 0,
+        "network_performed": false,
+        "source_root_count": 1
+      },
+      "input_refs": [
+        "/home/c/Documents/code/ITIR-suite/SensibLaw/.tmp/exact-0008-trials/trial-1/gwb/source_inventory.json"
+      ],
+      "output_refs": [
+        "/home/c/Documents/code/ITIR-suite/SensibLaw/.tmp/exact-0008-trials/trial-1/gwb/source_acquisition.json"
+      ],
+      "phase_ref": "tranche-phase:source_acquisition:v0_2",
+      "receipt_ref": "tranche-phase-receipt:588714016a463741c6f89e2d8b2f6ecf3ba12217011c17206c9311e1e27e712c",
+      "state": "completed"
+    }
+  ],
+  "schema_version": "sl.complete_tranche_run_state.v0_1",
+  "tranche": "GWB"
+}

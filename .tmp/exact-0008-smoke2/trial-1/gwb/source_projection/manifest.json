@@ -1,0 +1,32 @@
+{
+  "authority": "document_projection_only",
+  "contract_ref": "source-family-canonical-projection:v0_1",
+  "documents": [
+    {
+      "adapter_ref": "media:utf8-text:v0_1",
+      "anchor_state": "source_text_coordinate_preserved",
+      "canonical_chars": 36,
+      "canonical_path": "canonical/0001_52bf9ea2395b.txt",
+      "canonical_sha256": "6ac4eb5e69bc9ae6cc46b5739450fa7d443b9deaa5699f53afe70a1b93041ec1",
+      "media_type": "text/plain",
+      "raw_bytes": 37,
+      "raw_path": "raw/0001_52bf9ea2395b.txt",
+      "raw_sha256": "52bf9ea2395ba88f0bcc4e67767f7f9f1ca28c0d1c1c40261572215abd701a27",
+      "source_path": "/home/c/Documents/code/ITIR-suite/SensibLaw/tests/fixtures/corpora/gwb-mini/official_record.txt",
+      "source_ref": "source:52bf9ea2395ba88f0bcc4e67767f7f9f1ca28c0d1c1c40261572215abd701a27",
+      "warnings": []
+    }
+  ],
+  "failures": [],
+  "ignored_paths": [],
+  "roots": [
+    "/home/c/Documents/code/ITIR-suite/SensibLaw/tests/fixtures/corpora/gwb-mini/official_record.txt"
+  ],
+  "schema_version": "sl.source_projection_manifest.v0_1",
+  "summary": {
+    "canonical_chars": 36,
+    "document_count": 1,
+    "failure_count": 0,
+    "raw_bytes": 37
+  }
+}
