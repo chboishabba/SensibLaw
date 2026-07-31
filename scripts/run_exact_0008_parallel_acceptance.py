@@ -112,12 +112,37 @@ def _kernel_seconds(
     return total / 1_000_000_000
 
 
+def _process_parallelism(receipt: Mapping[str, Any]) -> dict[str, Any]:
+    typing_pids = {
+        int(pid)
+        for hierarchy in (receipt.get("typing_hierarchies") or {}).values()
+        if isinstance(hierarchy, Mapping)
+        for pid in hierarchy.get("worker_pids") or ()
+        if int(pid) > 0
+    }
+    closure_counters = (receipt.get("closure_audit") or {})
+    closure_pids = {
+        int(str(key).split(":", maxsplit=1)[1])
+        for key, value in closure_counters.items()
+        if str(key).startswith("process_worker_pid:") and int(value or 0) > 0
+    }
+    observed = typing_pids | closure_pids
+    return {
+        "typing_worker_pids": sorted(typing_pids),
+        "closure_worker_pids": sorted(closure_pids),
+        "distinct_semantic_worker_pids": sorted(observed),
+        "distinct_semantic_worker_count": len(observed),
+        "parallel_process_execution_observed": len(observed) >= 2,
+    }
+
+
 def main() -> int:
     args = _parse_args()
     acceptance_root = args.acceptance_root.resolve()
     semantic_root = acceptance_root / "semantic-checkpoints"
     acceptance_root.mkdir(parents=True, exist_ok=True)
     baseline = _json(args.baseline.resolve())
+    semantic_process_workers = max(args.typing_workers, args.closure_workers)
 
     command = [
         sys.executable,
@@ -158,6 +183,7 @@ def main() -> int:
             "SENSIBLAW_TYPING_WORKERS": str(args.typing_workers),
             "SENSIBLAW_TYPING_LEAF_CAPACITY": str(args.typing_leaf_capacity),
             "SENSIBLAW_TYPING_HIERARCHY_ARITY": str(args.typing_arity),
+            "SENSIBLAW_SEMANTIC_PROCESS_WORKERS": str(semantic_process_workers),
             "SENSIBLAW_DOCUMENT_RETENTION_MODE": "production_compact",
         }
     )
@@ -174,6 +200,7 @@ def main() -> int:
             "owner_partitions": args.owner_partitions,
             "parser_workers": args.parser_workers,
             "worker_budget": args.worker_budget,
+            "semantic_process_workers": semantic_process_workers,
         },
         "baseline": str(args.baseline.resolve()),
     }
@@ -244,14 +271,16 @@ def main() -> int:
     else:
         parity = {
             "semantic_parity": None,
-            "state": "awaiting_prior_successful_or_resumed_exact-0008 receipt",
+            "state": "awaiting_prior_successful_or_resumed exact-0008 receipt",
             "fixture_parity_required": True,
             "failed_serial_baseline_has_no_semantic_output_identity": True,
         }
+    process_execution = _process_parallelism(semantic_receipt)
 
     accepted = (
         bool(strict_receipt.get("accepted"))
         and semantic_receipt.get("state") == "completed"
+        and process_execution["parallel_process_execution_observed"]
         and parity.get("semantic_parity") is not False
     )
     report = {
@@ -262,6 +291,7 @@ def main() -> int:
         "strict_receipt": str(strict_receipt_path),
         "semantic_receipt": str(semantic_receipt_path),
         "runtime_comparison": runtime_comparison,
+        "process_execution": process_execution,
         "semantic_parity": parity,
         "semantic_surface": current_surface,
         "publication_verification": strict_receipt.get("publication_verification"),
