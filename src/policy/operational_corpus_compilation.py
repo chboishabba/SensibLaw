@@ -51,6 +51,7 @@ from src.runtime.active_document_resources import (
     NullDocumentProgress,
 )
 from src.runtime.stage_timing import StageTimingLedger
+from src.runtime.execution_resource_ledger import ExecutionResourceLedger
 
 
 def _annotation_layer_records(layer: Any) -> dict[str, Any]:
@@ -403,6 +404,7 @@ def compile_document_operational(
     artifact_projection_policy: ArtifactProjectionPolicy | None = None,
     projection_partition_persistence: Callable[[Sequence[Mapping[str, Any]]], None]
     | None = None,
+    resource_ledger: ExecutionResourceLedger | None = None,
 ) -> legacy.DocumentCompilation:
     """Compile one document through the streaming local fixed-point boundary."""
 
@@ -443,6 +445,12 @@ def compile_document_operational(
         "source_ref",
     )
     timings = StageTimingLedger(document_ref=document_ref)
+    if resource_ledger is not None:
+        resource_ledger.sample(
+            "canonical_normalization:before",
+            phase="operational_compile",
+            semantic_counts={"source_input_bytes": len(source_text.encode("utf-8"))},
+        )
     resource_guard = ActiveDocumentResourceGuard(document_ref=document_ref)
     progress = GuardedDocumentProgress(
         progress
@@ -501,6 +509,12 @@ def compile_document_operational(
             input_nodes=len(source_text),
             output_nodes=len(text),
         )
+    if resource_ledger is not None:
+        resource_ledger.sample(
+            "canonical_normalization:after",
+            phase="operational_compile",
+            semantic_counts={"canonical_text_bytes": len(text.encode("utf-8"))},
+        )
 
     context_payload = compiler_context.to_dict()
     build_key_sha256 = legacy.canonical_sha256(
@@ -544,6 +558,15 @@ def compile_document_operational(
         stage.record(
             tokens_processed=parsed_token_count,
             output_nodes=parsed_token_count,
+        )
+    if resource_ledger is not None:
+        resource_ledger.sample(
+            "parser_annotation:after",
+            phase="operational_compile",
+            semantic_counts={
+                "parser_sentences": len(parsed_document.get("sents") or ()),
+                "parser_tokens": parsed_token_count,
+            },
         )
 
     with timings.stage("coordinate_validation") as stage:
@@ -615,6 +638,15 @@ def compile_document_operational(
             output_nodes=len(mentions),
             tokens_processed=len(tokens),
             details={"form_count": len(forms.get("forms") or ())},
+        )
+    if resource_ledger is not None:
+        resource_ledger.handoff(
+            "annotation_layer",
+            semantic_counts={
+                "parser_sentences": len(parsed_document.get("sents") or ()),
+                "licensed_parser_tokens": len(tokens),
+                "annotation_records": len(mentions),
+            },
         )
 
     layer = legacy.AnnotationLayer(
@@ -1193,6 +1225,29 @@ def compile_document_operational(
         },
     }
     operational_artifacts = build_operational_reference_binding_artifacts(artifacts)
+    if resource_ledger is not None:
+        relation_atoms = getattr(relational_bundle, "atoms", ())
+        relation_edges = getattr(relational_bundle, "relations", ())
+        resource_ledger.sample(
+            "semantic_artifacts:before_projection",
+            phase="artifact_handoff",
+            semantic_counts={
+                "relational_atoms": len(relation_atoms),
+                "relational_relations": len(relation_edges),
+                "proposals": int(streaming_metrics.get("base_proposal_count", 0)),
+                "closure_jobs": int(streaming_metrics.get("closure_job_count", 0)),
+                "closure_receipts": int(
+                    streaming_metrics.get("streamed_receipt_count", 0)
+                ),
+                "base_factors": len(pnf_graph.factors),
+                "refined_factors": len(refined_pnf_graph.factors),
+                "refinements": len(refinements),
+                "demands": len(demands),
+                "candidate_sets": len(
+                    operational_artifacts.get("binding_candidate_sets") or ()
+                ),
+            },
+        )
     resource_guard.checkpoint(
         stage="demand_derivation",
         current_kernel="artifact_projection",
@@ -1202,6 +1257,7 @@ def compile_document_operational(
     projected_artifacts, artifact_reader = project_artifacts(
         operational_artifacts,
         policy=artifact_projection_policy or ArtifactProjectionPolicy.production(),
+        resource_ledger=resource_ledger,
     )
     resource_guard.checkpoint(
         stage="demand_derivation",
@@ -1213,6 +1269,22 @@ def compile_document_operational(
         },
         reusable_partition_refs=tuple(row.partition_ref for row in partitions),
     )
+    if resource_ledger is not None:
+        resource_ledger.sample(
+            "artifact_projection:after",
+            phase="artifact_handoff",
+            semantic_counts={
+                "manifest_reader_source_families": len(
+                    [
+                        value
+                        for value in projected_artifacts.values()
+                        if isinstance(value, Mapping)
+                        and value.get("representation") == "manifest"
+                    ]
+                ),
+            },
+            details={"manifest_mode": artifact_reader is not None},
+        )
     return legacy.DocumentCompilation(
         document_ref=document_ref,
         content_sha256=content_sha256,

@@ -13,7 +13,10 @@ from enum import Enum
 import hashlib
 from itertools import islice
 import json
-from typing import Any, Iterator, Mapping, Protocol
+from typing import Any, Iterator, Mapping, Protocol, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.runtime.execution_resource_ledger import ExecutionResourceLedger
 
 from src.policy.carriers.canonical import canonical_sha256
 
@@ -112,7 +115,9 @@ def iter_verified_records(
             if count:
                 digest.update(b",")
             digest.update(
-                json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+                json.dumps(
+                    record, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+                ).encode("utf-8")
             )
             count += 1
         yield batch
@@ -139,22 +144,30 @@ def _records(value: Any) -> Iterator[dict[str, Any]]:
             if isinstance(field_value, (list, tuple)):
                 for index, item in enumerate(field_value):
                     yield {
-                        "family": str(field), "ordinal": index,
-                        "field": str(field), "index": index, "value": item,
+                        "family": str(field),
+                        "ordinal": index,
+                        "field": str(field),
+                        "index": index,
+                        "value": item,
                         "reconstruction": "mapping_repeated_member",
                     }
             else:
                 yield {
-                    "family": str(field), "ordinal": 0,
-                    "field": str(field), "value": field_value,
+                    "family": str(field),
+                    "ordinal": 0,
+                    "field": str(field),
+                    "value": field_value,
                     "reconstruction": "mapping_scalar",
                 }
         return
     if isinstance(value, (list, tuple)):
         for index, item in enumerate(value):
             yield {
-                "family": "rows", "ordinal": index, "index": index,
-                "value": item, "reconstruction": "sequence_member",
+                "family": "rows",
+                "ordinal": index,
+                "index": index,
+                "value": item,
+                "reconstruction": "sequence_member",
             }
         return
     yield {"family": "value", "ordinal": 0, "value": value, "reconstruction": "scalar"}
@@ -201,6 +214,12 @@ class InMemoryArtifactManifestReader:
         # In particular, do not retain a second tuple containing every emitted
         # manifest record: large documents otherwise briefly hold both shapes.
         self._sources = dict(sources_by_key)
+        self._resource_ledger: ExecutionResourceLedger | None = None
+
+    def attach_resource_ledger(self, ledger: "ExecutionResourceLedger") -> None:
+        """Attach observational telemetry without changing the source shape."""
+
+        self._resource_ledger = ledger
 
     def _iter(self, artifact_key: str) -> Iterator[dict[str, Any]]:
         return _records(self._sources[artifact_key])
@@ -214,6 +233,19 @@ class InMemoryArtifactManifestReader:
             return
         iterator = self._iter(artifact_key)
         while batch := tuple(islice(iterator, batch_size)):
+            if self._resource_ledger is not None:
+                self._resource_ledger.batch(
+                    f"manifest_replay:{artifact_key}",
+                    rows=len(batch),
+                    payload_bytes=sum(
+                        len(
+                            json.dumps(
+                                row, sort_keys=True, separators=(",", ":")
+                            ).encode("utf-8")
+                        )
+                        for row in batch
+                    ),
+                )
             yield batch
 
     def materialise(self, artifact_key: str) -> Any:
@@ -254,7 +286,9 @@ def _record_stream_digest(records: Iterator[Mapping[str, Any]]) -> tuple[int, st
 
 
 def reconstruct_artifact(
-    artifacts: Mapping[str, Any], artifact_key: str, reader: ArtifactManifestReader | None
+    artifacts: Mapping[str, Any],
+    artifact_key: str,
+    reader: ArtifactManifestReader | None,
 ) -> Any:
     """Reconstruct an artifact for a legacy semantic consumer.
 
@@ -268,11 +302,10 @@ def reconstruct_artifact(
         return value
     if reader is None:
         raise ValueError(f"manifest artifact {artifact_key!r} requires a reader")
+
     def records() -> Iterator[Mapping[str, Any]]:
         yield from (
-            row
-            for batch in iter_verified_records(reader, value)
-            for row in batch
+            row for batch in iter_verified_records(reader, value) for row in batch
         )
 
     return _materialise(records())
@@ -282,6 +315,7 @@ def project_artifacts(
     artifacts: Mapping[str, Any],
     *,
     policy: ArtifactProjectionPolicy,
+    resource_ledger: "ExecutionResourceLedger | None" = None,
 ) -> tuple[dict[str, Any], ArtifactManifestReader | None]:
     if policy.representation is ArtifactRepresentation.MATERIALISED:
         return dict(artifacts), None
@@ -289,6 +323,12 @@ def project_artifacts(
     sources_by_key: dict[str, Any] = {}
     for artifact_key in sorted(MANIFEST_ARTIFACT_KEYS.intersection(artifacts)):
         source = artifacts[artifact_key]
+        if resource_ledger is not None:
+            resource_ledger.sample(
+                f"descriptor_generation:{artifact_key}",
+                phase="descriptor_generation",
+                details={"artifact_key": artifact_key, "operation": "digest"},
+            )
         record_count, ordered_digest = _record_stream_digest(_records(source))
         root_ref = f"artifact-root:{artifact_key}:{ordered_digest}"
         manifest_identity = {
@@ -308,7 +348,16 @@ def project_artifacts(
         )
         projected[artifact_key] = descriptor.to_dict()
         sources_by_key[artifact_key] = source
-    return projected, InMemoryArtifactManifestReader(sources_by_key)
+        if resource_ledger is not None:
+            resource_ledger.sample(
+                f"descriptor_generation:{artifact_key}:complete",
+                phase="descriptor_generation",
+                details={"artifact_key": artifact_key, "record_count": record_count},
+            )
+    reader = InMemoryArtifactManifestReader(sources_by_key)
+    if resource_ledger is not None:
+        reader.attach_resource_ledger(resource_ledger)
+    return projected, reader
 
 
 def materialise_artifact(

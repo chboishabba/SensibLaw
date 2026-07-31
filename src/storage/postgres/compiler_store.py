@@ -52,11 +52,16 @@ class PersistedCompilation:
     failure_refs: tuple[str, ...]
 
 
+class _CalibrationRollback(Exception):
+    """Legacy marker retained for compatibility with calibration callers."""
+
+
 class PostgresCompilerStore:
     """Transactional PostgreSQL core for the generic compiler runtime."""
 
     def __init__(self, connection: Any):
         self.connection = connection
+        self.calibration_rollback = False
 
     @classmethod
     def connect(cls, database_url: str) -> "PostgresCompilerStore":
@@ -68,6 +73,9 @@ class PostgresCompilerStore:
 
     @contextmanager
     def transaction(self) -> Iterator[Any]:
+        # Calibration rollback is owned by the outer runner.  Savepoints must
+        # retain their writes until that boundary so later compiler stages can
+        # observe the document/build rows they just produced.
         with self.connection.transaction():
             with self.connection.cursor() as cursor:
                 yield cursor
@@ -365,14 +373,20 @@ class PostgresCompilerStore:
             for token in batch:
                 if seen:
                     digest.update(b",")
-                digest.update(json.dumps(token, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+                digest.update(
+                    json.dumps(token, ensure_ascii=False, separators=(",", ":")).encode(
+                        "utf-8"
+                    )
+                )
                 seen += 1
                 key = token[0].casefold()
                 vocabulary.add(key)
                 frequency_by_key[key] = frequency_by_key.get(key, 0) + 1
         digest.update(b"]")
         if seen != token_count:
-            raise ValueError("token source count changed between descriptor and first pass")
+            raise ValueError(
+                "token source count changed between descriptor and first pass"
+            )
         run_ref = "tokenizer-run:" + canonical_sha256(
             {
                 "document_ref": document_ref,
@@ -398,7 +412,9 @@ class PostgresCompilerStore:
                      AND normalized_text = ANY(%s)""",
                 (language_ref, lexical_kind_ref, list(keys)),
             )
-            lexeme_by_key.update({str(row[0]): int(row[1]) for row in cursor.fetchall()})
+            lexeme_by_key.update(
+                {str(row[0]): int(row[1]) for row in cursor.fetchall()}
+            )
         if len(lexeme_by_key) != len(vocabulary):
             raise RuntimeError("lexeme batch did not return every requested key")
         frequency_by_id = {
@@ -410,13 +426,22 @@ class PostgresCompilerStore:
         codec = CorpusCodec(
             {lexeme_id: symbol for symbol, lexeme_id in enumerate(ranked_ids)}
         )
-        codec_ref = "codec:" + canonical_sha256({"run_ref": run_ref, "mapping": codec.logical_to_symbol})
+        codec_ref = "codec:" + canonical_sha256(
+            {"run_ref": run_ref, "mapping": codec.logical_to_symbol}
+        )
         cursor.execute(
             """INSERT INTO language.tokenizer_run
                (tokenizer_run_ref, document_ref, tokenizer_ref, tokenizer_version,
                 token_count, output_sha256)
                VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING""",
-            (run_ref, document_ref, tokenizer_ref, tokenizer_version, token_count, _stable_bytes({"token_stream_digest": digest.hexdigest()})),
+            (
+                run_ref,
+                document_ref,
+                tokenizer_ref,
+                tokenizer_version,
+                token_count,
+                _stable_bytes({"token_stream_digest": digest.hexdigest()}),
+            ),
         )
         cursor.execute(
             """INSERT INTO language.codec (codec_ref, codec_kind_ref, codec_version, dictionary_sha256)
@@ -434,8 +459,12 @@ class PostgresCompilerStore:
         for chunk_index, batch in enumerate(batches()):
             if len(batch) > 256:
                 raise ValueError("token batches must contain at most 256 rows")
-            lexeme_ids = [lexeme_by_key[surface.casefold()] for surface, _start, _end in batch]
-            offsets = [value for _surface, start, end in batch for value in (start, end)]
+            lexeme_ids = [
+                lexeme_by_key[surface.casefold()] for surface, _start, _end in batch
+            ]
+            offsets = [
+                value for _surface, start, end in batch for value in (start, end)
+            ]
             encoded_symbols = codec.encode(lexeme_ids)
             encoded_offsets = encode_delta_sequence(offsets)
             cursor.execute(
@@ -443,8 +472,16 @@ class PostgresCompilerStore:
                    (tokenizer_run_ref, chunk_index, first_token_index, token_count,
                     codec_ref, encoded_symbols, encoded_offsets, content_sha256)
                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING""",
-                (run_ref, chunk_index, offset, len(batch), codec_ref, encoded_symbols,
-                 encoded_offsets, hashlib.sha256(encoded_symbols + encoded_offsets).digest()),
+                (
+                    run_ref,
+                    chunk_index,
+                    offset,
+                    len(batch),
+                    codec_ref,
+                    encoded_symbols,
+                    encoded_offsets,
+                    hashlib.sha256(encoded_symbols + encoded_offsets).digest(),
+                ),
             )
             offset += len(batch)
             emitted += len(batch)
@@ -506,8 +543,13 @@ class PostgresCompilerStore:
                    (annotation_node_ref, annotation_layer_ref,
                     annotation_type_ref, span_ref, value_ref)
                    VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING""",
-                (str(span["span_ref"]), layer_ref, str(span["annotation_type"]),
-                 str(span["span_ref"]), str(value.get("surface") or "")),
+                (
+                    str(span["span_ref"]),
+                    layer_ref,
+                    str(span["annotation_type"]),
+                    str(span["span_ref"]),
+                    str(value.get("surface") or ""),
+                ),
             )
         for relation in layer.get("relation_annotations") or ():
             cursor.execute(
@@ -515,9 +557,13 @@ class PostgresCompilerStore:
                    (annotation_relation_ref, annotation_layer_ref,
                     relation_type_ref, source_node_ref, target_node_ref)
                    VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING""",
-                (str(relation["relation_ref"]), layer_ref,
-                 str(relation["relation_type"]), str(relation["left_ref"]),
-                 str(relation["right_ref"])),
+                (
+                    str(relation["relation_ref"]),
+                    layer_ref,
+                    str(relation["relation_type"]),
+                    str(relation["left_ref"]),
+                    str(relation["right_ref"]),
+                ),
             )
 
     def persist_annotation_layer_batches(
@@ -563,8 +609,12 @@ class PostgresCompilerStore:
                            (annotation_node_ref, annotation_layer_ref,
                             annotation_type_ref, value_ref)
                            VALUES (%s, %s, %s, %s) ON CONFLICT DO NOTHING""",
-                        (f"{layer_ref}:token:{row['token_index']}", layer_ref,
-                         str(row["annotation_type"]), str(row["value"])),
+                        (
+                            f"{layer_ref}:token:{row['token_index']}",
+                            layer_ref,
+                            str(row["annotation_type"]),
+                            str(row["value"]),
+                        ),
                     )
                 elif family == "span_annotations":
                     value = row.get("value") or {}
@@ -573,8 +623,13 @@ class PostgresCompilerStore:
                            (annotation_node_ref, annotation_layer_ref,
                             annotation_type_ref, span_ref, value_ref)
                            VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING""",
-                        (str(row["span_ref"]), layer_ref, str(row["annotation_type"]),
-                         str(row["span_ref"]), str(value.get("surface") or "")),
+                        (
+                            str(row["span_ref"]),
+                            layer_ref,
+                            str(row["annotation_type"]),
+                            str(row["span_ref"]),
+                            str(value.get("surface") or ""),
+                        ),
                     )
                 elif family == "relation_annotations":
                     cursor.execute(
@@ -582,10 +637,15 @@ class PostgresCompilerStore:
                            (annotation_relation_ref, annotation_layer_ref,
                             relation_type_ref, source_node_ref, target_node_ref)
                            VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING""",
-                        (str(row["relation_ref"]), layer_ref,
-                         str(row["relation_type"]), str(row["left_ref"]),
-                         str(row["right_ref"])),
+                        (
+                            str(row["relation_ref"]),
+                            layer_ref,
+                            str(row["relation_type"]),
+                            str(row["left_ref"]),
+                            str(row["right_ref"]),
+                        ),
                     )
+
     def persist_projection_manifests(
         self,
         cursor: Any,
@@ -721,10 +781,14 @@ class PostgresCompilerStore:
             )
             existing = cursor.fetchone()
             identity = (
-                str(row["partition_ref"]), _digest_bytes(str(row["source_sha256"])),
-                str(row["carrier_ref"]), int(row["owner_start"]),
-                int(row["owner_end"]), int(row["context_start"]),
-                int(row["context_end"]), str(row["parser_contract_ref"]),
+                str(row["partition_ref"]),
+                _digest_bytes(str(row["source_sha256"])),
+                str(row["carrier_ref"]),
+                int(row["owner_start"]),
+                int(row["owner_end"]),
+                int(row["context_start"]),
+                int(row["context_end"]),
+                str(row["parser_contract_ref"]),
                 str(row["reducer_contract_ref"]),
             )
             if existing is not None and tuple(existing) != identity:
@@ -738,13 +802,20 @@ class PostgresCompilerStore:
                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                            %s::jsonb, %s) ON CONFLICT (partition_ref) DO NOTHING""",
                 (
-                    str(row["partition_ref"]), str(row["document_ref"]),
-                    _digest_bytes(str(row["source_sha256"])), str(row["carrier_ref"]),
-                    _digest_bytes(str(row["build_key_sha256"])), expected,
-                    int(row["owner_start"]), int(row["owner_end"]),
-                    int(row["context_start"]), int(row["context_end"]),
-                    str(row["parser_contract_ref"]), str(row["reducer_contract_ref"]),
-                    json.dumps(dict(row), sort_keys=True), _stable_bytes(row),
+                    str(row["partition_ref"]),
+                    str(row["document_ref"]),
+                    _digest_bytes(str(row["source_sha256"])),
+                    str(row["carrier_ref"]),
+                    _digest_bytes(str(row["build_key_sha256"])),
+                    expected,
+                    int(row["owner_start"]),
+                    int(row["owner_end"]),
+                    int(row["context_start"]),
+                    int(row["context_end"]),
+                    str(row["parser_contract_ref"]),
+                    str(row["reducer_contract_ref"]),
+                    json.dumps(dict(row), sort_keys=True),
+                    _stable_bytes(row),
                 ),
             )
 
