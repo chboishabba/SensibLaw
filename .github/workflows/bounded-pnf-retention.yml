@@ -62,6 +62,7 @@ jobs:
             src/policy/bounded_operational_execution.py \
             src/policy/indexed_projection_execution.py \
             src/policy/parallel_semantic_execution.py \
+            src/policy/semantic_receipt_enrichment.py \
             src/policy/manifest_stream_validation.py \
             scripts/run_strict_tranche_acceptance.py \
             scripts/run_exact_0008_parallel_acceptance.py \
@@ -75,10 +76,12 @@ jobs:
             tests/runtime/test_typing_hierarchy.py \
             tests/runtime/test_semantic_amplification.py \
             tests/runtime/test_semantic_parity.py \
+            tests/runtime/test_exact_0008_baseline.py \
             tests/pnf/test_bounded_streaming_owner.py \
             tests/policy/test_bounded_operational_execution.py \
             tests/policy/test_indexed_projection_execution.py \
             tests/policy/test_parallel_semantic_execution.py \
+            tests/policy/test_semantic_receipt_enrichment.py \
             tests/policy/test_manifest_stream_validation.py
 
       - name: Check formatting
@@ -99,6 +102,7 @@ jobs:
             src/policy/bounded_operational_execution.py \
             src/policy/indexed_projection_execution.py \
             src/policy/parallel_semantic_execution.py \
+            src/policy/semantic_receipt_enrichment.py \
             src/policy/manifest_stream_validation.py \
             scripts/run_strict_tranche_acceptance.py \
             scripts/run_exact_0008_parallel_acceptance.py \
@@ -112,10 +116,12 @@ jobs:
             tests/runtime/test_typing_hierarchy.py \
             tests/runtime/test_semantic_amplification.py \
             tests/runtime/test_semantic_parity.py \
+            tests/runtime/test_exact_0008_baseline.py \
             tests/pnf/test_bounded_streaming_owner.py \
             tests/policy/test_bounded_operational_execution.py \
             tests/policy/test_indexed_projection_execution.py \
             tests/policy/test_parallel_semantic_execution.py \
+            tests/policy/test_semantic_receipt_enrichment.py \
             tests/policy/test_manifest_stream_validation.py
 
       - name: Run bounded execution regressions
@@ -130,11 +136,13 @@ jobs:
             tests/runtime/test_typing_hierarchy.py \
             tests/runtime/test_semantic_amplification.py \
             tests/runtime/test_semantic_parity.py \
+            tests/runtime/test_exact_0008_baseline.py \
             tests/pnf/test_bounded_streaming_owner.py \
             tests/pnf/test_streaming_fixed_point.py \
             tests/policy/test_bounded_operational_execution.py \
             tests/policy/test_indexed_projection_execution.py \
             tests/policy/test_parallel_semantic_execution.py \
+            tests/policy/test_semantic_receipt_enrichment.py \
             tests/policy/test_manifest_stream_validation.py \
             tests/policy/test_operational_corpus_compilation.py \
             tests/policy/test_fibred_operational_corpus_compilation.py
