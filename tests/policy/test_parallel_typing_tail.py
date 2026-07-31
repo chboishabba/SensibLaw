@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import multiprocessing
+
+import pytest
+
 from src.language.semantic_reductions import (
     diagnose_untyped_mentions as canonical_diagnose_untyped_mentions,
     derive_relational_type_hypotheses as canonical_derive_relational_type_hypotheses,
@@ -13,6 +17,7 @@ from src.policy.parallel_semantic_execution import (
     SemanticExecutionContext,
     _CONTEXT,
 )
+from src.policy.parallel_typing_tail import shutdown_semantic_process_pool
 
 
 def _context(tmp_path) -> SemanticExecutionContext:
@@ -53,11 +58,7 @@ def _mentions() -> tuple[MentionSpan, ...]:
     )
 
 
-def test_structural_hypothesis_leaves_preserve_canonical_output(
-    monkeypatch, tmp_path
-) -> None:
-    monkeypatch.setenv("SENSIBLAW_SEMANTIC_PROCESS_WORKERS", "1")
-    monkeypatch.setenv("SENSIBLAW_TYPING_RELATION_LEAF_SIZE", "1")
+def _structural_fixture():
     declarations = legacy.default_semantic_reduction_declarations()
     bundle = {
         "relations": [
@@ -88,6 +89,15 @@ def test_structural_hypothesis_leaves_preserve_canonical_output(
         "atom:subject": ("mention:one",),
         "atom:object": ("mention:two",),
     }
+    return declarations, bundle, atom_mentions
+
+
+def test_structural_hypothesis_leaves_preserve_canonical_output(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setenv("SENSIBLAW_SEMANTIC_PROCESS_WORKERS", "1")
+    monkeypatch.setenv("SENSIBLAW_TYPING_RELATION_LEAF_SIZE", "1")
+    declarations, bundle, atom_mentions = _structural_fixture()
     canonical = canonical_derive_relational_type_hypotheses(
         bundle=bundle,
         atom_mention_refs=atom_mentions,
@@ -109,6 +119,40 @@ def test_structural_hypothesis_leaves_preserve_canonical_output(
     assert receipt["leaf_count"] == 2
     assert receipt["descendant_bytes_reconstructed"] == 0
     assert receipt["flattening_free"] is True
+
+
+@pytest.mark.skipif(
+    "fork" not in multiprocessing.get_all_start_methods(),
+    reason="process-backed smoke requires fork on this test platform",
+)
+def test_structural_hypotheses_use_distinct_process_workers(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setenv("SENSIBLAW_SEMANTIC_PROCESS_WORKERS", "2")
+    monkeypatch.setenv("SENSIBLAW_SEMANTIC_MP_CONTEXT", "fork")
+    monkeypatch.setenv("SENSIBLAW_TYPING_RELATION_LEAF_SIZE", "1")
+    declarations, bundle, atom_mentions = _structural_fixture()
+    context = _context(tmp_path)
+    token = _CONTEXT.set(context)
+    try:
+        partitioned = legacy.derive_relational_type_hypotheses(
+            bundle=bundle,
+            atom_mention_refs=atom_mentions,
+            declarations=declarations,
+        )
+    finally:
+        _CONTEXT.reset(token)
+        shutdown_semantic_process_pool()
+
+    canonical = canonical_derive_relational_type_hypotheses(
+        bundle=bundle,
+        atom_mention_refs=atom_mentions,
+        declarations=declarations,
+    )
+    receipt = context.typing_receipts["structural_hypothesis_derivation"]
+    assert partitioned == canonical
+    assert len(receipt["worker_pids"]) == 2
+    assert receipt["process_execution_contract_ref"] == "semantic-process-leaves:v1"
 
 
 def test_local_type_carrier_leaves_preserve_canonical_identity(
