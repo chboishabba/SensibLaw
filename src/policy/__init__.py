@@ -107,6 +107,9 @@ def install_execution_strategies() -> None:
         from .parallel_semantic_execution import (
             install_parallel_semantic_execution,
         )
+        from .semantic_receipt_enrichment import (
+            install_semantic_receipt_enrichment,
+        )
 
         if indexed_projection_enabled():
             install_indexed_projection_execution()
@@ -115,12 +118,16 @@ def install_execution_strategies() -> None:
         # output-sensitive local-typing leaves and closure receipt replay, and
         # leaves the canonical compiler as the sole semantic authority.
         install_parallel_semantic_execution()
+        # The semantic wrapper writes its receipt in ``finally``. Enrichment is
+        # intentionally installed last so completed artifact stage identities
+        # can be copied into that durable receipt without changing output.
+        install_semantic_receipt_enrichment()
         _execution_strategies_installed = True
     finally:
         _execution_strategies_installing = False
 
 
-# PNF imports generic policy carriers.  Installing strategies while that
+# PNF imports generic policy carriers. Installing strategies while that
 # package is still importing re-enters its binding modules; PNF calls the
 # explicit installer once its neutral exports are complete.
 if "src.pnf.binding_candidate_sets" not in sys.modules:
