@@ -104,10 +104,17 @@ def install_execution_strategies() -> None:
             indexed_projection_enabled,
             install_indexed_projection_execution,
         )
+        from .parallel_semantic_execution import (
+            install_parallel_semantic_execution,
+        )
 
         if indexed_projection_enabled():
             install_indexed_projection_execution()
         install_bounded_operational_execution()
+        # This wraps the already-installed bounded closure surface, adds
+        # output-sensitive local-typing leaves and closure receipt replay, and
+        # leaves the canonical compiler as the sole semantic authority.
+        install_parallel_semantic_execution()
         _execution_strategies_installed = True
     finally:
         _execution_strategies_installing = False
