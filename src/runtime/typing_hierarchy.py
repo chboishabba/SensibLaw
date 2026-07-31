@@ -57,6 +57,11 @@ class TypingExecutionIdentity:
             "typing_contract_ref": TYPING_EXECUTION_CONTRACT,
         }
 
+    def semantic_payload(self) -> dict[str, str]:
+        """Identity fields whose meaning is independent of execution partitioning."""
+
+        return self.to_dict()
+
 
 class TypingCheckpointStore:
     def __init__(self, root: str | Path | None):
@@ -66,8 +71,7 @@ class TypingCheckpointStore:
         if self.root is None:
             return None
         safe = "".join(
-            character if character.isalnum() or character in "-_."
-            else "_"
+            character if character.isalnum() or character in "-_." else "_"
             for character in leaf_ref
         )
         return self.root / operation / f"{safe}.json"
@@ -172,11 +176,15 @@ def _compute_leaf(
         return {**cached, "reused": True}
 
     started = monotonic_ns()
-    records = [
-        [row.ref, list(index.overlapping(row.start, row.end))]
-        for row in left
-    ]
-    records = [row for row in records if row[1]]
+    records: list[list[Any]] = []
+    query_node_visits = 0
+    query_candidate_checks = 0
+    for row in left:
+        matches, receipt = index.overlapping_with_receipt(row.start, row.end)
+        query_node_visits += receipt.node_visits
+        query_candidate_checks += receipt.candidate_checks
+        if matches:
+            records.append([row.ref, list(matches)])
     output_digest = canonical_sha256(records)
     left_crossing = sorted(
         row.ref
@@ -214,6 +222,14 @@ def _compute_leaf(
             "state": "complete",
             "local_fixed_point": True,
             "exact_owner_coverage": True,
+        },
+        "complexity": {
+            "left_input_count": len(left),
+            "right_interface_count": len(right),
+            "query_node_visits": query_node_visits,
+            "query_candidate_checks": query_candidate_checks,
+            "actual_match_count": sum(len(row[1]) for row in records),
+            "target": "O(left + right + actual_matches)",
         },
         "elapsed_ns": monotonic_ns() - started,
         "reused": False,
@@ -294,6 +310,14 @@ def _hierarchy_receipt(
                 }
             )
 
+    output_digest = canonical_sha256(list(merged_records))
+    logical_typing_ref = "logical-typing:" + canonical_sha256(
+        {
+            "operation": operation,
+            "identity": identity.semantic_payload(),
+            "output_digest": output_digest,
+        }
+    )
     return {
         "schema_version": TYPING_ROOT_SCHEMA_VERSION,
         "operation": operation,
@@ -304,7 +328,8 @@ def _hierarchy_receipt(
         "node_count": plan.node_count,
         "root_node_ref": plan.root_ref,
         "root_graph_ref": graph_ref_by_node[plan.root_ref],
-        "output_digest": canonical_sha256(list(merged_records)),
+        "logical_typing_ref": logical_typing_ref,
+        "output_digest": output_digest,
         "output_record_count": len(merged_records),
         "nodes": nodes,
         "coverage": {
@@ -314,6 +339,7 @@ def _hierarchy_receipt(
         },
         "descendant_bytes_reconstructed": 0,
         "flattening_free": True,
+        "semantic_identity_partition_independent": True,
         "semantic_authority": "one_document",
     }
 
@@ -361,6 +387,14 @@ def execute_partitioned_overlap(
         left_by_leaf[plan.leaf_for_offset(row.start)].append(row)
 
     index = TokenIntervalIndex(right_records)
+    right_by_ref = {row.ref: row for row in right_records}
+    if len(right_by_ref) != len(right_records):
+        raise ValueError("right-side interval references must be unique")
+
+    def right_for_carrier(start: int, end: int) -> tuple[IntervalRecord, ...]:
+        refs = index.overlapping(start, end)
+        return tuple(right_by_ref[ref] for ref in refs)
+
     store = TypingCheckpointStore(checkpoint_root)
     leaves: dict[str, dict[str, Any]] = {}
     missing: list[str] = []
@@ -373,11 +407,7 @@ def execute_partitioned_overlap(
                 key=lambda row: (row.start, row.end, row.ref),
             )
         )
-        right = tuple(
-            row
-            for row in right_records
-            if row.start < carrier.end and row.end > carrier.start
-        )
+        right = right_for_carrier(carrier.start, carrier.end)
         digest = _leaf_input_digest(
             operation=operation,
             identity=identity,
@@ -410,11 +440,7 @@ def execute_partitioned_overlap(
                         key=lambda row: (row.start, row.end, row.ref),
                     )
                 )
-                right = tuple(
-                    row
-                    for row in right_records
-                    if row.start < carrier.end and row.end > carrier.start
-                )
+                right = right_for_carrier(carrier.start, carrier.end)
                 future = pool.submit(
                     _compute_leaf,
                     operation=operation,
@@ -445,6 +471,7 @@ def execute_partitioned_overlap(
                             "reused": False,
                             "elapsed_ns": int(payload["elapsed_ns"]),
                             "workers": max_workers,
+                            "complexity": dict(payload.get("complexity") or {}),
                         }
                     )
                 if (
@@ -475,6 +502,13 @@ def execute_partitioned_overlap(
         1 for payload in leaves.values() if payload.get("reused")
     )
     receipt["computed_leaf_count"] = len(leaves) - receipt["reused_leaf_count"]
+    receipt["complexity"] = {
+        "left_input_count": len(left_records),
+        "right_input_count": len(right_records),
+        "actual_match_count": sum(len(value) for value in merged.values()),
+        "planning_right_scan_per_leaf": False,
+        "target": "O(left + right + actual_matches + hierarchy_interfaces)",
+    }
     store.write_root(operation, receipt["root_graph_ref"], receipt)
     return merged, receipt
 
