@@ -29,6 +29,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--streaming-closure-seconds", type=int, default=3600 + 18 * 60)
     parser.add_argument("--other-seconds", type=int, default=7 * 60)
     parser.add_argument("--peak-rss-bytes", type=int, default=4_552_662_016)
+    parser.add_argument("--processed-parser-tokens", type=int, default=279_532)
     parser.add_argument("--local-type-alternatives", type=int, default=254_554)
     parser.add_argument("--typed-meets", type=int, default=229_494)
     parser.add_argument("--refinements", type=int, default=214_479)
@@ -49,13 +50,10 @@ def _parser_coverage(root: Path) -> dict[str, Any]:
     )
     document_refs = {str(row.get("document_ref") or "") for row in rows}
     contract_refs = {str(summary.get("contract_ref") or "") for summary in summaries}
-    text_hashes = {str(row.get("text_sha256") or "") for row in rows}
     if len(document_refs) != 1 or "" in document_refs:
         raise ValueError("parser summaries disagree on document identity")
     if len(contract_refs) != 1 or "" in contract_refs:
         raise ValueError("parser summaries disagree on parser contract")
-    if len(text_hashes) != 1 or "" in text_hashes:
-        raise ValueError("parser summaries disagree on canonical text identity")
     if [int(row["sequence_no"]) for row in rows] != list(range(len(rows))):
         raise ValueError("parser fibre sequence is incomplete")
     for left, right in zip(rows, rows[1:], strict=False):
@@ -73,9 +71,9 @@ def _parser_coverage(root: Path) -> dict[str, Any]:
     return {
         "document_ref": next(iter(document_refs)),
         "parser_contract_ref": next(iter(contract_refs)),
-        "canonical_text_sha256": next(iter(text_hashes)),
         "checkpoint_digest": checkpoint_digest,
         "checkpoint_refs": [str(row["fibre_ref"]) for row in rows],
+        "fibre_text_sha256": [str(row.get("text_sha256") or "") for row in rows],
         "fibre_count": len(rows),
         "canonical_character_count": int(rows[-1]["owner_end"]),
         "owned_sentence_count": sum(
@@ -84,7 +82,12 @@ def _parser_coverage(root: Path) -> dict[str, Any]:
         "owned_token_count": sum(
             int(summary.get("owned_token_count") or 0) for summary in summaries
         ),
+        "context_token_count": sum(
+            int((summary.get("counts") or {}).get("tokens") or 0)
+            for summary in summaries
+        ),
         "exact_owner_coverage": True,
+        "context_overlap_is_execution_only": True,
     }
 
 
@@ -110,9 +113,14 @@ def build_baseline(args: argparse.Namespace) -> dict[str, Any]:
         "parser_target_chars": int(state.get("parser_target_chars") or 0),
         "parser_overlap_chars": int(state.get("parser_overlap_chars") or 0),
     }
-    if any(configuration[key] != 1 for key in (
-        "worker_budget", "document_workers", "parser_workers", "closure_workers", "owner_partitions"
-    )):
+    serial_keys = (
+        "worker_budget",
+        "document_workers",
+        "parser_workers",
+        "closure_workers",
+        "owner_partitions",
+    )
+    if any(configuration[key] != 1 for key in serial_keys):
         raise ValueError("baseline is not the expected one-worker serial trace")
     return {
         "schema_version": SCHEMA_VERSION,
@@ -135,6 +143,7 @@ def build_baseline(args: argparse.Namespace) -> dict[str, Any]:
             "observed_peak_rss_bytes": args.peak_rss_bytes,
         },
         "semantic_counts": {
+            "processed_parser_tokens": args.processed_parser_tokens,
             "local_type_alternatives": args.local_type_alternatives,
             "typed_meets": args.typed_meets,
             "refinements": args.refinements,
