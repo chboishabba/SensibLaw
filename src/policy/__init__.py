@@ -107,6 +107,7 @@ def install_execution_strategies() -> None:
         from .parallel_semantic_execution import (
             install_parallel_semantic_execution,
         )
+        from .parallel_typing_tail import install_parallel_typing_tail
         from .semantic_receipt_enrichment import (
             install_semantic_receipt_enrichment,
         )
@@ -115,9 +116,13 @@ def install_execution_strategies() -> None:
             install_indexed_projection_execution()
         install_bounded_operational_execution()
         # This wraps the already-installed bounded closure surface, adds
-        # output-sensitive local-typing leaves and closure receipt replay, and
-        # leaves the canonical compiler as the sole semantic authority.
+        # output-sensitive local-typing overlap leaves and closure receipt
+        # replay, and leaves the canonical compiler as the sole authority.
         install_parallel_semantic_execution()
+        # The remaining hypothesis/type/diagnostic tails and pure closure
+        # handlers are CPU-bound. Install process-backed bounded leaves after
+        # telemetry so their outputs retain the same resource receipts.
+        install_parallel_typing_tail()
         # The semantic wrapper writes its receipt in ``finally``. Enrichment is
         # intentionally installed last so completed artifact stage identities
         # can be copied into that durable receipt without changing output.
