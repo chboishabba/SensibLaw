@@ -41,6 +41,36 @@ def test_strict_acceptance_derives_limits_from_observed_peak() -> None:
     assert limits["rss"]["hard_limit_bytes"] > limits["rss"]["soft_limit_bytes"]
 
 
+def test_exact_acceptance_requires_observed_semantic_processes() -> None:
+    root = Path(__file__).resolve().parents[2]
+    namespace = runpy.run_path(
+        str(root / "scripts" / "run_exact_0008_parallel_acceptance.py")
+    )
+
+    observed = namespace["_process_parallelism"](
+        {
+            "typing_hierarchies": {
+                "matching": {"worker_pids": [101, 102]},
+                "typing": {"worker_pids": [102, 103]},
+            },
+            "closure_audit": {
+                "process_worker_pid:104": 3,
+                "process_worker_pid:105": 0,
+            },
+        }
+    )
+    serial = namespace["_process_parallelism"](
+        {
+            "typing_hierarchies": {"matching": {"worker_pids": [101]}},
+            "closure_audit": {},
+        }
+    )
+
+    assert observed["distinct_semantic_worker_pids"] == [101, 102, 103, 104]
+    assert observed["parallel_process_execution_observed"] is True
+    assert serial["parallel_process_execution_observed"] is False
+
+
 def test_resource_guard_retains_all_stage_checkpoints_only_when_requested(
     monkeypatch,
     tmp_path: Path,
