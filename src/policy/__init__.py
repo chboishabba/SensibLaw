@@ -117,6 +117,9 @@ def install_execution_strategies() -> None:
         from .progress_observability_execution import (
             install_progress_observability_execution,
         )
+        from .reference_backed_finalization import (
+            install_reference_backed_finalization,
+        )
         from .semantic_receipt_enrichment import (
             install_semantic_receipt_enrichment,
         )
@@ -131,6 +134,9 @@ def install_execution_strategies() -> None:
         # Keep diagnostics observational, stream the large terminal checkpoint,
         # and reuse matching reduction/certificate checkpoints after replay.
         install_closure_finalization_hardening()
+        # Seal large families, release the owner state, then serialize only a
+        # compact reference receipt in a fresh interpreter.
+        install_reference_backed_finalization()
         # This wraps the already-installed bounded closure surface, adds
         # output-sensitive local-typing overlap leaves and closure receipt
         # replay, and leaves the canonical compiler as the sole authority.
