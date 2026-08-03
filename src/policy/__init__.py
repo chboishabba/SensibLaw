@@ -100,6 +100,9 @@ def install_execution_strategies() -> None:
         from .bounded_operational_execution import (
             install_bounded_operational_execution,
         )
+        from .closure_liveness_execution import (
+            install_closure_liveness_execution,
+        )
         from .indexed_projection_execution import (
             indexed_projection_enabled,
             install_indexed_projection_execution,
@@ -115,6 +118,10 @@ def install_execution_strategies() -> None:
         if indexed_projection_enabled():
             install_indexed_projection_execution()
         install_bounded_operational_execution()
+        # Harden the existing bounded owner before wrappers capture it: global
+        # materialisation is deferred across admission batches and exhausted
+        # frontiers terminate with a certificate or a finite diagnostic.
+        install_closure_liveness_execution()
         # This wraps the already-installed bounded closure surface, adds
         # output-sensitive local-typing overlap leaves and closure receipt
         # replay, and leaves the canonical compiler as the sole authority.
