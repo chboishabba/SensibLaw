@@ -1,3 +1,431 @@
+# NEW
+
+Your instinct is right: **JSONL should not be the authoritative distributed checkpoint substrate** for the architecture you are aiming at.
+
+What I called “JSONL reduction checkpoints” is defensible only as a **temporary local crash-recovery/debug format**:
+
+```text
+one process
+one machine
+append-only rows
+easy inspection
+cheap prototype
+```
+
+It is not the correct long-term coordination layer for:
+
+```text
+many workers
+many machines
+leases
+retries
+partial completion
+dependency scheduling
+transactional publication
+client/server operation
+```
+
+## The target should be PostgreSQL-first
+
+The durable execution flow should be:
+
+```text
+worker leases bounded graph job from PostgreSQL
+→ loads only its referenced inputs
+→ computes immutable delta
+→ commits delta + receipt atomically
+→ marks job complete
+→ transactionally awakens dependent jobs
+→ releases memory
+```
+
+PostgreSQL already provides the appropriate concurrency substrate:
+
+* MVCC allows concurrent readers and writers without forcing them through one in-memory owner process. ([PostgreSQL][1])
+* `SELECT … FOR UPDATE SKIP LOCKED` is explicitly suitable for multiple consumers reading a queue-like table without contending on the same rows. ([PostgreSQL][2])
+* Transaction-scoped advisory locks are available where semantic authority cannot be represented cleanly by row ownership, although they should be used sparingly because advisory-lock capacity is finite. ([PostgreSQL][3])
+* Safe retries require idempotency keys and replay-stable results rather than assuming a task executes exactly once. ([Amazon Web Services, Inc.][4])
+
+TiRCorder already points in the right conceptual direction: it distinguishes queued backend APIs from synchronous WebUI calls, supports local and remote execution, and treats downstream outputs as persisted envelopes and receipts rather than process-local return values.  Its README does not, however, expose a sufficiently detailed database-backed worker protocol to copy directly.
+
+## Correct division of storage
+
+I would use three layers.
+
+### PostgreSQL: authority and coordination
+
+Store:
+
+```text
+documents
+builds
+graph nodes
+graph edges
+job declarations
+job dependencies
+job leases
+attempts
+immutable deltas
+reduction revisions
+coverage barriers
+unresolved demands
+fixed-point certificates
+publication transactions
+receipt/manifests
+```
+
+PostgreSQL determines:
+
+* what exists;
+* what is ready;
+* who currently owns a lease;
+* what revision a worker read;
+* whether a result is still admissible;
+* which dependent components became dirty;
+* whether the document has reached fixed point;
+* whether publication committed.
+
+### Object storage: large immutable payloads
+
+Store large bodies such as:
+
+* source EPUB/PDF/audio;
+* enormous parser carriers;
+* optional compressed graph segments;
+* large diagnostic traces;
+* model artifacts;
+* archived execution bundles.
+
+PostgreSQL stores their content hashes, lengths, media types and locations.
+
+For a single-machine deployment this object store may initially be a filesystem directory. The interface should nevertheless be content-addressed so S3-compatible storage can replace it later.
+
+### JSON/JSONL: export, diagnostics and emergency recovery
+
+Keep JSONL for:
+
+* human-readable traces;
+* portable evidence bundles;
+* debugging failed runs;
+* CI artifacts;
+* append-only audit export;
+* importing into another deployment.
+
+It should be a **projection of authoritative database state**, not the authoritative state itself.
+
+## The distributed graph model
+
+The document graph should not be repeatedly loaded, flattened and written back as one object.
+
+Represent it as immutable graph revisions:
+
+[
+G_r=(V_r,E_r,\Delta_r,U_r,C_r)
+]
+
+where:
+
+* (V_r): content-addressed semantic nodes;
+* (E_r): typed dependency and semantic edges;
+* (\Delta_r): additions and revision overlays introduced at revision (r);
+* (U_r): unresolved demands/frontier;
+* (C_r): coverage and fixed-point certificates.
+
+A parent graph node contains:
+
+[
+P=(\operatorname{childRefs},\Delta V,\Delta E,U,C)
+]
+
+rather than copies of every descendant.
+
+This gives the mini→midi→mega structure:
+
+```text
+leaf graph refs
+→ branch graph refs
+→ semantic component refs
+→ document root ref
+```
+
+A parent operation reads only:
+
+[
+\text{child interfaces}
++\text{cross-child deltas}
++\text{dirty dependency cone}.
+]
+
+It must not reconstruct:
+
+[
+\bigcup_i \operatorname{interior}(G_i)
+]
+
+unless a downstream consumer explicitly requests a materialized export.
+
+## Jobs should be graph transformations
+
+A job is not merely “run function X.” Formally:
+
+[
+J=
+(j,\ k,\ I,\ R,\ p,\ a,\ \tau)
+]
+
+with:
+
+* (j): stable job identity;
+* (k): semantic owner key;
+* (I): immutable input graph refs;
+* (R): expected input revisions;
+* (p): operation contract;
+* (a): attempt/lease state;
+* (\tau): resource and scheduling policy.
+
+A worker produces:
+
+[
+\delta J=
+(\Delta V,\Delta E,\Delta U,\Delta C,\rho)
+]
+
+where (\rho) is its receipt.
+
+Admission is a transaction:
+
+[
+\operatorname{admit}(G_r,\delta J)
+\longrightarrow
+\begin{cases}
+G_{r+1}, & \text{input revisions still valid};\
+\text{stale/requeue}, & \text{otherwise}.
+\end{cases}
+]
+
+This means computation can occur anywhere, but **semantic mutation happens through one transactional admission protocol**.
+
+## Leasing protocol
+
+A worker claims work using a short transaction resembling:
+
+```sql
+SELECT job_id
+FROM semantic_job
+WHERE state = 'ready'
+  AND not_before <= now()
+ORDER BY priority, canonical_ordinal
+FOR UPDATE SKIP LOCKED
+LIMIT 1;
+```
+
+Then it changes the row to:
+
+```text
+state = leased
+lease_owner = worker identity
+lease_epoch = new random/fencing token
+lease_expires_at = timestamp
+attempt = attempt + 1
+```
+
+`SKIP LOCKED` is appropriate here because PostgreSQL specifically identifies queue-like multi-consumer access as its intended use. ([PostgreSQL][2])
+
+The result commit must include the lease epoch:
+
+```sql
+UPDATE semantic_job
+SET state = 'completed'
+WHERE job_id = ?
+  AND lease_epoch = ?
+  AND state = 'leased';
+```
+
+A late worker holding an expired lease therefore cannot overwrite a newer attempt. This is a **fencing-token invariant**.
+
+## Delivery semantics
+
+Do not design around “exactly once execution.” Distributed machines can crash after committing but before receiving acknowledgement.
+
+The realistic contract is:
+
+```text
+at-least-once execution
++
+exactly-once semantic admission
+```
+
+achieved through:
+
+* deterministic job IDs;
+* deterministic delta IDs;
+* unique constraints;
+* lease fencing;
+* idempotent admission;
+* transactional outbox/events;
+* replay-stable operation contracts.
+
+For example:
+
+```text
+UNIQUE(job_ref, operation_contract, input_manifest_ref)
+UNIQUE(delta_ref)
+UNIQUE(job_ref, accepted_attempt)
+```
+
+A retried worker may execute twice, but both attempts derive the same semantic delta identity, and only one admission becomes authoritative.
+
+## Owner authority becomes logical, not process-local
+
+Currently, “one owner” sounds like one Python object. For distributed execution it should mean:
+
+> One serializable authority stream per semantic owner key.
+
+For owner key (k), accepted revisions satisfy:
+
+[
+r_{k,0}<r_{k,1}<\cdots<r_{k,n}.
+]
+
+Different keys may advance concurrently:
+
+[
+k_i\neq k_j
+\implies
+\operatorname{admit}(k_i)\parallel\operatorname{admit}(k_j)
+]
+
+unless a declared cross-key dependency connects them.
+
+This can be implemented using:
+
+* row-level revision compare-and-swap;
+* transaction-scoped advisory locks for unusually complex compound keys;
+* or serializable transactions for higher-level reconciliation.
+
+Advisory locks should not become one lock per tiny graph object; PostgreSQL documents that they consume a finite shared-memory pool. ([PostgreSQL][3])
+
+## Fixed point in database terms
+
+The document has reached local fixed point when:
+
+[
+\begin{aligned}
+\operatorname{Fixed}(d)\iff{}&
+\neg\exists j\in J_d:\operatorname{state}(j)\in
+{\text{ready},\text{leased},\text{retryable}}\
+&\land\neg\exists k\in K_d:\operatorname{dirty}(k)\
+&\land\neg\exists\delta\in\Delta_d:\neg\operatorname{admitted}(\delta)\
+&\land\operatorname{coverageClosed}(d)\
+&\land\operatorname{localObligations}(d)=\varnothing.
+\end{aligned}
+]
+
+This predicate should be evaluated against durable rows, not inferred from a particular process’s in-memory queue.
+
+The certificate binds:
+
+```text
+document revision
+accepted job-set digest
+node/edge root digest
+unresolved-demand digest
+coverage digest
+operation-contract versions
+```
+
+## What should change in #462
+
+The newly introduced JSONL files should be treated as transitional instrumentation. Before promotion, the architecture should move toward:
+
+```text
+materialized-factors.jsonl
+materialized-residuals.jsonl
+```
+
+becoming either:
+
+```text
+semantic_factor_revision
+semantic_residual_revision
+semantic_finalization_batch
+semantic_finalization_checkpoint
+```
+
+or content-addressed object segments registered transactionally in PostgreSQL.
+
+The finalisation worker would then:
+
+1. claim a finalisation batch;
+2. read a bounded range of settled owner reductions;
+3. write factor/residual revision rows with `ON CONFLICT DO NOTHING`;
+4. advance the persisted cursor;
+5. commit;
+6. release memory;
+7. enqueue the next batch or certification job.
+
+That turns restart from “re-read a local JSONL file” into:
+
+```text
+any authorised worker on any machine
+→ query committed cursor
+→ lease next range
+→ continue
+```
+
+## Formal work that is still needed
+
+You are also right that we have approached the implementation more concretely than the distributed formalism.
+
+The system should have at least four formal models:
+
+1. **Job lifecycle state machine**
+
+[
+\text{blocked}\to\text{ready}\to\text{leased}
+\to{\text{completed},\text{retryable},\text{failed}}
+]
+
+2. **Lease/fencing safety**
+
+No result from lease epoch (e) may be admitted after epoch (e'>e) has been issued.
+
+3. **Semantic convergence**
+
+For compatible monotone deltas:
+
+[
+\operatorname{reduce}(G,\delta_1,\delta_2)
+==========================================
+
+\operatorname{reduce}(G,\delta_2,\delta_1).
+]
+
+For incompatible deltas, both remain represented as alternatives or produce an explicit residual—not arrival-order overwrite.
+
+4. **Liveness**
+
+Under eventual worker availability, finite retryable failures and bounded dependency expansion:
+
+[
+\Diamond \operatorname{Completed}(j)
+\lor
+\Diamond \operatorname{TerminalFailure}(j).
+]
+
+No job remains leased, ready or finalising forever without a durable diagnostic.
+
+TLA+ is particularly suitable for the leasing, expiry, retry, admission and fixed-point protocol. Process algebra is useful for describing the worker/coordinator channels, but TLA+ is likely the more immediately productive model-checking surface.
+
+Here is an interactive model of the proposed graph and execution architecture:
+
+[1]: https://www.postgresql.org/docs/current/mvcc-intro.html?utm_source=chatgpt.com "PostgreSQL: Documentation: 18: 13.1. Introduction"
+[2]: https://www.postgresql.org/docs/18/sql-select.html?utm_source=chatgpt.com "PostgreSQL: Documentation: 18: SELECT"
+[3]: https://www.postgresql.org/docs/17/explicit-locking.html?utm_source=chatgpt.com "PostgreSQL: Documentation: 17: 13.3. Explicit Locking"
+[4]: https://aws.amazon.com/about-aws/whats-new/2021/01/new-abl-article-making-retries-safe-with-idempotent-APIs/?utm_source=chatgpt.com "New Amazon Builders’ Library Article: Making retries safe with idempotent APIs - AWS"
+
+
+
 # Sprint Status And Priority Order
 
 ## Current execution order
