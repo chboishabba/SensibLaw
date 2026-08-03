@@ -66,9 +66,7 @@ def test_semantic_difference_fails_parity() -> None:
     )
     changed = _artifacts()
     changed["annotation_graph"] = {"graph_ref": "annotation-graph:changed"}
-    second_surface = semantic_surface_from_artifacts(
-        changed, document_ref="document:1"
-    )
+    second_surface = semantic_surface_from_artifacts(changed, document_ref="document:1")
 
     comparison = compare_semantic_surfaces((first_surface, second_surface))
 

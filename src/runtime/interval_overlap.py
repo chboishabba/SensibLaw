@@ -16,7 +16,9 @@ class IntervalRecord:
         if not self.ref:
             raise ValueError("interval reference is required")
         if self.start < 0 or self.end <= self.start:
-            raise ValueError("interval coordinates must form a non-empty half-open range")
+            raise ValueError(
+                "interval coordinates must form a non-empty half-open range"
+            )
 
 
 @dataclass(frozen=True)
@@ -53,7 +55,9 @@ class TokenIntervalIndex:
     """
 
     def __init__(self, records: Iterable[IntervalRecord]):
-        rows = tuple(sorted(set(records), key=lambda row: (row.start, row.end, row.ref)))
+        rows = tuple(
+            sorted(set(records), key=lambda row: (row.start, row.end, row.ref))
+        )
         self.records = rows
         self._root = self._build(rows)
 

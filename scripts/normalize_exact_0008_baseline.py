@@ -129,8 +129,13 @@ def build_baseline(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("failed serial baseline requires a failure receipt")
     documents = dict(state.get("documents") or {})
     document_state = documents.get(coverage["document_ref"])
-    if not isinstance(document_state, Mapping) or document_state.get("state") != "failed":
-        raise ValueError("parser checkpoint document is not the failed compiler document")
+    if (
+        not isinstance(document_state, Mapping)
+        or document_state.get("state") != "failed"
+    ):
+        raise ValueError(
+            "parser checkpoint document is not the failed compiler document"
+        )
     configuration = {
         "worker_budget": int(state.get("worker_budget") or 0),
         "document_workers": int(state.get("document_workers") or 0),

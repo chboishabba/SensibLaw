@@ -163,9 +163,7 @@ def test_sustained_hard_pressure_returns_checkpointable_bounded_stop() -> None:
                 {**decision.to_dict(), "snapshot": snapshot.to_dict()}
             ),
         )
-        scheduler.extend(
-            (ScheduledJob("producer", 1, WorkClass.SEMANTIC_PRODUCER),)
-        )
+        scheduler.extend((ScheduledJob("producer", 1, WorkClass.SEMANTIC_PRODUCER),))
         receipt = scheduler.run()
 
     assert receipt.bounded_stop is True

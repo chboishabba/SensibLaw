@@ -16,6 +16,7 @@ def derive_resolution_demands(*args, **kwargs):
 
     return _derive_resolution_demands(*args, **kwargs)
 
+
 from .binding_candidate_sets import (
     BindingAccessibilityDeclaration,
     BindingCandidateMember,

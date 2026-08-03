@@ -27,8 +27,7 @@ def _identity() -> TypingExecutionIdentity:
 
 def _records() -> tuple[tuple[IntervalRecord, ...], tuple[IntervalRecord, ...]]:
     left = tuple(
-        IntervalRecord(f"atom-{index}", index * 2, index * 2 + 2)
-        for index in range(16)
+        IntervalRecord(f"atom-{index}", index * 2, index * 2 + 2) for index in range(16)
     )
     right = tuple(
         IntervalRecord(f"mention-{index}", index * 4, index * 4 + 5)
@@ -60,7 +59,9 @@ def test_worker_count_does_not_change_typing_identity(tmp_path) -> None:
     )
 
     assert parallel == serial
-    assert parallel_receipt["logical_typing_ref"] == serial_receipt["logical_typing_ref"]
+    assert (
+        parallel_receipt["logical_typing_ref"] == serial_receipt["logical_typing_ref"]
+    )
     assert parallel_receipt["output_digest"] == serial_receipt["output_digest"]
     assert parallel_receipt["root_graph_ref"] == serial_receipt["root_graph_ref"]
 
@@ -166,7 +167,5 @@ def test_hierarchy_never_reconstructs_descendant_payloads(tmp_path) -> None:
 
     assert receipt["descendant_bytes_reconstructed"] == 0
     assert receipt["flattening_free"] is True
-    assert all(
-        node["descendant_bytes_reconstructed"] == 0 for node in receipt["nodes"]
-    )
+    assert all(node["descendant_bytes_reconstructed"] == 0 for node in receipt["nodes"])
     assert receipt["complexity"]["planning_right_scan_per_leaf"] is False

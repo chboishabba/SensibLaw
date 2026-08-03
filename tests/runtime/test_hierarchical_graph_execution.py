@@ -45,8 +45,7 @@ def _completed_delta(coordinator: HierarchicalGraphCoordinator, job):
         node.carrier.size
         if node.kind is HierarchyNodeKind.LEAF
         else sum(
-            coordinator.nodes[child].interface.reference_count
-            for child in children
+            coordinator.nodes[child].interface.reference_count for child in children
         )
     )
     return HierarchyDelta(
@@ -97,18 +96,12 @@ def test_plan_builds_bounded_four_ary_hierarchy_and_lca_placement() -> None:
     assert plan.depth == 2
     assert plan.node_count == 21
     assert plan.node_count <= plan.relaxed_node_bound
-    assert plan.lowest_sufficient_node_for_offsets((1, 4095)) == (
-        plan.leaf_refs[0]
-    )
+    assert plan.lowest_sufficient_node_for_offsets((1, 4095)) == (plan.leaf_refs[0])
 
-    same_branch = plan.lowest_sufficient_node_for_offsets(
-        (1, 4 * 4096 - 1)
-    )
+    same_branch = plan.lowest_sufficient_node_for_offsets((1, 4 * 4096 - 1))
     assert plan.level_of(same_branch) == 1
 
-    document_wide = plan.lowest_sufficient_node_for_offsets(
-        (1, 15 * 4096)
-    )
+    document_wide = plan.lowest_sufficient_node_for_offsets((1, 15 * 4096))
     assert document_wide == plan.root_ref
 
 
@@ -160,9 +153,7 @@ def test_workers_solve_leaves_then_unlock_branches_and_root() -> None:
     assert execution_levels.count(1) == 4
     assert execution_levels.count(2) == 1
     assert coordinator.fixed_point_reached is True
-    assert coordinator.fixed_point_certificate()[
-        "waiting_node_refs"
-    ] == []
+    assert coordinator.fixed_point_certificate()["waiting_node_refs"] == []
 
 
 def test_parent_graphs_reference_children_without_flattening_descendants() -> None:
@@ -189,10 +180,7 @@ def test_parent_graphs_reference_children_without_flattening_descendants() -> No
 
     root = coordinator.nodes[plan.root_ref]
     child_graph_refs = tuple(
-        sorted(
-            coordinator.nodes[child].graph_ref
-            for child in plan.leaf_refs
-        )
+        sorted(coordinator.nodes[child].graph_ref for child in plan.leaf_refs)
     )
     complexity = coordinator.complexity_receipt()
 

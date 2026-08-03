@@ -21,7 +21,10 @@ def _source(text: str) -> dict[str, str]:
 def test_indexed_projection_strategy_is_installed_with_serial_fallback() -> None:
     assert legacy._semantic_annotation_layer is indexed_semantic_annotation_layer
     assert callable(legacy._serial_semantic_annotation_layer)
-    assert legacy._serial_semantic_annotation_layer is not indexed_semantic_annotation_layer
+    assert (
+        legacy._serial_semantic_annotation_layer
+        is not indexed_semantic_annotation_layer
+    )
 
 
 def test_indexed_projection_preserves_serial_semantic_artifacts(monkeypatch) -> None:
@@ -39,13 +42,15 @@ def test_indexed_projection_preserves_serial_semantic_artifacts(monkeypatch) -> 
 
     assert indexed.status == "compiled"
     assert serial.status == "compiled"
-    assert indexed.artifacts["semantic_annotation_layer"] == serial.artifacts[
-        "semantic_annotation_layer"
-    ]
-    assert indexed.artifacts["relational_bundle"] == serial.artifacts[
-        "relational_bundle"
-    ]
+    assert (
+        indexed.artifacts["semantic_annotation_layer"]
+        == serial.artifacts["semantic_annotation_layer"]
+    )
+    assert (
+        indexed.artifacts["relational_bundle"] == serial.artifacts["relational_bundle"]
+    )
     assert indexed.artifacts["pnf_graph"] == serial.artifacts["pnf_graph"]
-    assert indexed.artifacts["resolution_demands"] == serial.artifacts[
-        "resolution_demands"
-    ]
+    assert (
+        indexed.artifacts["resolution_demands"]
+        == serial.artifacts["resolution_demands"]
+    )

@@ -316,11 +316,7 @@ def _hierarchy_receipt(
                 )
                 interface = tuple(
                     sorted(
-                        {
-                            ref
-                            for child in children
-                            for ref in interface_by_node[child]
-                        }
+                        {ref for child in children for ref in interface_by_node[child]}
                     )
                 )
                 graph_ref = "typing-graph:" + canonical_sha256(
@@ -417,9 +413,7 @@ def execute_partitioned_overlap(
         raise ValueError("stop_after_new_leaves must be non-negative")
 
     primitive_count = max(
-        [1]
-        + [row.end for row in left_records]
-        + [row.end for row in right_records]
+        [1] + [row.end for row in left_records] + [row.end for row in right_records]
     )
     plan = HierarchyPlan.build(
         document_ref=identity.document_ref,
@@ -545,10 +539,7 @@ def execute_partitioned_overlap(
                             "complexity": dict(payload.get("complexity") or {}),
                         }
                     )
-                if (
-                    stop_after_new_leaves
-                    and newly_completed >= stop_after_new_leaves
-                ):
+                if stop_after_new_leaves and newly_completed >= stop_after_new_leaves:
                     for other in futures:
                         other.cancel()
                     raise TypingCheckpointStop(

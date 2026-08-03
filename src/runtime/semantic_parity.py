@@ -160,11 +160,15 @@ def compare_semantic_surfaces(
         "stage_build_keys",
     )
     field_results = {
-        field: all(surface.get(field) == normalized[0].get(field) for surface in normalized[1:])
+        field: all(
+            surface.get(field) == normalized[0].get(field) for surface in normalized[1:]
+        )
         for field in fields
     }
     optional_publication = {
-        field: all(surface.get(field) == normalized[0].get(field) for surface in normalized[1:])
+        field: all(
+            surface.get(field) == normalized[0].get(field) for surface in normalized[1:]
+        )
         for field in ("build_ref", "occurrence_ref")
         if all(surface.get(field) is not None for surface in normalized)
     }

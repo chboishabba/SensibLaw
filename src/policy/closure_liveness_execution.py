@@ -13,6 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 import json
+from math import comb
 import os
 from pathlib import Path
 from time import monotonic_ns, time_ns
@@ -230,9 +231,7 @@ class LivenessBoundedStreamingSemanticOwner(BoundedStreamingSemanticOwner):
             "SENSIBLAW_FINALIZATION_BATCH_SIZE", _DEFAULT_BATCH_SIZE
         )
         self._finalization_stall_ns = (
-            _integer_env(
-                "SENSIBLAW_FINALIZATION_STALL_SECONDS", _DEFAULT_STALL_SECONDS
-            )
+            _integer_env("SENSIBLAW_FINALIZATION_STALL_SECONDS", _DEFAULT_STALL_SECONDS)
             * 1_000_000_000
         )
         root = os.environ.get("SENSIBLAW_RESOURCE_CHECKPOINT_DIR")
@@ -280,9 +279,7 @@ class LivenessBoundedStreamingSemanticOwner(BoundedStreamingSemanticOwner):
             "boundary_obligation_manifest_ref": canonical_sha256(
                 sorted(self._boundary_obligations)
             ),
-            "coverage_manifest_ref": canonical_sha256(
-                sorted(self._coverage_notices)
-            ),
+            "coverage_manifest_ref": canonical_sha256(sorted(self._coverage_notices)),
         }
 
     def _checkpoint_path(self, name: str) -> Path | None:
@@ -504,7 +501,9 @@ class LivenessBoundedStreamingSemanticOwner(BoundedStreamingSemanticOwner):
             for factor in batch:
                 factor_by_ref[factor.factor_ref] = factor
             processed += len(batch)
-            self._emit_progress(processed=processed, total=factor_total, completed=False)
+            self._emit_progress(
+                processed=processed, total=factor_total, completed=False
+            )
         self._emit_progress(processed=processed, total=factor_total, completed=True)
 
         residual_total = sum(len(row.residuals) for row in reduction_rows)
@@ -516,24 +515,61 @@ class LivenessBoundedStreamingSemanticOwner(BoundedStreamingSemanticOwner):
             for residual in batch:
                 residual_by_ref[residual.residual_ref] = residual
             processed += len(batch)
-            self._emit_progress(processed=processed, total=residual_total, completed=False)
+            self._emit_progress(
+                processed=processed, total=residual_total, completed=False
+            )
         self._emit_progress(processed=processed, total=residual_total, completed=True)
 
         total = len(factor_by_ref) + len(residual_by_ref)
         self._begin_phase(FinalizationPhase.ASSEMBLE_REDUCTION, total=total)
+        alternatives_retained = sum(
+            int(row.metrics.get("alternatives_retained") or 0) for row in reduction_rows
+        )
+        candidate_comparisons = sum(
+            int(row.metrics.get("candidate_comparisons") or 0) for row in reduction_rows
+        )
+        potential_candidate_comparisons = (
+            comb(alternatives_retained, 2) if alternatives_retained > 1 else 0
+        )
+        comparisons_avoided = max(
+            0, potential_candidate_comparisons - candidate_comparisons
+        )
         reduction = ProposalReduction(
             document_ref=self.document_ref,
             factors=tuple(factor_by_ref[key] for key in sorted(factor_by_ref)),
             residuals=tuple(residual_by_ref[key] for key in sorted(residual_by_ref)),
             proposal_count=len(self._proposals),
-            deduplicated_count=sum(
-                row.deduplicated_count for row in reduction_rows
-            ),
+            deduplicated_count=sum(row.deduplicated_count for row in reduction_rows),
             metrics={
-                "finalization_contract": "indexed-settled-owner-reductions:v1",
-                "owner_group_count": len(reduction_rows),
-                "full_proposal_rereduction_count": 0,
-                "full_state_traversal_count": 1,
+                "bucket_count": sum(
+                    int(row.metrics.get("bucket_count") or 0) for row in reduction_rows
+                ),
+                "largest_bucket": max(
+                    (
+                        int(row.metrics.get("largest_bucket") or 0)
+                        for row in reduction_rows
+                    ),
+                    default=0,
+                ),
+                "candidate_comparisons": candidate_comparisons,
+                "potential_candidate_comparisons": potential_candidate_comparisons,
+                "comparisons_avoided": comparisons_avoided,
+                "comparison_avoidance_ratio": (
+                    comparisons_avoided / potential_candidate_comparisons
+                    if potential_candidate_comparisons
+                    else 1.0
+                ),
+                "duplicates_collapsed": sum(
+                    int(row.metrics.get("duplicates_collapsed") or 0)
+                    for row in reduction_rows
+                ),
+                "alternatives_retained": alternatives_retained,
+                "factor_count": len(factor_by_ref),
+                "reduction_ratio": (
+                    len(factor_by_ref) / alternatives_retained
+                    if alternatives_retained
+                    else 0.0
+                ),
             },
         )
         bytes_written = 0
@@ -612,7 +648,8 @@ class LivenessBoundedStreamingSemanticOwner(BoundedStreamingSemanticOwner):
         if self._boundary_summary_cache:
             return
         scopes = sorted(
-            set(self._reduction_keys_by_scope) | set(self._coverage_notice_refs_by_scope)
+            set(self._reduction_keys_by_scope)
+            | set(self._coverage_notice_refs_by_scope)
         )
         self._begin_phase(
             FinalizationPhase.BUILD_REGION_BOUNDARY_SUMMARIES, total=len(scopes)
@@ -622,9 +659,7 @@ class LivenessBoundedStreamingSemanticOwner(BoundedStreamingSemanticOwner):
             for scope_ref in batch:
                 reductions = tuple(
                     self._reductions[key]
-                    for key in sorted(
-                        self._reduction_keys_by_scope.get(scope_ref, ())
-                    )
+                    for key in sorted(self._reduction_keys_by_scope.get(scope_ref, ()))
                 )
                 factors = (
                     factor for reduction in reductions for factor in reduction.factors
@@ -715,9 +750,7 @@ class LivenessBoundedStreamingSemanticOwner(BoundedStreamingSemanticOwner):
             for scope_ref, barrier in required_barriers
         )
         self._emit_progress(processed=1, total=1, completed=True)
-        self._begin_phase(
-            FinalizationPhase.VALIDATE_UNRESOLVED_OBLIGATIONS, total=1
-        )
+        self._begin_phase(FinalizationPhase.VALIDATE_UNRESOLVED_OBLIGATIONS, total=1)
         counts = {
             "pending_jobs": len(self._pending_jobs),
             "in_flight_jobs": len(self._in_flight_jobs),
@@ -821,8 +854,8 @@ class LivenessBoundedStreamingSemanticOwner(BoundedStreamingSemanticOwner):
     def to_dict(self) -> dict[str, Any]:  # type: ignore[override]
         if self._serialized_payload_cache is not None:
             return dict(self._serialized_payload_cache)
-        self._begin_phase(FinalizationPhase.SERIALIZE_CLOSURE_RECEIPT, total=1)
         payload = super().to_dict()
+        self._begin_phase(FinalizationPhase.SERIALIZE_CLOSURE_RECEIPT, total=1)
         payload["closure_lifecycle"] = self.terminal_diagnostic()
         self._serialized_payload_cache = payload
         bytes_written = 0
@@ -841,6 +874,7 @@ class LivenessBoundedStreamingSemanticOwner(BoundedStreamingSemanticOwner):
             completed=True,
             bytes_written=bytes_written,
         )
+        payload["closure_lifecycle"] = self.terminal_diagnostic()
         return dict(payload)
 
 

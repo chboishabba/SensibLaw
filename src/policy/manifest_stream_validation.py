@@ -50,7 +50,9 @@ class ManifestParentClosureValidator:
     candidate_set_refs: set[str] = field(default_factory=set)
     candidate_build_refs: set[str] = field(default_factory=set)
     _pending_factor_parents: list[tuple[str, str, str]] = field(default_factory=list)
-    _pending_candidate_set_builds: list[tuple[str, str, str]] = field(default_factory=list)
+    _pending_candidate_set_builds: list[tuple[str, str, str]] = field(
+        default_factory=list
+    )
     _pending_links: list[tuple[str, str, str]] = field(default_factory=list)
     refinement_count: int = 0
     demand_count: int = 0
@@ -76,18 +78,24 @@ class ManifestParentClosureValidator:
         for row in rows:
             refinement_ref = str(row.get("refinement_ref") or "")
             if not refinement_ref or refinement_ref in self.refinement_refs:
-                raise ValueError("manifest refinement identity is missing or duplicated")
+                raise ValueError(
+                    "manifest refinement identity is missing or duplicated"
+                )
             prior = row.get("prior_factor")
             resulting = row.get("resulting_factor")
             if not isinstance(prior, Mapping) or not isinstance(resulting, Mapping):
-                raise ValueError(f"refinement {refinement_ref!r} lacks factor revisions")
+                raise ValueError(
+                    f"refinement {refinement_ref!r} lacks factor revisions"
+                )
             prior_revision = factor_revision_ref(prior)
             resulting_revision = factor_revision_ref(resulting)
             self._pending_factor_parents.append(
                 ("resolution.refinement.prior", refinement_ref, prior_revision)
             )
             self.factor_revision_refs.add(resulting_revision)
-            self.factor_revisions_by_factor[str(resulting["factor_ref"])] = resulting_revision
+            self.factor_revisions_by_factor[str(resulting["factor_ref"])] = (
+                resulting_revision
+            )
             self.refinement_refs.add(refinement_ref)
             self.refinement_count += 1
             self._admit_candidate_links("refinement", refinement_ref, row)
@@ -122,7 +130,9 @@ class ManifestParentClosureValidator:
             parent = str(row.get("factor_revision_ref") or "")
             if not parent and factor_ref:
                 parent = self.factor_revisions_by_factor.get(factor_ref, "")
-            self._pending_factor_parents.append(("pnf.factor_anchor", factor_ref, parent))
+            self._pending_factor_parents.append(
+                ("pnf.factor_anchor", factor_ref, parent)
+            )
             self.anchor_count += 1
 
     def admit_candidate_sets(self, rows: Iterable[Mapping[str, Any]]) -> None:
@@ -151,7 +161,9 @@ class ManifestParentClosureValidator:
             if not build_ref or build_ref in self.candidate_build_refs:
                 raise ValueError("candidate-build identity is missing or duplicated")
             if not set_ref:
-                raise ValueError(f"candidate build {build_ref!r} lacks candidate_set_ref")
+                raise ValueError(
+                    f"candidate build {build_ref!r} lacks candidate_set_ref"
+                )
             self._pending_factor_parents.append(
                 ("execution.binding_candidate_set_build", build_ref, parent)
             )

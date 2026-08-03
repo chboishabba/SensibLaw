@@ -14,7 +14,12 @@ import os
 from time import monotonic_ns
 from typing import Any, Callable, Mapping, Sequence
 
-from src.language import AnnotationLayer, RelationAnnotation, SpanAnnotation, TokenAnnotation
+from src.language import (
+    AnnotationLayer,
+    RelationAnnotation,
+    SpanAnnotation,
+    TokenAnnotation,
+)
 from src.policy.carriers.canonical import canonical_sha256
 from src.sensiblaw.interfaces.shared_reducer import collect_canonical_relational_bundle
 
@@ -47,9 +52,7 @@ def indexed_semantic_annotation_layer(
                 "bundle_words_scanned": int(payload.get("words_done", 0)),
                 "bundle_tokens_scanned": int(payload.get("tokens_done", 0)),
                 "semantic_atoms_projected": int(payload.get("atom_count", 0)),
-                "semantic_relations_projected": int(
-                    payload.get("relation_count", 0)
-                ),
+                "semantic_relations_projected": int(payload.get("relation_count", 0)),
             }
         )
 
@@ -208,7 +211,9 @@ def indexed_semantic_annotation_layer(
     parser_relations.append(
         RelationAnnotation(
             relation_ref="parser-capabilities:"
-            + canonical_sha256({"document_ref": document_ref, "receipt": parser_receipt}),
+            + canonical_sha256(
+                {"document_ref": document_ref, "receipt": parser_receipt}
+            ),
             relation_type="parser.capability_receipt",
             left_ref="document:" + document_ref,
             right_ref="document:" + document_ref,

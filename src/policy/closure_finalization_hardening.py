@@ -92,9 +92,7 @@ class FinalizationHardenedOwner(LivenessBoundedStreamingSemanticOwner):
             "boundary_obligation_manifest_ref": canonical_sha256(
                 sorted(self._boundary_obligations)
             ),
-            "coverage_manifest_ref": canonical_sha256(
-                sorted(self._coverage_notices)
-            ),
+            "coverage_manifest_ref": canonical_sha256(sorted(self._coverage_notices)),
         }
         self._fingerprint_cache_key = key
         self._fingerprint_cache = payload
@@ -189,6 +187,21 @@ class FinalizationHardenedOwner(LivenessBoundedStreamingSemanticOwner):
     def _materialize_reduction_now(self, generation: int) -> ProposalReduction:
         if self._materialized_reduction_cache is not None:
             return self._materialized_reduction_cache
+        started = monotonic_ns()
+        checkpoint = self._load_reduction_checkpoint()
+        if checkpoint is not None:
+            self._materialized_reduction_cache = checkpoint
+            self._materialization_count += 1
+            self._materialization_elapsed_ns += monotonic_ns() - started
+            total = len(checkpoint.factors) + len(checkpoint.residuals)
+            self._begin_phase(FinalizationPhase.ASSEMBLE_REDUCTION, total=total)
+            self._emit_progress(
+                processed=total,
+                total=total,
+                completed=True,
+                reused_checkpoint=True,
+            )
+            return checkpoint
         original_root = self._finalization_root
         self._finalization_root = None
         try:
@@ -243,9 +256,7 @@ class FinalizationHardenedOwner(LivenessBoundedStreamingSemanticOwner):
                 revision=int(row["revision"]),
                 ledger_ref=str(row["ledger_ref"]),
                 materialized_graph_ref=str(row["materialized_graph_ref"]),
-                unconsumed_observation_deltas=int(
-                    row["unconsumed_observation_deltas"]
-                ),
+                unconsumed_observation_deltas=int(row["unconsumed_observation_deltas"]),
                 dirty_reduction_groups=int(row["dirty_reduction_groups"]),
                 pending_jobs=int(row["pending_jobs"]),
                 in_flight_jobs=int(row["in_flight_jobs"]),

@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 from math import ceil, log
-from typing import Iterable, Mapping
+from typing import Iterable
 
 
 class ComplexityTarget(StrEnum):
@@ -232,7 +232,8 @@ def batch_trend_receipt(
                 lookup_operations_delta=(
                     current.lookup_operations - prior.lookup_operations
                 ),
-                retained_objects_delta=current.retained_objects - prior.retained_objects,
+                retained_objects_delta=current.retained_objects
+                - prior.retained_objects,
             )
         )
 
@@ -264,7 +265,9 @@ def repeated_prefix_work(primitive_units: int, leaf_capacity: int) -> int:
     """Return b(1 + ... + L), the work of rebuilding every completed prefix."""
 
     if primitive_units < 0 or leaf_capacity < 1:
-        raise ValueError("primitive_units must be non-negative and leaf_capacity positive")
+        raise ValueError(
+            "primitive_units must be non-negative and leaf_capacity positive"
+        )
     leaves = ceil(primitive_units / leaf_capacity)
     return leaf_capacity * leaves * (leaves + 1) // 2
 

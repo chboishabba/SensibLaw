@@ -29,8 +29,7 @@ def test_interval_index_matches_naive_overlap() -> None:
 
 def test_localized_query_does_not_scan_the_full_collection() -> None:
     records = tuple(
-        IntervalRecord(f"r-{index}", index * 3, index * 3 + 1)
-        for index in range(4096)
+        IntervalRecord(f"r-{index}", index * 3, index * 3 + 1) for index in range(4096)
     )
     index = TokenIntervalIndex(records)
 

@@ -141,9 +141,7 @@ def test_finalization_is_phased_and_avoids_proposal_rereduction(
     assert FinalizationPhase.BUILD_FIXED_POINT_CERTIFICATE.value in completed_phases
     assert FinalizationPhase.SERIALIZE_CLOSURE_RECEIPT.value in completed_phases
     assert all(
-        event["rss_bytes"] >= 0
-        and event["pss_bytes"] >= 0
-        and event["uss_bytes"] >= 0
+        event["rss_bytes"] >= 0 and event["pss_bytes"] >= 0 and event["uss_bytes"] >= 0
         for event in lifecycle["finalization_events"]
     )
     finalization_root = (
@@ -167,9 +165,10 @@ def test_identical_replay_reuses_materialized_reduction_checkpoint(
     first, _ = _build(document_ref=document_ref, count=3)
     second, _ = _build(document_ref=document_ref, count=3)
 
-    assert first["materialized_reduction"]["graph_ref"] == second[
-        "materialized_reduction"
-    ]["graph_ref"]
+    assert (
+        first["materialized_reduction"]["graph_ref"]
+        == second["materialized_reduction"]["graph_ref"]
+    )
     assert any(
         event["phase"] == FinalizationPhase.ASSEMBLE_REDUCTION.value
         and event["completed"]
