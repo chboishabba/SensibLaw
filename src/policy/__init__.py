@@ -100,6 +100,9 @@ def install_execution_strategies() -> None:
         from .bounded_operational_execution import (
             install_bounded_operational_execution,
         )
+        from .closure_finalization_hardening import (
+            install_closure_finalization_hardening,
+        )
         from .closure_liveness_execution import (
             install_closure_liveness_execution,
         )
@@ -122,6 +125,9 @@ def install_execution_strategies() -> None:
         # materialisation is deferred across admission batches and exhausted
         # frontiers terminate with a certificate or a finite diagnostic.
         install_closure_liveness_execution()
+        # Keep diagnostics observational, stream the large terminal checkpoint,
+        # and reuse matching reduction/certificate checkpoints after replay.
+        install_closure_finalization_hardening()
         # This wraps the already-installed bounded closure surface, adds
         # output-sensitive local-typing overlap leaves and closure receipt
         # replay, and leaves the canonical compiler as the sole authority.
