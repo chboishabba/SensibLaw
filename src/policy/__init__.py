@@ -114,6 +114,9 @@ def install_execution_strategies() -> None:
             install_parallel_semantic_execution,
         )
         from .parallel_typing_tail import install_parallel_typing_tail
+        from .progress_observability_execution import (
+            install_progress_observability_execution,
+        )
         from .semantic_receipt_enrichment import (
             install_semantic_receipt_enrichment,
         )
@@ -136,6 +139,9 @@ def install_execution_strategies() -> None:
         # handlers are CPU-bound. Install process-backed bounded leaves after
         # telemetry so their outputs retain the same resource receipts.
         install_parallel_typing_tail()
+        # Parent stages must expose child completion while leaves are running,
+        # name waits, and persist the same universal envelope emitted to logs.
+        install_progress_observability_execution()
         # The semantic wrapper writes its receipt in ``finally``. Enrichment is
         # intentionally installed last so completed artifact stage identities
         # can be copied into that durable receipt without changing output.
