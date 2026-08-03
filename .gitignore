@@ -218,6 +218,7 @@ __pycache__/
 dist/
 build/
 target/
+.tmp/exact-0008-*/
 *.swp
 *.kate-swp
 .DS_Store
