@@ -6,6 +6,7 @@ import pytest
 
 from src.pnf.streaming_fixed_point import CoverageNotice, ObservationDelta
 from src.policy import bounded_operational_execution as bounded
+from src.policy.closure_finalization_hardening import FinalizationHardenedOwner
 from src.policy.closure_liveness_execution import (
     ClosureLifecycleState,
     ClosureLivenessError,
@@ -74,9 +75,11 @@ def _build(
     )
 
 
-def test_bounded_compiler_uses_liveness_owner() -> None:
-    assert (
-        bounded.BoundedStreamingSemanticOwner is LivenessBoundedStreamingSemanticOwner
+def test_bounded_compiler_uses_hardened_liveness_owner() -> None:
+    assert bounded.BoundedStreamingSemanticOwner is FinalizationHardenedOwner
+    assert issubclass(
+        bounded.BoundedStreamingSemanticOwner,
+        LivenessBoundedStreamingSemanticOwner,
     )
 
 
@@ -146,7 +149,9 @@ def test_finalization_is_phased_and_avoids_proposal_rereduction(
     finalization_root = (
         tmp_path / "closure-finalization" / "document_phased-finalization"
     )
-    assert (finalization_root / "materialized-reduction.json").is_file()
+    assert (finalization_root / "materialized-reduction.manifest.json").is_file()
+    assert (finalization_root / "materialized-factors.jsonl").is_file()
+    assert (finalization_root / "materialized-residuals.jsonl").is_file()
     assert (finalization_root / "convergent-ledger.json").is_file()
     assert (finalization_root / "fixed-point-certificate.json").is_file()
     assert (finalization_root / "closure-receipt.json").is_file()
