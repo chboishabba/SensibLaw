@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from src.pnf.streaming_fixed_point import CoverageNotice, ObservationDelta
@@ -7,6 +9,7 @@ from src.policy import bounded_operational_execution as bounded
 from src.policy.closure_liveness_execution import (
     ClosureLifecycleState,
     ClosureLivenessError,
+    FinalizationPhase,
     LivenessBoundedStreamingSemanticOwner,
 )
 from src.runtime.stage_timing import StageTimingLedger
@@ -49,6 +52,28 @@ def _deltas(document_ref: str, count: int) -> tuple[ObservationDelta, ...]:
     )
 
 
+def _build(
+    *,
+    document_ref: str,
+    count: int,
+    events: list[dict[str, object]] | None = None,
+) -> tuple[dict[str, object], dict[str, object]]:
+    return bounded.bounded_streaming_semantic_build(
+        document_ref=document_ref,
+        source_ref=f"source:{document_ref}",
+        observation_deltas=_deltas(document_ref, count),
+        base_factors=(),
+        timings=StageTimingLedger(document_ref=document_ref),
+        closure_workers=2,
+        owner_partitions=2,
+        progress_observer=(
+            (lambda payload: events.append(dict(payload)))
+            if events is not None
+            else None
+        ),
+    )
+
+
 def test_bounded_compiler_uses_liveness_owner() -> None:
     assert (
         bounded.BoundedStreamingSemanticOwner is LivenessBoundedStreamingSemanticOwner
@@ -67,18 +92,8 @@ def test_final_partial_batch_drains_and_certifies_once(
     )
     events: list[dict[str, object]] = []
     document_ref = "document:final-drain"
-    deltas = _deltas(document_ref, 5)
 
-    build, metrics = bounded.bounded_streaming_semantic_build(
-        document_ref=document_ref,
-        source_ref="source:final-drain",
-        observation_deltas=deltas,
-        base_factors=(),
-        timings=StageTimingLedger(document_ref=document_ref),
-        closure_workers=2,
-        owner_partitions=2,
-        progress_observer=lambda payload: events.append(dict(payload)),
-    )
+    build, metrics = _build(document_ref=document_ref, count=5, events=events)
 
     lifecycle = build["closure_lifecycle"]
     assert lifecycle["state"] == ClosureLifecycleState.COMPLETED.value
@@ -91,15 +106,71 @@ def test_final_partial_batch_drains_and_certifies_once(
         "open_required_coverage_barriers": 0,
     }
     assert lifecycle["materialization_count"] == 1
-    assert metrics["closure_job_count"] == len(deltas)
-    assert build["bounded_execution"]["scheduler_receipt"]["jobs_completed"] == len(
-        deltas
-    )
+    assert metrics["closure_job_count"] == 5
+    assert build["bounded_execution"]["scheduler_receipt"]["jobs_completed"] == 5
     assert [row["state"] for row in lifecycle["events"]][-2:] == [
         ClosureLifecycleState.CERTIFYING.value,
         ClosureLifecycleState.COMPLETED.value,
     ]
-    assert any(event.get("jobs_completed") == len(deltas) for event in events)
+    assert any(event.get("jobs_completed") == 5 for event in events)
+
+
+def test_finalization_is_phased_and_avoids_proposal_rereduction(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("SENSIBLAW_RESOURCE_CHECKPOINT_DIR", str(tmp_path))
+    monkeypatch.setenv("SENSIBLAW_FINALIZATION_BATCH_SIZE", "2")
+    document_ref = "document:phased-finalization"
+
+    build, _metrics = _build(document_ref=document_ref, count=5)
+
+    lifecycle = build["closure_lifecycle"]
+    completed_phases = {
+        event["phase"]
+        for event in lifecycle["finalization_events"]
+        if event["completed"]
+    }
+    assert FinalizationPhase.MATERIALIZE_FACTOR_REDUCTIONS.value in completed_phases
+    assert FinalizationPhase.MATERIALIZE_RESIDUALS.value in completed_phases
+    assert FinalizationPhase.ASSEMBLE_REDUCTION.value in completed_phases
+    assert FinalizationPhase.BUILD_CONVERGENT_LEDGER.value in completed_phases
+    assert FinalizationPhase.BUILD_FIXED_POINT_CERTIFICATE.value in completed_phases
+    assert FinalizationPhase.SERIALIZE_CLOSURE_RECEIPT.value in completed_phases
+    assert all(
+        event["rss_bytes"] >= 0
+        and event["pss_bytes"] >= 0
+        and event["uss_bytes"] >= 0
+        for event in lifecycle["finalization_events"]
+    )
+    finalization_root = (
+        tmp_path / "closure-finalization" / "document_phased-finalization"
+    )
+    assert (finalization_root / "materialized-reduction.json").is_file()
+    assert (finalization_root / "convergent-ledger.json").is_file()
+    assert (finalization_root / "fixed-point-certificate.json").is_file()
+    assert (finalization_root / "closure-receipt.json").is_file()
+
+
+def test_identical_replay_reuses_materialized_reduction_checkpoint(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("SENSIBLAW_RESOURCE_CHECKPOINT_DIR", str(tmp_path))
+    document_ref = "document:resume-finalization"
+
+    first, _ = _build(document_ref=document_ref, count=3)
+    second, _ = _build(document_ref=document_ref, count=3)
+
+    assert first["materialized_reduction"]["graph_ref"] == second[
+        "materialized_reduction"
+    ]["graph_ref"]
+    assert any(
+        event["phase"] == FinalizationPhase.ASSEMBLE_REDUCTION.value
+        and event["completed"]
+        and event["reused_checkpoint"]
+        for event in second["closure_lifecycle"]["finalization_events"]
+    )
 
 
 def test_exhausted_frontier_with_hidden_obligation_fails_finitely() -> None:
