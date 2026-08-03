@@ -23,6 +23,7 @@ jobs:
     env:
       SENSIBLAW_FINALIZATION_BATCH_SIZE: "2"
       SENSIBLAW_FINALIZATION_STALL_SECONDS: "120"
+      SENSIBLAW_PROGRESS_WAIT_HEARTBEAT_SECONDS: "1"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -38,7 +39,7 @@ jobs:
           python -m pip install --upgrade pip uv
           uv sync --frozen --extra test --extra dev
 
-      - name: Lint closure finalization surfaces
+      - name: Lint bounded execution and progress surfaces
         run: |
           uv run ruff check \
             src/pnf/bounded_streaming_owner.py \
@@ -46,9 +47,11 @@ jobs:
             src/policy/bounded_operational_execution.py \
             src/policy/closure_liveness_execution.py \
             src/policy/closure_finalization_hardening.py \
+            src/policy/progress_observability_execution.py \
             src/runtime/bounded_document_scheduler.py \
             tests/policy/test_bounded_operational_execution.py \
-            tests/policy/test_closure_liveness_execution.py
+            tests/policy/test_closure_liveness_execution.py \
+            tests/policy/test_progress_observability_execution.py
 
       - name: Check formatting
         run: |
@@ -58,15 +61,18 @@ jobs:
             src/policy/bounded_operational_execution.py \
             src/policy/closure_liveness_execution.py \
             src/policy/closure_finalization_hardening.py \
+            src/policy/progress_observability_execution.py \
             src/runtime/bounded_document_scheduler.py \
             tests/policy/test_bounded_operational_execution.py \
-            tests/policy/test_closure_liveness_execution.py
+            tests/policy/test_closure_liveness_execution.py \
+            tests/policy/test_progress_observability_execution.py
 
-      - name: Run closure finalization regressions
+      - name: Run closure and progress regressions
         run: |
           uv run pytest --maxfail=1 -q \
             tests/runtime/test_bounded_document_scheduler.py \
             tests/pnf/test_bounded_streaming_owner.py \
             tests/pnf/test_streaming_fixed_point.py \
             tests/policy/test_bounded_operational_execution.py \
-            tests/policy/test_closure_liveness_execution.py
+            tests/policy/test_closure_liveness_execution.py \
+            tests/policy/test_progress_observability_execution.py
