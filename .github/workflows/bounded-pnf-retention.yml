@@ -31,7 +31,11 @@ permissions:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    # This sprint intentionally validates on the repository's local runner so
+    # process-backed closure tests exercise the same Linux host topology used
+    # for exact-0008 acceptance.
+    runs-on: self-hosted
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
 
@@ -60,6 +64,7 @@ jobs:
             src/pnf/bounded_streaming_owner.py \
             src/policy/__init__.py \
             src/policy/bounded_operational_execution.py \
+            src/policy/closure_liveness_execution.py \
             src/policy/indexed_projection_execution.py \
             src/policy/parallel_semantic_execution.py \
             src/policy/parallel_typing_tail.py \
@@ -80,6 +85,7 @@ jobs:
             tests/runtime/test_exact_0008_baseline.py \
             tests/pnf/test_bounded_streaming_owner.py \
             tests/policy/test_bounded_operational_execution.py \
+            tests/policy/test_closure_liveness_execution.py \
             tests/policy/test_indexed_projection_execution.py \
             tests/policy/test_parallel_semantic_execution.py \
             tests/policy/test_parallel_typing_tail.py \
@@ -102,6 +108,7 @@ jobs:
             src/pnf/bounded_streaming_owner.py \
             src/policy/__init__.py \
             src/policy/bounded_operational_execution.py \
+            src/policy/closure_liveness_execution.py \
             src/policy/indexed_projection_execution.py \
             src/policy/parallel_semantic_execution.py \
             src/policy/parallel_typing_tail.py \
@@ -122,6 +129,7 @@ jobs:
             tests/runtime/test_exact_0008_baseline.py \
             tests/pnf/test_bounded_streaming_owner.py \
             tests/policy/test_bounded_operational_execution.py \
+            tests/policy/test_closure_liveness_execution.py \
             tests/policy/test_indexed_projection_execution.py \
             tests/policy/test_parallel_semantic_execution.py \
             tests/policy/test_parallel_typing_tail.py \
@@ -144,6 +152,7 @@ jobs:
             tests/pnf/test_bounded_streaming_owner.py \
             tests/pnf/test_streaming_fixed_point.py \
             tests/policy/test_bounded_operational_execution.py \
+            tests/policy/test_closure_liveness_execution.py \
             tests/policy/test_indexed_projection_execution.py \
             tests/policy/test_parallel_semantic_execution.py \
             tests/policy/test_parallel_typing_tail.py \
