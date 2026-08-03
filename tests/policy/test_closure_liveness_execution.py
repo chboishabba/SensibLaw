@@ -109,6 +109,11 @@ def test_final_partial_batch_drains_and_certifies_once(
         "open_required_coverage_barriers": 0,
     }
     assert lifecycle["materialization_count"] == 1
+    assert lifecycle["finalization_contract"] == {
+        "contract": "indexed-settled-owner-reductions:v1",
+        "full_proposal_rereduction_count": 0,
+        "full_state_traversal_count": 1,
+    }
     assert metrics["closure_job_count"] == 5
     assert build["bounded_execution"]["scheduler_receipt"]["jobs_completed"] == 5
     assert [row["state"] for row in lifecycle["events"]][-2:] == [

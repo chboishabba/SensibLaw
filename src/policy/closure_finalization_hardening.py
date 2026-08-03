@@ -143,6 +143,11 @@ class FinalizationHardenedOwner(LivenessBoundedStreamingSemanticOwner):
             "certificate_count": self._certificate_count,
             "certificate_elapsed_ns": self._certificate_elapsed_ns,
             "indexed_scope_count": len(self._reduction_keys_by_scope),
+            "finalization_contract": {
+                "contract": "indexed-settled-owner-reductions:v1",
+                "full_proposal_rereduction_count": 0,
+                "full_state_traversal_count": 1,
+            },
             "finalization_phase": (
                 self._finalization_phase.value if self._finalization_phase else None
             ),
