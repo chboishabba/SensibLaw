@@ -20,6 +20,9 @@ jobs:
   validate:
     runs-on: self-hosted
     timeout-minutes: 90
+    env:
+      SENSIBLAW_FINALIZATION_BATCH_SIZE: "2"
+      SENSIBLAW_FINALIZATION_STALL_SECONDS: "120"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,7 +38,7 @@ jobs:
           python -m pip install --upgrade pip uv
           uv sync --frozen --extra test --extra dev
 
-      - name: Lint closure liveness surfaces
+      - name: Lint closure finalization surfaces
         run: |
           uv run ruff check \
             src/pnf/bounded_streaming_owner.py \
@@ -55,7 +58,7 @@ jobs:
             tests/policy/test_bounded_operational_execution.py \
             tests/policy/test_closure_liveness_execution.py
 
-      - name: Run closure liveness regressions
+      - name: Run closure finalization regressions
         run: |
           uv run pytest --maxfail=1 -q \
             tests/runtime/test_bounded_document_scheduler.py \
