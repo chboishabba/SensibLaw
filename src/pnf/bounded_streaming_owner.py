@@ -9,7 +9,9 @@ history may be compacted after admission.
 
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
+import json
+from time import monotonic_ns
 from typing import Any, Iterable
 
 from src.pnf.factor_proposals import FactorProposal, reduce_factor_proposals
@@ -46,13 +48,23 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
         self._compact_receipt_refs: set[str] = set()
         self._complete_coverage: set[tuple[str, str]] = set()
         self._compaction_count = 0
+        self._kernel_counts: Counter[str] = Counter()
+        self._kernel_elapsed_ns: Counter[str] = Counter()
+        # Execution strategies may reserve the canonical pre-activation
+        # revision space while physically interleaving base admissions.  This
+        # keeps job identity tied to canonical activation order, not timing.
+        self._activation_input_revision: int | None = None
 
     def admit_observation_delta(self, delta: ObservationDelta) -> StateDelta:
         """Index sentence coverage before canonical job activation."""
 
+        already_admitted = delta.delta_ref in self._observation_deltas
         if delta.coverage_complete:
             self._complete_coverage.add((delta.scope_ref, delta.coverage_barrier))
-        return super().admit_observation_delta(delta)
+        result = super().admit_observation_delta(delta)
+        if self._activation_input_revision is not None and not already_admitted:
+            self._activation_input_revision += 1
+        return result
 
     def admit_coverage_notice(self, notice: Any) -> StateDelta:
         """Keep coverage lookup bounded while retaining canonical notices."""
@@ -138,10 +150,14 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
             for row in delta.observations
         }
         emitted: list[SolverJob] = []
-        for declaration in sorted(
+        sort_started = monotonic_ns()
+        declarations = sorted(
             self._declarations.values(),
             key=lambda row: (row.priority, row.declaration_ref),
-        ):
+        )
+        self._kernel_elapsed_ns["declaration_sort_ns"] += monotonic_ns() - sort_started
+        self._kernel_counts["declarations_examined"] += len(declarations)
+        for declaration in declarations:
             if declaration.requires and not set(declaration.requires).intersection(
                 observation_types
             ):
@@ -157,6 +173,7 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
                 declaration.affected_index,
             )
             input_refs = tuple(delta.observation_refs)
+            digest_started = monotonic_ns()
             signature = canonical_sha256(
                 {
                     "declaration_ref": declaration.declaration_ref,
@@ -164,12 +181,17 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
                     "rule_set_revision": declaration.declaration_revision,
                 }
             )
+            self._kernel_elapsed_ns["job_signature_digest_ns"] += (
+                monotonic_ns() - digest_started
+            )
             if signature in self._completed_job_signatures:
+                self._kernel_counts["jobs_deduplicated"] += 1
                 continue
 
             # Keep only fields required by the current pure operator handler.
             # This avoids delta.to_dict(), schema metadata, coordinate metadata,
             # and repeated identity materialisation in every matching job.
+            payload_started = monotonic_ns()
             observation_slice = tuple(
                 {
                     "observation_ref": str(row.get("observation_ref") or ""),
@@ -180,33 +202,58 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
                 }
                 for row in delta.observations
             )
+            input_payload = {
+                "input_delta_ref": delta.delta_ref,
+                "observation_delta": {
+                    "delta_ref": delta.delta_ref,
+                    "scope_ref": delta.scope_ref,
+                    "observations": observation_slice,
+                },
+            }
+            self._kernel_elapsed_ns["job_payload_construction_ns"] += (
+                monotonic_ns() - payload_started
+            )
+            payload_bytes = len(
+                json.dumps(input_payload, separators=(",", ":"), sort_keys=True).encode(
+                    "utf-8"
+                )
+            )
+            self._kernel_counts["job_payload_bytes"] += payload_bytes
+            self._kernel_counts["max_job_payload_bytes"] = max(
+                self._kernel_counts["max_job_payload_bytes"], payload_bytes
+            )
             job = SolverJob(
                 owner_key=owner_key,
                 declaration_ref=declaration.declaration_ref,
-                input_revision=self.revision,
+                input_revision=(
+                    self.revision
+                    if self._activation_input_revision is None
+                    else self._activation_input_revision
+                ),
                 input_refs=input_refs,
-                input_payload={
-                    "input_delta_ref": delta.delta_ref,
-                    "observation_delta": {
-                        "delta_ref": delta.delta_ref,
-                        "scope_ref": delta.scope_ref,
-                        "observations": observation_slice,
-                    },
-                },
+                input_payload=input_payload,
                 rule_set_revision=declaration.declaration_revision,
                 coverage_requirements=(declaration.coverage_barrier,),
                 priority=declaration.priority,
             )
-            self._compact_jobs.setdefault(job.job_ref, self._compact_job_row(job))
+            job_digest_started = monotonic_ns()
+            job_ref = job.job_ref
+            self._kernel_elapsed_ns["job_identity_digest_ns"] += (
+                monotonic_ns() - job_digest_started
+            )
+            self._compact_jobs.setdefault(job_ref, self._compact_job_row(job))
             if self.retention.completed_jobs:
                 self._jobs.setdefault(job.job_ref, job)
             if (
-                job.job_ref not in self._pending_jobs
-                and job.job_ref not in self._in_flight_jobs
+                job_ref not in self._pending_jobs
+                and job_ref not in self._in_flight_jobs
                 and signature not in self._completed_job_signatures
             ):
-                self._pending_jobs[job.job_ref] = job
+                self._pending_jobs[job_ref] = job
                 emitted.append(job)
+                self._kernel_counts["jobs_constructed"] += 1
+            else:
+                self._kernel_counts["jobs_deduplicated"] += 1
         return tuple(emitted)
 
     def _index_proposal(self, proposal: FactorProposal, *, stage: str) -> bool:
@@ -298,6 +345,8 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
 
     def reduce_dirty_groups(self) -> StateDelta:
         prior = self.revision
+        if self._dirty_groups:
+            self._materialized_reduction_cache = None
         changed_factors: set[str] = set()
         introduced: set[str] = set()
         discharged: set[str] = set()
@@ -376,6 +425,12 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
             "state_deltas": len(self._state_deltas),
             "reductions": len(self._reductions),
             "known_dependency_refs": len(self._known_dependency_refs),
+        }
+
+    def kernel_telemetry(self) -> dict[str, Any]:
+        return {
+            "counts": dict(sorted(self._kernel_counts.items())),
+            "elapsed_ns": dict(sorted(self._kernel_elapsed_ns.items())),
         }
 
     def to_dict(self) -> dict[str, Any]:

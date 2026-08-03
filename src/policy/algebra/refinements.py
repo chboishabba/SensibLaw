@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Generic, TypeVar
+from typing import Generic, Mapping, TypeVar
 
 from src.policy.carriers.canonical import canonical_refs, require_text
 
@@ -12,7 +12,7 @@ from .factors import Factor
 T = TypeVar("T")
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ResidualTransition:
     residual_ref: str
     prior_state: str
@@ -28,7 +28,7 @@ class ResidualTransition:
         }
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class FactorRefinement(Generic[T]):
     refinement_ref: str
     prior_factor: Factor[T]
@@ -40,7 +40,12 @@ class FactorRefinement(Generic[T]):
     residual_transitions: tuple[ResidualTransition, ...] = ()
     evidence_refs: tuple[str, ...] = ()
 
-    def to_dict(self) -> dict[str, object]:
+    def to_dict(
+        self,
+        *,
+        prior_factor_row: Mapping[str, object] | None = None,
+        resulting_factor_row: Mapping[str, object] | None = None,
+    ) -> dict[str, object]:
         if self.prior_factor.factor_ref != self.resulting_factor.factor_ref:
             raise ValueError("factor refinement cannot change factor identity")
         groups = [
@@ -52,8 +57,16 @@ class FactorRefinement(Generic[T]):
             raise ValueError("an alternative cannot be both added and rejected")
         return {
             "refinement_ref": require_text(self.refinement_ref, "refinement_ref"),
-            "prior_factor": self.prior_factor.to_dict(),
-            "resulting_factor": self.resulting_factor.to_dict(),
+            "prior_factor": (
+                prior_factor_row
+                if prior_factor_row is not None
+                else self.prior_factor.to_dict()
+            ),
+            "resulting_factor": (
+                resulting_factor_row
+                if resulting_factor_row is not None
+                else self.resulting_factor.to_dict()
+            ),
             "added_alternative_refs": sorted(groups[0]),
             "retained_alternative_refs": sorted(groups[1]),
             "rejected_alternative_refs": sorted(groups[2]),

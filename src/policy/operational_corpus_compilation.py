@@ -113,6 +113,45 @@ def _pnf_graph_records(graph: Any) -> dict[str, Any]:
     }
 
 
+def _shared_refined_pnf_graph_records(
+    *,
+    base_graph: Any,
+    refined_graph: Any,
+    base_records: Mapping[str, Any],
+) -> tuple[dict[str, Any], dict[str, Mapping[str, Any]], dict[str, Mapping[str, Any]]]:
+    """Project a refined graph while sharing rows for unchanged factors."""
+
+    ordered_base = sorted(base_graph.factors, key=lambda value: value.factor_ref)
+    base_factor_rows = {
+        factor.factor_ref: row
+        for factor, row in zip(
+            ordered_base,
+            base_records.get("factors") or (),
+            strict=True,
+        )
+    }
+    base_factors = {factor.factor_ref: factor for factor in ordered_base}
+    refined_factor_rows: dict[str, Mapping[str, Any]] = {}
+    for factor in sorted(refined_graph.factors, key=lambda value: value.factor_ref):
+        base_factor = base_factors.get(factor.factor_ref)
+        refined_factor_rows[factor.factor_ref] = (
+            base_factor_rows[factor.factor_ref]
+            if base_factor is factor
+            else factor.to_dict()
+        )
+    records = {
+        "schema_version": "sl.pnf_graph.v0_1",
+        "graph_ref": refined_graph.graph_ref,
+        "document_ref": refined_graph.document_ref,
+        "factors": list(refined_factor_rows.values()),
+        "constraints": base_records["constraints"],
+        "relation_refs": base_records["relation_refs"],
+        "residuals": base_records["residuals"],
+        "authority": "candidate_only",
+    }
+    return records, base_factor_rows, refined_factor_rows
+
+
 OPERATIONAL_COMPILER_CONTRACT = "postgres-semantic-compiler:v0_11"
 DOCUMENT_COMPILE_STAGE_NAMES = (
     "canonical_normalization",
@@ -1138,6 +1177,34 @@ def compile_document_operational(
         canonical_length=len(text),
     )
 
+    base_factor_count = len(pnf_graph.factors)
+    refined_factor_count = len(refined_pnf_graph.factors)
+    refinement_count = len(refinements)
+    demand_count = len(demands)
+    pnf_graph_records = _pnf_graph_records(pnf_graph)
+    (
+        refined_pnf_graph_records,
+        base_factor_rows,
+        refined_factor_rows,
+    ) = _shared_refined_pnf_graph_records(
+        base_graph=pnf_graph,
+        refined_graph=refined_pnf_graph,
+        base_records=pnf_graph_records,
+    )
+    del pnf_graph, refined_pnf_graph
+    factor_refinement_records = [
+        row.to_dict(
+            prior_factor_row=base_factor_rows[row.prior_factor.factor_ref],
+            resulting_factor_row=refined_factor_rows[row.resulting_factor.factor_ref],
+        )
+        for row in refinements
+    ]
+    del (
+        base_factor_rows,
+        refined_factor_rows,
+        refinements,
+    )
+
     artifacts = {
         "canonical_text": text,
         "canonical_text_sha256": canonical_text_sha256,
@@ -1187,12 +1254,12 @@ def compile_document_operational(
         ],
         "constraint_assessments": [row.to_dict() for row in constraint_assessments],
         "local_evidence": [row.to_dict() for row in local_evidence],
-        "local_meet_plan": [legacy.canonical_json(row) for row in local_meet_plan],
-        "pnf_graph": _pnf_graph_records(pnf_graph),
-        "refined_pnf_graph": _pnf_graph_records(refined_pnf_graph),
+        "local_meet_plan": [row.to_dict() for row in local_meet_plan],
+        "pnf_graph": pnf_graph_records,
+        "refined_pnf_graph": refined_pnf_graph_records,
         "resolution_demands": [legacy.canonical_json(row) for row in demands],
         "typed_meets": [row.to_dict() for row in typed_meets],
-        "factor_refinements": [row.to_dict() for row in refinements],
+        "factor_refinements": factor_refinement_records,
         "streaming_semantic_build": streaming_build,
         "semantic_stage_timing": timings.to_dict(),
         "operational_compiler_contract": OPERATIONAL_COMPILER_CONTRACT,
@@ -1224,25 +1291,45 @@ def compile_document_operational(
             ),
         },
     }
-    operational_artifacts = build_operational_reference_binding_artifacts(artifacts)
+    relation_atom_count = len(relational_bundle.get("atoms") or ())
+    relation_edge_count = len(relational_bundle.get("relations") or ())
+    # The serialized artifact carriers above now own the handoff.  Release the
+    # compiler-native graphs before reference binding creates revised graph
+    # families; retaining both shapes makes production projection unbounded.
+    del (
+        constraint_assessments,
+        demands,
+        layer,
+        local_evidence,
+        local_meet_plan,
+        parsed_document,
+        parser_deltas,
+        relational_bundle,
+        semantic_layer,
+        semantic_output,
+        tokens,
+        typed_meets,
+    )
+    operational_artifacts = build_operational_reference_binding_artifacts(
+        artifacts,
+        consume=True,
+    )
     if resource_ledger is not None:
-        relation_atoms = getattr(relational_bundle, "atoms", ())
-        relation_edges = getattr(relational_bundle, "relations", ())
         resource_ledger.sample(
             "semantic_artifacts:before_projection",
             phase="artifact_handoff",
             semantic_counts={
-                "relational_atoms": len(relation_atoms),
-                "relational_relations": len(relation_edges),
+                "relational_atoms": relation_atom_count,
+                "relational_relations": relation_edge_count,
                 "proposals": int(streaming_metrics.get("base_proposal_count", 0)),
                 "closure_jobs": int(streaming_metrics.get("closure_job_count", 0)),
                 "closure_receipts": int(
                     streaming_metrics.get("streamed_receipt_count", 0)
                 ),
-                "base_factors": len(pnf_graph.factors),
-                "refined_factors": len(refined_pnf_graph.factors),
-                "refinements": len(refinements),
-                "demands": len(demands),
+                "base_factors": base_factor_count,
+                "refined_factors": refined_factor_count,
+                "refinements": refinement_count,
+                "demands": demand_count,
                 "candidate_sets": len(
                     operational_artifacts.get("binding_candidate_sets") or ()
                 ),

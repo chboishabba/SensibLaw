@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import hashlib
+import json
+
 import pytest
 
 from src.ingestion.media_adapter_contract import MediaAdapterCapability
@@ -25,7 +28,7 @@ from src.policy.algebra import (
     TypedAlternative,
     TypedMeet,
 )
-from src.policy.carriers import canonical_sha256
+from src.policy.carriers import canonical_json, canonical_sha256
 from src.resolution import ExternalSnapshotEnvelope, reconcile_meets
 
 
@@ -36,6 +39,18 @@ def alternative(ref: str, value: object) -> TypedAlternative:
         type_ref="type:test",
         derivation_refs=("grammar:test",),
     )
+
+
+def test_canonical_digest_stream_matches_detached_wire_identity() -> None:
+    value = {"z": [1, "é", {"b": 2}], "a": (3, -0.0, None)}
+    detached_wire = json.dumps(
+        canonical_json(value),
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+
+    assert canonical_sha256(value) == hashlib.sha256(detached_wire).hexdigest()
 
 
 def test_factor_serialization_is_deterministic_not_semantic_order() -> None:

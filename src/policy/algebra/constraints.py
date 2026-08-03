@@ -16,7 +16,7 @@ CONSTRAINT_EVALUATION_STATES = {
 }
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ConstraintAssessment:
     """A candidate-only evaluation of one immutable constraint declaration."""
 

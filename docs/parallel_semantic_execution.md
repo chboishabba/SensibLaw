@@ -148,10 +148,15 @@ transactional in the one document owner. The execution surface adds:
 - deterministic solver-receipt replay after interruption;
 - worker-PID evidence for actual process parallelism.
 
-Receipt replay skips completed solver work. Admission and deterministic owner
-reduction are currently replayed when rebuilding the owner; the receipt states
-this rather than claiming a full Python-object snapshot or full owner-state
-resume.
+The durable closure handoff is a replay contract, not a Python-object snapshot.
+It binds the document, source, parser, build and contract identities and records
+content-addressed references for immutable observation-delta batches, proposal
+batches, solver receipts, reduction keys, owner revisions and the unresolved
+frontier. A resumed process verifies those references, creates a fresh owner and
+canonically replays them before leasing new work. Completed process-worker jobs
+and their receipts are reused; reconstruction admissions are reported
+separately from new admissions. Missing, corrupt or identity-incompatible
+handoffs fail closed.
 
 Important ratios are emitted in the amplification report:
 
@@ -197,10 +202,16 @@ Failure injection is available for tests:
 ```text
 SENSIBLAW_TYPING_STOP_AFTER_LEAVES=N
 SENSIBLAW_TYPING_TAIL_STOP_AFTER_LEAVES=N
+SENSIBLAW_CLOSURE_STOP_AFTER_ACTIVATION_COMPLETION=N
+SENSIBLAW_CLOSURE_STOP_AFTER_OWNER_BATCH_ADMISSIONS=N
 SENSIBLAW_CLOSURE_STOP_AFTER_RECEIPTS=N
+SENSIBLAW_CLOSURE_STOP_AFTER_DIRTY_REDUCTIONS=N
 ```
 
-These controls stop only after immutable outputs have been written.
+These controls stop only after immutable outputs and a durable owner handoff
+have been written. Resume must reuse completed activation leaves and solver
+receipts, reconstruct the owner frontier and continue without semantically
+duplicating admission.
 
 ## Exact-0008 acceptance
 
@@ -226,15 +237,55 @@ uv run python scripts/run_exact_0008_parallel_acceptance.py \
 The wrapper delegates compilation and SQL publication verification to the
 strict acceptance runner. It compares local-typing and closure time with the
 serial failed baseline, requires multiple observed semantic worker PIDs and
-captures the resource and amplification reports. A failed baseline cannot prove
-final semantic parity; a subsequent successful or resumed run can be supplied
-with `--reference-semantic-receipt` to compare logical layer refs, annotation
-graph, logical typing refs, manifest descriptors, stage build keys and
-publication identity.
+captures resource, overlap, frontier, latency and amplification receipts. A
+failed historical baseline cannot prove final semantic parity. First establish
+a successful rolled-back semantic reference, then run a separate injected-stop
+checkpoint and compare the resumed run with that reference:
+
+```bash
+# Successful semantic reference.
+uv run python scripts/run_exact_0008_parallel_acceptance.py \
+  --database-url postgresql://postgres@127.0.0.1:5433/sensiblaw_tranche \
+  --input-path /path/to/0008.epub \
+  --output-root .tmp/exact-0008-current/trial-1 \
+  --acceptance-root .tmp/exact-0008-streamed-acceptance/reference \
+  --typing-workers 4 --closure-workers 4 --owner-partitions 8 \
+  --parser-workers 1 --worker-budget 4
+
+# Forced stop after a durable receipt, followed automatically by resume.
+uv run python scripts/run_exact_0008_parallel_acceptance.py \
+  --database-url postgresql://postgres@127.0.0.1:5433/sensiblaw_tranche \
+  --input-path /path/to/0008.epub \
+  --output-root .tmp/exact-0008-current/trial-1 \
+  --acceptance-root .tmp/exact-0008-streamed-acceptance/resumed \
+  --reference-semantic-receipt \
+    .tmp/exact-0008-streamed-acceptance/reference/semantic-checkpoints/semantic-execution-receipt.json \
+  --reference-acceptance-report \
+    .tmp/exact-0008-streamed-acceptance/reference/parallel-acceptance-comparison.json \
+  --inject-stop-boundary receipt --inject-stop-after 1 \
+  --typing-workers 4 --closure-workers 4 --owner-partitions 8 \
+  --parser-workers 1 --worker-budget 4
+```
 
 The default 6/8 GiB limits in this runner are provisional machine-safety bounds,
 not optimisation acceptance thresholds. The report must still expose retained
 state, peak RSS/PSS/USS and work amplification.
+
+Production artifact handoff consumes the compiler-owned carrier after its
+serialized families have been built. Reference-binding transforms reuse
+unchanged immutable factors, revision normalization hashes only factors named
+by demands, and large graph identities use incremental canonical hashing.
+Bounded closure proposal batches (at most 65,536 rows) use the faster native
+JSON encoder for replay-integrity hashes; carriers above 131,072 direct rows
+stay on the incremental path. The materialised compatibility policy remains
+non-consuming. This keeps the same artifact descriptors and digests without
+retaining compiler-native graphs, several copied graph revisions and a whole
+encoded graph at once, while avoiding Python-level chunk encoding for bounded
+replay batches.
+
+`rss.jsonl` is run-scoped evidence and is truncated when a strict acceptance
+attempt starts. Reusing an acceptance directory therefore cannot import a
+failed attempt's peak into the current trace or its resource audit.
 
 ## Acceptance invariants
 
@@ -250,3 +301,10 @@ A tranche result is acceptable only when:
 8. manifest digests and SQL publication verification succeed;
 9. exactly one completed build and compiled occurrence are visible;
 10. no physical partition field enters semantic parity.
+11. activation and owner execution overlap while buffering remains bounded;
+12. owner admission is ordered, reductions remain single-owner and settled
+    keys are not materially rescanned;
+13. the resumed run reports reconstruction, reuses worker outputs and receipts,
+    and matches the successful reference's semantic, manifest and persistence
+    identities;
+14. both acceptance runs roll back to their calibrated pre-run row counts.

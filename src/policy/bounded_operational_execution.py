@@ -14,7 +14,7 @@ import json
 import os
 from pathlib import Path
 from time import monotonic_ns
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Iterable, Iterator, Mapping, Sequence
 
 from src.pnf.bounded_streaming_owner import BoundedStreamingSemanticOwner
 from src.pnf.streaming_fixed_point import CoverageNotice, PythonClosureExecutor
@@ -194,12 +194,13 @@ def bounded_streaming_semantic_build(
     *,
     document_ref: str,
     source_ref: str,
-    observation_deltas: Sequence[Any],
+    observation_deltas: Iterable[Any],
     base_factors: Sequence[Any],
     timings: Any,
     closure_workers: int,
     owner_partitions: int,
     progress_observer: Any | None = None,
+    replay_contract: Any | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Canonical streaming build with bounded retention and closure leasing."""
 
@@ -216,31 +217,39 @@ def bounded_streaming_semantic_build(
     )
     declaration = operator_streaming_declaration()
     owner.register_declarations((declaration,))
-    all_observation_refs = tuple(
-        sorted({ref for delta in observation_deltas for ref in delta.observation_refs})
+    if base_factors:
+        # The materialised implementation reduced base factors before the
+        # first activation (proposal admission + keyed reduction).  Reserve
+        # that identity space while allowing the physical work to interleave.
+        owner._activation_input_revision = 2
+    if replay_contract is not None:
+        replay_contract.reconstruct(owner)
+    # Both streams feed one owner.  In particular, activation is deliberately
+    # consumed before the full base-factor set is projected/reduced.
+    activation_leaves: Iterator[Sequence[Any]] = iter(observation_deltas)
+    base_proposal_batch_size = max(
+        policy.frontier_batch_size,
+        _integer_env("SENSIBLAW_BASE_PROPOSAL_BATCH_SIZE", 512),
     )
-    with timings.stage("base_proposal_reduction") as stage:
-        base_proposals = tuple(
-            operational._base_proposal_from_factor(
-                document_ref=document_ref,
-                source_ref=source_ref,
-                factor=factor,
-            )
-            for factor in base_factors
-        )
-        owner.admit_proposals(base_proposals, stage="base")
-        owner.reduce_dirty_groups()
-        base_reduction = owner.materialized_reduction
-        stage.record(
-            input_nodes=len(base_proposals),
-            output_nodes=len(base_reduction.factors),
-            input_edges=len(base_proposals),
-            output_edges=len(base_reduction.factors),
-            proposals_generated=len(base_proposals),
-            duplicates_collapsed=base_reduction.deduplicated_count,
-            alternatives_retained=len(base_reduction.factors),
-            residuals_emitted=len(base_reduction.residuals),
-        )
+    base_batches = iter(_batches(base_factors, base_proposal_batch_size))
+    all_observation_refs: set[str] = set()
+    all_delta_refs: list[str] = []
+    scopes: set[str] = set()
+    base_proposals: list[Any] = []
+    base_admission_batches = 0
+    max_base_batch_size = 0
+    max_base_batch_bytes = 0
+    base_projection_elapsed_ns = 0
+    base_admission_elapsed_ns = 0
+    base_reduction_elapsed_ns = 0
+    base_reduction = owner.materialized_reduction
+
+    def activation_batches() -> Iterator[Sequence[Any]]:
+        for item in activation_leaves:
+            # Direct callers retain the established delta iterable contract;
+            # the parallel wrapper supplies immutable tuples per activation leaf.
+            leaf = (item,) if hasattr(item, "delta_ref") else item
+            yield from _batches(leaf, policy.frontier_batch_size)
 
     closure = PythonClosureExecutor(
         {STREAMING_OPERATOR_DECLARATION_REF: solve_operator_job}
@@ -254,6 +263,12 @@ def bounded_streaming_semantic_build(
     leased_job_count = 0
     pressure_checkpoints: list[dict[str, Any]] = []
     reduction_elapsed_ms = 0
+    job_payload_construction_elapsed_ns = 0
+    job_sort_elapsed_ns = 0
+    job_deduplicated_count = 0
+    max_ready_batch_size = 0
+    max_pending_jobs = 0
+    max_in_flight_jobs = 0
 
     def sample_resources(
         queued_bytes: int,
@@ -300,7 +315,8 @@ def bounded_streaming_semantic_build(
         nonlocal reduction_elapsed_ms
         reduction_started = monotonic_ns()
         owner.admit_solver_receipt(receipt)
-        owner.reduce_dirty_groups()
+        if owner._dirty_groups:
+            owner.reduce_dirty_groups()
         reduction_elapsed_ms += max(
             0, (monotonic_ns() - reduction_started) // 1_000_000
         )
@@ -361,10 +377,12 @@ def bounded_streaming_semantic_build(
                 checkpoint=checkpoint,
                 on_lease=on_lease,
             )
-            for batch in _batches(
-                observation_deltas,
-                policy.frontier_batch_size,
-            ):
+            for batch in activation_batches():
+                new_batch = tuple(
+                    delta
+                    for delta in batch
+                    if delta.delta_ref not in owner._observation_deltas
+                )
                 if progress_observer is not None:
                     progress_observer(
                         {
@@ -383,7 +401,78 @@ def bounded_streaming_semantic_build(
                 for delta in batch:
                     owner.admit_observation_delta(delta)
                     admitted_delta_count += 1
+                    all_observation_refs.update(delta.observation_refs)
+                    all_delta_refs.append(delta.delta_ref)
+                    scopes.add(delta.scope_ref)
+                if replay_contract is not None:
+                    replay_contract.record_observation_batch(new_batch, owner=owner)
+                stop_after_admissions = _integer_env(
+                    "SENSIBLAW_CLOSURE_STOP_AFTER_OWNER_BATCH_ADMISSIONS",
+                    0,
+                )
+                if (
+                    stop_after_admissions
+                    and admitted_delta_count >= stop_after_admissions
+                ):
+                    raise RuntimeError(
+                        "stopped after checkpointed owner batch admission"
+                    )
 
+                # Project/admit only one base slice after the first activation
+                # admission.  This removes the former all-base pre-admission
+                # barrier while preserving deterministic factor projection.
+                try:
+                    factor_batch = next(base_batches)
+                except StopIteration:
+                    factor_batch = ()
+                if factor_batch:
+                    base_started = monotonic_ns()
+                    projection_started = monotonic_ns()
+                    proposals = tuple(
+                        operational._base_proposal_from_factor(
+                            document_ref=document_ref,
+                            source_ref=source_ref,
+                            factor=factor,
+                        )
+                        for factor in factor_batch
+                    )
+                    base_projection_elapsed_ns += monotonic_ns() - projection_started
+                    base_proposals.extend(proposals)
+                    admission_started = monotonic_ns()
+                    owner.admit_proposals(proposals, stage="base")
+                    base_admission_elapsed_ns += monotonic_ns() - admission_started
+                    owner.reduce_dirty_groups()
+                    base_reduction = owner.materialized_reduction
+                    base_admission_batches += 1
+                    max_base_batch_size = max(max_base_batch_size, len(proposals))
+                    max_base_batch_bytes = max(
+                        max_base_batch_bytes,
+                        sum(
+                            len(json.dumps(row.to_dict(), separators=(",", ":")))
+                            for row in proposals
+                        ),
+                    )
+                    base_reduction_elapsed_ns += monotonic_ns() - base_started
+                    if replay_contract is not None:
+                        replay_contract.checkpoint_owner(owner)
+                    if progress_observer is not None:
+                        progress_observer(
+                            {
+                                "deltas_admitted": admitted_delta_count,
+                                "base_proposals_admitted": len(base_proposals),
+                                "current_kernel": "base_proposal_admission",
+                            }
+                        )
+
+                job_started = monotonic_ns()
+                sort_started = monotonic_ns()
+                ordered_jobs = sorted(
+                    owner._pending_jobs.values(),
+                    key=lambda row: (row.priority, row.job_ref),
+                )
+                job_sort_elapsed_ns += monotonic_ns() - sort_started
+                unique_jobs = {job.job_ref: job for job in ordered_jobs}
+                job_deduplicated_count += len(ordered_jobs) - len(unique_jobs)
                 batch_jobs = tuple(
                     ScheduledJob(
                         job_ref=job.job_ref,
@@ -393,11 +482,12 @@ def bounded_streaming_semantic_build(
                         criticality=max(0, 1_000 - job.priority),
                         estimated_output_bytes=_estimated_job_output_bytes(job),
                     )
-                    for job in sorted(
-                        owner._pending_jobs.values(),
-                        key=lambda row: (row.priority, row.job_ref),
-                    )
+                    for job in unique_jobs.values()
                 )
+                job_payload_construction_elapsed_ns += monotonic_ns() - job_started
+                max_ready_batch_size = max(max_ready_batch_size, len(batch_jobs))
+                max_pending_jobs = max(max_pending_jobs, len(owner._pending_jobs))
+                max_in_flight_jobs = max(max_in_flight_jobs, len(owner._in_flight_jobs))
                 ready_job_count += len(batch_jobs)
                 if progress_observer is not None:
                     progress_observer(
@@ -416,6 +506,8 @@ def bounded_streaming_semantic_build(
                     )
                 scheduler.extend(batch_jobs)
                 scheduler_receipt = scheduler.run()
+                if replay_contract is not None:
+                    replay_contract.checkpoint_owner(owner, force=True)
                 if scheduler_receipt.bounded_stop:
                     break
                 if progress_observer is not None:
@@ -448,6 +540,63 @@ def bounded_streaming_semantic_build(
                 "scheduler": scheduler_receipt.to_dict(),
             },
         )
+
+    # A document may contain more base factors than activation batches.  They
+    # remain bounded owner admissions, never a preflight tuple reduction.
+    for factor_batch in base_batches:
+        base_started = monotonic_ns()
+        projection_started = monotonic_ns()
+        proposals = tuple(
+            operational._base_proposal_from_factor(
+                document_ref=document_ref,
+                source_ref=source_ref,
+                factor=factor,
+            )
+            for factor in factor_batch
+        )
+        base_projection_elapsed_ns += monotonic_ns() - projection_started
+        base_proposals.extend(proposals)
+        admission_started = monotonic_ns()
+        owner.admit_proposals(proposals, stage="base")
+        base_admission_elapsed_ns += monotonic_ns() - admission_started
+        owner.reduce_dirty_groups()
+        base_reduction = owner.materialized_reduction
+        base_admission_batches += 1
+        max_base_batch_size = max(max_base_batch_size, len(proposals))
+        max_base_batch_bytes = max(
+            max_base_batch_bytes,
+            sum(
+                len(json.dumps(row.to_dict(), separators=(",", ":")))
+                for row in proposals
+            ),
+        )
+        base_reduction_elapsed_ns += monotonic_ns() - base_started
+        if replay_contract is not None:
+            replay_contract.checkpoint_owner(owner)
+
+    timings.append(
+        stage="base_proposal_reduction",
+        elapsed_ms=base_reduction_elapsed_ns // 1_000_000,
+        input_nodes=len(base_proposals),
+        output_nodes=len(base_reduction.factors),
+        input_edges=len(base_proposals),
+        output_edges=len(base_reduction.factors),
+        proposals_generated=len(base_proposals),
+        duplicates_collapsed=base_reduction.deduplicated_count,
+        alternatives_retained=len(base_reduction.factors),
+        residuals_emitted=len(base_reduction.residuals),
+        details={
+            "bounded_owner_batches": base_admission_batches,
+            "configured_batch_size": base_proposal_batch_size,
+            "projection_elapsed_ns": base_projection_elapsed_ns,
+            "admission_elapsed_ns": base_admission_elapsed_ns,
+            "reduction_elapsed_ns": base_reduction_elapsed_ns,
+            "max_batch_size": max_base_batch_size,
+            "max_batch_bytes": max_base_batch_bytes,
+        },
+    )
+    if replay_contract is not None:
+        replay_contract.checkpoint_owner(owner, force=True)
 
     if scheduler_receipt.bounded_stop:
         final_checkpoint = (
@@ -499,7 +648,7 @@ def bounded_streaming_semantic_build(
             scope_ref="document-global",
             barrier="document",
             state="complete",
-            evidence_refs=tuple(delta.delta_ref for delta in observation_deltas),
+            evidence_refs=tuple(all_delta_refs),
         )
     )
     certificate = owner.fixed_point_certificate()
@@ -508,13 +657,14 @@ def bounded_streaming_semantic_build(
             "bounded streaming semantic owner did not reach a local fixed point"
         )
 
-    scopes = sorted({delta.scope_ref for delta in observation_deltas})
+    ordered_observation_refs = tuple(sorted(all_observation_refs))
+    ordered_scopes = sorted(scopes)
     # Preserve the established artifact contract for persistence. Compact mode
     # removes completed execution history before this one final serialization.
     build = {
         **owner.to_dict(),
         "region_boundary_summaries": [
-            owner.region_boundary_summary(scope).to_dict() for scope in scopes
+            owner.region_boundary_summary(scope).to_dict() for scope in ordered_scopes
         ],
         "fixed_point_certificate": certificate.to_dict(),
         "declarations": [declaration.to_dict()],
@@ -540,9 +690,9 @@ def bounded_streaming_semantic_build(
         },
     }
     metrics: dict[str, Any] = {
-        "observation_delta_count": len(observation_deltas),
+        "observation_delta_count": admitted_delta_count,
         "observation_count": len(all_observation_refs),
-        "observation_refs": all_observation_refs,
+        "observation_refs": ordered_observation_refs,
         "base_proposal_count": len(base_proposals),
         "base_proposal_refs": tuple(row.proposal_ref for row in base_proposals),
         "base_factor_count": len(base_reduction.factors),
@@ -558,6 +708,27 @@ def bounded_streaming_semantic_build(
         "materialized_residual_count": len(materialized.residuals),
         "scheduler_receipt": scheduler_receipt.to_dict(),
         "retention_counts": owner.retention_counts(),
+        "kernel_telemetry": {
+            "owner": owner.kernel_telemetry(),
+            "base_proposals": {
+                "projection_elapsed_ns": base_projection_elapsed_ns,
+                "admission_elapsed_ns": base_admission_elapsed_ns,
+                "reduction_elapsed_ns": base_reduction_elapsed_ns,
+                "batch_count": base_admission_batches,
+                "max_batch_size": max_base_batch_size,
+                "max_batch_bytes": max_base_batch_bytes,
+            },
+            "ready_jobs": {
+                "payload_construction_elapsed_ns": (
+                    job_payload_construction_elapsed_ns
+                ),
+                "sort_elapsed_ns": job_sort_elapsed_ns,
+                "deduplicated_count": job_deduplicated_count,
+                "max_batch_size": max_ready_batch_size,
+                "max_pending_jobs": max_pending_jobs,
+                "max_in_flight_jobs": max_in_flight_jobs,
+            },
+        },
     }
     return build, metrics
 

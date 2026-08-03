@@ -130,6 +130,53 @@ def test_parallel_acceptance_is_explicitly_rolled_back() -> None:
     assert '"--calibration"' in source
 
 
+def test_strict_acceptance_stops_an_over_limit_process_group(monkeypatch) -> None:
+    root = Path(__file__).resolve().parents[2]
+    namespace = runpy.run_path(
+        str(root / "scripts" / "run_strict_tranche_acceptance.py")
+    )
+    signals: list[tuple[int, int]] = []
+
+    class Process:
+        pid = 123
+
+        @staticmethod
+        def poll():
+            return None
+
+        @staticmethod
+        def terminate():
+            raise AssertionError("process-group termination should be preferred")
+
+    monkeypatch.setattr(
+        namespace["os"], "killpg", lambda pid, sig: signals.append((pid, sig))
+    )
+
+    assert namespace["_terminate_process_group"](Process()) == "process_group_sigterm"
+    assert signals == [(123, namespace["signal"].SIGTERM)]
+
+
+def test_strict_acceptance_summarizes_resource_checkpoints(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[2]
+    namespace = runpy.run_path(
+        str(root / "scripts" / "run_strict_tranche_acceptance.py")
+    )
+    (tmp_path / "first.resource-checkpoint.json").write_text(
+        '{"active_stage":"graph","current_kernel":"after",'
+        '"resources":{"rss_bytes":100,"process_tree_rss_bytes":200}}',
+        encoding="utf-8",
+    )
+    (tmp_path / "second.resource-checkpoint.json").write_text(
+        '{"active_stage":"graph","current_kernel":"after",'
+        '"resources":{"rss_bytes":150,"process_tree_rss_bytes":175}}',
+        encoding="utf-8",
+    )
+
+    assert namespace["_checkpoint_stage_peaks"](tmp_path) == {
+        "graph:after": {"rss_bytes": 150, "process_tree_rss_bytes": 200}
+    }
+
+
 def test_resource_guard_retains_all_stage_checkpoints_only_when_requested(
     monkeypatch,
     tmp_path: Path,

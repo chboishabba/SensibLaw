@@ -121,17 +121,23 @@ def _process_memory(pid: int) -> dict[str, int | None]:
         "uss_bytes": None,
     }
     try:
-        for line in Path(f"/proc/{pid}/smaps_rollup").read_text(encoding="ascii").splitlines():
+        for line in (
+            Path(f"/proc/{pid}/smaps_rollup").read_text(encoding="ascii").splitlines()
+        ):
             key, _, value = line.partition(":")
             if key == "Rss":
                 result["rss_bytes"] = int(value.split()[0]) * 1024
             elif key == "Pss":
                 result["pss_bytes"] = int(value.split()[0]) * 1024
             elif key in {"Private_Clean", "Private_Dirty"}:
-                result["uss_bytes"] = (result["uss_bytes"] or 0) + int(value.split()[0]) * 1024
+                result["uss_bytes"] = (result["uss_bytes"] or 0) + int(
+                    value.split()[0]
+                ) * 1024
     except (OSError, ValueError, IndexError):
         try:
-            pages = int(Path(f"/proc/{pid}/statm").read_text(encoding="ascii").split()[1])
+            pages = int(
+                Path(f"/proc/{pid}/statm").read_text(encoding="ascii").split()[1]
+            )
             result["rss_bytes"] = pages * int(os.sysconf("SC_PAGE_SIZE"))
         except (OSError, ValueError, IndexError):
             pass
@@ -169,6 +175,41 @@ def _process_tree_memory(pid: int) -> dict[str, int | None]:
         values = [value for row in rows if (value := row[key]) is not None]
         result[key] = sum(values) if values else None
     return result
+
+
+def _terminate_process_group(process: subprocess.Popen[bytes]) -> str:
+    """Request a bounded, whole-tree stop for an over-limit acceptance run."""
+
+    if process.poll() is not None:
+        return "already_exited"
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+        return "process_group_sigterm"
+    except (OSError, ProcessLookupError):
+        process.terminate()
+        return "process_sigterm"
+
+
+def _checkpoint_stage_peaks(root: Path) -> dict[str, dict[str, int]]:
+    """Summarize compiler-owned stage samples into the acceptance receipt."""
+
+    peaks: dict[str, dict[str, int]] = {}
+    for path in sorted(root.glob("*.resource-checkpoint.json")):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError, TypeError):
+            continue
+        if not isinstance(payload, Mapping):
+            continue
+        stage = f"{payload.get('active_stage', 'unknown')}:{payload.get('current_kernel', 'unknown')}"
+        resources = payload.get("resources")
+        if not isinstance(resources, Mapping):
+            continue
+        observed = peaks.setdefault(stage, {})
+        for key, value in resources.items():
+            if isinstance(value, int):
+                observed[key] = max(observed.get(key, 0), value)
+    return peaks
 
 
 def _round_up(value: int, quantum: int = 64 * MIB) -> int:
@@ -367,11 +408,16 @@ def main() -> int:
         }
     )
     if args.calibration:
-        # Calibration observes the complete curve. The compiler's ordinary
-        # 5/6 GiB diagnostic guard remains a last-resort safety boundary, but
-        # the historical acceptance cap must not truncate the measurement.
-        environment.pop("SENSIBLAW_DOCUMENT_SOFT_MEMORY_MIB", None)
-        environment.pop("SENSIBLAW_DOCUMENT_HARD_MEMORY_MIB", None)
+        # Calibration still needs an explicit machine-safety envelope.  The
+        # exact-0008 wrapper supplies its reviewed 6/8 GiB bounds here; falling
+        # back to the compiler's lower 5/6 GiB defaults previously truncated a
+        # semantically healthy run after demand derivation.
+        environment.update(
+            {
+                "SENSIBLAW_DOCUMENT_SOFT_MEMORY_MIB": str(args.soft_memory_mib),
+                "SENSIBLAW_DOCUMENT_HARD_MEMORY_MIB": str(args.hard_memory_mib),
+            }
+        )
     else:
         environment.update(
             {
@@ -385,6 +431,7 @@ def main() -> int:
     sample_count = 0
     hard_limit = args.hard_memory_mib * MIB
     observed_hard_breach = False
+    hard_limit_termination: str | None = None
 
     _atomic_json(
         receipt_path,
@@ -413,19 +460,30 @@ def main() -> int:
     }
     try:
         with stdout_path.open("wb") as stdout, stderr_path.open("wb") as stderr:
-            process = subprocess.Popen(command, cwd=ROOT, env=environment, stdout=stdout, stderr=stderr)
+            process = subprocess.Popen(
+                command,
+                cwd=ROOT,
+                env=environment,
+                stdout=stdout,
+                stderr=stderr,
+                start_new_session=True,
+            )
 
             def sample() -> None:
-                nonlocal sample_count, observed_hard_breach
+                nonlocal sample_count, observed_hard_breach, hard_limit_termination
                 assert process is not None
-                with rss_path.open("a", encoding="utf-8") as stream:
+                # Resource traces are run-scoped acceptance evidence. Reusing an
+                # acceptance directory must not mix a prior failed peak into the
+                # current attempt's diagnostic artifact.
+                with rss_path.open("w", encoding="utf-8") as stream:
                     while not stop.wait(args.sample_seconds):
                         resources = _process_tree_memory(process.pid)
                         for key, value in resources.items():
                             if value is not None:
                                 peak_resources[key] = max(peak_resources[key], value)
                         sample_count += 1
-                        observed_hard_breach = observed_hard_breach or (resources["rss_bytes"] or 0) > hard_limit
+                        hard_breach_now = (resources["rss_bytes"] or 0) > hard_limit
+                        observed_hard_breach = observed_hard_breach or hard_breach_now
                         stream.write(
                             json.dumps(
                                 {
@@ -440,8 +498,12 @@ def main() -> int:
                             + "\n"
                         )
                         stream.flush()
+                        if hard_breach_now and hard_limit_termination is None:
+                            hard_limit_termination = _terminate_process_group(process)
 
-            sampler = threading.Thread(target=sample, name="acceptance-memory", daemon=True)
+            sampler = threading.Thread(
+                target=sample, name="acceptance-memory", daemon=True
+            )
             sampler.start()
             returncode = process.wait()
             stop.set()
@@ -454,6 +516,7 @@ def main() -> int:
     checkpoint_files = sorted(
         str(path.relative_to(acceptance_root)) for path in checkpoints.glob("*.json")
     )
+    checkpoint_stage_peaks = _checkpoint_stage_peaks(checkpoints)
     run_succeeded = (
         returncode == 0
         and terminal_signal is None
@@ -475,7 +538,11 @@ def main() -> int:
     publication = (
         {"state": "not_requested", "publication_mode": "rolled_back"}
         if args.calibration
-        else (_verify_explicit_publication(args) if returncode == 0 else {"state": "not_run"})
+        else (
+            _verify_explicit_publication(args)
+            if returncode == 0
+            else {"state": "not_run"}
+        )
     )
     if not args.calibration and publication["state"] == "not_verified":
         accepted = False
@@ -486,7 +553,11 @@ def main() -> int:
         "state": (
             "calibrated"
             if args.calibration and run_succeeded
-            else ("completed" if accepted else ("signalled" if terminal_signal is not None else "failed"))
+            else (
+                "completed"
+                if accepted
+                else ("signalled" if terminal_signal is not None else "failed")
+            )
         ),
         "accepted": accepted,
         "failure_reason": failure_reason,
@@ -530,6 +601,8 @@ def main() -> int:
             "soft_limit_bytes": args.soft_memory_mib * MIB,
             "hard_limit_bytes": hard_limit,
             "hard_limit_observed": observed_hard_breach,
+            "hard_limit_termination": hard_limit_termination,
+            "checkpoint_stage_peaks": checkpoint_stage_peaks,
         },
         "calibration": (
             {

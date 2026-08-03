@@ -77,39 +77,36 @@ def _project_alternatives(
 def _project_constraint(
     constraint: Mapping[str, Any], *, factor_ref: str, role: str
 ) -> dict[str, Any]:
-    row = dict(constraint)
-    source_refs = {str(ref) for ref in row.get("source_factor_refs") or ()}
-    payload = dict(row.get("payload") or {})
-    payload_source = str(payload.get("source_factor_ref") or "")
+    source_refs = {str(ref) for ref in constraint.get("source_factor_refs") or ()}
+    source_payload = constraint.get("payload") or {}
+    payload_source = str(source_payload.get("source_factor_ref") or "")
     if factor_ref not in source_refs and payload_source != factor_ref:
-        return row
+        return constraint if isinstance(constraint, dict) else dict(constraint)
+    row = dict(constraint)
+    payload = dict(source_payload)
     row["constraint_type"] = _CONSTRAINT_TYPES.get(
         role, str(row.get("constraint_type") or "syntactic_argument_of")
     )
     payload["role"] = role
-    payload["parser_role_projection_declaration_ref"] = (
-        ARGUMENT_ROLE_DECLARATION_REF
-    )
+    payload["parser_role_projection_declaration_ref"] = ARGUMENT_ROLE_DECLARATION_REF
     row["payload"] = payload
     return row
 
 
 def _project_factor(factor: Mapping[str, Any]) -> tuple[dict[str, Any], bool]:
-    row = dict(factor)
-    if not _is_argument_factor(row):
-        return row, False
-    metadata = dict(row.get("metadata") or {})
+    if not _is_argument_factor(factor):
+        return factor if isinstance(factor, dict) else dict(factor), False
+    metadata = dict(factor.get("metadata") or {})
     prior_role = str(metadata.get("role") or "argument")
     role = _canonical_role(metadata)
     if role == prior_role:
-        return row, False
-    factor_ref = str(row["factor_ref"])
+        return factor if isinstance(factor, dict) else dict(factor), False
+    row = dict(factor)
+    factor_ref = str(factor["factor_ref"])
     metadata.update(
         {
             "role": role,
-            "parser_role_projection_declaration_ref": (
-                ARGUMENT_ROLE_DECLARATION_REF
-            ),
+            "parser_role_projection_declaration_ref": (ARGUMENT_ROLE_DECLARATION_REF),
             "parser_role_projection_basis": str(
                 metadata.get("parser_dependency") or ""
             ),
@@ -147,6 +144,8 @@ def _project_graph(graph: Mapping[str, Any]) -> tuple[dict[str, Any], int]:
             role_by_factor[str(factor["factor_ref"])] = str(
                 (factor.get("metadata") or {}).get("role") or "argument"
             )
+    if not changed_count:
+        return graph if isinstance(graph, dict) else dict(graph), 0
     constraints: list[dict[str, Any]] = []
     for source in graph.get("constraints") or ():
         row = dict(source)
@@ -182,9 +181,7 @@ def _project_graph(graph: Mapping[str, Any]) -> tuple[dict[str, Any], int]:
 def _project_refinement(refinement: Mapping[str, Any]) -> dict[str, Any]:
     row = dict(refinement)
     prior, _prior_changed = _project_factor(row.get("prior_factor") or {})
-    resulting, _resulting_changed = _project_factor(
-        row.get("resulting_factor") or {}
-    )
+    resulting, _resulting_changed = _project_factor(row.get("resulting_factor") or {})
     row["prior_factor"] = prior
     row["resulting_factor"] = resulting
     return row
@@ -241,9 +238,7 @@ def _align_annotation_morphology(
             and token_index in morphology_by_token
         ):
             row["value"] = morphology_by_token[token_index]
-            provenance = {
-                str(ref) for ref in row.get("provenance_refs") or ()
-            }
+            provenance = {str(ref) for ref in row.get("provenance_refs") or ()}
             provenance.add(ARGUMENT_ROLE_DECLARATION_REF)
             row["provenance_refs"] = sorted(provenance)
             seen_tokens.add(token_index)
@@ -287,19 +282,14 @@ def canonicalize_parser_argument_roles(
     result["pnf_graph"] = pnf_graph
     result["refined_pnf_graph"] = refined_graph
     result["factor_refinements"] = [
-        _project_refinement(row)
-        for row in artifacts.get("factor_refinements") or ()
+        _project_refinement(row) for row in artifacts.get("factor_refinements") or ()
     ]
-    morphology_by_span = _argument_morphology_by_span(
-        pnf_graph, refined_graph
-    )
+    morphology_by_span = _argument_morphology_by_span(pnf_graph, refined_graph)
     result["semantic_annotation_layer"] = _align_annotation_morphology(
         artifacts.get("semantic_annotation_layer") or {},
         morphology_by_span=morphology_by_span,
     )
-    declarations = [
-        dict(row) for row in artifacts.get("compiler_declarations") or ()
-    ]
+    declarations = [dict(row) for row in artifacts.get("compiler_declarations") or ()]
     if not any(
         row.get("declaration_ref") == ARGUMENT_ROLE_DECLARATION_REF
         for row in declarations
@@ -322,9 +312,7 @@ def canonicalize_parser_argument_roles(
     result["compiler_declarations"] = sorted(
         declarations, key=lambda row: str(row.get("declaration_ref") or "")
     )
-    result["argument_role_projection_contract"] = (
-        ARGUMENT_ROLE_DECLARATION_REF
-    )
+    result["argument_role_projection_contract"] = ARGUMENT_ROLE_DECLARATION_REF
     result["argument_role_projection_summary"] = {
         "base_factor_changes": base_changes,
         "refined_factor_changes": refined_changes,

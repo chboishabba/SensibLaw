@@ -1,5 +1,13 @@
 # SensibLaw TODO
 
+- [IN ACCEPTANCE 2026-08-02] Finish streamed activation acceptance with the
+  v2 durable closure-owner replay contract. Focused parity, forced-stop,
+  incompatible-checkpoint, four-process bounded-frontier, telemetry and lint
+  gates pass. Replay-artifact identity now includes the replay contract/schema,
+  and strict acceptance preserves a terminal receipt on an RSS breach. Run a
+  fresh exact-0008 reference, then an injected-stop/resume rollback run, as the
+  remaining promotion gates.
+
 - [DONE 2026-07-29] Replace parser-receipt aggregation over all checkpoint
   payloads with atomic compact per-fibre summaries. Worker loss is now
   parent-visible and fail-closed with a `parser_fibre_execution` resource

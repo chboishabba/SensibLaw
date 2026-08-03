@@ -84,11 +84,11 @@ def _deltas(document_ref: str, count: int) -> tuple[ObservationDelta, ...]:
 
 
 def test_policy_package_installs_one_bounded_execution_strategy() -> None:
-    assert operational._streaming_semantic_build is (
+    assert operational._bounded_streaming_semantic_build is (
         bounded.bounded_streaming_semantic_build
     )
     assert operational._serial_streaming_semantic_build is not (
-        operational._streaming_semantic_build
+        operational._bounded_streaming_semantic_build
     )
     assert bounded.install_bounded_operational_execution() is False
 

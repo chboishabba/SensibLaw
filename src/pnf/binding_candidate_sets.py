@@ -401,14 +401,10 @@ def _factor_anchor(
     elif isinstance(sentence_index, int):
         clause_ref = f"clause:sentence:{sentence_index}:unresolved"
     reporting_scope_ref = (
-        str(relation_ref)
-        if relation_ref and relation_type == "composition"
-        else None
+        str(relation_ref) if relation_ref and relation_type == "composition" else None
     )
     coordination_group_ref = (
-        str(relation_ref)
-        if relation_ref and relation_type == "conjunction"
-        else None
+        str(relation_ref) if relation_ref and relation_type == "conjunction" else None
     )
     paragraph_index = context.get("paragraph_index")
     return FactorAnchor(
@@ -421,9 +417,7 @@ def _factor_anchor(
         sentence_index=sentence_index if isinstance(sentence_index, int) else None,
         clause_ref=clause_ref,
         discourse_unit_ref=(
-            f"sentence:{sentence_index}"
-            if isinstance(sentence_index, int)
-            else None
+            f"sentence:{sentence_index}" if isinstance(sentence_index, int) else None
         ),
         paragraph_index=(paragraph_index if isinstance(paragraph_index, int) else None),
         quotation_depth=(
@@ -450,9 +444,7 @@ def _reference_types(factor: Mapping[str, Any]) -> tuple[str, ...]:
     }
     return tuple(
         sorted(
-            value
-            for value in values
-            if value and value not in _NONREFERENTIAL_TYPES
+            value for value in values if value and value not in _NONREFERENTIAL_TYPES
         )
     )
 
@@ -471,9 +463,7 @@ def _candidate_types(
     return tuple(types)
 
 
-def _accessibility_path(
-    reference: FactorAnchor, candidate: FactorAnchor
-) -> str:
+def _accessibility_path(reference: FactorAnchor, candidate: FactorAnchor) -> str:
     if candidate.start_token >= reference.start_token:
         return "not_preceding_reference"
     if (
@@ -523,8 +513,10 @@ def _morphology_compatibility(
     for feature in _MORPHOLOGY_FEATURES:
         reference_values = set(reference.morphology.get(feature, ()))
         candidate_values = set(candidate.morphology.get(feature, ()))
-        if reference_values and candidate_values and reference_values.isdisjoint(
-            candidate_values
+        if (
+            reference_values
+            and candidate_values
+            and reference_values.isdisjoint(candidate_values)
         ):
             mismatches.append(feature)
     if mismatches:
@@ -601,9 +593,7 @@ def _direct_candidate_sets(
             )
             build_ref = "build:" + canonical_sha256(identity)
             candidate_set_ref = "binding-candidate-set:" + canonical_sha256(identity)
-            allowed_paths = set(
-                _ALLOWED_ACCESSIBILITY_PATHS.get(referential_type, ())
-            )
+            allowed_paths = set(_ALLOWED_ACCESSIBILITY_PATHS.get(referential_type, ()))
             compatible: list[tuple[int, BindingCandidateMember]] = []
             exclusion_counts: dict[str, int] = {}
             for candidate_factor, candidate_anchor in candidate_index[referential_type]:
@@ -695,9 +685,7 @@ def _pairwise_candidate_sets(
         subjects = tuple(str(ref) for ref in row.get("subject_refs") or ())
         if not subjects:
             continue
-        referential_type = str(
-            (row.get("payload") or {}).get("referential_type") or ""
-        )
+        referential_type = str((row.get("payload") or {}).get("referential_type") or "")
         if referential_type:
             grouped.setdefault((subjects[0], referential_type), []).append(row)
     candidate_sets: list[BindingCandidateSet] = []
@@ -807,10 +795,10 @@ def _refine_factors(
     base_graph = artifacts.get("pnf_graph") or {}
     refined_graph = artifacts.get("refined_pnf_graph") or base_graph
     base_factors = {
-        str(row["factor_ref"]): dict(row) for row in base_graph.get("factors") or ()
+        str(row["factor_ref"]): row for row in base_graph.get("factors") or ()
     }
     refined_factors = {
-        str(row["factor_ref"]): dict(row) for row in refined_graph.get("factors") or ()
+        str(row["factor_ref"]): row for row in refined_graph.get("factors") or ()
     }
     existing_refinements = {
         str((row.get("prior_factor") or {}).get("factor_ref") or ""): dict(row)
@@ -904,9 +892,7 @@ def _refine_factors(
                 | set(rejected_pairwise)
             ),
             "rejected_candidate_refs": [],
-            "residual_transitions": list(
-                existing.get("residual_transitions") or ()
-            ),
+            "residual_transitions": list(existing.get("residual_transitions") or ()),
             "evidence_refs": [
                 ref
                 for ref in existing.get("evidence_refs") or ()
@@ -925,11 +911,7 @@ def _refine_factors(
             "authority": "pnf_refinement_only",
         }
     return (
-        [
-            existing_refinements[key]
-            for key in sorted(existing_refinements)
-            if key
-        ],
+        [existing_refinements[key] for key in sorted(existing_refinements) if key],
         refined_factors,
         resulting_revision_refs,
     )
@@ -956,11 +938,7 @@ def _binding_meets(
         else:
             retained.append(dict(row))
     for candidate_set in candidate_sets:
-        state = (
-            "compatible_with_refinement"
-            if candidate_set.members
-            else "unresolved"
-        )
+        state = "compatible_with_refinement" if candidate_set.members else "unresolved"
         meet_identity = {
             "left_ref": candidate_set.reference_factor_ref,
             "right_ref": candidate_set.candidate_set_ref,
@@ -1008,9 +986,7 @@ def _relink_demands(
         item["candidate_set_refs"] = sorted(set(factor_to_sets[factor_ref]))
         semantic_key = dict(item.get("semantic_key") or {})
         semantic_key["factor_revision_ref"] = revision_ref
-        semantic_key["expected_type_alternatives"] = item[
-            "expected_type_alternatives"
-        ]
+        semantic_key["expected_type_alternatives"] = item["expected_type_alternatives"]
         semantic_key["candidate_set_refs"] = item["candidate_set_refs"]
         item["semantic_key"] = semantic_key
         item["demand_ref"] = "demand:" + canonical_sha256(semantic_key)
@@ -1048,9 +1024,9 @@ def compact_binding_artifacts(
     refinements, refined_factors, revision_refs = _refine_factors(
         artifacts, candidate_sets, factor_to_sets
     )
-    base_refined_graph = artifacts.get("refined_pnf_graph") or artifacts.get(
-        "pnf_graph"
-    ) or {}
+    base_refined_graph = (
+        artifacts.get("refined_pnf_graph") or artifacts.get("pnf_graph") or {}
+    )
     refined_graph = {
         **base_refined_graph,
         "factors": [refined_factors[key] for key in sorted(refined_factors)],
@@ -1070,15 +1046,16 @@ def compact_binding_artifacts(
     zero_sets = sum(not row.members for row in candidate_sets)
     one_sets = sum(len(row.members) == 1 for row in candidate_sets)
     many_sets = sum(len(row.members) > 1 for row in candidate_sets)
-    reference_factors = {
-        row.reference_factor_ref for row in candidate_sets
-    }
+    reference_factors = {row.reference_factor_ref for row in candidate_sets}
     expletive_observed = sum(
         1
         for factor_ref in reference_factors
-        if str((refined_factors.get(factor_ref) or {}).get("metadata", {}).get(
-            "parser_dependency"
-        ) or "")
+        if str(
+            (refined_factors.get(factor_ref) or {})
+            .get("metadata", {})
+            .get("parser_dependency")
+            or ""
+        )
         == "expl"
     )
     result = dict(artifacts)

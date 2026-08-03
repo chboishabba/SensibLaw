@@ -19,7 +19,16 @@ from src.ingestion.media_adapter import HtmlDocumentMediaAdapter, adapt_text_con
 
 
 SOURCE_PROJECTION_CONTRACT = "source-family-canonical-projection:v0_1"
-_SUPPORTED_SUFFIXES = {".html", ".htm", ".txt", ".text", ".md", ".markdown", ".pdf", ".epub"}
+_SUPPORTED_SUFFIXES = {
+    ".html",
+    ".htm",
+    ".txt",
+    ".text",
+    ".md",
+    ".markdown",
+    ".pdf",
+    ".epub",
+}
 
 
 def _sha256_bytes(value: bytes) -> str:
@@ -146,7 +155,12 @@ def _canonicalize(path: Path, raw: bytes) -> tuple[str, str, tuple[str, ...], st
             provenance={"source_path": str(path)},
         )
         media_type = "text/markdown" if suffix in {".md", ".markdown"} else "text/plain"
-        return canonical.text, media_type, tuple(canonical.warnings), "media:utf8-text:v0_1"
+        return (
+            canonical.text,
+            media_type,
+            tuple(canonical.warnings),
+            "media:utf8-text:v0_1",
+        )
     if suffix == ".pdf":
         text, warnings = _extract_pdf(path)
         return text, "application/pdf", warnings, "media:pdf-text:v0_1"
@@ -218,7 +232,12 @@ def project_source_families(
             stem = f"{ordinal:04d}_{raw_sha[:12]}"
             raw_target = raw_dir / f"{stem}{path.suffix.lower()}"
             canonical_target = canonical_dir / f"{stem}.txt"
-            shutil.copyfile(path, raw_target)
+            # An explicit retry may already point at this projection's raw
+            # evidence path.  It remains the same immutable source artifact;
+            # copying it onto itself would turn a valid retry into a failed,
+            # empty projection manifest.
+            if path.resolve() != raw_target.resolve():
+                shutil.copyfile(path, raw_target)
             canonical_target.write_text(canonical_text, encoding="utf-8")
             source_ref = f"source:{raw_sha}"
             anchor_state = (
@@ -243,7 +262,9 @@ def project_source_families(
                 )
             )
         except Exception as error:
-            failures.append({"path": str(path), "reason": f"{type(error).__name__}:{error}"})
+            failures.append(
+                {"path": str(path), "reason": f"{type(error).__name__}:{error}"}
+            )
 
     return SourceProjectionManifest(
         roots=tuple(str(path.resolve()) for path in roots),

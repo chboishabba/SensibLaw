@@ -646,7 +646,7 @@ class ClosurePressureAssessment:
         }
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ResolutionDemand:
     """A bounded evidence request plan derived from one PNF closure obligation."""
 
@@ -3793,8 +3793,10 @@ def build_mention_licensing_carrier(
     # The operational compiler already owns this canonical token carrier.  Do
     # not tokenize the document a second time: apart from wasted CPU, a second
     # pass makes progress and coordinate provenance ambiguous.
-    token_rows = tuple(tokens) if tokens is not None else tuple(
-        tokenize_canonical_with_spans(text)
+    token_rows = (
+        tuple(tokens)
+        if tokens is not None
+        else tuple(tokenize_canonical_with_spans(text))
     )
     parsed = (
         dict(parsed_document)
@@ -3824,7 +3826,10 @@ def build_mention_licensing_carrier(
         end_index = bisect_right(token_ends, end_char)
         if start_index >= end_index:
             return None
-        if token_starts[start_index] < start_char or token_ends[end_index - 1] > end_char:
+        if (
+            token_starts[start_index] < start_char
+            or token_ends[end_index - 1] > end_char
+        ):
             return None
         return start_index, end_index
 
@@ -3973,7 +3978,9 @@ def build_mention_licensing_carrier(
         "lattice": {
             "token_count": len(token_rows),
             "token_boundary_count": len(token_rows) + 1,
-            "recoverable_contiguous_span_count": len(token_rows) * (len(token_rows) + 1) // 2,
+            "recoverable_contiguous_span_count": len(token_rows)
+            * (len(token_rows) + 1)
+            // 2,
         },
         "mentions": mention_rows,
         "licenses": license_rows,

@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 from typing import Any, Mapping
@@ -46,6 +47,22 @@ def _parse_args() -> argparse.Namespace:
         type=Path,
         help="Optional prior successful/resumed exact-0008 semantic receipt.",
     )
+    parser.add_argument(
+        "--reference-acceptance-report",
+        type=Path,
+        help="Prior successful exact-0008 acceptance report for persistence parity.",
+    )
+    parser.add_argument(
+        "--semantic-checkpoint-root",
+        type=Path,
+        help="Durable checkpoint root; defaults below --acceptance-root.",
+    )
+    parser.add_argument(
+        "--inject-stop-boundary",
+        choices=("activation", "owner", "receipt", "reduction"),
+        help="Run one expected-stop subprocess, then resume from its checkpoint.",
+    )
+    parser.add_argument("--inject-stop-after", type=int, default=1)
     parser.add_argument("--soft-memory-mib", type=int, default=6144)
     parser.add_argument("--hard-memory-mib", type=int, default=8192)
     parser.add_argument("--typing-workers", type=int, default=4)
@@ -75,6 +92,7 @@ def _parse_args() -> argparse.Namespace:
         "owner_partitions",
         "parser_workers",
         "worker_budget",
+        "inject_stop_after",
     ):
         if int(getattr(args, name)) < 1:
             parser.error(f"--{name.replace('_', '-')} must be positive")
@@ -134,9 +152,7 @@ def _process_parallelism(receipt: Mapping[str, Any]) -> dict[str, Any]:
     }
     activation = closure_counters.get("activation") or {}
     activation_pids = {
-        int(pid)
-        for pid in activation.get("worker_pids") or ()
-        if int(pid) > 0
+        int(pid) for pid in activation.get("worker_pids") or () if int(pid) > 0
     }
     activation_pids.update(
         int(str(key).split(":", maxsplit=1)[1])
@@ -157,7 +173,11 @@ def _process_parallelism(receipt: Mapping[str, Any]) -> dict[str, Any]:
 def main() -> int:
     args = _parse_args()
     acceptance_root = args.acceptance_root.resolve()
-    semantic_root = acceptance_root / "semantic-checkpoints"
+    semantic_root = (
+        args.semantic_checkpoint_root.resolve()
+        if args.semantic_checkpoint_root is not None
+        else acceptance_root / "semantic-checkpoints"
+    )
     acceptance_root.mkdir(parents=True, exist_ok=True)
     baseline = _json(args.baseline.resolve())
     semantic_process_workers = max(args.typing_workers, args.closure_workers)
@@ -230,6 +250,34 @@ def main() -> int:
     report_path = acceptance_root / "parallel-acceptance-comparison.json"
     _atomic_json(report_path, started)
 
+    injected_stop: dict[str, Any] | None = None
+    if args.inject_stop_boundary is not None:
+        injection_names = {
+            "activation": "SENSIBLAW_CLOSURE_STOP_AFTER_ACTIVATION_COMPLETION",
+            "owner": "SENSIBLAW_CLOSURE_STOP_AFTER_OWNER_BATCH_ADMISSIONS",
+            "receipt": "SENSIBLAW_CLOSURE_STOP_AFTER_RECEIPTS",
+            "reduction": "SENSIBLAW_CLOSURE_STOP_AFTER_DIRTY_REDUCTIONS",
+        }
+        injected_environment = dict(environment)
+        injected_environment[injection_names[args.inject_stop_boundary]] = str(
+            args.inject_stop_after
+        )
+        injected = subprocess.run(
+            command, cwd=ROOT, env=injected_environment, check=False
+        )
+        injected_semantic_path = semantic_root / "semantic-execution-receipt.json"
+        injected_snapshot_path = acceptance_root / "injected-stop-semantic-receipt.json"
+        if injected_semantic_path.exists():
+            shutil.copyfile(injected_semantic_path, injected_snapshot_path)
+        injected_stop = {
+            "boundary": args.inject_stop_boundary,
+            "stop_after": args.inject_stop_after,
+            "returncode": injected.returncode,
+            "expected_failure_observed": injected.returncode != 0,
+            "semantic_receipt": (
+                str(injected_snapshot_path) if injected_snapshot_path.exists() else None
+            ),
+        }
     completed = subprocess.run(command, cwd=ROOT, env=environment, check=False)
     strict_receipt_path = acceptance_root / "strict" / "acceptance-receipt.json"
     strict_receipt = (
@@ -302,20 +350,81 @@ def main() -> int:
         strict_receipt.get("publication_verification", {}).get("publication_mode")
         == "rolled_back"
     )
+    calibration_path = (
+        args.output_root.resolve() / args.tranche.lower() / "tranche_calibration.json"
+    )
+    calibration = _json(calibration_path) if calibration_path.exists() else {}
+    rollback_counts = dict(calibration.get("rollback_row_counts") or {})
+    rollback_counts_valid = (
+        calibration.get("publication_mode") == "rolled_back"
+        and int(rollback_counts.get("source_documents") or 0) == 1
+        and int(rollback_counts.get("occurrences") or 0) == 1
+        and int(rollback_counts.get("builds") or 0) == 1
+        and int(rollback_counts.get("artifact_manifests") or 0) > 0
+    )
+    reference_report_path = args.reference_acceptance_report
+    if reference_report_path is None and args.reference_semantic_receipt is not None:
+        candidate = (
+            args.reference_semantic_receipt.resolve().parent.parent
+            / "parallel-acceptance-comparison.json"
+        )
+        if candidate.exists():
+            reference_report_path = candidate
+    reference_report = (
+        _json(reference_report_path.resolve())
+        if reference_report_path is not None
+        else None
+    )
+    persistence_parity = reference_report is None or rollback_counts == dict(
+        reference_report.get("rollback_verification", {}).get("row_counts") or {}
+    )
     activation = (semantic_receipt.get("closure_audit") or {}).get("activation") or {}
     closure_jobs_completed = int(
         (semantic_receipt.get("closure_audit") or {}).get("jobs_completed") or 0
     )
+    fixed_point = dict(activation.get("fixed_point_certificate") or {})
+    fixed_point_verified = fixed_point.get("local_fixed_point") == "reached"
+    resumed_required = args.inject_stop_boundary is not None
+    resume_verified = not resumed_required or (
+        bool(injected_stop and injected_stop["expected_failure_observed"])
+        and int(activation.get("reused_leaf_count") or 0) > 0
+        and (
+            activation.get("owner_reconstructed") is True
+            or args.inject_stop_boundary == "activation"
+        )
+    )
+    parity_verified = (
+        parity.get("semantic_parity") is True
+        if args.reference_semantic_receipt is not None
+        else current_surface is not None
+    )
+    resources = dict(strict_receipt.get("resources") or {})
+    resource_verified = (
+        int(resources.get("sample_count") or 0) > 0
+        and int(resources.get("peak_process_tree_rss_bytes") or 0) > 0
+        and resources.get("hard_limit_observed") is False
+        and int(activation.get("max_buffered_leaves") or 0)
+        <= int(activation.get("buffer_limit_leaves") or 0)
+        and int(activation.get("activation_output_bytes") or 0) > 0
+    )
     accepted = (
         strict_completed
         and rollback_verified
+        and rollback_counts_valid
+        and persistence_parity
         and semantic_receipt.get("state") == "completed"
         and process_execution["parallel_process_execution_observed"]
         and len(process_execution["closure_activation_worker_pids"]) >= 2
         and int(activation.get("leaf_count") or 0) > 0
+        and int(activation.get("admitted_delta_count") or 0) > 0
+        and activation.get("owner_admission_started_immediately") is True
+        and activation.get("activation_owner_overlap_observed") is True
         and int(activation.get("ready_job_count") or 0) > 0
         and closure_jobs_completed > 0
-        and parity.get("semantic_parity") is not False
+        and fixed_point_verified
+        and resource_verified
+        and resume_verified
+        and parity_verified
     )
     report = {
         **started,
@@ -327,6 +436,16 @@ def main() -> int:
         "runtime_comparison": runtime_comparison,
         "process_execution": process_execution,
         "semantic_parity": parity,
+        "fixed_point_verified": fixed_point_verified,
+        "resource_verified": resource_verified,
+        "resume_verified": resume_verified,
+        "injected_stop": injected_stop,
+        "rollback_verification": {
+            "state": "verified" if rollback_counts_valid else "failed",
+            "row_counts": rollback_counts,
+            "persistence_parity": persistence_parity,
+            "calibration_receipt": str(calibration_path),
+        },
         "semantic_surface": current_surface,
         "publication_verification": strict_receipt.get("publication_verification"),
         "parser_checkpoint_reuse_policy": (

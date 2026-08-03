@@ -55,6 +55,34 @@ def _reference_factors(artifacts: dict[str, object]) -> list[dict[str, object]]:
     ]
 
 
+def test_operational_assembly_can_consume_an_owned_handoff() -> None:
+    artifacts = {
+        "canonical_text": "",
+        "pnf_graph": {
+            "graph_ref": "pnf:empty",
+            "document_ref": "document:empty",
+            "factors": [],
+            "constraints": [],
+        },
+        "refined_pnf_graph": {
+            "graph_ref": "pnf:empty",
+            "document_ref": "document:empty",
+            "factors": [],
+            "constraints": [],
+        },
+        "compiler_declarations": [],
+        "factor_refinements": [],
+        "local_evidence": [],
+        "resolution_demands": [],
+        "typed_meets": [],
+    }
+
+    result = build_set_valued_binding_artifacts(artifacts, consume=True)
+
+    assert result is artifacts
+    assert artifacts["binding_candidate_sets"] == []
+
+
 def test_reference_binding_mini_exercises_all_generic_reference_classes(tmp_path):
     corpus = tmp_path / "reference-binding-mini"
     shutil.copytree(FIXTURE, corpus)
@@ -148,17 +176,22 @@ def test_reference_binding_mini_exercises_all_generic_reference_classes(tmp_path
             for factor in artifacts["refined_pnf_graph"]["factors"]
             for alternative in factor["alternatives"]
         )
-        assert artifacts["reference_argument_projection_summary"][
-            "english_pronoun_catalogue_used"
-        ] is False
+        assert (
+            artifacts["reference_argument_projection_summary"][
+                "english_pronoun_catalogue_used"
+            ]
+            is False
+        )
         for refinement in artifacts["factor_refinements"]:
             resulting = refinement["resulting_factor"]
-            assert factor_revision_ref(resulting) == resulting["metadata"][
-                "factor_revision_ref"
-            ]
-            assert refinement["refinement_delta"][
-                "resulting_factor_revision_ref"
-            ] == resulting["metadata"]["factor_revision_ref"]
+            assert (
+                factor_revision_ref(resulting)
+                == resulting["metadata"]["factor_revision_ref"]
+            )
+            assert (
+                refinement["refinement_delta"]["resulting_factor_revision_ref"]
+                == resulting["metadata"]["factor_revision_ref"]
+            )
 
 
 def test_structural_accessibility_is_not_a_fixed_two_sentence_window(tmp_path):
@@ -197,18 +230,19 @@ def test_reference_projection_is_parser_owned_and_idempotent(tmp_path):
         row["declaration_ref"] for row in artifacts["compiler_declarations"]
     }
     assert REFERENCE_REDUCTION_DECLARATION_REF in declaration_refs
-    assert artifacts["reference_argument_projection_summary"][
-        "english_pronoun_catalogue_used"
-    ] is False
+    assert (
+        artifacts["reference_argument_projection_summary"][
+            "english_pronoun_catalogue_used"
+        ]
+        is False
+    )
     assert build_set_valued_binding_artifacts(artifacts) == artifacts
 
 
 def test_candidate_set_refinement_retains_uncertainty_and_uses_deltas(tmp_path):
     artifacts = _compile_text(tmp_path, "Ada entered. She spoke.")
     binding_refinements = [
-        row
-        for row in artifacts["factor_refinements"]
-        if row.get("candidate_set_refs")
+        row for row in artifacts["factor_refinements"] if row.get("candidate_set_refs")
     ]
     assert binding_refinements
     for refinement in binding_refinements:

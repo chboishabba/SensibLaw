@@ -1,5 +1,34 @@
 # COMPACTIFIED_CONTEXT
 
+## 2026-08-02 — streamed activation replay acceptance
+
+- Closure handoff state is now a self-verifying v2 replay contract over
+  immutable delta batches, proposal batches, solver receipts, reduction keys,
+  revisions and the unresolved owner frontier. Resume reconstructs a fresh
+  owner canonically and distinguishes reconstruction from new admission.
+- Failure injection covers activation completion, owner-batch admission,
+  solver-receipt durability and dirty-key reduction. Completed activation
+  leaves and process-worker receipts are reused; incompatible, corrupt and
+  incomplete checkpoints fail closed.
+- Kernel telemetry now covers activation verification, proposal and job
+  construction, digest/sort/dedup work, owner admission/reduction, overlap,
+  first-leaf latency, head-of-line wait, bounded buffers and resource/byte
+  maxima. Focused serial/materialized/streamed and multi-process tests pass.
+- Promotion remains gated on two exact-0008 rollback runs against the disposable
+  5433 database: one successful semantic reference and one injected-stop/resume
+  run equal to it. A stale replay-artifact collision was isolated to a missing
+  replay-contract/schema component in the artifact identity. The v2 identity
+  now namespaces those immutable artifacts; incompatible checkpoints fail
+  closed and are never rewritten.
+- The first reference continuation exposed a post-closure memory peak caused by
+  retaining compiler-native graphs while reference binding copied two complete
+  serialized graph families. Production handoff now consumes its owned carrier,
+  reuses unchanged factors, hashes large identities incrementally, and resets
+  each strict run's RSS trace. Exact reference acceptance must next use a fresh
+  replay checkpoint root under the unchanged 6/8 GiB safety envelope. The
+  strict wrapper now records compiler-stage resource peaks and terminates its
+  isolated process group on a hard RSS breach, preserving a terminal receipt.
+
 ## 2026-07-29 — replayable fibred parser carrier
 
 - The adaptive document parser now returns a checkpoint-backed,

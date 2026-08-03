@@ -9,7 +9,7 @@ amplification receipts.
 from __future__ import annotations
 
 from collections import Counter
-from concurrent.futures import as_completed
+from concurrent.futures import FIRST_COMPLETED, wait
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 import json
@@ -17,7 +17,7 @@ import os
 from pathlib import Path
 from threading import Lock
 from time import monotonic_ns
-from typing import Any, Callable, Mapping, Sequence, TypeVar
+from typing import Any, Callable, Iterable, Iterator, Mapping, Sequence, TypeVar
 
 from src.policy.carriers.canonical import canonical_sha256
 from src.runtime.execution_resource_ledger import (
@@ -44,6 +44,9 @@ SEMANTIC_EXECUTION_SCHEMA_VERSION = "sensiblaw.semantic-execution-receipt.v1"
 CLOSURE_REPLAY_CONTRACT = "closure-receipt-replay:v1"
 CLOSURE_ACTIVATION_LEAF_SCHEMA_VERSION = "sensiblaw.closure-activation-leaf.v1"
 CLOSURE_ACTIVATION_CONTRACT = "closure-activation-leaves:v1"
+CLOSURE_HANDOFF_SCHEMA_VERSION = "sensiblaw.closure-handoff-state.v2"
+CLOSURE_HANDOFF_CONTRACT = "closure-owner-replay:v2"
+CLOSURE_REPLAY_ARTIFACT_SCHEMA_VERSION = "sensiblaw.closure-replay-artifact.v1"
 
 
 def _integer_env(name: str, default: int, *, minimum: int = 1) -> int:
@@ -95,9 +98,11 @@ class SemanticExecutionContext:
     closure_events: list[dict[str, Any]] = field(default_factory=list)
     closure_counters: Counter[str] = field(default_factory=Counter)
     closure_activation: dict[str, Any] = field(default_factory=dict)
+    closure_activation_completed_ns: int | None = field(default=None, repr=False)
     amplification: dict[str, Any] = field(default_factory=dict)
     state: str = "running"
     error: dict[str, str] | None = None
+    reconstructing_owner: bool = field(default=False, repr=False)
     lock: Lock = field(default_factory=Lock, repr=False)
 
     @property
@@ -126,6 +131,18 @@ class SemanticExecutionContext:
         if self.checkpoint_root is None:
             return None
         return self.checkpoint_root / "closure-activation"
+
+    @property
+    def closure_handoff_checkpoint_path(self) -> Path | None:
+        if self.closure_activation_checkpoint_root is None:
+            return None
+        return self.closure_activation_checkpoint_root / "handoff-state.json"
+
+    @property
+    def closure_replay_artifact_root(self) -> Path | None:
+        if self.closure_activation_checkpoint_root is None:
+            return None
+        return self.closure_activation_checkpoint_root / "replay-artifacts"
 
     def sample(
         self,
@@ -167,8 +184,7 @@ class SemanticExecutionContext:
         if self.closure_checkpoint_root is None:
             return None
         safe = "".join(
-            character if character.isalnum() or character in "-_."
-            else "_"
+            character if character.isalnum() or character in "-_." else "_"
             for character in job_ref
         )
         return self.closure_checkpoint_root / f"{safe}.json"
@@ -545,9 +561,7 @@ def _build_context(
             "SENSIBLAW_TYPING_WORKERS", max(1, closure_workers)
         ),
         leaf_capacity=_integer_env("SENSIBLAW_TYPING_LEAF_CAPACITY", 4096),
-        hierarchy_arity=_integer_env(
-            "SENSIBLAW_TYPING_HIERARCHY_ARITY", 4, minimum=2
-        ),
+        hierarchy_arity=_integer_env("SENSIBLAW_TYPING_HIERARCHY_ARITY", 4, minimum=2),
         closure_activation_leaf_size=_integer_env(
             "SENSIBLAW_CLOSURE_ACTIVATION_LEAF_SIZE", 512
         ),
@@ -571,8 +585,418 @@ def _closure_activation_leaf_path(root: Path | None, leaf_ref: str) -> Path | No
     return root / f"{leaf_ref.replace(':', '_')}.json"
 
 
+def _handoff_identity(context: SemanticExecutionContext) -> dict[str, str]:
+    """Return the complete compatibility identity for closure replay state.
+
+    Replay artifacts are immutable and content addressed.  Their namespace must
+    include the contract that defines how the content is interpreted; otherwise
+    a pre-v2 artifact can share a value-derived reference with a v2 artifact.
+    """
+
+    return {
+        "document_ref": context.document_ref,
+        "source_sha256": context.source_sha256,
+        "parser_contract_ref": context.parser_contract_ref,
+        "build_key_sha256": context.build_key_sha256,
+        "handoff_schema_version": CLOSURE_HANDOFF_SCHEMA_VERSION,
+        "handoff_contract_ref": CLOSURE_HANDOFF_CONTRACT,
+        "artifact_schema_version": CLOSURE_REPLAY_ARTIFACT_SCHEMA_VERSION,
+    }
+
+
+def _write_closure_handoff_checkpoint(context: SemanticExecutionContext) -> None:
+    """Persist a self-verifying replay contract, never Python owner internals."""
+
+    path = context.closure_handoff_checkpoint_path
+    if path is None or context.reconstructing_owner:
+        return
+    activation = context.closure_activation
+    payload: dict[str, Any] = {
+        "schema_version": CLOSURE_HANDOFF_SCHEMA_VERSION,
+        "contract_ref": CLOSURE_HANDOFF_CONTRACT,
+        **_handoff_identity(context),
+        "next_leaf_ordinal": int(activation.get("next_leaf_ordinal") or 0),
+        "completed_leaf_refs": list(activation.get("completed_leaf_refs") or ()),
+        "buffered_leaf_refs": list(activation.get("buffered_leaf_refs") or ()),
+        "admitted_leaf_refs": list(activation.get("admitted_leaf_refs") or ()),
+        "admitted_batch_refs": list(activation.get("admitted_batch_refs") or ()),
+        "recorded_delta_refs": list(activation.get("recorded_delta_refs") or ()),
+        "delta_artifact_refs": list(activation.get("delta_artifact_refs") or ()),
+        "proposal_batch_artifact_refs": list(
+            activation.get("proposal_batch_artifact_refs") or ()
+        ),
+        "receipt_artifact_refs": list(activation.get("receipt_artifact_refs") or ()),
+        "reduction_artifact_refs": list(
+            activation.get("reduction_artifact_refs") or ()
+        ),
+        "replay_events": list(activation.get("replay_events") or ()),
+        "current_owner_revision": int(activation.get("current_owner_revision") or 0),
+        "completed_reduction_key_refs": list(
+            activation.get("completed_reduction_key_refs") or ()
+        ),
+        "unresolved_frontier_refs": list(
+            activation.get("unresolved_frontier_refs") or ()
+        ),
+    }
+    payload["checkpoint_ref"] = "closure-handoff:" + canonical_sha256(payload)
+    _atomic_write_json(path, payload)
+
+
+def _replay_artifact_path(
+    context: SemanticExecutionContext, artifact_ref: str
+) -> Path | None:
+    root = context.closure_replay_artifact_root
+    if root is None:
+        return None
+    safe = "".join(
+        character if character.isalnum() or character in "-_." else "_"
+        for character in artifact_ref
+    )
+    return root / f"{safe}.json"
+
+
+def _write_replay_artifact(
+    context: SemanticExecutionContext,
+    *,
+    artifact_kind: str,
+    value: Any,
+) -> str:
+    identity = {
+        "artifact_kind": artifact_kind,
+        "owner_identity": _handoff_identity(context),
+        "value_digest": canonical_sha256(value),
+    }
+    artifact_ref = "closure-replay:" + canonical_sha256(identity)
+    payload = {
+        "schema_version": CLOSURE_REPLAY_ARTIFACT_SCHEMA_VERSION,
+        "contract_ref": CLOSURE_HANDOFF_CONTRACT,
+        "artifact_ref": artifact_ref,
+        **identity,
+        "value": value,
+    }
+    path = _replay_artifact_path(context, artifact_ref)
+    if path is not None:
+        existing = _read_json(path) if path.exists() else None
+        if existing is not None and (
+            existing.get("schema_version") != CLOSURE_REPLAY_ARTIFACT_SCHEMA_VERSION
+            or existing.get("contract_ref") != CLOSURE_HANDOFF_CONTRACT
+            or existing.get("artifact_ref") != artifact_ref
+            or existing.get("artifact_kind") != artifact_kind
+            or existing.get("owner_identity") != _handoff_identity(context)
+            or existing.get("value_digest") != identity["value_digest"]
+            or canonical_sha256(existing.get("value")) != identity["value_digest"]
+        ):
+            raise ValueError("closure replay artifact identity collision")
+        if existing is None:
+            _atomic_write_json(path, payload)
+    return artifact_ref
+
+
+def _read_replay_artifact(
+    context: SemanticExecutionContext,
+    *,
+    artifact_ref: str,
+    artifact_kind: str,
+) -> Any:
+    if artifact_kind == "solver_receipt" and artifact_ref.startswith(
+        "closure-receipt-artifact:"
+    ):
+        job_ref = "semantic-job:" + artifact_ref.split(":", maxsplit=1)[1]
+        path = context.closure_receipt_path(job_ref)
+        if path is None or not path.exists():
+            raise ValueError(f"checkpointed solver receipt is missing: {job_ref}")
+        value = _read_json(path)
+        if value is None:
+            raise ValueError(f"checkpointed solver receipt is corrupt: {job_ref}")
+        receipt = _solver_receipt_from_row(value)
+        if receipt.job_ref != job_ref:
+            raise ValueError("checkpointed solver receipt job identity mismatch")
+        return value
+    path = _replay_artifact_path(context, artifact_ref)
+    if path is None or not path.exists():
+        raise ValueError(f"closure replay artifact is missing: {artifact_ref}")
+    payload = _read_json(path)
+    if (
+        payload is None
+        or payload.get("schema_version") != CLOSURE_REPLAY_ARTIFACT_SCHEMA_VERSION
+        or payload.get("contract_ref") != CLOSURE_HANDOFF_CONTRACT
+        or payload.get("artifact_ref") != artifact_ref
+        or payload.get("artifact_kind") != artifact_kind
+        or payload.get("owner_identity") != _handoff_identity(context)
+        or canonical_sha256(payload.get("value")) != payload.get("value_digest")
+    ):
+        raise ValueError(f"closure replay artifact is corrupt: {artifact_ref}")
+    identity = {
+        "artifact_kind": artifact_kind,
+        "owner_identity": _handoff_identity(context),
+        "value_digest": payload["value_digest"],
+    }
+    if "closure-replay:" + canonical_sha256(identity) != artifact_ref:
+        raise ValueError(f"closure replay artifact reference mismatch: {artifact_ref}")
+    return payload["value"]
+
+
+def _append_replay_event(
+    context: SemanticExecutionContext,
+    *,
+    artifact_kind: str,
+    artifact_ref: str,
+) -> None:
+    if context.reconstructing_owner:
+        return
+    activation = context.closure_activation
+    list_key = {
+        "observation_delta": "delta_artifact_refs",
+        "observation_delta_batch": "delta_artifact_refs",
+        "proposal_batch": "proposal_batch_artifact_refs",
+        "solver_receipt": "receipt_artifact_refs",
+        "dirty_reduction": "reduction_artifact_refs",
+    }[artifact_kind]
+    refs = list(activation.get(list_key) or ())
+    refs.append(artifact_ref)
+    activation[list_key] = tuple(refs)
+    events = list(activation.get("replay_events") or ())
+    event = {"artifact_kind": artifact_kind, "artifact_ref": artifact_ref}
+    events.append(event)
+    activation["replay_events"] = tuple(events)
+
+
+def _observation_delta_from_row(row: Mapping[str, Any]) -> Any:
+    from src.pnf.streaming_fixed_point import ObservationDelta
+
+    delta = ObservationDelta(
+        document_ref=str(row["document_ref"]),
+        batch_ref=str(row["batch_ref"]),
+        scope_ref=str(row["scope_ref"]),
+        sequence_no=int(row["sequence_no"]),
+        parser_contract=str(row["parser_contract"]),
+        observation_refs=tuple(row.get("observation_refs") or ()),
+        observations=tuple(dict(value) for value in row.get("observations") or ()),
+        token_start=int(row["token_start"]),
+        token_end=int(row["token_end"]),
+        char_start=int(row["char_start"]),
+        char_end=int(row["char_end"]),
+        token_count=int(row["token_count"]),
+        coverage_barrier=str(row.get("coverage_barrier") or "sentence"),
+        coverage_complete=bool(row.get("coverage_complete")),
+    )
+    if row.get("delta_ref") != delta.delta_ref:
+        raise ValueError("checkpointed observation delta identity mismatch")
+    return delta
+
+
+class ClosureOwnerReplayContract:
+    """Append-only owner event log and canonical fresh-owner reconstruction."""
+
+    def __init__(self, context: SemanticExecutionContext):
+        self.context = context
+        self._checkpoint_calls = 0
+        self.checkpoint = self._load_checkpoint()
+
+    def _load_checkpoint(self) -> dict[str, Any] | None:
+        path = self.context.closure_handoff_checkpoint_path
+        if path is None or not path.exists():
+            return None
+        payload = _read_json(path)
+        if payload is None:
+            raise ValueError("closure handoff checkpoint is corrupt")
+        checkpoint_ref = payload.pop("checkpoint_ref", None)
+        expected_ref = "closure-handoff:" + canonical_sha256(payload)
+        payload["checkpoint_ref"] = checkpoint_ref
+        if (
+            payload.get("schema_version") != CLOSURE_HANDOFF_SCHEMA_VERSION
+            or payload.get("contract_ref") != CLOSURE_HANDOFF_CONTRACT
+            or any(
+                payload.get(key) != value
+                for key, value in _handoff_identity(self.context).items()
+            )
+            or checkpoint_ref != expected_ref
+        ):
+            raise ValueError("closure handoff checkpoint identity mismatch")
+        events = payload.get("replay_events")
+        if not isinstance(events, list) or any(
+            not isinstance(event, Mapping)
+            or event.get("artifact_kind")
+            not in {
+                "observation_delta",
+                "observation_delta_batch",
+                "proposal_batch",
+                "solver_receipt",
+                "dirty_reduction",
+            }
+            or not event.get("artifact_ref")
+            for event in events
+        ):
+            raise ValueError("closure handoff checkpoint replay log is incomplete")
+        expected_by_kind = {
+            "proposal_batch": list(payload.get("proposal_batch_artifact_refs") or ()),
+            "solver_receipt": list(payload.get("receipt_artifact_refs") or ()),
+            "dirty_reduction": list(payload.get("reduction_artifact_refs") or ()),
+        }
+        actual_by_kind = {
+            kind: [
+                str(event["artifact_ref"])
+                for event in events
+                if event["artifact_kind"] == kind
+            ]
+            for kind in expected_by_kind
+        }
+        delta_events = [
+            str(event["artifact_ref"])
+            for event in events
+            if event["artifact_kind"]
+            in {"observation_delta", "observation_delta_batch"}
+        ]
+        if delta_events != list(payload.get("delta_artifact_refs") or ()):
+            raise ValueError("closure handoff checkpoint delta index is incomplete")
+        if actual_by_kind != expected_by_kind:
+            raise ValueError("closure handoff checkpoint artifact index is incomplete")
+        self.context.closure_activation.update(
+            {
+                key: tuple(value) if isinstance(value, list) else value
+                for key, value in payload.items()
+                if key not in _handoff_identity(self.context)
+            }
+        )
+        return payload
+
+    @property
+    def available(self) -> bool:
+        return self.checkpoint is not None and bool(
+            self.checkpoint.get("replay_events")
+        )
+
+    def reconstruct(self, owner: Any) -> None:
+        if not self.available:
+            return
+        checkpoint = self.checkpoint or {}
+        reconstructed = Counter()
+        started = monotonic_ns()
+        self.context.reconstructing_owner = True
+        try:
+            for event in checkpoint["replay_events"]:
+                kind = str(event["artifact_kind"])
+                artifact_ref = str(event["artifact_ref"])
+                value = _read_replay_artifact(
+                    self.context,
+                    artifact_ref=artifact_ref,
+                    artifact_kind=kind,
+                )
+                if kind == "observation_delta":
+                    owner.admit_observation_delta(_observation_delta_from_row(value))
+                    reconstructed["observation_delta"] += 1
+                elif kind == "observation_delta_batch":
+                    for row in value.get("deltas") or ():
+                        owner.admit_observation_delta(_observation_delta_from_row(row))
+                        reconstructed["observation_delta"] += 1
+                elif kind == "proposal_batch":
+                    proposals = tuple(
+                        _factor_proposal_from_row(row)
+                        for row in value.get("proposals") or ()
+                    )
+                    owner.admit_proposals(proposals, stage=str(value["stage"]))
+                elif kind == "solver_receipt":
+                    receipt = _solver_receipt_from_row(value)
+                    job = owner._pending_jobs.pop(receipt.job_ref, None)
+                    if job is None:
+                        raise ValueError(
+                            "checkpointed solver receipt has no reconstructed job"
+                        )
+                    owner._in_flight_jobs[receipt.job_ref] = job
+                    owner.admit_solver_receipt(receipt)
+                else:
+                    dirty_before = tuple(
+                        sorted(key.owner_ref for key in owner._dirty_groups)
+                    )
+                    result = owner.reduce_dirty_groups()
+                    if (
+                        result.resulting_revision != int(value["resulting_revision"])
+                        or dirty_before
+                        != tuple(sorted(value.get("dirty_owner_refs") or ()))
+                        or tuple(result.changed_factor_refs)
+                        != tuple(value.get("changed_factor_refs") or ())
+                    ):
+                        raise ValueError("checkpointed reduction replay diverged")
+                if kind not in {"observation_delta", "observation_delta_batch"}:
+                    reconstructed[kind] += 1
+        finally:
+            self.context.reconstructing_owner = False
+        unresolved = sorted({*owner._pending_jobs, *owner._in_flight_jobs})
+        if owner.revision != int(
+            checkpoint.get("current_owner_revision") or 0
+        ) or unresolved != sorted(checkpoint.get("unresolved_frontier_refs") or ()):
+            raise ValueError("closure owner reconstruction disagrees with checkpoint")
+        activation = self.context.closure_activation
+        activation["owner_reconstructed"] = True
+        activation["reconstructed_admission_count"] = reconstructed["observation_delta"]
+        activation["reconstructed_proposal_batch_count"] = reconstructed[
+            "proposal_batch"
+        ]
+        activation["reconstructed_receipt_count"] = reconstructed["solver_receipt"]
+        activation["reconstructed_reduction_count"] = reconstructed["dirty_reduction"]
+        activation["owner_reconstruction_elapsed_ns"] = monotonic_ns() - started
+        self.context.sample(
+            "owner_frontier_reconstruction",
+            phase="closure_resume",
+            counts=dict(reconstructed),
+            details={"owner_revision": owner.revision},
+            elapsed_ns=activation["owner_reconstruction_elapsed_ns"],
+        )
+
+    def record_observation_batch(self, deltas: Iterable[Any], *, owner: Any) -> None:
+        started = monotonic_ns()
+        new_deltas = tuple(
+            delta
+            for delta in deltas
+            if delta.delta_ref
+            not in set(self.context.closure_activation.get("recorded_delta_refs") or ())
+        )
+        if not new_deltas:
+            self.checkpoint_owner(owner, force=True)
+            return
+        artifact_ref = _write_replay_artifact(
+            self.context,
+            artifact_kind="observation_delta_batch",
+            value={"deltas": [delta.to_dict() for delta in new_deltas]},
+        )
+        _append_replay_event(
+            self.context,
+            artifact_kind="observation_delta_batch",
+            artifact_ref=artifact_ref,
+        )
+        recorded = set(self.context.closure_activation.get("recorded_delta_refs") or ())
+        recorded.update(delta.delta_ref for delta in new_deltas)
+        self.context.closure_activation["recorded_delta_refs"] = tuple(sorted(recorded))
+        self.checkpoint_owner(owner, force=True)
+        self.context.sample(
+            "owner_admission_batch",
+            phase="closure_handoff",
+            counts={
+                "rows_in": len(new_deltas),
+                "pending_jobs": len(owner._pending_jobs),
+                "owner_revision": owner.revision,
+            },
+            details={"checkpoint_managed": True},
+            elapsed_ns=monotonic_ns() - started,
+        )
+
+    def checkpoint_owner(self, owner: Any, *, force: bool = False) -> None:
+        self.context.closure_activation["current_owner_revision"] = owner.revision
+        self.context.closure_activation["unresolved_frontier_refs"] = tuple(
+            sorted({*owner._pending_jobs, *owner._in_flight_jobs})
+        )
+        self._checkpoint_calls += 1
+        interval = _integer_env("SENSIBLAW_CLOSURE_HANDOFF_CHECKPOINT_INTERVAL", 32)
+        if force or self._checkpoint_calls % interval == 0:
+            _write_closure_handoff_checkpoint(self.context)
+
+
 def _load_closure_activation_leaf(
-    path: Path | None, *, leaf_ref: str, input_digest: str
+    path: Path | None,
+    *,
+    leaf_ref: str,
+    input_identity: list[list[Any]],
+    input_digest: str,
 ) -> dict[str, Any] | None:
     if path is None or not path.exists():
         return None
@@ -582,17 +1006,12 @@ def _load_closure_activation_leaf(
         or payload.get("schema_version") != CLOSURE_ACTIVATION_LEAF_SCHEMA_VERSION
         or payload.get("contract_ref") != CLOSURE_ACTIVATION_CONTRACT
         or payload.get("leaf_ref") != leaf_ref
+        or payload.get("input_identity") != input_identity
         or payload.get("input_digest") != input_digest
     ):
-        return None
-    value = payload.get("value")
-    if canonical_sha256(value) != payload.get("output_digest"):
-        return None
-    if not isinstance(value, list) or any(
-        not isinstance(row, Mapping) or "checkpoint_payload" not in row
-        for row in value
-    ):
-        return None
+        raise ValueError(f"closure activation leaf is corrupt: {path.name}")
+    if canonical_sha256(payload.get("value")) != payload.get("output_digest"):
+        raise ValueError(f"closure activation leaf digest mismatch: {path.name}")
     return payload
 
 
@@ -601,7 +1020,34 @@ def prepare_closure_activation_leaves(
     context: SemanticExecutionContext,
     observation_deltas: Sequence[Any],
 ) -> tuple[Any, ...]:
-    """Checkpoint physical activation preparation without changing owner authority."""
+    """Materialize the compatibility view of the ordered activation producer.
+
+    New execution paths consume :func:`iter_closure_activation_leaves` directly.
+    Keeping this helper preserves the older test and caller surface without making
+    the bounded compiler wait for every physical leaf.
+    """
+
+    return tuple(
+        delta
+        for leaf in iter_closure_activation_leaves(
+            context=context, observation_deltas=observation_deltas
+        )
+        for delta in leaf
+    )
+
+
+def iter_closure_activation_leaves(
+    *,
+    context: SemanticExecutionContext,
+    observation_deltas: Iterable[Any],
+) -> Iterator[tuple[Any, ...]]:
+    """Yield checkpointed immutable activation leaves in canonical order.
+
+    Workers may finish in any order.  The small ordinal buffer is deliberately
+    an execution concern: it contains leaf references/results, never owner state
+    or serialised observation deltas.  A consumer draining this iterator applies
+    natural backpressure before another future can be submitted.
+    """
 
     from src.policy.parallel_typing_tail import (
         _pool,
@@ -609,70 +1055,89 @@ def prepare_closure_activation_leaves(
     )
 
     ordered = tuple(
-        sorted(observation_deltas, key=lambda row: (int(row.sequence_no), row.delta_ref))
+        sorted(
+            observation_deltas, key=lambda row: (int(row.sequence_no), row.delta_ref)
+        )
     )
     chunks = tuple(
         ordered[offset : offset + context.closure_activation_leaf_size]
         for offset in range(0, len(ordered), context.closure_activation_leaf_size)
     )
     started = monotonic_ns()
-    leaves: list[dict[str, Any] | None] = [None] * len(chunks)
-    pending: dict[Any, tuple[int, str, str, Path | None]] = {}
+    leaves: dict[int, dict[str, Any]] = {}
+    leaf_completed_ns: dict[int, int] = {}
+    pending: dict[Any, tuple[int, str, list[list[Any]], str, Path | None]] = {}
+    next_submit = 0
+    next_ordinal = 0
     reused = 0
     computed = 0
     worker_pids: set[int] = set()
-    for ordinal, chunk in enumerate(chunks):
-        rows = [row.to_dict() for row in chunk]
-        input_digest = canonical_sha256(rows)
+    computed_worker_pids: set[int] = set()
+    reused_worker_pids: set[int] = set()
+    completed_leaf_refs: list[str] = []
+    admitted_leaf_refs: list[str] = []
+    max_buffered = 0
+    max_buffered_bytes = 0
+    activation_input_bytes = 0
+    activation_output_bytes = 0
+    head_of_line_wait_ns = 0
+    executor = _pool()
+    worker_count = max(1, _integer_env("SENSIBLAW_SEMANTIC_PROCESS_WORKERS", 1))
+    buffer_limit = max(1, 2 * worker_count)
+    context.closure_activation.update(
+        {
+            "contract_ref": CLOSURE_ACTIVATION_CONTRACT,
+            "configured_leaf_size": context.closure_activation_leaf_size,
+            "leaf_count": len(chunks),
+            "admission_order": "sequence_no_delta_ref_ascending",
+            "admitted_delta_count": int(
+                context.closure_activation.get("reconstructed_admission_count") or 0
+            ),
+            "new_admission_count": 0,
+            "duplicate_admission_count": 0,
+            "admitted_batch_refs": (),
+            "first_owner_admission_latency_ns": None,
+            "first_ready_job_latency_ns": None,
+            "owner_admission_started_immediately": False,
+            "ready_job_count": 0,
+            "admission_elapsed_ns": 0,
+            "buffer_limit_leaves": buffer_limit,
+        }
+    )
+
+    def descriptor(
+        ordinal: int,
+    ) -> tuple[int, str, list[list[Any]], str, Path | None, tuple[Any, ...]]:
+        chunk = chunks[ordinal]
+        # ``delta_ref`` is the immutable semantic identity.  The owner never
+        # serialises or hashes full deltas merely to schedule physical leaves.
+        input_identity = [[int(delta.sequence_no), delta.delta_ref] for delta in chunk]
+        input_digest = canonical_sha256(input_identity)
         leaf_ref = "closure-activation:" + canonical_sha256(
             {"ordinal": ordinal, "input_digest": input_digest}
         )
         path = _closure_activation_leaf_path(
             context.closure_activation_checkpoint_root, leaf_ref
         )
-        cached = _load_closure_activation_leaf(
-            path, leaf_ref=leaf_ref, input_digest=input_digest
-        )
-        if cached is not None:
-            leaves[ordinal] = cached
-            reused += 1
-            continue
-        payload = {"deltas": rows}
-        executor = _pool()
-        if executor is None:
-            result = prepare_closure_activation_leaf_worker(payload)
-            value = result["value"]
-            pid = int(result["pid"])
-            leaf = {
-                "schema_version": CLOSURE_ACTIVATION_LEAF_SCHEMA_VERSION,
-                "contract_ref": CLOSURE_ACTIVATION_CONTRACT,
-                "leaf_ref": leaf_ref,
-                "input_digest": input_digest,
-                "value": value,
-                "output_digest": canonical_sha256(value),
-                "worker_pid": pid,
-            }
-            if path is not None:
-                _atomic_write_json(path, leaf)
-            leaves[ordinal] = leaf
-            computed += 1
-            worker_pids.add(pid)
-        else:
-            pending[executor.submit(prepare_closure_activation_leaf_worker, payload)] = (
-                ordinal,
-                leaf_ref,
-                input_digest,
-                path,
-            )
-    for future in as_completed(pending):
-        ordinal, leaf_ref, input_digest, path = pending[future]
-        result = future.result()
+        return ordinal, leaf_ref, input_identity, input_digest, path, chunk
+
+    def checkpoint_leaf(
+        ordinal: int,
+        leaf_ref: str,
+        input_identity: list[list[Any]],
+        input_digest: str,
+        path: Path | None,
+        result: Mapping[str, Any],
+    ) -> None:
+        nonlocal computed, max_buffered, max_buffered_bytes
+        nonlocal activation_input_bytes, activation_output_bytes
         value = result["value"]
         pid = int(result["pid"])
         leaf = {
             "schema_version": CLOSURE_ACTIVATION_LEAF_SCHEMA_VERSION,
             "contract_ref": CLOSURE_ACTIVATION_CONTRACT,
             "leaf_ref": leaf_ref,
+            "input_identity": input_identity,
             "input_digest": input_digest,
             "value": value,
             "output_digest": canonical_sha256(value),
@@ -681,8 +1146,92 @@ def prepare_closure_activation_leaves(
         if path is not None:
             _atomic_write_json(path, leaf)
         leaves[ordinal] = leaf
+        leaf_completed_ns[ordinal] = monotonic_ns()
+        completed_leaf_refs.append(leaf_ref)
         computed += 1
         worker_pids.add(pid)
+        computed_worker_pids.add(pid)
+        max_buffered = max(max_buffered, len(leaves))
+        input_bytes = len(json.dumps(input_identity, separators=(",", ":")))
+        output_bytes = len(json.dumps(value, separators=(",", ":")))
+        activation_input_bytes += input_bytes
+        activation_output_bytes += output_bytes
+        max_buffered_bytes = max(
+            max_buffered_bytes,
+            sum(
+                len(json.dumps(row.get("value"), separators=(",", ":")))
+                for row in leaves.values()
+            ),
+        )
+
+    while next_ordinal < len(chunks):
+        # Submit only the worker window.  A completed out-of-order leaf counts
+        # against the same bound until its canonical predecessors are admitted.
+        while next_submit < len(chunks) and len(pending) + len(leaves) < buffer_limit:
+            ordinal, leaf_ref, input_identity, input_digest, path, chunk = descriptor(
+                next_submit
+            )
+            cached = _load_closure_activation_leaf(
+                path,
+                leaf_ref=leaf_ref,
+                input_identity=input_identity,
+                input_digest=input_digest,
+            )
+            if cached is not None:
+                leaves[ordinal] = cached
+                leaf_completed_ns[ordinal] = monotonic_ns()
+                completed_leaf_refs.append(leaf_ref)
+                cached_pid = int(cached.get("worker_pid") or 0)
+                if cached_pid:
+                    worker_pids.add(cached_pid)
+                    reused_worker_pids.add(cached_pid)
+                cached_input_bytes = len(
+                    json.dumps(input_identity, separators=(",", ":"))
+                )
+                cached_output_bytes = len(
+                    json.dumps(cached.get("value"), separators=(",", ":"))
+                )
+                activation_input_bytes += cached_input_bytes
+                activation_output_bytes += cached_output_bytes
+                max_buffered_bytes = max(
+                    max_buffered_bytes,
+                    sum(
+                        len(json.dumps(row.get("value"), separators=(",", ":")))
+                        for row in leaves.values()
+                    ),
+                )
+                reused += 1
+            elif executor is None:
+                checkpoint_leaf(
+                    ordinal,
+                    leaf_ref,
+                    input_identity,
+                    input_digest,
+                    path,
+                    prepare_closure_activation_leaf_worker({"deltas": chunk}),
+                )
+            else:
+                pending[
+                    executor.submit(
+                        prepare_closure_activation_leaf_worker, {"deltas": chunk}
+                    )
+                ] = (ordinal, leaf_ref, input_identity, input_digest, path)
+            next_submit += 1
+
+        if next_ordinal not in leaves and pending:
+            done, _ = wait(tuple(pending), return_when=FIRST_COMPLETED)
+            for future in done:
+                ordinal, leaf_ref, input_identity, input_digest, path = pending.pop(
+                    future
+                )
+                checkpoint_leaf(
+                    ordinal,
+                    leaf_ref,
+                    input_identity,
+                    input_digest,
+                    path,
+                    future.result(),
+                )
         stop_after = _integer_env(
             "SENSIBLAW_CLOSURE_ACTIVATION_STOP_AFTER_LEAVES", 0, minimum=0
         )
@@ -690,39 +1239,54 @@ def prepare_closure_activation_leaves(
             raise RuntimeError(
                 f"stopped after {computed} checkpointed closure activation leaves"
             )
-    completed = [leaf for leaf in leaves if leaf is not None]
-    if len(completed) != len(chunks):
-        raise RuntimeError("closure activation ended without complete leaf coverage")
-    prepared = [row for leaf in completed for row in leaf["value"]]
-    expected = [row.delta_ref for row in ordered]
-    if [row["delta_ref"] for row in prepared] != expected:
-        raise ValueError("closure activation leaf order disagrees with canonical deltas")
-    originals = {row.delta_ref: row for row in ordered}
-    for row in prepared:
-        original = originals[row["delta_ref"]]
-        if row["delta_digest"] != canonical_sha256(original.to_dict()):
-            raise ValueError("closure activation leaf identity disagrees with delta")
-        checkpoint = dict(row.get("checkpoint_payload") or {})
-        if (
-            checkpoint.get("delta_ref") != original.delta_ref
-            or int(checkpoint.get("sequence_no", -1)) != original.sequence_no
-            or tuple(checkpoint.get("observation_refs") or ())
-            != tuple(sorted(original.observation_refs))
-        ):
-            raise ValueError("closure activation checkpoint payload disagrees with delta")
+        if next_ordinal not in leaves:
+            continue
+        leaf = leaves.pop(next_ordinal)
+        completed_ns = leaf_completed_ns.pop(next_ordinal, monotonic_ns())
+        head_of_line_wait_ns = max(head_of_line_wait_ns, monotonic_ns() - completed_ns)
+        admitted_leaf_refs.append(str(leaf["leaf_ref"]))
+        context.closure_activation_completed_ns = monotonic_ns()
+        context.closure_activation.update(
+            {
+                "next_leaf_ordinal": next_ordinal + 1,
+                "completed_leaf_refs": tuple(completed_leaf_refs),
+                "buffered_leaf_refs": tuple(
+                    str(row["leaf_ref"]) for _, row in sorted(leaves.items())
+                ),
+                "admitted_leaf_refs": tuple(admitted_leaf_refs),
+                "max_buffered_leaves": max_buffered,
+            }
+        )
+        _write_closure_handoff_checkpoint(context)
+        stop_after_completion = _integer_env(
+            "SENSIBLAW_CLOSURE_STOP_AFTER_ACTIVATION_COMPLETION", 0, minimum=0
+        )
+        if stop_after_completion and len(admitted_leaf_refs) >= stop_after_completion:
+            raise RuntimeError("stopped after closure activation completion checkpoint")
+        yield chunks[next_ordinal]
+        next_ordinal += 1
     elapsed_ns = monotonic_ns() - started
-    context.closure_activation = {
-        "contract_ref": CLOSURE_ACTIVATION_CONTRACT,
-        "configured_leaf_size": context.closure_activation_leaf_size,
-        "leaf_count": len(chunks),
-        "computed_leaf_count": computed,
-        "reused_leaf_count": reused,
-        "worker_pids": sorted(worker_pids),
-        "activation_elapsed_ns": elapsed_ns,
-        "admission_order": "sequence_no_delta_ref_ascending",
-        "ready_job_count": 0,
-        "admission_elapsed_ns": 0,
-    }
+    context.closure_activation.update(
+        {
+            "computed_leaf_count": computed,
+            "reused_leaf_count": reused,
+            "worker_pids": sorted(worker_pids),
+            "computed_worker_pids": sorted(computed_worker_pids),
+            "reused_worker_pids": sorted(reused_worker_pids),
+            "activation_elapsed_ns": elapsed_ns,
+            "max_buffered_leaves": max_buffered,
+            "buffer_limit_leaves": buffer_limit,
+            "max_buffered_bytes": max_buffered_bytes,
+            "head_of_line_wait_ns": head_of_line_wait_ns,
+            "activation_input_bytes": activation_input_bytes,
+            "activation_output_bytes": activation_output_bytes,
+            "completed_leaf_refs": tuple(completed_leaf_refs),
+            "admitted_leaf_refs": tuple(admitted_leaf_refs),
+            "buffered_leaf_refs": (),
+            "next_leaf_ordinal": next_ordinal,
+        }
+    )
+    _write_closure_handoff_checkpoint(context)
     with context.lock:
         context.closure_counters["activation_leaf_count"] = len(chunks)
         context.closure_counters["activation_leaves_computed"] = computed
@@ -730,13 +1294,19 @@ def prepare_closure_activation_leaves(
         for pid in worker_pids:
             context.closure_counters[f"activation_worker_pid:{pid}"] += 1
     context.sample(
-        "streaming_closure:activation",
+        "activation_result_collection",
         phase="closure_activation_completed",
-        counts={"leaf_count": len(chunks), "computed_leaf_count": computed, "reused_leaf_count": reused},
+        counts={
+            "leaf_count": len(chunks),
+            "computed_leaf_count": computed,
+            "reused_leaf_count": reused,
+            "input_bytes": activation_input_bytes,
+            "output_bytes": activation_output_bytes,
+            "max_buffered_bytes": max_buffered_bytes,
+        },
         details=dict(context.closure_activation),
         elapsed_ns=elapsed_ns,
     )
-    return ordered
 
 
 def install_parallel_semantic_execution() -> bool:
@@ -773,7 +1343,9 @@ def install_parallel_semantic_execution() -> bool:
     original_compile = operational.compile_document_operational
     original_streaming = operational._streaming_semantic_build
     original_reduce_dirty = BoundedStreamingSemanticOwner.reduce_dirty_groups
+    original_admit_proposals = BoundedStreamingSemanticOwner.admit_proposals
     original_admit_observation = BoundedStreamingSemanticOwner.admit_observation_delta
+    original_admit_receipt = BoundedStreamingSemanticOwner.admit_solver_receipt
     original_execute = PythonClosureExecutor.execute
 
     def derive_wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -798,9 +1370,7 @@ def install_parallel_semantic_execution() -> bool:
             input_counts={
                 "mentions": len(kwargs.get("mentions") or ()),
                 "forms": len(kwargs.get("forms") or ()),
-                "structural_hypotheses": len(
-                    kwargs.get("structural_hypotheses") or ()
-                ),
+                "structural_hypotheses": len(kwargs.get("structural_hypotheses") or ()),
             },
             function=lambda: original_build_typing(*args, **kwargs),
             output_counts=lambda value: {
@@ -882,9 +1452,7 @@ def install_parallel_semantic_execution() -> bool:
         )
         context = _CONTEXT.get()
         if context is not None:
-            context.amplification.update(
-                meet_refinement_report(result[1], result[2])
-            )
+            context.amplification.update(meet_refinement_report(result[1], result[2]))
         return result
 
     def demands_wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -901,15 +1469,15 @@ def install_parallel_semantic_execution() -> bool:
             context.amplification.update(demand_report(result))
         return result
 
-    def binding_wrapper(artifacts: Mapping[str, Any]) -> dict[str, Any]:
-        result = original_binding(artifacts)
+    def binding_wrapper(artifacts: Mapping[str, Any], **kwargs: Any) -> dict[str, Any]:
+        result = original_binding(artifacts, **kwargs)
         context = _CONTEXT.get()
         if context is not None:
             context.amplification.update(candidate_set_report(result))
         return result
 
     def reduce_dirty_wrapper(self: Any) -> Any:
-        context = _CONTEXT.get()
+        context = _CONTEXT.get() or _context_for_document(self.document_ref)
         dirty = tuple(sorted(self._dirty_groups))
         proposals_examined = sum(
             len(self._proposals_by_owner.get(key, {})) for key in dirty
@@ -930,29 +1498,269 @@ def install_parallel_semantic_execution() -> bool:
                 context.closure_counters["revisions_introduced"] += max(
                     0, result.resulting_revision - result.prior_revision
                 )
-            context.sample(
-                "streaming_closure:dirty_group_reduction",
-                phase="closure_batch",
-                counts={
-                    "dirty_groups": len(dirty),
-                    "proposals_examined": proposals_examined,
-                    "settled_groups_rescanned": settled_rescans,
-                    "changed_factors": len(result.changed_factor_refs),
-                },
-                elapsed_ns=monotonic_ns() - started,
+                context.closure_activation["completed_reduction_key_refs"] = tuple(
+                    sorted(key.owner_ref for key in dirty)
+                )
+                context.closure_activation["current_owner_revision"] = self.revision
+                context.closure_activation["unresolved_frontier_refs"] = tuple(
+                    sorted({*self._pending_jobs, *self._in_flight_jobs})
+                )
+                if dirty and not context.reconstructing_owner:
+                    artifact_ref = _write_replay_artifact(
+                        context,
+                        artifact_kind="dirty_reduction",
+                        value={
+                            "prior_revision": result.prior_revision,
+                            "resulting_revision": result.resulting_revision,
+                            "dirty_owner_refs": [key.owner_ref for key in dirty],
+                            "changed_factor_refs": list(result.changed_factor_refs),
+                        },
+                    )
+                    _append_replay_event(
+                        context,
+                        artifact_kind="dirty_reduction",
+                        artifact_ref=artifact_ref,
+                    )
+            managed_checkpoint = bool(
+                context.closure_activation.get("batch_checkpoint_managed")
             )
+            if not context.reconstructing_owner and not context.closure_activation.get(
+                "batch_checkpoint_managed"
+            ):
+                context.sample(
+                    "dirty_group_reduction",
+                    phase="closure_batch",
+                    counts={
+                        "dirty_groups": len(dirty),
+                        "proposals_examined": proposals_examined,
+                        "settled_groups_rescanned": settled_rescans,
+                        "changed_factors": len(result.changed_factor_refs),
+                    },
+                    elapsed_ns=monotonic_ns() - started,
+                )
+            stop_after = _integer_env(
+                "SENSIBLAW_CLOSURE_STOP_AFTER_DIRTY_REDUCTIONS", 0, minimum=0
+            )
+            if not managed_checkpoint or (
+                stop_after
+                and not context.reconstructing_owner
+                and context.closure_counters["reduction_batches"] >= stop_after
+            ):
+                _write_closure_handoff_checkpoint(context)
+            if (
+                stop_after
+                and not context.reconstructing_owner
+                and context.closure_counters["reduction_batches"] >= stop_after
+            ):
+                raise RuntimeError(
+                    f"stopped after {stop_after} checkpointed dirty reductions"
+                )
+        return result
+
+    def admit_proposals_wrapper(
+        self: Any, proposals: Iterable[Any], *, stage: str
+    ) -> Any:
+        context = _CONTEXT.get() or _context_for_document(self.document_ref)
+        batch = tuple(proposals)
+        started = monotonic_ns()
+        result = original_admit_proposals(self, batch, stage=stage)
+        if context is not None and result.accepted_proposal_refs:
+            with context.lock:
+                counter_key = (
+                    "reconstructed_proposals_admitted"
+                    if context.reconstructing_owner
+                    else "new_proposals_admitted"
+                )
+                context.closure_counters[counter_key] += len(
+                    result.accepted_proposal_refs
+                )
+                if not context.reconstructing_owner:
+                    artifact_ref = _write_replay_artifact(
+                        context,
+                        artifact_kind="proposal_batch",
+                        value={
+                            "stage": stage,
+                            "proposals": [row.to_dict() for row in batch],
+                        },
+                    )
+                    _append_replay_event(
+                        context,
+                        artifact_kind="proposal_batch",
+                        artifact_ref=artifact_ref,
+                    )
+                context.closure_activation["current_owner_revision"] = self.revision
+                context.closure_activation["unresolved_frontier_refs"] = tuple(
+                    sorted({*self._pending_jobs, *self._in_flight_jobs})
+                )
+            if not context.closure_activation.get("batch_checkpoint_managed"):
+                _write_closure_handoff_checkpoint(context)
+            if not context.reconstructing_owner:
+                context.sample(
+                    "owner_proposal_admission",
+                    phase="closure_handoff",
+                    counts={
+                        "proposal_count": len(batch),
+                        "accepted_proposal_count": len(result.accepted_proposal_refs),
+                    },
+                    details={"stage": stage, "owner_revision": self.revision},
+                    elapsed_ns=monotonic_ns() - started,
+                )
+        return result
+
+    def admit_receipt_wrapper(self: Any, receipt: Any) -> Any:
+        context = _context_for_document(receipt.owner_key.document_ref)
+        result = original_admit_receipt(self, receipt)
+        if context is not None:
+            if not context.reconstructing_owner:
+                receipt_path = context.closure_receipt_path(receipt.job_ref)
+                if receipt_path is not None and not receipt_path.exists():
+                    _atomic_write_json(receipt_path, receipt.to_dict())
+                artifact_ref = (
+                    "closure-receipt-artifact:"
+                    + receipt.job_ref.split(":", maxsplit=1)[1]
+                )
+                _append_replay_event(
+                    context,
+                    artifact_kind="solver_receipt",
+                    artifact_ref=artifact_ref,
+                )
+                context.closure_counters["new_receipts_admitted"] += 1
+            else:
+                context.closure_counters["reconstructed_receipts_admitted"] += 1
+            context.closure_activation["current_owner_revision"] = self.revision
+            context.closure_activation["unresolved_frontier_refs"] = tuple(
+                sorted({*self._pending_jobs, *self._in_flight_jobs})
+            )
+            if not context.closure_activation.get("batch_checkpoint_managed"):
+                _write_closure_handoff_checkpoint(context)
         return result
 
     def admit_observation_wrapper(self: Any, delta: Any) -> Any:
         context = _context_for_document(delta.document_ref)
         started = monotonic_ns()
+        pending_before = len(self._pending_jobs)
+        already_admitted = delta.delta_ref in self._observation_deltas
         result = original_admit_observation(self, delta)
         if context is not None and context.closure_activation:
+            finished = monotonic_ns()
             with context.lock:
                 context.closure_activation["admission_elapsed_ns"] = int(
                     context.closure_activation.get("admission_elapsed_ns") or 0
-                ) + (monotonic_ns() - started)
-                context.closure_counters["activation_deltas_admitted"] += 1
+                ) + (finished - started)
+                if context.reconstructing_owner:
+                    admission_kind = "reconstructed"
+                elif already_admitted:
+                    admission_kind = "duplicate"
+                else:
+                    admission_kind = "new"
+                context.closure_counters[f"activation_deltas_{admission_kind}"] += 1
+                context.closure_activation[f"{admission_kind}_admission_count"] = (
+                    int(
+                        context.closure_activation.get(
+                            f"{admission_kind}_admission_count"
+                        )
+                        or 0
+                    )
+                    + 1
+                )
+                if admission_kind != "duplicate":
+                    context.closure_activation["admitted_delta_count"] = (
+                        int(context.closure_activation.get("admitted_delta_count") or 0)
+                        + 1
+                    )
+                batch_ref = str(getattr(delta, "batch_ref", ""))
+                admitted_batches = set(
+                    context.closure_activation.get("admitted_batch_refs") or ()
+                )
+                if batch_ref:
+                    admitted_batches.add(batch_ref)
+                context.closure_activation["admitted_batch_refs"] = tuple(
+                    sorted(admitted_batches)
+                )
+                context.closure_activation["current_owner_revision"] = self.revision
+                context.closure_activation["unresolved_frontier_refs"] = tuple(
+                    sorted({*self._pending_jobs, *self._in_flight_jobs})
+                )
+                if admission_kind == "new" and not context.closure_activation.get(
+                    "batch_checkpoint_managed"
+                ):
+                    artifact_ref = _write_replay_artifact(
+                        context,
+                        artifact_kind="observation_delta",
+                        value=delta.to_dict(),
+                    )
+                    _append_replay_event(
+                        context,
+                        artifact_kind="observation_delta",
+                        artifact_ref=artifact_ref,
+                    )
+                completed_ns = context.closure_activation_completed_ns
+                if (
+                    context.closure_activation.get("first_owner_admission_latency_ns")
+                    is None
+                    and completed_ns is not None
+                ):
+                    context.closure_activation["first_owner_admission_latency_ns"] = (
+                        max(0, started - completed_ns)
+                    )
+                    # Admission is entered directly from the prepared ordered
+                    # delta sequence; no leaf value is re-expanded on this path.
+                    context.closure_activation[
+                        "owner_admission_started_immediately"
+                    ] = True
+                    context.closure_activation["activation_owner_overlap_observed"] = (
+                        int(context.closure_activation.get("next_leaf_ordinal") or 0)
+                        < int(context.closure_activation.get("leaf_count") or 0)
+                    )
+                ready_created = max(0, len(self._pending_jobs) - pending_before)
+                context.closure_activation["ready_job_count"] = (
+                    int(context.closure_activation.get("ready_job_count") or 0)
+                    + ready_created
+                )
+                context.closure_activation["total_ready_job_count"] = int(
+                    context.closure_activation["ready_job_count"]
+                )
+                if (
+                    ready_created
+                    and context.closure_activation.get("first_ready_job_latency_ns")
+                    is None
+                    and completed_ns is not None
+                ):
+                    context.closure_activation["first_ready_job_latency_ns"] = max(
+                        0, finished - completed_ns
+                    )
+            if not context.reconstructing_owner and not context.closure_activation.get(
+                "batch_checkpoint_managed"
+            ):
+                context.sample(
+                    "owner_admission_batch",
+                    phase="closure_handoff",
+                    counts={
+                        "rows_in": 1,
+                        "rows_out": ready_created,
+                        "pending_jobs": len(self._pending_jobs),
+                    },
+                    details={"owner_revision": self.revision},
+                    elapsed_ns=finished - started,
+                )
+            managed_checkpoint = bool(
+                context.closure_activation.get("batch_checkpoint_managed")
+            )
+            stop_after = _integer_env(
+                "SENSIBLAW_CLOSURE_STOP_AFTER_OWNER_BATCH_ADMISSIONS", 0, minimum=0
+            )
+            if not managed_checkpoint:
+                _write_closure_handoff_checkpoint(context)
+            if (
+                stop_after
+                and not context.reconstructing_owner
+                and not managed_checkpoint
+                and int(context.closure_activation.get("new_admission_count") or 0)
+                >= stop_after
+            ):
+                raise RuntimeError(
+                    f"stopped after {stop_after} checkpointed owner admissions"
+                )
         return result
 
     def execute_wrapper(self: Any, job: Any) -> Any:
@@ -974,16 +1782,10 @@ def install_parallel_semantic_execution() -> bool:
             context.closure_counters["receipts_computed"] += 1
             context.closure_counters["proposals_emitted"] += len(receipt.proposals)
             context.closure_counters["dependency_fanout"] += sum(
-                len(proposal.dependency_factor_refs)
-                for proposal in receipt.proposals
+                len(proposal.dependency_factor_refs) for proposal in receipt.proposals
             )
-        stop_after = _integer_env(
-            "SENSIBLAW_CLOSURE_STOP_AFTER_RECEIPTS", 0, minimum=0
-        )
-        if (
-            stop_after
-            and context.closure_counters["receipts_computed"] >= stop_after
-        ):
+        stop_after = _integer_env("SENSIBLAW_CLOSURE_STOP_AFTER_RECEIPTS", 0, minimum=0)
+        if stop_after and context.closure_counters["receipts_computed"] >= stop_after:
             raise RuntimeError(
                 f"stopped after {stop_after} checkpointed closure receipts"
             )
@@ -1022,18 +1824,19 @@ def install_parallel_semantic_execution() -> bool:
             deltas = kwargs.get("observation_deltas")
             if deltas is None:
                 raise ValueError("streaming closure requires named observation_deltas")
-            kwargs["observation_deltas"] = prepare_closure_activation_leaves(
+            kwargs["observation_deltas"] = iter_closure_activation_leaves(
                 context=context,
-                observation_deltas=tuple(deltas),
+                observation_deltas=deltas,
             )
+            replay_contract = ClosureOwnerReplayContract(context)
+            context.closure_activation["batch_checkpoint_managed"] = True
+            kwargs["replay_contract"] = replay_contract
         started = monotonic_ns()
         result = original_streaming(*args, **kwargs)
         if context is not None:
             _build, metrics = result
+            kernel_telemetry = dict(metrics.get("kernel_telemetry") or {})
             with context.lock:
-                context.closure_activation["ready_job_count"] = int(
-                    metrics.get("closure_job_count") or 0
-                )
                 context.closure_counters["jobs_completed"] = int(
                     metrics.get("closure_job_count") or 0
                 )
@@ -1044,6 +1847,35 @@ def install_parallel_semantic_execution() -> bool:
                 context.closure_counters["materialized_factors"] = int(
                     metrics.get("materialized_factor_count") or 0
                 )
+                context.closure_activation["kernel_telemetry"] = kernel_telemetry
+                context.closure_activation["fixed_point_certificate"] = dict(
+                    _build.get("fixed_point_certificate") or {}
+                )
+            for stage_name, telemetry in kernel_telemetry.items():
+                if not isinstance(telemetry, Mapping):
+                    continue
+                counts = telemetry.get("counts") or {
+                    key: int(value)
+                    for key, value in telemetry.items()
+                    if isinstance(value, int) and not key.endswith("_ns")
+                }
+                elapsed = telemetry.get("elapsed_ns")
+                elapsed_total = (
+                    sum(int(value) for value in elapsed.values())
+                    if isinstance(elapsed, Mapping)
+                    else sum(
+                        int(value)
+                        for key, value in telemetry.items()
+                        if isinstance(value, int) and key.endswith("_ns")
+                    )
+                )
+                context.sample(
+                    f"closure_{stage_name}",
+                    phase="kernel_completed",
+                    counts=counts,
+                    details=telemetry,
+                    elapsed_ns=elapsed_total,
+                )
             context.sample(
                 "streaming_closure:fixed_point",
                 phase="kernel_completed",
@@ -1052,9 +1884,7 @@ def install_parallel_semantic_execution() -> bool:
                     "proposals_examined": context.closure_counters[
                         "proposals_examined"
                     ],
-                    "proposals_emitted": context.closure_counters[
-                        "proposals_emitted"
-                    ],
+                    "proposals_emitted": context.closure_counters["proposals_emitted"],
                     "changed_factors": context.closure_counters["changed_factors"],
                 },
                 elapsed_ns=monotonic_ns() - started,
@@ -1120,7 +1950,9 @@ def install_parallel_semantic_execution() -> bool:
     legacy.derive_resolution_demands = demands_wrapper
     operational.build_operational_reference_binding_artifacts = binding_wrapper
     BoundedStreamingSemanticOwner.reduce_dirty_groups = reduce_dirty_wrapper
+    BoundedStreamingSemanticOwner.admit_proposals = admit_proposals_wrapper
     BoundedStreamingSemanticOwner.admit_observation_delta = admit_observation_wrapper
+    BoundedStreamingSemanticOwner.admit_solver_receipt = admit_receipt_wrapper
     PythonClosureExecutor.execute = execute_wrapper
     operational._streaming_semantic_build = streaming_wrapper
     operational.compile_document_operational = compile_wrapper
@@ -1133,11 +1965,15 @@ def install_parallel_semantic_execution() -> bool:
 __all__ = [
     "CLOSURE_ACTIVATION_CONTRACT",
     "CLOSURE_ACTIVATION_LEAF_SCHEMA_VERSION",
+    "CLOSURE_HANDOFF_CONTRACT",
+    "CLOSURE_HANDOFF_SCHEMA_VERSION",
     "CLOSURE_REPLAY_CONTRACT",
+    "ClosureOwnerReplayContract",
     "SEMANTIC_EXECUTION_SCHEMA_VERSION",
     "SemanticExecutionContext",
     "indexed_atom_mention_refs",
     "indexed_parser_observation_refs_by_mention",
     "install_parallel_semantic_execution",
+    "iter_closure_activation_leaves",
     "prepare_closure_activation_leaves",
 ]

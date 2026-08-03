@@ -14,7 +14,7 @@ from src.policy.carriers.canonical import (
 T = TypeVar("T")
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class TypedAlternative(Generic[T]):
     alternative_ref: str
     value: T

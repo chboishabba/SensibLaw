@@ -25,7 +25,7 @@ _CLOSURE_STATES = {
 }
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class FactorConstraint:
     constraint_ref: str
     constraint_type: str
@@ -51,7 +51,7 @@ class FactorConstraint:
         }
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Factor(Generic[T]):
     factor_ref: str
     factor_type: str

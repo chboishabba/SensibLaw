@@ -69,7 +69,9 @@ def _pool() -> ProcessPoolExecutor | None:
             )
             _POOL_WORKERS = workers
         elif _POOL_WORKERS != workers:
-            raise ValueError("semantic process worker count changed during one document")
+            raise ValueError(
+                "semantic process worker count changed during one document"
+            )
         return _POOL
 
 
@@ -168,8 +170,8 @@ def prepare_closure_activation_leaf_worker(
     """
 
     prepared: list[dict[str, Any]] = []
-    for row in payload["deltas"]:
-        observations = tuple(row.get("observations") or ())
+    for delta in payload["deltas"]:
+        observations = tuple(delta.observations)
         observation_types = tuple(
             sorted(
                 {
@@ -180,23 +182,20 @@ def prepare_closure_activation_leaf_worker(
         )
         prepared.append(
             {
-                "delta_ref": str(row["delta_ref"]),
-                "sequence_no": int(row["sequence_no"]),
-                "observation_refs": tuple(sorted(str(value) for value in row.get("observation_refs") or ())),
+                "delta_ref": delta.delta_ref,
+                "sequence_no": delta.sequence_no,
+                "observation_refs": tuple(delta.observation_refs),
                 "observation_types": observation_types,
                 "compact_operator_input": {
-                    "scope_ref": str(row["scope_ref"]),
-                    "coverage_barrier": str(row["coverage_barrier"]),
-                    "coverage_complete": bool(row["coverage_complete"]),
+                    "scope_ref": delta.scope_ref,
+                    "coverage_barrier": delta.coverage_barrier,
+                    "coverage_complete": delta.coverage_complete,
                     "observation_count": len(observations),
                 },
-                "delta_digest": canonical_sha256(row),
                 "checkpoint_payload": {
-                    "delta_ref": str(row["delta_ref"]),
-                    "sequence_no": int(row["sequence_no"]),
-                    "observation_refs": tuple(
-                        sorted(str(value) for value in row.get("observation_refs") or ())
-                    ),
+                    "delta_ref": delta.delta_ref,
+                    "sequence_no": delta.sequence_no,
+                    "observation_refs": tuple(delta.observation_refs),
                 },
             }
         )
@@ -311,11 +310,7 @@ def _hierarchy_receipt(
         "output_digest": output_digest,
         "levels": levels,
         "worker_pids": sorted(
-            {
-                int(row.get("worker_pid") or 0)
-                for row in leaves
-                if row.get("worker_pid")
-            }
+            {int(row.get("worker_pid") or 0) for row in leaves if row.get("worker_pid")}
         ),
         "computed_leaf_count": sum(not bool(row.get("reused")) for row in leaves),
         "reused_leaf_count": sum(bool(row.get("reused")) for row in leaves),
@@ -377,9 +372,7 @@ def _execute_leaves(
         )
 
     newly_completed = 0
-    stop_after = _integer_env(
-        "SENSIBLAW_TYPING_TAIL_STOP_AFTER_LEAVES", 0, minimum=0
-    )
+    stop_after = _integer_env("SENSIBLAW_TYPING_TAIL_STOP_AFTER_LEAVES", 0, minimum=0)
     for ordinal, worker_result in future_rows:
         input_identity = input_identities[ordinal]
         input_digest = canonical_sha256(
@@ -671,11 +664,7 @@ def install_parallel_typing_tail() -> bool:
                 key=_structural_sort_key,
             )
             alternatives = sorted(
-                (
-                    row
-                    for value in values
-                    for row in value["local_type_alternatives"]
-                ),
+                (row for value in values for row in value["local_type_alternatives"]),
                 key=lambda row: row["type_ref"],
             )
             coverage = sorted(
@@ -707,9 +696,7 @@ def install_parallel_typing_tail() -> bool:
                     "structural_hypothesis_count": len(structural_output),
                     "local_type_alternative_count": len(alternatives),
                     "coverage_state_counts": {
-                        state: sum(
-                            row["coverage_state"] == state for row in coverage
-                        )
+                        state: sum(row["coverage_state"] == state for row in coverage)
                         for state in sorted(_COVERAGE_STATES)
                     },
                 },
@@ -840,11 +827,7 @@ def install_parallel_typing_tail() -> bool:
         def merge(values: Sequence[Any]) -> tuple[dict[str, Any], ...]:
             return tuple(
                 sorted(
-                    (
-                        _diagnostic_normalize(row)
-                        for value in values
-                        for row in value
-                    ),
+                    (_diagnostic_normalize(row) for value in values for row in value),
                     key=lambda row: str(row["mention_ref"]),
                 )
             )
@@ -881,23 +864,31 @@ def install_parallel_typing_tail() -> bool:
             return current_solve_operator(job)
         started = monotonic_ns()
         result = executor.submit(_solve_operator_job_worker, job).result()
+        elapsed_ns = monotonic_ns() - started
         with context.lock:
             context.closure_counters["process_jobs_completed"] += 1
             context.closure_counters[f"process_worker_pid:{result['pid']}"] += 1
-        context.sample(
-            "streaming_closure:process_solver",
-            phase="closure_job_completed",
-            counts={
-                "proposals_emitted": len(result["value"]),
-                "worker_pid": int(result["pid"]),
-            },
-            details={
-                "job_ref": job.job_ref,
-                "owner_ref": job.owner_key.owner_ref,
-                "process_backed": True,
-            },
-            elapsed_ns=monotonic_ns() - started,
-        )
+            context.closure_counters["process_solver_elapsed_ns"] += elapsed_ns
+            completed = context.closure_counters["process_jobs_completed"]
+        # Full RSS/PSS/USS collection reads process maps. Keep that telemetry
+        # bounded while retaining exact job/PID/timing counters for every job.
+        if completed == 1 or completed % 32 == 0:
+            context.sample(
+                "streaming_closure:process_solver",
+                phase="closure_job_progress",
+                counts={
+                    "jobs_completed": completed,
+                    "proposals_emitted": len(result["value"]),
+                    "worker_pid": int(result["pid"]),
+                },
+                details={
+                    "job_ref": job.job_ref,
+                    "owner_ref": job.owner_key.owner_ref,
+                    "process_backed": True,
+                    "sample_interval_jobs": 32,
+                },
+                elapsed_ns=elapsed_ns,
+            )
         return result["value"]
 
     def compile_wrapper(*args: Any, **kwargs: Any) -> Any:
