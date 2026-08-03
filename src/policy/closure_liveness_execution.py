@@ -1,9 +1,9 @@
 """Fail-fast closure finalisation and deferred materialised-view execution.
 
-The canonical reducers and semantic identities remain unchanged.  This module
+The canonical reducers and semantic identities remain unchanged. This module
 installs an execution-specialised owner class into the bounded compiler seam so
-that batch admission does not rebuild the complete document reduction after
-every batch, and an exhausted closure frontier must terminate with either a
+batch admission does not rebuild the complete document reduction after every
+batch, and an exhausted closure frontier must terminate with either a
 fixed-point certificate or a finite diagnostic failure.
 """
 
@@ -20,6 +20,8 @@ from src.pnf.streaming_fixed_point import (
     ConvergentLedger,
     CoverageNotice,
     DocumentFixedPointCertificate,
+    OwnerKey,
+    RegionBoundarySummary,
     StreamingSemanticOwner,
 )
 
@@ -86,6 +88,8 @@ class LivenessBoundedStreamingSemanticOwner(BoundedStreamingSemanticOwner):
         self._ledger_cache_revision = -1
         self._certificate_count = 0
         self._certificate_elapsed_ns = 0
+        self._reduction_keys_by_scope: dict[str, set[OwnerKey]] = {}
+        self._coverage_notice_refs_by_scope: dict[str, set[str]] = {}
         self._transition(ClosureLifecycleState.PRODUCING, reason="owner_created")
 
     def _transition(self, state: ClosureLifecycleState, *, reason: str) -> None:
@@ -118,7 +122,20 @@ class LivenessBoundedStreamingSemanticOwner(BoundedStreamingSemanticOwner):
 
     def admit_observation_delta(self, delta: Any):  # type: ignore[override]
         self._transition(ClosureLifecycleState.PRODUCING, reason="observation_admission")
-        return super().admit_observation_delta(delta)
+        result = super().admit_observation_delta(delta)
+        if delta.coverage_complete:
+            notice = CoverageNotice(
+                document_ref=self.document_ref,
+                scope_ref=delta.scope_ref,
+                barrier=delta.coverage_barrier,
+                state="complete",
+                evidence_refs=(delta.delta_ref,),
+            )
+            self._coverage_notice_refs_by_scope.setdefault(delta.scope_ref, set()).add(
+                notice.notice_ref
+            )
+        self._invalidate_execution_views()
+        return result
 
     def admit_solver_receipt(self, receipt: Any):  # type: ignore[override]
         self._transition(ClosureLifecycleState.DRAINING, reason="receipt_admission")
@@ -126,12 +143,15 @@ class LivenessBoundedStreamingSemanticOwner(BoundedStreamingSemanticOwner):
         return super().admit_solver_receipt(receipt)
 
     def reduce_dirty_groups(self):  # type: ignore[override]
-        if self._dirty_groups and not self._pending_jobs and not self._in_flight_jobs:
+        dirty = tuple(self._dirty_groups)
+        if dirty and not self._pending_jobs and not self._in_flight_jobs:
             self._transition(
                 ClosureLifecycleState.REDUCING_FINAL_DIRTY,
                 reason="final_dirty_reduction",
             )
         result = super().reduce_dirty_groups()
+        for key in dirty:
+            self._reduction_keys_by_scope.setdefault(key.scope_ref, set()).add(key)
         self._materialization_generation += 1
         self._deferred_reduction = None
         self._invalidate_execution_views()
@@ -139,6 +159,10 @@ class LivenessBoundedStreamingSemanticOwner(BoundedStreamingSemanticOwner):
 
     def admit_coverage_notice(self, notice: CoverageNotice):  # type: ignore[override]
         result = super().admit_coverage_notice(notice)
+        self._coverage_notice_refs_by_scope.setdefault(notice.scope_ref, set()).add(
+            notice.notice_ref
+        )
+        self._invalidate_execution_views()
         if (
             notice.scope_ref == "document-global"
             and notice.barrier == "document"
@@ -166,15 +190,11 @@ class LivenessBoundedStreamingSemanticOwner(BoundedStreamingSemanticOwner):
         return self._deferred_reduction  # type: ignore[return-value]
 
     def _materialize_reduction_now(self, generation: int) -> ProposalReduction:
-        if generation != self._materialization_generation:
-            # A stale deferred handle must resolve the current authoritative state,
-            # never an obsolete graph generation.
-            generation = self._materialization_generation
         if self._materialized_reduction_cache is not None:
             return self._materialized_reduction_cache
         started = monotonic_ns()
         reduction = StreamingSemanticOwner.materialized_reduction.fget(self)
-        if reduction is None:  # pragma: no cover - property contract guard
+        if reduction is None:  # pragma: no cover
             raise RuntimeError("canonical materialized reduction returned no value")
         self._materialization_count += 1
         self._materialization_elapsed_ns += monotonic_ns() - started
@@ -207,6 +227,37 @@ class LivenessBoundedStreamingSemanticOwner(BoundedStreamingSemanticOwner):
         self._ledger_cache = ledger
         self._ledger_cache_revision = self.revision
         return ledger
+
+    def region_boundary_summary(self, scope_ref: str) -> RegionBoundarySummary:
+        reductions = tuple(
+            self._reductions[key]
+            for key in sorted(self._reduction_keys_by_scope.get(scope_ref, ()))
+        )
+        factors = [factor for reduction in reductions for factor in reduction.factors]
+        residuals = [
+            residual for reduction in reductions for residual in reduction.residuals
+        ]
+        return RegionBoundarySummary(
+            document_ref=self.document_ref,
+            scope_ref=scope_ref,
+            stable_factor_refs=tuple(row.factor_ref for row in factors),
+            unresolved_external_refs=tuple(
+                row.residual_ref
+                for row in residuals
+                if row.residual_type == "missing_reduction_input"
+            ),
+            possible_cross_scope_hosts=tuple(
+                row.residual_ref
+                for row in residuals
+                if row.residual_type == "incompatible_alternatives"
+            ),
+            definition_scope_obligations=tuple(
+                ref for ref in self._boundary_obligations if scope_ref in ref
+            ),
+            coverage_notice_refs=tuple(
+                sorted(self._coverage_notice_refs_by_scope.get(scope_ref, ()))
+            ),
+        )
 
     def terminal_diagnostic(self) -> dict[str, Any]:
         required_barriers = {
@@ -245,6 +296,7 @@ class LivenessBoundedStreamingSemanticOwner(BoundedStreamingSemanticOwner):
             "materialization_elapsed_ns": self._materialization_elapsed_ns,
             "certificate_count": self._certificate_count,
             "certificate_elapsed_ns": self._certificate_elapsed_ns,
+            "indexed_scope_count": len(self._reduction_keys_by_scope),
             "events": list(self._lifecycle_events),
         }
 
