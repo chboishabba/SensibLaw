@@ -31,13 +31,15 @@ permissions:
 
 jobs:
   validate:
-    # This sprint intentionally validates on the repository's local runner so
-    # process-backed closure tests exercise the same Linux host topology used
-    # for exact-0008 acceptance.
     runs-on: self-hosted
     timeout-minutes: 90
+    env:
+      SENSIBLAW_FINALIZATION_BATCH_SIZE: "2"
+      SENSIBLAW_FINALIZATION_STALL_SECONDS: "120"
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-python@v5
         with:
@@ -65,6 +67,7 @@ jobs:
             src/policy/__init__.py \
             src/policy/bounded_operational_execution.py \
             src/policy/closure_liveness_execution.py \
+            src/policy/closure_finalization_hardening.py \
             src/policy/indexed_projection_execution.py \
             src/policy/parallel_semantic_execution.py \
             src/policy/parallel_typing_tail.py \
@@ -109,6 +112,7 @@ jobs:
             src/policy/__init__.py \
             src/policy/bounded_operational_execution.py \
             src/policy/closure_liveness_execution.py \
+            src/policy/closure_finalization_hardening.py \
             src/policy/indexed_projection_execution.py \
             src/policy/parallel_semantic_execution.py \
             src/policy/parallel_typing_tail.py \
