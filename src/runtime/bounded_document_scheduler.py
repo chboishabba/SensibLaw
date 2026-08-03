@@ -112,9 +112,7 @@ class BoundedDocumentScheduler(Generic[JobT, ResultT]):
         *,
         executor: Executor,
         execute: Callable[[JobT], ResultT],
-        admit: Callable[
-            [ScheduledJob[JobT], ResultT], Iterable[ScheduledJob[JobT]]
-        ],
+        admit: Callable[[ScheduledJob[JobT], ResultT], Iterable[ScheduledJob[JobT]]],
         sample_resources: Callable[[int, int, int], ResourceSnapshot],
         compact: Callable[[], None],
         policy: DocumentExecutionPolicy,

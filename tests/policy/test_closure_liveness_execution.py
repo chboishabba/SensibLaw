@@ -50,7 +50,9 @@ def _deltas(document_ref: str, count: int) -> tuple[ObservationDelta, ...]:
 
 
 def test_bounded_compiler_uses_liveness_owner() -> None:
-    assert bounded.BoundedStreamingSemanticOwner is LivenessBoundedStreamingSemanticOwner
+    assert (
+        bounded.BoundedStreamingSemanticOwner is LivenessBoundedStreamingSemanticOwner
+    )
 
 
 def test_final_partial_batch_drains_and_certifies_once(

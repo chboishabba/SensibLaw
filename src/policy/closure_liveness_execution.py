@@ -15,14 +15,13 @@ from time import monotonic_ns
 from typing import Any, Mapping
 
 from src.pnf.bounded_streaming_owner import BoundedStreamingSemanticOwner
-from src.pnf.factor_proposals import ProposalReduction
+from src.pnf.factor_proposals import ProposalReduction, reduce_factor_proposals
 from src.pnf.streaming_fixed_point import (
     ConvergentLedger,
     CoverageNotice,
     DocumentFixedPointCertificate,
     OwnerKey,
     RegionBoundarySummary,
-    StreamingSemanticOwner,
 )
 
 _INSTALL_MARKER = "_closure_liveness_execution_installed"
@@ -121,7 +120,9 @@ class LivenessBoundedStreamingSemanticOwner(BoundedStreamingSemanticOwner):
         return delta
 
     def admit_observation_delta(self, delta: Any):  # type: ignore[override]
-        self._transition(ClosureLifecycleState.PRODUCING, reason="observation_admission")
+        self._transition(
+            ClosureLifecycleState.PRODUCING, reason="observation_admission"
+        )
         result = super().admit_observation_delta(delta)
         if delta.coverage_complete:
             notice = CoverageNotice(
@@ -193,9 +194,16 @@ class LivenessBoundedStreamingSemanticOwner(BoundedStreamingSemanticOwner):
         if self._materialized_reduction_cache is not None:
             return self._materialized_reduction_cache
         started = monotonic_ns()
-        reduction = StreamingSemanticOwner.materialized_reduction.fget(self)
-        if reduction is None:  # pragma: no cover
-            raise RuntimeError("canonical materialized reduction returned no value")
+        reduction = reduce_factor_proposals(
+            document_ref=self.document_ref,
+            proposals=tuple(
+                self._proposals[proposal_ref]
+                for proposal_ref in sorted(self._proposals)
+            ),
+            known_observation_refs=self._observation_refs,
+            known_dependency_refs=self._known_dependency_refs,
+        )
+        self._materialized_reduction_cache = reduction
         self._materialization_count += 1
         self._materialization_elapsed_ns += monotonic_ns() - started
         return reduction
