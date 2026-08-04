@@ -53,6 +53,68 @@ def test_completed_artifacts_enrich_stage_identity_receipt(tmp_path) -> None:
     }
 
 
+def test_reference_surface_binds_logical_typing_refs(tmp_path) -> None:
+    path = tmp_path / "semantic-execution-receipt.json"
+    path.write_text(
+        json.dumps(
+            {
+                "state": "completed",
+                "document_ref": "document:1",
+                "typing_hierarchies": {
+                    "local_type_carrier_build": {
+                        "logical_typing_ref": "logical-typing:carrier"
+                    }
+                },
+                "amplification": {"identity_receipt": {}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    descriptor = {
+        "schema_version": "sensiblaw.streaming-family-descriptor.v1",
+        "family": "factors",
+        "storage_kind": "jsonl",
+        "record_count": 1,
+        "byte_count": 12,
+        "ordered_digest": "digest:factors",
+        "encoding_ref": "canonical-jsonl:v1",
+        "path": "/tmp/factors.jsonl",
+    }
+
+    receipt = enrich_semantic_receipt(
+        path,
+        artifacts={
+            "streaming_semantic_build": {
+                "reference_backed": True,
+                "document_ref": "document:1",
+                "revision": 1,
+                "reference_finalization_contract": (
+                    "reference-backed-finalization:v1"
+                ),
+                "owner_fingerprint": {},
+                "materialized_reduction": {"graph_ref": "graph:1"},
+                "fixed_point_certificate": {
+                    "certificate_ref": "certificate:1",
+                    "ledger_ref": "ledger:1",
+                    "materialized_graph_ref": "graph:1",
+                    "local_fixed_point": "reached",
+                },
+                "family_manifests": {"factors": descriptor},
+            }
+        },
+    )
+
+    surface = receipt["amplification"]["identity_receipt"][
+        "reference_semantic_surface"
+    ]
+    assert surface["logical_typing_refs"] == {
+        "local_type_carrier_build": "logical-typing:carrier"
+    }
+    assert receipt["reference_backed_execution"]["logical_typing_refs"] == {
+        "local_type_carrier_build": "logical-typing:carrier"
+    }
+
+
 def test_identity_enrichment_never_adds_physical_partition_fields(tmp_path) -> None:
     path = tmp_path / "semantic-execution-receipt.json"
     path.write_text(
