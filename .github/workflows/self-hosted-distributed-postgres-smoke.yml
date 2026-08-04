@@ -1,0 +1,115 @@
+name: Distributed semantic PostgreSQL smoke
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/self-hosted-distributed-postgres-smoke.yml"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag, or commit to validate"
+        required: false
+        default: "agent/repair-corpus-progress-stage-lifecycle"
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-smoke:
+    runs-on: self-hosted
+    timeout-minutes: 30
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5433
+      PGUSER: postgres
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || 'agent/repair-corpus-progress-stage-lifecycle' }}
+          persist-credentials: false
+
+      - name: Require local PostgreSQL
+        run: |
+          set -euo pipefail
+          command -v psql
+          command -v createdb
+          command -v dropdb
+          pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER"
+
+      - name: Create disposable database
+        id: database
+        run: |
+          set -euo pipefail
+          database="sensiblaw_ci_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
+          dropdb --if-exists "$database"
+          createdb "$database"
+          echo "name=$database" >> "$GITHUB_OUTPUT"
+
+      - name: Apply complete migration chain
+        env:
+          PGDATABASE: ${{ steps.database.outputs.name }}
+        run: |
+          set -euo pipefail
+          for migration in $(find database/postgres_migrations -maxdepth 1 -type f -name '*.sql' | sort); do
+            echo "Applying $migration"
+            psql -v ON_ERROR_STOP=1 -f "$migration"
+          done
+
+      - name: Verify execution schema and outbox triggers
+        env:
+          PGDATABASE: ${{ steps.database.outputs.name }}
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          DECLARE
+              relation_name text;
+          BEGIN
+              FOREACH relation_name IN ARRAY ARRAY[
+                  'semantic_owner_stream',
+                  'semantic_job',
+                  'semantic_job_dependency',
+                  'semantic_job_attempt',
+                  'semantic_delta',
+                  'semantic_delta_admission',
+                  'semantic_graph_manifest',
+                  'semantic_graph_family_segment',
+                  'semantic_factor_revision',
+                  'semantic_residual_revision',
+                  'semantic_finalization_checkpoint',
+                  'semantic_fixed_point_receipt',
+                  'semantic_execution_receipt',
+                  'semantic_outbox',
+                  'publication_build'
+              ] LOOP
+                  IF to_regclass('execution.' || relation_name) IS NULL THEN
+                      RAISE EXCEPTION 'missing execution relation %', relation_name;
+                  END IF;
+              END LOOP;
+              IF NOT EXISTS (
+                  SELECT 1 FROM pg_trigger
+                  WHERE tgname = 'semantic_delta_admission_outbox'
+                    AND NOT tgisinternal
+              ) THEN
+                  RAISE EXCEPTION 'missing delta-admission outbox trigger';
+              END IF;
+              IF NOT EXISTS (
+                  SELECT 1 FROM pg_trigger
+                  WHERE tgname = 'semantic_publication_outbox'
+                    AND NOT tgisinternal
+              ) THEN
+                  RAISE EXCEPTION 'missing publication outbox trigger';
+              END IF;
+          END
+          $$;
+          SQL
+
+      - name: Drop disposable database
+        if: always()
+        run: |
+          database='${{ steps.database.outputs.name }}'
+          if [[ -n "$database" ]]; then
+            dropdb --if-exists "$database"
+          fi
