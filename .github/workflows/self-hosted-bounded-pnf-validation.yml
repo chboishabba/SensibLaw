@@ -74,10 +74,12 @@ jobs:
             tests/policy/test_progress_observability_execution.py \
             tests/runtime/test_checkpoint_retention.py \
             tests/runtime/test_distributed_semantic_worker.py \
+            tests/runtime/test_post_closure_probe.py \
             tests/runtime/test_reference_parity.py \
             tests/runtime/test_reference_receipt.py \
             tests/runtime/test_stage_memory_budget.py \
-            tests/storage/test_distributed_semantic_execution_store.py
+            tests/storage/test_distributed_semantic_execution_store.py \
+            tests/storage/test_reference_publication_authority.py
 
       - name: Check formatting
         run: |
@@ -109,10 +111,12 @@ jobs:
             tests/policy/test_progress_observability_execution.py \
             tests/runtime/test_checkpoint_retention.py \
             tests/runtime/test_distributed_semantic_worker.py \
+            tests/runtime/test_post_closure_probe.py \
             tests/runtime/test_reference_parity.py \
             tests/runtime/test_reference_receipt.py \
             tests/runtime/test_stage_memory_budget.py \
-            tests/storage/test_distributed_semantic_execution_store.py
+            tests/storage/test_distributed_semantic_execution_store.py \
+            tests/storage/test_reference_publication_authority.py
 
       - name: Run distributed execution regressions
         run: |
@@ -120,6 +124,7 @@ jobs:
             tests/runtime/test_bounded_document_scheduler.py \
             tests/runtime/test_checkpoint_retention.py \
             tests/runtime/test_distributed_semantic_worker.py \
+            tests/runtime/test_post_closure_probe.py \
             tests/runtime/test_reference_parity.py \
             tests/runtime/test_reference_receipt.py \
             tests/runtime/test_stage_memory_budget.py \
@@ -130,7 +135,8 @@ jobs:
             tests/policy/test_closure_liveness_execution.py \
             tests/policy/test_progress_observability_execution.py \
             tests/policy/test_semantic_receipt_enrichment.py \
-            tests/storage/test_distributed_semantic_execution_store.py
+            tests/storage/test_distributed_semantic_execution_store.py \
+            tests/storage/test_reference_publication_authority.py
 
       - name: Validate migration and formal invariants
         run: |
@@ -157,12 +163,19 @@ jobs:
           assert "commit_publication" in store
 
           tla = Path("formal/DistributedSemanticExecution.tla").read_text()
+          cfg = Path("formal/DistributedSemanticExecution.cfg").read_text()
           for invariant in (
               "LeaseFencingSafety",
               "ExactlyOneSemanticAdmission",
               "OwnerRevisionAgreement",
+              "OwnerRevisionCountsAdmissions",
+              "NoDuplicateOwnerRevision",
               "FixedPointSoundness",
               "Termination",
           ):
               assert invariant in tla
+              assert invariant in cfg or invariant == "Termination"
+          assert "DependencyRank" in tla and "DependencyRank" in cfg
+          assert "WF_vars(ComputeJob(j))" in tla
+          assert "WF_vars(ResolveJob(j))" in tla
           PY
