@@ -1,8 +1,13 @@
 """Proactive memory budgets for document compiler stage boundaries.
 
-The global process limit remains the final safety net.  These lower stage-local
+The global process limit remains the final safety net. These lower stage-local
 budgets make pressure visible before one stage consumes all remaining headroom
 and record a durable transition receipt for restart and capacity planning.
+
+Semantic execution is fail-closed: a telemetry stage emitted through the
+semantic execution context must resolve to an explicit budget family. This
+prevents a new kernel label from silently appearing as ``unbudgeted`` during a
+long exact-document run.
 """
 
 from __future__ import annotations
@@ -19,7 +24,7 @@ from src.runtime.execution_resource_ledger import sample_process_resources
 
 MIB = 1024 * 1024
 GIB = 1024 * MIB
-STAGE_BUDGET_SCHEMA_VERSION = "sensiblaw.stage-memory-budget.v1"
+STAGE_BUDGET_SCHEMA_VERSION = "sensiblaw.stage-memory-budget.v2"
 
 
 @dataclass(frozen=True)
@@ -48,13 +53,29 @@ DEFAULT_STAGE_BUDGETS: Mapping[str, StageMemoryBudget] = {
     "parity": StageMemoryBudget("parity", 1536 * MIB, 2560 * MIB),
 }
 
+# Exact aliases remain useful documentation for externally visible stage names.
 _STAGE_ALIASES = {
     "parser_annotation": "parser_projection",
     "parser_observation_projection": "parser_projection",
     "local_typing_diagnostics": "typing",
     "base_proposal_generation": "closure",
+    "base_proposal_reduction": "closure",
     "streaming_closure": "closure",
     "closure_executor_evaluation": "closure",
+    "activation_result_collection": "closure",
+    "activation_checkpoint_verification": "closure",
+    "activation_owner_handoff": "closure",
+    "job_payload_construction": "closure",
+    "job_identity_digesting": "closure",
+    "job_canonical_sort": "closure",
+    "job_deduplication": "closure",
+    "owner_key_projection": "closure",
+    "owner_admission_batch": "closure",
+    "dirty_group_reduction": "closure",
+    "ready_frontier_construction": "closure",
+    "scheduled_job_submission": "closure",
+    "composition_generation": "closure",
+    "composition_proposal_reduction": "closure",
     "materialize_factor_reductions": "finalization",
     "materialize_residuals": "finalization",
     "assemble_reduction": "finalization",
@@ -63,10 +84,51 @@ _STAGE_ALIASES = {
     "validate_coverage": "finalization",
     "validate_unresolved_obligations": "finalization",
     "build_fixed_point_certificate": "finalization",
+    "release_owner_state": "finalization",
     "serialize_closure_receipt": "serialization",
+    "isolated_serializer": "serialization",
     "postgres_persistence": "publication",
+    "publication_commit": "publication",
     "acceptance_comparison": "parity",
 }
+
+# Prefixes cover bounded child kernels while preserving one semantic budget
+# family. Keep the order from most specific to broadest.
+_STAGE_PREFIX_ALIASES: tuple[tuple[str, str], ...] = (
+    ("parser_annotation", "parser_projection"),
+    ("parser_observation", "parser_projection"),
+    ("parser_projection", "parser_projection"),
+    ("local_typing_diagnostics", "typing"),
+    ("typing_", "typing"),
+    ("streaming_closure", "closure"),
+    ("closure_", "closure"),
+    ("activation_", "closure"),
+    ("owner_", "closure"),
+    ("job_", "closure"),
+    ("ready_frontier_", "closure"),
+    ("scheduled_job_", "closure"),
+    ("dirty_group_", "closure"),
+    ("base_proposal_", "closure"),
+    ("composition_", "closure"),
+    ("materialize_", "finalization"),
+    ("assemble_reduction", "finalization"),
+    ("build_convergent_", "finalization"),
+    ("build_region_boundary_", "finalization"),
+    ("validate_coverage", "finalization"),
+    ("validate_unresolved_", "finalization"),
+    ("build_fixed_point_", "finalization"),
+    ("release_owner_", "finalization"),
+    ("finalization_", "finalization"),
+    ("serialize_", "serialization"),
+    ("isolated_serializer", "serialization"),
+    ("serialization_", "serialization"),
+    ("postgres_", "publication"),
+    ("publication_", "publication"),
+    ("acceptance_", "parity"),
+    ("semantic_parity", "parity"),
+    ("reference_parity", "parity"),
+    ("parity_", "parity"),
+)
 
 
 class StageMemoryBudgetExceeded(RuntimeError):
@@ -76,6 +138,16 @@ class StageMemoryBudgetExceeded(RuntimeError):
         self.receipt = dict(receipt)
         super().__init__(
             f"stage {self.receipt.get('stage')} exceeded hard memory budget"
+        )
+
+
+class StageMemoryBudgetMissing(RuntimeError):
+    """A required semantic stage has no explicit budget family."""
+
+    def __init__(self, receipt: Mapping[str, Any]):
+        self.receipt = dict(receipt)
+        super().__init__(
+            f"stage {self.receipt.get('stage')} has no configured memory budget"
         )
 
 
@@ -96,9 +168,19 @@ def _env_mib(name: str, default_bytes: int) -> int:
     return value * MIB
 
 
+def _normalized_stage(stage: str) -> str:
+    return str(stage).split(":", maxsplit=1)[0].strip().lower().replace("-", "_")
+
+
 def stage_family(stage: str) -> str:
-    normalized = str(stage).split(":", maxsplit=1)[0]
-    return _STAGE_ALIASES.get(normalized, normalized)
+    normalized = _normalized_stage(stage)
+    exact = _STAGE_ALIASES.get(normalized)
+    if exact is not None:
+        return exact
+    for prefix, family in _STAGE_PREFIX_ALIASES:
+        if normalized.startswith(prefix):
+            return family
+    return normalized
 
 
 def budget_for_stage(stage: str) -> StageMemoryBudget | None:
@@ -143,6 +225,7 @@ class StageMemoryBudgetGuard:
         phase: str,
         semantic_counts: Mapping[str, int] | None = None,
         details: Mapping[str, Any] | None = None,
+        require_budget: bool = False,
     ) -> dict[str, Any]:
         resources = sample_process_resources()
         budget = budget_for_stage(stage)
@@ -162,6 +245,7 @@ class StageMemoryBudgetGuard:
             "stage_family": stage_family(stage),
             "phase": str(phase),
             "state": state,
+            "budget_required": require_budget,
             "observed_at": _utc_now(),
             "resources": dict(resources),
             "budget": budget.to_dict() if budget is not None else None,
@@ -180,6 +264,8 @@ class StageMemoryBudgetGuard:
             _atomic_json(self.root / "latest.json", receipt)
             with (self.root / "events.jsonl").open("a", encoding="utf-8") as handle:
                 handle.write(json.dumps(receipt, sort_keys=True) + "\n")
+        if budget is None and require_budget:
+            raise StageMemoryBudgetMissing(receipt)
         if state == "hard_exceeded" and self.hard_failure:
             raise StageMemoryBudgetExceeded(receipt)
         return receipt
@@ -191,6 +277,7 @@ __all__ = [
     "StageMemoryBudget",
     "StageMemoryBudgetExceeded",
     "StageMemoryBudgetGuard",
+    "StageMemoryBudgetMissing",
     "budget_for_stage",
     "stage_family",
 ]
