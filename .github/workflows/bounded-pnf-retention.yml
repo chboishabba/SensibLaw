@@ -7,6 +7,8 @@ on:
       - agent/repair-corpus-progress-stage-lifecycle
   pull_request:
     paths:
+      - "database/postgres_migrations/**"
+      - "formal/**"
       - "src/pnf/**"
       - "src/policy/**"
       - "src/runtime/**"
@@ -15,11 +17,14 @@ on:
       - "scripts/run_strict_tranche_acceptance.py"
       - "scripts/run_exact_0008_calibration.py"
       - "scripts/run_exact_0008_parallel_acceptance.py"
+      - "scripts/run_post_closure_probe.py"
       - "scripts/normalize_exact_0008_baseline.py"
       - "tests/pnf/**"
       - "tests/policy/**"
       - "tests/runtime/**"
+      - "tests/storage/**"
       - "docs/bounded_document_execution.md"
+      - "docs/distributed_semantic_execution.md"
       - "docs/hierarchical_graph_execution.md"
       - "docs/parallel_semantic_execution.md"
       - "docs/calibration/**"
@@ -36,6 +41,10 @@ jobs:
     env:
       SENSIBLAW_FINALIZATION_BATCH_SIZE: "2"
       SENSIBLAW_FINALIZATION_STALL_SECONDS: "120"
+      SENSIBLAW_STAGE_SERIALIZATION_HARD_MIB: "3072"
+      SENSIBLAW_STAGE_PUBLICATION_HARD_MIB: "3072"
+      SENSIBLAW_STAGE_PARITY_HARD_MIB: "2560"
+      SENSIBLAW_CHECKPOINT_DISK_BUDGET_MIB: "8192"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -50,97 +59,81 @@ jobs:
           python -m pip install --upgrade pip uv
           uv sync --frozen --extra test --extra dev
 
-      - name: Lint bounded execution surfaces
+      - name: Lint bounded and distributed execution surfaces
         run: |
           uv run ruff check \
             src/pnf/__init__.py \
-            src/runtime/document_execution_policy.py \
-            src/runtime/bounded_document_scheduler.py \
-            src/runtime/document_stage_metrics.py \
-            src/runtime/hierarchical_graph_execution.py \
-            src/runtime/document_complexity_model.py \
-            src/runtime/interval_overlap.py \
-            src/runtime/typing_hierarchy.py \
-            src/runtime/semantic_amplification.py \
-            src/runtime/semantic_parity.py \
             src/pnf/bounded_streaming_owner.py \
+            src/pnf/fibred_build_projection.py \
+            src/pnf/streaming_build_reader.py \
+            src/pnf/streaming_reduction_projection.py \
             src/policy/__init__.py \
             src/policy/bounded_operational_execution.py \
             src/policy/closure_liveness_execution.py \
             src/policy/closure_finalization_hardening.py \
+            src/policy/reference_backed_finalization.py \
+            src/policy/fibred_operational_corpus_compilation.py \
             src/policy/indexed_projection_execution.py \
             src/policy/parallel_semantic_execution.py \
             src/policy/parallel_typing_tail.py \
+            src/policy/progress_observability_execution.py \
+            src/policy/stage_budget_execution.py \
             src/policy/semantic_receipt_enrichment.py \
             src/policy/manifest_stream_validation.py \
+            src/runtime/checkpoint_retention.py \
+            src/runtime/reference_parity.py \
+            src/runtime/reference_receipt.py \
+            src/runtime/stage_memory_budget.py \
+            src/runtime/semantic_parity.py \
+            src/storage/postgres/batched_streaming_semantic_store.py \
+            src/storage/postgres/distributed_semantic_execution_store.py \
+            src/storage/postgres/reference_streaming_semantic_store.py \
             scripts/run_strict_tranche_acceptance.py \
             scripts/run_exact_0008_parallel_acceptance.py \
+            scripts/run_post_closure_probe.py \
             scripts/normalize_exact_0008_baseline.py \
-            tests/runtime/test_document_execution_policy.py \
-            tests/runtime/test_bounded_document_scheduler.py \
-            tests/runtime/test_hierarchical_graph_execution.py \
-            tests/runtime/test_document_complexity_model.py \
-            tests/runtime/test_acceptance_entrypoints.py \
-            tests/runtime/test_interval_overlap.py \
-            tests/runtime/test_typing_hierarchy.py \
-            tests/runtime/test_semantic_amplification.py \
-            tests/runtime/test_semantic_parity.py \
-            tests/runtime/test_exact_0008_baseline.py \
-            tests/pnf/test_bounded_streaming_owner.py \
-            tests/policy/test_bounded_operational_execution.py \
+            tests/pnf/test_streaming_build_reader.py \
             tests/policy/test_closure_liveness_execution.py \
-            tests/policy/test_indexed_projection_execution.py \
-            tests/policy/test_parallel_semantic_execution.py \
-            tests/policy/test_parallel_typing_tail.py \
-            tests/policy/test_semantic_receipt_enrichment.py \
-            tests/policy/test_manifest_stream_validation.py
+            tests/policy/test_progress_observability_execution.py \
+            tests/runtime/test_checkpoint_retention.py \
+            tests/runtime/test_reference_parity.py \
+            tests/runtime/test_reference_receipt.py \
+            tests/runtime/test_stage_memory_budget.py \
+            tests/storage/test_distributed_semantic_execution_store.py
 
       - name: Check formatting
         run: |
           uv run ruff format --check \
-            src/pnf/__init__.py \
-            src/runtime/document_execution_policy.py \
-            src/runtime/bounded_document_scheduler.py \
-            src/runtime/document_stage_metrics.py \
-            src/runtime/hierarchical_graph_execution.py \
-            src/runtime/document_complexity_model.py \
-            src/runtime/interval_overlap.py \
-            src/runtime/typing_hierarchy.py \
-            src/runtime/semantic_amplification.py \
-            src/runtime/semantic_parity.py \
-            src/pnf/bounded_streaming_owner.py \
+            src/pnf/fibred_build_projection.py \
+            src/pnf/streaming_build_reader.py \
+            src/pnf/streaming_reduction_projection.py \
             src/policy/__init__.py \
-            src/policy/bounded_operational_execution.py \
             src/policy/closure_liveness_execution.py \
             src/policy/closure_finalization_hardening.py \
-            src/policy/indexed_projection_execution.py \
-            src/policy/parallel_semantic_execution.py \
-            src/policy/parallel_typing_tail.py \
+            src/policy/reference_backed_finalization.py \
+            src/policy/fibred_operational_corpus_compilation.py \
+            src/policy/progress_observability_execution.py \
+            src/policy/stage_budget_execution.py \
             src/policy/semantic_receipt_enrichment.py \
-            src/policy/manifest_stream_validation.py \
-            scripts/run_strict_tranche_acceptance.py \
+            src/runtime/checkpoint_retention.py \
+            src/runtime/reference_parity.py \
+            src/runtime/reference_receipt.py \
+            src/runtime/stage_memory_budget.py \
+            src/storage/postgres/batched_streaming_semantic_store.py \
+            src/storage/postgres/distributed_semantic_execution_store.py \
+            src/storage/postgres/reference_streaming_semantic_store.py \
             scripts/run_exact_0008_parallel_acceptance.py \
-            scripts/normalize_exact_0008_baseline.py \
-            tests/runtime/test_document_execution_policy.py \
-            tests/runtime/test_bounded_document_scheduler.py \
-            tests/runtime/test_hierarchical_graph_execution.py \
-            tests/runtime/test_document_complexity_model.py \
-            tests/runtime/test_acceptance_entrypoints.py \
-            tests/runtime/test_interval_overlap.py \
-            tests/runtime/test_typing_hierarchy.py \
-            tests/runtime/test_semantic_amplification.py \
-            tests/runtime/test_semantic_parity.py \
-            tests/runtime/test_exact_0008_baseline.py \
-            tests/pnf/test_bounded_streaming_owner.py \
-            tests/policy/test_bounded_operational_execution.py \
+            scripts/run_post_closure_probe.py \
+            tests/pnf/test_streaming_build_reader.py \
             tests/policy/test_closure_liveness_execution.py \
-            tests/policy/test_indexed_projection_execution.py \
-            tests/policy/test_parallel_semantic_execution.py \
-            tests/policy/test_parallel_typing_tail.py \
-            tests/policy/test_semantic_receipt_enrichment.py \
-            tests/policy/test_manifest_stream_validation.py
+            tests/policy/test_progress_observability_execution.py \
+            tests/runtime/test_checkpoint_retention.py \
+            tests/runtime/test_reference_parity.py \
+            tests/runtime/test_reference_receipt.py \
+            tests/runtime/test_stage_memory_budget.py \
+            tests/storage/test_distributed_semantic_execution_store.py
 
-      - name: Run bounded execution regressions
+      - name: Run bounded and distributed execution regressions
         run: |
           uv run pytest --maxfail=1 -q \
             tests/runtime/test_document_execution_policy.py \
@@ -152,15 +145,51 @@ jobs:
             tests/runtime/test_typing_hierarchy.py \
             tests/runtime/test_semantic_amplification.py \
             tests/runtime/test_semantic_parity.py \
+            tests/runtime/test_reference_parity.py \
+            tests/runtime/test_reference_receipt.py \
+            tests/runtime/test_stage_memory_budget.py \
+            tests/runtime/test_checkpoint_retention.py \
             tests/runtime/test_exact_0008_baseline.py \
             tests/pnf/test_bounded_streaming_owner.py \
             tests/pnf/test_streaming_fixed_point.py \
+            tests/pnf/test_streaming_build_reader.py \
             tests/policy/test_bounded_operational_execution.py \
             tests/policy/test_closure_liveness_execution.py \
+            tests/policy/test_progress_observability_execution.py \
             tests/policy/test_indexed_projection_execution.py \
             tests/policy/test_parallel_semantic_execution.py \
             tests/policy/test_parallel_typing_tail.py \
             tests/policy/test_semantic_receipt_enrichment.py \
             tests/policy/test_manifest_stream_validation.py \
             tests/policy/test_operational_corpus_compilation.py \
-            tests/policy/test_fibred_operational_corpus_compilation.py
+            tests/policy/test_fibred_operational_corpus_compilation.py \
+            tests/storage/test_distributed_semantic_execution_store.py
+
+      - name: Validate migration and formal protocol surfaces
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          migration = Path("database/postgres_migrations/026_distributed_semantic_execution.sql").read_text()
+          assert "FOR UPDATE SKIP LOCKED" not in migration
+          for table in (
+              "semantic_owner_stream",
+              "semantic_job",
+              "semantic_delta_admission",
+              "semantic_graph_manifest",
+              "semantic_finalization_checkpoint",
+              "semantic_fixed_point_receipt",
+              "publication_build",
+          ):
+              assert table in migration
+
+          tla = Path("formal/DistributedSemanticExecution.tla").read_text()
+          for invariant in (
+              "LeaseFencingSafety",
+              "ExactlyOneSemanticAdmission",
+              "OwnerRevisionAgreement",
+              "FixedPointSoundness",
+              "Termination",
+          ):
+              assert invariant in tla
+          PY
