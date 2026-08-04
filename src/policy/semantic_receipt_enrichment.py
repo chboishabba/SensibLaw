@@ -63,7 +63,15 @@ def enrich_semantic_receipt(
     if isinstance(streaming_build, Mapping) and streaming_build.get(
         "reference_backed"
     ):
-        reference_surface = reference_semantic_surface(streaming_build)
+        # Typing hierarchy receipts live in the execution receipt rather than in
+        # the streaming-build compatibility view. Bind them into the compact
+        # parity surface before hashing so partition-independent typing identity
+        # remains part of exact reference/resume acceptance.
+        parity_build = {
+            **dict(streaming_build),
+            "typing_hierarchies": dict(receipt.get("typing_hierarchies") or {}),
+        }
+        reference_surface = reference_semantic_surface(parity_build)
         identity["reference_semantic_surface"] = reference_surface
         identity["reference_receipt_path"] = str(
             streaming_build.get("reference_receipt_path") or ""
@@ -75,6 +83,7 @@ def enrich_semantic_receipt(
             "state": "complete",
             "surface_ref": reference_surface["surface_ref"],
             "families": reference_surface["families"],
+            "logical_typing_refs": reference_surface["logical_typing_refs"],
             "full_document_payload_embedded": False,
             "postgresql_authority_target": True,
         }
