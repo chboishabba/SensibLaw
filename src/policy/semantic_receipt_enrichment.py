@@ -7,6 +7,8 @@ import os
 from pathlib import Path
 from typing import Any, Mapping
 
+from src.runtime.reference_parity import reference_semantic_surface
+
 
 _INSTALL_MARKER = "_semantic_receipt_enrichment_installed"
 
@@ -57,6 +59,25 @@ def enrich_semantic_receipt(
         for row in artifacts.get("constraint_assessments") or ()
         if isinstance(row, Mapping)
     )
+    streaming_build = artifacts.get("streaming_semantic_build") or {}
+    if isinstance(streaming_build, Mapping) and streaming_build.get(
+        "reference_backed"
+    ):
+        reference_surface = reference_semantic_surface(streaming_build)
+        identity["reference_semantic_surface"] = reference_surface
+        identity["reference_receipt_path"] = str(
+            streaming_build.get("reference_receipt_path") or ""
+        )
+        identity["reference_finalization_contract"] = str(
+            streaming_build.get("reference_finalization_contract") or ""
+        )
+        receipt["reference_backed_execution"] = {
+            "state": "complete",
+            "surface_ref": reference_surface["surface_ref"],
+            "families": reference_surface["families"],
+            "full_document_payload_embedded": False,
+            "postgresql_authority_target": True,
+        }
     amplification["identity_receipt"] = identity
     receipt["amplification"] = amplification
     receipt["identity_enrichment"] = {
