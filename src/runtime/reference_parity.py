@@ -65,33 +65,61 @@ def reference_semantic_surface(build: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def compare_reference_surfaces(
-    current: Mapping[str, Any], reference: Mapping[str, Any]
+def reference_surface_from_execution_receipt(
+    receipt: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """Read the compact surface embedded by semantic receipt enrichment."""
+
+    amplification = receipt.get("amplification") or {}
+    identity = amplification.get("identity_receipt") or {}
+    surface = identity.get("reference_semantic_surface")
+    if not isinstance(surface, Mapping):
+        return None
+    return dict(surface)
+
+
+def compare_reference_surface_rows(
+    current_surface: Mapping[str, Any],
+    reference_surface: Mapping[str, Any],
 ) -> dict[str, Any]:
-    current_surface = reference_semantic_surface(current)
-    reference_surface = reference_semantic_surface(reference)
-    keys = sorted(set(current_surface) | set(reference_surface))
+    """Compare two already-compact surfaces without decoding their receipts."""
+
+    current = dict(current_surface)
+    reference = dict(reference_surface)
+    keys = sorted(set(current) | set(reference))
     mismatches = {
         key: {
-            "current": current_surface.get(key),
-            "reference": reference_surface.get(key),
+            "current": current.get(key),
+            "reference": reference.get(key),
         }
         for key in keys
-        if current_surface.get(key) != reference_surface.get(key)
+        if current.get(key) != reference.get(key)
     }
     return {
         "schema_version": REFERENCE_PARITY_SCHEMA_VERSION,
         "matched": not mismatches,
-        "current_surface_ref": current_surface["surface_ref"],
-        "reference_surface_ref": reference_surface["surface_ref"],
+        "semantic_parity": not mismatches,
+        "current_surface_ref": str(current.get("surface_ref") or ""),
+        "reference_surface_ref": str(reference.get("surface_ref") or ""),
         "mismatches": mismatches,
         "row_level_diff_required": bool(mismatches),
         "full_receipts_loaded_together": False,
     }
 
 
+def compare_reference_surfaces(
+    current: Mapping[str, Any], reference: Mapping[str, Any]
+) -> dict[str, Any]:
+    return compare_reference_surface_rows(
+        reference_semantic_surface(current),
+        reference_semantic_surface(reference),
+    )
+
+
 __all__ = [
     "REFERENCE_PARITY_SCHEMA_VERSION",
+    "compare_reference_surface_rows",
     "compare_reference_surfaces",
     "reference_semantic_surface",
+    "reference_surface_from_execution_receipt",
 ]
