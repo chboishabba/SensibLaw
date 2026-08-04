@@ -1,15 +1,26 @@
 ---- MODULE DistributedSemanticExecution ----
 EXTENDS Integers, FiniteSets, Naturals, Sequences, TLC
 
-CONSTANTS Jobs, Owners, Workers, JobOwner, Dependencies, MaxAttempts
+CONSTANTS
+    Jobs,
+    Owners,
+    Workers,
+    JobOwner,
+    Dependencies,
+    DependencyRank,
+    MaxAttempts
 
 ASSUME Jobs # {} /\ Owners # {} /\ Workers # {}
 ASSUME JobOwner \in [Jobs -> Owners]
 ASSUME Dependencies \in [Jobs -> SUBSET Jobs]
+ASSUME DependencyRank \in [Jobs -> Nat]
+ASSUME \A j \in Jobs, dependency \in Dependencies[j] :
+    DependencyRank[dependency] < DependencyRank[j]
 ASSUME MaxAttempts \in Nat \ {0}
 
 JobStates == {"blocked", "ready", "leased", "completed", "retryable", "failed"}
 DeltaStates == {"none", "computed", "accepted", "stale"}
+TerminalStates == {"completed", "failed"}
 
 VARIABLES
     jobState,
@@ -43,10 +54,18 @@ vars == <<
 DependenciesComplete(j) ==
     \A dependency \in Dependencies[j] : jobState[dependency] = "completed"
 
+DependencyFailed(j) ==
+    \E dependency \in Dependencies[j] : jobState[dependency] = "failed"
+
+AcceptedJobs(owner) ==
+    {j \in Jobs :
+        JobOwner[j] = owner /\ deltaState[j] = "accepted"}
+
 Init ==
-    /\ jobState = [j \in Jobs |-> IF Dependencies[j] = {} THEN "ready" ELSE "blocked"]
+    /\ jobState = [j \in Jobs |->
+        IF Dependencies[j] = {} THEN "ready" ELSE "blocked"]
     /\ leaseEpoch = [j \in Jobs |-> 0]
-    /\ leaseOwner = [j \in Jobs |-> CHOOSE x : x \notin Workers]
+    /\ leaseOwner = [j \in Jobs |-> CHOOSE w \in Workers : TRUE]
     /\ attemptCount = [j \in Jobs |-> 0]
     /\ ownerRevision = [o \in Owners |-> 0]
     /\ expectedRevision = [j \in Jobs |-> 0]
@@ -61,6 +80,16 @@ Awaken(j) ==
     /\ jobState[j] = "blocked"
     /\ DependenciesComplete(j)
     /\ jobState' = [jobState EXCEPT ![j] = "ready"]
+    /\ UNCHANGED <<
+        leaseEpoch, leaseOwner, attemptCount, ownerRevision,
+        expectedRevision, deltaState, deltaEpoch, admittedRevision,
+        coverageClosed, ownerDirty, obligations
+    >>
+
+FailBlocked(j) ==
+    /\ jobState[j] = "blocked"
+    /\ DependencyFailed(j)
+    /\ jobState' = [jobState EXCEPT ![j] = "failed"]
     /\ UNCHANGED <<
         leaseEpoch, leaseOwner, attemptCount, ownerRevision,
         expectedRevision, deltaState, deltaEpoch, admittedRevision,
@@ -123,7 +152,8 @@ RejectStale(j, w, e) ==
        \/ expectedRevision[j] # ownerRevision[owner]
     /\ deltaState' = [deltaState EXCEPT ![j] = "stale"]
     /\ jobState' = [jobState EXCEPT
-        ![j] = IF attemptCount[j] < MaxAttempts THEN "retryable" ELSE "failed"]
+        ![j] = IF attemptCount[j] < MaxAttempts
+                THEN "retryable" ELSE "failed"]
     /\ UNCHANGED <<
         leaseEpoch, leaseOwner, attemptCount, ownerRevision,
         expectedRevision, deltaEpoch, admittedRevision,
@@ -134,7 +164,8 @@ Expire(j) ==
     /\ jobState[j] = "leased"
     /\ deltaState[j] \in {"none", "computed"}
     /\ jobState' = [jobState EXCEPT
-        ![j] = IF attemptCount[j] < MaxAttempts THEN "retryable" ELSE "failed"]
+        ![j] = IF attemptCount[j] < MaxAttempts
+                THEN "retryable" ELSE "failed"]
     /\ deltaState' = [deltaState EXCEPT
         ![j] = IF @ = "computed" THEN "stale" ELSE @]
     /\ UNCHANGED <<
@@ -170,13 +201,20 @@ DischargeObligation(o) ==
         coverageClosed, ownerDirty
     >>
 
+LeaseJob(j) == \E w \in Workers : Lease(j, w)
+ComputeJob(j) ==
+    \E w \in Workers, e \in Nat : Compute(j, w, e)
+ResolveJob(j) ==
+    \/ \E w \in Workers, e \in Nat : Admit(j, w, e)
+    \/ \E w \in Workers, e \in Nat : RejectStale(j, w, e)
+    \/ Expire(j)
+
 Next ==
     \/ \E j \in Jobs : Awaken(j)
-    \/ \E j \in Jobs, w \in Workers : Lease(j, w)
-    \/ \E j \in Jobs, w \in Workers, e \in Nat : Compute(j, w, e)
-    \/ \E j \in Jobs, w \in Workers, e \in Nat : Admit(j, w, e)
-    \/ \E j \in Jobs, w \in Workers, e \in Nat : RejectStale(j, w, e)
-    \/ \E j \in Jobs : Expire(j)
+    \/ \E j \in Jobs : FailBlocked(j)
+    \/ \E j \in Jobs : LeaseJob(j)
+    \/ \E j \in Jobs : ComputeJob(j)
+    \/ \E j \in Jobs : ResolveJob(j)
     \/ \E o \in Owners : ReduceOwner(o)
     \/ \E o \in Owners : CloseCoverage(o)
     \/ \E o \in Owners : DischargeObligation(o)
@@ -184,6 +222,7 @@ Next ==
 TypeOK ==
     /\ jobState \in [Jobs -> JobStates]
     /\ leaseEpoch \in [Jobs -> Nat]
+    /\ leaseOwner \in [Jobs -> Workers]
     /\ attemptCount \in [Jobs -> 0..MaxAttempts]
     /\ ownerRevision \in [Owners -> Nat]
     /\ expectedRevision \in [Jobs -> Nat]
@@ -209,20 +248,33 @@ OwnerRevisionAgreement ==
         deltaState[j] = "accepted" =>
             admittedRevision[j] <= ownerRevision[JobOwner[j]]
 
+OwnerRevisionCountsAdmissions ==
+    \A owner \in Owners :
+        ownerRevision[owner] = Cardinality(AcceptedJobs(owner))
+
+NoDuplicateOwnerRevision ==
+    \A left, right \in Jobs :
+        /\ deltaState[left] = "accepted"
+        /\ deltaState[right] = "accepted"
+        /\ JobOwner[left] = JobOwner[right]
+        /\ admittedRevision[left] = admittedRevision[right]
+        => left = right
+
 CompletedDependencies ==
     \A j \in Jobs :
         jobState[j] \in {"ready", "leased", "completed"} =>
             DependenciesComplete(j)
 
 DocumentFixed ==
-    /\ \A j \in Jobs : jobState[j] \in {"completed", "failed"}
+    /\ \A j \in Jobs : jobState[j] \in TerminalStates
     /\ \A o \in Owners : ~ownerDirty[o]
     /\ \A o \in Owners : coverageClosed[o]
     /\ \A o \in Owners : obligations[o] = 0
 
 FixedPointSoundness ==
     DocumentFixed =>
-        /\ ~\E j \in Jobs : jobState[j] \in {"ready", "leased", "retryable"}
+        /\ ~\E j \in Jobs :
+            jobState[j] \in {"ready", "leased", "retryable"}
         /\ ~\E o \in Owners : ownerDirty[o]
 
 Safety ==
@@ -230,18 +282,25 @@ Safety ==
     /\ LeaseFencingSafety
     /\ ExactlyOneSemanticAdmission
     /\ OwnerRevisionAgreement
+    /\ OwnerRevisionCountsAdmissions
+    /\ NoDuplicateOwnerRevision
     /\ CompletedDependencies
     /\ FixedPointSoundness
 
 Termination ==
-    \A j \in Jobs : <>(jobState[j] \in {"completed", "failed"})
+    \A j \in Jobs : <>(jobState[j] \in TerminalStates)
 
 Spec == Init /\ [][Next]_vars
 
 FairSpec ==
     Spec
     /\ \A j \in Jobs : WF_vars(Awaken(j))
-    /\ \A j \in Jobs, w \in Workers : WF_vars(Lease(j, w))
+    /\ \A j \in Jobs : WF_vars(FailBlocked(j))
+    /\ \A j \in Jobs : WF_vars(LeaseJob(j))
+    /\ \A j \in Jobs : WF_vars(ComputeJob(j))
+    /\ \A j \in Jobs : WF_vars(ResolveJob(j))
     /\ \A o \in Owners : WF_vars(ReduceOwner(o))
+    /\ \A o \in Owners : WF_vars(CloseCoverage(o))
+    /\ \A o \in Owners : WF_vars(DischargeObligation(o))
 
 =============================================================================
