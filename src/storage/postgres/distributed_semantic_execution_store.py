@@ -1,8 +1,8 @@
 """PostgreSQL authority for distributed semantic execution.
 
-Workers execute at least once.  PostgreSQL admits an immutable delta at most
+Workers execute at least once. PostgreSQL admits an immutable delta at most
 once by combining deterministic identities, row-level revision compare-and-swap
-and monotonically increasing lease epochs.  No Python process is the semantic
+and monotonically increasing lease epochs. No Python process is the semantic
 owner; ``execution.semantic_owner_stream`` is the serial authority per owner
 key while unrelated owner keys may advance concurrently.
 """
@@ -10,7 +10,6 @@ key while unrelated owner keys may advance concurrently.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import timedelta
 from itertools import islice
 from typing import Any, Iterable, Iterator, Mapping, Sequence, TypeVar
 
@@ -53,6 +52,19 @@ class SemanticDeltaAdmission:
     prior_owner_revision: int
     resulting_owner_revision: int
     state: str
+
+
+@dataclass(frozen=True)
+class FinalizationLease:
+    checkpoint_ref: str
+    document_ref: str
+    owner_revision: int
+    phase_ref: str
+    cursor_ordinal: int
+    total_rows: int | None
+    lease_owner: str
+    lease_epoch: int
+    input_manifest_ref: str | None
 
 
 def _digest(value: Any) -> bytes:
@@ -151,7 +163,7 @@ class DistributedSemanticExecutionStore:
                 VALUES (%s, %s)
                 ON CONFLICT DO NOTHING
                 """,
-                [(job_ref, dependency_ref) for dependency_ref in dependency_job_refs],
+                [(job_ref, value) for value in dependency_job_refs],
             )
         return job_ref
 
@@ -235,7 +247,8 @@ class DistributedSemanticExecutionStore:
                 SET state_ref = 'leased',
                     lease_owner = %s,
                     lease_epoch = job.lease_epoch + 1,
-                    lease_expires_at = CURRENT_TIMESTAMP + (%s * INTERVAL '1 second'),
+                    lease_expires_at =
+                        CURRENT_TIMESTAMP + (%s * INTERVAL '1 second'),
                     attempt_count = job.attempt_count + 1,
                     updated_at = CURRENT_TIMESTAMP
                 FROM selected
@@ -286,7 +299,8 @@ class DistributedSemanticExecutionStore:
         cursor.execute(
             """
             UPDATE execution.semantic_job
-            SET lease_expires_at = CURRENT_TIMESTAMP + (%s * INTERVAL '1 second'),
+            SET lease_expires_at =
+                    CURRENT_TIMESTAMP + (%s * INTERVAL '1 second'),
                 updated_at = CURRENT_TIMESTAMP
             WHERE job_ref = %s
               AND state_ref = 'leased'
@@ -297,6 +311,34 @@ class DistributedSemanticExecutionStore:
         )
         if cursor.rowcount != 1:
             raise StaleSemanticLeaseError(job_ref)
+
+    def _existing_admission(
+        self, cursor: Any, *, job_ref: str
+    ) -> SemanticDeltaAdmission | None:
+        cursor.execute(
+            """
+            SELECT admission.delta_ref, admission.job_ref,
+                   admission.owner_ref, admission.lease_epoch,
+                   admission.prior_owner_revision,
+                   admission.resulting_owner_revision,
+                   admission.admission_state_ref
+            FROM execution.semantic_delta_admission AS admission
+            WHERE admission.job_ref = %s
+            """,
+            (job_ref,),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        return SemanticDeltaAdmission(
+            delta_ref=str(row[0]),
+            job_ref=str(row[1]),
+            owner_ref=str(row[2]),
+            lease_epoch=int(row[3]),
+            prior_owner_revision=int(row[4]),
+            resulting_owner_revision=int(row[5]),
+            state="duplicate" if str(row[6]) == "accepted" else str(row[6]),
+        )
 
     def admit_delta(
         self,
@@ -319,9 +361,15 @@ class DistributedSemanticExecutionStore:
             (lease.job_ref,),
         )
         job = cursor.fetchone()
+        if job is None:
+            raise StaleSemanticLeaseError(lease.job_ref)
+        if str(job[0]) == "completed":
+            existing = self._existing_admission(cursor, job_ref=lease.job_ref)
+            if existing is None:
+                raise RuntimeError("completed semantic job lacks an admission")
+            return existing
         if (
-            job is None
-            or str(job[0]) != "leased"
+            str(job[0]) != "leased"
             or str(job[1]) != lease.lease_owner
             or int(job[2]) != lease.lease_epoch
         ):
@@ -553,6 +601,261 @@ class DistributedSemanticExecutionStore:
             completed += len(batch)
         return completed
 
+    def upsert_finalization_checkpoint(
+        self,
+        cursor: Any,
+        *,
+        checkpoint_ref: str,
+        document_ref: str,
+        owner_revision: int,
+        phase_ref: str,
+        state_ref: str,
+        cursor_ordinal: int,
+        checkpoint_sha256: str,
+        total_rows: int | None = None,
+        input_manifest_ref: str | None = None,
+        output_manifest_ref: str | None = None,
+        metrics: Mapping[str, Any] | None = None,
+    ) -> None:
+        cursor.execute(
+            """
+            INSERT INTO execution.semantic_finalization_checkpoint
+                (checkpoint_ref, document_ref, owner_revision, phase_ref,
+                 state_ref, cursor_ordinal, total_rows, input_manifest_ref,
+                 output_manifest_ref, checkpoint_sha256, metrics)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+            ON CONFLICT (checkpoint_ref) DO UPDATE
+            SET state_ref = EXCLUDED.state_ref,
+                cursor_ordinal = GREATEST(
+                    execution.semantic_finalization_checkpoint.cursor_ordinal,
+                    EXCLUDED.cursor_ordinal
+                ),
+                total_rows = EXCLUDED.total_rows,
+                input_manifest_ref = EXCLUDED.input_manifest_ref,
+                output_manifest_ref = EXCLUDED.output_manifest_ref,
+                checkpoint_sha256 = EXCLUDED.checkpoint_sha256,
+                metrics = EXCLUDED.metrics,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (
+                checkpoint_ref,
+                document_ref,
+                owner_revision,
+                phase_ref,
+                state_ref,
+                cursor_ordinal,
+                total_rows,
+                input_manifest_ref,
+                output_manifest_ref,
+                bytes.fromhex(checkpoint_sha256),
+                dict(metrics or {}),
+            ),
+        )
+
+    def lease_finalization_checkpoint(
+        self,
+        cursor: Any,
+        *,
+        document_ref: str,
+        worker_ref: str,
+        lease_seconds: int = 300,
+    ) -> FinalizationLease | None:
+        cursor.execute(
+            """
+            WITH selected AS (
+                SELECT checkpoint_ref
+                FROM execution.semantic_finalization_checkpoint
+                WHERE document_ref = %s AND state_ref = 'ready'
+                ORDER BY owner_revision, phase_ref, checkpoint_ref
+                FOR UPDATE SKIP LOCKED
+                LIMIT 1
+            ), leased AS (
+                UPDATE execution.semantic_finalization_checkpoint AS checkpoint
+                SET state_ref = 'leased', lease_owner = %s,
+                    lease_epoch = checkpoint.lease_epoch + 1,
+                    lease_expires_at =
+                        CURRENT_TIMESTAMP + (%s * INTERVAL '1 second'),
+                    updated_at = CURRENT_TIMESTAMP
+                FROM selected
+                WHERE checkpoint.checkpoint_ref = selected.checkpoint_ref
+                RETURNING checkpoint.*
+            )
+            SELECT checkpoint_ref, document_ref, owner_revision, phase_ref,
+                   cursor_ordinal, total_rows, lease_owner, lease_epoch,
+                   input_manifest_ref
+            FROM leased
+            """,
+            (document_ref, worker_ref, lease_seconds),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        return FinalizationLease(
+            checkpoint_ref=str(row[0]),
+            document_ref=str(row[1]),
+            owner_revision=int(row[2]),
+            phase_ref=str(row[3]),
+            cursor_ordinal=int(row[4]),
+            total_rows=int(row[5]) if row[5] is not None else None,
+            lease_owner=str(row[6]),
+            lease_epoch=int(row[7]),
+            input_manifest_ref=str(row[8]) if row[8] is not None else None,
+        )
+
+    def complete_finalization_checkpoint(
+        self,
+        cursor: Any,
+        *,
+        lease: FinalizationLease,
+        output_manifest_ref: str,
+        cursor_ordinal: int,
+        checkpoint_sha256: str,
+        metrics: Mapping[str, Any] | None = None,
+    ) -> None:
+        cursor.execute(
+            """
+            UPDATE execution.semantic_finalization_checkpoint
+            SET state_ref = 'completed', cursor_ordinal = %s,
+                output_manifest_ref = %s, checkpoint_sha256 = %s,
+                metrics = %s::jsonb, lease_expires_at = NULL,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE checkpoint_ref = %s AND state_ref = 'leased'
+              AND lease_owner = %s AND lease_epoch = %s
+            """,
+            (
+                cursor_ordinal,
+                output_manifest_ref,
+                bytes.fromhex(checkpoint_sha256),
+                dict(metrics or {}),
+                lease.checkpoint_ref,
+                lease.lease_owner,
+                lease.lease_epoch,
+            ),
+        )
+        if cursor.rowcount != 1:
+            raise StaleSemanticLeaseError(lease.checkpoint_ref)
+
+    def persist_fixed_point_receipt(
+        self,
+        cursor: Any,
+        *,
+        certificate_ref: str,
+        document_ref: str,
+        graph_manifest_ref: str,
+        document_revision: int,
+        accepted_job_set_digest: str,
+        unresolved_demand_digest: str,
+        coverage_digest: str,
+        operation_contract_refs: Sequence[str],
+        local_fixed_point: bool,
+        payload: Mapping[str, Any],
+    ) -> None:
+        cursor.execute(
+            """
+            INSERT INTO execution.semantic_fixed_point_receipt
+                (certificate_ref, document_ref, graph_manifest_ref,
+                 document_revision, accepted_job_set_digest,
+                 unresolved_demand_digest, coverage_digest,
+                 operation_contract_refs, local_fixed_point,
+                 payload, payload_sha256)
+            VALUES (%s, %s, %s, %s, %s, %s, %s,
+                    %s::jsonb, %s, %s::jsonb, %s)
+            ON CONFLICT (certificate_ref) DO NOTHING
+            """,
+            (
+                certificate_ref,
+                document_ref,
+                graph_manifest_ref,
+                document_revision,
+                bytes.fromhex(accepted_job_set_digest),
+                bytes.fromhex(unresolved_demand_digest),
+                bytes.fromhex(coverage_digest),
+                list(operation_contract_refs),
+                local_fixed_point,
+                dict(payload),
+                _digest(payload),
+            ),
+        )
+
+    def persist_execution_receipt(
+        self,
+        cursor: Any,
+        *,
+        receipt_ref: str,
+        document_ref: str,
+        graph_manifest_ref: str,
+        certificate_ref: str,
+        build_key_sha256: str,
+        receipt_contract_ref: str,
+        payload: Mapping[str, Any],
+    ) -> None:
+        cursor.execute(
+            """
+            INSERT INTO execution.semantic_execution_receipt
+                (receipt_ref, document_ref, graph_manifest_ref,
+                 certificate_ref, build_key_sha256, receipt_contract_ref,
+                 payload, payload_sha256)
+            VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb, %s)
+            ON CONFLICT (receipt_ref) DO NOTHING
+            """,
+            (
+                receipt_ref,
+                document_ref,
+                graph_manifest_ref,
+                certificate_ref,
+                bytes.fromhex(build_key_sha256),
+                receipt_contract_ref,
+                dict(payload),
+                _digest(payload),
+            ),
+        )
+
+    def stage_publication(
+        self,
+        cursor: Any,
+        *,
+        publication_ref: str,
+        document_ref: str,
+        graph_manifest_ref: str,
+        certificate_ref: str,
+        publication_digest: str,
+    ) -> None:
+        cursor.execute(
+            """
+            INSERT INTO execution.publication_build
+                (publication_ref, document_ref, graph_manifest_ref,
+                 certificate_ref, state_ref, publication_digest)
+            VALUES (%s, %s, %s, %s, 'staged', %s)
+            ON CONFLICT (publication_ref) DO NOTHING
+            """,
+            (
+                publication_ref,
+                document_ref,
+                graph_manifest_ref,
+                certificate_ref,
+                bytes.fromhex(publication_digest),
+            ),
+        )
+
+    def commit_publication(
+        self,
+        cursor: Any,
+        *,
+        publication_ref: str,
+        expected_digest: str,
+    ) -> None:
+        cursor.execute(
+            """
+            UPDATE execution.publication_build
+            SET state_ref = 'committed', committed_at = CURRENT_TIMESTAMP
+            WHERE publication_ref = %s AND state_ref = 'staged'
+              AND publication_digest = %s
+            """,
+            (publication_ref, bytes.fromhex(expected_digest)),
+        )
+        if cursor.rowcount != 1:
+            raise RuntimeError("publication was not in the expected staged state")
+
     def fixed_point_counts(
         self, cursor: Any, *, document_ref: str
     ) -> dict[str, int]:
@@ -572,29 +875,44 @@ class DistributedSemanticExecutionStore:
         cursor.execute(
             """
             SELECT
-                count(*) FILTER (WHERE dirty) AS dirty_owners,
-                COALESCE(sum(unresolved_obligation_count), 0) AS obligations,
-                count(*) FILTER (WHERE NOT coverage_closed) AS open_coverage
-            FROM execution.semantic_owner_stream
-            WHERE document_ref = %s
+                count(*) FILTER (WHERE owner.dirty) AS dirty_owners,
+                COALESCE(sum(owner.unresolved_obligation_count), 0) AS obligations,
+                count(*) FILTER (WHERE NOT owner.coverage_closed) AS open_coverage
+            FROM execution.semantic_owner_stream AS owner
+            WHERE owner.document_ref = %s
             """,
             (document_ref,),
         )
         owner_counts = cursor.fetchone() or (0, 0, 0)
+        cursor.execute(
+            """
+            SELECT count(*)
+            FROM execution.semantic_delta AS delta
+            JOIN execution.semantic_job AS job ON job.job_ref = delta.job_ref
+            LEFT JOIN execution.semantic_delta_admission AS admission
+              ON admission.delta_ref = delta.delta_ref
+            WHERE job.document_ref = %s AND admission.delta_ref IS NULL
+            """,
+            (document_ref,),
+        )
+        unadmitted = cursor.fetchone() or (0,)
         return {
             "open_jobs": int(job_counts[0]),
             "leased_jobs": int(job_counts[1]),
             "dirty_owners": int(owner_counts[0]),
             "unresolved_obligations": int(owner_counts[1]),
             "open_coverage": int(owner_counts[2]),
+            "unadmitted_deltas": int(unadmitted[0]),
         }
 
     def document_fixed(self, cursor: Any, *, document_ref: str) -> bool:
-        return all(value == 0 for value in self.fixed_point_counts(cursor, document_ref=document_ref).values())
+        counts = self.fixed_point_counts(cursor, document_ref=document_ref)
+        return all(value == 0 for value in counts.values())
 
 
 __all__ = [
     "DistributedSemanticExecutionStore",
+    "FinalizationLease",
     "SemanticDeltaAdmission",
     "SemanticJobLease",
     "StaleOwnerRevisionError",
