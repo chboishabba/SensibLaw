@@ -7,9 +7,6 @@ import os
 from pathlib import Path
 from typing import Any, Mapping
 
-from src.runtime.reference_parity import reference_semantic_surface
-
-
 _INSTALL_MARKER = "_semantic_receipt_enrichment_installed"
 
 
@@ -60,9 +57,15 @@ def enrich_semantic_receipt(
         if isinstance(row, Mapping)
     )
     streaming_build = artifacts.get("streaming_semantic_build") or {}
-    if isinstance(streaming_build, Mapping) and streaming_build.get(
-        "reference_backed"
-    ):
+    if isinstance(streaming_build, Mapping) and streaming_build.get("reference_backed"):
+        # ``reference_parity`` imports the canonical policy carrier.  This
+        # module is itself imported by the eager execution-strategy installer
+        # during policy package initialization, so importing it at module load
+        # time forms a cycle when a caller starts at ``reference_parity``.
+        # The function is only needed for a completed receipt, well after the
+        # strategy installer has finished; defer it to retain that boundary.
+        from src.runtime.reference_parity import reference_semantic_surface
+
         # Typing hierarchy receipts live in the execution receipt rather than in
         # the streaming-build compatibility view. Bind them into the compact
         # parity surface before hashing so partition-independent typing identity
