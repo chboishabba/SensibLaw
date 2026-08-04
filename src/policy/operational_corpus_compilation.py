@@ -259,8 +259,19 @@ def _streaming_semantic_build(
     closure_workers: int,
     owner_partitions: int,
     progress_observer: Any | None = None,
+    strict_database_url: str | None = None,
+    strict_run_ref: str | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Reduce base proposals and stream revision-bound closure receipts."""
+
+    # The bounded wrapper supplies immutable activation leaves, while the
+    # serial/strict path consumes individual observation deltas.  Normalize
+    # that transport shape at the shared boundary.
+    observation_deltas = tuple(
+        delta
+        for item in observation_deltas
+        for delta in (item if isinstance(item, (tuple, list)) else (item,))
+    )
 
     owner = StreamingSemanticOwner(
         document_ref=document_ref,
@@ -312,6 +323,21 @@ def _streaming_semantic_build(
         )
 
     receipts = []
+    if strict_database_url is not None:
+        from src.runtime.strict_postgres_execution import PostgresLeasedExecution
+
+    strict_strategy = (
+        PostgresLeasedExecution(
+            database_url=str(strict_database_url),
+            run_ref=str(strict_run_ref or f"strict:{document_ref}"),
+            document_ref=document_ref,
+            worker_count=closure_workers,
+        )
+        if strict_database_url is not None
+        else None
+    )
+    strict_owner_ref = f"owner:{document_ref}"
+    strict_revision = 0
     reduction_elapsed_ms = 0
     with timings.stage(
         "closure_executor_evaluation",
@@ -321,7 +347,7 @@ def _streaming_semantic_build(
             "admission_and_reduction_overlap": True,
         },
     ) as closure_stage:
-        if jobs:
+        if jobs and strict_strategy is None:
             with ThreadPoolExecutor(
                 max_workers=closure_workers,
                 thread_name_prefix="semantic-closure",
@@ -351,6 +377,65 @@ def _streaming_semantic_build(
                                 ),
                             }
                         )
+        if strict_strategy is not None:
+            # PostgreSQL is the only strict execution authority.  The local
+            # owner remains the reducer; workers return immutable receipts and
+            # never mutate it directly.
+            round_jobs = tuple(sorted(jobs, key=lambda job: (job.input_revision, job.job_ref)))
+            job_by_ref = {job.job_ref: job for job in round_jobs}
+
+            # The strict worker receives only the serialized immutable job.
+            # This keeps the closure owner heap in the coordinator out of the
+            # spawned process and makes the executor spawn-picklable.
+            from src.storage.postgres.distributed_semantic_execution import execute_serialized_streaming_job
+
+            execute_manifest = execute_serialized_streaming_job
+
+            def apply_delta(payload: Mapping[str, Any], _revision: int) -> None:
+                from src.policy.parallel_semantic_execution import _solver_receipt_from_row
+
+                receipt = _solver_receipt_from_row(payload)
+                # A replay may resume after PostgreSQL has already durably
+                # leased/admitted a retry, while this fresh coordinator heap
+                # has not retained that in-flight marker. Rehydrate the
+                # immutable job contract before using the generic owner
+                # admission API; no semantic computation occurs here.
+                if receipt.job_ref not in owner._in_flight_jobs and receipt.receipt_ref not in owner._receipts:
+                    replay_job = job_by_ref.get(receipt.job_ref)
+                    if replay_job is not None:
+                        owner._in_flight_jobs[receipt.job_ref] = replay_job
+                owner.admit_solver_receipt(receipt)
+                owner.reduce_dirty_groups()
+                receipts.append(receipt)
+                if progress_observer is not None:
+                    progress_observer({
+                        "jobs_completed": len(receipts),
+                        "input_refs_processed": sum(len(row.input_refs) for row in receipts),
+                        "proposals_emitted": sum(len(row.proposals) for row in receipts),
+                        "current_kernel": "postgresql_leased_worker",
+                    })
+
+            from src.storage.postgres.distributed_semantic_execution import ImmutableJobManifest
+
+            manifests = tuple(
+                ImmutableJobManifest.build(
+                    job_ref=job.job_ref,
+                    run_ref=str(strict_run_ref or f"strict:{document_ref}"),
+                    document_ref=document_ref,
+                    owner_ref=strict_owner_ref,
+                    input_revision=index,
+                    input_payload=job.to_dict(),
+                )
+                for index, job in enumerate(round_jobs, start=strict_revision)
+            )
+            strict_result = strict_strategy.run_frontier(
+                manifests,
+                execute=execute_manifest,
+                apply=apply_delta,
+                owner_ref=strict_owner_ref,
+                starting_revision=strict_revision,
+            )
+            strict_revision += int(strict_result.get("replayed", 0))
         closure_stage.record(
             input_nodes=sum(len(job.input_refs) for job in jobs),
             output_nodes=sum(len(row.proposals) for row in receipts),
@@ -395,12 +480,27 @@ def _streaming_semantic_build(
         ],
         "fixed_point_certificate": certificate.to_dict(),
         "declarations": [declaration.to_dict()],
-        "closure_backend": closure.backend_ref,
+        "closure_backend": "postgresql-leased-worker:v1" if strict_strategy is not None else closure.backend_ref,
         "streaming_bidirectional": True,
         "logical_owner_granularity": "document_scope_factor_family",
         "eventual_consistency": "convergent_append_only",
         "materialized_view_authority": ("deterministic_candidate_projection"),
     }
+    if strict_strategy is not None:
+        final_manifest = {
+            "run_ref": strict_strategy.run_ref,
+            "document_ref": document_ref,
+            "owner_ref": strict_owner_ref,
+            "owner_revision": strict_revision,
+            "certificate_ref": certificate.certificate_ref,
+            "build_ref": legacy.canonical_sha256(owner.to_dict()),
+        }
+        strict_strategy.finalize(owner_ref=strict_owner_ref, manifest=final_manifest)
+        build["strict_execution"] = {
+            "run_ref": strict_strategy.run_ref,
+            "owner_revision": strict_revision,
+            "finalization_manifest": final_manifest,
+        }
     metrics: dict[str, Any] = {
         "observation_delta_count": len(observation_deltas),
         "observation_count": len(all_observation_refs),
@@ -444,11 +544,18 @@ def compile_document_operational(
     projection_partition_persistence: Callable[[Sequence[Mapping[str, Any]]], None]
     | None = None,
     resource_ledger: ExecutionResourceLedger | None = None,
+    execution_strategy_ref: str = "local-compatibility-replay",
+    database_url: str | None = None,
+    strict_run_ref: str | None = None,
 ) -> legacy.DocumentCompilation:
     """Compile one document through the streaming local fixed-point boundary."""
 
     if not 1 <= closure_workers <= 32:
         raise ValueError("closure_workers must be between 1 and 32")
+    if execution_strategy_ref == "postgresql-leased-exact-execution:v1" and not database_url:
+        from src.runtime.strict_postgres_execution import StrictExecutionError
+
+        raise StrictExecutionError("postgresql_authority_missing", kernel_key="strict.closure_handoff")
     if not 1 <= owner_partitions <= 128:
         raise ValueError("owner_partitions must be between 1 and 128")
     parser_policy = DocumentFibrePolicy(
@@ -937,15 +1044,23 @@ def compile_document_operational(
                 message=current_kernel,
             )
 
+        streaming_kwargs: dict[str, Any] = {
+            "document_ref": document_ref,
+            "source_ref": source_ref,
+            "observation_deltas": parser_deltas,
+            "base_factors": semantic_output.factors,
+            "timings": timings,
+            "closure_workers": closure_workers,
+            "owner_partitions": owner_partitions,
+            "progress_observer": observe_closure_progress,
+        }
+        if execution_strategy_ref == "postgresql-leased-exact-execution:v1":
+            streaming_kwargs.update(
+                strict_database_url=database_url,
+                strict_run_ref=strict_run_ref or f"strict:{document_ref}",
+            )
         streaming_build, streaming_metrics = _streaming_semantic_build(
-            document_ref=document_ref,
-            source_ref=source_ref,
-            observation_deltas=parser_deltas,
-            base_factors=semantic_output.factors,
-            timings=timings,
-            closure_workers=closure_workers,
-            owner_partitions=owner_partitions,
-            progress_observer=observe_closure_progress,
+            **streaming_kwargs,
         )
         if progress_stage is not None:
             progress_stage.observe(

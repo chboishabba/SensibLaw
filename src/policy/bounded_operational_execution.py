@@ -201,12 +201,32 @@ def bounded_streaming_semantic_build(
     owner_partitions: int,
     progress_observer: Any | None = None,
     replay_contract: Any | None = None,
+    strict_database_url: str | None = None,
+    strict_run_ref: str | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Canonical streaming build with bounded retention and closure leasing."""
 
     # Import lazily so installing this strategy cannot create a second module
     # authority or an import cycle while src.policy is initialising.
     from src.policy import operational_corpus_compilation as operational
+
+    if strict_database_url is not None:
+        # Strict exact execution is PostgreSQL-authoritative.  The bounded
+        # compatibility owner remains the default for calibration/local runs,
+        # but must not swallow strict control-plane arguments or silently fall
+        # back to its thread scheduler.
+        return operational._serial_streaming_semantic_build(
+            document_ref=document_ref,
+            source_ref=source_ref,
+            observation_deltas=observation_deltas,
+            base_factors=base_factors,
+            timings=timings,
+            closure_workers=closure_workers,
+            owner_partitions=owner_partitions,
+            progress_observer=progress_observer,
+            strict_database_url=strict_database_url,
+            strict_run_ref=strict_run_ref,
+        )
 
     policy = execution_policy_from_environment(worker_budget=closure_workers)
     retention = retention_policy_from_environment()

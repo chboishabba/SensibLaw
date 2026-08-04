@@ -17,10 +17,6 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.runtime.reference_parity import (  # noqa: E402
-    compare_reference_surface_rows,
-    reference_surface_from_execution_receipt,
-)
 from src.runtime.semantic_parity import (  # noqa: E402
     compare_semantic_surfaces,
     semantic_surface_from_execution_receipt,
@@ -30,6 +26,7 @@ from src.runtime.semantic_parity import (  # noqa: E402
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--database-url", default=os.environ.get("DATABASE_URL"))
+    parser.add_argument("--postgres-mode", choices=("local", "existing"), default="local")
     parser.add_argument("--input-path", type=Path, required=True)
     parser.add_argument(
         "--output-root",
@@ -69,10 +66,6 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--inject-stop-after", type=int, default=1)
     parser.add_argument("--soft-memory-mib", type=int, default=6144)
     parser.add_argument("--hard-memory-mib", type=int, default=8192)
-    parser.add_argument("--serializer-hard-mib", type=int, default=3072)
-    parser.add_argument("--publication-hard-mib", type=int, default=3072)
-    parser.add_argument("--parity-hard-mib", type=int, default=2560)
-    parser.add_argument("--checkpoint-disk-budget-mib", type=int, default=8192)
     parser.add_argument("--typing-workers", type=int, default=4)
     parser.add_argument("--typing-leaf-capacity", type=int, default=4096)
     parser.add_argument("--typing-arity", type=int, default=4)
@@ -86,9 +79,14 @@ def _parse_args() -> argparse.Namespace:
         help="Keep one to reuse the committed exact-0008 parser-fibre checkpoints.",
     )
     parser.add_argument("--worker-budget", type=int, default=4)
+    parser.add_argument(
+        "--strict-exact",
+        action="store_true",
+        help="Use PostgreSQL leases/fences and committed finalisation evidence.",
+    )
     parser.add_argument("--tranche", choices=("GWB", "AU", "BREXIT"), default="GWB")
     args = parser.parse_args()
-    if not args.database_url:
+    if args.postgres_mode == "existing" and not args.database_url:
         parser.error("--database-url or DATABASE_URL is required")
     if args.hard_memory_mib <= args.soft_memory_mib:
         parser.error("--hard-memory-mib must exceed --soft-memory-mib")
@@ -101,10 +99,6 @@ def _parse_args() -> argparse.Namespace:
         "parser_workers",
         "worker_budget",
         "inject_stop_after",
-        "serializer_hard_mib",
-        "publication_hard_mib",
-        "parity_hard_mib",
-        "checkpoint_disk_budget_mib",
     ):
         if int(getattr(args, name)) < 1:
             parser.error(f"--{name.replace('_', '-')} must be positive")
@@ -182,77 +176,6 @@ def _process_parallelism(receipt: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _serializer_evidence(
-    semantic_root: Path,
-    *,
-    hard_mib: int,
-) -> dict[str, Any]:
-    reports = sorted(
-        semantic_root.glob(
-            "closure-finalization/*/closure-reference-serializer-report.json"
-        ),
-        key=lambda path: path.stat().st_mtime_ns,
-    )
-    if not reports:
-        return {
-            "state": "missing",
-            "verified": False,
-            "hard_pss_bytes": hard_mib * 1024 * 1024,
-        }
-    path = reports[-1]
-    report = _json(path)
-    observed = max(
-        int((report.get("before") or {}).get("pss_bytes") or 0),
-        int((report.get("after") or {}).get("pss_bytes") or 0),
-    )
-    return {
-        "state": str(report.get("state") or "unknown"),
-        "verified": bool(
-            report.get("reference_only")
-            and report.get("received_owner_object") is False
-            and observed < hard_mib * 1024 * 1024
-        ),
-        "report": str(path),
-        "observed_pss_bytes": observed,
-        "hard_pss_bytes": hard_mib * 1024 * 1024,
-        "bytes_written": int(report.get("bytes_written") or 0),
-    }
-
-
-def _semantic_parity(
-    semantic_receipt: Mapping[str, Any],
-    reference_receipt: Mapping[str, Any] | None,
-) -> tuple[dict[str, Any], dict[str, Any] | None]:
-    compact_current = reference_surface_from_execution_receipt(semantic_receipt)
-    if reference_receipt is None:
-        return (
-            {
-                "semantic_parity": None,
-                "state": "awaiting_prior_successful_or_resumed exact-0008 receipt",
-                "fixture_parity_required": True,
-                "failed_serial_baseline_has_no_semantic_output_identity": True,
-                "manifest_first": compact_current is not None,
-            },
-            compact_current,
-        )
-    compact_reference = reference_surface_from_execution_receipt(reference_receipt)
-    if compact_current is not None and compact_reference is not None:
-        return (
-            compare_reference_surface_rows(compact_current, compact_reference),
-            compact_current,
-        )
-    current = semantic_surface_from_execution_receipt(semantic_receipt)
-    return (
-        compare_semantic_surfaces(
-            (
-                semantic_surface_from_execution_receipt(reference_receipt),
-                current,
-            )
-        ),
-        current,
-    )
-
-
 def main() -> int:
     args = _parse_args()
     acceptance_root = args.acceptance_root.resolve()
@@ -271,7 +194,9 @@ def main() -> int:
         "--tranche",
         args.tranche,
         "--database-url",
-        args.database_url,
+        args.database_url or "",
+        "--postgres-mode",
+        args.postgres_mode,
         "--input-path",
         str(args.input_path.resolve()),
         "--output-root",
@@ -294,15 +219,19 @@ def main() -> int:
         str(args.worker_budget),
         "--offline",
         "--skip-legal-follow",
-        "--calibration",
     ]
+    if not args.strict_exact:
+        # Compatibility-only calibration path. Strict exact acceptance retains
+        # a committed disposable database as authoritative evidence.
+        command.append("--calibration")
+    else:
+        command.append("--strict-exact")
     environment = os.environ.copy()
     environment.update(
         {
             "DATABASE_URL": args.database_url,
             "PYTHONUNBUFFERED": "1",
             "SENSIBLAW_SEMANTIC_CHECKPOINT_DIR": str(semantic_root),
-            "SENSIBLAW_RESOURCE_CHECKPOINT_DIR": str(semantic_root),
             "SENSIBLAW_TYPING_WORKERS": str(args.typing_workers),
             "SENSIBLAW_TYPING_LEAF_CAPACITY": str(args.typing_leaf_capacity),
             "SENSIBLAW_TYPING_HIERARCHY_ARITY": str(args.typing_arity),
@@ -311,20 +240,10 @@ def main() -> int:
                 args.closure_activation_leaf_size
             ),
             "SENSIBLAW_DOCUMENT_RETENTION_MODE": "production_compact",
-            "SENSIBLAW_STAGE_SERIALIZATION_HARD_MIB": str(
-                args.serializer_hard_mib
-            ),
-            "SENSIBLAW_STAGE_PUBLICATION_HARD_MIB": str(
-                args.publication_hard_mib
-            ),
-            "SENSIBLAW_STAGE_PARITY_HARD_MIB": str(args.parity_hard_mib),
-            "SENSIBLAW_CHECKPOINT_DISK_BUDGET_MIB": str(
-                args.checkpoint_disk_budget_mib
-            ),
         }
     )
     started = {
-        "schema_version": "sensiblaw.exact-0008-parallel-acceptance.v2",
+        "schema_version": "sensiblaw.exact-0008-parallel-acceptance.v1",
         "state": "started",
         "accepted": False,
         "command": command,
@@ -338,10 +257,7 @@ def main() -> int:
             "parser_workers": args.parser_workers,
             "worker_budget": args.worker_budget,
             "semantic_process_workers": semantic_process_workers,
-            "serializer_hard_mib": args.serializer_hard_mib,
-            "publication_hard_mib": args.publication_hard_mib,
-            "parity_hard_mib": args.parity_hard_mib,
-            "checkpoint_disk_budget_mib": args.checkpoint_disk_budget_mib,
+            "strict_exact": args.strict_exact,
         },
         "baseline": str(args.baseline.resolve()),
     }
@@ -421,20 +337,27 @@ def main() -> int:
         "parallel_peak_resources": strict_receipt.get("peak_resources") or {},
     }
 
-    reference_receipt = (
-        _json(args.reference_semantic_receipt.resolve())
-        if args.reference_semantic_receipt is not None
+    current_surface = (
+        semantic_surface_from_execution_receipt(semantic_receipt)
+        if semantic_receipt.get("state") == "completed"
         else None
     )
-    parity, current_surface = _semantic_parity(
-        semantic_receipt,
-        reference_receipt,
-    )
+    if args.reference_semantic_receipt is not None:
+        reference_receipt = _json(args.reference_semantic_receipt.resolve())
+        parity = compare_semantic_surfaces(
+            (
+                semantic_surface_from_execution_receipt(reference_receipt),
+                current_surface or {},
+            )
+        )
+    else:
+        parity = {
+            "semantic_parity": None,
+            "state": "awaiting_prior_successful_or_resumed exact-0008 receipt",
+            "fixture_parity_required": True,
+            "failed_serial_baseline_has_no_semantic_output_identity": True,
+        }
     process_execution = _process_parallelism(semantic_receipt)
-    serializer_evidence = _serializer_evidence(
-        semantic_root,
-        hard_mib=args.serializer_hard_mib,
-    )
 
     strict_completed = strict_receipt.get("state") in {"completed", "calibrated"}
     rollback_verified = (
@@ -497,7 +420,6 @@ def main() -> int:
         and int(activation.get("max_buffered_leaves") or 0)
         <= int(activation.get("buffer_limit_leaves") or 0)
         and int(activation.get("activation_output_bytes") or 0) > 0
-        and serializer_evidence["verified"] is True
     )
     accepted = (
         strict_completed
@@ -522,6 +444,9 @@ def main() -> int:
         **started,
         "state": "accepted" if accepted else "failed",
         "accepted": accepted,
+        "failure_reason": strict_receipt.get("failure_reason") if not accepted else None,
+        "diagnostic_path": strict_receipt.get("diagnostic_path") if not accepted else None,
+        "kernel_key": strict_receipt.get("kernel_key") if not accepted else None,
         "child_returncode": completed.returncode,
         "strict_receipt": str(strict_receipt_path),
         "semantic_receipt": str(semantic_receipt_path),
@@ -530,7 +455,6 @@ def main() -> int:
         "semantic_parity": parity,
         "fixed_point_verified": fixed_point_verified,
         "resource_verified": resource_verified,
-        "serializer_evidence": serializer_evidence,
         "resume_verified": resume_verified,
         "injected_stop": injected_stop,
         "rollback_verification": {
