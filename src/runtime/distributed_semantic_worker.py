@@ -8,11 +8,11 @@ heartbeats independent from long-running computation and result admission.
 
 from __future__ import annotations
 
-from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from threading import Event, Thread
 from time import monotonic_ns
-from typing import Any, Callable, Mapping, Protocol
+from types import TracebackType
+from typing import Any, Callable, Mapping, Protocol, Self
 
 from src.policy.carriers.canonical import canonical_sha256
 from src.storage.postgres.distributed_semantic_execution_store import (
@@ -27,11 +27,29 @@ DISTRIBUTED_WORKER_CONTRACT = "postgres-fenced-semantic-worker:v1"
 
 
 class CursorLike(Protocol):
+    def __enter__(self) -> Self: ...
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> bool | None: ...
+
     def execute(self, query: str, parameters: Any = None) -> None: ...
 
 
-class ConnectionLike(AbstractContextManager[Any], Protocol):
-    def cursor(self) -> AbstractContextManager[CursorLike]: ...
+class ConnectionLike(Protocol):
+    def __enter__(self) -> Self: ...
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> bool | None: ...
+
+    def cursor(self) -> CursorLike: ...
 
 
 ConnectionFactory = Callable[[], ConnectionLike]
@@ -136,7 +154,12 @@ class LeaseHeartbeat:
         if self.error is not None:
             raise StaleSemanticLeaseError(self.lease.job_ref) from self.error
 
-    def __exit__(self, exc_type: Any, exc: Any, traceback: Any) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.stop.set()
         if self.thread is not None:
             self.thread.join(timeout=max(1.0, self.interval_seconds * 2))
