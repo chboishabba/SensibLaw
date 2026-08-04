@@ -118,7 +118,11 @@ DEFAULT_KERNEL_CONTRACTS: tuple[KernelContract, ...] = (
         lifecycle="draining",
         budget_family="closure",
         authority=KernelAuthority.POSTGRESQL,
-        progress_keys=("durable_admissions", "new_durable_obligations", "owner_revision"),
+        progress_keys=(
+            "durable_admissions",
+            "new_durable_obligations",
+            "owner_revision",
+        ),
         progress_unit="owner_revision",
         max_batch_size=4096,
         checkpoint_contract="postgres-semantic-owner-stream:v1",
@@ -145,7 +149,11 @@ DEFAULT_KERNEL_CONTRACTS: tuple[KernelContract, ...] = (
         progress_unit="semantic_job",
         max_batch_size=4096,
         checkpoint_contract="postgres-fenced-semantic-worker:v1",
-        allowed_next=("closure.reducing-final-dirty", "finalization.materialize", "failed"),
+        allowed_next=(
+            "closure.reducing-final-dirty",
+            "finalization.materialize",
+            "failed",
+        ),
     ),
     KernelContract(
         key="closure.reducing-final-dirty",
@@ -209,7 +217,12 @@ DEFAULT_KERNEL_CONTRACTS: tuple[KernelContract, ...] = (
     ),
     KernelContract(
         key="parity.acceptance",
-        stage_prefixes=("acceptance_", "semantic_parity", "reference_parity", "parity_"),
+        stage_prefixes=(
+            "acceptance_",
+            "semantic_parity",
+            "reference_parity",
+            "parity_",
+        ),
         lifecycle="verifying",
         budget_family="parity",
         authority=KernelAuthority.POSTGRESQL,
@@ -233,7 +246,10 @@ class KernelRegistry:
         matches = [
             contract
             for contract in self.contracts
-            if any(normalised.startswith(_normalise(prefix)) for prefix in contract.stage_prefixes)
+            if any(
+                normalised.startswith(_normalise(prefix))
+                for prefix in contract.stage_prefixes
+            )
         ]
         if not matches:
             raise KernelContractViolation(
@@ -254,7 +270,9 @@ class KernelRegistry:
         )
 
     @staticmethod
-    def _progress_value(contract: KernelContract, counts: Mapping[str, int]) -> int | None:
+    def _progress_value(
+        contract: KernelContract, counts: Mapping[str, int]
+    ) -> int | None:
         for key in contract.progress_keys:
             if key in counts:
                 return int(counts[key])
@@ -279,7 +297,9 @@ class KernelRegistry:
         if budget_family != contract.budget_family:
             violation = "budget_family_mismatch"
 
-        batch_size = int(detail_values.get("batch_size") or count_values.get("rows_in") or 0)
+        batch_size = int(
+            detail_values.get("batch_size") or count_values.get("rows_in") or 0
+        )
         if batch_size > contract.max_batch_size:
             violation = violation or "batch_bound_exceeded"
 
@@ -302,23 +322,39 @@ class KernelRegistry:
             violation = violation or "post_drain_admission_without_durable_obligation"
 
         progress = self._progress_value(contract, count_values)
-        waiting = phase.endswith("waiting") or detail_values.get("wait_reason") is not None
+        waiting = (
+            phase.endswith("waiting") or detail_values.get("wait_reason") is not None
+        )
         completed = bool(
             detail_values.get("completed")
             or phase.endswith("completed")
-            or count_values.get("completed") == count_values.get("total") != None
+            or (
+                count_values.get("total") is not None
+                and count_values.get("completed") == count_values.get("total")
+            )
         )
-        if progress is not None and (state.last_progress is None or progress > state.last_progress):
+        if waiting and (
+            not detail_values.get("wait_reason")
+            or not detail_values.get("wait_dependency")
+        ):
+            violation = violation or "unnamed_wait"
+
+        if progress is not None and (
+            state.last_progress is None or progress > state.last_progress
+        ):
             state.last_progress = progress
             state.last_progress_ns = now
-        elif waiting:
-            if not detail_values.get("wait_reason") or not detail_values.get("wait_dependency"):
-                violation = violation or "unnamed_wait"
-        elif not completed and now - state.last_progress_ns > contract.no_progress_timeout_seconds * 1_000_000_000:
+        elif (
+            not completed
+            and now - state.last_progress_ns
+            > contract.no_progress_timeout_seconds * 1_000_000_000
+        ):
             violation = violation or "no_monotonic_progress"
 
         if self._active_kernel and self._active_kernel != contract.key:
-            previous = next(row for row in self.contracts if row.key == self._active_kernel)
+            previous = next(
+                row for row in self.contracts if row.key == self._active_kernel
+            )
             if contract.key not in previous.allowed_next:
                 violation = violation or "illegal_lifecycle_transition"
         self._active_kernel = contract.key
