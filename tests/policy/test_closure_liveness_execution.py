@@ -6,12 +6,14 @@ import pytest
 
 from src.pnf.streaming_fixed_point import CoverageNotice, ObservationDelta
 from src.policy import bounded_operational_execution as bounded
-from src.policy.closure_finalization_hardening import FinalizationHardenedOwner
 from src.policy.closure_liveness_execution import (
     ClosureLifecycleState,
     ClosureLivenessError,
     FinalizationPhase,
     LivenessBoundedStreamingSemanticOwner,
+)
+from src.policy.reference_backed_finalization import (
+    ReferenceBackedFinalizationOwner,
 )
 from src.runtime.stage_timing import StageTimingLedger
 
@@ -75,8 +77,8 @@ def _build(
     )
 
 
-def test_bounded_compiler_uses_hardened_liveness_owner() -> None:
-    assert bounded.BoundedStreamingSemanticOwner is FinalizationHardenedOwner
+def test_bounded_compiler_uses_reference_backed_liveness_owner() -> None:
+    assert bounded.BoundedStreamingSemanticOwner is ReferenceBackedFinalizationOwner
     assert issubclass(
         bounded.BoundedStreamingSemanticOwner,
         LivenessBoundedStreamingSemanticOwner,
@@ -123,7 +125,7 @@ def test_final_partial_batch_drains_and_certifies_once(
     assert any(event.get("jobs_completed") == 5 for event in events)
 
 
-def test_finalization_is_phased_and_avoids_proposal_rereduction(
+def test_finalization_is_reference_backed_and_process_isolated(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -144,11 +146,15 @@ def test_finalization_is_phased_and_avoids_proposal_rereduction(
     assert FinalizationPhase.ASSEMBLE_REDUCTION.value in completed_phases
     assert FinalizationPhase.BUILD_CONVERGENT_LEDGER.value in completed_phases
     assert FinalizationPhase.BUILD_FIXED_POINT_CERTIFICATE.value in completed_phases
+    assert FinalizationPhase.RELEASE_OWNER_STATE.value in completed_phases
     assert FinalizationPhase.SERIALIZE_CLOSURE_RECEIPT.value in completed_phases
-    assert all(
-        event["rss_bytes"] >= 0 and event["pss_bytes"] >= 0 and event["uss_bytes"] >= 0
-        for event in lifecycle["finalization_events"]
-    )
+    assert build["reference_backed"] is True
+    assert build["compact_execution_evidence"] is True
+    assert build["serializer_report"]["received_owner_object"] is False
+    assert build["serializer_report"]["reference_only"] is True
+    assert build["materialized_reduction"]["factors"]["record_count"] >= 0
+    assert not isinstance(build["proposals"], list)
+
     finalization_root = (
         tmp_path / "closure-finalization" / "document_phased-finalization"
     )
@@ -157,10 +163,14 @@ def test_finalization_is_phased_and_avoids_proposal_rereduction(
     assert (finalization_root / "materialized-residuals.jsonl").is_file()
     assert (finalization_root / "convergent-ledger.json").is_file()
     assert (finalization_root / "fixed-point-certificate.json").is_file()
+    assert (finalization_root / "closure-reference-receipt.spec.json").is_file()
     assert (finalization_root / "closure-receipt.json").is_file()
+    assert (
+        finalization_root / "closure-reference-serializer-report.json"
+    ).is_file()
 
 
-def test_identical_replay_reuses_materialized_reduction_checkpoint(
+def test_identical_replay_preserves_reference_manifest_identity(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -174,11 +184,13 @@ def test_identical_replay_reuses_materialized_reduction_checkpoint(
         first["materialized_reduction"]["graph_ref"]
         == second["materialized_reduction"]["graph_ref"]
     )
-    assert any(
-        event["phase"] == FinalizationPhase.ASSEMBLE_REDUCTION.value
-        and event["completed"]
-        and event["reused_checkpoint"]
-        for event in second["closure_lifecycle"]["finalization_events"]
+    assert (
+        first["family_manifests"]["factors"]["ordered_digest"]
+        == second["family_manifests"]["factors"]["ordered_digest"]
+    )
+    assert (
+        first["family_manifests"]["proposals"]["ordered_digest"]
+        == second["family_manifests"]["proposals"]["ordered_digest"]
     )
 
 
