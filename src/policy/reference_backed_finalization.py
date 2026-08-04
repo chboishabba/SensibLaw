@@ -196,14 +196,8 @@ class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
                 "proposals",
                 (self._proposals[key] for key in sorted(self._proposals)),
             ),
-            (
-                "solver_jobs",
-                (jobs[key] for key in sorted(jobs)),
-            ),
-            (
-                "solver_receipts",
-                (receipts[key] for key in sorted(receipts)),
-            ),
+            ("solver_jobs", (jobs[key] for key in sorted(jobs))),
+            ("solver_receipts", (receipts[key] for key in sorted(receipts))),
             (
                 "state_deltas",
                 (
@@ -244,14 +238,24 @@ class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
         self._sealed_owner_fingerprint = super()._owner_fingerprint()
         released_counts = {
             "observation_deltas": len(self._observation_deltas),
+            "observation_refs": len(self._observation_refs),
+            "coverage_notices": len(self._coverage_notices),
+            "declarations": len(self._declarations),
             "proposals": len(self._proposals),
             "proposal_owner_groups": len(self._proposals_by_owner),
             "jobs": len(self._jobs) + len(self._compact_jobs),
             "receipts": len(self._receipts) + len(self._compact_receipts),
+            "completed_job_signatures": len(self._completed_job_signatures),
             "state_deltas": len(self._state_deltas),
+            "dirty_groups": len(self._dirty_groups),
             "reductions": len(self._reductions),
+            "boundary_obligations": len(self._boundary_obligations),
+            "complete_coverage_entries": len(self._complete_coverage),
         }
         self._observation_deltas.clear()
+        self._observation_refs.clear()
+        self._coverage_notices.clear()
+        self._declarations.clear()
         self._proposals.clear()
         self._proposal_stage.clear()
         self._proposals_by_owner.clear()
@@ -262,12 +266,20 @@ class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
         self._receipts.clear()
         self._compact_receipts.clear()
         self._compact_receipt_refs.clear()
+        self._completed_job_signatures.clear()
         self._state_deltas.clear()
+        self._dirty_groups.clear()
         self._reductions.clear()
+        self._boundary_obligations.clear()
+        self._complete_coverage.clear()
         self._known_dependency_refs.clear()
+        # Keep the already-built boundary-summary cache and its small scope
+        # indexes until the outer compatibility view has consumed them. They no
+        # longer retain factor/proposal objects because `_reductions` is cleared.
         self._materialized_reduction_cache = None
         self._deferred_reduction = None
         self._ledger_cache = None
+        self._certificate_cache = None
         self._serialized_payload_cache = None
         self._owner_state_released = True
         collected = gc.collect()
