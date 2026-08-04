@@ -123,6 +123,7 @@ def install_execution_strategies() -> None:
         from .semantic_receipt_enrichment import (
             install_semantic_receipt_enrichment,
         )
+        from .stage_budget_execution import install_stage_budget_execution
 
         if indexed_projection_enabled():
             install_indexed_projection_execution()
@@ -148,6 +149,9 @@ def install_execution_strategies() -> None:
         # Parent stages must expose child completion while leaves are running,
         # name waits, and persist the same universal envelope emitted to logs.
         install_progress_observability_execution()
+        # Every semantic sample now also enforces a lower stage-local budget;
+        # the global process limit remains the final safety net.
+        install_stage_budget_execution()
         # The semantic wrapper writes its receipt in ``finally``. Enrichment is
         # intentionally installed last so completed artifact stage identities
         # can be copied into that durable receipt without changing output.
