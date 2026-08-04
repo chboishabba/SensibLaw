@@ -1,0 +1,244 @@
+name: Exact-0008 reference and resume acceptance
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/self-hosted-exact-0008-reference.yml"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag, or commit to validate"
+        required: false
+        default: "agent/repair-corpus-progress-stage-lifecycle"
+      source_path:
+        description: "Optional exact-0008 EPUB path on runner 21"
+        required: false
+      output_root:
+        description: "Optional durable parser/output root on runner 21"
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sensiblaw-exact-0008-reference
+  cancel-in-progress: false
+
+jobs:
+  exact-reference-and-resume:
+    runs-on: self-hosted
+    timeout-minutes: 720
+    env:
+      DATABASE_URL: postgresql://postgres@127.0.0.1:5433/sensiblaw_tranche
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || 'agent/repair-corpus-progress-stage-lifecycle' }}
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install environment
+        run: |
+          python -m pip install --upgrade pip uv
+          uv sync --frozen --extra test --extra dev
+
+      - name: Reject overlapping exact compiler process
+        shell: bash
+        run: |
+          set -euo pipefail
+          if pgrep -af 'run_exact_0008_parallel_acceptance|run_strict_tranche_acceptance.*exact-0008' | grep -v "$$"; then
+            echo "An exact-0008 acceptance process is already active" >&2
+            exit 1
+          fi
+
+      - name: Locate durable source and parser checkpoints
+        id: locate
+        shell: bash
+        env:
+          REQUESTED_SOURCE: ${{ inputs.source_path }}
+          REQUESTED_OUTPUT: ${{ inputs.output_root }}
+        run: |
+          set -euo pipefail
+          source_path="${REQUESTED_SOURCE:-}"
+          output_root="${REQUESTED_OUTPUT:-}"
+
+          if [[ -z "$source_path" ]]; then
+            known='/home/c/Documents/code/ITIR-suite/SensibLaw/.tmp/exact-0008-current/trial-1/gwb/source_projection/raw/0001_e55d3729b512.epub'
+            if [[ -f "$known" ]]; then
+              source_path="$known"
+            else
+              source_path="$({
+                find /home/c/Documents/code/ITIR-suite /tmp \
+                  -path '*/gwb/source_projection/raw/0001_e55d3729b512.epub' \
+                  -type f -printf '%T@ %p\n' 2>/dev/null || true
+              } | sort -n | tail -n 1 | cut -d' ' -f2-)"
+            fi
+          fi
+          test -f "$source_path"
+
+          if [[ -z "$output_root" ]]; then
+            output_root="$(dirname "$(dirname "$(dirname "$(dirname "$source_path")")")")"
+          fi
+          if ! find "$output_root" -path '*local_pnf_compilation_state_chunks*' -print -quit | grep -q .; then
+            candidate="$({
+              find /home/c/Documents/code/ITIR-suite /tmp \
+                -type d -name local_pnf_compilation_state_chunks \
+                -printf '%T@ %h\n' 2>/dev/null || true
+            } | sort -n | tail -n 1 | cut -d' ' -f2-)"
+            if [[ -n "$candidate" ]]; then
+              output_root="$(dirname "$(dirname "$candidate")")"
+            fi
+          fi
+          test -d "$output_root"
+
+          head_sha="$(git rev-parse HEAD)"
+          short_sha="${head_sha:0:12}"
+          durable_root='/home/c/Documents/code/ITIR-suite/SensibLaw/.tmp/exact-0008-recovery'
+          if [[ ! -d "$(dirname "$durable_root")" ]]; then
+            durable_root='/tmp/sensiblaw-exact-0008-recovery'
+          fi
+          reference_root="$durable_root/reference-$short_sha"
+          resume_root="$durable_root/resume-$short_sha"
+          mkdir -p "$reference_root" "$resume_root"
+
+          {
+            echo "source_path=$source_path"
+            echo "output_root=$output_root"
+            echo "reference_root=$reference_root"
+            echo "resume_root=$resume_root"
+            echo "head_sha=$head_sha"
+          } >> "$GITHUB_OUTPUT"
+          printf 'source=%s\noutput=%s\nreference=%s\nresume=%s\nhead=%s\n' \
+            "$source_path" "$output_root" "$reference_root" "$resume_root" "$head_sha"
+
+      - name: Apply distributed execution migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+            -f database/postgres_migrations/026_distributed_semantic_execution.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+            -f database/postgres_migrations/027_semantic_execution_outbox_triggers.sql
+
+      - name: Run exact reference acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv run python scripts/run_exact_0008_parallel_acceptance.py \
+            --database-url "$DATABASE_URL" \
+            --input-path '${{ steps.locate.outputs.source_path }}' \
+            --output-root '${{ steps.locate.outputs.output_root }}' \
+            --acceptance-root '${{ steps.locate.outputs.reference_root }}' \
+            --semantic-checkpoint-root '${{ steps.locate.outputs.reference_root }}/semantic-checkpoints' \
+            --soft-memory-mib 6144 \
+            --hard-memory-mib 8192 \
+            --serializer-hard-mib 3072 \
+            --publication-hard-mib 3072 \
+            --parity-hard-mib 2560 \
+            --checkpoint-disk-budget-mib 8192 \
+            --typing-workers 4 \
+            --closure-workers 4 \
+            --owner-partitions 8 \
+            --parser-workers 1 \
+            --worker-budget 4 \
+            --tranche GWB \
+            2>&1 | tee '${{ steps.locate.outputs.reference_root }}/workflow-reference.log'
+
+      - name: Require accepted reference and compact evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          report='${{ steps.locate.outputs.reference_root }}/parallel-acceptance-comparison.json'
+          receipt='${{ steps.locate.outputs.reference_root }}/semantic-checkpoints/semantic-execution-receipt.json'
+          test -f "$report" -a -f "$receipt"
+          jq -e '.accepted == true and .state == "accepted" and .serializer_evidence.verified == true and .resource_verified == true and .fixed_point_verified == true and .rollback_verification.state == "verified"' "$report" >/dev/null
+          jq -e '.state == "completed" and .reference_backed_execution.full_document_payload_embedded == false' "$receipt" >/dev/null
+
+      - name: Run injected-stop and resume acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv run python scripts/run_exact_0008_parallel_acceptance.py \
+            --database-url "$DATABASE_URL" \
+            --input-path '${{ steps.locate.outputs.source_path }}' \
+            --output-root '${{ steps.locate.outputs.output_root }}' \
+            --acceptance-root '${{ steps.locate.outputs.resume_root }}' \
+            --semantic-checkpoint-root '${{ steps.locate.outputs.resume_root }}/semantic-checkpoints' \
+            --reference-semantic-receipt '${{ steps.locate.outputs.reference_root }}/semantic-checkpoints/semantic-execution-receipt.json' \
+            --reference-acceptance-report '${{ steps.locate.outputs.reference_root }}/parallel-acceptance-comparison.json' \
+            --inject-stop-boundary owner \
+            --inject-stop-after 1 \
+            --soft-memory-mib 6144 \
+            --hard-memory-mib 8192 \
+            --serializer-hard-mib 3072 \
+            --publication-hard-mib 3072 \
+            --parity-hard-mib 2560 \
+            --checkpoint-disk-budget-mib 8192 \
+            --typing-workers 4 \
+            --closure-workers 4 \
+            --owner-partitions 8 \
+            --parser-workers 1 \
+            --worker-budget 4 \
+            --tranche GWB \
+            2>&1 | tee '${{ steps.locate.outputs.resume_root }}/workflow-resume.log'
+
+      - name: Require resumed semantic and publication parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          report='${{ steps.locate.outputs.resume_root }}/parallel-acceptance-comparison.json'
+          test -f "$report"
+          jq -e '.accepted == true and .resume_verified == true and .semantic_parity.semantic_parity == true and .rollback_verification.persistence_parity == true and .serializer_evidence.verified == true' "$report" >/dev/null
+
+      - name: Write compact workflow summary
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          {
+            echo '## Exact-0008 current-head acceptance'
+            echo
+            echo "Head: \`${{ steps.locate.outputs.head_sha }}\`"
+            for kind in reference resume; do
+              root='${{ steps.locate.outputs.reference_root }}'
+              [[ "$kind" == resume ]] && root='${{ steps.locate.outputs.resume_root }}'
+              report="$root/parallel-acceptance-comparison.json"
+              echo
+              echo "### $kind"
+              if [[ -f "$report" ]]; then
+                jq '{state,accepted,child_returncode,fixed_point_verified,resource_verified,resume_verified,serializer_evidence,semantic_parity,rollback_verification}' "$report"
+              else
+                echo 'No terminal report yet.'
+              fi
+              log="$root/workflow-$kind.log"
+              if [[ -f "$log" ]]; then
+                echo
+                echo '<details><summary>Last 80 log lines</summary>'
+                echo
+                echo '```text'
+                tail -n 80 "$log"
+                echo '```'
+                echo '</details>'
+              fi
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: exact-0008-reference-resume-${{ github.run_id }}
+          path: |
+            ${{ steps.locate.outputs.reference_root }}/parallel-acceptance-comparison.json
+            ${{ steps.locate.outputs.reference_root }}/semantic-checkpoints/semantic-execution-receipt.json
+            ${{ steps.locate.outputs.reference_root }}/workflow-reference.log
+            ${{ steps.locate.outputs.resume_root }}/parallel-acceptance-comparison.json
+            ${{ steps.locate.outputs.resume_root }}/semantic-checkpoints/semantic-execution-receipt.json
+            ${{ steps.locate.outputs.resume_root }}/workflow-resume.log
+          if-no-files-found: warn
+          retention-days: 30
