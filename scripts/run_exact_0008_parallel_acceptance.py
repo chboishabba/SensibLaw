@@ -17,6 +17,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from src.runtime.reference_parity import (  # noqa: E402
+    compare_reference_surface_rows,
+    reference_surface_from_execution_receipt,
+)
 from src.runtime.semantic_parity import (  # noqa: E402
     compare_semantic_surfaces,
     semantic_surface_from_execution_receipt,
@@ -65,6 +69,10 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--inject-stop-after", type=int, default=1)
     parser.add_argument("--soft-memory-mib", type=int, default=6144)
     parser.add_argument("--hard-memory-mib", type=int, default=8192)
+    parser.add_argument("--serializer-hard-mib", type=int, default=3072)
+    parser.add_argument("--publication-hard-mib", type=int, default=3072)
+    parser.add_argument("--parity-hard-mib", type=int, default=2560)
+    parser.add_argument("--checkpoint-disk-budget-mib", type=int, default=8192)
     parser.add_argument("--typing-workers", type=int, default=4)
     parser.add_argument("--typing-leaf-capacity", type=int, default=4096)
     parser.add_argument("--typing-arity", type=int, default=4)
@@ -93,6 +101,10 @@ def _parse_args() -> argparse.Namespace:
         "parser_workers",
         "worker_budget",
         "inject_stop_after",
+        "serializer_hard_mib",
+        "publication_hard_mib",
+        "parity_hard_mib",
+        "checkpoint_disk_budget_mib",
     ):
         if int(getattr(args, name)) < 1:
             parser.error(f"--{name.replace('_', '-')} must be positive")
@@ -170,6 +182,77 @@ def _process_parallelism(receipt: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _serializer_evidence(
+    semantic_root: Path,
+    *,
+    hard_mib: int,
+) -> dict[str, Any]:
+    reports = sorted(
+        semantic_root.glob(
+            "closure-finalization/*/closure-reference-serializer-report.json"
+        ),
+        key=lambda path: path.stat().st_mtime_ns,
+    )
+    if not reports:
+        return {
+            "state": "missing",
+            "verified": False,
+            "hard_pss_bytes": hard_mib * 1024 * 1024,
+        }
+    path = reports[-1]
+    report = _json(path)
+    observed = max(
+        int((report.get("before") or {}).get("pss_bytes") or 0),
+        int((report.get("after") or {}).get("pss_bytes") or 0),
+    )
+    return {
+        "state": str(report.get("state") or "unknown"),
+        "verified": bool(
+            report.get("reference_only")
+            and report.get("received_owner_object") is False
+            and observed < hard_mib * 1024 * 1024
+        ),
+        "report": str(path),
+        "observed_pss_bytes": observed,
+        "hard_pss_bytes": hard_mib * 1024 * 1024,
+        "bytes_written": int(report.get("bytes_written") or 0),
+    }
+
+
+def _semantic_parity(
+    semantic_receipt: Mapping[str, Any],
+    reference_receipt: Mapping[str, Any] | None,
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    compact_current = reference_surface_from_execution_receipt(semantic_receipt)
+    if reference_receipt is None:
+        return (
+            {
+                "semantic_parity": None,
+                "state": "awaiting_prior_successful_or_resumed exact-0008 receipt",
+                "fixture_parity_required": True,
+                "failed_serial_baseline_has_no_semantic_output_identity": True,
+                "manifest_first": compact_current is not None,
+            },
+            compact_current,
+        )
+    compact_reference = reference_surface_from_execution_receipt(reference_receipt)
+    if compact_current is not None and compact_reference is not None:
+        return (
+            compare_reference_surface_rows(compact_current, compact_reference),
+            compact_current,
+        )
+    current = semantic_surface_from_execution_receipt(semantic_receipt)
+    return (
+        compare_semantic_surfaces(
+            (
+                semantic_surface_from_execution_receipt(reference_receipt),
+                current,
+            )
+        ),
+        current,
+    )
+
+
 def main() -> int:
     args = _parse_args()
     acceptance_root = args.acceptance_root.resolve()
@@ -219,6 +302,7 @@ def main() -> int:
             "DATABASE_URL": args.database_url,
             "PYTHONUNBUFFERED": "1",
             "SENSIBLAW_SEMANTIC_CHECKPOINT_DIR": str(semantic_root),
+            "SENSIBLAW_RESOURCE_CHECKPOINT_DIR": str(semantic_root),
             "SENSIBLAW_TYPING_WORKERS": str(args.typing_workers),
             "SENSIBLAW_TYPING_LEAF_CAPACITY": str(args.typing_leaf_capacity),
             "SENSIBLAW_TYPING_HIERARCHY_ARITY": str(args.typing_arity),
@@ -227,10 +311,20 @@ def main() -> int:
                 args.closure_activation_leaf_size
             ),
             "SENSIBLAW_DOCUMENT_RETENTION_MODE": "production_compact",
+            "SENSIBLAW_STAGE_SERIALIZATION_HARD_MIB": str(
+                args.serializer_hard_mib
+            ),
+            "SENSIBLAW_STAGE_PUBLICATION_HARD_MIB": str(
+                args.publication_hard_mib
+            ),
+            "SENSIBLAW_STAGE_PARITY_HARD_MIB": str(args.parity_hard_mib),
+            "SENSIBLAW_CHECKPOINT_DISK_BUDGET_MIB": str(
+                args.checkpoint_disk_budget_mib
+            ),
         }
     )
     started = {
-        "schema_version": "sensiblaw.exact-0008-parallel-acceptance.v1",
+        "schema_version": "sensiblaw.exact-0008-parallel-acceptance.v2",
         "state": "started",
         "accepted": False,
         "command": command,
@@ -244,6 +338,10 @@ def main() -> int:
             "parser_workers": args.parser_workers,
             "worker_budget": args.worker_budget,
             "semantic_process_workers": semantic_process_workers,
+            "serializer_hard_mib": args.serializer_hard_mib,
+            "publication_hard_mib": args.publication_hard_mib,
+            "parity_hard_mib": args.parity_hard_mib,
+            "checkpoint_disk_budget_mib": args.checkpoint_disk_budget_mib,
         },
         "baseline": str(args.baseline.resolve()),
     }
@@ -323,27 +421,20 @@ def main() -> int:
         "parallel_peak_resources": strict_receipt.get("peak_resources") or {},
     }
 
-    current_surface = (
-        semantic_surface_from_execution_receipt(semantic_receipt)
-        if semantic_receipt.get("state") == "completed"
+    reference_receipt = (
+        _json(args.reference_semantic_receipt.resolve())
+        if args.reference_semantic_receipt is not None
         else None
     )
-    if args.reference_semantic_receipt is not None:
-        reference_receipt = _json(args.reference_semantic_receipt.resolve())
-        parity = compare_semantic_surfaces(
-            (
-                semantic_surface_from_execution_receipt(reference_receipt),
-                current_surface or {},
-            )
-        )
-    else:
-        parity = {
-            "semantic_parity": None,
-            "state": "awaiting_prior_successful_or_resumed exact-0008 receipt",
-            "fixture_parity_required": True,
-            "failed_serial_baseline_has_no_semantic_output_identity": True,
-        }
+    parity, current_surface = _semantic_parity(
+        semantic_receipt,
+        reference_receipt,
+    )
     process_execution = _process_parallelism(semantic_receipt)
+    serializer_evidence = _serializer_evidence(
+        semantic_root,
+        hard_mib=args.serializer_hard_mib,
+    )
 
     strict_completed = strict_receipt.get("state") in {"completed", "calibrated"}
     rollback_verified = (
@@ -406,6 +497,7 @@ def main() -> int:
         and int(activation.get("max_buffered_leaves") or 0)
         <= int(activation.get("buffer_limit_leaves") or 0)
         and int(activation.get("activation_output_bytes") or 0) > 0
+        and serializer_evidence["verified"] is True
     )
     accepted = (
         strict_completed
@@ -438,6 +530,7 @@ def main() -> int:
         "semantic_parity": parity,
         "fixed_point_verified": fixed_point_verified,
         "resource_verified": resource_verified,
+        "serializer_evidence": serializer_evidence,
         "resume_verified": resume_verified,
         "injected_stop": injected_stop,
         "rollback_verification": {
