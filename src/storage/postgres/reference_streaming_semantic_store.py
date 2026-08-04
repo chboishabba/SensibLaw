@@ -7,6 +7,7 @@ from typing import Any, Mapping
 
 from src.pnf.streaming_build_reader import StreamingBuildReader
 from src.policy.carriers.canonical import canonical_sha256
+from src.runtime.stage_memory_budget import StageMemoryBudgetGuard
 from src.storage.postgres.distributed_semantic_execution_store import (
     DistributedSemanticExecutionStore,
 )
@@ -256,6 +257,7 @@ def persist_reference_streaming_semantic_artifacts(
     """Persist every family in bounded verified batches."""
 
     reader = StreamingBuildReader(streaming_build)
+    budget = StageMemoryBudgetGuard()
     counts: dict[str, int | str] = {}
     writers = {
         "observation_deltas": lambda rows: _persist_observation_batch(
@@ -273,11 +275,18 @@ def persist_reference_streaming_semantic_artifacts(
             cursor, document_ref, rows
         ),
     }
+    budget.checkpoint("publication", phase="reference_persistence_started")
     for family, writer in writers.items():
         completed = 0
         for batch in reader.iter_batches(family, batch_size=batch_size):
             writer(batch)
             completed += len(batch)
+            budget.checkpoint(
+                "publication",
+                phase="family_batch_committed",
+                semantic_counts={"rows": completed},
+                details={"family": family, "batch_size": len(batch)},
+            )
         counts[family] = completed
 
     materialized = streaming_build.get("materialized_reduction") or {}
@@ -303,16 +312,14 @@ def persist_reference_streaming_semantic_artifacts(
 
     execution_store = DistributedSemanticExecutionStore()
     owner_fingerprint = streaming_build.get("owner_fingerprint") or {}
+    factor_descriptor = reader.descriptor("factors") or {}
+    residual_descriptor = reader.descriptor("residuals") or {}
     root_sha = canonical_sha256(
         {
             "graph_ref": graph_ref,
             "owner_fingerprint": owner_fingerprint,
-            "factor_digest": (
-                reader.descriptor("factors") or {}
-            ).get("ordered_digest"),
-            "residual_digest": (
-                reader.descriptor("residuals") or {}
-            ).get("ordered_digest"),
+            "factor_digest": factor_descriptor.get("ordered_digest"),
+            "residual_digest": residual_descriptor.get("ordered_digest"),
         }
     )
     certificate = streaming_build.get("fixed_point_certificate") or {}
@@ -333,38 +340,55 @@ def persist_reference_streaming_semantic_artifacts(
         operation_contract_refs=("reference-backed-finalization:v1",),
     )
 
-    factor_count = 0
+    # Each authoritative revision family is consumed once by its store method;
+    # that method maintains a monotone sequence across all internal batches.
+    factor_count = execution_store.persist_factor_revisions(
+        cursor,
+        manifest_ref=manifest_ref,
+        rows=reader.iter_rows("factors"),
+        batch_size=batch_size,
+    )
+    residual_count = execution_store.persist_residual_revisions(
+        cursor,
+        manifest_ref=manifest_ref,
+        rows=reader.iter_rows("residuals"),
+        batch_size=batch_size,
+    )
+
+    # Legacy materialized-reduction arrays remain a compatibility projection.
+    # Re-read the verified stream in bounded batches rather than retaining refs.
+    completed_factor_refs = 0
     for batch in reader.iter_batches("factors", batch_size=batch_size):
-        execution_store.persist_factor_revisions(
-            cursor,
-            manifest_ref=manifest_ref,
-            rows=batch,
-            batch_size=batch_size,
-        )
-        refs = [str(row["factor_ref"]) for row in batch]
         _append_reduction_refs(
             cursor,
             graph_ref=graph_ref,
             column="factor_refs",
-            refs=refs,
+            refs=[str(row["factor_ref"]) for row in batch],
         )
-        factor_count += len(batch)
-    residual_count = 0
+        completed_factor_refs += len(batch)
+        budget.checkpoint(
+            "publication",
+            phase="factor_reference_batch_committed",
+            semantic_counts={"rows": completed_factor_refs},
+            details={"batch_size": len(batch)},
+        )
+    completed_residual_refs = 0
     for batch in reader.iter_batches("residuals", batch_size=batch_size):
-        execution_store.persist_residual_revisions(
-            cursor,
-            manifest_ref=manifest_ref,
-            rows=batch,
-            batch_size=batch_size,
-        )
-        refs = [str(row["residual_ref"]) for row in batch]
         _append_reduction_refs(
             cursor,
             graph_ref=graph_ref,
             column="residual_refs",
-            refs=refs,
+            refs=[str(row["residual_ref"]) for row in batch],
         )
-        residual_count += len(batch)
+        completed_residual_refs += len(batch)
+        budget.checkpoint(
+            "publication",
+            phase="residual_reference_batch_committed",
+            semantic_counts={"rows": completed_residual_refs},
+            details={"batch_size": len(batch)},
+        )
+    if factor_count != completed_factor_refs or residual_count != completed_residual_refs:
+        raise ValueError("authoritative and compatibility reduction counts disagree")
     counts["factors"] = factor_count
     counts["residuals"] = residual_count
     counts["graph_manifest_ref"] = manifest_ref
@@ -398,6 +422,12 @@ def persist_reference_streaming_semantic_artifacts(
             ],
         )
         boundary_count += len(batch)
+        budget.checkpoint(
+            "publication",
+            phase="boundary_summary_batch_committed",
+            semantic_counts={"rows": boundary_count},
+            details={"batch_size": len(batch)},
+        )
     counts["region_boundary_summaries"] = boundary_count
 
     cursor.execute(
@@ -440,6 +470,16 @@ def persist_reference_streaming_semantic_artifacts(
             for row in stage_timing_ledger.get("timings") or ()
             if isinstance(row, Mapping)
         ),
+    )
+    budget.checkpoint(
+        "publication",
+        phase="reference_persistence_completed",
+        semantic_counts={
+            key: int(value)
+            for key, value in counts.items()
+            if isinstance(value, int)
+        },
+        details={"graph_manifest_ref": manifest_ref},
     )
     return counts
 
