@@ -99,10 +99,12 @@ jobs:
             tests/policy/test_progress_observability_execution.py \
             tests/runtime/test_checkpoint_retention.py \
             tests/runtime/test_distributed_semantic_worker.py \
+            tests/runtime/test_post_closure_probe.py \
             tests/runtime/test_reference_parity.py \
             tests/runtime/test_reference_receipt.py \
             tests/runtime/test_stage_memory_budget.py \
-            tests/storage/test_distributed_semantic_execution_store.py
+            tests/storage/test_distributed_semantic_execution_store.py \
+            tests/storage/test_reference_publication_authority.py
 
       - name: Check formatting
         run: |
@@ -134,10 +136,12 @@ jobs:
             tests/policy/test_progress_observability_execution.py \
             tests/runtime/test_checkpoint_retention.py \
             tests/runtime/test_distributed_semantic_worker.py \
+            tests/runtime/test_post_closure_probe.py \
             tests/runtime/test_reference_parity.py \
             tests/runtime/test_reference_receipt.py \
             tests/runtime/test_stage_memory_budget.py \
-            tests/storage/test_distributed_semantic_execution_store.py
+            tests/storage/test_distributed_semantic_execution_store.py \
+            tests/storage/test_reference_publication_authority.py
 
       - name: Run bounded and distributed execution regressions
         run: |
@@ -156,6 +160,7 @@ jobs:
             tests/runtime/test_stage_memory_budget.py \
             tests/runtime/test_checkpoint_retention.py \
             tests/runtime/test_distributed_semantic_worker.py \
+            tests/runtime/test_post_closure_probe.py \
             tests/runtime/test_exact_0008_baseline.py \
             tests/pnf/test_bounded_streaming_owner.py \
             tests/pnf/test_streaming_fixed_point.py \
@@ -170,7 +175,8 @@ jobs:
             tests/policy/test_manifest_stream_validation.py \
             tests/policy/test_operational_corpus_compilation.py \
             tests/policy/test_fibred_operational_corpus_compilation.py \
-            tests/storage/test_distributed_semantic_execution_store.py
+            tests/storage/test_distributed_semantic_execution_store.py \
+            tests/storage/test_reference_publication_authority.py
 
       - name: Validate migration and formal protocol surfaces
         run: |
@@ -185,6 +191,7 @@ jobs:
               "semantic_graph_manifest",
               "semantic_finalization_checkpoint",
               "semantic_fixed_point_receipt",
+              "semantic_execution_receipt",
               "publication_build",
           ):
               assert table in migration
@@ -193,14 +200,22 @@ jobs:
           assert "FOR UPDATE SKIP LOCKED" in worker
           assert "lease_epoch" in worker
           assert "expected_owner_revision" in worker
+          assert "commit_publication" in worker
 
           tla = Path("formal/DistributedSemanticExecution.tla").read_text()
+          cfg = Path("formal/DistributedSemanticExecution.cfg").read_text()
           for invariant in (
               "LeaseFencingSafety",
               "ExactlyOneSemanticAdmission",
               "OwnerRevisionAgreement",
+              "OwnerRevisionCountsAdmissions",
+              "NoDuplicateOwnerRevision",
               "FixedPointSoundness",
               "Termination",
           ):
               assert invariant in tla
+              assert invariant in cfg or invariant == "Termination"
+          assert "DependencyRank" in tla and "DependencyRank" in cfg
+          assert "WF_vars(ComputeJob(j))" in tla
+          assert "WF_vars(ResolveJob(j))" in tla
           PY
