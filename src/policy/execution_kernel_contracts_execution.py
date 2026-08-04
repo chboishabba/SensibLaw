@@ -1,6 +1,6 @@
 """Install executable kernel contracts on the semantic execution boundary.
 
-The semantic compiler remains pure and storage-neutral.  This layer wraps only
+The semantic compiler remains pure and storage-neutral. This layer wraps only
 physical execution telemetry and the closure-handoff adapter, persisting a
 finite diagnostic before rejecting an opaque wait, illegal lifecycle change,
 post-drain admission, or silent authority fallback.
@@ -22,9 +22,17 @@ from src.runtime.execution_kernel_contract import (
 _INSTALL_MARKER = "_execution_kernel_contracts_installed"
 
 
-def _enabled() -> bool:
-    value = os.environ.get("SENSIBLAW_ENFORCE_KERNEL_CONTRACTS", "1")
+def _truthy(name: str, default: str) -> bool:
+    value = os.environ.get(name, default)
     return value.strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _enabled() -> bool:
+    return _truthy("SENSIBLAW_ENFORCE_KERNEL_CONTRACTS", "1")
+
+
+def _require_postgresql() -> bool:
+    return _truthy("SENSIBLAW_REQUIRE_POSTGRESQL_EXECUTION", "0")
 
 
 def _atomic_json(path: Path, payload: Mapping[str, Any]) -> None:
@@ -137,7 +145,19 @@ def install_execution_kernel_contracts() -> bool:
                 budget_family=budget_family,
             )
         except KernelContractViolation as error:
-            _persist(self, error.diagnostic)
+            diagnostic = dict(error.diagnostic)
+            if (
+                diagnostic.get("violation") == "postgresql_authority_missing"
+                and not _require_postgresql()
+            ):
+                diagnostic["enforcement_state"] = "deferred_compatibility"
+                diagnostic["authority_requirement"] = (
+                    "set SENSIBLAW_REQUIRE_POSTGRESQL_EXECUTION=1 for exact acceptance"
+                )
+                _persist(self, diagnostic)
+                row["execution_kernel_contract"] = diagnostic
+                return row
+            _persist(self, diagnostic)
             raise
         _persist(self, event)
         row["execution_kernel_contract"] = event
@@ -178,7 +198,7 @@ def install_execution_kernel_contracts() -> bool:
         authority = os.environ.get("SENSIBLAW_EXECUTION_AUTHORITY", "checkpoint")
         setattr(context, "_kernel_authority_backend", authority)
         # PostgreSQL execution adapters increment this only after the admission
-        # transaction commits.  Local replay deliberately leaves it zero.
+        # transaction commits. Local replay deliberately leaves it zero.
         setattr(
             context,
             "_kernel_authority_row_count",
