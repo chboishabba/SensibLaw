@@ -81,12 +81,14 @@ jobs:
             src/policy/semantic_receipt_enrichment.py \
             src/policy/manifest_stream_validation.py \
             src/runtime/checkpoint_retention.py \
+            src/runtime/distributed_semantic_worker.py \
             src/runtime/reference_parity.py \
             src/runtime/reference_receipt.py \
             src/runtime/stage_memory_budget.py \
             src/runtime/semantic_parity.py \
             src/storage/postgres/batched_streaming_semantic_store.py \
             src/storage/postgres/distributed_semantic_execution_store.py \
+            src/storage/postgres/reference_publication_authority.py \
             src/storage/postgres/reference_streaming_semantic_store.py \
             scripts/run_strict_tranche_acceptance.py \
             scripts/run_exact_0008_parallel_acceptance.py \
@@ -96,6 +98,7 @@ jobs:
             tests/policy/test_closure_liveness_execution.py \
             tests/policy/test_progress_observability_execution.py \
             tests/runtime/test_checkpoint_retention.py \
+            tests/runtime/test_distributed_semantic_worker.py \
             tests/runtime/test_reference_parity.py \
             tests/runtime/test_reference_receipt.py \
             tests/runtime/test_stage_memory_budget.py \
@@ -116,11 +119,13 @@ jobs:
             src/policy/stage_budget_execution.py \
             src/policy/semantic_receipt_enrichment.py \
             src/runtime/checkpoint_retention.py \
+            src/runtime/distributed_semantic_worker.py \
             src/runtime/reference_parity.py \
             src/runtime/reference_receipt.py \
             src/runtime/stage_memory_budget.py \
             src/storage/postgres/batched_streaming_semantic_store.py \
             src/storage/postgres/distributed_semantic_execution_store.py \
+            src/storage/postgres/reference_publication_authority.py \
             src/storage/postgres/reference_streaming_semantic_store.py \
             scripts/run_exact_0008_parallel_acceptance.py \
             scripts/run_post_closure_probe.py \
@@ -128,6 +133,7 @@ jobs:
             tests/policy/test_closure_liveness_execution.py \
             tests/policy/test_progress_observability_execution.py \
             tests/runtime/test_checkpoint_retention.py \
+            tests/runtime/test_distributed_semantic_worker.py \
             tests/runtime/test_reference_parity.py \
             tests/runtime/test_reference_receipt.py \
             tests/runtime/test_stage_memory_budget.py \
@@ -149,6 +155,7 @@ jobs:
             tests/runtime/test_reference_receipt.py \
             tests/runtime/test_stage_memory_budget.py \
             tests/runtime/test_checkpoint_retention.py \
+            tests/runtime/test_distributed_semantic_worker.py \
             tests/runtime/test_exact_0008_baseline.py \
             tests/pnf/test_bounded_streaming_owner.py \
             tests/pnf/test_streaming_fixed_point.py \
@@ -171,7 +178,6 @@ jobs:
           from pathlib import Path
 
           migration = Path("database/postgres_migrations/026_distributed_semantic_execution.sql").read_text()
-          assert "FOR UPDATE SKIP LOCKED" not in migration
           for table in (
               "semantic_owner_stream",
               "semantic_job",
@@ -182,6 +188,11 @@ jobs:
               "publication_build",
           ):
               assert table in migration
+
+          worker = Path("src/storage/postgres/distributed_semantic_execution_store.py").read_text()
+          assert "FOR UPDATE SKIP LOCKED" in worker
+          assert "lease_epoch" in worker
+          assert "expected_owner_revision" in worker
 
           tla = Path("formal/DistributedSemanticExecution.tla").read_text()
           for invariant in (
