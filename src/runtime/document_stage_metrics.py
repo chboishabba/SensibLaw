@@ -1,6 +1,6 @@
 """Named throughput measures for document compilation stages.
 
-The registry is descriptive only.  Compiler loops remain authoritative for the
+The registry is descriptive only. Compiler loops remain authoritative for the
 observed counters and must update them while work is in progress.
 """
 
@@ -34,6 +34,11 @@ DOCUMENT_STAGE_MEASURES: dict[str, tuple[tuple[str, str], ...]] = {
         ("mentions_licensed", "mentions"),
         ("recurrences_derived", "recurrences"),
         ("forms_derived", "forms"),
+        ("partitions_completed", "partitions"),
+        ("worker_leases_granted", "workers"),
+        ("worker_processes_observed", "workers"),
+        ("worker_compute_ms", "milliseconds"),
+        ("owner_merge_ms", "milliseconds"),
     ),
     "parser_observation_projection": (
         ("parser_tokens_projected", "tokens"),
@@ -48,6 +53,11 @@ DOCUMENT_STAGE_MEASURES: dict[str, tuple[tuple[str, str], ...]] = {
         ("bundle_sentences_scanned", "sentences"),
         ("bundle_words_scanned", "words"),
         ("bundle_tokens_scanned", "tokens"),
+        ("partitions_completed", "partitions"),
+        ("worker_leases_granted", "workers"),
+        ("worker_processes_observed", "workers"),
+        ("worker_compute_ms", "milliseconds"),
+        ("owner_merge_ms", "milliseconds"),
     ),
     "base_proposal_generation": (
         ("atoms_scanned", "atoms"),

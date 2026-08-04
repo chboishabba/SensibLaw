@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+import importlib
+
 from .semantic_promotion import (
     ABSTAINED,
     CANDIDATE_BASES,
@@ -70,6 +74,17 @@ from .sl_to_sb_observer import (
     build_sl_to_sb_iso_run_observer_payload,
 )
 
+
+# Corpus compilation remains one semantic authority. The package installs the
+# default document execution strategy on that module before direct or package
+# imports can expose it to the tranche runner.
+corpus_compilation = importlib.import_module(".corpus_compilation", __name__)
+_document_graph_execution = importlib.import_module(
+    ".document_graph_execution", __name__
+)
+_document_graph_execution.install_document_execution_strategy(corpus_compilation)
+
+
 __all__ = [
     "ABSTAINED",
     "CANDIDATE_BASES",
@@ -111,6 +126,7 @@ __all__ = [
     "build_relation_candidate",
     "build_sb_to_sl_contract_payload",
     "build_sl_to_sb_iso_run_observer_payload",
+    "corpus_compilation",
     "evaluate_clause",
     "evaluate_control_group",
     "evaluate_control_profile",

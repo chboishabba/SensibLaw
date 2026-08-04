@@ -1,0 +1,88 @@
+name: Document graph execution validation
+
+on:
+  push:
+    branches:
+      - agent/document-graph-dataflow
+  pull_request:
+    paths:
+      - "scripts/benchmark_document_graph_execution.py"
+      - "scripts/plot_progress_metrics.py"
+      - "src/policy/__init__.py"
+      - "src/policy/document_graph_execution.py"
+      - "src/policy/document_graph_mention_worker.py"
+      - "src/policy/document_graph_mentions.py"
+      - "src/policy/document_graph_projection.py"
+      - "src/runtime/document_stage_metrics.py"
+      - "src/runtime/progress_plot.py"
+      - "tests/policy/test_document_graph_projection.py"
+      - "tests/policy/test_entity_resolution.py"
+      - "tests/policy/test_operational_corpus_compilation.py"
+      - "tests/runtime/test_progress_instrumentation.py"
+      - "tests/runtime/test_progress_plot.py"
+      - "docs/document_graph_execution.md"
+      - "docs/document_graph_benchmark.md"
+      - ".github/workflows/document-graph-execution.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install environment
+        run: |
+          python -m pip install --upgrade pip uv
+          uv sync --frozen --extra test --extra dev
+
+      - name: Lint document execution surfaces
+        run: |
+          uv run ruff check \
+            scripts/benchmark_document_graph_execution.py \
+            scripts/plot_progress_metrics.py \
+            src/policy/__init__.py \
+            src/policy/document_graph_execution.py \
+            src/policy/document_graph_mention_worker.py \
+            src/policy/document_graph_mentions.py \
+            src/policy/document_graph_projection.py \
+            src/runtime/document_stage_metrics.py \
+            src/runtime/progress_plot.py \
+            tests/policy/test_document_graph_projection.py \
+            tests/runtime/test_progress_plot.py
+
+      - name: Check formatting
+        run: |
+          uv run ruff format --check \
+            scripts/benchmark_document_graph_execution.py \
+            scripts/plot_progress_metrics.py \
+            src/policy/__init__.py \
+            src/policy/document_graph_execution.py \
+            src/policy/document_graph_mention_worker.py \
+            src/policy/document_graph_mentions.py \
+            src/policy/document_graph_projection.py \
+            src/runtime/document_stage_metrics.py \
+            src/runtime/progress_plot.py \
+            tests/policy/test_document_graph_projection.py \
+            tests/runtime/test_progress_plot.py
+
+      - name: Check diagnostic CLIs
+        run: |
+          uv run python scripts/benchmark_document_graph_execution.py --help
+          uv run python scripts/plot_progress_metrics.py --help
+
+      - name: Run focused compiler regressions
+        run: |
+          uv run pytest --maxfail=1 -q \
+            tests/policy/test_document_graph_projection.py \
+            tests/policy/test_entity_resolution.py \
+            tests/policy/test_operational_corpus_compilation.py \
+            tests/runtime/test_progress_instrumentation.py \
+            tests/runtime/test_progress_plot.py
