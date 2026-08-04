@@ -11,7 +11,12 @@ _INSTALL_MARKER = "_stage_budget_execution_installed"
 
 
 def install_stage_budget_execution() -> bool:
-    """Turn every semantic kernel sample into a durable budget observation."""
+    """Turn every semantic kernel sample into a durable budget observation.
+
+    Semantic samples are required to resolve to an explicit stage family. A new
+    kernel label therefore cannot silently degrade to ``unbudgeted`` telemetry
+    during an exact-document run.
+    """
 
     from src.policy import parallel_semantic_execution as semantic
 
@@ -40,6 +45,7 @@ def install_stage_budget_execution() -> bool:
                 **dict(details or {}),
                 **({"kernel_elapsed_ns": elapsed_ns} if elapsed_ns is not None else {}),
             },
+            require_budget=True,
         )
         row = original(
             self,
@@ -49,6 +55,7 @@ def install_stage_budget_execution() -> bool:
             details={
                 **dict(details or {}),
                 "stage_budget_state": budget_receipt["state"],
+                "stage_budget_family": budget_receipt["stage_family"],
                 "stage_budget_headroom_bytes": budget_receipt.get("headroom_bytes"),
             },
             elapsed_ns=elapsed_ns,
