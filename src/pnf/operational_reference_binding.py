@@ -21,6 +21,8 @@ from .revision_normalization import normalize_factor_revision_artifacts
 
 def build_operational_reference_binding_artifacts(
     artifacts: Mapping[str, Any],
+    *,
+    consume: bool = False,
 ) -> dict[str, Any]:
     """Build canonical set-valued local binding artifacts.
 
@@ -35,9 +37,18 @@ def build_operational_reference_binding_artifacts(
     7. add any missing local set-bound demands.
     """
 
-    role_projected = canonicalize_parser_argument_roles(artifacts)
-    projected = project_pronominal_reference_arguments(role_projected)
-    normalized_input = normalize_factor_revision_artifacts(projected)
+    owned = artifacts if consume and isinstance(artifacts, dict) else dict(artifacts)
+
+    def replace_owned(replacement: dict[str, Any]) -> dict[str, Any]:
+        if replacement is owned:
+            return owned
+        owned.clear()
+        owned.update(replacement)
+        return owned
+
+    replace_owned(canonicalize_parser_argument_roles(owned))
+    replace_owned(project_pronominal_reference_arguments(owned))
+    normalized_input = replace_owned(normalize_factor_revision_artifacts(owned))
     pairwise_binding_evidence_refs = {
         str(row.get("evidence_ref") or "")
         for row in normalized_input.get("local_evidence") or ()
@@ -48,9 +59,7 @@ def build_operational_reference_binding_artifacts(
     for refinement in normalized_input.get("factor_refinements") or ():
         prior = refinement.get("prior_factor") or {}
         resulting = refinement.get("resulting_factor") or {}
-        factor_ref = str(
-            prior.get("factor_ref") or resulting.get("factor_ref") or ""
-        )
+        factor_ref = str(prior.get("factor_ref") or resulting.get("factor_ref") or "")
         if not factor_ref:
             continue
         original_evidence_by_factor.setdefault(factor_ref, set()).update(
@@ -58,22 +67,20 @@ def build_operational_reference_binding_artifacts(
             for ref in refinement.get("evidence_refs") or ()
             if str(ref) not in pairwise_binding_evidence_refs
         )
-    compacted = compact_binding_artifacts(normalized_input)
-    receipts = _normalise_refinement_receipts(
-        compacted,
-        pairwise_binding_evidence_refs=pairwise_binding_evidence_refs,
-        original_evidence_by_factor=original_evidence_by_factor,
+    replace_owned(compact_binding_artifacts(normalized_input))
+    replace_owned(
+        _normalise_refinement_receipts(
+            owned,
+            pairwise_binding_evidence_refs=pairwise_binding_evidence_refs,
+            original_evidence_by_factor=original_evidence_by_factor,
+        )
     )
-    normalized_output = normalize_factor_revision_artifacts(receipts)
-    completed = _ensure_local_binding_demands(normalized_output)
-    completed["reference_binding_operational_contract"] = (
-        REFERENCE_BINDING_CONTRACT_REF
-    )
+    replace_owned(normalize_factor_revision_artifacts(owned))
+    completed = replace_owned(_ensure_local_binding_demands(owned))
+    completed["reference_binding_operational_contract"] = REFERENCE_BINDING_CONTRACT_REF
     completed["reference_binding_assembly"] = {
         "argument_role_declaration_ref": ARGUMENT_ROLE_DECLARATION_REF,
-        "reference_reduction_declaration_ref": (
-            REFERENCE_REDUCTION_DECLARATION_REF
-        ),
+        "reference_reduction_declaration_ref": (REFERENCE_REDUCTION_DECLARATION_REF),
         "revision_identity_contract": "content-addressed-factor:v0_1",
         "candidate_generation": "direct_observation_graph_index",
         "pairwise_binding_evidence_operational": False,

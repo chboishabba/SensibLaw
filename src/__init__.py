@@ -7,7 +7,7 @@ from importlib import import_module
 from typing import Iterable
 
 
-def _alias_modules(names: Iterable[str]) -> None:
+def install_legacy_module_aliases(names: Iterable[str] | None = None) -> None:
     """Expose ``src.<name>`` packages as top-level module aliases.
 
     The historical codebase imported modules such as ``models`` or ``storage``
@@ -19,7 +19,7 @@ def _alias_modules(names: Iterable[str]) -> None:
     simultaneously.
     """
 
-    for name in names:
+    for name in names or _LEGACY_MODULE_NAMES:
         target = f"{__name__}.{name}"
         try:
             module = import_module(target)
@@ -28,19 +28,17 @@ def _alias_modules(names: Iterable[str]) -> None:
         sys.modules[name] = module
 
 
-_alias_modules(
-    (
-        "models",
-        "graph",
-        "concepts",
-        "culture",
-        "glossary",
-        "ingestion",
-        "rules",
-        "text",
-        "storage",
-    )
+_LEGACY_MODULE_NAMES = (
+    "models",
+    "graph",
+    "concepts",
+    "culture",
+    "glossary",
+    "ingestion",
+    "rules",
+    "text",
+    "storage",
 )
 
 
-__all__ = []
+__all__ = ["install_legacy_module_aliases"]

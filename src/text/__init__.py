@@ -1,12 +1,14 @@
-"""Text processing utilities."""
+"""Text processing utilities.
 
-from .nlp import (
-    FastTextLanguageDetector,
-    LanguageDetector,
-    SimpleDoc,
-    SpacyNLP,
-    TikaLanguageDetector,
-)
+The package is on the canonical compiler import path.  Importing its optional
+spaCy-backed compatibility types at package import time made every document
+compiler process pay the full spaCy import footprint before it had admitted a
+single parser fibre.  Keep those historical re-exports available, but resolve
+them only for callers that actually request them.
+"""
+
+from importlib import import_module
+from typing import Any
 from .shared_text_normalization import (
     split_semicolon_clauses,
     split_text_clauses,
@@ -109,3 +111,24 @@ __all__ = [
     "meet_atom_with_latent_fibres",
     "parse_latent_index",
 ]
+
+
+_NLP_COMPAT_EXPORTS = frozenset(
+    {
+        "FastTextLanguageDetector",
+        "LanguageDetector",
+        "SimpleDoc",
+        "SpacyNLP",
+        "TikaLanguageDetector",
+    }
+)
+
+
+def __getattr__(name: str) -> Any:
+    """Lazily retain optional NLP compatibility re-exports."""
+
+    if name not in _NLP_COMPAT_EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    value = getattr(import_module(f"{__name__}.nlp"), name)
+    globals()[name] = value
+    return value

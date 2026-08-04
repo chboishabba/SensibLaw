@@ -10,10 +10,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
-from src.policy.carriers.canonical import canonical_mapping, canonical_refs, require_text
+from src.policy.carriers.canonical import (
+    canonical_mapping,
+    canonical_refs,
+    require_text,
+)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class TokenAnnotation:
     token_index: int
     annotation_type: str
@@ -31,7 +35,7 @@ class TokenAnnotation:
         }
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class SpanAnnotation:
     span_ref: str
     start_token: int
@@ -53,7 +57,7 @@ class SpanAnnotation:
         }
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class RelationAnnotation:
     relation_ref: str
     relation_type: str
@@ -73,7 +77,7 @@ class RelationAnnotation:
         }
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class AnnotationLayer:
     layer_ref: str
     tokenizer_ref: str
@@ -100,7 +104,11 @@ class AnnotationLayer:
                 row.to_dict()
                 for row in sorted(
                     self.span_annotations,
-                    key=lambda value: (value.start_token, value.end_token, value.span_ref),
+                    key=lambda value: (
+                        value.start_token,
+                        value.end_token,
+                        value.span_ref,
+                    ),
                 )
             ],
             "relation_annotations": [

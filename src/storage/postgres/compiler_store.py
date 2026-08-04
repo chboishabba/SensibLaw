@@ -10,9 +10,11 @@ from __future__ import annotations
 from contextlib import contextmanager
 from dataclasses import dataclass
 import hashlib
-from typing import Any, Iterator, Mapping, Sequence
+import json
+from typing import Any, Callable, Iterator, Mapping, Sequence
 
 from src.policy.carriers.canonical import canonical_sha256
+from src.policy.artifact_projection import ArtifactManifestReader, iter_verified_records
 from src.storage.postgres.token_codec import CorpusCodec, encode_delta_sequence
 
 
@@ -25,6 +27,11 @@ def _digest_bytes(hex_digest: str) -> bytes:
 
 def _stable_bytes(value: Any) -> bytes:
     return bytes.fromhex(canonical_sha256(value))
+
+
+def _batches(values: Sequence[str], size: int) -> Iterator[Sequence[str]]:
+    for start in range(0, len(values), size):
+        yield values[start : start + size]
 
 
 def _require_psycopg() -> Any:
@@ -45,11 +52,16 @@ class PersistedCompilation:
     failure_refs: tuple[str, ...]
 
 
+class _CalibrationRollback(Exception):
+    """Legacy marker retained for compatibility with calibration callers."""
+
+
 class PostgresCompilerStore:
     """Transactional PostgreSQL core for the generic compiler runtime."""
 
     def __init__(self, connection: Any):
         self.connection = connection
+        self.calibration_rollback = False
 
     @classmethod
     def connect(cls, database_url: str) -> "PostgresCompilerStore":
@@ -61,6 +73,9 @@ class PostgresCompilerStore:
 
     @contextmanager
     def transaction(self) -> Iterator[Any]:
+        # Calibration rollback is owned by the outer runner.  Savepoints must
+        # retain their writes until that boundary so later compiler stages can
+        # observe the document/build rows they just produced.
         with self.connection.transaction():
             with self.connection.cursor() as cursor:
                 yield cursor
@@ -328,6 +343,152 @@ class PostgresCompilerStore:
         )
         return run_ref
 
+    def persist_token_batches(
+        self,
+        cursor: Any,
+        *,
+        document_ref: str,
+        tokenizer_ref: str,
+        tokenizer_version: str,
+        batches: Callable[[], Iterator[Sequence[tuple[str, int, int]]]],
+        token_count: int,
+        language_ref: str = "und",
+        lexical_kind_ref: str = "surface",
+    ) -> str:
+        """Persist a repeatable token source with bounded output chunks.
+
+        The first pass collects only the document vocabulary/frequencies.  The
+        second replays the ordered source and writes one codec chunk at a time;
+        no document-sized encoded stream or token-to-lexeme map is retained.
+        """
+
+        vocabulary: set[str] = set()
+        frequency_by_key: dict[str, int] = {}
+        digest = hashlib.sha256()
+        digest.update(b"[")
+        seen = 0
+        for batch in batches():
+            if len(batch) > 256:
+                raise ValueError("token batches must contain at most 256 rows")
+            for token in batch:
+                if seen:
+                    digest.update(b",")
+                digest.update(
+                    json.dumps(token, ensure_ascii=False, separators=(",", ":")).encode(
+                        "utf-8"
+                    )
+                )
+                seen += 1
+                key = token[0].casefold()
+                vocabulary.add(key)
+                frequency_by_key[key] = frequency_by_key.get(key, 0) + 1
+        digest.update(b"]")
+        if seen != token_count:
+            raise ValueError(
+                "token source count changed between descriptor and first pass"
+            )
+        run_ref = "tokenizer-run:" + canonical_sha256(
+            {
+                "document_ref": document_ref,
+                "tokenizer_ref": tokenizer_ref,
+                "tokenizer_version": tokenizer_version,
+                "token_stream_digest": digest.hexdigest(),
+                "token_count": token_count,
+            }
+        )
+        for keys in _batches(sorted(vocabulary), 256):
+            cursor.executemany(
+                """INSERT INTO language.lexeme
+                   (language_ref, normalized_text, lexical_kind_ref)
+                   VALUES (%s, %s, %s)
+                   ON CONFLICT (language_ref, normalized_text, lexical_kind_ref) DO NOTHING""",
+                [(language_ref, key, lexical_kind_ref) for key in keys],
+            )
+        lexeme_by_key: dict[str, int] = {}
+        for keys in _batches(sorted(vocabulary), 256):
+            cursor.execute(
+                """SELECT normalized_text, lexeme_id FROM language.lexeme
+                   WHERE language_ref = %s AND lexical_kind_ref = %s
+                     AND normalized_text = ANY(%s)""",
+                (language_ref, lexical_kind_ref, list(keys)),
+            )
+            lexeme_by_key.update(
+                {str(row[0]): int(row[1]) for row in cursor.fetchall()}
+            )
+        if len(lexeme_by_key) != len(vocabulary):
+            raise RuntimeError("lexeme batch did not return every requested key")
+        frequency_by_id = {
+            lexeme_by_key[key]: frequency for key, frequency in frequency_by_key.items()
+        }
+        ranked_ids = sorted(
+            frequency_by_id, key=lambda item: (-frequency_by_id[item], item)
+        )
+        codec = CorpusCodec(
+            {lexeme_id: symbol for symbol, lexeme_id in enumerate(ranked_ids)}
+        )
+        codec_ref = "codec:" + canonical_sha256(
+            {"run_ref": run_ref, "mapping": codec.logical_to_symbol}
+        )
+        cursor.execute(
+            """INSERT INTO language.tokenizer_run
+               (tokenizer_run_ref, document_ref, tokenizer_ref, tokenizer_version,
+                token_count, output_sha256)
+               VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING""",
+            (
+                run_ref,
+                document_ref,
+                tokenizer_ref,
+                tokenizer_version,
+                token_count,
+                _stable_bytes({"token_stream_digest": digest.hexdigest()}),
+            ),
+        )
+        cursor.execute(
+            """INSERT INTO language.codec (codec_ref, codec_kind_ref, codec_version, dictionary_sha256)
+               VALUES (%s, 'frequency-ranked-uvarint', 'v0_1', %s) ON CONFLICT DO NOTHING""",
+            (codec_ref, _stable_bytes(codec.logical_to_symbol)),
+        )
+        for rank, lexeme_id in enumerate(ranked_ids):
+            cursor.execute(
+                """INSERT INTO language.codec_symbol (codec_ref, symbol_code, lexeme_id, frequency_rank)
+                   VALUES (%s, %s, %s, %s) ON CONFLICT DO NOTHING""",
+                (codec_ref, codec.logical_to_symbol[lexeme_id], lexeme_id, rank),
+            )
+        offset = 0
+        emitted = 0
+        for chunk_index, batch in enumerate(batches()):
+            if len(batch) > 256:
+                raise ValueError("token batches must contain at most 256 rows")
+            lexeme_ids = [
+                lexeme_by_key[surface.casefold()] for surface, _start, _end in batch
+            ]
+            offsets = [
+                value for _surface, start, end in batch for value in (start, end)
+            ]
+            encoded_symbols = codec.encode(lexeme_ids)
+            encoded_offsets = encode_delta_sequence(offsets)
+            cursor.execute(
+                """INSERT INTO language.token_stream_chunk
+                   (tokenizer_run_ref, chunk_index, first_token_index, token_count,
+                    codec_ref, encoded_symbols, encoded_offsets, content_sha256)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING""",
+                (
+                    run_ref,
+                    chunk_index,
+                    offset,
+                    len(batch),
+                    codec_ref,
+                    encoded_symbols,
+                    encoded_offsets,
+                    hashlib.sha256(encoded_symbols + encoded_offsets).digest(),
+                ),
+            )
+            offset += len(batch)
+            emitted += len(batch)
+        if emitted != token_count:
+            raise ValueError("token source changed between streaming passes")
+        return run_ref
+
     def count_persisted_tokens(self, cursor: Any, *, document_ref: str) -> int:
         cursor.execute(
             """
@@ -378,13 +539,10 @@ class PostgresCompilerStore:
         for span in layer.get("span_annotations") or ():
             value = span.get("value") or {}
             cursor.execute(
-                """
-                INSERT INTO language.annotation_node
-                    (annotation_node_ref, annotation_layer_ref,
-                     annotation_type_ref, span_ref, value_ref)
-                VALUES (%s, %s, %s, %s, %s)
-                ON CONFLICT (annotation_node_ref) DO NOTHING
-                """,
+                """INSERT INTO language.annotation_node
+                   (annotation_node_ref, annotation_layer_ref,
+                    annotation_type_ref, span_ref, value_ref)
+                   VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING""",
                 (
                     str(span["span_ref"]),
                     layer_ref,
@@ -395,13 +553,10 @@ class PostgresCompilerStore:
             )
         for relation in layer.get("relation_annotations") or ():
             cursor.execute(
-                """
-                INSERT INTO language.annotation_relation
-                    (annotation_relation_ref, annotation_layer_ref,
-                     relation_type_ref, source_node_ref, target_node_ref)
-                VALUES (%s, %s, %s, %s, %s)
-                ON CONFLICT (annotation_relation_ref) DO NOTHING
-                """,
+                """INSERT INTO language.annotation_relation
+                   (annotation_relation_ref, annotation_layer_ref,
+                    relation_type_ref, source_node_ref, target_node_ref)
+                   VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING""",
                 (
                     str(relation["relation_ref"]),
                     layer_ref,
@@ -410,6 +565,316 @@ class PostgresCompilerStore:
                     str(relation["right_ref"]),
                 ),
             )
+
+    def persist_annotation_layer_batches(
+        self,
+        cursor: Any,
+        *,
+        document_ref: str,
+        descriptor: Mapping[str, Any],
+        reader: ArtifactManifestReader,
+    ) -> None:
+        """Write an annotation family directly from verified 256-row batches."""
+
+        metadata: dict[str, Any] = {}
+        # The small scalar header is read separately so the second, verified
+        # pass can write every high-volume family without retaining it.
+        for batch in reader.iter_records(str(descriptor["artifact_key"])):
+            for record in batch:
+                if record.get("reconstruction") == "mapping_scalar":
+                    metadata[str(record["field"])] = record.get("value")
+        layer_ref = str(metadata["layer_ref"])
+        cursor.execute(
+            """INSERT INTO language.annotation_layer
+               (annotation_layer_ref, document_ref, backend_ref, backend_version,
+                input_sha256, output_sha256)
+               VALUES (%s, %s, %s, 'v0_1', %s, %s) ON CONFLICT DO NOTHING""",
+            (
+                layer_ref,
+                document_ref,
+                str(metadata.get("tokenizer_ref") or "unknown"),
+                _digest_bytes(str(metadata["text_sha256"])),
+                _stable_bytes(metadata),
+            ),
+        )
+        for batch in iter_verified_records(reader, descriptor):
+            for record in batch:
+                family = str(record.get("family") or "")
+                row = record.get("value")
+                if not isinstance(row, Mapping):
+                    continue
+                if family == "token_annotations":
+                    cursor.execute(
+                        """INSERT INTO language.annotation_node
+                           (annotation_node_ref, annotation_layer_ref,
+                            annotation_type_ref, value_ref)
+                           VALUES (%s, %s, %s, %s) ON CONFLICT DO NOTHING""",
+                        (
+                            f"{layer_ref}:token:{row['token_index']}",
+                            layer_ref,
+                            str(row["annotation_type"]),
+                            str(row["value"]),
+                        ),
+                    )
+                elif family == "span_annotations":
+                    value = row.get("value") or {}
+                    cursor.execute(
+                        """INSERT INTO language.annotation_node
+                           (annotation_node_ref, annotation_layer_ref,
+                            annotation_type_ref, span_ref, value_ref)
+                           VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING""",
+                        (
+                            str(row["span_ref"]),
+                            layer_ref,
+                            str(row["annotation_type"]),
+                            str(row["span_ref"]),
+                            str(value.get("surface") or ""),
+                        ),
+                    )
+                elif family == "relation_annotations":
+                    cursor.execute(
+                        """INSERT INTO language.annotation_relation
+                           (annotation_relation_ref, annotation_layer_ref,
+                            relation_type_ref, source_node_ref, target_node_ref)
+                           VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING""",
+                        (
+                            str(row["relation_ref"]),
+                            layer_ref,
+                            str(row["relation_type"]),
+                            str(row["left_ref"]),
+                            str(row["right_ref"]),
+                        ),
+                    )
+
+    def persist_projection_manifests(
+        self,
+        cursor: Any,
+        *,
+        partitions: Sequence[Mapping[str, Any]],
+        manifest: Mapping[str, Any],
+    ) -> None:
+        """Persist immutable partition payloads before atomically publishing join.
+
+        Callers invoke this inside the document savepoint.  Thus a failed or
+        incomplete join cannot publish a document projection manifest.
+        """
+
+        document_ref = str(manifest["document_ref"])
+        build_key = str(manifest["build_key_sha256"])
+        ordered = sorted(partitions, key=lambda row: int(row["sequence_no"]))
+        for expected, row in enumerate(ordered):
+            if int(row["sequence_no"]) != expected:
+                raise ValueError("projection partitions must be ordered exactly once")
+            cursor.execute(
+                """
+                SELECT partition_ref, source_sha256, carrier_ref, owner_start,
+                       owner_end, context_start, context_end,
+                       parser_contract_ref, reducer_contract_ref
+                FROM execution.document_projection_partition
+                WHERE document_ref = %s AND build_key_sha256 = %s
+                  AND sequence_no = %s
+                """,
+                (document_ref, _digest_bytes(build_key), expected),
+            )
+            existing = cursor.fetchone()
+            expected_identity = (
+                str(row["partition_ref"]),
+                _digest_bytes(str(row["source_sha256"])),
+                str(row["carrier_ref"]),
+                int(row["owner_start"]),
+                int(row["owner_end"]),
+                int(row["context_start"]),
+                int(row["context_end"]),
+                str(row["parser_contract_ref"]),
+                str(row["reducer_contract_ref"]),
+            )
+            if existing is not None and tuple(existing) != expected_identity:
+                raise ValueError("stale projection partition reuse identity")
+            cursor.execute(
+                """
+                INSERT INTO execution.document_projection_partition
+                    (partition_ref, document_ref, source_sha256, carrier_ref,
+                     build_key_sha256, sequence_no, owner_start, owner_end,
+                     context_start, context_end, parser_contract_ref,
+                     reducer_contract_ref, payload, payload_sha256)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s)
+                ON CONFLICT (partition_ref) DO NOTHING
+                """,
+                (
+                    str(row["partition_ref"]),
+                    document_ref,
+                    _digest_bytes(str(row["source_sha256"])),
+                    str(row["carrier_ref"]),
+                    _digest_bytes(str(row["build_key_sha256"])),
+                    int(row["sequence_no"]),
+                    int(row["owner_start"]),
+                    int(row["owner_end"]),
+                    int(row["context_start"]),
+                    int(row["context_end"]),
+                    str(row["parser_contract_ref"]),
+                    str(row["reducer_contract_ref"]),
+                    json.dumps(dict(row), sort_keys=True),
+                    _stable_bytes(row),
+                ),
+            )
+        if tuple(str(row["partition_ref"]) for row in ordered) != tuple(
+            manifest.get("partition_refs") or ()
+        ):
+            raise ValueError(
+                "document projection manifest does not name every partition"
+            )
+        cursor.execute(
+            """
+            INSERT INTO execution.document_projection_manifest
+                (manifest_ref, document_ref, source_sha256, carrier_ref,
+                 build_key_sha256, graph_ref, payload, manifest_sha256)
+            VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb, %s)
+            ON CONFLICT (manifest_ref) DO NOTHING
+            """,
+            (
+                str(manifest["manifest_ref"]),
+                document_ref,
+                _digest_bytes(str(manifest["source_sha256"])),
+                str(manifest["carrier_ref"]),
+                _digest_bytes(build_key),
+                str(manifest["graph_ref"]),
+                json.dumps(dict(manifest), sort_keys=True),
+                _stable_bytes(manifest),
+            ),
+        )
+        for row in ordered:
+            cursor.execute(
+                """INSERT INTO execution.document_projection_member
+                   (manifest_ref, partition_ref, sequence_no)
+                   VALUES (%s, %s, %s) ON CONFLICT DO NOTHING""",
+                (
+                    str(manifest["manifest_ref"]),
+                    str(row["partition_ref"]),
+                    int(row["sequence_no"]),
+                ),
+            )
+
+    def persist_projection_partitions(
+        self,
+        cursor: Any,
+        *,
+        partitions: Sequence[Mapping[str, Any]],
+    ) -> None:
+        """Persist validated reusable execution partitions before document join."""
+
+        ordered = sorted(partitions, key=lambda row: int(row["sequence_no"]))
+        for expected, row in enumerate(ordered):
+            if int(row["sequence_no"]) != expected:
+                raise ValueError("projection partitions must be ordered exactly once")
+            cursor.execute(
+                """SELECT partition_ref, source_sha256, carrier_ref, owner_start,
+                          owner_end, context_start, context_end,
+                          parser_contract_ref, reducer_contract_ref
+                   FROM execution.document_projection_partition
+                   WHERE document_ref = %s AND build_key_sha256 = %s
+                     AND sequence_no = %s""",
+                (
+                    str(row["document_ref"]),
+                    _digest_bytes(str(row["build_key_sha256"])),
+                    expected,
+                ),
+            )
+            existing = cursor.fetchone()
+            identity = (
+                str(row["partition_ref"]),
+                _digest_bytes(str(row["source_sha256"])),
+                str(row["carrier_ref"]),
+                int(row["owner_start"]),
+                int(row["owner_end"]),
+                int(row["context_start"]),
+                int(row["context_end"]),
+                str(row["parser_contract_ref"]),
+                str(row["reducer_contract_ref"]),
+            )
+            if existing is not None and tuple(existing) != identity:
+                raise ValueError("stale projection partition reuse identity")
+            cursor.execute(
+                """INSERT INTO execution.document_projection_partition
+                   (partition_ref, document_ref, source_sha256, carrier_ref,
+                    build_key_sha256, sequence_no, owner_start, owner_end,
+                    context_start, context_end, parser_contract_ref,
+                    reducer_contract_ref, payload, payload_sha256)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                           %s::jsonb, %s) ON CONFLICT (partition_ref) DO NOTHING""",
+                (
+                    str(row["partition_ref"]),
+                    str(row["document_ref"]),
+                    _digest_bytes(str(row["source_sha256"])),
+                    str(row["carrier_ref"]),
+                    _digest_bytes(str(row["build_key_sha256"])),
+                    expected,
+                    int(row["owner_start"]),
+                    int(row["owner_end"]),
+                    int(row["context_start"]),
+                    int(row["context_end"]),
+                    str(row["parser_contract_ref"]),
+                    str(row["reducer_contract_ref"]),
+                    json.dumps(dict(row), sort_keys=True),
+                    _stable_bytes(row),
+                ),
+            )
+
+    def persist_artifact_manifests(
+        self,
+        cursor: Any,
+        *,
+        document_ref: str,
+        build_key_sha256: str,
+        descriptors: Sequence[Mapping[str, Any]],
+    ) -> None:
+        """Persist verified descriptor metadata after semantic record batches."""
+
+        for descriptor in descriptors:
+            if str(descriptor.get("representation") or "") != "manifest":
+                raise ValueError("artifact manifest persistence requires descriptors")
+            cursor.execute(
+                """
+                INSERT INTO execution.artifact_manifest
+                    (manifest_ref, document_ref, build_key_sha256, artifact_key,
+                     representation_ref, root_ref, ordered_digest, record_count,
+                     reader_contract_ref)
+                VALUES (%s, %s, %s, %s, 'manifest', %s, %s, %s, %s)
+                ON CONFLICT (manifest_ref) DO NOTHING
+                """,
+                (
+                    str(descriptor["manifest_ref"]),
+                    document_ref,
+                    _digest_bytes(build_key_sha256),
+                    str(descriptor["artifact_key"]),
+                    str(descriptor["root_ref"]),
+                    _digest_bytes(str(descriptor["ordered_digest"])),
+                    int(descriptor["record_count"]),
+                    str(descriptor["reader_contract"]),
+                ),
+            )
+
+    def load_document_projection_manifest(
+        self, cursor: Any, *, document_ref: str, build_key_sha256: str
+    ) -> Mapping[str, Any] | None:
+        """Read a versioned projection manifest without hydrating layer payloads."""
+
+        cursor.execute(
+            """
+            SELECT payload
+            FROM execution.document_projection_manifest
+            WHERE document_ref = %s AND build_key_sha256 = %s
+            """,
+            (document_ref, _digest_bytes(build_key_sha256)),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        payload = row[0]
+        if isinstance(payload, str):
+            payload = json.loads(payload)
+        if not isinstance(payload, Mapping):
+            raise RuntimeError("stored document projection manifest is not an object")
+        return dict(payload)
 
     def persist_failure(
         self, cursor: Any, *, target_ref: str, phase_ref: str, error: Exception

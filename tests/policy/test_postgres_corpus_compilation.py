@@ -40,6 +40,7 @@ class _Store:
         self.transaction_calls = 0
         self.savepoint_calls = 0
         self.occurrences: list[dict[str, object]] = []
+        self.failures: list[str] = []
 
     @contextmanager
     def transaction(self):
@@ -78,6 +79,11 @@ class _Store:
                 "state": state,
             }
         )
+
+    def persist_failure(self, cursor, *, target_ref, phase_ref, error):
+        failure_ref = f"failure:{target_ref}"
+        self.failures.append(failure_ref)
+        return failure_ref
 
 
 def test_document_parent_closure_fails_before_savepoint(monkeypatch, tmp_path: Path) -> None:
@@ -297,6 +303,22 @@ def test_compile_directory_postgres_resume_state_skips_completed_documents(
         event.get("worker") == "document-executor:test-operational:v1:doc-0001"
         for event in progress.events
     )
+    active_events = [
+        event
+        for event in progress.events
+        if event.get("message") == "active document"
+    ]
+    assert {event["details"]["document_ref"] for event in active_events} == set(
+        first.document_refs
+    )
+    for event in active_events:
+        event_index = progress.events.index(event)
+        prior_running = [
+            row
+            for row in progress.events[:event_index]
+            if row.get("state") == "running"
+        ]
+        assert event["completed"] == (prior_running[-1]["completed"] if prior_running else 0)
 
     executor_calls.clear()
     load_calls.clear()
@@ -323,3 +345,51 @@ def test_compile_directory_postgres_resume_state_skips_completed_documents(
     assert second == first
     assert executor_calls == []
     assert load_calls == []
+
+
+def test_compile_directory_postgres_records_failed_document_without_success_count(
+    tmp_path: Path,
+) -> None:
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "ok.txt").write_text("Alice met Bob.", encoding="utf-8")
+    (corpus / "bad.txt").write_text("This document fails.", encoding="utf-8")
+
+    store = _Store()
+    progress = PhaseRecorder(stream=StringIO(), json_lines=True)
+
+    def _document_executor(**kwargs):
+        if str(kwargs["relative_path"]) == "bad.txt":
+            raise ValueError("synthetic document failure")
+        return ("demand:ok",)
+
+    state_path = tmp_path / "resume_state.json"
+    result = compile_directory_postgres(
+        corpus,
+        context=default_compiler_context(),
+        store=store,
+        document_executor=_document_executor,
+        progress=progress,
+        state_path=state_path,
+    )
+
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    assert len(result.document_refs) == 1
+    assert len(result.failure_refs) == 1
+    assert state["completed_document_count"] == 1
+    assert len(state["document_refs"]) == 1
+    assert len(state["failure_refs"]) == 1
+    assert state["documents"][next(
+        ref for ref in state["documents"]
+        if state["documents"][ref]["state"] == "failed"
+    )]["state"] == "failed"
+    assert any(
+        event.get("message") == "active document"
+        and event.get("details", {}).get("document_ref")
+        for event in progress.events
+    )
+    assert any(
+        event.get("message") == "failed"
+        and event.get("details", {}).get("state") == "failed"
+        for event in progress.events
+    )

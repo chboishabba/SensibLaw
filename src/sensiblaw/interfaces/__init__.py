@@ -15,6 +15,7 @@ from .parser_adapter import (
     parse_canonical_message_header,
     parse_canonical_text,
     parse_canonical_time_range_header,
+    release_canonical_parser_runtime,
     split_presemantic_semicolon_clauses,
     split_presemantic_text_clauses,
     split_presemantic_text_segments,
@@ -66,12 +67,12 @@ from .shared_reducer import (
 )
 from .story_importer import StoryImporter
 from .story_pnf_receipts import (
-    CLASSIFICATION_DISCOVERY_LATTICE_SCHEMA,
     AUTHORITY_BOUNDARY,
+    CLASSIFICATION_DISCOVERY_LATTICE_SCHEMA,
     STORY_PNF_RECEIPTS_SCHEMA,
     SUPPORTED_SOURCE_PROFILES,
-    collect_canonical_story_pnf_receipts,
     build_classification_discovery_lattice,
+    collect_canonical_story_pnf_receipts,
     render_classification_discovery_lattice_png,
 )
 from .text_adapter import build_canonical_conversation_text
@@ -213,6 +214,7 @@ __all__ = [
     "parse_canonical_message_header",
     "parse_canonical_text",
     "parse_canonical_time_range_header",
+    "release_canonical_parser_runtime",
     "project_event_text_to_predicate_atoms",
     "project_interaction_mode",
     "shared_reducer",

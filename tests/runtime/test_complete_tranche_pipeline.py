@@ -104,14 +104,18 @@ def test_shared_qid_emits_overlap_and_review_not_identity_closure() -> None:
     assert signal["surfaces"] == ["America", "U.S."]
     assert signal["same_entity_closed"] is False
     assert "metonymy_or_polysemy_unresolved" in signal["residuals"]
-    assert all(packet["identity_closed"] is False for packet in checkpoint["review_packets"])
+    assert all(
+        packet["identity_closed"] is False for packet in checkpoint["review_packets"]
+    )
     assert all(
         "promote_equivalence" in packet["available_actions"]
         for packet in checkpoint["review_packets"]
     )
 
 
-def test_source_projection_preserves_raw_and_canonical_coordinates(tmp_path: Path) -> None:
+def test_source_projection_preserves_raw_and_canonical_coordinates(
+    tmp_path: Path,
+) -> None:
     source = tmp_path / "sources"
     source.mkdir()
     html = source / "page.html"
@@ -121,7 +125,9 @@ def test_source_projection_preserves_raw_and_canonical_coordinates(tmp_path: Pat
     )
     epub = source / "book.epub"
     with zipfile.ZipFile(epub, "w") as archive:
-        archive.writestr("chapter.xhtml", "<html><body><p>George W. Bush spoke.</p></body></html>")
+        archive.writestr(
+            "chapter.xhtml", "<html><body><p>George W. Bush spoke.</p></body></html>"
+        )
 
     manifest = project_source_families([source], output_dir=tmp_path / "projection")
     payload = manifest.to_dict()
@@ -140,6 +146,24 @@ def test_source_projection_preserves_raw_and_canonical_coordinates(tmp_path: Pat
         assert raw_path.exists()
         assert canonical_path.exists()
         assert "<html" not in canonical_path.read_text(encoding="utf-8").lower()
+
+
+def test_source_projection_reuses_an_explicit_raw_evidence_path(tmp_path: Path) -> None:
+    projection_dir = tmp_path / "projection"
+    raw_dir = projection_dir / "raw"
+    raw_dir.mkdir(parents=True)
+    source = raw_dir / "0001_source.txt"
+    source.write_text("Canonical retry input.", encoding="utf-8")
+
+    manifest = project_source_families([source], output_dir=projection_dir)
+
+    assert manifest.to_dict()["summary"] == {
+        "document_count": 1,
+        "failure_count": 0,
+        "raw_bytes": len("Canonical retry input.".encode("utf-8")),
+        "canonical_chars": len("Canonical retry input."),
+    }
+    assert source.read_text(encoding="utf-8") == "Canonical retry input."
 
 
 def test_phase_contract_rejects_network_before_local_world() -> None:
@@ -172,9 +196,7 @@ def test_legal_acquisition_requires_pnf_legal_demand_phase() -> None:
 
 def test_checkpoint_preserves_authority_boundaries() -> None:
     profile = profile_for_tranche("GWB")
-    receipts = [
-        PhaseReceipt(phase, "completed", (), (), {}) for phase in TranchePhase
-    ]
+    receipts = [PhaseReceipt(phase, "completed", (), (), {}) for phase in TranchePhase]
     checkpoint = checkpoint_payload(profile=profile, receipts=receipts, artifacts={})
 
     assert checkpoint["authority_boundaries"] == {

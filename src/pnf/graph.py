@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from src.policy.algebra import Factor, FactorConstraint
-from src.policy.carriers.canonical import canonical_refs, require_text
+if TYPE_CHECKING:
+    from src.policy.algebra import Factor, FactorConstraint
 
 
 @dataclass(frozen=True)
@@ -55,6 +55,10 @@ class PNFGraph:
         )
 
     def to_dict(self) -> dict[str, object]:
+        # Keep the neutral PNF graph importable before policy package
+        # initialisation. Canonical projection is needed only when serialising.
+        from src.policy.carriers.canonical import canonical_refs, require_text
+
         return {
             "schema_version": "sl.pnf_graph.v0_1",
             "graph_ref": require_text(self.graph_ref, "graph_ref"),

@@ -118,10 +118,6 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - cross-product import path
     from ingestion.media_adapter import CanonicalUnit
 try:
-    from src.nlp.spacy_adapter import parse as parse_with_spacy
-except ModuleNotFoundError:  # pragma: no cover - cross-product import path
-    raise
-try:
     from src.nlp.ontology_mapping import (
         canonical_action_morphology,
         unknown_action_morphology,
@@ -783,6 +779,8 @@ def collect_canonical_relational_bundle(
 
 def _parse_with_spacy_or_fallback(text: str) -> dict[str, Any]:
     try:
+        from src.nlp.spacy_adapter import parse as parse_with_spacy
+
         parsed = parse_with_spacy(text)
     except ModuleNotFoundError:
         return _fallback_parse(text)

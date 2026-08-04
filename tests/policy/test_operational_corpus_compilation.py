@@ -3,15 +3,27 @@ from __future__ import annotations
 import hashlib
 from io import StringIO
 
+import pytest
+
 from src.pnf.reference_binding import REFERENCE_BINDING_CONTRACT_REF
 from src.policy import corpus_compilation as legacy
 from src.policy.corpus_compilation import default_compiler_context
+from src.policy.artifact_projection import ArtifactProjectionPolicy
 from src.policy.operational_corpus_compilation import (
     DOCUMENT_COMPILE_STAGE_NAMES,
     OPERATIONAL_COMPILER_CONTRACT,
-    compile_document_operational,
+    compile_document_operational as _compile_document_operational,
 )
 from src.runtime.progress import PhaseRecorder
+from src.runtime.active_document_resources import DocumentResourceLimitError
+
+
+def compile_document_operational(*args, **kwargs):
+    kwargs.setdefault(
+        "artifact_projection_policy",
+        ArtifactProjectionPolicy.materialised_compatibility(),
+    )
+    return _compile_document_operational(*args, **kwargs)
 
 
 def test_operational_compiler_never_materializes_pairwise_binding(monkeypatch) -> None:
@@ -33,9 +45,12 @@ def test_operational_compiler_never_materializes_pairwise_binding(monkeypatch) -
     )
 
     assert compilation.status == "compiled"
-    assert compilation.artifacts["phase_boundary"][
-        "pairwise_binding_evidence_materialized"
-    ] is False
+    assert (
+        compilation.artifacts["phase_boundary"][
+            "pairwise_binding_evidence_materialized"
+        ]
+        is False
+    )
     assert compilation.artifacts["reference_binding_operational_contract"] == (
         REFERENCE_BINDING_CONTRACT_REF
     )
@@ -151,9 +166,9 @@ def test_operational_compiler_emits_document_stage_progress() -> None:
     assert projection_events
     assert any(
         (
-            event.get("measures", {}).get("parser_tokens_projected", {}).get(
-                "completed", 0
-            )
+            event.get("measures", {})
+            .get("parser_tokens_projected", {})
+            .get("completed", 0)
             > 0
         )
         for event in projection_events
@@ -162,6 +177,59 @@ def test_operational_compiler_emits_document_stage_progress() -> None:
         "semantic_atoms_projected" in event.get("measures", {})
         for event in projection_events
     )
+    assert any(
+        event.get("details", {}).get("current_kernel") == "annotation_graph_identity"
+        for event in projection_events
+    )
+    closure_events = [
+        event
+        for event in recorder.events
+        if event["phase"] == "document_compile"
+        and event.get("active_stage") == "streaming_closure"
+        and event["state"] == "running"
+    ]
+    assert closure_events
+    assert any(
+        event.get("details", {}).get("current_kernel") == "observation_delta_admission"
+        for event in closure_events
+    )
+    assert any(
+        event.get("details", {}).get("current_kernel") == "scheduled_job_submission"
+        for event in closure_events
+    )
+    assert any(
+        "deltas_admitted" in event.get("measures", {})
+        and "closure_jobs_leased" in event.get("measures", {})
+        for event in closure_events
+    )
+
+
+def test_operational_compiler_writes_restart_only_resource_receipt(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    monkeypatch.setenv("SENSIBLAW_DOCUMENT_SOFT_MEMORY_MIB", "1")
+    monkeypatch.setenv("SENSIBLAW_DOCUMENT_HARD_MEMORY_MIB", "2")
+    monkeypatch.setenv("SENSIBLAW_RESOURCE_CHECKPOINT_DIR", str(tmp_path))
+    text = "Ada entered the hall."
+
+    with pytest.raises(DocumentResourceLimitError) as captured:
+        compile_document_operational(
+            {
+                "document_ref": "document:resource-receipt",
+                "content_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+                "media_type": "text/plain",
+                "canonical_text": text,
+                "source_ref": "source:resource-receipt",
+            },
+            default_compiler_context(),
+        )
+
+    receipt = captured.value.checkpoint
+    assert receipt["active_stage"] == "canonical_normalization"
+    assert receipt["restart_from_document"] is True
+    assert receipt["partial_state_resumable"] is False
+    assert (tmp_path / "document_resource-receipt.resource-checkpoint.json").exists()
 
 
 def test_operational_compiler_chunks_oversized_parser_input(

@@ -3,8 +3,8 @@
 The existing compiler performs canonical parsing, mention licensing, structural
 typing, local meets, and streaming job execution. This wrapper makes fibrewise
 reduction the PNF materialised view, then separately assesses, admits, resolves,
-projects, and optionally executes it. Memory and learning remain outside the
-SensibLaw compiler.
+projects, and optionally executes it. Large streaming families are consumed
+through verified references rather than assumed to be embedded lists.
 """
 
 from __future__ import annotations
@@ -25,8 +25,10 @@ from src.pnf.projection_factor_binding import bind_projection_factor_rows
 from src.pnf.semantic_lifecycle_pipeline import (
     build_admission_aware_semantic_lifecycle,
 )
+from src.pnf.streaming_build_reader import StreamingBuildReader
 from src.pnf.streaming_reduction_projection import project_streaming_reduction
 from src.policy import corpus_compilation as legacy
+from src.policy.artifact_projection import ArtifactProjectionPolicy
 from src.policy.algebra import (
     Factor,
     FactorConstraint,
@@ -38,9 +40,10 @@ from src.policy.operational_corpus_compilation import (
     OPERATIONAL_COMPILER_CONTRACT,
     compile_document_operational,
 )
+from src.runtime.stage_memory_budget import StageMemoryBudgetGuard
 
 
-FIBRED_OPERATIONAL_COMPILER_CONTRACT = "postgres-fibred-semantic-compiler:v0_2"
+FIBRED_OPERATIONAL_COMPILER_CONTRACT = "postgres-fibred-semantic-compiler:v0_3"
 
 
 def _alternative(row: Mapping[str, Any]) -> TypedAlternative[Any]:
@@ -171,14 +174,25 @@ def compile_document_fibred_operational(
 ) -> legacy.DocumentCompilation:
     """Compile one source through the explicit pre-memory semantic lifecycle."""
 
+    budget = StageMemoryBudgetGuard()
     base = compile_document_operational(
         document_input,
         compiler_context,
         closure_workers=closure_workers,
         owner_partitions=owner_partitions,
+        artifact_projection_policy=ArtifactProjectionPolicy.materialised_compatibility(),
     )
     artifacts = dict(base.artifacts)
     streaming_build = dict(artifacts.get("streaming_semantic_build") or {})
+    reader = StreamingBuildReader(streaming_build)
+    budget.checkpoint(
+        "finalization",
+        phase="before_fibred_projection",
+        semantic_counts={
+            "proposals": reader.family_count("proposals"),
+            "factors": reader.family_count("factors"),
+        },
+    )
     source_graph_row = (
         artifacts.get("refined_pnf_graph") or artifacts.get("pnf_graph") or {}
     )
@@ -199,19 +213,11 @@ def compile_document_fibred_operational(
     )
     fibred_build = project_fibred_semantic_build(streaming_build)
 
-    proposal_rows = tuple(
-        row
-        for row in streaming_build.get("proposals") or ()
-        if isinstance(row, Mapping)
-    )
+    proposal_rows = tuple(reader.iter_rows("proposals"))
     lifecycle_proposal_rows = annotate_assessment_proposals(
         proposals=proposal_rows,
         work_items=constraint_worklist.work_items,
-        coverage_notices=tuple(
-            row
-            for row in streaming_build.get("coverage_notices") or ()
-            if isinstance(row, Mapping)
-        ),
+        coverage_notices=tuple(reader.iter_rows("coverage_notices")),
     )
     lifecycle_fibre_elements = annotate_assessment_fibre_elements(
         proposals=lifecycle_proposal_rows,
@@ -221,16 +227,20 @@ def compile_document_fibred_operational(
             if isinstance(row, Mapping)
         ),
     )
-    materialized_reduction = streaming_build.get("materialized_reduction") or {}
-    reduced_factor_rows = tuple(
-        row
-        for row in materialized_reduction.get("factors") or ()
-        if isinstance(row, Mapping)
-    )
-    reduction_residual_rows = tuple(
-        row
-        for row in materialized_reduction.get("residuals") or ()
-        if isinstance(row, Mapping)
+    reduced_factor_rows = tuple(reader.iter_rows("factors"))
+    reduction_residual_rows = tuple(reader.iter_rows("residuals"))
+    budget.checkpoint(
+        "finalization",
+        phase="fibred_families_materialized",
+        semantic_counts={
+            "proposals": len(proposal_rows),
+            "factors": len(reduced_factor_rows),
+            "residuals": len(reduction_residual_rows),
+        },
+        details={
+            "compatibility_materialization": True,
+            "reference_backed_source": bool(streaming_build.get("reference_backed")),
+        },
     )
     assessment_rows = tuple(row.to_dict() for row in constraint_worklist.assessments)
     lifecycle = build_admission_aware_semantic_lifecycle(
@@ -297,6 +307,9 @@ def compile_document_fibred_operational(
             "one_integrated_producer": True,
             "one_proposal_contract": True,
             "one_reduction_authority": True,
+            "reference_backed_streaming_build": bool(
+                streaming_build.get("reference_backed")
+            ),
         }
     )
     lifecycle_row = lifecycle.to_dict()
@@ -326,10 +339,18 @@ def compile_document_fibred_operational(
             "streaming_semantic_build": streaming_build,
             "fibred_semantic_build": fibred_build,
             "streaming_reduction_projection": projection_receipt,
-            "operational_compiler_contract": (FIBRED_OPERATIONAL_COMPILER_CONTRACT),
-            "base_operational_compiler_contract": (OPERATIONAL_COMPILER_CONTRACT),
+            "operational_compiler_contract": FIBRED_OPERATIONAL_COMPILER_CONTRACT,
+            "base_operational_compiler_contract": OPERATIONAL_COMPILER_CONTRACT,
             "phase_boundary": phase_boundary,
         }
+    )
+    budget.checkpoint(
+        "finalization",
+        phase="fibred_projection_completed",
+        semantic_counts={
+            "fibred_factors": len(fibred_graph.factors),
+            "demands": len(demands),
+        },
     )
     return legacy.DocumentCompilation(
         document_ref=base.document_ref,

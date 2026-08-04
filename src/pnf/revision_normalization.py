@@ -26,7 +26,7 @@ def _graph_ref(graph: Mapping[str, Any], factors: Sequence[Mapping[str, Any]]) -
 
 def _normalise_base_graph(graph: Mapping[str, Any]) -> dict[str, Any]:
     factors = [
-        strip_factor_revision_ref(row) for row in graph.get("factors") or ()
+        _strip_revision_copy_on_change(row) for row in graph.get("factors") or ()
     ]
     factors.sort(key=lambda row: str(row.get("factor_ref") or ""))
     result = dict(graph)
@@ -48,12 +48,8 @@ def _normalise_refinements(
     for source in refinements:
         row = dict(source)
         prior = strip_factor_revision_ref(row.get("prior_factor") or {})
-        resulting = canonicalize_factor_revision(
-            row.get("resulting_factor") or {}
-        )
-        factor_ref = str(
-            prior.get("factor_ref") or resulting.get("factor_ref") or ""
-        )
+        resulting = canonicalize_factor_revision(row.get("resulting_factor") or {})
+        factor_ref = str(prior.get("factor_ref") or resulting.get("factor_ref") or "")
         if not factor_ref:
             continue
         prior_revision_ref = computed_factor_revision_ref(prior)
@@ -112,9 +108,11 @@ def _normalise_refined_graph(
         factor_ref = str(source.get("factor_ref") or "")
         replacement = resulting_by_factor.get(factor_ref)
         if replacement is not None:
-            factors.append(dict(replacement))
+            factors.append(
+                replacement if isinstance(replacement, dict) else dict(replacement)
+            )
         else:
-            factors.append(strip_factor_revision_ref(source))
+            factors.append(_strip_revision_copy_on_change(source))
     factors.sort(key=lambda row: str(row.get("factor_ref") or ""))
     result = dict(graph)
     result["factors"] = factors
@@ -122,20 +120,33 @@ def _normalise_refined_graph(
     return result
 
 
+def _strip_revision_copy_on_change(factor: Mapping[str, Any]) -> dict[str, Any]:
+    """Reuse immutable factors unless derived revision metadata needs removal."""
+
+    metadata = factor.get("metadata") or {}
+    if (
+        isinstance(factor, dict)
+        and "factor_revision_ref" not in metadata
+        and "factor_revision_identity_contract" not in metadata
+    ):
+        return factor
+    return strip_factor_revision_ref(factor)
+
+
 def _factor_revision_map(
     base_graph: Mapping[str, Any],
     refined_graph: Mapping[str, Any],
+    *,
+    demanded_factor_refs: set[str],
 ) -> dict[str, str]:
-    revisions = {
-        str(row["factor_ref"]): computed_factor_revision_ref(row)
-        for row in base_graph.get("factors") or ()
-    }
-    revisions.update(
-        {
-            str(row["factor_ref"]): computed_factor_revision_ref(row)
-            for row in refined_graph.get("factors") or ()
-        }
-    )
+    revisions: dict[str, str] = {}
+    if not demanded_factor_refs:
+        return revisions
+    for graph in (base_graph, refined_graph):
+        for row in graph.get("factors") or ():
+            factor_ref = str(row["factor_ref"])
+            if factor_ref in demanded_factor_refs:
+                revisions[factor_ref] = computed_factor_revision_ref(row)
     return revisions
 
 
@@ -182,7 +193,16 @@ def normalize_factor_revision_artifacts(
         artifacts.get("refined_pnf_graph") or base_graph,
         resulting_by_factor=resulting_by_factor,
     )
-    factor_revisions = _factor_revision_map(base_graph, refined_graph)
+    demanded_factor_refs = {
+        str(row.get("factor_ref") or "")
+        for row in artifacts.get("resolution_demands") or ()
+        if row.get("factor_ref")
+    }
+    factor_revisions = _factor_revision_map(
+        base_graph,
+        refined_graph,
+        demanded_factor_refs=demanded_factor_refs,
+    )
     meets: list[dict[str, Any]] = []
     for source in artifacts.get("typed_meets") or ():
         row = dict(source)

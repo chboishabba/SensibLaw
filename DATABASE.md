@@ -143,6 +143,11 @@ guardrails.
 
 ## Database Migration Tracks
 
+For the local endpoint, cluster, and database-selection rules, see
+[`docs/postgres_runtime.md`](docs/postgres_runtime.md). Multiple PostgreSQL
+clusters may be running simultaneously; the active schema, not the process or
+port alone, determines whether a target is suitable for the current compiler.
+
 - **Active:** PostgreSQL migrations live in
   `database/postgres_migrations/`. This is the sole active semantic schema and
   persistence track. Apply it with `scripts/apply_pg_migrations.sh` using

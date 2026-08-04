@@ -21,7 +21,7 @@ class MeetState(str, Enum):
     NOT_EVALUATED = "not_evaluated"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class TypedMeet(Generic[M]):
     meet_ref: str
     left_ref: str
@@ -47,9 +47,10 @@ class TypedMeet(Generic[M]):
             "authority": "assessment_only",
         }
         if self.refinement_ref:
-            row["refinement_ref"] = require_text(
-                self.refinement_ref, "refinement_ref"
-            )
-        if state in {MeetState.NO_TYPED_MEET.value, MeetState.CONTRADICTION.value} and self.result_alternatives:
+            row["refinement_ref"] = require_text(self.refinement_ref, "refinement_ref")
+        if (
+            state in {MeetState.NO_TYPED_MEET.value, MeetState.CONTRADICTION.value}
+            and self.result_alternatives
+        ):
             raise ValueError("failed typed meets cannot emit result alternatives")
         return row

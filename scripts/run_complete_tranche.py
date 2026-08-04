@@ -10,13 +10,13 @@ Wiktionary, legal-source, and Legal IR outputs remain candidate/review surfaces.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
-from pathlib import Path
 import sys
 import tempfile
+from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
-
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -41,6 +41,10 @@ from src.policy.postgres_corpus_compilation import (  # noqa: E402
     compile_directory_postgres,
 )
 from src.runtime.progress import PhaseRecorder  # noqa: E402
+from src.runtime.execution_resource_ledger import (  # noqa: E402
+    ExecutionResourceLedger,
+    environment_fingerprint,
+)
 from src.runtime.tranche_pipeline import (  # noqa: E402
     PhaseReceipt,
     TranchePhase,
@@ -65,9 +69,19 @@ from src.storage.postgres.legal_adjunct_planner import (  # noqa: E402
 )
 
 
+class _CalibrationRollback(RuntimeError):
+    """Carry a completed calibration result out of an intentionally rolled back run."""
+
+    def __init__(self, compilation: Any):
+        self.compilation = compilation
+        super().__init__("calibration transaction rolled back")
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--tranche", required=True, choices=("GWB", "AU", "BREXIT", "ALL"))
+    parser.add_argument(
+        "--tranche", required=True, choices=("GWB", "AU", "BREXIT", "ALL")
+    )
     parser.add_argument("--database-url", default=os.environ.get("DATABASE_URL"))
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--offline", action="store_true")
@@ -81,6 +95,15 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--follow-documents", type=int, default=20)
     parser.add_argument("--max-source-files", type=int)
     parser.add_argument("--max-file-bytes", type=int)
+    parser.add_argument(
+        "--input-path",
+        type=Path,
+        action="append",
+        help=(
+            "Explicit source file or directory. When supplied, it replaces the "
+            "profile's default source roots while retaining its configuration."
+        ),
+    )
     parser.add_argument("--plan-limit", type=int, default=1_000)
     parser.add_argument("--legal-plan-limit", type=int, default=500)
     parser.add_argument("--microbatch-size", type=int, default=16)
@@ -135,6 +158,25 @@ def _parse_args() -> argparse.Namespace:
         help="Bilateral context overlap for parser fibres.",
     )
     parser.add_argument("--no-wiktionary", action="store_true")
+    parser.add_argument(
+        "--calibration",
+        action="store_true",
+        help=(
+            "Run the normal local compiler and persistence path inside one "
+            "rolled-back PostgreSQL transaction, then stop before downstream "
+            "phases. This never publishes a completed build or occurrence."
+        ),
+    )
+    parser.add_argument(
+        "--ledger-root",
+        type=Path,
+        help="Persist exact-0008 execution ledgers and reports below this directory.",
+    )
+    parser.add_argument(
+        "--trial-ref",
+        default="calibration",
+        help="Stable trial label included in exact-0008 ledger references.",
+    )
     args = parser.parse_args()
     if not args.database_url:
         parser.error("--database-url or DATABASE_URL is required")
@@ -214,7 +256,9 @@ def _record_phase_checkpoint(
         if row is not None
     ]
     tranche_state["receipts"].append(receipt.to_dict())
-    tranche_state["artifacts"].update({key: str(value) for key, value in artifacts.items()})
+    tranche_state["artifacts"].update(
+        {key: str(value) for key, value in artifacts.items()}
+    )
     tranche_state["last_phase"] = phase.name
     tranche_state["last_receipt_ref"] = receipt.receipt_ref
     _save_tranche_state(tranche_state_path, tranche_state)
@@ -253,7 +297,11 @@ def _write_follow_sources(result: Any, output_dir: Path) -> tuple[Path, dict[str
     documents: list[dict[str, Any]] = []
     for index, followed in enumerate(result.documents, start=1):
         document = followed.document
-        suffix = ".html" if document.media_type in {"text/html", "application/xhtml+xml"} else ".txt"
+        suffix = (
+            ".html"
+            if document.media_type in {"text/html", "application/xhtml+xml"}
+            else ".txt"
+        )
         path = raw_dir / f"{index:04d}{suffix}"
         path.write_bytes(document.raw_bytes)
         documents.append(
@@ -342,10 +390,86 @@ def _local_world_summary(cursor: Any, corpus_ref: str, profile: Any) -> dict[str
     }
 
 
+def _calibration_row_counts(
+    store: PostgresCompilerStore, document_refs: tuple[str, ...]
+) -> dict[str, int]:
+    """Prove the rolled-back publication boundary is empty for this trial."""
+
+    if not document_refs:
+        return {
+            "source_documents": 0,
+            "occurrences": 0,
+            "builds": 0,
+            "artifact_manifests": 0,
+        }
+    with store.transaction() as cursor:
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM corpus.document
+            WHERE document_ref = ANY(%s)
+            """,
+            (list(document_refs),),
+        )
+        source_documents = int(cursor.fetchone()[0])
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM corpus.document_occurrence
+            WHERE document_ref = ANY(%s)
+            """,
+            (list(document_refs),),
+        )
+        occurrences = int(cursor.fetchone()[0])
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM execution.document_compilation_build
+            WHERE document_ref = ANY(%s)
+            """,
+            (list(document_refs),),
+        )
+        builds = int(cursor.fetchone()[0])
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM execution.artifact_manifest
+            WHERE document_ref = ANY(%s)
+            """,
+            (list(document_refs),),
+        )
+        artifact_manifests = int(cursor.fetchone()[0])
+    return {
+        "source_documents": source_documents,
+        "occurrences": occurrences,
+        "builds": builds,
+        "artifact_manifests": artifact_manifests,
+    }
+
+
 def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
     profile = profile_for_tranche(tranche)
     output_dir = args.output_root.resolve() / tranche.lower()
     output_dir.mkdir(parents=True, exist_ok=True)
+    resource_ledger = None
+    if args.ledger_root is not None:
+        environment = environment_fingerprint()
+        environment.update(
+            {
+                "calibration": bool(args.calibration),
+                "compiler_contract": OPERATIONAL_COMPILER_CONTRACT,
+                "tranche": tranche,
+                "source_projection_ref": str(
+                    output_dir / "source_projection" / "manifest.json"
+                ),
+            }
+        )
+        resource_ledger = ExecutionResourceLedger(
+            run_ref=f"exact-0008:{args.trial_ref}:{tranche.lower()}",
+            document_ref=f"tranche:{tranche.lower()}",
+            environment=environment,
+        )
+        resource_ledger.sample("tranche:start", phase="lifecycle")
     receipts: list[PhaseReceipt] = []
     artifacts: dict[str, Any] = {}
     tranche_state_path = output_dir / "tranche_run_state.json"
@@ -388,21 +512,36 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
     receipts.append(inventory_receipt)
     artifacts["source_inventory"] = str(inventory_path)
 
-    source_roots = [
-        ROOT / family.path
-        for family in profile.source_families
-        if family.path and (ROOT / family.path).exists()
-    ]
+    explicit_source_paths = tuple(path.resolve() for path in (args.input_path or ()))
+    if explicit_source_paths:
+        missing_paths = [path for path in explicit_source_paths if not path.exists()]
+        if missing_paths:
+            raise ValueError(
+                "explicit input paths do not exist: "
+                + ", ".join(str(path) for path in missing_paths)
+            )
+        source_roots = list(explicit_source_paths)
+    else:
+        source_roots = [
+            ROOT / family.path
+            for family in profile.source_families
+            if family.path and (ROOT / family.path).exists()
+        ]
     acquisition_manifest: dict[str, Any] = {
         "schema_version": "sl.tranche_seed_acquisition.v0_2",
         "documents": [],
         "receipts": [],
         "network_performed": False,
-        "mode": "explicit_seed_only",
+        "mode": "explicit_input_only"
+        if explicit_source_paths
+        else "explicit_seed_only",
+        "explicit_input_paths": [str(path) for path in explicit_source_paths],
         "authority": "source_acquisition_only",
     }
     seed_follow_required = not source_roots and bool(profile.legal_follow_profile)
-    seed_follow_requested = args.seed_legal_follow and bool(profile.legal_follow_profile)
+    seed_follow_requested = args.seed_legal_follow and bool(
+        profile.legal_follow_profile
+    )
     if (
         (seed_follow_required or seed_follow_requested)
         and not args.skip_legal_follow
@@ -436,7 +575,9 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
             {
                 "network_performed": acquisition_manifest["network_performed"],
                 "source_root_count": len(source_roots),
-                "followed_document_count": len(acquisition_manifest.get("documents") or ()),
+                "followed_document_count": len(
+                    acquisition_manifest.get("documents") or ()
+                ),
                 "broad_legal_follow_was_explicit_or_required": bool(
                     acquisition_manifest["network_performed"]
                 ),
@@ -461,7 +602,19 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
         max_file_bytes=args.max_file_bytes,
     )
     projection_payload = projection.to_dict()
+    if resource_ledger is not None:
+        resource_ledger.sample(
+            "source_projection:after",
+            phase="artifact_projection",
+            semantic_counts={"manifest_documents": len(projection.documents)},
+        )
     projection_path = output_dir / "source_projection" / "manifest.json"
+    if resource_ledger is not None:
+        resource_ledger.environment["source_projection_sha256"] = hashlib.sha256(
+            json.dumps(
+                projection_payload, sort_keys=True, separators=(",", ":")
+            ).encode("utf-8")
+        ).hexdigest()
     _json_write(projection_path, projection_payload)
     receipts.append(
         PhaseReceipt(
@@ -480,28 +633,57 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
     compile_progress = PhaseRecorder(stream=sys.stderr, json_lines=False)
     compile_state_path = output_dir / "local_pnf_compilation_state.json"
     try:
-        compilation = compile_directory_postgres(
-            output_dir / "source_projection" / "canonical",
-            context=default_compiler_context(),
-            store=store,
-            execution_phase="demand_planning",
-            progress=compile_progress,
-            state_path=compile_state_path,
-            document_executor_ref="document-executor:postgres-operational:v0_1",
-            document_executor_contract_ref=OPERATIONAL_COMPILER_CONTRACT,
-            persistence_strategy_ref="persistence:postgres-savepoint:v0_1",
-            admission_policy_ref="admission:inventoried-only:v0_1",
-            closure_workers=args.closure_workers,
-            owner_partitions=args.owner_partitions,
-            parser_workers=args.parser_workers,
-            parser_limit_chars=args.parser_limit_chars,
-            parser_target_chars=args.parser_target_chars,
-            parser_overlap_chars=args.parser_overlap_chars,
-            document_workers=args.document_workers,
-            worker_budget=args.worker_budget,
-            database_url=args.database_url,
-        )
+        compile_kwargs = {
+            "context": default_compiler_context(),
+            "store": store,
+            "execution_phase": "demand_planning",
+            "progress": compile_progress,
+            "state_path": compile_state_path,
+            "document_executor_ref": "document-executor:postgres-operational:v0_1",
+            "document_executor_contract_ref": OPERATIONAL_COMPILER_CONTRACT,
+            "persistence_strategy_ref": "persistence:postgres-savepoint:v0_1",
+            "admission_policy_ref": "admission:inventoried-only:v0_1",
+            "closure_workers": args.closure_workers,
+            "owner_partitions": args.owner_partitions,
+            "parser_workers": args.parser_workers,
+            "parser_limit_chars": args.parser_limit_chars,
+            "parser_target_chars": args.parser_target_chars,
+            "parser_overlap_chars": args.parser_overlap_chars,
+            "document_workers": args.document_workers,
+            "worker_budget": args.worker_budget,
+            "database_url": args.database_url,
+            "resource_ledger": resource_ledger,
+        }
+        if args.calibration:
+            # ``PostgresCompilerStore.transaction`` nests as savepoints under
+            # this outer transaction, so this exercises source, partition,
+            # artifact and publication writes exactly as production does while
+            # the final exception rolls every write back atomically.
+            try:
+                with store.connection.transaction():
+                    calibration_compilation = compile_directory_postgres(
+                        output_dir / "source_projection" / "canonical",
+                        **compile_kwargs,
+                    )
+                    raise _CalibrationRollback(calibration_compilation)
+            except _CalibrationRollback as rollback:
+                compilation = rollback.compilation
+        else:
+            compilation = compile_directory_postgres(
+                output_dir / "source_projection" / "canonical",
+                **compile_kwargs,
+            )
         compile_progress.write_json(output_dir / "local_pnf_compile_progress.json")
+        if resource_ledger is not None:
+            resource_ledger.sample(
+                "stage_ledger:after_compilation",
+                phase="stage_ledger",
+                semantic_counts={
+                    "compiled_documents": len(compilation.document_refs),
+                    "demands": len(compilation.demand_refs),
+                    "failures": len(compilation.failure_refs),
+                },
+            )
         compile_payload = {
             "corpus_ref": compilation.corpus_ref,
             "document_refs": list(compilation.document_refs),
@@ -513,7 +695,9 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
         receipts.append(
             PhaseReceipt(
                 TranchePhase.LOCAL_PNF_COMPILATION,
-                "completed" if not compilation.failure_refs else "completed_with_failures",
+                "completed"
+                if not compilation.failure_refs
+                else "completed_with_failures",
                 (str(projection_path),),
                 (compilation.corpus_ref, str(compile_path)),
                 {
@@ -532,9 +716,87 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
             receipt=receipts[-1],
             artifacts={
                 "local_pnf_compilation": compile_path,
-                "local_pnf_compile_progress": output_dir / "local_pnf_compile_progress.json",
+                "local_pnf_compile_progress": output_dir
+                / "local_pnf_compile_progress.json",
             },
         )
+
+        if compilation.failure_refs:
+            raise RuntimeError(
+                "local PNF compilation produced failure refs: "
+                + ", ".join(compilation.failure_refs)
+            )
+
+        if args.calibration:
+            calibration_path = output_dir / "tranche_calibration.json"
+            calibration = {
+                "schema_version": "sl.complete_tranche_calibration.v0_1",
+                "tranche": tranche,
+                "profile_ref": profile.profile_ref,
+                "publication_mode": "rolled_back",
+                "source_projection": str(projection_path),
+                "local_pnf_compilation": str(compile_path),
+                "document_refs": list(compilation.document_refs),
+                "failure_refs": list(compilation.failure_refs),
+                "rollback_row_counts": _calibration_row_counts(
+                    store, tuple(compilation.document_refs)
+                ),
+            }
+            _json_write(calibration_path, calibration)
+            if resource_ledger is not None:
+                resource_ledger.sample(
+                    "publication:rolled_back",
+                    phase="publication",
+                    details={"publication_mode": "rolled_back"},
+                    collect_gc=True,
+                )
+                ledger_root = args.ledger_root.resolve()
+                raw_path = ledger_root / f"{args.trial_ref}-{tranche.lower()}.jsonl"
+                report_path = (
+                    ledger_root / f"{args.trial_ref}-{tranche.lower()}.report.json"
+                )
+                environment_path = (
+                    ledger_root / f"{args.trial_ref}-{tranche.lower()}.environment.json"
+                )
+                stage_path = (
+                    ledger_root / f"{args.trial_ref}-{tranche.lower()}.stage.json"
+                )
+                resource_ledger.write_jsonl(raw_path)
+                report = resource_ledger.write_report(report_path)
+                _json_write(environment_path, resource_ledger.environment)
+                _json_write(
+                    stage_path,
+                    {
+                        "schema_version": "sensiblaw.stage-ledger.v1",
+                        "run_ref": resource_ledger.run_ref,
+                        "samples": [
+                            sample.to_dict()
+                            for sample in resource_ledger.samples
+                            if sample.phase
+                            in {
+                                "lifecycle",
+                                "stage_ledger",
+                                "artifact_projection",
+                                "publication",
+                            }
+                        ],
+                    },
+                )
+                calibration["resource_ledger"] = str(raw_path)
+                calibration["ownership_report"] = str(report_path)
+                calibration["environment_fingerprint"] = str(environment_path)
+                calibration["stage_ledger"] = str(stage_path)
+                calibration["ownership_report_summary"] = {
+                    "sample_count": report["sample_count"],
+                    "peak_pss_bytes": report["peak"]["pss_bytes"],
+                }
+                _json_write(calibration_path, calibration)
+            print(f"tranche={tranche} calibration={calibration_path}")
+            return {
+                "profile": profile.to_dict(),
+                "calibration": calibration,
+                "calibration_ref": str(calibration_path),
+            }
 
         with store.transaction() as cursor:
             local_world = _local_world_summary(cursor, compilation.corpus_ref, profile)
@@ -705,11 +967,15 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
         receipts.append(
             PhaseReceipt(
                 TranchePhase.LEGAL_ADJUNCT_ACQUISITION,
-                "completed" if legal_roots else ("skipped_offline" if args.offline else "no_ready_plans"),
+                "completed"
+                if legal_roots
+                else ("skipped_offline" if args.offline else "no_ready_plans"),
                 (str(legal_plan_path),),
                 (str(legal_acquisition_path),),
                 {
-                    "ready_plan_count": sum(row.state == "ready" for row in legal_plans),
+                    "ready_plan_count": sum(
+                        row.state == "ready" for row in legal_plans
+                    ),
                     "acquired_source_root_count": len(legal_roots),
                     "network_performed": bool(legal_roots),
                 },
@@ -736,7 +1002,9 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
             )
             if adjunct_projection.documents:
                 adjunct_progress = PhaseRecorder(stream=sys.stderr, json_lines=False)
-                adjunct_state_path = output_dir / "legal_adjunct_pnf_compilation_state.json"
+                adjunct_state_path = (
+                    output_dir / "legal_adjunct_pnf_compilation_state.json"
+                )
                 adjunct_compilation = compile_directory_postgres(
                     output_dir / "legal_adjunct_projection" / "canonical",
                     context=default_compiler_context(),
@@ -807,7 +1075,9 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
         legal_ir_rows: tuple[Any, ...] = ()
         if adjunct_corpus_ref:
             with store.transaction() as cursor:
-                legal_pnf_rows = load_legal_pnf_rows(cursor, corpus_ref=adjunct_corpus_ref)
+                legal_pnf_rows = load_legal_pnf_rows(
+                    cursor, corpus_ref=adjunct_corpus_ref
+                )
             legal_ir_rows = project_legal_ir(legal_pnf_rows)
         legal_ir_payload = {
             "schema_version": "sl.legal_ir_projection.v0_1",
@@ -893,7 +1163,9 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
                 (str(review_path),),
                 {
                     "review_packet_count": len(review_payload["review_packets"]),
-                    "overlap_signal_count": len(review_payload["candidate_overlap_signals"]),
+                    "overlap_signal_count": len(
+                        review_payload["candidate_overlap_signals"]
+                    ),
                     "legal_plan_count": len(legal_plans),
                     "promotion_count": 0,
                 },
@@ -927,14 +1199,24 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
 
 def main() -> int:
     args = _parse_args()
+    if args.calibration:
+        # The compiler consults this only to bypass completed-build reuse. The
+        # outer transaction in ``_run_one`` remains the publication boundary.
+        os.environ["SENSIBLAW_TRANCHE_CALIBRATION"] = "1"
     tranches = ("GWB", "AU", "BREXIT") if args.tranche == "ALL" else (args.tranche,)
     checkpoints = [_run_one(args, tranche) for tranche in tranches]
     summary = {
-        "schema_version": "sl.three_tranche_run.v0_2",
+        "schema_version": (
+            "sl.complete_tranche_calibration_summary.v0_1"
+            if args.calibration
+            else "sl.three_tranche_run.v0_2"
+        ),
         "tranches": [row["profile"]["tranche"] for row in checkpoints],
-        "checkpoint_refs": [
-            row["phase_receipts"][-1]["receipt_ref"] for row in checkpoints
-        ],
+        "checkpoint_refs": (
+            [row["calibration_ref"] for row in checkpoints]
+            if args.calibration
+            else [row["phase_receipts"][-1]["receipt_ref"] for row in checkpoints]
+        ),
         "authority": "execution_summary_only",
     }
     _json_write(args.output_root.resolve() / "three_tranche_summary.json", summary)

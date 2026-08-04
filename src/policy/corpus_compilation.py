@@ -254,7 +254,7 @@ class CorpusManifest:
         return row
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class LocalEvidence:
     """Document-bounded evidence projection that cannot resolve identity."""
 
@@ -285,12 +285,33 @@ class LocalEvidence:
         return row
 
 
+@dataclass(frozen=True, slots=True)
+class LocalMeetPlan:
+    """Compact transient carrier for one document-local meet candidate."""
+
+    plan_ref: str
+    factor_ref: str
+    candidate_evidence_refs: tuple[str, ...]
+    constraint_assessment_refs: tuple[str, ...]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "plan_ref": self.plan_ref,
+            "factor_ref": self.factor_ref,
+            "candidate_evidence_refs": list(self.candidate_evidence_refs),
+            "constraint_assessment_refs": list(self.constraint_assessment_refs),
+            "candidate_index": "mention_ref_to_document_local_evidence",
+            "authority": "candidate_only",
+        }
+
+
 @dataclass(frozen=True)
 class DocumentCompilation:
     document_ref: str
     content_sha256: str
     media_type: str
     artifacts: Mapping[str, Any]
+    artifact_reader: Any | None = None
     status: str = "compiled"
     failure: Mapping[str, Any] | None = None
 
@@ -777,9 +798,7 @@ def _semantic_annotation_layer(
                 "bundle_words_scanned": int(payload.get("words_done", 0)),
                 "bundle_tokens_scanned": int(payload.get("tokens_done", 0)),
                 "semantic_atoms_projected": int(payload.get("atom_count", 0)),
-                "semantic_relations_projected": int(
-                    payload.get("relation_count", 0)
-                ),
+                "semantic_relations_projected": int(payload.get("relation_count", 0)),
             }
         )
 
@@ -834,6 +853,7 @@ def _semantic_annotation_layer(
             for index in range(first, last)
             if token_starts[index] < end_char and token_ends[index] > start_char
         ]
+
     parser_span_refs: dict[int, str] = {}
     token_annotations: list[TokenAnnotation] = []
     parser_spans: list[SpanAnnotation] = []
@@ -1292,7 +1312,7 @@ def _local_meets_and_refinements(
     evidence: Sequence[LocalEvidence],
     constraint_assessments: Sequence[ConstraintAssessment],
 ) -> tuple[
-    tuple[Mapping[str, Any], ...],
+    tuple[LocalMeetPlan, ...],
     tuple[TypedMeet[Any], ...],
     tuple[FactorRefinement[Any], ...],
 ]:
@@ -1302,7 +1322,7 @@ def _local_meets_and_refinements(
             evidence_by_subject.setdefault(subject_ref, []).append(item)
     meets: list[TypedMeet[Any]] = []
     refinements: list[FactorRefinement[Any]] = []
-    plan: list[Mapping[str, Any]] = []
+    plan: list[LocalMeetPlan] = []
     assessments_by_constraint = {
         item.constraint_ref: item for item in constraint_assessments
     }
@@ -1329,30 +1349,24 @@ def _local_meets_and_refinements(
         )
         if not matched_evidence and not factor_assessments:
             continue
+        candidate_evidence_refs = tuple(item.evidence_ref for item in matched_evidence)
+        constraint_assessment_refs = tuple(
+            item.assessment_ref for item in factor_assessments
+        )
         plan.append(
-            {
-                "plan_ref": "local-meet-plan:"
+            LocalMeetPlan(
+                plan_ref="local-meet-plan:"
                 + canonical_sha256(
                     {
                         "factor_ref": factor.factor_ref,
-                        "evidence_refs": [
-                            item.evidence_ref for item in matched_evidence
-                        ],
-                        "constraint_assessment_refs": [
-                            item.assessment_ref for item in factor_assessments
-                        ],
+                        "evidence_refs": candidate_evidence_refs,
+                        "constraint_assessment_refs": constraint_assessment_refs,
                     }
                 ),
-                "factor_ref": factor.factor_ref,
-                "candidate_evidence_refs": [
-                    item.evidence_ref for item in matched_evidence
-                ],
-                "constraint_assessment_refs": [
-                    item.assessment_ref for item in factor_assessments
-                ],
-                "candidate_index": "mention_ref_to_document_local_evidence",
-                "authority": "candidate_only",
-            }
+                factor_ref=factor.factor_ref,
+                candidate_evidence_refs=candidate_evidence_refs,
+                constraint_assessment_refs=constraint_assessment_refs,
+            )
         )
         state = MeetState.COMPATIBLE_WITH_REFINEMENT
         evidence_refs = tuple(
@@ -1530,7 +1544,7 @@ def _local_meets_and_refinements(
             )
         )
     return (
-        tuple(sorted(plan, key=lambda row: str(row["plan_ref"]))),
+        tuple(sorted(plan, key=lambda row: row.plan_ref)),
         tuple(meets),
         tuple(refinements),
     )
@@ -1640,10 +1654,6 @@ def compile_document(
         ),
         provenance_refs=(source_ref,),
     )
-    annotation_graph = AnnotationGraph(
-        graph_ref="annotation-graph:" + canonical_sha256(layer.to_dict()),
-        layers=(layer,),
-    )
     semantic_layer, relational_bundle, atom_span_refs = _semantic_annotation_layer(
         document_ref=document_ref,
         source_ref=source_ref,
@@ -1653,11 +1663,7 @@ def compile_document(
         text=text,
         parsed_document=parsed_document,
     )
-    annotation_graph = AnnotationGraph(
-        graph_ref="annotation-graph:"
-        + canonical_sha256({"layers": [layer.to_dict(), semantic_layer.to_dict()]}),
-        layers=(layer, semantic_layer),
-    )
+    annotation_graph = AnnotationGraph.from_layers((layer, semantic_layer))
     declarations = default_semantic_reduction_declarations()
     atom_mentions = _atom_mention_refs(
         semantic_layer=semantic_layer,
@@ -1722,11 +1728,13 @@ def compile_document(
         evidence=local_evidence,
         constraint_assessments=constraint_assessments,
     )
-    refined_pnf_graph = pnf_graph
-    for refinement in refinements:
-        refined_pnf_graph = refined_pnf_graph.replace_factor(
-            refinement.resulting_factor
+    refined_pnf_graph = (
+        pnf_graph.replace_factors(
+            [refinement.resulting_factor for refinement in refinements]
         )
+        if refinements
+        else pnf_graph
+    )
     demands = derive_resolution_demands(refined_pnf_graph)
     artifacts = {
         "canonical_text": text,
@@ -1764,7 +1772,7 @@ def compile_document(
         ],
         "constraint_assessments": [row.to_dict() for row in constraint_assessments],
         "local_evidence": [row.to_dict() for row in local_evidence],
-        "local_meet_plan": [canonical_json(row) for row in local_meet_plan],
+        "local_meet_plan": [row.to_dict() for row in local_meet_plan],
         "pnf_graph": pnf_graph.to_dict(),
         "refined_pnf_graph": refined_pnf_graph.to_dict(),
         "resolution_demands": [canonical_json(row) for row in demands],

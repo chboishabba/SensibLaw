@@ -59,12 +59,13 @@ def _reference_alternative(
 
 
 def _project_factor(factor: Mapping[str, Any]) -> tuple[dict[str, Any], bool]:
-    result = dict(factor)
-    metadata = dict(result.get("metadata") or {})
-    if not _is_argument_factor(result) or str(metadata.get("parser_pos") or "") != (
+    metadata = factor.get("metadata") or {}
+    if not _is_argument_factor(factor) or str(metadata.get("parser_pos") or "") != (
         "PRON"
     ):
-        return result, False
+        return factor if isinstance(factor, dict) else dict(factor), False
+    result = dict(factor)
+    metadata = dict(metadata)
     role = str(metadata.get("role") or "argument")
     morphology = metadata.get("parser_morphology") or {}
     relation_ref = str(metadata.get("relation_ref") or "") or None
@@ -164,9 +165,7 @@ def project_pronominal_reference_arguments(
     )
     result["pnf_graph"] = pnf_graph
     result["refined_pnf_graph"] = refined_graph
-    declarations = [
-        dict(row) for row in artifacts.get("compiler_declarations") or ()
-    ]
+    declarations = [dict(row) for row in artifacts.get("compiler_declarations") or ()]
     declaration = {
         "declaration_ref": REFERENCE_REDUCTION_DECLARATION_REF,
         "declaration_kind": "grammar",
@@ -194,15 +193,11 @@ def project_pronominal_reference_arguments(
     result["compiler_declarations"] = sorted(
         declarations, key=lambda row: str(row.get("declaration_ref") or "")
     )
-    result["reference_binding_operational_contract"] = (
-        REFERENCE_BINDING_CONTRACT_REF
-    )
+    result["reference_binding_operational_contract"] = REFERENCE_BINDING_CONTRACT_REF
     result["reference_argument_projection_summary"] = {
         "base_factor_changes": base_changes,
         "refined_factor_changes": refined_changes,
-        "reference_reduction_declaration_ref": (
-            REFERENCE_REDUCTION_DECLARATION_REF
-        ),
+        "reference_reduction_declaration_ref": (REFERENCE_REDUCTION_DECLARATION_REF),
         "english_pronoun_catalogue_used": False,
         "authority": "diagnostic_only",
     }
@@ -229,9 +224,7 @@ def _normalise_refinement_receipts(
         refinement = dict(row)
         prior = refinement.get("prior_factor") or {}
         resulting = refinement.get("resulting_factor") or {}
-        factor_ref = str(
-            prior.get("factor_ref") or resulting.get("factor_ref") or ""
-        )
+        factor_ref = str(prior.get("factor_ref") or resulting.get("factor_ref") or "")
         resulting_refs = {
             str(alternative.get("alternative_ref") or "")
             for alternative in resulting.get("alternatives") or ()
@@ -242,8 +235,7 @@ def _normalise_refinement_receipts(
             if str(ref) in resulting_refs
         }
         rejected_refs = {
-            str(ref)
-            for ref in refinement.get("rejected_alternative_refs") or ()
+            str(ref) for ref in refinement.get("rejected_alternative_refs") or ()
         }
         rejected_refs.update(
             str(ref)
@@ -264,12 +256,8 @@ def _normalise_refinement_receipts(
         refinement["evidence_refs"] = sorted(evidence_refs)
         delta = dict(refinement.get("refinement_delta") or {})
         if delta:
-            delta["added_alternative_refs"] = refinement[
-                "added_alternative_refs"
-            ]
-            delta["rejected_alternative_refs"] = refinement[
-                "rejected_alternative_refs"
-            ]
+            delta["added_alternative_refs"] = refinement["added_alternative_refs"]
+            delta["rejected_alternative_refs"] = refinement["rejected_alternative_refs"]
             refinement["refinement_delta"] = delta
         refinements.append(refinement)
     result["factor_refinements"] = sorted(
@@ -282,8 +270,7 @@ def _ensure_local_binding_demands(artifacts: Mapping[str, Any]) -> dict[str, Any
     result = dict(artifacts)
     refined_graph = artifacts.get("refined_pnf_graph") or {}
     factors = {
-        str(row["factor_ref"]): row
-        for row in refined_graph.get("factors") or ()
+        str(row["factor_ref"]): row for row in refined_graph.get("factors") or ()
     }
     demands = [dict(row) for row in artifacts.get("resolution_demands") or ()]
     local_by_factor = {
@@ -313,12 +300,10 @@ def _ensure_local_binding_demands(artifacts: Mapping[str, Any]) -> dict[str, Any
         metadata = dict(factor.get("metadata") or {})
         factor_revision_ref = str(
             metadata.get("factor_revision_ref")
-            or "factor-revision:"
-            + canonical_sha256(factor)
+            or "factor-revision:" + canonical_sha256(factor)
         )
         alternatives = sorted(
-            str(row.get("type_ref") or "")
-            for row in factor.get("alternatives") or ()
+            str(row.get("type_ref") or "") for row in factor.get("alternatives") or ()
         )
         constraints = [dict(row) for row in factor.get("constraints") or ()]
         semantic_key = {
@@ -377,9 +362,7 @@ def build_set_valued_binding_artifacts(
     for refinement in projected.get("factor_refinements") or ():
         prior = refinement.get("prior_factor") or {}
         resulting = refinement.get("resulting_factor") or {}
-        factor_ref = str(
-            prior.get("factor_ref") or resulting.get("factor_ref") or ""
-        )
+        factor_ref = str(prior.get("factor_ref") or resulting.get("factor_ref") or "")
         if not factor_ref:
             continue
         original_evidence_by_factor.setdefault(factor_ref, set()).update(

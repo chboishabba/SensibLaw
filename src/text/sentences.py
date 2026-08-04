@@ -4,17 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any, Iterator, List, Mapping, Optional, Sequence
+import importlib
+from typing import TYPE_CHECKING, Any, Iterator, List, Mapping, Optional, Sequence
 
-try:  # pragma: no cover - spaCy may be unavailable
-    import spacy
+if TYPE_CHECKING:  # pragma: no cover - type-only imports without an import-time cost
     from spacy.language import Language
     from spacy.tokens import Doc, Span
-except Exception:  # pragma: no cover - degrade gracefully when spaCy fails
-    spacy = None  # type: ignore[assignment]
-    Language = None  # type: ignore[assignment]
-    Doc = None  # type: ignore[assignment]
-    Span = None  # type: ignore[assignment]
 
 from src.models.sentence import Sentence
 
@@ -58,10 +53,12 @@ class CanonicalSentenceUnit:
 
 
 @lru_cache(maxsize=1)
-def get_nlp() -> Optional[Language]:
+def get_nlp() -> Optional["Language"]:
     """Return a cached English spaCy pipeline with sentence boundaries."""
 
-    if spacy is None:
+    try:  # pragma: no cover - spaCy may be unavailable
+        spacy = importlib.import_module("spacy")
+    except ModuleNotFoundError:  # pragma: no cover - graceful optional dependency
         return None
     nlp = spacy.blank("en")
     if "sentencizer" not in nlp.pipe_names:
@@ -69,7 +66,7 @@ def get_nlp() -> Optional[Language]:
     return nlp
 
 
-def make_doc(text: str) -> Doc:
+def make_doc(text: str) -> "Doc":
     """Create a spaCy :class:`Doc` with sentence boundaries enabled."""
 
     doc = get_nlp()(text)
@@ -77,7 +74,7 @@ def make_doc(text: str) -> Doc:
     return doc
 
 
-def _mark_paragraph_boundaries(doc: Doc) -> None:
+def _mark_paragraph_boundaries(doc: "Doc") -> None:
     """Ensure blank-line paragraph breaks start new sentences."""
 
     for token in doc[:-1]:
@@ -86,7 +83,7 @@ def _mark_paragraph_boundaries(doc: Doc) -> None:
             next_token.is_sent_start = True
 
 
-def iter_sentence_spans(doc: Doc) -> Iterator[Span]:
+def iter_sentence_spans(doc: "Doc") -> Iterator["Span"]:
     """Yield non-empty sentence spans from ``doc``."""
 
     for span in doc.sents:

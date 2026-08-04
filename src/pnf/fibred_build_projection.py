@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Mapping
 
 from src.pnf.factor_proposals import (
@@ -20,6 +21,7 @@ from src.pnf.semantic_fibres import (
     SemanticTransport,
     fibre_element_from_proposal_row,
 )
+from src.pnf.streaming_build_reader import RowSource, StreamingBuildReader
 
 
 def _proposal_from_mapping(row: Mapping[str, Any]) -> FactorProposal:
@@ -28,12 +30,8 @@ def _proposal_from_mapping(row: Mapping[str, Any]) -> FactorProposal:
         source_revision_ref=str(row["source_revision_ref"]),
         factor_type_ref=str(row["factor_type_ref"]),
         source_span_refs=tuple(row.get("source_span_refs") or ()),
-        input_observation_refs=tuple(
-            row.get("input_observation_refs") or ()
-        ),
-        dependency_factor_refs=tuple(
-            row.get("dependency_factor_refs") or ()
-        ),
+        input_observation_refs=tuple(row.get("input_observation_refs") or ()),
+        dependency_factor_refs=tuple(row.get("dependency_factor_refs") or ()),
         structural_signature=str(row.get("structural_signature") or ""),
         role_bindings=dict(row.get("role_bindings") or {}),
         qualifier_state=dict(row.get("qualifier_state") or {}),
@@ -44,9 +42,7 @@ def _proposal_from_mapping(row: Mapping[str, Any]) -> FactorProposal:
         scope_ref=str(row.get("scope_ref") or "document-global"),
         statement_role=str(row.get("statement_role") or "main"),
         coordinate_kind=str(row.get("coordinate_kind") or "object"),
-        semantic_coordinate_ref=str(
-            row.get("semantic_coordinate_ref") or ""
-        )
+        semantic_coordinate_ref=str(row.get("semantic_coordinate_ref") or "")
         or None,
         fibre_kind=str(row.get("fibre_kind") or "hypothesis"),
         derivation_role=str(row.get("derivation_role") or "support"),
@@ -61,9 +57,7 @@ def _proposal_from_mapping(row: Mapping[str, Any]) -> FactorProposal:
             else None
         ),
         assumptions=tuple(row.get("assumptions") or ()),
-        coverage_requirements=tuple(
-            row.get("coverage_requirements") or ()
-        ),
+        coverage_requirements=tuple(row.get("coverage_requirements") or ()),
         execution_metadata=dict(row.get("execution_metadata") or {}),
     )
 
@@ -122,17 +116,28 @@ def _boundary(row: Mapping[str, Any]) -> FibreBoundaryObligation:
 
 def project_fibred_semantic_build(
     streaming_build: Mapping[str, Any],
+    *,
+    base_path: str | Path | None = None,
+    row_source: RowSource | None = None,
 ) -> dict[str, Any]:
-    """Return the complete fibred execution view and integrated receipt."""
+    """Return the complete fibred execution view and integrated receipt.
 
+    Exact-document inputs are read one family at a time through verified
+    descriptors.  The returned compatibility view is still materialised; a
+    later persistence boundary may consume the same reader directly instead.
+    """
+
+    reader = StreamingBuildReader(
+        streaming_build,
+        base_path=base_path,
+        row_source=row_source,
+    )
     document_ref = str(streaming_build.get("document_ref") or "")
     coordinates: dict[str, SemanticCoordinate] = {}
     elements: list[FibreElement] = []
     content_to_element_ref: dict[str, str] = {}
 
-    for delta in streaming_build.get("observation_deltas") or ():
-        if not isinstance(delta, Mapping):
-            continue
+    for delta in reader.iter_rows("observation_deltas"):
         scope_ref = str(delta.get("scope_ref") or "document-global")
         parser_contract = str(delta.get("parser_contract") or "")
         for observation in delta.get("observations") or ():
@@ -176,9 +181,7 @@ def project_fibred_semantic_build(
             content_to_element_ref[observation_ref] = element.element_ref
 
     proposals = tuple(
-        _proposal_from_mapping(row)
-        for row in streaming_build.get("proposals") or ()
-        if isinstance(row, Mapping)
+        _proposal_from_mapping(row) for row in reader.iter_rows("proposals")
     )
     for proposal in proposals:
         coordinate = SemanticCoordinate(
@@ -198,15 +201,13 @@ def project_fibred_semantic_build(
 
     jobs = {
         str(row.get("job_ref") or ""): row
-        for row in streaming_build.get("solver_jobs") or ()
-        if isinstance(row, Mapping) and row.get("job_ref")
+        for row in reader.iter_rows("solver_jobs")
+        if row.get("job_ref")
     }
     proposal_rows = {row.proposal_ref: row for row in proposals}
     derivations: list[FibreDerivation] = []
     receipt_refs: list[str] = []
-    for receipt in streaming_build.get("solver_receipts") or ():
-        if not isinstance(receipt, Mapping):
-            continue
+    for receipt in reader.iter_rows("solver_receipts"):
         receipt_ref = str(receipt.get("receipt_ref") or "")
         if receipt_ref:
             receipt_refs.append(receipt_ref)
@@ -239,9 +240,7 @@ def project_fibred_semantic_build(
                     for row in output_proposals
                 ),
                 sub_executor_ref=str(receipt.get("backend_ref") or ""),
-                rule_set_revision=str(
-                    receipt.get("rule_set_revision") or ""
-                ),
+                rule_set_revision=str(receipt.get("rule_set_revision") or ""),
                 receipt_ref=receipt_ref or None,
                 assumptions=tuple(receipt.get("assumptions") or ()),
                 metrics=dict(receipt.get("metrics") or {}),
@@ -269,13 +268,8 @@ def project_fibred_semantic_build(
         if isinstance(row, Mapping):
             boundary = _boundary(row)
             boundary_by_ref[boundary.boundary_ref] = boundary
-    materialized = streaming_build.get("materialized_reduction") or {}
-    for residual in materialized.get("residuals") or ():
-        if not isinstance(residual, Mapping):
-            continue
-        coordinate_ref = str(
-            residual.get("semantic_coordinate_ref") or ""
-        )
+    for residual in reader.iter_rows("residuals"):
+        coordinate_ref = str(residual.get("semantic_coordinate_ref") or "")
         coordinate = coordinates.get(coordinate_ref)
         if coordinate is None:
             continue
@@ -297,13 +291,9 @@ def project_fibred_semantic_build(
         boundary_by_ref[boundary.boundary_ref] = boundary
 
     ledger = SemanticFibreLedger(
-        coordinates=tuple(
-            coordinates[key] for key in sorted(coordinates)
-        ),
+        coordinates=tuple(coordinates[key] for key in sorted(coordinates)),
         elements=tuple(sorted(elements, key=lambda row: row.element_ref)),
-        transports=tuple(
-            sorted(transports, key=lambda row: row.transport_ref)
-        ),
+        transports=tuple(sorted(transports, key=lambda row: row.transport_ref)),
         derivations=tuple(
             sorted(derivations, key=lambda row: row.derivation_ref)
         ),
@@ -324,8 +314,8 @@ def project_fibred_semantic_build(
         residual_refs=tuple(
             sorted(
                 str(row.get("residual_ref") or "")
-                for row in materialized.get("residuals") or ()
-                if isinstance(row, Mapping) and row.get("residual_ref")
+                for row in reader.iter_rows("residuals")
+                if row.get("residual_ref")
             )
         ),
         external_proposal_refs=tuple(
@@ -344,12 +334,11 @@ def project_fibred_semantic_build(
         "semantic_transports": [row.to_dict() for row in ledger.transports],
         "fibre_derivations": [row.to_dict() for row in ledger.derivations],
         "ontology_axes": [row.to_dict() for row in ledger.ontology_axes],
-        "axis_obligations": [
-            row.to_dict() for row in ledger.axis_obligations
-        ],
+        "axis_obligations": [row.to_dict() for row in ledger.axis_obligations],
         "fibre_boundary_obligations": [
             row.to_dict() for row in ledger.boundary_obligations
         ],
+        "source_reference_backed": bool(streaming_build.get("reference_backed")),
         "one_proposal_contract": True,
         "one_reduction_authority": True,
         "identity_promoted": False,

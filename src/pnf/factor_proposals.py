@@ -9,6 +9,7 @@ unrelated fibres never enter the comparison loop.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
+from functools import cached_property
 from math import comb
 from typing import Any, Iterable, Mapping, Sequence
 
@@ -276,7 +277,7 @@ class ProposalReduction:
     deduplicated_count: int
     metrics: Mapping[str, Any] = field(default_factory=dict)
 
-    @property
+    @cached_property
     def graph_ref(self) -> str:
         return "pnf-document-graph:" + canonical_sha256(
             {
@@ -373,15 +374,6 @@ def _signature_key(proposal: FactorProposal) -> tuple[str, str, str, str]:
     )
 
 
-def _compatible(left: FactorProposal, right: FactorProposal) -> bool:
-    if _signature_key(left) != _signature_key(right):
-        return False
-    return all(
-        left.role_bindings[role] == right.role_bindings[role]
-        for role in set(left.role_bindings) & set(right.role_bindings)
-    )
-
-
 def reduce_factor_proposals(
     *,
     document_ref: str,
@@ -394,10 +386,20 @@ def reduce_factor_proposals(
     ordered = sorted(proposals, key=lambda row: row.proposal_ref)
     for proposal in ordered:
         if proposal.document_ref != document_ref:
-            raise ValueError("cross-document proposal supplied to document-local reducer")
+            raise ValueError(
+                "cross-document proposal supplied to document-local reducer"
+            )
 
-    observation_refs = set(known_observation_refs)
-    dependency_refs = set(known_dependency_refs)
+    observation_refs = (
+        known_observation_refs
+        if isinstance(known_observation_refs, (set, frozenset))
+        else set(known_observation_refs)
+    )
+    dependency_refs = (
+        known_dependency_refs
+        if isinstance(known_dependency_refs, (set, frozenset))
+        else set(known_dependency_refs)
+    )
     validation_residuals: list[ReductionResidual] = []
     valid: list[FactorProposal] = []
     for proposal in ordered:
@@ -449,17 +451,27 @@ def reduce_factor_proposals(
     ] = {}
     for key, bucket in sorted(buckets.items()):
         groups: list[list[FactorProposal]] = []
+        group_roles: list[dict[str, str]] = []
         for proposal in bucket:
             matched: list[FactorProposal] | None = None
-            for group in groups:
+            matched_index: int | None = None
+            for index, group in enumerate(groups):
                 candidate_comparisons += 1
-                if all(_compatible(proposal, item) for item in group):
+                occupied_roles = group_roles[index]
+                if all(
+                    occupied_roles.get(role, value) == value
+                    for role, value in proposal.role_bindings.items()
+                ):
                     matched = group
+                    matched_index = index
                     break
             if matched is None:
                 groups.append([proposal])
+                group_roles.append(dict(proposal.role_bindings))
             else:
                 matched.append(proposal)
+                assert matched_index is not None
+                group_roles[matched_index].update(proposal.role_bindings)
         grouped_by_signature[key] = groups
 
     factors: list[ReducedFactor] = []
@@ -467,11 +479,7 @@ def reduce_factor_proposals(
     for key, compatible_groups in sorted(grouped_by_signature.items()):
         if len(compatible_groups) > 1:
             refs = tuple(
-                sorted(
-                    row.proposal_ref
-                    for group in compatible_groups
-                    for row in group
-                )
+                sorted(row.proposal_ref for group in compatible_groups for row in group)
             )
             incompatibility_residuals.append(
                 ReductionResidual(
@@ -567,9 +575,7 @@ def reduce_factor_proposals(
             len(group) for groups in grouped_by_signature.values() for group in groups
         ),
         "factor_count": len(factors),
-        "reduction_ratio": (
-            len(factors) / len(deduplicated) if deduplicated else 0.0
-        ),
+        "reduction_ratio": (len(factors) / len(deduplicated) if deduplicated else 0.0),
     }
     return ProposalReduction(
         document_ref=document_ref,

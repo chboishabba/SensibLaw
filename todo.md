@@ -1,5 +1,38 @@
 # SensibLaw TODO
 
+- [IN ACCEPTANCE 2026-08-02] Finish streamed activation acceptance with the
+  v2 durable closure-owner replay contract. Focused parity, forced-stop,
+  incompatible-checkpoint, four-process bounded-frontier, telemetry and lint
+  gates pass. Replay-artifact identity now includes the replay contract/schema,
+  and strict acceptance preserves a terminal receipt on an RSS breach. Run a
+  fresh exact-0008 reference, then an injected-stop/resume rollback run, as the
+  remaining promotion gates.
+
+- [DONE 2026-07-29] Replace parser-receipt aggregation over all checkpoint
+  payloads with atomic compact per-fibre summaries. Worker loss is now
+  parent-visible and fail-closed with a `parser_fibre_execution` resource
+  receipt; no automatic fibre-size retry is permitted. The next acceptance
+  gate is the full document-0008 subprocess under 512/576 MiB, including its
+  receipt and RSS plateau capture.
+
+- [DONE 2026-07-29] Bound operational streaming-closure frontier admission:
+  batch sentence deltas, index coverage completion, avoid completed-job
+  payload duplication, and expose admission/lease progress before restarting
+  document 0008. Focused parity and a 12,000-character document-0008 smoke
+  run leased and completed closure work. Hierarchical graph execution remains
+  deferred until a full canonical run proves bounded behavior.
+
+- [P0 2026-07-29] Bound and instrument the post-projection allocation path.
+  The full document-0008 trial reached 7.5 GiB RSS before `streaming_closure`
+  began, so its closure memory controller could not apply backpressure or
+  write a resource checkpoint. Name and batch graph/semantic-output
+  materialisation before another full run.
+
+- [DONE 2026-07-28] Document the local PostgreSQL authority and endpoint
+  matrix, including the distinction between the previous disposable 5433
+  tranche cluster, the persistent 55432 legacy surface, and temporary debug
+  clusters. See `docs/postgres_runtime.md`.
+
 - [P0] Validate the merged set-valued PNF binding tranche against the focused
   compiler suite, migration application, GWB proper, and AU proof corpus.
   Candidate sets must remain candidate-only; no antecedent, identity, truth,
@@ -2458,3 +2491,28 @@ Acceptance for P0a-P0d:
 - [x] Add focused policy/CLI tests and run the pinned 232/3,562 derivation.
 - [x] Reconcile legacy A4/A5/H4 acceptance values and record the completed
   behavior in the changelog.
+- [x] Instrument every CPU-heavy post-parser document-compiler region before
+  restarting the tranche: local typing/diagnostics, base proposals, streaming
+  closure, PNF construction, constraint assessment/refinement, and demand
+  derivation now have named progress stages and closure-loop cumulative
+  counters. Plotting should use only rates with at least two changing samples;
+  final totals remain separate.
+# Manifest-backed document publication
+
+- [ ] Replace the merged fibred parser dictionary with a replayable,
+  checkpoint-backed owned-sentence carrier; prove repeated iteration preserves
+  sentence/token/dependency coordinates without retaining all physical parses.
+- [ ] Keep production artifact keys stable while returning versioned manifest
+  descriptors; materialised artifacts require an explicit injected
+  compatibility policy.
+- [ ] Stream annotation, relation, factor, constraint, assessment, refinement,
+  and demand families into their existing generic PostgreSQL schemas in
+  bounded batches with deterministic ordered digests.
+- [ ] Correct migration 025 so immutable partition/build metadata lives under
+  `execution` and no authoritative `public.compiler_*` tables are introduced.
+- [ ] Publish completed build/manifest and compiled occurrence atomically after
+  coverage, demand, join, fixed-point, persistence, and digest validation.
+- [ ] Reject every unexplained overlap; require exact owned deduplication or an
+  explicit boundary demand.
+- [ ] Pass strict 12k and full document 0008 under 512 MiB soft / 576 MiB hard
+  limits with named kernel resource receipts.

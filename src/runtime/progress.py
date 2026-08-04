@@ -318,11 +318,9 @@ class PhaseHandle:
 
         with self._state_lock:
             if self.active_stage is None:
-                # Late worker callbacks are diagnostic-only and may arrive just
-                # after a stage closes.  Never turn that race into a semantic
-                # compilation failure; the closed stage receipt remains the
-                # authoritative record.
-                return
+                raise RuntimeError(
+                    "cannot observe inner work without an active stage"
+                )
             for name, value in (measures or {}).items():
                 if isinstance(value, Mapping):
                     self.measures[name] = {**self.measures.get(name, {}), **dict(value)}
@@ -377,13 +375,39 @@ class PhaseHandle:
             )
         )
 
-    def heartbeat(self) -> None:
+    def heartbeat(
+        self,
+        *,
+        subject_ref: str | None = None,
+        message: str | None = None,
+        details: Mapping[str, Any] | None = None,
+        worker: str | None = None,
+    ) -> None:
+        """Report current outer-phase context without advancing a counter.
+
+        This is intentionally separate from :meth:`observe`: an outer phase
+        may identify the active document or worker even when no inner stage is
+        open.  Stage identity and named measures are never invented by this
+        API.
+        """
+
         if self._finished:
             return
         with self._state_lock:
-            details = {**self.details, "heartbeat": True}
+            if subject_ref is not None:
+                self.subject_ref = subject_ref
+            if worker is not None:
+                self.worker = worker
+            if details is not None:
+                self.details = {**self.details, **dict(details)}
+            event_details = {**self.details, "heartbeat": True}
         self.recorder.emit(
-            self._event(state="heartbeat", elapsed_ms=self.elapsed_ms, details=details)
+            self._event(
+                state="heartbeat",
+                elapsed_ms=self.elapsed_ms,
+                details=event_details,
+                message=message,
+            )
         )
 
     def advance(

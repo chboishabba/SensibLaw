@@ -1,3 +1,62 @@
+# 2026-07-29
+
+- Complete the parser-carrier receipt seam: every fibre now atomically writes a
+  compact summary next to its checkpoint, and the document receipt is built
+  from those summaries without reopening all parser payloads. The parent
+  samples process-tree RSS at fibre completion and turns a lost parser process
+  into an atomic, fail-closed `DocumentResourceLimitError` receipt naming the
+  active fibre and reusable checkpoints. Manifest records now carry ordered
+  family/reconstruction metadata; PostgreSQL's remaining legacy consumers use
+  the verified internal reconstruction bridge rather than the public
+  `materialise_artifact` compatibility function.
+
+- Replace the partitioned parser's merged in-memory sentence dictionary with a
+  checkpoint-backed owned-sentence carrier. It preserves the historical parser
+  mapping and global coordinates while replaying one physical fibre at a time;
+  focused parity tests pass. Full document-0008 resource acceptance remains
+  open because the direct full-input harness terminates after this phase without
+  a resource receipt.
+
+- Add the first manifest-backed publication contract to the canonical
+  operational compiler. Production artifacts now expose versioned descriptors
+  with ordered digests, counts, root refs, and a bounded reader; legacy
+  materialisation requires an explicit compatibility policy. Correct
+  PostgreSQL migration 025 to keep projection/build metadata under
+  `execution`, reject stale partition reuse and unexplained overlap, and move
+  compiled-occurrence visibility to the final publication transaction.
+  Resource receipts now name artifact projection, persistence, and publication
+  kernels and retain reusable partition refs.
+
+- Validate the strict 12k document-0008 slice at 267 MiB RSS under the
+  512/576 MiB limits. The full 1.4 MiB input remains fail-closed at the
+  parser-annotation boundary: releasing physical fibre parses reduced the peak
+  from 724 MiB to 669 MiB, but the merged parser dictionary is still a
+  whole-document carrier. Full acceptance and tranche restart remain blocked
+  pending a streamed parser-to-projection carrier.
+
+- Bound streaming-closure frontier construction in the canonical operational
+  compiler. Sentence-local observation deltas now admit in configurable
+  batches and drain through the existing scheduler before the next batch,
+  rather than materialising one complete document job frontier. Coverage
+  completion is indexed by scope and barrier, and closure progress now exposes
+  admission, ready, lease, retention, RSS, and current-kernel context through
+  the existing lifecycle ledger. Serial execution remains available for parity
+  diagnosis; persistent hierarchy integration remains deferred.
+
+# 2026-07-28
+
+- Enclose post-parser operational document compilation in named progress
+  stages for local typing/diagnostics, streaming closure, PNF construction,
+  constraint assessment/refinement, and demand derivation. Streaming closure
+  now emits cumulative job, input-reference, and proposal counters as jobs
+  complete, making CPU-bound gaps visible during long runs.
+
+- Document the local PostgreSQL authority and cluster map. The previous full
+  tranche target is explicitly recorded as the disposable 5433
+  `sensiblaw_tranche` database; persistent and debug clusters are identified
+  separately so operators do not mistake a running PostgreSQL process for the
+  active compiler authority.
+
 # 2026-07-19
 
 - Add the first operational external PNF enrichment phase. Local compilation

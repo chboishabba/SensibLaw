@@ -1,6 +1,6 @@
 """Named throughput measures for document compilation stages.
 
-The registry is descriptive only.  Compiler loops remain authoritative for the
+The registry is descriptive only. Compiler loops remain authoritative for the
 observed counters and must update them while work is in progress.
 """
 
@@ -44,10 +44,22 @@ DOCUMENT_STAGE_MEASURES: dict[str, tuple[tuple[str, str], ...]] = {
         ("semantic_atoms_projected", "atoms"),
         ("semantic_relations_projected", "relations"),
         ("token_coverage_lookups", "lookups"),
+        ("lookup_operations", "lookups"),
         ("bundle_batches_completed", "batches"),
         ("bundle_sentences_scanned", "sentences"),
         ("bundle_words_scanned", "words"),
         ("bundle_tokens_scanned", "tokens"),
+        ("batch_elapsed_ms", "milliseconds"),
+        ("last_batch_size", "atoms"),
+        ("rss_bytes", "bytes"),
+        ("process_tree_rss_bytes", "bytes"),
+        ("gc_collection_counts", "collections"),
+        ("retained_object_counts", "objects"),
+    ),
+    "local_typing_diagnostics": (
+        ("mentions_considered", "mentions"),
+        ("typing_hypotheses_derived", "hypotheses"),
+        ("diagnostics_evaluated", "diagnostics"),
     ),
     "base_proposal_generation": (
         ("atoms_scanned", "atoms"),
@@ -57,12 +69,25 @@ DOCUMENT_STAGE_MEASURES: dict[str, tuple[tuple[str, str], ...]] = {
         ("constraints_emitted", "constraints"),
     ),
     "streaming_closure": (
+        ("deltas_admitted", "deltas"),
+        ("closure_jobs_ready", "jobs"),
+        ("closure_jobs_leased", "jobs"),
         ("jobs_completed", "jobs"),
         ("input_refs_processed", "input_refs"),
         ("proposals_emitted", "proposals"),
         ("dirty_groups_reduced", "groups"),
         ("duplicates_collapsed", "proposals"),
         ("residuals_emitted", "residuals"),
+        ("pending_jobs", "jobs"),
+        ("in_flight_jobs", "jobs"),
+        ("dirty_groups", "groups"),
+        ("rss_bytes", "bytes"),
+        ("process_tree_rss_bytes", "bytes"),
+        ("retained_jobs", "jobs"),
+        ("retained_receipts", "receipts"),
+        ("retained_observation_deltas", "deltas"),
+        ("deferred_jobs", "jobs"),
+        ("pressure_events", "events"),
     ),
     "pnf_graph_construction": (
         ("factors_materialized", "factors"),

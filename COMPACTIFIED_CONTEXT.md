@@ -1,5 +1,47 @@
 # COMPACTIFIED_CONTEXT
 
+## 2026-08-02 — streamed activation replay acceptance
+
+- Closure handoff state is now a self-verifying v2 replay contract over
+  immutable delta batches, proposal batches, solver receipts, reduction keys,
+  revisions and the unresolved owner frontier. Resume reconstructs a fresh
+  owner canonically and distinguishes reconstruction from new admission.
+- Failure injection covers activation completion, owner-batch admission,
+  solver-receipt durability and dirty-key reduction. Completed activation
+  leaves and process-worker receipts are reused; incompatible, corrupt and
+  incomplete checkpoints fail closed.
+- Kernel telemetry now covers activation verification, proposal and job
+  construction, digest/sort/dedup work, owner admission/reduction, overlap,
+  first-leaf latency, head-of-line wait, bounded buffers and resource/byte
+  maxima. Focused serial/materialized/streamed and multi-process tests pass.
+- Promotion remains gated on two exact-0008 rollback runs against the disposable
+  5433 database: one successful semantic reference and one injected-stop/resume
+  run equal to it. A stale replay-artifact collision was isolated to a missing
+  replay-contract/schema component in the artifact identity. The v2 identity
+  now namespaces those immutable artifacts; incompatible checkpoints fail
+  closed and are never rewritten.
+- The first reference continuation exposed a post-closure memory peak caused by
+  retaining compiler-native graphs while reference binding copied two complete
+  serialized graph families. Production handoff now consumes its owned carrier,
+  reuses unchanged factors, hashes large identities incrementally, and resets
+  each strict run's RSS trace. Exact reference acceptance must next use a fresh
+  replay checkpoint root under the unchanged 6/8 GiB safety envelope. The
+  strict wrapper now records compiler-stage resource peaks and terminates its
+  isolated process group on a hard RSS breach, preserving a terminal receipt.
+
+## 2026-07-29 — replayable fibred parser carrier
+
+- The adaptive document parser now returns a checkpoint-backed,
+  re-iterable owned-sentence mapping for partitioned documents. Physical parse
+  results are persisted then released; each consumer iteration reloads one
+  owned fibre and reconstructs the stable global token/dependency coordinates.
+  This is an execution-only carrier under the existing one-document parser
+  authority.
+- Focused carrier and compiler tests pass. The resource-gated full 0008 run is
+  still not accepted: direct full-input harnesses terminate after the carrier
+  phase without a guard receipt, so the downstream resource path and harness
+  must be instrumented before this result can be promoted.
+
 ## 2026-07-15 — WD bridge architecture context refresh
 
 - Resolved archived thread:
@@ -354,6 +396,21 @@ Compact snapshot of the current architecture and next seam.
   proof fixtures rather than semantic profiles. The workspace previously had
   only the older legal PostgreSQL migrations, so the compiler substrate starts
   as an additive generic schema rather than claiming runtime parity.
+- 2026-07-28 PostgreSQL endpoint clarification: the previous full tranche run
+  used the disposable `/tmp/sensiblaw-pgdata` cluster on port `5433`, database
+  `sensiblaw_tranche`, with output under `/tmp/sensiblaw-tranche-out`. The
+  persistent `/home/c/.local/share/sensiblaw/postgres-18` cluster on `55432`
+  is a separate legacy public-table surface, and `55434` is a debug cluster.
+  See `docs/postgres_runtime.md`; never select a target from port/process
+  presence alone.
+- 2026-07-28 compiler observability decision: the ALL run on document 0007
+  remained CPU-bound for more than 40 minutes after
+  `parser_observation_projection` completed, with no active document stage.
+  The next implementation slice must enclose local typing/diagnostics,
+  streaming closure, PNF construction, constraint work, and demand derivation
+  in named progress stages and publish current-kernel cumulative counters.
+  Final-only counters must not be presented as throughput. The stalled run was
+  stopped before instrumentation changes.
 - 2026-07-18 PostgreSQL runtime checkpoint: migration `007` is applied to the
   persistent user-owned PostgreSQL 18 development cluster. A `gwb-mini` proof
   persisted 3 documents, 40 PNF factors, and 29 unresolved demands; an
@@ -421,3 +478,15 @@ Compact snapshot of the current architecture and next seam.
   invented antecedent.  The shared local-type carrier now includes propositions
   so composition observations compile generically.  GWB proper and AU-mini
   local proofs completed without network or readiness.
+# 2026-07-29 manifest-backed publication decision
+
+Production document compilation preserves existing artifact keys but publishes
+versioned manifest descriptors, not whole-document dictionaries.  Explicit
+materialisation is compatibility/debug policy only.  Projection partitions are
+reusable execution evidence under exact source/carrier/interval/parser/reducer/
+build identity; the document join remains the sole semantic authority.
+PostgreSQL migration 025 must use existing generic language/algebra/pnf/
+resolution authorities and keep only partition/build metadata in `execution`.
+Completed build visibility and occurrence compilation are one final
+transaction after digest verification.  Acceptance requires strict 12k and
+full document 0008 below 512 MiB soft / 576 MiB hard limits.

@@ -13,6 +13,11 @@ The repository is under a documentation freeze while overlapping runtime
 surfaces are consolidated. The normative authority map is
 [`docs/authority_surfaces.md`](docs/authority_surfaces.md).
 
+Local PostgreSQL endpoint and cluster selection are documented in
+[`docs/postgres_runtime.md`](docs/postgres_runtime.md). Do not assume that a
+running local PostgreSQL process or default port is the current semantic
+compiler target.
+
 The single source-tree CLI gateway is:
 
 ```bash
@@ -29,6 +34,12 @@ New runtime work must extend one semantic authority. Executor, persistence,
 admission, retry, progress, and lane/profile differences belong in strategies
 or configuration rather than new compiler, parser, router, graph, linkage, or
 world-model implementations.
+
+The active large-document closure strategy admits sentence-local work through
+a bounded frontier. It reports admission, activation, queueing, and execution
+through the existing document progress ledger, while the canonical operational
+compiler remains the semantic authority. Persistent hierarchy reductions remain
+an execution follow-up rather than a second compiler path.
 
 ## Public Interface Boundary
 

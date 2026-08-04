@@ -89,14 +89,16 @@ class StageTiming:
             "alternatives_retained": self.alternatives_retained,
             "residuals_emitted": self.residuals_emitted,
             "tokens_processed": self.tokens_processed,
-            "tokens_per_second": self.tokens_per_second,
             "reduction_ratio": self.reduction_ratio,
-            "reduction_efficiency_edges_per_second": (
-                self.reduction_efficiency_edges_per_second
-            ),
         }
         payload.update(
             {key: value for key, value in optional.items() if value is not None}
+        )
+        # Derived telemetry fields are schema-stable even for sub-millisecond
+        # kernels, where a meaningful rate cannot be calculated yet.
+        payload["tokens_per_second"] = self.tokens_per_second
+        payload["reduction_efficiency_edges_per_second"] = (
+            self.reduction_efficiency_edges_per_second
         )
         if include_ref:
             payload["timing_ref"] = self.timing_ref
@@ -225,9 +227,7 @@ class StageTimingLedger:
         payload: dict[str, Any] = {
             "schema_version": STAGE_TIMING_LEDGER_SCHEMA_VERSION,
             "document_ref": self.document_ref,
-            "stage_totals_ms": {
-                key: stage_totals[key] for key in sorted(stage_totals)
-            },
+            "stage_totals_ms": {key: stage_totals[key] for key in sorted(stage_totals)},
             "timings": [row.to_dict() for row in self.timings],
         }
         if include_ref:

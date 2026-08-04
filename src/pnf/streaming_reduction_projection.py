@@ -3,27 +3,27 @@
 The projection consumes the converged proposal ledger and reduced fibre
 summaries, preserves every proposal alternative and residual, and never re-runs
 parser or operator composition. It is a materialised view, not a second
-semantic authority. Reduced fibre-summary identity remains explicit while a
-source compatibility factor reference is retained when one exists. A genuinely
-new composed coordinate is added deterministically rather than forced through a
-replacement-only API.
+semantic authority. Large exact-document families are consumed through the
+shared bounded reader rather than reconstructed as one streaming-build object.
 """
 
 from __future__ import annotations
 
 from dataclasses import replace
+from pathlib import Path
 from typing import Any, Mapping
 
 from src.language.operator_composition import OPERATOR_COMPOSITION_CONTRACT
 from src.pnf.factor_proposals import INTEGRATED_SEMANTIC_PRODUCER_CONTRACT
 from src.pnf.graph import PNFGraph
+from src.pnf.streaming_build_reader import RowSource, StreamingBuildReader
 from src.policy.algebra import Factor, TypedAlternative
 from src.policy.algebra.revision_identity import factor_revision_ref
 from src.policy.carriers.canonical import canonical_sha256
 
 
 STREAMING_REDUCTION_PROJECTION_CONTRACT = (
-    "streaming-reduction-pnf-projection:v0_2"
+    "streaming-reduction-pnf-projection:v0_3"
 )
 
 
@@ -135,26 +135,17 @@ def _factor_from_reduction(
             "role_bindings": role_bindings,
             "qualifier_state": qualifier_state,
             "proposal_refs": proposal_refs,
-            "derivation_roles": list(
-                reduced.get("derivation_roles") or ()
-            ),
-            "ontology_axis_refs": list(
-                reduced.get("ontology_axis_refs") or ()
-            ),
+            "derivation_roles": list(reduced.get("derivation_roles") or ()),
+            "ontology_axis_refs": list(reduced.get("ontology_axis_refs") or ()),
             "transport_refs": list(reduced.get("transport_refs") or ()),
             "support_states": list(reduced.get("support_states") or ()),
             "provenance_refs": provenance_refs,
             "streaming_reduction_ref": reduction_ref,
             "projection_contract_ref": STREAMING_REDUCTION_PROJECTION_CONTRACT,
-            "integrated_producer_contract": (
-                INTEGRATED_SEMANTIC_PRODUCER_CONTRACT
-            ),
+            "integrated_producer_contract": INTEGRATED_SEMANTIC_PRODUCER_CONTRACT,
             "authority": "candidate_pnf_only",
         },
     )
-    # A fibre summary is evidence for the projected factor, not its revision
-    # identity.  The latter is defined by the complete materialised factor
-    # payload so that persistence can verify it without a special case.
     return replace(
         projected,
         metadata={
@@ -196,24 +187,30 @@ def project_streaming_reduction(
     *,
     graph: PNFGraph,
     streaming_build: Mapping[str, Any],
+    base_path: str | Path | None = None,
+    row_source: RowSource | None = None,
 ) -> tuple[PNFGraph, dict[str, Any]]:
     """Return the PNF graph materialised from streamed composition fibres."""
 
+    reader = StreamingBuildReader(
+        streaming_build,
+        base_path=base_path,
+        row_source=row_source,
+    )
     materialized = streaming_build.get("materialized_reduction") or {}
-    reduction_ref = str(materialized.get("graph_ref") or "")
+    reduction_ref = str(
+        materialized.get("graph_ref") if isinstance(materialized, Mapping) else ""
+    )
     proposals = {
         str(row.get("proposal_ref") or ""): row
-        for row in streaming_build.get("proposals") or ()
-        if isinstance(row, Mapping) and row.get("proposal_ref")
+        for row in reader.iter_rows("proposals")
+        if row.get("proposal_ref") and _is_operator_proposal(row)
     }
-    operator_proposal_refs = {
-        ref for ref, row in proposals.items() if _is_operator_proposal(row)
-    }
+    operator_proposal_refs = set(proposals)
     selected = [
         row
-        for row in materialized.get("factors") or ()
-        if isinstance(row, Mapping)
-        and operator_proposal_refs.intersection(
+        for row in reader.iter_rows("factors")
+        if operator_proposal_refs.intersection(
             str(ref) for ref in row.get("proposal_refs") or ()
         )
     ]
@@ -258,6 +255,8 @@ def project_streaming_reduction(
         + canonical_sha256(receipt_identity),
         "output_graph_ref": result.graph_ref,
         "factor_count": len(factors),
+        "source_factor_count": reader.family_count("factors"),
+        "source_proposal_count": reader.family_count("proposals"),
         "added_factor_count": sum(
             row["admission"] == "added" for row in admissions
         ),
@@ -267,6 +266,7 @@ def project_streaming_reduction(
         "parser_observation_source": "streaming_observation_ledger",
         "reparsed": False,
         "fibrewise_materialisation": True,
+        "reference_backed_input": bool(streaming_build.get("reference_backed")),
         "compatibility_factor_refs_preserved": True,
         "shared_graph_mutation": False,
         "identity_promoted": False,

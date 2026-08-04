@@ -77,6 +77,42 @@ def test_phase_heartbeat_reports_estimate_while_no_units_finish() -> None:
     assert "active_stage" not in heartbeat
 
 
+def test_outer_heartbeat_reports_active_context_without_inner_stage() -> None:
+    recorder = PhaseRecorder(stream=StringIO(), json_lines=True)
+    with recorder.phase(
+        "postgres_local_compile",
+        total=2,
+        phase_unit="documents",
+        heartbeat_seconds=None,
+    ) as phase:
+        phase.heartbeat(
+            subject_ref="document:active",
+            message="active document",
+            worker="worker:1",
+            details={"relative_path": "active.txt"},
+        )
+
+    heartbeat = next(
+        event for event in recorder.events if event["state"] == "heartbeat"
+    )
+    assert heartbeat["completed"] == 0
+    assert heartbeat["subject_ref"] == "document:active"
+    assert heartbeat["message"] == "active document"
+    assert heartbeat["worker"] == "worker:1"
+    assert heartbeat["details"]["relative_path"] == "active.txt"
+    assert "active_stage" not in heartbeat
+    assert "measures" not in heartbeat
+
+
+def test_direct_inner_observation_without_stage_is_rejected() -> None:
+    recorder = PhaseRecorder(stream=StringIO(), json_lines=True)
+    with recorder.phase("document_compile", heartbeat_seconds=None) as phase:
+        with pytest.raises(
+            RuntimeError, match="cannot observe inner work without an active stage"
+        ):
+            phase.observe(measures={"tokens": 1})
+
+
 def test_last_completion_label_never_becomes_active_stage() -> None:
     recorder = PhaseRecorder(stream=StringIO(), json_lines=True)
     with recorder.phase("document_compile", total=8, heartbeat_seconds=None) as phase:
