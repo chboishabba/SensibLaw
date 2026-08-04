@@ -15,7 +15,8 @@ def install_stage_budget_execution() -> bool:
 
     Semantic samples are required to resolve to an explicit stage family. A new
     kernel label therefore cannot silently degrade to ``unbudgeted`` telemetry
-    during an exact-document run.
+    during an exact-document run.  Executable kernel contracts are installed
+    immediately afterwards so they consume this authoritative budget receipt.
     """
 
     from src.policy import parallel_semantic_execution as semantic
@@ -66,6 +67,12 @@ def install_stage_budget_execution() -> bool:
     semantic.SemanticExecutionContext.sample = sample_wrapper
     semantic._unbudgeted_semantic_sample = original
     setattr(semantic, _INSTALL_MARKER, True)
+
+    from src.policy.execution_kernel_contracts_execution import (
+        install_execution_kernel_contracts,
+    )
+
+    install_execution_kernel_contracts()
     return True
 
 
