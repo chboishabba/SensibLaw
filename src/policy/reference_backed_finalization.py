@@ -1,8 +1,8 @@
 """Reference-backed, release-before-serialize closure finalisation.
 
 Large semantic families are sealed as immutable streams before the owner drops
-its document-sized Python state.  A fresh interpreter then serializes only the
-compact manifest receipt.  JSONL is a transitional local transport; each family
+its document-sized Python state. A fresh interpreter then serializes only the
+compact manifest receipt. JSONL is a transitional local transport; each family
 is content-addressed so PostgreSQL/object segments can replace it without
 changing the outward semantic identity.
 """
@@ -103,7 +103,8 @@ class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
             return dict(self._retention_snapshot)
         return super().retention_counts()
 
-    def _rows(self, values: Iterable[Any]) -> Iterable[Mapping[str, Any]]:
+    @staticmethod
+    def _rows(values: Iterable[Any]) -> Iterable[Mapping[str, Any]]:
         for value in values:
             if isinstance(value, Mapping):
                 yield dict(value)
@@ -151,35 +152,45 @@ class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
                 "full_proposal_rereduction_count": 0,
                 "additional_row_dictionary_list_count": 0,
                 "elapsed_ns": monotonic_ns() - started,
-                "resumability_boundary": "settled_owner_index_plus_canonical_reduction",
+                "resumability_boundary": (
+                    "settled_owner_index_plus_canonical_reduction"
+                ),
             },
         )
         return reduction
 
     def _seal_families(self, root: Path) -> dict[str, dict[str, Any]]:
         materialized = self.materialized_reduction
-        factors_path = root / "materialized-factors.jsonl"
-        residuals_path = root / "materialized-residuals.jsonl"
         factors = _existing_jsonl_descriptor(
-            factors_path,
+            root / "materialized-factors.jsonl",
             family="factors",
             record_count=len(materialized.factors),
         )
         residuals = _existing_jsonl_descriptor(
-            residuals_path,
+            root / "materialized-residuals.jsonl",
             family="residuals",
             record_count=len(materialized.residuals),
         )
 
         self._build_boundary_summaries()
+        jobs = self._compact_jobs if self._compact_jobs else self._jobs
+        receipts = (
+            self._compact_receipts if self._compact_receipts else self._receipts
+        )
         specifications: tuple[tuple[str, Iterable[Any]], ...] = (
             (
                 "observation_deltas",
-                (self._observation_deltas[key] for key in sorted(self._observation_deltas)),
+                (
+                    self._observation_deltas[key]
+                    for key in sorted(self._observation_deltas)
+                ),
             ),
             (
                 "coverage_notices",
-                (self._coverage_notices[key] for key in sorted(self._coverage_notices)),
+                (
+                    self._coverage_notices[key]
+                    for key in sorted(self._coverage_notices)
+                ),
             ),
             (
                 "proposals",
@@ -187,18 +198,18 @@ class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
             ),
             (
                 "solver_jobs",
-                (self._compact_jobs[key] for key in sorted(self._compact_jobs)),
+                (jobs[key] for key in sorted(jobs)),
             ),
             (
                 "solver_receipts",
-                (
-                    self._compact_receipts[key]
-                    for key in sorted(self._compact_receipts)
-                ),
+                (receipts[key] for key in sorted(receipts)),
             ),
             (
                 "state_deltas",
-                (self._state_deltas[index] for index in range(len(self._state_deltas))),
+                (
+                    self._state_deltas[index]
+                    for index in range(len(self._state_deltas))
+                ),
             ),
             (
                 "region_boundary_summaries",
@@ -221,8 +232,10 @@ class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
         return manifests
 
     def _release_heavy_owner_state(self) -> dict[str, Any]:
+        # Releasing the still-heavy owner belongs to the finalisation budget.
+        # The stricter serialization budget starts only after release completes.
         before = self._stage_budget.checkpoint(
-            "serialization",
+            "finalization",
             phase="release_owner_state_started",
         )
         self._begin_phase(FinalizationPhase.RELEASE_OWNER_STATE, total=1)
@@ -261,7 +274,7 @@ class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
         trimmed = _malloc_trim()
         self._emit_progress(processed=1, total=1, completed=True)
         after = self._stage_budget.checkpoint(
-            "serialization",
+            "finalization",
             phase="release_owner_state_completed",
         )
         return {
@@ -348,7 +361,7 @@ class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
             "durable_authority_target": "postgresql_execution_schema",
         }
         spec_path = root / "closure-reference-receipt.spec.json"
-        output_path = root / "closure-reference-receipt.json"
+        output_path = root / "closure-receipt.json"
         report_path = root / "closure-reference-serializer-report.json"
         atomic_stream_json(spec_path, payload)
         release_receipt = self._release_heavy_owner_state()
