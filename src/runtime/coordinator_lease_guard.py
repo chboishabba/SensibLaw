@@ -137,9 +137,7 @@ class CoordinatorLeaseGuard:
 
     def assert_current(self) -> None:
         if self._lost.is_set() or self.lease is None:
-            raise CoordinatorLeaseLost(
-                f"coordinator lease lost for {self.run_ref}"
-            )
+            raise CoordinatorLeaseLost(f"coordinator lease lost for {self.run_ref}")
 
     def release(self) -> None:
         lease = self.lease

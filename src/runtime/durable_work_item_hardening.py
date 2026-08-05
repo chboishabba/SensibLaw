@@ -259,9 +259,7 @@ def complete_leased_work(
                     ),
                 )
                 if cursor.rowcount != 1:
-                    raise RuntimeError(
-                        "durable work fence changed during completion"
-                    )
+                    raise RuntimeError("durable work fence changed during completion")
                 cursor.execute(
                     """
                     UPDATE execution.semantic_work_attempt_v2

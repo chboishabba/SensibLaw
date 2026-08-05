@@ -120,7 +120,9 @@ class PostgresExecutionContext:
             "lifecycle_events",
             "revision_history",
         )
-        counts = dict(zip(names, (int(value or 0) for value in counts_row), strict=True))
+        counts = dict(
+            zip(names, (int(value or 0) for value in counts_row), strict=True)
+        )
         cursor.execute(
             """
             SELECT count(*)
@@ -161,7 +163,10 @@ def assert_strict_context(context: PostgresExecutionContext) -> None:
             "postgresql_authority_missing",
             kernel_key="strict.execution_context",
         )
-    if context.row_counts["immutable_deltas"] != context.row_counts["fenced_admissions"]:
+    if (
+        context.row_counts["immutable_deltas"]
+        != context.row_counts["fenced_admissions"]
+    ):
         raise StrictExecutionError(
             "strict_revision_admission_invalid",
             kernel_key="strict.admission",
@@ -450,9 +455,9 @@ class PostgresLeasedExecution:
                             manifest["input_revision"] = current_revision
                             payload["input_revision"] = current_revision
                             manifest["input_payload"] = payload
-                            manifest["input_sha256"] = _execution_module()._digest(
-                                payload
-                            ).hex()
+                            manifest["input_sha256"] = (
+                                _execution_module()._digest(payload).hex()
+                            )
                             cursor.execute(
                                 """
                                 UPDATE execution.semantic_closure_job

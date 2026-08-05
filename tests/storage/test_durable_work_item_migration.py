@@ -2,10 +2,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 MIGRATION = (
-    ROOT
-    / "database"
-    / "postgres_migrations"
-    / "030_durable_work_item_resume.sql"
+    ROOT / "database" / "postgres_migrations" / "030_durable_work_item_resume.sql"
 )
 OUTBOX = (
     ROOT

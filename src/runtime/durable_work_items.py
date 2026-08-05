@@ -69,7 +69,9 @@ class DurableWorkSpec:
                 "document_ref": self.document_ref,
                 "stage_contract_ref": self.stage_contract_ref,
                 "operation_ref": self.operation_ref,
-                "input_identity": dict(self.input_manifest).get("stage_input_identity", {}),
+                "input_identity": dict(self.input_manifest).get(
+                    "stage_input_identity", {}
+                ),
             }
         )
 
@@ -220,7 +222,9 @@ def lease_registered_work(spec: DurableWorkSpec) -> WorkLease | None:
                 )
                 row = cursor.fetchone()
                 if row is None:
-                    raise RuntimeError("durable work item was not registered before dispatch")
+                    raise RuntimeError(
+                        "durable work item was not registered before dispatch"
+                    )
                 state, prior_epoch = str(row[0]), int(row[1])
                 if state == "completed":
                     return None
@@ -290,7 +294,9 @@ def _write_artifact(spec: DurableWorkSpec, value: Any) -> tuple[Path, bytes, int
     return path, digest, len(encoded)
 
 
-def complete_leased_work(lease: WorkLease, value: Any, *, worker_pid: int) -> dict[str, Any]:
+def complete_leased_work(
+    lease: WorkLease, value: Any, *, worker_pid: int
+) -> dict[str, Any]:
     spec = lease.spec
     path, output_digest, byte_count = _write_artifact(spec, value)
     artifact_ref = "artifact-segment:" + output_digest.hex()
@@ -327,7 +333,9 @@ def complete_leased_work(lease: WorkLease, value: Any, *, worker_pid: int) -> di
                 )
                 row = cursor.fetchone()
                 if row is None:
-                    raise RuntimeError("durable work item disappeared before completion")
+                    raise RuntimeError(
+                        "durable work item disappeared before completion"
+                    )
                 state, token, epoch = str(row[0]), row[1], int(row[2])
                 if state == "completed":
                     return {**receipt_payload, "admission_state": "duplicate"}
@@ -366,7 +374,13 @@ def complete_leased_work(lease: WorkLease, value: Any, *, worker_pid: int) -> di
                     VALUES (%s, %s, %s, %s::jsonb, %s)
                     ON CONFLICT (work_ref) DO NOTHING
                     """,
-                    (receipt_ref, spec.work_ref, spec.run_ref, _json(receipt_payload), _digest(receipt_payload)),
+                    (
+                        receipt_ref,
+                        spec.work_ref,
+                        spec.run_ref,
+                        _json(receipt_payload),
+                        _digest(receipt_payload),
+                    ),
                 )
                 cursor.execute(
                     """
@@ -376,7 +390,13 @@ def complete_leased_work(lease: WorkLease, value: Any, *, worker_pid: int) -> di
                         lease_expires_at = NULL, updated_at = CURRENT_TIMESTAMP
                     WHERE work_ref = %s AND lease_token = %s AND lease_epoch = %s
                     """,
-                    (artifact_ref, output_digest, spec.work_ref, lease.lease_token, lease.lease_epoch),
+                    (
+                        artifact_ref,
+                        output_digest,
+                        spec.work_ref,
+                        lease.lease_token,
+                        lease.lease_epoch,
+                    ),
                 )
                 if cursor.rowcount != 1:
                     raise RuntimeError("durable work fence changed during completion")

@@ -141,7 +141,9 @@ def _manifest(database_url: str, run_ref: str) -> str:
                 """,
                 (run_ref,),
             )
-            rows = [[str(work_ref), str(digest)] for work_ref, digest in cursor.fetchall()]
+            rows = [
+                [str(work_ref), str(digest)] for work_ref, digest in cursor.fetchall()
+            ]
     finally:
         connection.close()
     return canonical_sha256(rows)
@@ -218,7 +220,9 @@ def main() -> int:
     committed_before_kill = 0
     committed_refs: list[str] = []
     while time.monotonic() < deadline:
-        committed_before_kill, committed_refs = _completed(args.database_url, args.run_ref)
+        committed_before_kill, committed_refs = _completed(
+            args.database_url, args.run_ref
+        )
         if committed_before_kill >= args.fast_items:
             break
         if coordinator.poll() is not None:
@@ -249,7 +253,9 @@ def main() -> int:
         mp_context=context,
         initializer=linux_parent_death_initializer,
     ) as pool:
-        futures = [pool.submit(_worker, spec.to_dict(), args.fast_delay) for spec in specs]
+        futures = [
+            pool.submit(_worker, spec.to_dict(), args.fast_delay) for spec in specs
+        ]
         for future in as_completed(futures):
             reused += int(bool(future.result()["reused"]))
 

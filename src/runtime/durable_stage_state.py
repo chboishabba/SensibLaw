@@ -59,7 +59,9 @@ def commit_stage_manifest(
                 )
                 completed = int(cursor.fetchone()[0])
                 if completed != len(ordered):
-                    raise RuntimeError("parent manifest references non-completed child work")
+                    raise RuntimeError(
+                        "parent manifest references non-completed child work"
+                    )
                 cursor.execute(
                     """
                     INSERT INTO execution.semantic_stage_manifest

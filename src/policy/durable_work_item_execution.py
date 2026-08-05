@@ -54,7 +54,9 @@ def _execute_and_commit(
     if lease is None:
         cached = load_completed_work(spec)
         if cached is None:
-            raise RuntimeError("durable work is leased elsewhere but has no committed result")
+            raise RuntimeError(
+                "durable work is leased elsewhere but has no committed result"
+            )
         return {
             "pid": os.getpid(),
             "value": cached,
@@ -67,7 +69,9 @@ def _execute_and_commit(
     if receipt["admission_state"] == "stale":
         cached = load_completed_work(spec)
         if cached is None:
-            raise RuntimeError("stale typing worker has no authoritative committed result")
+            raise RuntimeError(
+                "stale typing worker has no authoritative committed result"
+            )
         value = cached
     return {
         "pid": os.getpid(),
@@ -144,7 +148,9 @@ def _durable_pool() -> ProcessPoolExecutor | None:
             )
             tail._POOL_WORKERS = workers
         elif tail._POOL_WORKERS != workers:
-            raise ValueError("semantic process worker count changed during one document")
+            raise ValueError(
+                "semantic process worker count changed during one document"
+            )
         return tail._POOL
 
 
