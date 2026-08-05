@@ -106,10 +106,14 @@ jobs:
           from pathlib import Path
           from src.runtime.postgres_provisioning import provision_local_postgres
 
+          run_ref = "gha-durable-work-item-{}-{}".format(
+              os.environ["GITHUB_RUN_ID"],
+              os.environ["GITHUB_RUN_ATTEMPT"],
+          )
           url, name = provision_local_postgres(
               admin_url=os.environ["SENSIBLAW_LOCAL_POSTGRES_URL"],
               migration_root=Path("database/postgres_migrations"),
-              run_ref="gha-durable-work-item",
+              run_ref=run_ref,
           )
           print(url)
           print(name)
@@ -117,6 +121,8 @@ jobs:
           )"
           database_url="$(printf '%s\n' "$output" | sed -n '1p')"
           database_name="$(printf '%s\n' "$output" | sed -n '2p')"
+          test -n "$database_url"
+          test -n "$database_name"
           printf 'database_url=%s\n' "$database_url" >> "$GITHUB_OUTPUT"
           printf 'database_name=%s\n' "$database_name" >> "$GITHUB_OUTPUT"
 
@@ -154,9 +160,7 @@ jobs:
           "
 
       - name: Drop isolated database
-        if: always()
-        env:
-          PGPASSWORD: ""
+        if: always() && steps.database.outputs.database_name != ''
         run: |
           dropdb --if-exists \
             --host=127.0.0.1 \
