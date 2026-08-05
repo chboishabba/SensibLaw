@@ -1,7 +1,7 @@
 BEGIN;
 
 -- Durable nested execution authority shared by parser, typing, closure and
--- finalisation.  A worker result is not complete until its immutable artifact,
+-- finalisation. A worker result is not complete until its immutable artifact,
 -- receipt, cursor and outbox event commit in the same transaction.
 CREATE TABLE IF NOT EXISTS execution.semantic_stage_instance (
     stage_instance_ref TEXT PRIMARY KEY,
@@ -135,6 +135,47 @@ CREATE TABLE IF NOT EXISTS execution.semantic_coordinator_lease (
     backend_pid INTEGER,
     acquired_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE OR REPLACE FUNCTION execution.emit_strict_delta_admitted()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    event_ref_value text;
+    job_ref_value text;
+BEGIN
+    SELECT delta.job_ref
+      INTO job_ref_value
+      FROM execution.semantic_immutable_delta delta
+     WHERE delta.delta_ref = NEW.delta_ref;
+    event_ref_value := 'semantic-outbox:delta-admitted:' || NEW.delta_ref;
+    INSERT INTO execution.semantic_outbox
+        (event_ref, aggregate_ref, event_type_ref, payload)
+    VALUES (
+        event_ref_value,
+        NEW.owner_ref,
+        'semantic.delta.admitted.v1',
+        jsonb_build_object(
+            'delta_ref', NEW.delta_ref,
+            'run_ref', NEW.run_ref,
+            'job_ref', job_ref_value,
+            'owner_ref', NEW.owner_ref,
+            'lease_epoch', NEW.lease_epoch,
+            'prior_owner_revision', NEW.prior_revision,
+            'resulting_owner_revision', NEW.resulting_revision
+        )
+    )
+    ON CONFLICT (event_ref) DO NOTHING;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS semantic_strict_delta_admission_outbox
+ON execution.semantic_strict_delta_admission;
+CREATE TRIGGER semantic_strict_delta_admission_outbox
+AFTER INSERT ON execution.semantic_strict_delta_admission
+FOR EACH ROW
+EXECUTE FUNCTION execution.emit_strict_delta_admitted();
 
 CREATE OR REPLACE FUNCTION execution.emit_work_item_completed()
 RETURNS trigger
