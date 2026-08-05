@@ -2,7 +2,7 @@
 """Prove committed bounded work survives SIGKILL of its coordinator.
 
 The probe uses the real PostgreSQL work-item protocol and real process workers.
-It is destructive only to the supplied run_ref.  The replacement coordinator
+It is destructive only to the supplied run_ref. The replacement coordinator
 must reuse every committed unit and compute only work whose transaction never
 committed.
 """
@@ -26,13 +26,15 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.policy.carriers.canonical import canonical_sha256  # noqa: E402
-from src.runtime.durable_work_items import (  # noqa: E402
-    DurableWorkSpec,
+from src.runtime.durable_work_item_hardening import (  # noqa: E402
     complete_leased_work,
     lease_registered_work,
+    recover_expired_work,
+)
+from src.runtime.durable_work_items import (  # noqa: E402
+    DurableWorkSpec,
     linux_parent_death_initializer,
     load_completed_work,
-    recover_expired_work,
     register_work_items,
 )
 
@@ -227,10 +229,13 @@ def main() -> int:
         raise RuntimeError("workers did not commit the required pre-kill units")
 
     descendants = _worker_pids(coordinator.pid)
-    os.killpg(coordinator.pid, signal.SIGKILL)
+    os.kill(coordinator.pid, signal.SIGKILL)
     coordinator.wait(timeout=10)
-    time.sleep(1)
-    surviving = [pid for pid in descendants if Path(f"/proc/{pid}").exists()]
+    orphan_deadline = time.monotonic() + 10
+    surviving = list(descendants)
+    while surviving and time.monotonic() < orphan_deadline:
+        time.sleep(0.2)
+        surviving = [pid for pid in descendants if Path(f"/proc/{pid}").exists()]
     if surviving:
         raise RuntimeError(f"parent-death contract left orphan workers: {surviving}")
 
