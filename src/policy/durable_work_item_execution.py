@@ -1,6 +1,6 @@
 """Install PostgreSQL-authoritative durability for bounded typing leaves.
 
-Semantic functions remain unchanged.  This policy enriches physical leaf
+Semantic functions remain unchanged. This policy enriches physical leaf
 payloads with deterministic work identities and replaces only worker adapters.
 Each child leases and commits its result before reporting success to the parent.
 """
@@ -10,10 +10,12 @@ from __future__ import annotations
 from concurrent.futures import ProcessPoolExecutor
 import os
 from pathlib import Path
-from threading import Lock
 from typing import Any, Callable, Mapping, Sequence
 
-from src.policy.carriers.canonical import canonical_sha256
+from src.runtime.durable_stage_state import (
+    commit_stage_manifest,
+    record_stage_failure,
+)
 from src.runtime.durable_work_items import (
     DurableWorkSpec,
     complete_leased_work,
@@ -221,17 +223,35 @@ def install_durable_work_item_execution() -> bool:
             tail._diagnostic_worker: _diagnostic_worker,
         }
         durable_worker = worker_map.get(worker, worker)
-        output, receipt = original_execute(
-            operation=operation,
-            context=context,
-            payloads=enriched,
-            input_identities=input_identities,
-            worker=durable_worker,
-            merge=merge,
+        try:
+            output, receipt = original_execute(
+                operation=operation,
+                context=context,
+                payloads=enriched,
+                input_identities=input_identities,
+                worker=durable_worker,
+                merge=merge,
+            )
+        except Exception as error:
+            record_stage_failure(
+                specs[0].database_url,
+                stage_instance_ref=specs[0].stage_instance_ref,
+                error={"type": type(error).__name__, "message": str(error)},
+            )
+            raise
+        manifest_ref = commit_stage_manifest(
+            specs[0].database_url,
+            stage_instance_ref=specs[0].stage_instance_ref,
+            run_ref=context.run_ref,
+            document_ref=context.document_ref,
+            child_work_refs=[spec.work_ref for spec in specs],
+            logical_output_ref=str(receipt["logical_typing_ref"]),
         )
         receipt["durable_work_contract_ref"] = TYPING_STAGE_CONTRACT
         receipt["durable_work_refs"] = [spec.work_ref for spec in specs]
+        receipt["durable_stage_manifest_ref"] = manifest_ref
         receipt["durable_commit_before_parent_ack"] = True
+        receipt["descendant_payload_bytes_reconstructed"] = 0
         receipt["recomputed_committed_work"] = 0
         return output, receipt
 
