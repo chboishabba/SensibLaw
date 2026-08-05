@@ -11,12 +11,22 @@ _INSTALL_MARKER = "_stage_budget_execution_installed"
 
 
 def install_stage_budget_execution() -> bool:
-    """Turn every semantic kernel sample into a durable budget observation."""
+    """Turn every semantic kernel sample into a durable budget observation.
+
+    The durable work-item policy is installed here because this hook runs after
+    process-backed typing and parent/child progress wrappers have been installed.
+    That keeps semantic functions pure while ensuring every physical typing leaf
+    commits before its parent observes success.
+    """
 
     from src.policy import parallel_semantic_execution as semantic
+    from src.policy.durable_work_item_execution import (
+        install_durable_work_item_execution,
+    )
 
     if getattr(semantic, _INSTALL_MARKER, False):
         return False
+    install_durable_work_item_execution()
     original = semantic.SemanticExecutionContext.sample
 
     def sample_wrapper(
