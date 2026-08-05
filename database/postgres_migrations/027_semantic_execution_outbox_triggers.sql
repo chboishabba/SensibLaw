@@ -1,8 +1,8 @@
 -- Transactional outbox for distributed semantic execution.
 --
 -- Events are emitted by PostgreSQL in the same transaction as semantic
--- admission/publication.  Workers cannot accidentally acknowledge completion
--- without producing the corresponding durable event.
+-- admission/publication. Workers cannot acknowledge completion without the
+-- corresponding durable event.
 
 CREATE OR REPLACE FUNCTION execution.emit_semantic_delta_admitted()
 RETURNS trigger
@@ -50,8 +50,8 @@ AS $$
 DECLARE
     event_ref_value text;
 BEGIN
-    IF NEW.state_ref <> 'committed'
-       OR OLD.state_ref = 'committed' THEN
+    IF NEW.state <> 'committed'
+       OR OLD.state = 'committed' THEN
         RETURN NEW;
     END IF;
     event_ref_value := 'semantic-outbox:publication-committed:' || NEW.publication_ref;
@@ -64,11 +64,10 @@ BEGIN
             'semantic.publication.committed.v1',
             jsonb_build_object(
                 'publication_ref', NEW.publication_ref,
+                'run_ref', NEW.run_ref,
                 'document_ref', NEW.document_ref,
-                'graph_manifest_ref', NEW.graph_manifest_ref,
-                'certificate_ref', NEW.certificate_ref,
-                'publication_digest', encode(NEW.publication_digest, 'hex'),
-                'committed_at', NEW.committed_at
+                'manifest_sha256', encode(NEW.manifest_sha256, 'hex'),
+                'committed_at', CURRENT_TIMESTAMP
             )
         )
     ON CONFLICT (event_ref) DO NOTHING;
