@@ -235,7 +235,7 @@ def main() -> int:
             "SENSIBLAW_TYPING_WORKERS": str(args.typing_workers),
             "SENSIBLAW_TYPING_LEAF_CAPACITY": str(args.typing_leaf_capacity),
             "SENSIBLAW_TYPING_HIERARCHY_ARITY": str(args.typing_arity),
-            "SENSIBLAW_SEMANTIC_PROCESS_WORKERS": str(semantic_process_workers),
+            "SENSIBLAW_SEMANTIC_PROCESS_WORKERS": str(args.closure_workers),
             "SENSIBLAW_CLOSURE_ACTIVATION_LEAF_SIZE": str(
                 args.closure_activation_leaf_size
             ),

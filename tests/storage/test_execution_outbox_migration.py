@@ -10,6 +10,6 @@ def test_semantic_execution_outbox_is_database_enforced() -> None:
 
     assert "AFTER INSERT ON execution.semantic_delta_admission" in migration
     assert "semantic.delta.admitted.v1" in migration
-    assert "AFTER UPDATE OF state_ref ON execution.publication_build" in migration
+    assert "AFTER UPDATE OF state ON execution.semantic_publication" in migration
     assert "semantic.publication.committed.v1" in migration
     assert migration.count("ON CONFLICT (event_ref) DO NOTHING") == 2

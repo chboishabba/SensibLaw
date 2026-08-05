@@ -12,7 +12,6 @@ import json
 import multiprocessing as mp
 import os
 import pickle
-import time
 from typing import Any, Callable, Iterable, Mapping
 from uuid import uuid4
 
@@ -299,7 +298,7 @@ def semantic_delta_admission(
              prior_revision, payload, payload_sha256, job_ref, lease_epoch,
              expected_owner_revision)
         VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s, %s, %s)
-        ON CONFLICT (delta_ref) DO NOTHING
+        ON CONFLICT (run_ref, owner_ref, resulting_revision) DO NOTHING
         """,
         (
             delta_ref, lease.manifest.run_ref, lease.manifest.document_ref,
@@ -314,7 +313,7 @@ def semantic_delta_admission(
             (delta_ref, run_ref, owner_ref, resulting_revision, prior_revision,
              fence_token, lease_epoch)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (delta_ref) DO NOTHING
+        ON CONFLICT (run_ref, owner_ref, resulting_revision) DO NOTHING
         RETURNING delta_ref
         """,
         (delta_ref, lease.manifest.run_ref, lease.manifest.owner_ref, resulting_revision, prior_revision, lease.fence_token, lease.lease_epoch),
@@ -330,14 +329,21 @@ def replay_accepted_deltas(
     owner_ref: str,
     apply: Callable[[Mapping[str, Any], int], None],
     starting_revision: int = 0,
+    rehydrate: Callable[[Mapping[str, Any]], None] | None = None,
 ) -> int:
-    """Replay accepted deltas exactly once in owner-revision order."""
+    """Replay accepted deltas exactly once in owner-revision order.
+
+    ``rehydrate`` is the durable replay-admission seam.  A fresh coordinator
+    may use the manifest stored with each admitted delta to reconstruct the
+    owner-side in-flight contract before applying the receipt.
+    """
 
     cursor.execute(
         """
-        SELECT d.payload, d.resulting_revision
+        SELECT d.payload, d.resulting_revision, d.job_ref, j.input_manifest
         FROM execution.semantic_immutable_delta d
         JOIN execution.semantic_strict_delta_admission a USING (delta_ref)
+        JOIN execution.semantic_closure_job j USING (job_ref)
         WHERE d.run_ref = %s AND d.owner_ref = %s AND d.resulting_revision > %s
         ORDER BY d.resulting_revision
         """,
@@ -346,9 +352,14 @@ def replay_accepted_deltas(
     expected = starting_revision + 1
     count = 0
     rows = cursor.fetchall()
-    for payload, revision in rows:
+    for payload, revision, job_ref, input_manifest in rows:
         if int(revision) != expected:
             raise ValueError(f"non-contiguous accepted owner revision: expected {expected}, got {revision}")
+        if rehydrate is not None:
+            rehydrate({
+                "job_ref": str(job_ref),
+                "input_manifest": dict(input_manifest or {}),
+            })
         apply(payload, int(revision))
         cursor.execute(
             """
@@ -575,7 +586,9 @@ def execute_serialized_streaming_job(manifest: ImmutableJobManifest) -> Mapping[
     job = SolverJob(
         owner_key=OwnerKey(**dict(row["owner_key"])),
         declaration_ref=str(row["declaration_ref"]),
-        input_revision=int(row["input_revision"]),
+        # The durable lease manifest, not a stale serialized job payload, is
+        # authoritative for execution revision during replay.
+        input_revision=manifest.input_revision,
         input_refs=tuple(row.get("input_refs") or ()),
         input_payload=dict(row.get("input_payload") or {}),
         rule_set_revision=str(row["rule_set_revision"]),
@@ -585,8 +598,20 @@ def execute_serialized_streaming_job(manifest: ImmutableJobManifest) -> Mapping[
     )
     from src.pnf.streaming_fixed_point import PythonClosureExecutor
     receipt = PythonClosureExecutor({job.declaration_ref: solve_operator_job}).execute(job)
-    return {"delta_ref": receipt.receipt_ref, "prior_revision": manifest.input_revision,
-            "resulting_revision": manifest.input_revision + 1, "payload": receipt.to_dict()}
+    # A retry keeps the immutable leased job identity.  Only the execution
+    # revision is allowed to move with the awakened manifest.
+    from dataclasses import replace
+    receipt = replace(
+        receipt,
+        job_ref=manifest.job_ref,
+        input_revision=manifest.input_revision,
+    )
+    return {
+        "delta_ref": receipt.receipt_ref,
+        "prior_revision": manifest.input_revision,
+        "resulting_revision": manifest.input_revision + 1,
+        "payload": receipt.to_dict(),
+    }
 
 
 class DistributedFinalizationWorker:
@@ -596,26 +621,28 @@ class DistributedFinalizationWorker:
         self.connection_factory = connection_factory
         self.worker_ref = worker_ref
 
-    def checkpoint(self, cursor: Any, *, run_ref: str, owner_ref: str, cursor_revision: int, manifest: Mapping[str, Any]) -> str:
-        checkpoint_ref = f"finalization:{run_ref}:{owner_ref}:{cursor_revision}"
+    def checkpoint(self, cursor: Any, *, run_ref: str, document_ref: str, owner_ref: str, cursor_revision: int, manifest: Mapping[str, Any]) -> str:
+        cursor_ref = f"finalization:{run_ref}:{owner_ref}:{cursor_revision}"
         digest = _digest(manifest)
         supplied_digest = manifest.get("manifest_sha256")
         if supplied_digest is not None and bytes.fromhex(str(supplied_digest)) != digest:
             raise ValueError("finalization manifest digest mismatch")
-        cursor.execute("SELECT encode(manifest_sha256, 'hex') FROM execution.semantic_finalization_checkpoint WHERE checkpoint_ref = %s", (checkpoint_ref,))
+        cursor.execute("SELECT encode(manifest_sha256, 'hex') FROM execution.semantic_finalization_cursor WHERE cursor_ref = %s", (cursor_ref,))
         existing = cursor.fetchone()
         if existing is not None and str(existing[0]) != digest.hex():
             raise ValueError("finalization checkpoint digest mismatch")
         cursor.execute(
             """
-            INSERT INTO execution.semantic_finalization_checkpoint
-                (checkpoint_ref, run_ref, owner_ref, cursor_revision, sealed_manifest, manifest_sha256, state)
-            VALUES (%s, %s, %s, %s, %s::jsonb, %s, 'sealed')
-            ON CONFLICT (checkpoint_ref) DO NOTHING
+            INSERT INTO execution.semantic_finalization_cursor
+                (cursor_ref, run_ref, document_ref, owner_ref, cursor_revision,
+                 batch_ordinal, manifest, manifest_sha256, state)
+            VALUES (%s, %s, %s, %s, %s, 0, %s::jsonb, %s, 'committed')
+            ON CONFLICT (cursor_ref) DO NOTHING
             """,
-            (checkpoint_ref, run_ref, owner_ref, cursor_revision, _json(manifest), digest),
+            (cursor_ref, run_ref, document_ref, owner_ref,
+             cursor_revision, _json(manifest), digest),
         )
-        return checkpoint_ref
+        return cursor_ref
 
     def stage_then_commit(self, *, run_ref: str, document_ref: str, manifest: Mapping[str, Any]) -> str:
         connection = self.connection_factory()

@@ -33,7 +33,9 @@ from src.pnf.operational_reference_binding import (
 from src.pnf.stage_build_keys import derive_stage_build_keys
 from src.pnf.streaming_fixed_point import (
     CoverageNotice,
+    OwnerKey,
     PythonClosureExecutor,
+    SolverJob,
     StreamingSemanticOwner,
 )
 from src.pnf.streaming_operator_executor import (
@@ -382,7 +384,6 @@ def _streaming_semantic_build(
             # owner remains the reducer; workers return immutable receipts and
             # never mutate it directly.
             round_jobs = tuple(sorted(jobs, key=lambda job: (job.input_revision, job.job_ref)))
-            job_by_ref = {job.job_ref: job for job in round_jobs}
 
             # The strict worker receives only the serialized immutable job.
             # This keeps the closure owner heap in the coordinator out of the
@@ -391,19 +392,29 @@ def _streaming_semantic_build(
 
             execute_manifest = execute_serialized_streaming_job
 
+            def rehydrate_job(contract: Mapping[str, Any]) -> None:
+                """Rehydrate a durable manifest into the generic owner seam."""
+                manifest = dict(contract.get("input_manifest") or {})
+                row = dict(manifest.get("input_payload") or {})
+                job = SolverJob(
+                    owner_key=OwnerKey(**dict(row["owner_key"])),
+                    declaration_ref=str(row["declaration_ref"]),
+                    input_revision=int(manifest["input_revision"]),
+                    input_refs=tuple(row.get("input_refs") or ()),
+                    input_payload=dict(row.get("input_payload") or {}),
+                    rule_set_revision=str(row["rule_set_revision"]),
+                    coverage_requirements=tuple(row.get("coverage_requirements") or ()),
+                    assumptions=tuple(row.get("assumptions") or ()),
+                    priority=int(row.get("priority", 100)),
+                )
+                owner.rehydrate_solver_job_contract(
+                    job, job_ref=str(contract["job_ref"])
+                )
+
             def apply_delta(payload: Mapping[str, Any], _revision: int) -> None:
                 from src.policy.parallel_semantic_execution import _solver_receipt_from_row
 
                 receipt = _solver_receipt_from_row(payload)
-                # A replay may resume after PostgreSQL has already durably
-                # leased/admitted a retry, while this fresh coordinator heap
-                # has not retained that in-flight marker. Rehydrate the
-                # immutable job contract before using the generic owner
-                # admission API; no semantic computation occurs here.
-                if receipt.job_ref not in owner._in_flight_jobs and receipt.receipt_ref not in owner._receipts:
-                    replay_job = job_by_ref.get(receipt.job_ref)
-                    if replay_job is not None:
-                        owner._in_flight_jobs[receipt.job_ref] = replay_job
                 owner.admit_solver_receipt(receipt)
                 owner.reduce_dirty_groups()
                 receipts.append(receipt)
@@ -434,6 +445,7 @@ def _streaming_semantic_build(
                 apply=apply_delta,
                 owner_ref=strict_owner_ref,
                 starting_revision=strict_revision,
+                rehydrate=rehydrate_job,
             )
             strict_revision += int(strict_result.get("replayed", 0))
         closure_stage.record(

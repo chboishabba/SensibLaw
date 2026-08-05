@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import os
 from typing import Any, Callable, Iterable, Mapping, Protocol
 
 AUTHORITY_BACKEND = "postgresql"
@@ -74,7 +75,7 @@ class PostgresExecutionContext:
               (SELECT count(*) FROM execution.semantic_job_attempt a JOIN execution.semantic_closure_job j USING (job_ref) WHERE j.run_ref = %s),
               (SELECT count(*) FROM execution.semantic_immutable_delta WHERE run_ref = %s),
               (SELECT count(*) FROM execution.semantic_strict_delta_admission WHERE run_ref = %s),
-              (SELECT count(*) FROM execution.semantic_finalization_checkpoint WHERE run_ref = %s),
+              (SELECT count(*) FROM execution.semantic_finalization_cursor WHERE run_ref = %s),
               (SELECT count(*) FROM execution.semantic_publication WHERE run_ref = %s AND state = 'committed'),
               (SELECT count(*) FROM execution.semantic_kernel_registration WHERE run_ref = %s),
               (SELECT count(*) FROM execution.semantic_lifecycle_event WHERE run_ref = %s),
@@ -139,7 +140,7 @@ def connect_postgres(database_url: str) -> Any:
 class PostgresLeasedExecution:
     """Execution-only strategy that delegates semantic application to a caller."""
 
-    def __init__(self, *, database_url: str, run_ref: str, document_ref: str, worker_count: int, kernel_key: str = "streaming_closure", build_key_sha256: str = "unknown", operation_contract_ref: str = STRICT_EXECUTION_CONTRACT, max_rounds: int = 64) -> None:
+    def __init__(self, *, database_url: str, run_ref: str, document_ref: str, worker_count: int, kernel_key: str = "streaming_closure", build_key_sha256: str = "unknown", operation_contract_ref: str = STRICT_EXECUTION_CONTRACT, max_rounds: int = 16384) -> None:
         if worker_count < 1:
             raise ValueError("worker_count must be positive")
         self.database_url = database_url
@@ -149,7 +150,7 @@ class PostgresLeasedExecution:
         self.kernel_key = kernel_key
         self.build_key_sha256 = build_key_sha256
         self.operation_contract_ref = operation_contract_ref
-        self.max_rounds = max_rounds
+        self.max_rounds = int(os.environ.get("SENSIBLAW_MAX_ROUNDS", str(max_rounds)))
 
     def connection_factory(self) -> Any:
         return connect_postgres(self.database_url)
@@ -162,6 +163,9 @@ class PostgresLeasedExecution:
                     module = _execution_module()
                     module.create_run(cursor, run_ref=self.run_ref, document_ref=self.document_ref, kernel_key=self.kernel_key, worker_budget=self.worker_count)
                     cursor.execute("UPDATE execution.semantic_run SET build_key_sha256 = %s, operation_contract_ref = %s, max_rounds = %s WHERE run_ref = %s", (self.build_key_sha256, self.operation_contract_ref, self.max_rounds, self.run_ref))
+                    # A new attempt must not inherit a certificate or round
+                    # cursor from an earlier attempt under the same run_ref.
+                    cursor.execute("UPDATE execution.semantic_run SET fixed_point_certificate = NULL, round_ordinal = 0, sealed = FALSE WHERE run_ref = %s", (self.run_ref,))
                     cursor.execute("INSERT INTO execution.semantic_strict_owner_stream (run_ref, owner_ref) VALUES (%s, %s) ON CONFLICT DO NOTHING", (self.run_ref, owner_ref))
                     module.register_kernel(cursor, run_ref=self.run_ref, kernel_key=self.kernel_key, worker_budget=self.worker_count)
                     module.record_lifecycle(cursor, run_ref=self.run_ref, lifecycle="closure.reducing", detail={"owner_ref": owner_ref})
@@ -176,6 +180,7 @@ class PostgresLeasedExecution:
         apply: Callable[[Mapping[str, Any], int], None],
         owner_ref: str,
         starting_revision: int = 0,
+        rehydrate: Callable[[Mapping[str, Any]], None] | None = None,
     ) -> dict[str, int]:
         """Persist, lease, admit, and deterministically replay one frontier."""
 
@@ -204,7 +209,7 @@ class PostgresLeasedExecution:
                         receipts[target] = receipts.get(target, 0) + int(worker.get(key, 0))
                 with connection.transaction():
                     with connection.cursor() as cursor:
-                        replayed = _execution_module().replay_accepted_deltas(cursor, run_ref=self.run_ref, owner_ref=owner_ref, apply=apply, starting_revision=current_revision)
+                        replayed = _execution_module().replay_accepted_deltas(cursor, run_ref=self.run_ref, owner_ref=owner_ref, apply=apply, starting_revision=current_revision, rehydrate=rehydrate)
                         current_revision += replayed
                         cursor.execute("UPDATE execution.semantic_strict_owner_stream SET current_revision = %s WHERE run_ref = %s AND owner_ref = %s", (current_revision, self.run_ref, owner_ref))
                         cursor.execute("UPDATE execution.semantic_run SET owner_revision = %s WHERE run_ref = %s", (current_revision, self.run_ref))
@@ -227,6 +232,7 @@ class PostgresLeasedExecution:
                             manifest["input_revision"] = current_revision
                             payload["input_revision"] = current_revision
                             manifest["input_payload"] = payload
+                            manifest["input_sha256"] = _execution_module()._digest(payload).hex()
                             cursor.execute("""
                                 UPDATE execution.semantic_closure_job
                                 SET state = 'open', input_revision = %s, input_manifest = %s::jsonb,
@@ -304,7 +310,7 @@ class PostgresLeasedExecution:
                     assert_strict_context(context)
                     cursor.execute("UPDATE execution.semantic_run SET sealed = TRUE, lifecycle = 'finalization.sealed' WHERE run_ref = %s", (self.run_ref,))
                     worker = _execution_module().DistributedFinalizationWorker(connection_factory=self.connection_factory, worker_ref=f"{self.run_ref}:finalizer")
-                    worker.checkpoint(cursor, run_ref=self.run_ref, owner_ref=owner_ref, cursor_revision=context.owner_revision, manifest=manifest)
+                    worker.checkpoint(cursor, run_ref=self.run_ref, document_ref=self.document_ref, owner_ref=owner_ref, cursor_revision=context.owner_revision, manifest=manifest)
             return _execution_module().publish_in_fresh_process(
                 database_url=self.database_url,
                 run_ref=self.run_ref,

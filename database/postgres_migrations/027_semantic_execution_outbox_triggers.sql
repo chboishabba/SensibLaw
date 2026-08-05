@@ -77,8 +77,8 @@ END;
 $$;
 
 DROP TRIGGER IF EXISTS semantic_publication_outbox
-ON execution.publication_build;
+ON execution.semantic_publication;
 CREATE TRIGGER semantic_publication_outbox
-AFTER UPDATE OF state_ref ON execution.publication_build
+AFTER UPDATE OF state ON execution.semantic_publication
 FOR EACH ROW
 EXECUTE FUNCTION execution.emit_publication_committed();

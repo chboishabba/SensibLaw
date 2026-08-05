@@ -755,6 +755,35 @@ class StreamingSemanticOwner:
             dirty_owners=(key.owner_ref for key in dirty),
         )
 
+    def rehydrate_solver_job_contract(
+        self, job: SolverJob, *, job_ref: str | None = None
+    ) -> str:
+        """Rehydrate a durable solver contract before receipt admission.
+
+        PostgreSQL owns the leased job identity.  The reconstructed ``job``
+        supplies the document, input-reference, rule-set, and declaration
+        contract; ``job_ref`` may therefore be the immutable database identity
+        even when the revision-bearing ``SolverJob.job_ref`` would differ.
+        """
+        if job.owner_key.document_ref != self.document_ref:
+            raise ValueError("cross-document solver job supplied to owner")
+        durable_ref = str(job_ref or job.job_ref)
+        for existing in (
+            self._pending_jobs.get(durable_ref),
+            self._in_flight_jobs.get(durable_ref),
+            self._jobs.get(durable_ref),
+        ):
+            if existing is not None and (
+                existing.owner_key != job.owner_key
+                or existing.input_refs != job.input_refs
+                or existing.rule_set_revision != job.rule_set_revision
+                or existing.declaration_ref != job.declaration_ref
+            ):
+                raise ValueError("durable solver job contract disagrees with replay")
+        self._jobs[durable_ref] = job
+        self._in_flight_jobs.setdefault(durable_ref, job)
+        return durable_ref
+
     def admit_solver_receipt(self, receipt: SolverReceipt) -> StateDelta:
         if receipt.owner_key.document_ref != self.document_ref:
             raise ValueError("cross-document solver receipt supplied to owner")
