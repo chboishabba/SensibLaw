@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 import os
 from threading import Event, Thread
-from time import sleep
 from typing import Any
 from uuid import uuid4
 
