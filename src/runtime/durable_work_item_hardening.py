@@ -1,8 +1,8 @@
 """Safety hardening for durable work-item admission.
 
 This module keeps the deterministic identities from :mod:`durable_work_items`
-while tightening runnable-state selection, work-scoped artifact attribution and
-expired-attempt accounting.
+while tightening runnable-state selection, work-scoped artifact attribution,
+contiguous stage cursors and expired-attempt accounting.
 """
 
 from __future__ import annotations
@@ -40,7 +40,9 @@ def lease_registered_work(spec: DurableWorkSpec) -> WorkLease | None:
                 )
                 row = cursor.fetchone()
                 if row is None:
-                    raise RuntimeError("durable work item was not registered before dispatch")
+                    raise RuntimeError(
+                        "durable work item was not registered before dispatch"
+                    )
                 state, prior_epoch, expired = str(row[0]), int(row[1]), bool(row[2])
                 if state == "completed":
                     return None
@@ -56,15 +58,26 @@ def lease_registered_work(spec: DurableWorkSpec) -> WorkLease | None:
                     UPDATE execution.semantic_work_item
                     SET state = 'leased', lease_owner = %s, lease_token = %s,
                         lease_epoch = %s,
-                        lease_expires_at = CURRENT_TIMESTAMP + (%s * INTERVAL '1 second'),
-                        attempt_count = attempt_count + 1, updated_at = CURRENT_TIMESTAMP
+                        lease_expires_at = CURRENT_TIMESTAMP
+                            + (%s * INTERVAL '1 second'),
+                        attempt_count = attempt_count + 1,
+                        updated_at = CURRENT_TIMESTAMP
                     WHERE work_ref = %s
                       AND (
                         state IN ('ready', 'retryable')
-                        OR (state = 'leased' AND lease_expires_at < CURRENT_TIMESTAMP)
+                        OR (
+                            state = 'leased'
+                            AND lease_expires_at < CURRENT_TIMESTAMP
+                        )
                       )
                     """,
-                    (spec.worker_ref, token, epoch, spec.lease_seconds, spec.work_ref),
+                    (
+                        spec.worker_ref,
+                        token,
+                        epoch,
+                        spec.lease_seconds,
+                        spec.work_ref,
+                    ),
                 )
                 if cursor.rowcount != 1:
                     return None
@@ -73,8 +86,8 @@ def lease_registered_work(spec: DurableWorkSpec) -> WorkLease | None:
                 cursor.execute(
                     """
                     INSERT INTO execution.semantic_work_attempt_v2
-                        (attempt_ref, work_ref, worker_ref, worker_pid, backend_pid,
-                         lease_token, lease_epoch, state)
+                        (attempt_ref, work_ref, worker_ref, worker_pid,
+                         backend_pid, lease_token, lease_epoch, state)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, 'leased')
                     """,
                     (
@@ -106,7 +119,34 @@ def _write_artifact(spec: DurableWorkSpec, value: Any) -> tuple[Path, bytes, int
     return path, digest, len(encoded)
 
 
-def complete_leased_work(lease: WorkLease, value: Any, *, worker_pid: int) -> dict[str, Any]:
+def _stage_cursor(cursor: Any, stage_instance_ref: str) -> tuple[int, int]:
+    """Return highest contiguous completed ordinal and total completion count."""
+
+    cursor.execute(
+        """
+        SELECT
+            CASE
+                WHEN count(*) = 0 THEN -1
+                WHEN count(*) FILTER (WHERE state <> 'completed') = 0
+                    THEN max(ordinal)
+                ELSE min(ordinal) FILTER (WHERE state <> 'completed') - 1
+            END AS contiguous_ordinal,
+            count(*) FILTER (WHERE state = 'completed') AS completed_count
+        FROM execution.semantic_work_item
+        WHERE stage_instance_ref = %s
+        """,
+        (stage_instance_ref,),
+    )
+    row = cursor.fetchone()
+    return int(row[0]), int(row[1])
+
+
+def complete_leased_work(
+    lease: WorkLease,
+    value: Any,
+    *,
+    worker_pid: int,
+) -> dict[str, Any]:
     spec = lease.spec
     path, output_digest, byte_count = _write_artifact(spec, value)
     artifact_ref = "artifact-segment:" + canonical_sha256(
@@ -125,37 +165,48 @@ def complete_leased_work(lease: WorkLease, value: Any, *, worker_pid: int) -> di
         "lease_epoch": lease.lease_epoch,
     }
     receipt_ref = "work-receipt:" + canonical_sha256(receipt_payload)
-    cursor_payload = {
-        "stage_instance_ref": spec.stage_instance_ref,
-        "committed_ordinal": spec.ordinal,
-        "last_work_ref": spec.work_ref,
-    }
     connection = _connect(spec.database_url)
     try:
         with connection.transaction():
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT state, lease_token, lease_epoch FROM execution.semantic_work_item WHERE work_ref = %s FOR UPDATE",
+                    """
+                    SELECT state, lease_token, lease_epoch
+                    FROM execution.semantic_work_item
+                    WHERE work_ref = %s
+                    FOR UPDATE
+                    """,
                     (spec.work_ref,),
                 )
                 row = cursor.fetchone()
                 if row is None:
-                    raise RuntimeError("durable work item disappeared before completion")
+                    raise RuntimeError(
+                        "durable work item disappeared before completion"
+                    )
                 state, token, epoch = str(row[0]), row[1], int(row[2])
                 if state == "completed":
                     return {**receipt_payload, "admission_state": "duplicate"}
-                if state != "leased" or token != lease.lease_token or epoch != lease.lease_epoch:
+                if (
+                    state != "leased"
+                    or token != lease.lease_token
+                    or epoch != lease.lease_epoch
+                ):
                     cursor.execute(
-                        "UPDATE execution.semantic_work_attempt_v2 SET state = 'stale', completed_at = CURRENT_TIMESTAMP WHERE attempt_ref = %s",
+                        """
+                        UPDATE execution.semantic_work_attempt_v2
+                        SET state = 'stale', completed_at = CURRENT_TIMESTAMP
+                        WHERE attempt_ref = %s
+                        """,
                         (lease.attempt_ref,),
                     )
                     return {**receipt_payload, "admission_state": "stale"}
                 cursor.execute(
                     """
                     INSERT INTO execution.semantic_artifact_segment
-                        (artifact_ref, run_ref, document_ref, stage_contract_ref,
-                         operation_ref, work_ref, content_sha256, byte_count,
-                         media_type, encoding_ref, locator)
+                        (artifact_ref, run_ref, document_ref,
+                         stage_contract_ref, operation_ref, work_ref,
+                         content_sha256, byte_count, media_type,
+                         encoding_ref, locator)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
                             'application/json', 'canonical-json:v1', %s)
                     ON CONFLICT (artifact_ref) DO NOTHING
@@ -191,9 +242,11 @@ def complete_leased_work(lease: WorkLease, value: Any, *, worker_pid: int) -> di
                     """
                     UPDATE execution.semantic_work_item
                     SET state = 'completed', output_artifact_ref = %s,
-                        output_sha256 = %s, completed_at = CURRENT_TIMESTAMP,
+                        output_sha256 = %s,
+                        completed_at = CURRENT_TIMESTAMP,
                         lease_owner = NULL, lease_token = NULL,
-                        lease_expires_at = NULL, updated_at = CURRENT_TIMESTAMP
+                        lease_expires_at = NULL,
+                        updated_at = CURRENT_TIMESTAMP
                     WHERE work_ref = %s AND state = 'leased'
                       AND lease_token = %s AND lease_epoch = %s
                     """,
@@ -206,28 +259,38 @@ def complete_leased_work(lease: WorkLease, value: Any, *, worker_pid: int) -> di
                     ),
                 )
                 if cursor.rowcount != 1:
-                    raise RuntimeError("durable work fence changed during completion")
+                    raise RuntimeError(
+                        "durable work fence changed during completion"
+                    )
                 cursor.execute(
-                    "UPDATE execution.semantic_work_attempt_v2 SET state = 'completed', completed_at = CURRENT_TIMESTAMP WHERE attempt_ref = %s",
+                    """
+                    UPDATE execution.semantic_work_attempt_v2
+                    SET state = 'completed', completed_at = CURRENT_TIMESTAMP
+                    WHERE attempt_ref = %s
+                    """,
                     (lease.attempt_ref,),
                 )
+                contiguous_ordinal, completed_count = _stage_cursor(
+                    cursor,
+                    spec.stage_instance_ref,
+                )
+                cursor_payload = {
+                    "stage_instance_ref": spec.stage_instance_ref,
+                    "committed_ordinal": contiguous_ordinal,
+                    "completed_work_count": completed_count,
+                    "last_completed_work_ref": spec.work_ref,
+                }
                 cursor.execute(
                     """
                     INSERT INTO execution.semantic_stage_cursor
-                        (stage_instance_ref, run_ref, document_ref, stage_contract_ref,
-                         operation_ref, committed_ordinal, completed_work_count,
+                        (stage_instance_ref, run_ref, document_ref,
+                         stage_contract_ref, operation_ref,
+                         committed_ordinal, completed_work_count,
                          cursor_manifest, cursor_sha256)
-                    VALUES (%s, %s, %s, %s, %s, %s, 1, %s::jsonb, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s)
                     ON CONFLICT (stage_instance_ref) DO UPDATE SET
-                        committed_ordinal = GREATEST(
-                            execution.semantic_stage_cursor.committed_ordinal,
-                            EXCLUDED.committed_ordinal
-                        ),
-                        completed_work_count = (
-                            SELECT count(*) FROM execution.semantic_work_item
-                            WHERE stage_instance_ref = EXCLUDED.stage_instance_ref
-                              AND state = 'completed'
-                        ),
+                        committed_ordinal = EXCLUDED.committed_ordinal,
+                        completed_work_count = EXCLUDED.completed_work_count,
                         cursor_manifest = EXCLUDED.cursor_manifest,
                         cursor_sha256 = EXCLUDED.cursor_sha256,
                         updated_at = CURRENT_TIMESTAMP
@@ -238,14 +301,20 @@ def complete_leased_work(lease: WorkLease, value: Any, *, worker_pid: int) -> di
                         spec.document_ref,
                         spec.stage_contract_ref,
                         spec.operation_ref,
-                        spec.ordinal,
+                        contiguous_ordinal,
+                        completed_count,
                         _json(cursor_payload),
                         _digest(cursor_payload),
                     ),
                 )
     finally:
         connection.close()
-    return {**receipt_payload, "admission_state": "accepted"}
+    return {
+        **receipt_payload,
+        "admission_state": "accepted",
+        "contiguous_stage_cursor": contiguous_ordinal,
+        "completed_work_count": completed_count,
+    }
 
 
 def recover_expired_work(database_url: str, *, run_ref: str) -> int:
@@ -255,25 +324,29 @@ def recover_expired_work(database_url: str, *, run_ref: str) -> int:
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
-                    UPDATE execution.semantic_work_attempt_v2 a
-                    SET state = 'stale', completed_at = CURRENT_TIMESTAMP,
+                    UPDATE execution.semantic_work_attempt_v2 AS attempt
+                    SET state = 'stale',
+                        completed_at = CURRENT_TIMESTAMP,
                         error = jsonb_build_object('reason', 'lease_expired')
-                    FROM execution.semantic_work_item w
-                    WHERE a.work_ref = w.work_ref
-                      AND w.run_ref = %s
-                      AND w.state = 'leased'
-                      AND w.lease_expires_at < CURRENT_TIMESTAMP
-                      AND a.state = 'leased'
-                      AND a.lease_epoch = w.lease_epoch
+                    FROM execution.semantic_work_item AS work
+                    WHERE attempt.work_ref = work.work_ref
+                      AND work.run_ref = %s
+                      AND work.state = 'leased'
+                      AND work.lease_expires_at < CURRENT_TIMESTAMP
+                      AND attempt.state = 'leased'
+                      AND attempt.lease_epoch = work.lease_epoch
                     """,
                     (run_ref,),
                 )
                 cursor.execute(
                     """
                     UPDATE execution.semantic_work_item
-                    SET state = 'ready', lease_owner = NULL, lease_token = NULL,
-                        lease_expires_at = NULL, updated_at = CURRENT_TIMESTAMP,
-                        last_error = jsonb_build_object('reason', 'lease_expired')
+                    SET state = 'ready', lease_owner = NULL,
+                        lease_token = NULL, lease_expires_at = NULL,
+                        updated_at = CURRENT_TIMESTAMP,
+                        last_error = jsonb_build_object(
+                            'reason', 'lease_expired'
+                        )
                     WHERE run_ref = %s AND state = 'leased'
                       AND lease_expires_at < CURRENT_TIMESTAMP
                     """,
