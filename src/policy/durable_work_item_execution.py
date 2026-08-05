@@ -8,6 +8,7 @@ Each child leases and commits its result before reporting success to the parent.
 from __future__ import annotations
 
 from concurrent.futures import ProcessPoolExecutor
+import multiprocessing
 import os
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
@@ -16,10 +17,12 @@ from src.runtime.durable_stage_state import (
     commit_stage_manifest,
     record_stage_failure,
 )
-from src.runtime.durable_work_items import (
-    DurableWorkSpec,
+from src.runtime.durable_work_item_hardening import (
     complete_leased_work,
     lease_registered_work,
+)
+from src.runtime.durable_work_items import (
+    DurableWorkSpec,
     linux_parent_death_initializer,
     load_completed_work,
     register_work_items,
@@ -125,7 +128,7 @@ def _diagnostic_worker(payload: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _durable_pool() -> ProcessPoolExecutor | None:
-    """Use parent-death signalling so local workers cannot outlive a dead parent."""
+    """Use direct spawn children so parent-death signalling targets coordinator."""
 
     from src.policy import parallel_typing_tail as tail
 
@@ -136,7 +139,7 @@ def _durable_pool() -> ProcessPoolExecutor | None:
         if tail._POOL is None:
             tail._POOL = ProcessPoolExecutor(
                 max_workers=workers,
-                mp_context=tail._multiprocessing_context(),
+                mp_context=multiprocessing.get_context("spawn"),
                 initializer=linux_parent_death_initializer,
             )
             tail._POOL_WORKERS = workers
