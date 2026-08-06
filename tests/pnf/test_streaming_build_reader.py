@@ -24,9 +24,14 @@ def test_reader_streams_and_verifies_binary_family(tmp_path) -> None:
     assert [len(batch) for batch in batches] == [2, 2, 1]
     assert reader.family_count("factors") == 5
     assert batches[-1][0]["factor_ref"] == "factor:4"
+    assert descriptor["artifact_digest"]
+    assert descriptor["artifact_byte_count"] == path.stat().st_size
 
 
-def test_reader_rejects_tampered_binary_family(tmp_path) -> None:
+def test_reader_rejects_tampered_binary_family_before_decode(
+    tmp_path,
+    monkeypatch,
+) -> None:
     path = tmp_path / "proposals.bin"
     descriptor = stream_binary_family(
         path,
@@ -40,5 +45,14 @@ def test_reader_rejects_tampered_binary_family(tmp_path) -> None:
         {"family_manifests": {"proposals": descriptor}}
     )
 
-    with pytest.raises((ValueError, Exception)):
+    decode_called = False
+
+    def forbidden_decode(_value):
+        nonlocal decode_called
+        decode_called = True
+        raise AssertionError("decode must not run before raw digest verification")
+
+    monkeypatch.setattr("src.pnf.streaming_build_reader.pickle.loads", forbidden_decode)
+    with pytest.raises(ValueError, match="artifact digest changed"):
         tuple(reader.iter_rows("proposals"))
+    assert decode_called is False
