@@ -1,25 +1,41 @@
 # JSON Sin Bin
 
 > This is the visible bootstrap roster. `scripts/audit_json_sin_bin.py` is the
-> authoritative line-level scanner and regenerates this report in CI with file,
-> line, category, symbol, and evidence.
+> authoritative line-level scanner and regenerates the complete report in CI
+> with file, line, category, symbol, and evidence.
 
 ## Policy
 
 JSON and JSONB are forbidden in semantic execution authority, identity, replay,
-checkpointing, leases, attempts, receipts, cursors, outboxes, finalisation, and
-publication. Boundary/import/export uses below are quarantined debt, not an
-allow-list.
+checkpointing, leases, attempts, receipts, cursors, outboxes, parser
+observations, finalisation, and publication. Boundary/import/export uses are
+quarantined debt, not an allow-list.
 
-## Cleared execution authority in this tranche
+The target architecture is:
 
-The following paths have been migrated to typed relational state or binary
-content-addressed artifacts and are guarded by CI:
+```text
+native subsystem workspace
+→ one typed/binary boundary crossing
+→ typed PostgreSQL authority or content-addressed binary cache
+```
 
+Never:
+
+```text
+object → dict → JSON → JSONB → dict → object
+```
+
+## Cleared execution authority
+
+These paths are guarded by both the generated scanner and source-level tests:
+
+- `src/nlp/spacy_adapter.py`
+- `src/policy/binary_family_integrity_execution.py`
 - `src/policy/carriers/canonical.py`
 - `src/policy/no_json_checkpoint_execution.py`
 - `src/policy/reference_backed_finalization.py`
 - `src/policy/stage_budget_execution.py`
+- `src/policy/streaming_spacy_parser_execution.py`
 - `src/policy/typed_execution_callback_views.py`
 - `src/pnf/streaming_build_reader.py`
 - `src/runtime/durable_stage_state.py`
@@ -27,150 +43,101 @@ content-addressed artifacts and are guarded by CI:
 - `src/runtime/durable_work_items.py`
 - `src/runtime/reference_receipt.py`
 - `src/runtime/strict_postgres_execution.py`
+- `src/storage/postgres/deterministic_admission_execution.py`
 - `src/storage/postgres/distributed_semantic_execution.py`
+- `src/storage/postgres/spacy_parser_model.py`
+- `src/storage/postgres/spacy_parser_store.py`
+- `src/storage/postgres/streaming_spacy_execution.py`
+- `src/storage/postgres/typed_execution_pool.py`
 - `src/storage/postgres/typed_value_store.py`
 - `scripts/run_durable_coordinator_kill_probe.py`
 - `scripts/run_post_closure_probe.py`
-- migrations `032` through `036`
+- migrations `032` through `039`
 
-## Quarantined `import json` offenders
+## Parser-specific name and shame
 
-The following files were found by repository code search at the start of this
-tranche. They remain named until the generated scanner confirms removal or an
-explicit non-authoritative boundary replacement:
+### Strict authority: cleared
 
-### Import, ingestion, and source adapters
+Strict spaCy execution now uses:
 
-- `scripts/import_wiki_timeline_aoo_json_to_db.py`
-- `scripts/import_openrecall.py`
-- `scripts/import_observation.py`
-- `scripts/import_worldmonitor.py`
-- `scripts/import_openrecall_raw_rows.py`
-- `scripts/query_openrecall_import.py`
-- `scripts/query_observation_import.py`
-- `scripts/query_worldmonitor_import.py`
-- `scripts/query_openrecall_raw_import.py`
-- `scripts/build_personal_handoff_from_chat_json.py`
-- `scripts/migrate_drop_document_json.py`
-- `scripts/dbpedia_lookup.py`
-- `scripts/dbpedia_lookup_api.py`
-- `scripts/inspect_gwb_sqlite.py`
-- `src/reporting/openrecall_raw_import.py`
-- `src/reporting/worldmonitor_import.py`
-- `src/fact_intake/personal_chat_import.py`
-- `src/fact_intake/messenger_export_import.py`
-- `src/sensiblaw/interfaces/story_importer.py`
-- `src/sensiblaw/ingest/story_importer.py`
-- `src/ingest/polis.py`
-- `src/ingestion/cache.py`
-- `src/ingestion/parser.py`
-- `src/ingestion/dispatcher.py`
-- `src/ingestion/citation_follow.py`
-- `src/sources/courtlistener.py`
-- `src/sources/uk_legislation.py`
-- `src/sources/eur_lex_adapter.py`
-- `src/austlii_client.py`
+```text
+immutable UTF-8 source
+→ typed structural partition rows
+→ ephemeral spaCy Doc
+→ typed sentence/token/dependency/morphology/entity rows
+→ typed sentence-local graph work
+```
 
-### Ontology, graph, language, and reasoning
+No strict parser source, partition, attempt, observation, receipt, coverage row,
+outbox event, or cache descriptor is JSON/JSONB. Optional spaCy `DocBin` files
+are content-addressed binary caches and are never authority.
 
-- `src/ontology/wikimedia_providers.py`
-- `src/ontology/nat.py`
-- `src/ontology/tagger.py`
-- `src/ontology/enrichment.py`
-- `src/ontology/courtlistener.py`
-- `src/graph/rgcn.py`
-- `src/graph/query.py`
-- `src/graph/inference.py`
-- `src/language/graph.py`
-- `src/reason/timeline.py`
-- `src/concepts/loader.py`
-- `src/concepts/matcher.py`
-- `src/definitions/graph.py`
-- `src/distinguish/loader.py`
-- `src/distinguish/factor_packs.py`
-- `src/reference_identity.py`
-- `src/obligation_identity.py`
-- `src/au_semantic/linkage.py`
-- `src/gwb_us_law/linkage.py`
+### Compatibility materialisation debt
 
-### Policy, storage, runtime, and models
+The following source-level surfaces remain explicitly shamed:
 
-- `src/policy/gwb_spot_audit.py`
-- `src/policy/resolution_store.py`
-- `src/policy/domain_invariants.py`
-- `src/runtime/progress.py`
-- `src/runtime/semantic_parity.py`
-- `src/runtime/typing_hierarchy.py`
-- `src/storage/core.py`
-- `src/storage/manifest_runtime.py`
-- `src/storage/postgres_compiler.py`
-- `src/schema_utils.py`
-- `src/rules/checker.py`
-- `src/models/conflict.py`
-- `src/models/document.py`
-- `src/pipeline/__init__.py`
-- `src/review_collection.py`
-- `src/sensiblaw/db/dao.py`
+- `src/nlp/spacy_adapter.py::parse`
+  - constructs the historical nested sentence/token mapping;
+  - retained only for non-strict callers;
+  - strict execution uses `get_streaming_nlp()` and `Language.pipe` instead.
+- `src/pnf/document_fibres.py`
+  - retains historical JSON parser checkpoints and summary sidecars;
+  - reloads parsed mappings and performs document-wide token renumbering;
+  - bypassed entirely by strict typed parser execution.
+- `src/policy/entity_resolution.py`
+  - contains legacy JSON canonicalisation for mention/carrier identities;
+  - remains migration debt for sentence-native typed graph consumers.
+- `src/policy/indexed_projection_execution.py`
+  - still exposes compatibility projections that may collect parser token rows;
+  - sentence-local PostgreSQL work is now ready immediately, but source-level
+    removal of the compatibility population build remains a separate cleanup.
 
-### Reporting, publishing, health, and tools
+Runtime bypass is not permission to add more use. These names stay visible until
+the old definitions themselves are deleted or moved to an explicit boundary
+package.
 
-- `src/harm/index.py`
-- `src/tools/harm_index.py`
-- `src/tools/counter_brief.py`
-- `src/publish/mirror.py`
-- `src/glossary/service.py`
-- `src/reports/research_health.py`
-- `ui/app.py`
-- `sensiblaw_streamlit/shared.py`
+## Repository JSON offenders
 
-### CLI and operational scripts
+The generated scanner enumerates every occurrence rather than relying on this
+hand-maintained summary. Major quarantined groups include:
 
-- `cli/brief.py`
-- `cli/receipts.py`
-- `cli/code_observer.py`
-- `cli/grounding_depth.py`
-- `cli/cohort_e_diagnostics.py`
-- `cli/cohort_b_operator_index.py`
-- `scripts/au_semantic.py`
-- `scripts/gwb_semantic.py`
-- `scripts/cli_runtime.py`
-- `scripts/eval_goldset.py`
-- `scripts/zelph_runner.py`
-- `scripts/compile_corpus.py`
-- `scripts/conversation_vm.py`
-- `scripts/au_fact_review.py`
-- `scripts/run_legal_follow.py`
-- `scripts/narrative_compare.py`
-- `scripts/gwb_us_law_linkage.py`
-- `scripts/validate_integrity.py`
-- `scripts/transcript_semantic.py`
-- `scripts/run_legal_pnf_probe.py`
-- `scripts/qg_unification_smoke.py`
-- `scripts/wiki_revision_runset.py`
-- `scripts/wiki_revision_harness.py`
-- `examples/distinguish_glj/demo.py`
-- `sl_zelph_demo/sl_extract.py`
-- `sl_zelph_demo/lex_to_zelph.py`
+### Import, ingestion, and external source adapters
+
+- `scripts/import_*json*`
+- `src/fact_intake/*`
+- `src/ingestion/*`
+- `src/sources/*`
+- external API adapters such as Wikimedia, CourtListener, DBpedia, and EUR-Lex
+
+### Legacy graph, ontology, policy, runtime, and reporting surfaces
+
+- graph/ontology loaders and exports;
+- old receipt, progress, parity, and manifest paths;
+- UI, CLI, reports, demos, and test fixtures;
+- historical SQLite/document compatibility models.
+
+These are not silently accepted. Every concrete file and line appears in the
+generated table.
 
 ## Active legacy definitions overridden at installation
 
-These modules still contain historical JSON helper definitions and therefore
-remain explicitly shamed even though the installed execution policy replaces
-their physical sinks before document work begins:
+These modules still contain historical JSON helper definitions and remain
+explicitly shamed even where installed execution policy replaces their sinks:
 
 - `src/policy/parallel_semantic_execution.py`
 - `src/policy/parallel_typing_tail.py`
 - `src/policy/progress_observability_execution.py`
+- `src/pnf/document_fibres.py`
 
-They are scheduled for source-level removal after the typed execution tranche is
-validated. Runtime override is not permission to add further JSON use.
+They are scheduled for source-level removal after typed execution acceptance.
 
-## Scanner coverage beyond imports
+## Scanner coverage
 
-The generated report additionally catches:
+The scanner catches:
 
-- `json.dump`, `json.dumps`, `json.load`, and `json.loads`;
-- alternative JSON libraries and adapters;
+- `json`, `orjson`, `ujson`, and `simplejson` imports;
+- `dump`, `dumps`, `load`, `loads`, encoder, and decoder calls;
+- JSON adapters;
 - JSON/JSONB SQL columns, casts, and builders;
 - `.json` and `.jsonl` paths;
 - JSON media types and encoding contracts;
@@ -184,5 +151,5 @@ uv run python scripts/audit_json_sin_bin.py \
   --check-authority
 ```
 
-Any authority-critical finding fails CI. Quarantined findings stay visible until
-removed; silence is not an accepted state.
+Any authority-critical finding fails CI. Quarantined findings remain visible
+until removed; silence is not an accepted state.
