@@ -13,6 +13,12 @@ MIGRATION_033 = (
     / "postgres_migrations"
     / "033_remove_execution_json_defaults.sql"
 )
+MIGRATION_036 = (
+    ROOT
+    / "database"
+    / "postgres_migrations"
+    / "036_harden_execution_blob_rejection.sql"
+)
 
 
 def test_durable_work_tables_are_declared() -> None:
@@ -64,7 +70,7 @@ def test_typed_outbox_triggers_have_no_blob_builders() -> None:
 
 
 def test_execution_blob_columns_are_rejected_for_new_writes() -> None:
-    sql = MIGRATION_033.read_text(encoding="utf-8")
+    sql = MIGRATION_036.read_text(encoding="utf-8")
     for table, column in (
         ("semantic_closure_job", "input_manifest"),
         ("semantic_immutable_delta", "payload"),
@@ -78,9 +84,20 @@ def test_execution_blob_columns_are_rejected_for_new_writes() -> None:
         ("semantic_stage_manifest", "child_work_refs"),
         ("semantic_outbox", "payload"),
     ):
-        assert table in sql
-        assert column in sql
-    assert "reject_new_execution_json" in sql
+        assert f"ON execution.{table}" in sql
+        assert f"NEW.{column} IS NOT NULL" in sql
+    assert "reject_execution_blob_write" in sql
+    assert "NEW.input_manifest" not in sql.split(
+        "CREATE FUNCTION execution.reject_execution_blob_write()", 1
+    )[1].split("$$;", 1)[0]
+
+
+def test_default_removal_migration_does_not_install_polymorphic_triggers() -> None:
+    sql = MIGRATION_033.read_text(encoding="utf-8")
+    assert "CREATE TRIGGER" not in sql
+    assert "CREATE OR REPLACE FUNCTION" not in sql
+    assert "NEW.input_manifest" not in sql
+    assert "migration 036" in sql
 
 
 def test_legacy_empty_blob_defaults_are_removed() -> None:
