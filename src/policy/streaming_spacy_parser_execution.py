@@ -65,6 +65,21 @@ def _is_strict_strategy(strategy: str) -> bool:
     )
 
 
+def _execution_context(
+    *,
+    database_url: str,
+    run_ref: str,
+    compiler_context: Any,
+) -> _ParserExecution:
+    return _ParserExecution(
+        database_url=database_url,
+        run_ref=run_ref,
+        parser_contract_ref=str(
+            getattr(compiler_context, "annotation_backend_ref", "parser:spacy")
+        ),
+    )
+
+
 def install_streaming_spacy_parser_execution() -> bool:
     """Route strict parser work through typed PostgreSQL observations."""
 
@@ -72,7 +87,13 @@ def install_streaming_spacy_parser_execution() -> bool:
 
     if getattr(operational, _INSTALL_MARKER, False):
         return False
+    # Import after the operational module is available. This module copied the
+    # compiler function with ``from ... import`` historically, so its bindings
+    # are explicitly updated below rather than relying on import timing.
+    from src.policy import postgres_corpus_compilation as postgres
+
     original_compile = operational.compile_document_operational
+    original_persist = postgres.persist_document_compilation
     compatibility_parser = operational.parse_document_fibres
     original_policy_to_dict = operational.DocumentFibrePolicy.to_dict
 
@@ -191,22 +212,51 @@ def install_streaming_spacy_parser_execution() -> bool:
         if not isinstance(document_input, Mapping):
             raise ValueError("strict parser execution requires document_input")
         document_ref = str(document_input.get("document_ref") or "")
-        run_ref = str(
-            kwargs.get("strict_run_ref")
-            or f"strict-parser:{document_ref}"
+        execution = _execution_context(
+            database_url=str(database_url),
+            run_ref=str(
+                kwargs.get("strict_run_ref")
+                or f"strict-parser:{document_ref}"
+            ),
+            compiler_context=compiler_context,
         )
-        parser_contract_ref = str(
-            getattr(compiler_context, "annotation_backend_ref", "parser:spacy")
-        )
-        token = _CURRENT.set(
-            _ParserExecution(
-                database_url=str(database_url),
-                run_ref=run_ref,
-                parser_contract_ref=parser_contract_ref,
-            )
-        )
+        token = _CURRENT.set(execution)
         try:
             return original_compile(*args, **kwargs)
+        finally:
+            _CURRENT.reset(token)
+
+    def persist_wrapper(*args: Any, **kwargs: Any) -> Any:
+        strategy = str(
+            kwargs.get("execution_strategy_ref")
+            or "local-compatibility-replay"
+        )
+        if not _is_strict_strategy(strategy):
+            return original_persist(*args, **kwargs)
+        database_url = kwargs.get("database_url")
+        if not database_url:
+            from src.runtime.strict_postgres_execution import StrictExecutionError
+
+            raise StrictExecutionError(
+                "postgresql_authority_missing",
+                kernel_key="strict.parser_annotation",
+            )
+        entry = kwargs.get("entry")
+        compiler_context = kwargs.get("context")
+        if not isinstance(entry, Mapping):
+            raise ValueError("strict persistence requires a document entry")
+        document_ref = str(entry.get("document_ref") or "")
+        execution = _execution_context(
+            database_url=str(database_url),
+            run_ref=str(
+                kwargs.get("strict_run_ref")
+                or f"strict-parser:{document_ref}"
+            ),
+            compiler_context=compiler_context,
+        )
+        token = _CURRENT.set(execution)
+        try:
+            return original_persist(*args, **kwargs)
         finally:
             _CURRENT.reset(token)
 
@@ -214,6 +264,11 @@ def install_streaming_spacy_parser_execution() -> bool:
     operational.parse_document_fibres = parser_dispatch
     operational.compile_document_operational = compile_wrapper
     operational._compile_document_operational_without_streaming_spacy = original_compile
+    # Keep the copied compiler/persistence bindings in the PostgreSQL module on
+    # the same strict execution context before its outer build-key calculation.
+    postgres.compile_document_operational = compile_wrapper
+    postgres.persist_document_compilation = persist_wrapper
+    postgres._persist_document_compilation_without_streaming_spacy = original_persist
     setattr(operational, _INSTALL_MARKER, True)
     return True
 
