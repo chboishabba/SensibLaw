@@ -4,7 +4,7 @@ from pathlib import Path
 MIGRATION_ROOT = Path("database/postgres_migrations")
 MIGRATIONS = tuple(
     path
-    for ordinal in range(40, 58)
+    for ordinal in range(40, 59)
     for path in sorted(MIGRATION_ROOT.glob(f"{ordinal:03d}_*.sql"))
 )
 
@@ -20,7 +20,7 @@ def _migration(ordinal: int) -> str:
 
 
 def test_numeric_hyperfabric_schema_contains_no_json_authority() -> None:
-    assert len(MIGRATIONS) == 18
+    assert len(MIGRATIONS) == 19
     source = _source().casefold()
     assert " json " not in source
     assert " jsonb" not in source
@@ -184,6 +184,23 @@ def test_demand_state_two_requires_an_explicit_resolved_target() -> None:
     ):
         assert required in source
     assert "candidate availability" in source.casefold()
+
+
+def test_adjacent_topology_uses_one_neighbour_per_side_and_late_binding() -> None:
+    source = _migration(58)
+    for required in (
+        "end_char <= NEW.start_char",
+        "ORDER BY end_char DESC",
+        "start_char >= NEW.end_char",
+        "ORDER BY start_char",
+        "bind_supported_pair_interfaces",
+        "support.edge_kind = 5",
+        "parent_interface_id = NEW.interface_id",
+        "rebuild_pnf_interface_ancestors",
+    ):
+        assert required in source
+    assert source.count("LIMIT 1") >= 2
+    assert "LIMIT 2" not in source
 
 
 def test_old_decorative_parser_work_triggers_are_removed() -> None:
