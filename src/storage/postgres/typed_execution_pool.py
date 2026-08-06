@@ -1,33 +1,50 @@
-"""Concurrent typed worker pool with append-only owner admission.
+"""Concurrent typed computation with deterministic PostgreSQL admission.
 
-Workers compute immutable receipts concurrently.  Admission briefly locks the
-owner revision row, allocates the next revision, and commits the typed result.
-An owner revision advance does not invalidate work computed from the same
-frontier, so revision contention never causes semantic recomputation.
+Workers compute and persist immutable typed results concurrently.  They never
+allocate owner revisions.  After all currently runnable work is staged, the
+coordinator admits computed deltas in canonical ``(priority, job_ref)`` order
+under one short owner-row lock.  This provides all of:
+
+- commit-before-worker-ack durability;
+- no JSON or JSONB state;
+- no revision-stale semantic recomputation;
+- deterministic owner revision history;
+- concurrent semantic computation with narrowly serialized admission.
 """
 
 from __future__ import annotations
 
-from dataclasses import replace
 import multiprocessing as mp
 import os
 import pickle
 from typing import Any, Callable
 
-from src.policy.carriers.canonical import canonical_sha256
+from src.policy.carriers.canonical import canonical_fields_sha256, canonical_sha256
 from src.storage.postgres import distributed_semantic_execution as execution
 
 
-APPEND_ADMISSION_CONTRACT = "typed-owner-append-admission:v1"
+COMPUTED_DELTA_CONTRACT = "typed-computed-delta:v1"
+DETERMINISTIC_ADMISSION_CONTRACT = "typed-canonical-admission:v1"
 
 
-def append_typed_delta(
+def _semantic_output_sha256(delta: execution.TypedSemanticDelta) -> str:
+    """Stable output identity independent of owner revision allocation."""
+
+    return canonical_fields_sha256(
+        COMPUTED_DELTA_CONTRACT,
+        delta.delta_ref,
+        delta.receipt.receipt_ref,
+        delta.receipt.identity_payload(),
+    )
+
+
+def stage_typed_delta(
     cursor: Any,
     *,
     lease: execution.Lease,
     delta: execution.TypedSemanticDelta,
-) -> tuple[str, execution.TypedSemanticDelta]:
-    """Fence the worker and append its immutable result to the owner stream."""
+) -> str:
+    """Persist one computed result before the worker reports success."""
 
     cursor.execute(
         """
@@ -38,34 +55,124 @@ def append_typed_delta(
         """,
         (lease.manifest.job_ref,),
     )
-    job_row = cursor.fetchone()
-    if job_row is None:
+    row = cursor.fetchone()
+    if row is None:
         raise RuntimeError("leased typed closure job disappeared")
-    state, lease_token, lease_epoch = (
-        str(job_row[0]),
-        job_row[1],
-        int(job_row[2]),
-    )
-    if state == "completed":
+    state, lease_token, lease_epoch = str(row[0]), row[1], int(row[2])
+    if state in {"computed", "completed"}:
         cursor.execute(
             """
-            SELECT d.delta_ref, d.prior_revision, d.resulting_revision,
-                   d.receipt_ref
-            FROM execution.semantic_immutable_delta d
-            WHERE d.run_ref = %s AND d.job_ref = %s
+            SELECT delta_ref
+            FROM execution.semantic_immutable_delta
+            WHERE run_ref = %s AND job_ref = %s
             """,
             (lease.manifest.run_ref, lease.manifest.job_ref),
         )
         existing = cursor.fetchone()
-        if existing is None:
-            raise RuntimeError("completed job lacks its immutable typed delta")
-        return "duplicate", delta
+        if existing is None or str(existing[0]) != delta.delta_ref:
+            raise RuntimeError("computed job has a different immutable result")
+        return "duplicate"
     if (
         state != "leased"
         or lease_token != lease.fence_token
         or lease_epoch != lease.lease_epoch
     ):
-        return "stale", delta
+        cursor.execute(
+            """
+            UPDATE execution.semantic_strict_job_attempt
+            SET state = 'stale', completed_at = CURRENT_TIMESTAMP
+            WHERE attempt_ref = %s AND state = 'leased'
+            """,
+            (lease.attempt_ref,),
+        )
+        return "stale"
+
+    semantic_digest = bytes.fromhex(_semantic_output_sha256(delta))
+    receipt_digest = bytes.fromhex(
+        canonical_sha256(delta.receipt.identity_payload())
+    )
+    cursor.execute(
+        """
+        INSERT INTO execution.semantic_immutable_delta
+            (delta_ref, run_ref, document_ref, owner_ref,
+             resulting_revision, prior_revision, payload, payload_sha256,
+             job_ref, lease_epoch, expected_owner_revision,
+             receipt_ref, receipt_sha256, computed_at, admitted_at)
+        VALUES (%s, %s, %s, %s, NULL, NULL, NULL, %s, %s, %s, %s,
+                %s, %s, CURRENT_TIMESTAMP, NULL)
+        ON CONFLICT (run_ref, job_ref) DO NOTHING
+        """,
+        (
+            delta.delta_ref,
+            lease.manifest.run_ref,
+            lease.manifest.document_ref,
+            lease.manifest.owner_ref,
+            semantic_digest,
+            lease.manifest.job_ref,
+            lease.lease_epoch,
+            lease.expected_owner_revision,
+            delta.receipt.receipt_ref,
+            receipt_digest,
+        ),
+    )
+    if cursor.rowcount != 1:
+        cursor.execute(
+            """
+            SELECT delta_ref, encode(payload_sha256, 'hex')
+            FROM execution.semantic_immutable_delta
+            WHERE run_ref = %s AND job_ref = %s
+            """,
+            (lease.manifest.run_ref, lease.manifest.job_ref),
+        )
+        existing = cursor.fetchone()
+        if existing is None:
+            raise RuntimeError("typed result conflict has no durable row")
+        if str(existing[0]) != delta.delta_ref or str(existing[1]) != (
+            semantic_digest.hex()
+        ):
+            raise RuntimeError("typed result identity changed across retry")
+        return "duplicate"
+
+    # The immutable delta exists before the typed receipt because the receipt's
+    # foreign key proves which durable result it describes. Both commit in this
+    # worker transaction before acknowledgement.
+    execution._persist_solver_receipt(cursor, delta=delta, lease=lease)
+    cursor.execute(
+        """
+        UPDATE execution.semantic_closure_job
+        SET state = 'computed', lease_expires_at = NULL
+        WHERE job_ref = %s AND state = 'leased'
+          AND lease_token = %s AND lease_epoch = %s
+        """,
+        (
+            lease.manifest.job_ref,
+            lease.fence_token,
+            lease.lease_epoch,
+        ),
+    )
+    if cursor.rowcount != 1:
+        raise RuntimeError("typed job fence changed while staging result")
+    cursor.execute(
+        """
+        UPDATE execution.semantic_strict_job_attempt
+        SET state = 'computed', output_sha256 = %s,
+            completed_at = CURRENT_TIMESTAMP
+        WHERE attempt_ref = %s AND lease_epoch = %s AND state = 'leased'
+        """,
+        (semantic_digest, lease.attempt_ref, lease.lease_epoch),
+    )
+    if cursor.rowcount != 1:
+        raise RuntimeError("typed attempt disappeared while staging result")
+    return "computed"
+
+
+def admit_computed_deltas(
+    cursor: Any,
+    *,
+    run_ref: str,
+    owner_ref: str,
+) -> int:
+    """Assign deterministic contiguous revisions to all staged results."""
 
     cursor.execute(
         """
@@ -74,127 +181,99 @@ def append_typed_delta(
         WHERE run_ref = %s AND owner_ref = %s
         FOR UPDATE
         """,
-        (lease.manifest.run_ref, lease.manifest.owner_ref),
+        (run_ref, owner_ref),
     )
     owner_row = cursor.fetchone()
     if owner_row is None:
         raise RuntimeError("typed owner stream is missing")
-    prior_revision = int(owner_row[0])
-    resulting_revision = prior_revision + 1
-    admitted = replace(
-        delta,
-        prior_revision=prior_revision,
-        resulting_revision=resulting_revision,
-    )
+    revision = int(owner_row[0])
 
     cursor.execute(
         """
-        INSERT INTO execution.semantic_immutable_delta
-            (delta_ref, run_ref, document_ref, owner_ref,
-             resulting_revision, prior_revision, payload, payload_sha256,
-             job_ref, lease_epoch, expected_owner_revision,
-             receipt_ref, receipt_sha256)
-        VALUES (%s, %s, %s, %s, %s, %s, NULL, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (delta_ref) DO NOTHING
+        SELECT j.job_ref, j.lease_token, j.lease_epoch,
+               d.delta_ref, d.receipt_ref
+        FROM execution.semantic_closure_job j
+        JOIN execution.semantic_immutable_delta d
+          ON d.run_ref = j.run_ref AND d.job_ref = j.job_ref
+        WHERE j.run_ref = %s AND j.owner_ref = %s
+          AND j.state = 'computed'
+          AND d.prior_revision IS NULL
+          AND d.resulting_revision IS NULL
+        ORDER BY j.priority, j.job_ref
+        FOR UPDATE OF j, d
         """,
-        (
-            admitted.delta_ref,
-            lease.manifest.run_ref,
-            lease.manifest.document_ref,
-            lease.manifest.owner_ref,
-            resulting_revision,
-            prior_revision,
-            bytes.fromhex(admitted.output_sha256),
-            lease.manifest.job_ref,
-            lease.lease_epoch,
-            lease.expected_owner_revision,
-            admitted.receipt.receipt_ref,
-            bytes.fromhex(
-                canonical_sha256(admitted.receipt.identity_payload())
-            ),
-        ),
+        (run_ref, owner_ref),
     )
-    if cursor.rowcount != 1:
+    staged = tuple(cursor.fetchall())
+    for job_ref, fence_token, lease_epoch, delta_ref, _receipt_ref in staged:
+        prior_revision = revision
+        revision += 1
         cursor.execute(
             """
-            SELECT run_ref, owner_ref, prior_revision, resulting_revision
-            FROM execution.semantic_immutable_delta
+            UPDATE execution.semantic_immutable_delta
+            SET prior_revision = %s, resulting_revision = %s,
+                admitted_at = CURRENT_TIMESTAMP
             WHERE delta_ref = %s
+              AND prior_revision IS NULL
+              AND resulting_revision IS NULL
             """,
-            (admitted.delta_ref,),
+            (prior_revision, revision, str(delta_ref)),
         )
-        existing = cursor.fetchone()
-        if existing is None:
-            raise RuntimeError("typed delta conflict has no existing row")
-        if str(existing[0]) != lease.manifest.run_ref or str(existing[1]) != (
-            lease.manifest.owner_ref
-        ):
-            raise RuntimeError("typed delta identity collided across owners")
+        if cursor.rowcount != 1:
+            raise RuntimeError("computed delta changed during canonical admission")
+        cursor.execute(
+            """
+            INSERT INTO execution.semantic_strict_delta_admission
+                (delta_ref, run_ref, owner_ref, resulting_revision,
+                 prior_revision, fence_token, lease_epoch)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                str(delta_ref),
+                run_ref,
+                owner_ref,
+                revision,
+                prior_revision,
+                str(fence_token),
+                int(lease_epoch),
+            ),
+        )
         cursor.execute(
             """
             UPDATE execution.semantic_closure_job
             SET state = 'completed', lease_owner = NULL,
                 lease_token = NULL, lease_expires_at = NULL
-            WHERE job_ref = %s AND lease_token = %s AND lease_epoch = %s
+            WHERE job_ref = %s AND state = 'computed'
+              AND lease_epoch = %s
             """,
-            (
-                lease.manifest.job_ref,
-                lease.fence_token,
-                lease.lease_epoch,
-            ),
+            (str(job_ref), int(lease_epoch)),
         )
-        return "duplicate", admitted
+        if cursor.rowcount != 1:
+            raise RuntimeError("computed job changed during canonical admission")
+        cursor.execute(
+            """
+            UPDATE execution.semantic_strict_job_attempt
+            SET state = 'completed'
+            WHERE job_ref = %s AND lease_epoch = %s AND state = 'computed'
+            """,
+            (str(job_ref), int(lease_epoch)),
+        )
+        if cursor.rowcount != 1:
+            raise RuntimeError("computed attempt changed during canonical admission")
 
-    execution._persist_solver_receipt(cursor, delta=admitted, lease=lease)
-    cursor.execute(
-        """
-        INSERT INTO execution.semantic_strict_delta_admission
-            (delta_ref, run_ref, owner_ref, resulting_revision,
-             prior_revision, fence_token, lease_epoch)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """,
-        (
-            admitted.delta_ref,
-            lease.manifest.run_ref,
-            lease.manifest.owner_ref,
-            resulting_revision,
-            prior_revision,
-            lease.fence_token,
-            lease.lease_epoch,
-        ),
-    )
-    cursor.execute(
-        """
-        UPDATE execution.semantic_strict_owner_stream
-        SET current_revision = %s
-        WHERE run_ref = %s AND owner_ref = %s
-          AND current_revision = %s
-        """,
-        (
-            resulting_revision,
-            lease.manifest.run_ref,
-            lease.manifest.owner_ref,
-            prior_revision,
-        ),
-    )
-    if cursor.rowcount != 1:
-        raise RuntimeError("typed owner append lost its locked revision")
-    cursor.execute(
-        """
-        UPDATE execution.semantic_closure_job
-        SET state = 'completed', lease_owner = NULL,
-            lease_token = NULL, lease_expires_at = NULL
-        WHERE job_ref = %s AND lease_token = %s AND lease_epoch = %s
-        """,
-        (
-            lease.manifest.job_ref,
-            lease.fence_token,
-            lease.lease_epoch,
-        ),
-    )
-    if cursor.rowcount != 1:
-        raise RuntimeError("typed job fence changed during append admission")
-    return "accepted", admitted
+    if staged:
+        cursor.execute(
+            """
+            UPDATE execution.semantic_strict_owner_stream
+            SET current_revision = %s
+            WHERE run_ref = %s AND owner_ref = %s
+              AND current_revision = %s
+            """,
+            (revision, run_ref, owner_ref, int(owner_row[0])),
+        )
+        if cursor.rowcount != 1:
+            raise RuntimeError("owner revision changed during canonical admission")
+    return len(staged)
 
 
 def _worker_main(
@@ -216,12 +295,13 @@ def _worker_main(
         "application_name": application_name,
         "leases": 0,
         "renewals": 0,
-        "accepted": 0,
+        "computed": 0,
         "duplicates": 0,
         "stale": 0,
         "retries": 0,
         "failures": 0,
-        "admission_contract": APPEND_ADMISSION_CONTRACT,
+        "computation_contract": COMPUTED_DELTA_CONTRACT,
+        "admission_contract": DETERMINISTIC_ADMISSION_CONTRACT,
     }
     try:
         with connection.cursor() as cursor:
@@ -252,26 +332,12 @@ def _worker_main(
                 delta = execution._coerce_delta(execute(lease.manifest), lease.manifest)
                 with connection.transaction():
                     with connection.cursor() as cursor:
-                        status, admitted = append_typed_delta(
+                        status = stage_typed_delta(
                             cursor,
                             lease=lease,
                             delta=delta,
                         )
-                        stats["duplicates" if status == "duplicate" else status] += 1
-                        cursor.execute(
-                            """
-                            UPDATE execution.semantic_strict_job_attempt
-                            SET state = %s, output_sha256 = %s,
-                                completed_at = CURRENT_TIMESTAMP
-                            WHERE attempt_ref = %s AND lease_epoch = %s
-                            """,
-                            (
-                                "stale" if status == "stale" else "completed",
-                                bytes.fromhex(admitted.output_sha256),
-                                lease.attempt_ref,
-                                lease.lease_epoch,
-                            ),
-                        )
+                        stats[status] = stats.get(status, 0) + 1
             except Exception:
                 stats["failures"] += 1
                 stats["retries"] += 1
@@ -282,6 +348,7 @@ def _worker_main(
                             UPDATE execution.semantic_strict_job_attempt
                             SET state = 'failed', completed_at = CURRENT_TIMESTAMP
                             WHERE attempt_ref = %s
+                              AND state IN ('leased', 'computed')
                             """,
                             (lease.attempt_ref,),
                         )
@@ -293,6 +360,7 @@ def _worker_main(
                                 retry_count = retry_count + 1
                             WHERE job_ref = %s AND lease_token = %s
                               AND lease_epoch = %s
+                              AND state = 'leased'
                             """,
                             (
                                 lease.manifest.job_ref,
@@ -312,11 +380,11 @@ def _worker_main(
                          retries, failures, payload)
                     VALUES (%s, %s,
                             (SELECT document_ref FROM execution.semantic_run WHERE run_ref = %s),
-                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NULL)
+                            %s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s, NULL)
                     ON CONFLICT (run_ref, worker_ref) DO UPDATE SET
                         leases = EXCLUDED.leases,
                         renewals = EXCLUDED.renewals,
-                        accepted = EXCLUDED.accepted,
+                        accepted = 0,
                         duplicates = EXCLUDED.duplicates,
                         stale = EXCLUDED.stale,
                         retries = EXCLUDED.retries,
@@ -333,7 +401,6 @@ def _worker_main(
                         application_name,
                         stats["leases"],
                         stats["renewals"],
-                        stats["accepted"],
                         stats["duplicates"],
                         stats["stale"],
                         stats["retries"],
@@ -422,16 +489,18 @@ class TypedProcessPostgresWorkerPool:
 
 
 def install_typed_execution_pool() -> bool:
-    if getattr(execution, "_typed_append_pool_installed", False):
+    if getattr(execution, "_typed_deterministic_pool_installed", False):
         return False
     execution.ProcessPostgresWorkerPool = TypedProcessPostgresWorkerPool
-    execution._typed_append_pool_installed = True
+    execution._typed_deterministic_pool_installed = True
     return True
 
 
 __all__ = [
-    "APPEND_ADMISSION_CONTRACT",
+    "COMPUTED_DELTA_CONTRACT",
+    "DETERMINISTIC_ADMISSION_CONTRACT",
     "TypedProcessPostgresWorkerPool",
-    "append_typed_delta",
+    "admit_computed_deltas",
     "install_typed_execution_pool",
+    "stage_typed_delta",
 ]
