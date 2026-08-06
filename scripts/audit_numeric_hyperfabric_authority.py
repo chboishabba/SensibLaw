@@ -1,0 +1,128 @@
+#!/usr/bin/env python3
+"""Fail closed on serialization or textual PNF execution authority."""
+
+from __future__ import annotations
+
+import ast
+from pathlib import Path
+import re
+
+
+ROOT = Path(__file__).resolve().parents[1]
+PYTHON_AUTHORITY = (
+    Path("src/pnf/numeric_hyperfabric.py"),
+    Path("src/pnf/numeric_operator_composition.py"),
+    Path("src/storage/postgres/numeric_symbol_store.py"),
+    Path("src/storage/postgres/numeric_hyperfabric_store.py"),
+    Path("src/storage/postgres/spacy_numeric_projection.py"),
+    Path("src/storage/postgres/streaming_spacy_execution.py"),
+)
+SQL_AUTHORITY = tuple(
+    Path("database/postgres_migrations") / name
+    for name in (
+        "040_numeric_pnf_hyperfabric.sql",
+        "041_numeric_parser_sentence_links.sql",
+        "042_numeric_parser_sentence_link_trigger.sql",
+        "043_numeric_pnf_ancestor_refresh.sql",
+    )
+)
+FORBIDDEN_TEXT = (
+    "::json",
+    "jsonb_build",
+    "json_build",
+    "row_to_json",
+    "to_json",
+    ".jsonl",
+    "application/json",
+    "canonical-json",
+)
+JSON_MODULES = {"json", "orjson", "ujson", "simplejson"}
+
+
+def _python_violations(path: Path) -> list[str]:
+    source = path.read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=str(path))
+    violations: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name in JSON_MODULES:
+                    violations.append(f"{path}:{node.lineno}: import {alias.name}")
+        elif isinstance(node, ast.ImportFrom) and node.module in JSON_MODULES:
+            violations.append(f"{path}:{node.lineno}: from {node.module}")
+        elif isinstance(node, ast.Name) and node.id in {
+            "canonical_json",
+            "Json",
+            "Jsonb",
+        }:
+            violations.append(f"{path}:{node.lineno}: {node.id}")
+    lowered = source.casefold()
+    for marker in FORBIDDEN_TEXT:
+        if marker in lowered:
+            violations.append(f"{path}: forbidden marker {marker}")
+    return violations
+
+
+def _sql_violations(path: Path) -> list[str]:
+    source = path.read_text(encoding="utf-8")
+    without_comments = "\n".join(
+        line.split("--", 1)[0] for line in source.splitlines()
+    ).casefold()
+    violations: list[str] = []
+    for marker in FORBIDDEN_TEXT:
+        if marker in without_comments:
+            violations.append(f"{path}: forbidden marker {marker}")
+    if re.search(r"\bjsonb?\b", without_comments):
+        violations.append(f"{path}: JSON/JSONB SQL type")
+    return violations
+
+
+def main() -> int:
+    violations: list[str] = []
+    for relative in PYTHON_AUTHORITY:
+        path = ROOT / relative
+        if not path.is_file():
+            violations.append(f"missing numeric authority file: {relative}")
+        else:
+            violations.extend(_python_violations(path))
+    for relative in SQL_AUTHORITY:
+        path = ROOT / relative
+        if not path.is_file():
+            violations.append(f"missing numeric authority migration: {relative}")
+        else:
+            violations.extend(_sql_violations(path))
+
+    migration = (ROOT / SQL_AUTHORITY[0]).read_text(encoding="utf-8")
+    required = (
+        "symbol_id BIGINT",
+        "kind_id SMALLINT",
+        "token_id BIGINT",
+        "sentence_id BIGINT",
+        "semantic_pnf_hyperedge",
+        "semantic_pnf_interface_ancestor",
+        "distance_power SMALLINT",
+        "semantic_pnf_interface_typed_ancestor",
+        "semantic_pnf_visible_lookup",
+        "semantic_pnf_mdl_profile",
+    )
+    for marker in required:
+        if marker not in migration:
+            violations.append(f"numeric PNF schema lacks {marker}")
+
+    numeric_source = (ROOT / PYTHON_AUTHORITY[0]).read_text(encoding="utf-8")
+    if "raise TypeError" not in numeric_source or "numeric graph identity" not in numeric_source:
+        violations.append("numeric identity does not fail closed on text")
+    if "O(N * W * B)" not in numeric_source:
+        violations.append("bounded segmentation complexity contract is absent")
+
+    if violations:
+        print("Numeric hyperfabric authority violations:")
+        for violation in violations:
+            print(f"- {violation}")
+        return 1
+    print("numeric hyperfabric authority: clean")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
