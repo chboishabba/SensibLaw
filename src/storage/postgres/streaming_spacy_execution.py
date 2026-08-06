@@ -1,4 +1,4 @@
-"""Process orchestration for streamed typed spaCy parser execution."""
+"""Process orchestration for streamed numeric spaCy and PNF execution."""
 
 from __future__ import annotations
 
@@ -11,6 +11,13 @@ from time import monotonic_ns
 from typing import Any, Callable, Mapping
 
 from src.runtime.durable_work_items import linux_parent_death_initializer
+from src.storage.postgres.numeric_hyperfabric_store import (
+    drain_sentence_closure,
+    hyperfabric_counts,
+    materialize_document_hierarchy,
+    register_authored_hierarchy,
+)
+from src.storage.postgres.spacy_numeric_projection import commit_numeric_doc
 from src.storage.postgres.spacy_parser_carrier import PostgresSentenceCarrier
 from src.storage.postgres.spacy_parser_model import (
     ParserStreamingPolicy,
@@ -25,7 +32,6 @@ from src.storage.postgres.spacy_parser_registration import (
     register_or_reuse_execution,
 )
 from src.storage.postgres.spacy_parser_store import (
-    commit_doc,
     execution_state,
     execution_summary,
     fail_partition,
@@ -73,13 +79,14 @@ def _worker_drain(
     worker_ref: str,
     policy: ParserStreamingPolicy,
     artifact_root: str,
-) -> int:
-    """Load spaCy once and drain leased partitions through one ``Language.pipe``."""
+) -> tuple[int, int]:
+    """Load spaCy once, commit numeric observations, then close sentence PNF."""
 
     from src.nlp.spacy_adapter import get_streaming_nlp
 
     pipeline = get_streaming_nlp()
-    completed = 0
+    completed_partitions = 0
+    completed_sentences = 0
     while True:
         partitions = lease_partitions(
             database_url,
@@ -89,7 +96,13 @@ def _worker_drain(
             lease_seconds=policy.lease_seconds,
         )
         if not partitions:
-            return completed
+            completed_sentences += drain_sentence_closure(
+                database_url,
+                run_ref=run_ref,
+                worker_ref=f"{worker_ref}:pnf",
+                limit=max(1, policy.batch_size * 4),
+            )
+            return completed_partitions, completed_sentences
         stop = Event()
         heartbeat = Thread(
             target=_renew_batch,
@@ -113,7 +126,7 @@ def _worker_drain(
                 n_process=1,
             ):
                 try:
-                    commit_doc(
+                    commit_numeric_doc(
                         database_url,
                         partition=partition,
                         doc=doc,
@@ -126,7 +139,13 @@ def _worker_drain(
                             - started.get(partition.partition_ref, monotonic_ns()),
                         ),
                     )
-                    completed += 1
+                    completed_partitions += 1
+                    completed_sentences += drain_sentence_closure(
+                        database_url,
+                        run_ref=run_ref,
+                        worker_ref=f"{worker_ref}:pnf",
+                        limit=max(1, policy.batch_size * 4),
+                    )
                 except BaseException as error:
                     fail_partition(
                         database_url,
@@ -151,7 +170,7 @@ def _emit_progress(
     if observer is not None:
         observer(
             {
-                "current_kernel": "postgresql_streaming_spacy",
+                "current_kernel": "postgresql_numeric_streaming_spacy",
                 "parser_round_ordinal": round_ordinal,
                 "parser_coverage_state": state,
                 "parser_partitions_ready": ready,
@@ -159,6 +178,24 @@ def _emit_progress(
                 "parser_partitions_failed": failed,
             }
         )
+
+
+def _drain_remaining_sentence_closure(
+    database_url: str,
+    *,
+    run_ref: str,
+) -> int:
+    total = 0
+    while True:
+        completed = drain_sentence_closure(
+            database_url,
+            run_ref=run_ref,
+            worker_ref=f"parser-coordinator:{run_ref}:pnf",
+            limit=256,
+        )
+        total += completed
+        if completed == 0:
+            return total
 
 
 def run_streaming_spacy_execution(
@@ -173,7 +210,7 @@ def run_streaming_spacy_execution(
     policy: ParserStreamingPolicy | None = None,
     progress_observer: Callable[[Mapping[str, Any]], None] | None = None,
 ) -> PostgresSentenceCarrier:
-    """Parse one document without constructing a document-sized parser result."""
+    """Parse once, close numeric sentence PNF, then materialize the region DAG."""
 
     if not 1 <= worker_count <= 32:
         raise ValueError("parser worker_count must be between 1 and 32")
@@ -210,6 +247,13 @@ def run_streaming_spacy_execution(
         source_chars=len(canonical_text),
         parser_contract_ref=parser_contract_ref,
         proposed_partitions=proposed_partitions,
+    )
+    register_authored_hierarchy(
+        database_url,
+        run_ref=run_ref,
+        document_ref=document_ref,
+        canonical_text=canonical_text,
+        execution_window_chars=max(65_536, policy.target_chars * 2),
     )
     state, ready, leased, failed = execution_state(
         database_url,
@@ -273,6 +317,18 @@ def run_streaming_spacy_execution(
             raise RuntimeError("parser coverage remained open without runnable work")
         else:
             raise RuntimeError("parser execution exceeded bounded scheduling rounds")
+
+    _drain_remaining_sentence_closure(database_url, run_ref=run_ref)
+    hierarchy = materialize_document_hierarchy(
+        database_url,
+        run_ref=run_ref,
+        document_ref=document_ref,
+    )
+    counts = hyperfabric_counts(
+        database_url,
+        run_ref=run_ref,
+        document_ref=document_ref,
+    )
     summary = execution_summary(
         database_url,
         run_ref=run_ref,
@@ -283,7 +339,7 @@ def run_streaming_spacy_execution(
     if summary.coverage_state != "complete":
         raise RuntimeError("parser document coverage did not close")
     parser_receipt = {
-        "backend_ref": "parser:spacy:typed-postgresql",
+        "backend_ref": "parser:spacy:numeric-postgresql",
         "parser_contract_ref": parser_contract_ref,
         "execution_contract_ref": STREAMING_SPACY_CONTRACT,
         "source_ref": source_ref,
@@ -293,7 +349,15 @@ def run_streaming_spacy_execution(
         "entity_count": summary.entity_count,
         "boundary_obligation_count": summary.boundary_obligation_count,
         "coverage_state": summary.coverage_state,
-        "authority": "postgresql_typed_parser_observations",
+        "pnf_document_interface_id": hierarchy.document_interface_id,
+        "pnf_segmentation_evaluations": hierarchy.segmentation_evaluations,
+        "pnf_segmentation_bound": hierarchy.segmentation_bound,
+        "pnf_visible_index_rows": hierarchy.visible_index_rows,
+        "pnf_region_count": counts["regions"],
+        "pnf_factor_count": counts["factors"],
+        "pnf_object_count": counts["objects"],
+        "pnf_demand_count": counts["demands"],
+        "authority": "postgresql_numeric_parser_and_pnf_hyperfabric",
     }
     return PostgresSentenceCarrier(
         database_url=database_url,
