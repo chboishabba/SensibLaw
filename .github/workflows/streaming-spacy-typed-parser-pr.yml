@@ -54,6 +54,7 @@ jobs:
             src/policy/numeric_pnf_compilation.py \
             src/policy/streaming_spacy_parser_execution.py \
             src/storage/postgres/numeric_symbol_store.py \
+            src/storage/postgres/numeric_hierarchy_planner.py \
             src/storage/postgres/numeric_hyperfabric_store.py \
             src/storage/postgres/spacy_numeric_projection.py \
             src/storage/postgres/spacy_parser_carrier.py \
@@ -73,6 +74,7 @@ jobs:
             src/policy/stage_budget_execution.py
             src/policy/streaming_spacy_parser_execution.py
             src/storage/postgres/numeric_symbol_store.py
+            src/storage/postgres/numeric_hierarchy_planner.py
             src/storage/postgres/numeric_hyperfabric_store.py
             src/storage/postgres/spacy_numeric_projection.py
             src/storage/postgres/spacy_parser_carrier.py
@@ -85,6 +87,7 @@ jobs:
             tests/pnf/test_numeric_hyperfabric.py
             tests/pnf/test_numeric_operator_composition.py
             tests/policy/test_streaming_spacy_parser_execution.py
+            tests/storage/test_numeric_hierarchy_planner.py
             tests/storage/test_numeric_hyperfabric_migration.py
             tests/storage/test_streaming_spacy_parser_migration.py
             tests/storage/test_streaming_spacy_parser_model.py
@@ -104,6 +107,7 @@ jobs:
             tests/pnf/test_numeric_hyperfabric.py \
             tests/pnf/test_numeric_operator_composition.py \
             tests/policy/test_streaming_spacy_parser_execution.py \
+            tests/storage/test_numeric_hierarchy_planner.py \
             tests/storage/test_numeric_hyperfabric_migration.py \
             tests/storage/test_streaming_spacy_parser_migration.py \
             tests/storage/test_streaming_spacy_parser_model.py
