@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from src.pnf.numeric_hyperfabric import SymbolKind, numeric_digest
 from src.storage.postgres.numeric_symbol_store import (
@@ -37,6 +37,10 @@ from src.storage.postgres.spacy_parser_store import (
 )
 
 
+class NumericHeadProjectionError(RuntimeError):
+    """A declared non-root dependency head was not committed."""
+
+
 @dataclass(frozen=True, slots=True)
 class _RawSentence:
     sentence_ref: str
@@ -59,6 +63,7 @@ class _RawToken:
     pos: str
     tag: str
     dependency: str
+    head_is_self: bool
     head_start_char: int
     head_end_char: int
     morphology: tuple[tuple[str, str], ...]
@@ -94,6 +99,66 @@ def _pipeline_capabilities(pipeline: Any) -> dict[str, bool]:
         "dependencies": "parser" in pipe_names,
         "named_entities": "ner" in pipe_names,
     }
+
+
+def _require_numeric_pnf_capabilities(capabilities: Mapping[str, bool]) -> None:
+    missing = tuple(
+        name
+        for name in ("sentence_segmentation", "part_of_speech", "dependencies")
+        if not bool(capabilities.get(name, False))
+    )
+    if missing:
+        raise RuntimeError(
+            "strict numeric PNF requires parser capabilities: "
+            + ", ".join(missing)
+        )
+
+
+def _project_numeric_heads(
+    raw_tokens: tuple[_RawToken, ...],
+    token_rows_by_ref: Mapping[str, tuple[int, int, int]],
+) -> tuple[tuple[int, int], ...]:
+    """Resolve dependency heads without inventing root self-loops."""
+
+    token_id_by_span: dict[tuple[int, int], int] = {}
+    for token_id, start_char, end_char in token_rows_by_ref.values():
+        span = (start_char, end_char)
+        previous = token_id_by_span.setdefault(span, token_id)
+        if previous != token_id:
+            raise NumericHeadProjectionError(
+                f"duplicate committed token span {span!r}"
+            )
+
+    updates: list[tuple[int, int]] = []
+    for raw in raw_tokens:
+        committed = token_rows_by_ref.get(raw.token_ref)
+        if committed is None:
+            raise NumericHeadProjectionError(
+                f"numeric token row missing for {raw.token_ref}"
+            )
+        token_id, start_char, end_char = committed
+        token_span = (start_char, end_char)
+        declared_head_span = (raw.head_start_char, raw.head_end_char)
+        if raw.head_is_self:
+            if declared_head_span != token_span:
+                raise NumericHeadProjectionError(
+                    "explicit parser root has a non-self head span: "
+                    f"token={token_span!r} head={declared_head_span!r}"
+                )
+            head_token_id = token_id
+        else:
+            head_token_id = token_id_by_span.get(declared_head_span)
+            if head_token_id is None:
+                raise NumericHeadProjectionError(
+                    "declared non-root dependency head is absent: "
+                    f"token={token_span!r} head={declared_head_span!r}"
+                )
+            if head_token_id == token_id:
+                raise NumericHeadProjectionError(
+                    "non-root dependency resolved to its own token id"
+                )
+        updates.append((head_token_id, token_id))
+    return tuple(updates)
 
 
 def _collect_doc(
@@ -195,7 +260,7 @@ def _collect_doc(
                 (SymbolKind.ORTH, token.text),
                 (SymbolKind.LEMMA, token.lemma_ or token.text),
                 (SymbolKind.POS, token.pos_),
-                (SymbolKind.TAG, token.tag_),
+                (SymbolKind.TAG, token.tag_ or token.pos_),
                 (SymbolKind.DEPENDENCY, token.dep_),
             ):
                 symbols.add(SymbolValue(kind, str(text)))
@@ -216,8 +281,9 @@ def _collect_doc(
                     orth=str(token.text),
                     lemma=str(token.lemma_ or token.text),
                     pos=str(token.pos_),
-                    tag=str(token.tag_),
+                    tag=str(token.tag_ or token.pos_),
                     dependency=str(token.dep_),
+                    head_is_self=bool(token.head == token),
                     head_start_char=head_start,
                     head_end_char=head_end,
                     morphology=tuple(sorted(set(morphology))),
@@ -282,6 +348,8 @@ def commit_numeric_doc(
 ) -> None:
     """Commit one bounded ``Doc`` through the numeric parser authority."""
 
+    capabilities = _pipeline_capabilities(pipeline)
+    _require_numeric_pnf_capabilities(capabilities)
     (
         sentences,
         raw_tokens,
@@ -289,7 +357,6 @@ def commit_numeric_doc(
         crossings,
         symbol_values,
     ) = _collect_doc(partition, doc)
-    capabilities = _pipeline_capabilities(pipeline)
     artifact = (
         seal_docbin(doc, partition=partition, artifact_root=artifact_root)
         if policy.cache_docbin
@@ -463,7 +530,7 @@ def commit_numeric_doc(
 
                 cursor.execute(
                     """
-                    SELECT token_ref, token_id, start_char
+                    SELECT token_ref, token_id, start_char, end_char
                       FROM execution.semantic_parser_token
                      WHERE run_ref = %s
                        AND document_ref = %s
@@ -477,12 +544,12 @@ def commit_numeric_doc(
                     ),
                 )
                 token_rows_by_ref = {
-                    str(token_ref): (int(token_id), int(start_char))
-                    for token_ref, token_id, start_char in cursor.fetchall()
-                }
-                token_id_by_start = {
-                    start_char: token_id
-                    for token_id, start_char in token_rows_by_ref.values()
+                    str(token_ref): (
+                        int(token_id),
+                        int(start_char),
+                        int(end_char),
+                    )
+                    for token_ref, token_id, start_char, end_char in cursor.fetchall()
                 }
                 cursor.executemany(
                     """
@@ -490,17 +557,7 @@ def commit_numeric_doc(
                        SET head_token_id = %s
                      WHERE token_id = %s
                     """,
-                    [
-                        (
-                            token_id_by_start.get(
-                                raw.head_start_char,
-                                token_rows_by_ref[raw.token_ref][0],
-                            ),
-                            token_rows_by_ref[raw.token_ref][0],
-                        )
-                        for raw in raw_tokens
-                        if raw.token_ref in token_rows_by_ref
-                    ],
+                    _project_numeric_heads(raw_tokens, token_rows_by_ref),
                 )
 
                 entity_rows = [
@@ -763,4 +820,7 @@ def commit_numeric_doc(
         connection.close()
 
 
-__all__ = ["commit_numeric_doc"]
+__all__ = [
+    "NumericHeadProjectionError",
+    "commit_numeric_doc",
+]
