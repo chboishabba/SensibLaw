@@ -18,6 +18,7 @@ on:
       - "database/postgres_migrations/039_*.sql"
       - "database/postgres_migrations/04[0-9]_*.sql"
       - "database/postgres_migrations/05[0-8]_*.sql"
+      - "tests/nlp/test_spacy_adapter_strict.py"
       - "tests/pnf/test_numeric_*.py"
       - "tests/storage/test_numeric_*.py"
       - "tests/storage/test_spacy_numeric_projection.py"
@@ -89,6 +90,7 @@ jobs:
             scripts/audit_json_sin_bin.py
             scripts/audit_numeric_hyperfabric_authority.py
             tests/architecture/test_no_json_execution_authority.py
+            tests/nlp/test_spacy_adapter_strict.py
             tests/pnf/test_numeric_hyperfabric.py
             tests/pnf/test_numeric_operator_composition.py
             tests/policy/test_streaming_spacy_parser_execution.py
@@ -111,6 +113,7 @@ jobs:
           uv run python scripts/audit_numeric_hyperfabric_authority.py
           uv run pytest -q \
             tests/architecture/test_no_json_execution_authority.py \
+            tests/nlp/test_spacy_adapter_strict.py \
             tests/pnf/test_numeric_hyperfabric.py \
             tests/pnf/test_numeric_operator_composition.py \
             tests/policy/test_streaming_spacy_parser_execution.py \
