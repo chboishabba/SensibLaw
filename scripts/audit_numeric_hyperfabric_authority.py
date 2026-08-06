@@ -18,12 +18,10 @@ PYTHON_AUTHORITY = (
     Path("src/storage/postgres/streaming_spacy_execution.py"),
 )
 SQL_AUTHORITY = tuple(
-    Path("database/postgres_migrations") / name
-    for name in (
-        "040_numeric_pnf_hyperfabric.sql",
-        "041_numeric_parser_sentence_links.sql",
-        "042_numeric_parser_sentence_link_trigger.sql",
-        "043_numeric_pnf_ancestor_refresh.sql",
+    path
+    for ordinal in range(40, 49)
+    for path in sorted(
+        (ROOT / "database/postgres_migrations").glob(f"{ordinal:03d}_*.sql")
     )
 )
 FORBIDDEN_TEXT = (
@@ -85,14 +83,20 @@ def main() -> int:
             violations.append(f"missing numeric authority file: {relative}")
         else:
             violations.extend(_python_violations(path))
-    for relative in SQL_AUTHORITY:
-        path = ROOT / relative
+    if len(SQL_AUTHORITY) != 9:
+        violations.append(
+            "expected exactly migrations 040..048 for numeric authority; "
+            f"found {len(SQL_AUTHORITY)}"
+        )
+    for path in SQL_AUTHORITY:
         if not path.is_file():
-            violations.append(f"missing numeric authority migration: {relative}")
+            violations.append(f"missing numeric authority migration: {path}")
         else:
             violations.extend(_sql_violations(path))
 
-    migration = (ROOT / SQL_AUTHORITY[0]).read_text(encoding="utf-8")
+    migration_source = "\n".join(
+        path.read_text(encoding="utf-8") for path in SQL_AUTHORITY
+    )
     required = (
         "symbol_id BIGINT",
         "kind_id SMALLINT",
@@ -104,16 +108,27 @@ def main() -> int:
         "semantic_pnf_interface_typed_ancestor",
         "semantic_pnf_visible_lookup",
         "semantic_pnf_mdl_profile",
+        "admit_numeric_pnf_interface_export",
+        "derive_numeric_sentence_mentions",
+        "derive_numeric_region_recurrence",
+        "semantic_pnf_demand_candidate",
+        "plan_numeric_pnf_demand_candidates",
+        "semantic_pnf_visible_demand_planning",
     )
     for marker in required:
-        if marker not in migration:
+        if marker not in migration_source:
             violations.append(f"numeric PNF schema lacks {marker}")
 
     numeric_source = (ROOT / PYTHON_AUTHORITY[0]).read_text(encoding="utf-8")
-    if "raise TypeError" not in numeric_source or "numeric graph identity" not in numeric_source:
+    if (
+        "raise TypeError" not in numeric_source
+        or "numeric graph identity" not in numeric_source
+    ):
         violations.append("numeric identity does not fail closed on text")
     if "O(N * W * B)" not in numeric_source:
         violations.append("bounded segmentation complexity contract is absent")
+    if "_prefix_join" in numeric_source:
+        violations.append("bounded segmentation still rescans interval prefixes")
 
     if violations:
         print("Numeric hyperfabric authority violations:")
