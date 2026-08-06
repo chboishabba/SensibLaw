@@ -1,4 +1,4 @@
-"""Install proactive stage budgets on the existing semantic telemetry seam."""
+"""Install proactive stage budgets on the semantic telemetry seam."""
 
 from __future__ import annotations
 
@@ -11,21 +11,21 @@ _INSTALL_MARKER = "_stage_budget_execution_installed"
 
 
 def install_stage_budget_execution() -> bool:
-    """Turn every semantic kernel sample into a durable budget observation.
-
-    The durable work-item policy is installed here because this hook runs after
-    process-backed typing and parent/child progress wrappers have been installed.
-    That keeps semantic functions pure while ensuring every physical typing leaf
-    commits before its parent observes success.
-    """
+    """Install binary durability and enforce every semantic budget sample."""
 
     from src.policy import parallel_semantic_execution as semantic
     from src.policy.durable_work_item_execution import (
         install_durable_work_item_execution,
     )
+    from src.policy.no_json_checkpoint_execution import (
+        install_no_json_checkpoint_execution,
+    )
 
     if getattr(semantic, _INSTALL_MARKER, False):
         return False
+    # Both policies wrap physical execution only.  Binary format enforcement
+    # must precede the first durable leaf or telemetry checkpoint.
+    install_no_json_checkpoint_execution()
     install_durable_work_item_execution()
     original = semantic.SemanticExecutionContext.sample
 
