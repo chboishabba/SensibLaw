@@ -9,7 +9,9 @@ import os
 from pathlib import Path
 from typing import Any, Mapping
 
+from src.policy.carriers.canonical import canonical_fields_sha256
 from src.storage.postgres.streaming_spacy_execution import (
+    STREAMING_SPACY_CONTRACT,
     ParserStreamingPolicy,
     run_streaming_spacy_execution,
 )
@@ -63,6 +65,24 @@ def _safe_ref(value: str) -> str:
 def _is_strict_strategy(strategy: str) -> bool:
     return strategy in _STRICT_STRATEGIES or (
         strategy.startswith("postgresql-") and "exact" in strategy
+    )
+
+
+def _scoped_run_ref(
+    *,
+    requested_run_ref: str,
+    document_ref: str,
+    content_sha256: str,
+    parser_contract_ref: str,
+) -> str:
+    if requested_run_ref.startswith("typed-spacy-run:"):
+        return requested_run_ref
+    return "typed-spacy-run:" + canonical_fields_sha256(
+        STREAMING_SPACY_CONTRACT,
+        requested_run_ref,
+        document_ref,
+        content_sha256,
+        parser_contract_ref,
     )
 
 
@@ -218,17 +238,28 @@ def install_streaming_spacy_parser_execution() -> bool:
         if not isinstance(document_input, Mapping):
             raise ValueError("strict parser execution requires document_input")
         document_ref = str(document_input.get("document_ref") or "")
+        parser_contract_ref = str(
+            getattr(compiler_context, "annotation_backend_ref", "parser:spacy")
+        )
+        requested_run_ref = str(
+            arguments.get("strict_run_ref")
+            or f"strict-parser:{document_ref}"
+        )
+        effective_run_ref = _scoped_run_ref(
+            requested_run_ref=requested_run_ref,
+            document_ref=document_ref,
+            content_sha256=str(document_input.get("content_sha256") or ""),
+            parser_contract_ref=parser_contract_ref,
+        )
+        arguments["strict_run_ref"] = effective_run_ref
         execution = _execution_context(
             database_url=str(database_url),
-            run_ref=str(
-                arguments.get("strict_run_ref")
-                or f"strict-parser:{document_ref}"
-            ),
+            run_ref=effective_run_ref,
             compiler_context=compiler_context,
         )
         token = _CURRENT.set(execution)
         try:
-            return original_compile(*args, **kwargs)
+            return original_compile(*bound.args, **bound.kwargs)
         finally:
             _CURRENT.reset(token)
 
@@ -255,17 +286,28 @@ def install_streaming_spacy_parser_execution() -> bool:
         if not isinstance(entry, Mapping):
             raise ValueError("strict persistence requires a document entry")
         document_ref = str(entry.get("document_ref") or "")
+        parser_contract_ref = str(
+            getattr(compiler_context, "annotation_backend_ref", "parser:spacy")
+        )
+        requested_run_ref = str(
+            arguments.get("strict_run_ref")
+            or f"strict-parser:{document_ref}"
+        )
+        effective_run_ref = _scoped_run_ref(
+            requested_run_ref=requested_run_ref,
+            document_ref=document_ref,
+            content_sha256=str(entry.get("content_sha256") or ""),
+            parser_contract_ref=parser_contract_ref,
+        )
+        arguments["strict_run_ref"] = effective_run_ref
         execution = _execution_context(
             database_url=str(database_url),
-            run_ref=str(
-                arguments.get("strict_run_ref")
-                or f"strict-parser:{document_ref}"
-            ),
+            run_ref=effective_run_ref,
             compiler_context=compiler_context,
         )
         token = _CURRENT.set(execution)
         try:
-            return original_persist(*args, **kwargs)
+            return original_persist(*bound.args, **bound.kwargs)
         finally:
             _CURRENT.reset(token)
 
