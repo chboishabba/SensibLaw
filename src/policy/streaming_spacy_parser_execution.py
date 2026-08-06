@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextvars import ContextVar
 from dataclasses import dataclass
+import inspect
 import os
 from pathlib import Path
 from typing import Any, Mapping
@@ -94,6 +95,8 @@ def install_streaming_spacy_parser_execution() -> bool:
 
     original_compile = operational.compile_document_operational
     original_persist = postgres.persist_document_compilation
+    compile_signature = inspect.signature(original_compile)
+    persist_signature = inspect.signature(original_persist)
     compatibility_parser = operational.parse_document_fibres
     original_policy_to_dict = operational.DocumentFibrePolicy.to_dict
 
@@ -192,14 +195,17 @@ def install_streaming_spacy_parser_execution() -> bool:
         return carrier
 
     def compile_wrapper(*args: Any, **kwargs: Any) -> Any:
-        document_input = args[0] if args else kwargs.get("document_input")
-        compiler_context = args[1] if len(args) > 1 else kwargs.get("compiler_context")
+        bound = compile_signature.bind_partial(*args, **kwargs)
+        bound.apply_defaults()
+        arguments = bound.arguments
+        document_input = arguments.get("document_input")
+        compiler_context = arguments.get("compiler_context")
         strategy = str(
-            kwargs.get("execution_strategy_ref")
+            arguments.get("execution_strategy_ref")
             or "local-compatibility-replay"
         )
         strict = _is_strict_strategy(strategy)
-        database_url = kwargs.get("database_url")
+        database_url = arguments.get("database_url")
         if strict and not database_url:
             from src.runtime.strict_postgres_execution import StrictExecutionError
 
@@ -215,7 +221,7 @@ def install_streaming_spacy_parser_execution() -> bool:
         execution = _execution_context(
             database_url=str(database_url),
             run_ref=str(
-                kwargs.get("strict_run_ref")
+                arguments.get("strict_run_ref")
                 or f"strict-parser:{document_ref}"
             ),
             compiler_context=compiler_context,
@@ -227,13 +233,16 @@ def install_streaming_spacy_parser_execution() -> bool:
             _CURRENT.reset(token)
 
     def persist_wrapper(*args: Any, **kwargs: Any) -> Any:
+        bound = persist_signature.bind_partial(*args, **kwargs)
+        bound.apply_defaults()
+        arguments = bound.arguments
         strategy = str(
-            kwargs.get("execution_strategy_ref")
+            arguments.get("execution_strategy_ref")
             or "local-compatibility-replay"
         )
         if not _is_strict_strategy(strategy):
             return original_persist(*args, **kwargs)
-        database_url = kwargs.get("database_url")
+        database_url = arguments.get("database_url")
         if not database_url:
             from src.runtime.strict_postgres_execution import StrictExecutionError
 
@@ -241,15 +250,15 @@ def install_streaming_spacy_parser_execution() -> bool:
                 "postgresql_authority_missing",
                 kernel_key="strict.parser_annotation",
             )
-        entry = kwargs.get("entry")
-        compiler_context = kwargs.get("context")
+        entry = arguments.get("entry")
+        compiler_context = arguments.get("context")
         if not isinstance(entry, Mapping):
             raise ValueError("strict persistence requires a document entry")
         document_ref = str(entry.get("document_ref") or "")
         execution = _execution_context(
             database_url=str(database_url),
             run_ref=str(
-                kwargs.get("strict_run_ref")
+                arguments.get("strict_run_ref")
                 or f"strict-parser:{document_ref}"
             ),
             compiler_context=compiler_context,
