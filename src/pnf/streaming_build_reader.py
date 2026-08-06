@@ -1,24 +1,25 @@
 """Bounded access to embedded or reference-backed streaming-build families.
 
-The compiler may expose small fixtures inline, while exact documents expose
-content-addressed family descriptors.  Consumers use this module rather than
-assuming every family is a document-sized Python list.  JSONL is supported as a
-transitional local transport; PostgreSQL/object descriptors require an injected
-row source and remain authoritative through their manifest identity.
+Exact documents expose content-addressed framed binary families.  Semantic
+integrity is checked with typed canonical bytes; pickle is used only as the
+bounded local artifact codec and never as execution identity or DB authority.
 """
 
 from __future__ import annotations
 
 from hashlib import sha256
 from itertools import islice
-import json
 from pathlib import Path
+import pickle
 from typing import Any, Callable, Iterable, Iterator, Mapping, Sequence
 
+from src.policy.carriers.canonical import canonical_bytes
 
-FAMILY_DESCRIPTOR_SCHEMA_VERSION = "sensiblaw.streaming-family-descriptor.v1"
-REFERENCE_BUILD_SCHEMA_VERSION = "sensiblaw.reference-streaming-build.v1"
+
+FAMILY_DESCRIPTOR_SCHEMA_VERSION = "sensiblaw.streaming-family-descriptor.v2"
+REFERENCE_BUILD_SCHEMA_VERSION = "sensiblaw.reference-streaming-build.v2"
 DEFAULT_BATCH_SIZE = 256
+BINARY_FAMILY_ENCODING = "python-pickle-framed:5+itir-typed-digest:v1"
 RowSource = Callable[[Mapping[str, Any]], Iterable[Mapping[str, Any]]]
 
 
@@ -48,15 +49,16 @@ def family_descriptor(
     path: str | None = None,
     manifest_ref: str | None = None,
     segment_refs: Sequence[str] = (),
-    encoding_ref: str = "canonical-jsonl:v1",
+    encoding_ref: str = BINARY_FAMILY_ENCODING,
+    artifact_byte_count: int | None = None,
 ) -> dict[str, Any]:
     if record_count < 0 or byte_count < 0:
         raise ValueError("family counts must be non-negative")
-    if storage_kind not in {"jsonl", "postgresql", "object"}:
+    if storage_kind not in {"binary", "postgresql", "object"}:
         raise ValueError("unsupported family storage kind")
-    if storage_kind == "jsonl" and not path:
-        raise ValueError("JSONL family descriptor requires a path")
-    if storage_kind != "jsonl" and not manifest_ref:
+    if storage_kind == "binary" and not path:
+        raise ValueError("binary family descriptor requires a path")
+    if storage_kind != "binary" and not manifest_ref:
         raise ValueError("authoritative family descriptor requires a manifest ref")
     return {
         "schema_version": FAMILY_DESCRIPTOR_SCHEMA_VERSION,
@@ -64,12 +66,20 @@ def family_descriptor(
         "storage_kind": storage_kind,
         "record_count": int(record_count),
         "byte_count": int(byte_count),
+        "artifact_byte_count": int(
+            artifact_byte_count if artifact_byte_count is not None else byte_count
+        ),
         "ordered_digest": str(ordered_digest),
         "encoding_ref": str(encoding_ref),
         "path": path,
         "manifest_ref": manifest_ref,
         "segment_refs": list(segment_refs),
     }
+
+
+def _semantic_frame(row: Mapping[str, Any]) -> bytes:
+    encoded = canonical_bytes(dict(row))
+    return len(encoded).to_bytes(8, "big") + encoded
 
 
 class StreamingBuildReader:
@@ -129,28 +139,41 @@ class StreamingBuildReader:
             raise ValueError("family path escapes its manifest root") from error
         return path
 
-    def _iter_jsonl(
+    def _iter_binary(
         self, descriptor: Mapping[str, Any]
     ) -> Iterator[Mapping[str, Any]]:
         path = self._resolve_path(descriptor)
         digest = sha256()
         count = 0
-        byte_count = 0
+        semantic_bytes = 0
+        artifact_bytes = 0
         with path.open("rb") as handle:
-            for encoded in handle:
-                if not encoded.strip():
-                    continue
-                digest.update(encoded)
-                byte_count += len(encoded)
-                value = json.loads(encoded)
+            while True:
+                length_bytes = handle.read(8)
+                if not length_bytes:
+                    break
+                if len(length_bytes) != 8:
+                    raise ValueError(f"truncated family frame length: {path}")
+                length = int.from_bytes(length_bytes, "big")
+                encoded = handle.read(length)
+                if len(encoded) != length:
+                    raise ValueError(f"truncated family frame payload: {path}")
+                artifact_bytes += 8 + length
+                value = pickle.loads(encoded)
                 if not isinstance(value, Mapping):
                     raise ValueError(f"family row is not a mapping: {path}")
+                row = dict(value)
+                semantic = _semantic_frame(row)
+                digest.update(semantic)
+                semantic_bytes += len(semantic)
                 count += 1
-                yield dict(value)
+                yield row
         if count != int(descriptor.get("record_count") or 0):
             raise ValueError(f"family row count changed: {path}")
-        if byte_count != int(descriptor.get("byte_count") or 0):
-            raise ValueError(f"family byte count changed: {path}")
+        if semantic_bytes != int(descriptor.get("byte_count") or 0):
+            raise ValueError(f"family canonical byte count changed: {path}")
+        if artifact_bytes != int(descriptor.get("artifact_byte_count") or 0):
+            raise ValueError(f"family artifact byte count changed: {path}")
         if digest.hexdigest() != str(descriptor.get("ordered_digest") or ""):
             raise ValueError(f"family ordered digest changed: {path}")
 
@@ -167,8 +190,8 @@ class StreamingBuildReader:
                     yield row
             return
         storage_kind = str(descriptor.get("storage_kind") or "")
-        if storage_kind == "jsonl":
-            yield from self._iter_jsonl(descriptor)
+        if storage_kind == "binary":
+            yield from self._iter_binary(descriptor)
             return
         if self.row_source is None:
             raise ValueError(
@@ -176,24 +199,16 @@ class StreamingBuildReader:
             )
         count = 0
         digest = sha256()
-        byte_count = 0
+        semantic_bytes = 0
         for row in self.row_source(descriptor):
-            canonical = (
-                json.dumps(
-                    dict(row),
-                    ensure_ascii=False,
-                    sort_keys=True,
-                    separators=(",", ":"),
-                ).encode("utf-8")
-                + b"\n"
-            )
-            digest.update(canonical)
-            byte_count += len(canonical)
+            semantic = _semantic_frame(row)
+            digest.update(semantic)
+            semantic_bytes += len(semantic)
             count += 1
             yield row
         if count != int(descriptor.get("record_count") or 0):
             raise ValueError(f"authoritative family count changed: {family}")
-        if byte_count != int(descriptor.get("byte_count") or 0):
+        if semantic_bytes != int(descriptor.get("byte_count") or 0):
             raise ValueError(f"authoritative family bytes changed: {family}")
         if digest.hexdigest() != str(descriptor.get("ordered_digest") or ""):
             raise ValueError(f"authoritative family digest changed: {family}")
@@ -211,6 +226,7 @@ class StreamingBuildReader:
 
 
 __all__ = [
+    "BINARY_FAMILY_ENCODING",
     "DEFAULT_BATCH_SIZE",
     "FAMILY_DESCRIPTOR_SCHEMA_VERSION",
     "REFERENCE_BUILD_SCHEMA_VERSION",
