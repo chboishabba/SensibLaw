@@ -23,12 +23,16 @@ def install_stage_budget_execution() -> bool:
     from src.policy.typed_execution_callback_views import (
         install_typed_execution_callback_views,
     )
+    from src.storage.postgres.typed_execution_pool import (
+        install_typed_execution_pool,
+    )
 
     if getattr(semantic, _INSTALL_MARKER, False):
         return False
-    # These policies wrap physical execution only. Binary format enforcement
-    # and typed callback views must precede the first durable leaf or replay.
+    # These policies wrap physical execution only. Binary format enforcement,
+    # append-only admission, and typed callback views must precede replay.
     install_no_json_checkpoint_execution()
+    install_typed_execution_pool()
     install_typed_execution_callback_views()
     install_durable_work_item_execution()
     original = semantic.SemanticExecutionContext.sample
