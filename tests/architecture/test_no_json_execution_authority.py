@@ -7,11 +7,13 @@ import re
 
 ROOT = Path(__file__).resolve().parents[2]
 AUTHORITY_PYTHON = (
+    "src/nlp/spacy_adapter.py",
     "src/policy/binary_family_integrity_execution.py",
     "src/policy/carriers/canonical.py",
     "src/policy/no_json_checkpoint_execution.py",
     "src/policy/reference_backed_finalization.py",
     "src/policy/stage_budget_execution.py",
+    "src/policy/streaming_spacy_parser_execution.py",
     "src/policy/typed_execution_callback_views.py",
     "src/pnf/streaming_build_reader.py",
     "src/runtime/durable_stage_state.py",
@@ -21,6 +23,9 @@ AUTHORITY_PYTHON = (
     "src/runtime/strict_postgres_execution.py",
     "src/storage/postgres/deterministic_admission_execution.py",
     "src/storage/postgres/distributed_semantic_execution.py",
+    "src/storage/postgres/spacy_parser_model.py",
+    "src/storage/postgres/spacy_parser_store.py",
+    "src/storage/postgres/streaming_spacy_execution.py",
     "src/storage/postgres/typed_execution_pool.py",
     "src/storage/postgres/typed_value_store.py",
     "scripts/run_durable_coordinator_kill_probe.py",
