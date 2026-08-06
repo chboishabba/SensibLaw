@@ -4,7 +4,7 @@ from pathlib import Path
 MIGRATION_ROOT = Path("database/postgres_migrations")
 MIGRATIONS = tuple(
     path
-    for ordinal in range(40, 53)
+    for ordinal in range(40, 54)
     for path in sorted(MIGRATION_ROOT.glob(f"{ordinal:03d}_*.sql"))
 )
 
@@ -14,7 +14,7 @@ def _source() -> str:
 
 
 def test_numeric_hyperfabric_schema_contains_no_json_authority() -> None:
-    assert len(MIGRATIONS) == 13
+    assert len(MIGRATIONS) == 14
     source = _source().casefold()
     assert " json " not in source
     assert " jsonb" not in source
@@ -94,6 +94,21 @@ def test_hierarchy_is_reductive_indexed_and_demand_driven() -> None:
         "rebuild_pnf_document_ancestors",
     ):
         assert required in source
+
+
+def test_demand_planning_normalizes_keys_and_runs_set_wise() -> None:
+    latest = MIGRATIONS[-1].read_text(encoding="utf-8")
+    for required in (
+        "semantic_pnf_demand_lookup_key",
+        "semantic_pnf_demand_lookup_key_join_idx",
+        "target_deduplicated AS",
+        "PARTITION BY match.demand_id",
+        "LEFT JOIN LATERAL",
+        "DROP TRIGGER IF EXISTS semantic_pnf_demand_candidate_visibility",
+    ):
+        assert required in latest
+    assert "FOR demand_row IN" not in latest
+    assert "WITH RECURSIVE" not in latest
 
 
 def test_old_decorative_parser_work_triggers_are_removed() -> None:
