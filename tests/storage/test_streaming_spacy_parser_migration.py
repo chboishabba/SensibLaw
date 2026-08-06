@@ -9,6 +9,9 @@ BYTE_COORDINATES = (
 GRAPH_WORK = (
     ROOT / "database/postgres_migrations/039_typed_spacy_sentence_graph_jobs.sql"
 )
+CONSTRAINTS = (
+    ROOT / "database/postgres_migrations/039_typed_spacy_parser_constraints.sql"
+)
 
 
 def test_parser_authority_is_fully_typed() -> None:
@@ -36,6 +39,13 @@ def test_parser_authority_is_fully_typed() -> None:
     assert "payload" not in lowered
 
 
+def test_parser_partition_order_is_document_scoped() -> None:
+    sql = PARSER.read_text(encoding="utf-8")
+    assert "UNIQUE (run_ref, document_ref, sequence_no)" in sql
+    assert "(run_ref, document_ref, state, sequence_no)" in sql
+    assert "UNIQUE (run_ref, sequence_no)" not in sql
+
+
 def test_parser_partitions_record_char_and_byte_coordinates() -> None:
     sql = BYTE_COORDINATES.read_text(encoding="utf-8")
     for column in (
@@ -47,6 +57,13 @@ def test_parser_partitions_record_char_and_byte_coordinates() -> None:
     ):
         assert column in sql
     assert "semantic_parser_source_run_document_idx" in sql
+
+
+def test_dependency_heads_are_relationally_enforced() -> None:
+    sql = CONSTRAINTS.read_text(encoding="utf-8")
+    assert "semantic_parser_token_head_token_ref_fkey" in sql
+    assert "REFERENCES execution.semantic_parser_token(token_ref)" in sql
+    assert "DEFERRABLE INITIALLY DEFERRED" in sql
 
 
 def test_sentence_work_is_immediate_but_document_work_is_coverage_gated() -> None:
