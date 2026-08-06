@@ -66,6 +66,17 @@ def test_dependency_heads_are_relationally_enforced() -> None:
     assert "DEFERRABLE INITIALLY DEFERRED" in sql
 
 
+def test_boundary_repairs_have_document_scoped_order_and_covering_evidence() -> None:
+    sql = CONSTRAINTS.read_text(encoding="utf-8")
+    assert "assign_parser_repair_sequence" in sql
+    assert "partition.document_ref = NEW.document_ref" in sql
+    assert "BEFORE INSERT ON execution.semantic_parser_partition" in sql
+    assert "validate_parser_boundary_resolution" in sql
+    assert "sentence.start_char <= NEW.suspected_start_char" in sql
+    assert "sentence.end_char >= NEW.suspected_end_char" in sql
+    assert "BEFORE UPDATE OF state" in sql
+
+
 def test_sentence_work_is_immediate_but_document_work_is_coverage_gated() -> None:
     sql = GRAPH_WORK.read_text(encoding="utf-8")
     assert "AFTER INSERT ON execution.semantic_parser_sentence" in sql
