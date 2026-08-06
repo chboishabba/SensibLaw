@@ -11,9 +11,9 @@ from time import monotonic_ns
 from typing import Any, Callable, Mapping
 
 from src.runtime.durable_work_items import linux_parent_death_initializer
+from src.storage.postgres.spacy_parser_carrier import PostgresSentenceCarrier
 from src.storage.postgres.spacy_parser_model import (
     ParserStreamingPolicy,
-    PostgresSentenceCarrier,
     STREAMING_SPACY_CONTRACT,
     build_structural_partitions,
     connect,
