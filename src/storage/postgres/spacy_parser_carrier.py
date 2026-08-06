@@ -1,8 +1,9 @@
-"""Bounded compatibility views over typed parser authority.
+"""Bounded compatibility views over numeric parser authority.
 
 The historical parser mapping remains available without reconstructing a full
 parsed document. A named PostgreSQL cursor streams joined sentence, token, and
 morphology rows in source order; at most one sentence is materialised at once.
+Strict execution itself never resolves symbols back to text.
 """
 
 from __future__ import annotations
@@ -38,24 +39,26 @@ _SENTENCE_STREAM_SQL = """
     FROM execution.semantic_parser_sentence AS sentence
     LEFT JOIN execution.semantic_parser_token AS token
       ON token.sentence_ref = sentence.sentence_ref
-    LEFT JOIN execution.semantic_parser_symbol AS orth
-      ON orth.symbol_ref = token.orth_ref
-    LEFT JOIN execution.semantic_parser_symbol AS lemma
-      ON lemma.symbol_ref = token.lemma_ref
-    LEFT JOIN execution.semantic_parser_symbol AS pos
-      ON pos.symbol_ref = token.pos_ref
-    LEFT JOIN execution.semantic_parser_symbol AS tag
-      ON tag.symbol_ref = token.tag_ref
-    LEFT JOIN execution.semantic_parser_symbol AS dependency
-      ON dependency.symbol_ref = token.dependency_ref
-    LEFT JOIN execution.semantic_parser_token_morphology AS morphology
-      ON morphology.token_ref = token.token_ref
-    LEFT JOIN execution.semantic_parser_symbol AS feature
-      ON feature.symbol_ref = morphology.feature_ref
-    LEFT JOIN execution.semantic_parser_symbol AS value
-      ON value.symbol_ref = morphology.value_ref
+     AND token.representation_version = 2
+    LEFT JOIN execution.semantic_symbol AS orth
+      ON orth.symbol_id = token.orth_symbol_id
+    LEFT JOIN execution.semantic_symbol AS lemma
+      ON lemma.symbol_id = token.lemma_symbol_id
+    LEFT JOIN execution.semantic_symbol AS pos
+      ON pos.symbol_id = token.pos_symbol_id
+    LEFT JOIN execution.semantic_symbol AS tag
+      ON tag.symbol_id = token.tag_symbol_id
+    LEFT JOIN execution.semantic_symbol AS dependency
+      ON dependency.symbol_id = token.dependency_symbol_id
+    LEFT JOIN execution.semantic_morph_set_member AS morphology
+      ON morphology.morph_set_id = token.morph_set_id
+    LEFT JOIN execution.semantic_symbol AS feature
+      ON feature.symbol_id = morphology.feature_symbol_id
+    LEFT JOIN execution.semantic_symbol AS value
+      ON value.symbol_id = morphology.value_symbol_id
     WHERE sentence.run_ref = %s
       AND sentence.document_ref = %s
+      AND sentence.representation_version = 2
     ORDER BY sentence.start_char,
              sentence.end_char,
              sentence.sentence_ref,
@@ -86,7 +89,7 @@ class _SentenceSequence(Sequence[Mapping[str, Any]]):
 
 
 class PostgresSentenceCarrier(Mapping[str, Any]):
-    """Historical mapping shape backed by one bounded relational stream."""
+    """Historical mapping shape backed by one bounded numeric relational stream."""
 
     def __init__(
         self,
@@ -134,7 +137,7 @@ class PostgresSentenceCarrier(Mapping[str, Any]):
         return 3
 
     def iter_sentence_refs(self) -> Iterator[str]:
-        """Yield stable sentence identities without loading token rows."""
+        """Yield stable sentence compatibility labels without token rows."""
 
         connection = connect(self.database_url)
         try:
@@ -145,8 +148,10 @@ class PostgresSentenceCarrier(Mapping[str, Any]):
                     """
                     SELECT sentence_ref
                     FROM execution.semantic_parser_sentence
-                    WHERE run_ref = %s AND document_ref = %s
-                    ORDER BY start_char, end_char, sentence_ref
+                    WHERE run_ref = %s
+                      AND document_ref = %s
+                      AND representation_version = 2
+                    ORDER BY start_char, end_char, sentence_id
                     """,
                     (self.summary.run_ref, self.summary.document_ref),
                 )
@@ -179,8 +184,10 @@ class PostgresSentenceCarrier(Mapping[str, Any]):
                     """
                     SELECT sentence_ref
                     FROM execution.semantic_parser_sentence
-                    WHERE run_ref = %s AND document_ref = %s
-                    ORDER BY start_char, end_char, sentence_ref
+                    WHERE run_ref = %s
+                      AND document_ref = %s
+                      AND representation_version = 2
+                    ORDER BY start_char, end_char, sentence_id
                     LIMIT 1 OFFSET %s
                     """,
                     (self.summary.run_ref, self.summary.document_ref, index),
@@ -191,9 +198,12 @@ class PostgresSentenceCarrier(Mapping[str, Any]):
                 sentence_ref = str(row[0])
                 cursor.execute(
                     _SENTENCE_STREAM_SQL.replace(
-                        "WHERE sentence.run_ref = %s\n      AND sentence.document_ref = %s",
                         "WHERE sentence.run_ref = %s\n"
                         "      AND sentence.document_ref = %s\n"
+                        "      AND sentence.representation_version = 2",
+                        "WHERE sentence.run_ref = %s\n"
+                        "      AND sentence.document_ref = %s\n"
+                        "      AND sentence.representation_version = 2\n"
                         "      AND sentence.sentence_ref = %s",
                     ),
                     (
