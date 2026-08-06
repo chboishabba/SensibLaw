@@ -59,7 +59,7 @@ def test_structural_partitions_have_exact_owner_coverage_and_bounded_context(
         assert read_partition_text(partition) == text[
             partition.context_start_char : partition.context_end_char
         ]
-        assert partition.context_text_byte_count <= len(
+        assert partition.context_text_byte_count == len(
             text[partition.context_start_char : partition.context_end_char].encode(
                 "utf-8"
             )
