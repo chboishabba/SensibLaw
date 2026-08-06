@@ -14,6 +14,9 @@ def install_stage_budget_execution() -> bool:
     """Install typed durability and enforce every semantic budget sample."""
 
     from src.policy import parallel_semantic_execution as semantic
+    from src.policy.binary_family_integrity_execution import (
+        install_binary_family_integrity_execution,
+    )
     from src.policy.durable_work_item_execution import (
         install_durable_work_item_execution,
     )
@@ -33,9 +36,10 @@ def install_stage_budget_execution() -> bool:
     if getattr(semantic, _INSTALL_MARKER, False):
         return False
     # These policies wrap physical execution only. Binary format enforcement,
-    # concurrent typed staging, canonical admission, and callback views must all
-    # precede the first replay.
+    # pre-decode integrity, concurrent typed staging, canonical admission, and
+    # callback views must all precede the first replay.
     install_no_json_checkpoint_execution()
+    install_binary_family_integrity_execution()
     install_typed_execution_pool()
     install_deterministic_admission_execution()
     install_typed_execution_callback_views()
