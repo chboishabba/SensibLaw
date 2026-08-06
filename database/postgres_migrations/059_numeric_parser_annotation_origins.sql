@@ -42,27 +42,58 @@ ALTER TABLE execution.semantic_parser_token
 
 -- The strict v2 path requires POS/dependency capabilities. It may explicitly
 -- derive a lemma from orthography or a fine tag from coarse POS, but those
--- derivations are not represented as parser annotations.
+-- derivations are not represented as parser annotations. Symbol ids are
+-- kind-scoped, so fallback equality is checked by text across the two kinds.
 CREATE OR REPLACE FUNCTION execution.validate_numeric_parser_annotation_origins()
 RETURNS trigger
 LANGUAGE plpgsql
 AS $$
+DECLARE
+    orth_text TEXT;
+    lemma_text TEXT;
+    pos_text TEXT;
+    tag_text TEXT;
 BEGIN
     IF NEW.representation_version <> 2 THEN
         RETURN NEW;
     END IF;
-    IF NEW.lemma_origin_id = 2
-       AND NEW.lemma_symbol_id IS DISTINCT FROM NEW.orth_symbol_id THEN
-        RAISE EXCEPTION
-            'orthographic lemma fallback for token % does not equal orth symbol',
-            NEW.token_id;
+
+    IF NEW.lemma_origin_id = 2 THEN
+        SELECT symbol_text INTO orth_text
+          FROM execution.semantic_symbol
+         WHERE symbol_id = NEW.orth_symbol_id
+           AND kind_id = 1;
+        SELECT symbol_text INTO lemma_text
+          FROM execution.semantic_symbol
+         WHERE symbol_id = NEW.lemma_symbol_id
+           AND kind_id = 2;
+        IF orth_text IS NULL
+           OR lemma_text IS NULL
+           OR lemma_text IS DISTINCT FROM orth_text THEN
+            RAISE EXCEPTION
+                'orthographic lemma fallback for token % does not match orth text',
+                NEW.token_id;
+        END IF;
     END IF;
-    IF NEW.tag_origin_id = 3
-       AND NEW.tag_symbol_id IS DISTINCT FROM NEW.pos_symbol_id THEN
-        RAISE EXCEPTION
-            'POS tag fallback for token % does not equal POS symbol',
-            NEW.token_id;
+
+    IF NEW.tag_origin_id = 3 THEN
+        SELECT symbol_text INTO pos_text
+          FROM execution.semantic_symbol
+         WHERE symbol_id = NEW.pos_symbol_id
+           AND kind_id = 3;
+        SELECT symbol_text INTO tag_text
+          FROM execution.semantic_symbol
+         WHERE symbol_id = NEW.tag_symbol_id
+           AND kind_id = 4;
+        IF pos_text IS NULL
+           OR tag_text IS NULL
+           OR tag_text IS DISTINCT FROM pos_text THEN
+            RAISE EXCEPTION
+                'POS tag fallback for token % does not match POS text',
+                NEW.token_id;
+        END IF;
     END IF;
+
     RETURN NEW;
 END;
 $$;
