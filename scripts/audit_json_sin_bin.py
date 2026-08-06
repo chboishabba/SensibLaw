@@ -38,14 +38,17 @@ SKIP_PARTS = {
 # roster for a second independent gate.
 AUTHORITY_FILES = {
     "src/nlp/spacy_adapter.py",
+    "src/pnf/numeric_hyperfabric.py",
+    "src/pnf/numeric_operator_composition.py",
+    "src/pnf/streaming_build_reader.py",
     "src/policy/binary_family_integrity_execution.py",
     "src/policy/carriers/canonical.py",
     "src/policy/no_json_checkpoint_execution.py",
+    "src/policy/numeric_pnf_compilation.py",
     "src/policy/reference_backed_finalization.py",
     "src/policy/stage_budget_execution.py",
     "src/policy/streaming_spacy_parser_execution.py",
     "src/policy/typed_execution_callback_views.py",
-    "src/pnf/streaming_build_reader.py",
     "src/runtime/durable_stage_state.py",
     "src/runtime/durable_work_item_hardening.py",
     "src/runtime/durable_work_items.py",
@@ -53,17 +56,22 @@ AUTHORITY_FILES = {
     "src/runtime/strict_postgres_execution.py",
     "src/storage/postgres/deterministic_admission_execution.py",
     "src/storage/postgres/distributed_semantic_execution.py",
+    "src/storage/postgres/numeric_hierarchy_planner.py",
+    "src/storage/postgres/numeric_hyperfabric_store.py",
+    "src/storage/postgres/numeric_symbol_store.py",
+    "src/storage/postgres/spacy_numeric_projection.py",
     "src/storage/postgres/spacy_parser_model.py",
     "src/storage/postgres/spacy_parser_store.py",
     "src/storage/postgres/streaming_spacy_execution.py",
     "src/storage/postgres/typed_execution_pool.py",
     "src/storage/postgres/typed_value_store.py",
+    "scripts/audit_numeric_hyperfabric_authority.py",
     "scripts/run_durable_coordinator_kill_probe.py",
     "scripts/run_post_closure_probe.py",
 }
 AUTHORITY_PREFIXES = tuple(
     f"database/postgres_migrations/{ordinal:03d}_"
-    for ordinal in range(32, 40)
+    for ordinal in range(32, 49)
 )
 
 JSON_MODULES = {"json", "orjson", "ujson", "simplejson"}
