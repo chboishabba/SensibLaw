@@ -2,7 +2,8 @@ BEGIN;
 
 -- Adjacent scales are overlapping execution fibres, not replacement parents.
 -- The canonical sentence/paragraph containment spine remains unchanged; each
--- pair receives its own region, membership edges and fenced work item.
+-- pair receives its own parentless region, membership edges, a support edge to
+-- the canonical parent, and a fenced work item.
 CREATE OR REPLACE FUNCTION execution.ensure_numeric_pnf_adjacent_pair(
     selected_left_region_id BIGINT,
     selected_right_region_id BIGINT,
@@ -71,14 +72,14 @@ BEGIN
         left_region.start_char,
         right_region.end_char,
         left_region.sequence_no,
-        left_region.parent_region_id,
+        NULL,
         1,
         FALSE
     )
     ON CONFLICT (
         run_ref, document_ref, region_kind, start_char, end_char
     ) DO UPDATE SET
-        parent_region_id = EXCLUDED.parent_region_id
+        parent_region_id = NULL
     RETURNING region_id INTO pair_region_id;
 
     INSERT INTO execution.semantic_pnf_region_edge
@@ -89,9 +90,11 @@ BEGIN
         (left_region.region_id, right_region.region_id, 2, 0)
     ON CONFLICT DO NOTHING;
 
+    -- The support edge records where the fibre may contribute without making it
+    -- a canonical child and without letting parent closure double-count it.
     INSERT INTO execution.semantic_pnf_region_edge
         (source_region_id, target_region_id, edge_kind, ordinal)
-    SELECT pair_region_id, left_region.parent_region_id, 1, left_region.sequence_no
+    SELECT pair_region_id, left_region.parent_region_id, 5, left_region.sequence_no
      WHERE left_region.parent_region_id IS NOT NULL
     ON CONFLICT DO NOTHING;
 
@@ -161,7 +164,7 @@ BEGIN
             right_id := sibling.region_id;
         END IF;
 
-        -- Only immediate authored neighbours are admitted.  A third region may
+        -- Only immediate authored neighbours are admitted. A third region may
         -- lie between geometrically separated siblings even if both are closed.
         IF NOT EXISTS (
             SELECT 1
