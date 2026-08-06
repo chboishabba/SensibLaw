@@ -1,4 +1,4 @@
-"""Bounded MDL planning over compact numeric PNF interface sketches."""
+"""Bounded MDL planning over exact numeric PNF interface sketches."""
 
 from __future__ import annotations
 
@@ -8,7 +8,6 @@ from typing import Any, Sequence
 
 from src.pnf.numeric_hyperfabric import (
     ClosureState,
-    ExportKind,
     MdlProfile,
     RegionEdgeKind,
     RegionKind,
@@ -18,6 +17,31 @@ from src.pnf.numeric_hyperfabric import (
 )
 from src.storage.postgres import numeric_hyperfabric_store as store
 from src.storage.postgres.spacy_parser_model import connect
+
+
+DEFAULT_INTERFACE_KEY_BUDGET = 4_096
+_FINGERPRINT_MASK = (1 << 64) - 1
+_FINGERPRINT_MULTIPLIER = 1_099_511_628_211
+
+
+class InterfaceSketchBudgetExceeded(RuntimeError):
+    """An exact interface sketch exceeded its configured proof budget."""
+
+
+def _bounded_union(
+    left: frozenset[tuple[int, int]],
+    right: frozenset[tuple[int, int]],
+    *,
+    budget: int,
+    key_family: str,
+) -> frozenset[tuple[int, int]]:
+    joined = left | right
+    if len(joined) > budget:
+        raise InterfaceSketchBudgetExceeded(
+            f"{key_family} interface keys exceed exact budget {budget}: "
+            f"{len(joined)}"
+        )
+    return joined
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,20 +57,53 @@ class InterfaceSketch:
     edge_count: int
     encoded_byte_count: int
     closure_rounds: int
+    key_budget: int = DEFAULT_INTERFACE_KEY_BUDGET
+
+    def __post_init__(self) -> None:
+        if self.key_budget < 1:
+            raise ValueError("interface sketch key budget must be positive")
+        for family, keys in (
+            ("object", self.object_keys),
+            ("factor", self.factor_keys),
+            ("demand", self.demand_keys),
+        ):
+            if len(keys) > self.key_budget:
+                raise InterfaceSketchBudgetExceeded(
+                    f"{family} interface keys exceed exact budget "
+                    f"{self.key_budget}: {len(keys)}"
+                )
 
     def join(self, other: "InterfaceSketch") -> "InterfaceSketch":
+        if self.key_budget != other.key_budget:
+            raise ValueError("joined interface sketches must share one key budget")
         return InterfaceSketch(
             region_id=self.region_id,
             interface_id=self.interface_id,
             sequence_no=min(self.sequence_no, other.sequence_no),
             start_char=min(self.start_char, other.start_char),
             end_char=max(self.end_char, other.end_char),
-            object_keys=self.object_keys | other.object_keys,
-            factor_keys=self.factor_keys | other.factor_keys,
-            demand_keys=self.demand_keys | other.demand_keys,
+            object_keys=_bounded_union(
+                self.object_keys,
+                other.object_keys,
+                budget=self.key_budget,
+                key_family="object",
+            ),
+            factor_keys=_bounded_union(
+                self.factor_keys,
+                other.factor_keys,
+                budget=self.key_budget,
+                key_family="factor",
+            ),
+            demand_keys=_bounded_union(
+                self.demand_keys,
+                other.demand_keys,
+                budget=self.key_budget,
+                key_family="demand",
+            ),
             edge_count=self.edge_count + other.edge_count,
             encoded_byte_count=self.encoded_byte_count + other.encoded_byte_count,
             closure_rounds=max(self.closure_rounds, other.closure_rounds),
+            key_budget=self.key_budget,
         )
 
     def measure(
@@ -94,6 +151,33 @@ class SketchSegmentation:
     total_cost: float
     evaluated_candidates: int
     asymptotic_bound: int
+    exact_key_budget: int
+    exact_work_bound: int
+
+
+@dataclass(frozen=True, slots=True)
+class _SketchState:
+    total_cost: float
+    segment: PlannedSegment | None
+    previous: "_SketchState | None"
+    segment_count: int
+    path_fingerprint: int
+    serial: int
+
+
+def _extend_fingerprint(previous: int, *, start: int, end: int) -> int:
+    segment_code = ((start & 0xFFFFFFFF) << 32) | (end & 0xFFFFFFFF)
+    return ((previous * _FINGERPRINT_MULTIPLIER) ^ segment_code) & _FINGERPRINT_MASK
+
+
+def _unwind_planned_segments(state: _SketchState) -> tuple[PlannedSegment, ...]:
+    segments: list[PlannedSegment] = []
+    current: _SketchState | None = state
+    while current is not None and current.segment is not None:
+        segments.append(current.segment)
+        current = current.previous
+    segments.reverse()
+    return tuple(segments)
 
 
 def plan_interface_segments(
@@ -101,26 +185,45 @@ def plan_interface_segments(
     *,
     profile: MdlProfile,
 ) -> SketchSegmentation:
-    """Windowed beam DP over incrementally joined interface sketches.
+    """Windowed beam DP with bounded exact sketches and backpointers.
 
-    Candidate construction is O(N * W * B) for fixed-width compact sketches.
-    The cost is the reduced parent interface, not the sum of raw descendant
-    graph populations, so recurrence and boundary discharge can justify merges.
+    Candidate-state work is bounded by ``N * W * B`` and retained DP state by
+    ``N * B``. Exact set-union work is bounded by ``N * W * 3C`` for the object,
+    factor and demand key families. The runtime fails closed rather than
+    truncating keys when a sketch exceeds the configured budget ``C``.
     """
 
     if not sketches:
-        return SketchSegmentation((), 0.0, 0, 0)
+        return SketchSegmentation(
+            segments=(),
+            total_cost=0.0,
+            evaluated_candidates=0,
+            asymptotic_bound=0,
+            exact_key_budget=DEFAULT_INTERFACE_KEY_BUDGET,
+            exact_work_bound=0,
+        )
     n = len(sketches)
     window = min(profile.max_window, n)
     beam = profile.beam_width
-    paths: list[list[tuple[float, tuple[PlannedSegment, ...]]]] = [
-        [] for _ in range(n + 1)
-    ]
-    paths[0] = [(0.0, ())]
+    key_budget = sketches[0].key_budget
+    if any(sketch.key_budget != key_budget for sketch in sketches):
+        raise ValueError("all planned interface sketches must share one key budget")
+
+    root = _SketchState(
+        total_cost=0.0,
+        segment=None,
+        previous=None,
+        segment_count=0,
+        path_fingerprint=0,
+        serial=0,
+    )
+    paths: list[list[_SketchState]] = [[] for _ in range(n + 1)]
+    paths[0] = [root]
     evaluations = 0
+    serial = 1
 
     for end in range(1, n + 1):
-        candidates: list[tuple[float, tuple[PlannedSegment, ...]]] = []
+        candidates: list[_SketchState] = []
         aggregate: InterfaceSketch | None = None
         raw_demand_count = 0
         for start in range(end - 1, max(-1, end - window - 1), -1):
@@ -138,26 +241,42 @@ def plan_interface_segments(
             if not isfinite(local_cost):
                 raise ValueError("interface-sketch MDL cost must be finite")
             segment = PlannedSegment(start, end, local_cost, measure)
-            for prior_cost, prior_segments in paths[start][:beam]:
+            for prior in paths[start][:beam]:
                 candidates.append(
-                    (prior_cost + local_cost, (*prior_segments, segment))
+                    _SketchState(
+                        total_cost=prior.total_cost + local_cost,
+                        segment=segment,
+                        previous=prior,
+                        segment_count=prior.segment_count + 1,
+                        path_fingerprint=_extend_fingerprint(
+                            prior.path_fingerprint,
+                            start=start,
+                            end=end,
+                        ),
+                        serial=serial,
+                    )
                 )
+                serial += 1
                 evaluations += 1
         candidates.sort(
-            key=lambda row: (
-                row[0],
-                len(row[1]),
-                tuple((segment.start, segment.end) for segment in row[1]),
+            key=lambda state: (
+                state.total_cost,
+                state.segment_count,
+                state.segment.start if state.segment is not None else -1,
+                state.path_fingerprint,
+                state.serial,
             )
         )
         paths[end] = candidates[:beam]
 
-    total_cost, segments = paths[n][0]
+    best = paths[n][0]
     return SketchSegmentation(
-        segments=segments,
-        total_cost=total_cost,
+        segments=_unwind_planned_segments(best),
+        total_cost=best.total_cost,
         evaluated_candidates=evaluations,
         asymptotic_bound=n * window * beam,
+        exact_key_budget=key_budget,
+        exact_work_bound=n * window * ((3 * key_budget) + beam),
     )
 
 
@@ -166,7 +285,10 @@ def _load_paragraph_sketches(
     *,
     run_ref: str,
     document_ref: str,
+    key_budget: int = DEFAULT_INTERFACE_KEY_BUDGET,
 ) -> tuple[InterfaceSketch, ...]:
+    if key_budget < 1:
+        raise ValueError("interface sketch key budget must be positive")
     cursor.execute(
         """
         SELECT region.region_id,
@@ -188,34 +310,50 @@ def _load_paragraph_sketches(
         (run_ref, document_ref, int(RegionKind.PARAGRAPH)),
     )
     base_rows = tuple(cursor.fetchall())
+    if not base_rows:
+        return ()
+
+    interface_ids = tuple(int(row[1]) for row in base_rows)
+    keys_by_interface: dict[
+        int,
+        tuple[
+            set[tuple[int, int]],
+            set[tuple[int, int]],
+            set[tuple[int, int]],
+        ],
+    ] = {
+        interface_id: (set(), set(), set()) for interface_id in interface_ids
+    }
+    cursor.execute(
+        """
+        SELECT export.interface_id,
+               export.target_kind,
+               COALESCE(export.key_symbol_id, 0),
+               COALESCE(export.residual_type_symbol_id, 0)
+          FROM execution.semantic_pnf_interface_export AS export
+         WHERE export.interface_id = ANY(%s)
+         ORDER BY export.interface_id,
+                  export.target_kind,
+                  export.key_symbol_id,
+                  export.residual_type_symbol_id,
+                  export.target_id
+        """,
+        (list(interface_ids),),
+    )
+    for interface_id, target_kind, key_symbol_id, residual_id in cursor.fetchall():
+        object_keys, factor_keys, demand_keys = keys_by_interface[int(interface_id)]
+        key = (int(key_symbol_id), int(residual_id))
+        if int(target_kind) == int(TargetKind.OBJECT):
+            object_keys.add(key)
+        elif int(target_kind) == int(TargetKind.FACTOR):
+            factor_keys.add(key)
+        elif int(target_kind) == int(TargetKind.DEMAND):
+            demand_keys.add(key)
+
     sketches: list[InterfaceSketch] = []
     for row in base_rows:
         interface_id = int(row[1])
-        cursor.execute(
-            """
-            SELECT export.target_kind,
-                   COALESCE(export.key_symbol_id, 0),
-                   COALESCE(export.residual_type_symbol_id, 0)
-              FROM execution.semantic_pnf_interface_export AS export
-             WHERE export.interface_id = %s
-             ORDER BY export.target_kind,
-                      export.key_symbol_id,
-                      export.residual_type_symbol_id,
-                      export.target_id
-            """,
-            (interface_id,),
-        )
-        object_keys: set[tuple[int, int]] = set()
-        factor_keys: set[tuple[int, int]] = set()
-        demand_keys: set[tuple[int, int]] = set()
-        for target_kind, key_symbol_id, residual_id in cursor.fetchall():
-            key = (int(key_symbol_id), int(residual_id))
-            if int(target_kind) == int(TargetKind.OBJECT):
-                object_keys.add(key)
-            elif int(target_kind) == int(TargetKind.FACTOR):
-                factor_keys.add(key)
-            elif int(target_kind) == int(TargetKind.DEMAND):
-                demand_keys.add(key)
+        object_keys, factor_keys, demand_keys = keys_by_interface[interface_id]
         sketches.append(
             InterfaceSketch(
                 region_id=int(row[0]),
@@ -229,6 +367,7 @@ def _load_paragraph_sketches(
                 edge_count=int(row[5]),
                 encoded_byte_count=int(row[6]),
                 closure_rounds=int(row[7]),
+                key_budget=key_budget,
             )
         )
     return tuple(sketches)
@@ -257,7 +396,7 @@ def _refresh_reductive_measure(
             interface_id,
         ),
     )
-    total, object_count, factor_count, demand_count = (
+    total, object_count, _factor_count, demand_count = (
         int(value) for value in cursor.fetchone()
     )
     cursor.execute(
@@ -316,9 +455,12 @@ def materialize_numeric_document_hierarchy(
     *,
     run_ref: str,
     document_ref: str,
+    interface_key_budget: int = DEFAULT_INTERFACE_KEY_BUDGET,
 ) -> store.HierarchySummary:
     """Close authored paragraphs, adaptive blocks, and the document interface."""
 
+    if interface_key_budget < 1:
+        raise ValueError("interface sketch key budget must be positive")
     connection = connect(database_url)
     try:
         with connection.transaction():
@@ -391,6 +533,7 @@ def materialize_numeric_document_hierarchy(
                     cursor,
                     run_ref=run_ref,
                     document_ref=document_ref,
+                    key_budget=interface_key_budget,
                 )
                 segmentation = plan_interface_segments(sketches, profile=profile)
                 cursor.execute(
@@ -529,7 +672,9 @@ def materialize_numeric_document_hierarchy(
 
 
 __all__ = [
+    "DEFAULT_INTERFACE_KEY_BUDGET",
     "InterfaceSketch",
+    "InterfaceSketchBudgetExceeded",
     "PlannedSegment",
     "SketchSegmentation",
     "materialize_numeric_document_hierarchy",
