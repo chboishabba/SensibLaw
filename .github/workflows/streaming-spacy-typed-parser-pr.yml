@@ -13,16 +13,14 @@ on:
       - "src/storage/postgres/streaming_spacy_execution.py"
       - "database/postgres_migrations/038_*.sql"
       - "database/postgres_migrations/039_*.sql"
-      - "database/postgres_migrations/040_*.sql"
-      - "database/postgres_migrations/041_*.sql"
-      - "database/postgres_migrations/042_*.sql"
-      - "database/postgres_migrations/043_*.sql"
+      - "database/postgres_migrations/04[0-8]_*.sql"
       - "tests/pnf/test_numeric_*.py"
       - "tests/storage/test_numeric_*.py"
       - "tests/storage/test_streaming_spacy_*.py"
       - "tests/policy/test_streaming_spacy_parser_execution.py"
       - "tests/architecture/test_no_json_execution_authority.py"
       - "scripts/audit_json_sin_bin.py"
+      - "scripts/audit_numeric_hyperfabric_authority.py"
       - "docs/architecture/JSON_SIN_BIN.md"
       - ".github/workflows/streaming-spacy-typed-parser-pr.yml"
 
@@ -59,7 +57,8 @@ jobs:
             src/storage/postgres/spacy_parser_model.py \
             src/storage/postgres/spacy_parser_store.py \
             src/storage/postgres/streaming_spacy_execution.py \
-            scripts/audit_json_sin_bin.py
+            scripts/audit_json_sin_bin.py \
+            scripts/audit_numeric_hyperfabric_authority.py
 
       - name: Ruff lint and formatting
         run: |
@@ -77,6 +76,7 @@ jobs:
             src/storage/postgres/spacy_parser_store.py
             src/storage/postgres/streaming_spacy_execution.py
             scripts/audit_json_sin_bin.py
+            scripts/audit_numeric_hyperfabric_authority.py
             tests/architecture/test_no_json_execution_authority.py
             tests/pnf/test_numeric_hyperfabric.py
             tests/pnf/test_numeric_operator_composition.py
@@ -89,11 +89,12 @@ jobs:
           uv run ruff check "${files[@]}"
           uv run ruff format --check "${files[@]}"
 
-      - name: No-JSON authority and unit tests
+      - name: No-JSON and numeric authority tests
         run: |
           uv run python scripts/audit_json_sin_bin.py \
             --write .tmp/STREAMING_SPACY_JSON_SIN_BIN.md \
             --check-authority
+          uv run python scripts/audit_numeric_hyperfabric_authority.py
           uv run pytest -q \
             tests/architecture/test_no_json_execution_authority.py \
             tests/pnf/test_numeric_hyperfabric.py \
