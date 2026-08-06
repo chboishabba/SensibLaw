@@ -21,6 +21,9 @@ from src.storage.postgres.spacy_parser_model import (
     typed_ref,
     write_source,
 )
+from src.storage.postgres.spacy_parser_registration import (
+    register_or_reuse_execution,
+)
 from src.storage.postgres.spacy_parser_store import (
     commit_doc,
     execution_state,
@@ -28,7 +31,6 @@ from src.storage.postgres.spacy_parser_store import (
     fail_partition,
     lease_partitions,
     recover_expired,
-    register_execution,
 )
 
 
@@ -188,7 +190,7 @@ def run_streaming_spacy_execution(
         document_ref,
         source_digest,
     )
-    partitions = build_structural_partitions(
+    proposed_partitions = build_structural_partitions(
         run_ref=run_ref,
         document_ref=document_ref,
         source_ref=source_ref,
@@ -197,7 +199,7 @@ def run_streaming_spacy_execution(
         canonical_text=canonical_text,
         policy=policy,
     )
-    register_execution(
+    register_or_reuse_execution(
         database_url,
         run_ref=run_ref,
         document_ref=document_ref,
@@ -207,7 +209,7 @@ def run_streaming_spacy_execution(
         source_bytes=source_bytes,
         source_chars=len(canonical_text),
         parser_contract_ref=parser_contract_ref,
-        partitions=partitions,
+        proposed_partitions=proposed_partitions,
     )
     state, ready, leased, failed = execution_state(
         database_url,
