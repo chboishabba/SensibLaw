@@ -1,13 +1,11 @@
 from pathlib import Path
 
 
-MIGRATIONS = (
-    Path("database/postgres_migrations/040_numeric_pnf_hyperfabric.sql"),
-    Path("database/postgres_migrations/041_numeric_parser_sentence_links.sql"),
-    Path(
-        "database/postgres_migrations/"
-        "042_numeric_parser_sentence_link_trigger.sql"
-    ),
+MIGRATION_ROOT = Path("database/postgres_migrations")
+MIGRATIONS = tuple(
+    path
+    for ordinal in range(40, 49)
+    for path in sorted(MIGRATION_ROOT.glob(f"{ordinal:03d}_*.sql"))
 )
 
 
@@ -16,6 +14,7 @@ def _source() -> str:
 
 
 def test_numeric_hyperfabric_schema_contains_no_json_authority() -> None:
+    assert len(MIGRATIONS) == 9
     source = _source().casefold()
     assert " json " not in source
     assert " jsonb" not in source
@@ -62,6 +61,22 @@ def test_numeric_parser_representation_excludes_legacy_text_refs() -> None:
     ):
         assert legacy_column in source
     assert "assign_numeric_parser_sentence_id" in source
+
+
+def test_hierarchy_is_reductive_indexed_and_demand_driven() -> None:
+    source = _source()
+    for required in (
+        "admit_numeric_pnf_interface_export",
+        "promotion_threshold",
+        "derive_numeric_sentence_mentions",
+        "derive_numeric_region_recurrence",
+        "semantic_pnf_recurrence_group",
+        "semantic_pnf_demand_candidate",
+        "plan_numeric_pnf_demand_candidates",
+        "semantic_pnf_visible_demand_planning",
+        "rebuild_pnf_document_ancestors",
+    ):
+        assert required in source
 
 
 def test_old_decorative_parser_work_triggers_are_removed() -> None:
