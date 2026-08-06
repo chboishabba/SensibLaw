@@ -9,6 +9,33 @@ ALTER TABLE execution.semantic_parser_token
     ON DELETE RESTRICT
     DEFERRABLE INITIALLY DEFERRED;
 
+CREATE OR REPLACE FUNCTION execution.assign_parser_repair_sequence()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NEW.partition_kind <> 'boundary_repair' THEN
+        RETURN NEW;
+    END IF;
+    PERFORM pg_advisory_xact_lock(
+        hashtextextended(NEW.run_ref || E'\x1f' || NEW.document_ref, 0)
+    );
+    SELECT coalesce(max(partition.sequence_no), -1) + 1
+      INTO NEW.sequence_no
+      FROM execution.semantic_parser_partition AS partition
+     WHERE partition.run_ref = NEW.run_ref
+       AND partition.document_ref = NEW.document_ref;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS semantic_parser_repair_sequence
+    ON execution.semantic_parser_partition;
+CREATE TRIGGER semantic_parser_repair_sequence
+BEFORE INSERT ON execution.semantic_parser_partition
+FOR EACH ROW
+EXECUTE FUNCTION execution.assign_parser_repair_sequence();
+
 CREATE OR REPLACE FUNCTION execution.validate_parser_boundary_resolution()
 RETURNS trigger
 LANGUAGE plpgsql
