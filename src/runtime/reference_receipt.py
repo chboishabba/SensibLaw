@@ -1,8 +1,9 @@
 """Reference-backed receipt persistence without text serialization.
 
 Specs, compact receipts, reports, and family rows use framed protocol-5 binary
-artifacts.  Semantic identity is always computed from typed canonical bytes;
-the artifact codec is only a bounded local handoff between fresh processes.
+artifacts. Semantic identity is computed from typed canonical bytes, while raw
+artifact bytes receive an independent SHA-256 so readers can verify them before
+decode. The artifact codec is only a bounded local handoff between processes.
 """
 
 from __future__ import annotations
@@ -23,9 +24,9 @@ from src.policy.carriers.canonical import canonical_bytes
 from src.runtime.execution_resource_ledger import sample_process_resources
 
 
-REFERENCE_RECEIPT_SCHEMA_VERSION = "sensiblaw.reference-receipt.v2"
-SERIALIZER_REPORT_SCHEMA_VERSION = "sensiblaw.reference-serializer-report.v2"
-BINARY_RECEIPT_ENCODING = "python-pickle:5+itir-typed-digest:v1"
+REFERENCE_RECEIPT_SCHEMA_VERSION = "sensiblaw.reference-receipt.v3"
+SERIALIZER_REPORT_SCHEMA_VERSION = "sensiblaw.reference-serializer-report.v3"
+BINARY_RECEIPT_ENCODING = "python-pickle:5+sha256+itir-typed-digest:v1"
 
 
 def atomic_write_binary(path: str | Path, payload: Mapping[str, Any]) -> int:
@@ -51,7 +52,8 @@ def stream_binary_family(
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary = target.with_suffix(target.suffix + ".tmp")
-    digest = sha256()
+    semantic_digest = sha256()
+    artifact_digest = sha256()
     count = 0
     semantic_byte_count = 0
     artifact_byte_count = 0
@@ -59,13 +61,15 @@ def stream_binary_family(
         for row in rows:
             value = dict(row)
             encoded = pickle.dumps(value, protocol=5)
-            handle.write(len(encoded).to_bytes(8, "big"))
-            handle.write(encoded)
-            artifact_byte_count += 8 + len(encoded)
+            frame = len(encoded).to_bytes(8, "big") + encoded
+            handle.write(frame)
+            artifact_digest.update(frame)
+            artifact_byte_count += len(frame)
+
             semantic = canonical_bytes(value)
-            frame = len(semantic).to_bytes(8, "big") + semantic
-            digest.update(frame)
-            semantic_byte_count += len(frame)
+            semantic_frame = len(semantic).to_bytes(8, "big") + semantic
+            semantic_digest.update(semantic_frame)
+            semantic_byte_count += len(semantic_frame)
             count += 1
         handle.flush()
         os.fsync(handle.fileno())
@@ -76,7 +80,8 @@ def stream_binary_family(
         record_count=count,
         byte_count=semantic_byte_count,
         artifact_byte_count=artifact_byte_count,
-        ordered_digest=digest.hexdigest(),
+        artifact_digest=artifact_digest.hexdigest(),
+        ordered_digest=semantic_digest.hexdigest(),
         path=str(target),
         manifest_ref=manifest_ref,
         encoding_ref=BINARY_FAMILY_ENCODING,
