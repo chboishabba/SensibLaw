@@ -1,6 +1,8 @@
 name: Streamed numeric spaCy and PNF validation
 
 on:
+  push:
+    branches: [agent/streaming-spacy-typed-parser]
   pull_request:
     branches: [agent/no-json-typed-execution]
     paths:
@@ -29,7 +31,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: streamed-numeric-spacy-pnf-${{ github.event.pull_request.number }}
+  group: streamed-numeric-spacy-pnf-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -42,7 +44,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Compile numeric parser and PNF surfaces
         run: |
