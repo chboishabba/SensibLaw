@@ -5,6 +5,7 @@ from __future__ import annotations
 import ctypes
 import gc
 import importlib
+import os
 from threading import Lock
 from types import ModuleType
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional
@@ -47,18 +48,44 @@ def _ensure_lemmatizer(nlp: "Language") -> None:
             nlp.remove_pipe("lemmatizer")
 
 
-def _load_pipeline(*, include_entities: bool) -> "Language":
+def _require_syntax_pipeline(nlp: "Language", *, model_name: str) -> None:
+    pipe_names = tuple(nlp.pipe_names)
+    missing: list[str] = []
+    if "parser" not in pipe_names:
+        missing.append("parser")
+    if not any(name in pipe_names for name in ("tagger", "morphologizer")):
+        missing.append("tagger-or-morphologizer")
+    if missing:
+        raise RuntimeError(
+            f"strict streaming spaCy model {model_name!r} lacks required "
+            f"components: {', '.join(missing)}"
+        )
+
+
+def _load_pipeline(
+    *,
+    include_entities: bool,
+    require_syntax: bool = False,
+) -> "Language":
     spacy = _import_spacy()
+    model_name = os.environ.get("SENSIBLAW_SPACY_MODEL", "en_core_web_sm")
     try:
         nlp = (
-            spacy.load("en_core_web_sm")
+            spacy.load(model_name)
             if include_entities
-            else spacy.load("en_core_web_sm", disable=["ner"])
+            else spacy.load(model_name, disable=["ner"])
         )
-    except OSError:
+    except OSError as error:
+        if require_syntax:
+            raise RuntimeError(
+                "strict streamed numeric PNF requires an installed "
+                f"syntax-capable spaCy model; could not load {model_name!r}"
+            ) from error
         nlp = spacy.blank("en")
     _ensure_sentence_boundaries(nlp)
     _ensure_lemmatizer(nlp)
+    if require_syntax:
+        _require_syntax_pipeline(nlp, model_name=model_name)
     return nlp
 
 
@@ -75,11 +102,12 @@ def get_default_nlp() -> "Language":
 
 
 def get_streaming_nlp() -> "Language":
-    """Return one full pipeline per parser worker process.
+    """Return one syntax-capable pipeline per parser worker process.
 
     The caller feeds bounded partitions through ``Language.pipe`` with
-    ``n_process=1``.  Process-level parallelism remains under PostgreSQL lease
-    control rather than being nested inside spaCy.
+    ``n_process=1``. Process-level parallelism remains under PostgreSQL lease
+    control rather than being nested inside spaCy. Unlike the compatibility
+    parser, strict execution never degrades to a blank tokenizer-only pipeline.
     """
 
     global _STREAMING_NLP
@@ -87,7 +115,10 @@ def get_streaming_nlp() -> "Language":
         return _STREAMING_NLP
     with _NLP_LOCK:
         if _STREAMING_NLP is None:
-            _STREAMING_NLP = _load_pipeline(include_entities=True)
+            _STREAMING_NLP = _load_pipeline(
+                include_entities=True,
+                require_syntax=True,
+            )
         return _STREAMING_NLP
 
 
