@@ -18,6 +18,7 @@ AUTHORITY_PYTHON = (
     "src/runtime/durable_work_items.py",
     "src/runtime/reference_receipt.py",
     "src/runtime/strict_postgres_execution.py",
+    "src/storage/postgres/deterministic_admission_execution.py",
     "src/storage/postgres/distributed_semantic_execution.py",
     "src/storage/postgres/typed_execution_pool.py",
     "src/storage/postgres/typed_value_store.py",
