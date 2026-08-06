@@ -1,7 +1,7 @@
 """Numeric multiscale PNF hyperfabric algebra.
 
 The immutable evidence ledger may grow, but every promoted interface is a
-smaller, denser numeric carrier. Strings are interned exactly once at the
+smaller, denser numeric carrier.  Strings are interned exactly once at the
 parser/database boundary; graph identity, promotion, segmentation, lookup,
 and provenance operate on integers and fixed-width digests.
 """
@@ -142,7 +142,7 @@ class KeyKind(IntEnum):
 def _encode_numeric(value: object) -> bytes:
     """Canonical binary encoding for numeric graph identity.
 
-    Text is deliberately rejected. Lexical text must first be interned into a
+    Text is deliberately rejected.  Lexical text must first be interned into a
     corpus-wide symbol id; only the resulting integer belongs in graph identity.
     """
 
@@ -405,13 +405,6 @@ class SegmentationResult:
     asymptotic_bound: int
 
 
-def _prefix_join(measures: Sequence[RegionMeasure], start: int, end: int) -> RegionMeasure:
-    aggregate = measures[start]
-    for index in range(start + 1, end):
-        aggregate = aggregate.join(measures[index])
-    return aggregate
-
-
 def bounded_segmentation(
     measures: Sequence[RegionMeasure],
     *,
@@ -422,7 +415,8 @@ def bounded_segmentation(
     """Windowed beam dynamic programming.
 
     Runtime is O(N * W * B) and therefore O(N) for fixed window ``W`` and beam
-    width ``B``. It never considers arbitrary book-wide interval pairs.
+    width ``B``.  Each candidate interval aggregate is extended by one region;
+    no interval is rescanned and no arbitrary book-wide pair is considered.
     """
 
     if not measures:
@@ -436,8 +430,13 @@ def bounded_segmentation(
 
     for end in range(1, n + 1):
         candidates: list[tuple[float, tuple[Segment, ...]]] = []
-        for start in range(max(0, end - window), end):
-            aggregate = _prefix_join(measures, start, end)
+        aggregate: RegionMeasure | None = None
+        for start in range(end - 1, max(-1, end - window - 1), -1):
+            aggregate = (
+                measures[start]
+                if aggregate is None
+                else measures[start].join(aggregate)
+            )
             local_cost = description_length(aggregate, profile)
             if reconcile_cost is not None:
                 extra = reconcile_cost(start, end, aggregate)
@@ -451,7 +450,9 @@ def bounded_segmentation(
                 local_cost += penalty
             segment = Segment(start=start, end=end, measure=aggregate, cost=local_cost)
             for prior_cost, prior_segments in paths[start][:beam]:
-                candidates.append((prior_cost + local_cost, (*prior_segments, segment)))
+                candidates.append(
+                    (prior_cost + local_cost, (*prior_segments, segment))
+                )
                 evaluations += 1
         candidates.sort(
             key=lambda item: (
