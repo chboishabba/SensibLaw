@@ -11,10 +11,12 @@ from time import monotonic_ns
 from typing import Any, Callable, Mapping
 
 from src.runtime.durable_work_items import linux_parent_death_initializer
+from src.storage.postgres.numeric_hierarchy_planner import (
+    materialize_numeric_document_hierarchy,
+)
 from src.storage.postgres.numeric_hyperfabric_store import (
     drain_sentence_closure,
     hyperfabric_counts,
-    materialize_document_hierarchy,
     register_authored_hierarchy,
 )
 from src.storage.postgres.spacy_numeric_projection import commit_numeric_doc
@@ -319,7 +321,7 @@ def run_streaming_spacy_execution(
             raise RuntimeError("parser execution exceeded bounded scheduling rounds")
 
     _drain_remaining_sentence_closure(database_url, run_ref=run_ref)
-    hierarchy = materialize_document_hierarchy(
+    hierarchy = materialize_numeric_document_hierarchy(
         database_url,
         run_ref=run_ref,
         document_ref=document_ref,
