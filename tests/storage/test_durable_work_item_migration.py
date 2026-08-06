@@ -19,6 +19,12 @@ MIGRATION_036 = (
     / "postgres_migrations"
     / "036_harden_execution_blob_rejection.sql"
 )
+MIGRATION_037 = (
+    ROOT
+    / "database"
+    / "postgres_migrations"
+    / "037_deterministic_computed_delta_admission.sql"
+)
 
 
 def test_durable_work_tables_are_declared() -> None:
@@ -109,3 +115,13 @@ def test_legacy_empty_blob_defaults_are_removed() -> None:
     assert "detail DROP DEFAULT" in sql
     assert "semantic_worker_receipt" in sql
     assert "payload DROP DEFAULT" in sql
+
+
+def test_computed_results_are_staged_before_canonical_admission() -> None:
+    sql = MIGRATION_037.read_text(encoding="utf-8")
+    assert "'computed'" in sql
+    assert "resulting_revision DROP NOT NULL" in sql
+    assert "prior_revision DROP NOT NULL" in sql
+    assert "semantic_immutable_delta_one_per_job_idx" in sql
+    assert "semantic_computed_delta_admission_idx" in sql
+    assert "ORDER BY" not in sql  # ordering belongs to the typed runtime query
