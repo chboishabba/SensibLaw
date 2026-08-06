@@ -1,8 +1,9 @@
 """Bounded access to embedded or reference-backed streaming-build families.
 
-Exact documents expose content-addressed framed binary families.  Semantic
-integrity is checked with typed canonical bytes; pickle is used only as the
-bounded local artifact codec and never as execution identity or DB authority.
+Exact documents expose content-addressed framed binary families. Raw artifact
+bytes are verified before any pickle decode; decoded semantic integrity is then
+checked with typed canonical bytes. Pickle is only a bounded local artifact
+codec and never execution identity or database authority.
 """
 
 from __future__ import annotations
@@ -16,10 +17,10 @@ from typing import Any, Callable, Iterable, Iterator, Mapping, Sequence
 from src.policy.carriers.canonical import canonical_bytes
 
 
-FAMILY_DESCRIPTOR_SCHEMA_VERSION = "sensiblaw.streaming-family-descriptor.v2"
-REFERENCE_BUILD_SCHEMA_VERSION = "sensiblaw.reference-streaming-build.v2"
+FAMILY_DESCRIPTOR_SCHEMA_VERSION = "sensiblaw.streaming-family-descriptor.v3"
+REFERENCE_BUILD_SCHEMA_VERSION = "sensiblaw.reference-streaming-build.v3"
 DEFAULT_BATCH_SIZE = 256
-BINARY_FAMILY_ENCODING = "python-pickle-framed:5+itir-typed-digest:v1"
+BINARY_FAMILY_ENCODING = "python-pickle-framed:5+sha256+itir-typed-digest:v1"
 RowSource = Callable[[Mapping[str, Any]], Iterable[Mapping[str, Any]]]
 
 
@@ -51,6 +52,7 @@ def family_descriptor(
     segment_refs: Sequence[str] = (),
     encoding_ref: str = BINARY_FAMILY_ENCODING,
     artifact_byte_count: int | None = None,
+    artifact_digest: str | None = None,
 ) -> dict[str, Any]:
     if record_count < 0 or byte_count < 0:
         raise ValueError("family counts must be non-negative")
@@ -58,6 +60,8 @@ def family_descriptor(
         raise ValueError("unsupported family storage kind")
     if storage_kind == "binary" and not path:
         raise ValueError("binary family descriptor requires a path")
+    if storage_kind == "binary" and not artifact_digest:
+        raise ValueError("binary family descriptor requires an artifact digest")
     if storage_kind != "binary" and not manifest_ref:
         raise ValueError("authoritative family descriptor requires a manifest ref")
     return {
@@ -69,6 +73,7 @@ def family_descriptor(
         "artifact_byte_count": int(
             artifact_byte_count if artifact_byte_count is not None else byte_count
         ),
+        "artifact_digest": artifact_digest,
         "ordered_digest": str(ordered_digest),
         "encoding_ref": str(encoding_ref),
         "path": path,
@@ -80,6 +85,16 @@ def family_descriptor(
 def _semantic_frame(row: Mapping[str, Any]) -> bytes:
     encoded = canonical_bytes(dict(row))
     return len(encoded).to_bytes(8, "big") + encoded
+
+
+def _sha256_file(path: Path) -> tuple[str, int]:
+    digest = sha256()
+    byte_count = 0
+    with path.open("rb") as handle:
+        while chunk := handle.read(1024 * 1024):
+            digest.update(chunk)
+            byte_count += len(chunk)
+    return digest.hexdigest(), byte_count
 
 
 class StreamingBuildReader:
@@ -139,14 +154,29 @@ class StreamingBuildReader:
             raise ValueError("family path escapes its manifest root") from error
         return path
 
+    def _verify_binary_artifact(
+        self,
+        path: Path,
+        descriptor: Mapping[str, Any],
+    ) -> None:
+        observed_digest, observed_bytes = _sha256_file(path)
+        expected_bytes = int(descriptor.get("artifact_byte_count") or 0)
+        expected_digest = str(descriptor.get("artifact_digest") or "")
+        if observed_bytes != expected_bytes:
+            raise ValueError(f"family artifact byte count changed: {path}")
+        if observed_digest != expected_digest:
+            raise ValueError(f"family artifact digest changed: {path}")
+
     def _iter_binary(
         self, descriptor: Mapping[str, Any]
     ) -> Iterator[Mapping[str, Any]]:
         path = self._resolve_path(descriptor)
+        # Verify untrusted artifact bytes before invoking the binary codec.
+        self._verify_binary_artifact(path, descriptor)
+
         digest = sha256()
         count = 0
         semantic_bytes = 0
-        artifact_bytes = 0
         with path.open("rb") as handle:
             while True:
                 length_bytes = handle.read(8)
@@ -158,8 +188,10 @@ class StreamingBuildReader:
                 encoded = handle.read(length)
                 if len(encoded) != length:
                     raise ValueError(f"truncated family frame payload: {path}")
-                artifact_bytes += 8 + length
-                value = pickle.loads(encoded)
+                try:
+                    value = pickle.loads(encoded)
+                except (EOFError, pickle.PickleError, AttributeError, ValueError) as error:
+                    raise ValueError(f"family frame decode failed: {path}") from error
                 if not isinstance(value, Mapping):
                     raise ValueError(f"family row is not a mapping: {path}")
                 row = dict(value)
@@ -172,8 +204,6 @@ class StreamingBuildReader:
             raise ValueError(f"family row count changed: {path}")
         if semantic_bytes != int(descriptor.get("byte_count") or 0):
             raise ValueError(f"family canonical byte count changed: {path}")
-        if artifact_bytes != int(descriptor.get("artifact_byte_count") or 0):
-            raise ValueError(f"family artifact byte count changed: {path}")
         if digest.hexdigest() != str(descriptor.get("ordered_digest") or ""):
             raise ValueError(f"family ordered digest changed: {path}")
 
