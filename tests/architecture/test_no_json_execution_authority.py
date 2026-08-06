@@ -23,6 +23,7 @@ AUTHORITY_PYTHON = (
     "src/runtime/strict_postgres_execution.py",
     "src/storage/postgres/deterministic_admission_execution.py",
     "src/storage/postgres/distributed_semantic_execution.py",
+    "src/storage/postgres/spacy_parser_carrier.py",
     "src/storage/postgres/spacy_parser_model.py",
     "src/storage/postgres/spacy_parser_store.py",
     "src/storage/postgres/streaming_spacy_execution.py",
