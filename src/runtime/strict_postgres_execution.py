@@ -1,31 +1,34 @@
-"""Strict acceptance policy for the PostgreSQL leased execution strategy."""
+"""Strict PostgreSQL execution policy with typed relational authority.
+
+The coordinator schedules references and state transitions only.  It never
+loads, mutates, serializes, or re-hashes semantic manifests.  Stable job input
+lives in typed child relations; revision, lease, and fencing data live in small
+mutable control-plane columns.
+"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-import json
 import os
 from typing import Any, Callable, Iterable, Mapping, Protocol
 
+from src.policy.carriers.canonical import canonical_fields_sha256
+from src.pnf.streaming_fixed_point import SolverReceipt
 from src.runtime.coordinator_lease_guard import (
     CoordinatorLeaseGuard,
     CoordinatorLeaseLost,
 )
+from src.storage.postgres.distributed_semantic_execution import ImmutableJobManifest
+
 
 AUTHORITY_BACKEND = "postgresql"
-STRICT_EXECUTION_CONTRACT = "postgresql-leased-exact-execution:v1"
+STRICT_EXECUTION_CONTRACT = "postgresql-typed-leased-exact-execution:v2"
 
 
 def _execution_module() -> Any:
     from src.storage.postgres import distributed_semantic_execution
 
     return distributed_semantic_execution
-
-
-def _canonical_digest(value: object) -> str:
-    from src.policy.carriers.canonical import canonical_sha256
-
-    return canonical_sha256(value)
 
 
 class StrictExecutionError(RuntimeError):
@@ -46,8 +49,6 @@ class StrictExecutionError(RuntimeError):
 
 
 class StrictWorkerPool(Protocol):
-    """Internal seam for durable strict worker orchestration."""
-
     def run_until_idle(self) -> Mapping[str, Any]: ...
 
 
@@ -65,7 +66,11 @@ class PostgresExecutionContext:
     build_key_sha256: str | None = None
     operation_contract_ref: str | None = None
     round_ordinal: int = 0
-    fixed_point_certificate: Mapping[str, Any] | None = None
+    fixed_point_state: str | None = None
+    fixed_point_round_count: int | None = None
+    fixed_point_zero_change_round: int | None = None
+    fixed_point_owner_revision: int | None = None
+    fixed_point_sha256: str | None = None
 
     @classmethod
     def from_cursor(
@@ -79,7 +84,10 @@ class PostgresExecutionContext:
             """
             SELECT authority_backend, owner_revision, lifecycle, kernel_key,
                    worker_budget, build_key_sha256, operation_contract_ref,
-                   round_ordinal, fixed_point_certificate
+                   round_ordinal, fixed_point_state,
+                   fixed_point_round_count, fixed_point_zero_change_round,
+                   fixed_point_owner_revision,
+                   encode(fixed_point_sha256, 'hex')
             FROM execution.semantic_run
             WHERE run_ref = %s AND document_ref = %s
             """,
@@ -96,7 +104,7 @@ class PostgresExecutionContext:
             SELECT
               (SELECT count(*) FROM execution.semantic_strict_owner_stream WHERE run_ref = %s),
               (SELECT count(*) FROM execution.semantic_closure_job WHERE run_ref = %s),
-              (SELECT count(*) FROM execution.semantic_job_attempt a JOIN execution.semantic_closure_job j USING (job_ref) WHERE j.run_ref = %s),
+              (SELECT count(*) FROM execution.semantic_strict_job_attempt a JOIN execution.semantic_closure_job j USING (job_ref) WHERE j.run_ref = %s),
               (SELECT count(*) FROM execution.semantic_immutable_delta WHERE run_ref = %s),
               (SELECT count(*) FROM execution.semantic_strict_delta_admission WHERE run_ref = %s),
               (SELECT count(*) FROM execution.semantic_finalization_cursor WHERE run_ref = %s),
@@ -125,13 +133,16 @@ class PostgresExecutionContext:
         )
         cursor.execute(
             """
-            SELECT count(*)
+            SELECT
+                count(*) FILTER (WHERE state = 'open'),
+                count(*) FILTER (WHERE state = 'leased'),
+                count(*) FILTER (WHERE state = 'failed')
             FROM execution.semantic_closure_job
-            WHERE run_ref = %s AND state IN ('open', 'leased')
+            WHERE run_ref = %s
             """,
             (run_ref,),
         )
-        open_jobs = int((cursor.fetchone() or (0,))[0])
+        open_count, leased_count, failed_count = cursor.fetchone() or (0, 0, 0)
         return cls(
             run_ref=run_ref,
             document_ref=document_ref,
@@ -139,13 +150,25 @@ class PostgresExecutionContext:
             owner_revision=int(row[1]),
             lifecycle=str(row[2]),
             row_counts=counts,
-            obligations={"open_or_leased_jobs": open_jobs},
+            obligations={
+                "open_jobs": int(open_count or 0),
+                "leased_jobs": int(leased_count or 0),
+                "failed_jobs": int(failed_count or 0),
+            },
             kernel_key=str(row[3]) if row[3] else None,
             worker_budget=int(row[4]) if row[4] is not None else None,
             build_key_sha256=str(row[5]) if row[5] else None,
             operation_contract_ref=str(row[6]) if row[6] else None,
             round_ordinal=int(row[7] or 0),
-            fixed_point_certificate=dict(row[8]) if row[8] else None,
+            fixed_point_state=str(row[8]) if row[8] else None,
+            fixed_point_round_count=int(row[9]) if row[9] is not None else None,
+            fixed_point_zero_change_round=(
+                int(row[10]) if row[10] is not None else None
+            ),
+            fixed_point_owner_revision=(
+                int(row[11]) if row[11] is not None else None
+            ),
+            fixed_point_sha256=str(row[12]) if row[12] else None,
         )
 
 
@@ -171,7 +194,7 @@ def assert_strict_context(context: PostgresExecutionContext) -> None:
             "strict_revision_admission_invalid",
             kernel_key="strict.admission",
         )
-    if context.obligations["open_or_leased_jobs"]:
+    if any(context.obligations.values()):
         raise StrictExecutionError(
             "strict_obligations_unresolved",
             kernel_key="strict.closure_gate",
@@ -186,19 +209,32 @@ def assert_strict_context(context: PostgresExecutionContext) -> None:
             "strict_authority_identity_missing",
             kernel_key="strict.execution_context",
         )
-    if (
-        not context.fixed_point_certificate
-        or context.fixed_point_certificate.get("state") != "reached"
-    ):
+    if context.fixed_point_state != "reached":
         raise StrictExecutionError(
             "strict_fixed_point_incomplete",
+            kernel_key="strict.closure_gate",
+        )
+    if context.fixed_point_owner_revision != context.owner_revision:
+        raise StrictExecutionError(
+            "strict_fixed_point_revision_mismatch",
+            kernel_key="strict.closure_gate",
+        )
+    expected_digest = canonical_fields_sha256(
+        context.run_ref,
+        context.document_ref,
+        context.fixed_point_round_count,
+        context.fixed_point_zero_change_round,
+        context.fixed_point_owner_revision,
+        "reached",
+    )
+    if context.fixed_point_sha256 != expected_digest:
+        raise StrictExecutionError(
+            "strict_fixed_point_digest_mismatch",
             kernel_key="strict.closure_gate",
         )
 
 
 def connect_postgres(database_url: str) -> Any:
-    """Open the strict authority connection without silently falling back."""
-
     if not database_url:
         raise StrictExecutionError(
             "postgresql_authority_missing",
@@ -217,7 +253,7 @@ def connect_postgres(database_url: str) -> Any:
 
 
 class PostgresLeasedExecution:
-    """Execution-only strategy that delegates semantic application to a caller."""
+    """Coordinate process workers through typed PostgreSQL state only."""
 
     def __init__(
         self,
@@ -266,7 +302,15 @@ class PostgresLeasedExecution:
                         UPDATE execution.semantic_run
                         SET build_key_sha256 = %s,
                             operation_contract_ref = %s,
-                            max_rounds = %s
+                            max_rounds = %s,
+                            round_ordinal = 0,
+                            sealed = FALSE,
+                            fixed_point_certificate = NULL,
+                            fixed_point_state = NULL,
+                            fixed_point_round_count = NULL,
+                            fixed_point_zero_change_round = NULL,
+                            fixed_point_owner_revision = NULL,
+                            fixed_point_sha256 = NULL
                         WHERE run_ref = %s
                         """,
                         (
@@ -275,16 +319,6 @@ class PostgresLeasedExecution:
                             self.max_rounds,
                             self.run_ref,
                         ),
-                    )
-                    cursor.execute(
-                        """
-                        UPDATE execution.semantic_run
-                        SET fixed_point_certificate = NULL,
-                            round_ordinal = 0,
-                            sealed = FALSE
-                        WHERE run_ref = %s
-                        """,
-                        (self.run_ref,),
                     )
                     cursor.execute(
                         """
@@ -319,16 +353,14 @@ class PostgresLeasedExecution:
 
     def run_frontier(
         self,
-        manifests: Iterable[Any],
+        manifests: Iterable[ImmutableJobManifest],
         *,
-        execute: Callable[[Any], Mapping[str, Any]],
-        apply: Callable[[Mapping[str, Any], int], None],
+        execute: Callable[[ImmutableJobManifest], Any],
+        apply: Callable[[SolverReceipt, int], None],
         owner_ref: str,
         starting_revision: int = 0,
-        rehydrate: Callable[[Mapping[str, Any]], None] | None = None,
-    ) -> dict[str, int]:
-        """Persist, lease, admit, and deterministically replay one frontier."""
-
+        rehydrate: Callable[[ImmutableJobManifest], None] | None = None,
+    ) -> dict[str, Any]:
         self.begin(owner_ref=owner_ref)
         try:
             with self._coordinator_guard() as coordinator:
@@ -348,31 +380,114 @@ class PostgresLeasedExecution:
                 kernel_key="strict.coordinator",
             ) from error
 
+    def _round_digest(
+        self,
+        *,
+        round_ordinal: int,
+        input_revision: int,
+        output_revision: int,
+        job_count: int,
+        delta_count: int,
+        awakened_count: int,
+        state: str,
+    ) -> bytes:
+        return bytes.fromhex(
+            canonical_fields_sha256(
+                self.run_ref,
+                self.document_ref,
+                round_ordinal,
+                input_revision,
+                output_revision,
+                job_count,
+                delta_count,
+                awakened_count,
+                state,
+            )
+        )
+
+    def _record_round(
+        self,
+        cursor: Any,
+        *,
+        round_ordinal: int,
+        input_revision: int,
+        output_revision: int,
+        job_count: int,
+        delta_count: int,
+        awakened_count: int,
+        state: str,
+    ) -> None:
+        round_ref = f"round:{self.run_ref}:{round_ordinal}"
+        cursor.execute(
+            """
+            INSERT INTO execution.semantic_round_manifest
+                (round_ref, run_ref, document_ref, round_ordinal,
+                 input_owner_revision, output_owner_revision, job_count,
+                 delta_count, changed_owner_count, awakened_job_count,
+                 manifest, manifest_sha256, state)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                    NULL, %s, %s)
+            ON CONFLICT (round_ref) DO UPDATE SET
+                output_owner_revision = EXCLUDED.output_owner_revision,
+                job_count = EXCLUDED.job_count,
+                delta_count = EXCLUDED.delta_count,
+                changed_owner_count = EXCLUDED.changed_owner_count,
+                awakened_job_count = EXCLUDED.awakened_job_count,
+                manifest = NULL,
+                manifest_sha256 = EXCLUDED.manifest_sha256,
+                state = EXCLUDED.state
+            """,
+            (
+                round_ref,
+                self.run_ref,
+                self.document_ref,
+                round_ordinal,
+                input_revision,
+                output_revision,
+                job_count,
+                delta_count,
+                1 if output_revision != input_revision else 0,
+                awakened_count,
+                self._round_digest(
+                    round_ordinal=round_ordinal,
+                    input_revision=input_revision,
+                    output_revision=output_revision,
+                    job_count=job_count,
+                    delta_count=delta_count,
+                    awakened_count=awakened_count,
+                    state=state,
+                ),
+                state,
+            ),
+        )
+
     def _run_frontier_under_lease(
         self,
-        manifests: Iterable[Any],
+        manifests: Iterable[ImmutableJobManifest],
         *,
-        execute: Callable[[Any], Mapping[str, Any]],
-        apply: Callable[[Mapping[str, Any], int], None],
+        execute: Callable[[ImmutableJobManifest], Any],
+        apply: Callable[[SolverReceipt, int], None],
         owner_ref: str,
         starting_revision: int,
-        rehydrate: Callable[[Mapping[str, Any]], None] | None,
+        rehydrate: Callable[[ImmutableJobManifest], None] | None,
         coordinator: CoordinatorLeaseGuard,
-    ) -> dict[str, int]:
+    ) -> dict[str, Any]:
         connection = self.connection_factory()
         try:
             with connection.transaction():
                 with connection.cursor() as cursor:
-                    count = _execution_module().enqueue_canonical_closure_jobs(
+                    enqueued = _execution_module().enqueue_canonical_closure_jobs(
                         cursor,
                         manifests,
                     )
             receipts: dict[str, Any] = {
-                "enqueued": count,
+                "enqueued": enqueued,
                 "accepted": 0,
                 "duplicate": 0,
                 "stale": 0,
                 "workers": self.worker_count,
+                "worker_pids": [],
+                "backend_pids": [],
             }
             pool = _execution_module().ProcessPostgresWorkerPool(
                 database_url=self.database_url,
@@ -380,26 +495,20 @@ class PostgresLeasedExecution:
                 worker_count=self.worker_count,
                 execute=execute,
             )
-            round_ordinal = 0
             current_revision = starting_revision
-            while round_ordinal < self.max_rounds:
+            for round_ordinal in range(1, self.max_rounds + 1):
                 coordinator.assert_current()
-                round_ordinal += 1
+                round_input_revision = current_revision
                 worker_receipt = pool.run_until_idle()
                 coordinator.assert_current()
                 receipts["workers"] = len(worker_receipt["worker_pids"])
-                receipts.setdefault("worker_pids", []).extend(
-                    worker_receipt["worker_pids"]
-                )
-                receipts.setdefault("backend_pids", []).extend(
-                    worker_receipt["backend_pids"]
-                )
+                receipts["worker_pids"].extend(worker_receipt["worker_pids"])
+                receipts["backend_pids"].extend(worker_receipt["backend_pids"])
                 for worker in worker_receipt["receipts"]:
-                    for key in ("accepted", "duplicates", "stale"):
-                        target = key.rstrip("s") if key == "duplicates" else key
-                        receipts[target] = receipts.get(target, 0) + int(
-                            worker.get(key, 0)
-                        )
+                    receipts["accepted"] += int(worker.get("accepted", 0))
+                    receipts["duplicate"] += int(worker.get("duplicates", 0))
+                    receipts["stale"] += int(worker.get("stale", 0))
+
                 with connection.transaction():
                     with connection.cursor() as cursor:
                         replayed = _execution_module().replay_accepted_deltas(
@@ -413,170 +522,105 @@ class PostgresLeasedExecution:
                         current_revision += replayed
                         cursor.execute(
                             """
-                            UPDATE execution.semantic_strict_owner_stream
-                            SET current_revision = %s
+                            SELECT current_revision
+                            FROM execution.semantic_strict_owner_stream
                             WHERE run_ref = %s AND owner_ref = %s
                             """,
-                            (current_revision, self.run_ref, owner_ref),
+                            (self.run_ref, owner_ref),
                         )
+                        owner_row = cursor.fetchone()
+                        if owner_row is None:
+                            raise StrictExecutionError(
+                                "postgresql_authority_missing",
+                                kernel_key="strict.owner_stream",
+                            )
+                        authoritative_revision = int(owner_row[0])
+                        if authoritative_revision != current_revision:
+                            raise StrictExecutionError(
+                                "strict_replay_revision_lag",
+                                diagnostic_path=(
+                                    f"database={authoritative_revision}, "
+                                    f"coordinator={current_revision}"
+                                ),
+                                kernel_key="strict.replay",
+                            )
                         cursor.execute(
                             """
                             UPDATE execution.semantic_run
-                            SET owner_revision = %s
+                            SET owner_revision = %s, round_ordinal = %s
                             WHERE run_ref = %s
                             """,
-                            (current_revision, self.run_ref),
+                            (current_revision, round_ordinal, self.run_ref),
                         )
                         cursor.execute(
                             """
-                            SELECT j.job_ref, j.input_manifest
-                            FROM execution.semantic_closure_job j
-                            WHERE j.run_ref = %s AND j.state = 'completed'
-                              AND EXISTS (
-                                SELECT 1
-                                FROM execution.semantic_strict_job_attempt a
-                                WHERE a.job_ref = j.job_ref AND a.state = 'stale'
-                              )
-                              AND NOT EXISTS (
-                                SELECT 1
-                                FROM execution.semantic_immutable_delta d
-                                JOIN execution.semantic_strict_delta_admission ad
-                                  ON ad.delta_ref = d.delta_ref
-                                 AND ad.run_ref = d.run_ref
-                                WHERE d.job_ref = j.job_ref
-                              )
-                            """,
-                            (self.run_ref,),
-                        )
-                        awakened = 0
-                        for job_ref, raw_manifest in cursor.fetchall():
-                            manifest = dict(raw_manifest or {})
-                            payload = dict(manifest.get("input_payload") or {})
-                            manifest["input_revision"] = current_revision
-                            payload["input_revision"] = current_revision
-                            manifest["input_payload"] = payload
-                            manifest["input_sha256"] = (
-                                _execution_module()._digest(payload).hex()
-                            )
-                            cursor.execute(
-                                """
-                                UPDATE execution.semantic_closure_job
-                                SET state = 'open', input_revision = %s,
-                                    input_manifest = %s::jsonb,
-                                    input_sha256 = %s,
-                                    expected_owner_revision = %s,
-                                    lease_owner = NULL, lease_token = NULL,
-                                    lease_expires_at = NULL
-                                WHERE job_ref = %s
-                                """,
-                                (
-                                    current_revision,
-                                    json.dumps(manifest, sort_keys=True),
-                                    _execution_module()._digest(payload),
-                                    current_revision,
-                                    job_ref,
-                                ),
-                            )
-                            awakened += 1
-                        cursor.execute(
-                            """
-                            SELECT count(*)
+                            SELECT
+                                count(*) FILTER (WHERE state = 'open'),
+                                count(*) FILTER (WHERE state = 'leased'),
+                                count(*) FILTER (WHERE state = 'failed')
                             FROM execution.semantic_closure_job
                             WHERE run_ref = %s
-                              AND state IN ('open', 'leased', 'failed')
                             """,
                             (self.run_ref,),
                         )
-                        open_jobs = int(cursor.fetchone()[0])
-                        if open_jobs == 0 and awakened == 0:
-                            round_manifest = {
-                                "round_ref": f"round:{self.run_ref}:{round_ordinal}",
-                                "run_ref": self.run_ref,
-                                "document_ref": self.document_ref,
-                                "round_ordinal": round_ordinal,
-                                "input_owner_revision": current_revision - replayed,
-                                "output_owner_revision": current_revision,
-                                "job_count": count,
-                                "delta_count": replayed,
-                                "changed_owner_count": 1 if replayed else 0,
-                                "awakened_job_count": 0,
-                            }
-                            cursor.execute(
-                                """
-                                INSERT INTO execution.semantic_round_manifest
-                                    (round_ref, run_ref, document_ref, round_ordinal,
-                                     input_owner_revision, output_owner_revision,
-                                     job_count, delta_count, changed_owner_count,
-                                     awakened_job_count, manifest,
-                                     manifest_sha256, state)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
-                                        %s, 0, %s::jsonb, %s, 'committed')
-                                ON CONFLICT (round_ref) DO NOTHING
-                                """,
-                                (
-                                    round_manifest["round_ref"],
-                                    self.run_ref,
-                                    self.document_ref,
-                                    round_ordinal,
-                                    round_manifest["input_owner_revision"],
-                                    current_revision,
-                                    count,
-                                    replayed,
-                                    round_manifest["changed_owner_count"],
-                                    json.dumps(round_manifest, sort_keys=True),
-                                    bytes.fromhex(_canonical_digest(round_manifest)),
-                                ),
+                        open_jobs, leased_jobs, failed_jobs = (
+                            int(value or 0) for value in cursor.fetchone()
+                        )
+                        if failed_jobs:
+                            self._record_round(
+                                cursor,
+                                round_ordinal=round_ordinal,
+                                input_revision=round_input_revision,
+                                output_revision=current_revision,
+                                job_count=open_jobs + leased_jobs + failed_jobs,
+                                delta_count=replayed,
+                                awakened_count=open_jobs,
+                                state="failed",
                             )
-                            zero_round = {
-                                **round_manifest,
-                                "round_ref": f"round:{self.run_ref}:{round_ordinal + 1}",
-                                "round_ordinal": round_ordinal + 1,
-                                "input_owner_revision": current_revision,
-                                "output_owner_revision": current_revision,
-                                "job_count": 0,
-                                "delta_count": 0,
-                                "changed_owner_count": 0,
-                                "awakened_job_count": 0,
-                            }
-                            cursor.execute(
-                                """
-                                INSERT INTO execution.semantic_round_manifest
-                                    (round_ref, run_ref, document_ref, round_ordinal,
-                                     input_owner_revision, output_owner_revision,
-                                     job_count, delta_count, changed_owner_count,
-                                     awakened_job_count, manifest,
-                                     manifest_sha256, state)
-                                VALUES (%s, %s, %s, %s, %s, %s, 0, 0, 0, 0,
-                                        %s::jsonb, %s, 'fixed_point')
-                                ON CONFLICT (round_ref) DO NOTHING
-                                """,
-                                (
-                                    zero_round["round_ref"],
-                                    self.run_ref,
-                                    self.document_ref,
-                                    round_ordinal + 1,
-                                    current_revision,
-                                    current_revision,
-                                    json.dumps(zero_round, sort_keys=True),
-                                    bytes.fromhex(_canonical_digest(zero_round)),
-                                ),
+                            raise StrictExecutionError(
+                                "strict_worker_failure",
+                                diagnostic_path=f"failed_jobs={failed_jobs}",
+                                kernel_key="strict.closure_gate",
                             )
-                            certificate = {
-                                "state": "reached",
-                                "round_count": round_ordinal + 1,
-                                "zero_change_round": round_ordinal + 1,
-                                "owner_revision": current_revision,
-                            }
+                        frontier_jobs = open_jobs + leased_jobs
+                        fixed_point = frontier_jobs == 0 and replayed == 0
+                        self._record_round(
+                            cursor,
+                            round_ordinal=round_ordinal,
+                            input_revision=round_input_revision,
+                            output_revision=current_revision,
+                            job_count=frontier_jobs,
+                            delta_count=replayed,
+                            awakened_count=open_jobs,
+                            state="fixed_point" if fixed_point else "committed",
+                        )
+                        if fixed_point:
+                            digest_hex = canonical_fields_sha256(
+                                self.run_ref,
+                                self.document_ref,
+                                round_ordinal,
+                                round_ordinal,
+                                current_revision,
+                                "reached",
+                            )
                             cursor.execute(
                                 """
                                 UPDATE execution.semantic_run
-                                SET round_ordinal = %s,
-                                    fixed_point_certificate = %s::jsonb
+                                SET fixed_point_certificate = NULL,
+                                    fixed_point_state = 'reached',
+                                    fixed_point_round_count = %s,
+                                    fixed_point_zero_change_round = %s,
+                                    fixed_point_owner_revision = %s,
+                                    fixed_point_sha256 = %s,
+                                    round_ordinal = %s
                                 WHERE run_ref = %s
                                 """,
                                 (
-                                    round_ordinal + 1,
-                                    json.dumps(certificate, sort_keys=True),
+                                    round_ordinal,
+                                    round_ordinal,
+                                    current_revision,
+                                    bytes.fromhex(digest_hex),
+                                    round_ordinal,
                                     self.run_ref,
                                 ),
                             )
@@ -584,10 +628,17 @@ class PostgresLeasedExecution:
                                 cursor,
                                 run_ref=self.run_ref,
                                 lifecycle="closure.fixed-point-certified",
-                                detail=certificate,
+                                detail={
+                                    "owner_ref": owner_ref,
+                                    "owner_revision": current_revision,
+                                    "round_count": round_ordinal,
+                                },
                             )
                             coordinator.assert_current()
-                            receipts["replayed"] = current_revision - starting_revision
+                            receipts["replayed"] = (
+                                current_revision - starting_revision
+                            )
+                            receipts["round_count"] = round_ordinal
                             return receipts
             raise StrictExecutionError(
                 "strict_fixed_point_incomplete: maximum rounds exhausted",
@@ -662,6 +713,7 @@ def strict_execution_metadata() -> dict[str, str]:
         ),
         "max_rounds": os.environ.get("SENSIBLAW_MAX_ROUNDS", "16384"),
         "retention": "retained-by-default",
+        "serialization": "forbidden",
     }
 
 
