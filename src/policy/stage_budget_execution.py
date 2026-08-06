@@ -11,7 +11,7 @@ _INSTALL_MARKER = "_stage_budget_execution_installed"
 
 
 def install_stage_budget_execution() -> bool:
-    """Install binary durability and enforce every semantic budget sample."""
+    """Install typed durability and enforce every semantic budget sample."""
 
     from src.policy import parallel_semantic_execution as semantic
     from src.policy.durable_work_item_execution import (
@@ -20,12 +20,16 @@ def install_stage_budget_execution() -> bool:
     from src.policy.no_json_checkpoint_execution import (
         install_no_json_checkpoint_execution,
     )
+    from src.policy.typed_execution_callback_views import (
+        install_typed_execution_callback_views,
+    )
 
     if getattr(semantic, _INSTALL_MARKER, False):
         return False
-    # Both policies wrap physical execution only.  Binary format enforcement
-    # must precede the first durable leaf or telemetry checkpoint.
+    # These policies wrap physical execution only. Binary format enforcement
+    # and typed callback views must precede the first durable leaf or replay.
     install_no_json_checkpoint_execution()
+    install_typed_execution_callback_views()
     install_durable_work_item_execution()
     original = semantic.SemanticExecutionContext.sample
 
