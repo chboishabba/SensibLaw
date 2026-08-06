@@ -3,6 +3,7 @@ from __future__ import annotations
 from src.pnf.streaming_fixed_point import OwnerKey, StreamingSemanticOwner, SolverJob
 from src.storage.postgres.distributed_semantic_execution import (
     ImmutableJobManifest,
+    TypedSemanticDelta,
     execute_serialized_streaming_job,
 )
 
@@ -21,7 +22,7 @@ def _job(*, revision: int = 1) -> SolverJob:
     )
 
 
-def test_serialized_execution_uses_manifest_revision_and_stable_job_ref() -> None:
+def test_typed_execution_uses_attempt_revision_and_stable_job_ref() -> None:
     job = _job(revision=1)
     leased_ref = "semantic-job:leased-identity"
     manifest = ImmutableJobManifest.build(
@@ -34,13 +35,36 @@ def test_serialized_execution_uses_manifest_revision_and_stable_job_ref() -> Non
     )
 
     delta = execute_serialized_streaming_job(manifest)
-    receipt = dict(delta["payload"])
 
-    assert delta["delta_ref"] == receipt["receipt_ref"]
-    assert receipt["job_ref"] == leased_ref
-    assert receipt["input_revision"] == 7
-    assert delta["prior_revision"] == 7
-    assert delta["resulting_revision"] == 8
+    assert isinstance(delta, TypedSemanticDelta)
+    assert delta.delta_ref == delta.receipt.receipt_ref
+    assert delta.receipt.job_ref == leased_ref
+    assert delta.receipt.input_revision == 7
+    assert delta.prior_revision == 7
+    assert delta.resulting_revision == 8
+
+
+def test_stable_input_digest_excludes_attempt_revision() -> None:
+    job = _job(revision=1)
+    left = ImmutableJobManifest.build(
+        job_ref="semantic-job:stable",
+        run_ref="run:replay",
+        document_ref="document:replay",
+        owner_ref="owner:replay",
+        input_revision=1,
+        input_payload=job.to_dict(),
+    )
+    right = ImmutableJobManifest.build(
+        job_ref="semantic-job:stable",
+        run_ref="run:replay",
+        document_ref="document:replay",
+        owner_ref="owner:replay",
+        input_revision=99,
+        input_payload=job.to_dict(),
+    )
+
+    assert left.input_sha256 == right.input_sha256
+    assert left.stable_input_ref == right.stable_input_ref
 
 
 def test_rehydrate_solver_job_contract_is_public_and_validates_identity() -> None:
