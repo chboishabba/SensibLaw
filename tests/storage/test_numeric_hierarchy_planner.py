@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import pytest
+
 from src.pnf.numeric_hyperfabric import MdlProfile
+from src.storage.postgres import numeric_hierarchy_planner as planner
 from src.storage.postgres.numeric_hierarchy_planner import (
     InterfaceSketch,
+    InterfaceSketchBudgetExceeded,
     plan_interface_segments,
 )
 
@@ -12,6 +16,7 @@ def _sketch(
     *,
     object_key: tuple[int, int],
     demand_key: tuple[int, int] | None = None,
+    key_budget: int = 4_096,
 ) -> InterfaceSketch:
     return InterfaceSketch(
         region_id=100 + ordinal,
@@ -29,6 +34,7 @@ def _sketch(
         edge_count=0,
         encoded_byte_count=128,
         closure_rounds=1,
+        key_budget=key_budget,
     )
 
 
@@ -37,10 +43,8 @@ def test_recurrence_compression_can_form_one_adaptive_block() -> None:
         _sketch(0, object_key=(42, 0), demand_key=(7, 42)),
         _sketch(1, object_key=(42, 0), demand_key=(7, 42)),
     )
-    result = plan_interface_segments(
-        sketches,
-        profile=MdlProfile(max_window=4, beam_width=3),
-    )
+    profile = MdlProfile(max_window=4, beam_width=3)
+    result = plan_interface_segments(sketches, profile=profile)
 
     assert len(result.segments) == 1
     assert result.segments[0].start == 0
@@ -48,6 +52,8 @@ def test_recurrence_compression_can_form_one_adaptive_block() -> None:
     assert result.segments[0].measure.interface_cardinality == 2
     assert result.segments[0].measure.unresolved_count == 1
     assert result.evaluated_candidates <= result.asymptotic_bound
+    assert result.exact_key_budget == 4_096
+    assert result.exact_work_bound == 2 * 2 * ((3 * 4_096) + 3)
 
 
 def test_merge_threshold_can_preserve_authored_boundaries() -> None:
@@ -66,3 +72,47 @@ def test_merge_threshold_can_preserve_authored_boundaries() -> None:
 
     assert len(result.segments) == 2
     assert [(row.start, row.end) for row in result.segments] == [(0, 1), (1, 2)]
+
+
+def test_exact_sketch_budget_fails_closed_without_truncation() -> None:
+    sketches = (
+        _sketch(0, object_key=(10, 0), key_budget=1),
+        _sketch(1, object_key=(20, 0), key_budget=1),
+    )
+
+    with pytest.raises(
+        InterfaceSketchBudgetExceeded,
+        match="object interface keys exceed exact budget 1: 2",
+    ):
+        plan_interface_segments(
+            sketches,
+            profile=MdlProfile(max_window=4, beam_width=3),
+        )
+
+
+def test_beam_cells_store_only_constant_size_predecessor_state() -> None:
+    assert set(planner._SketchState.__slots__) == {
+        "total_cost",
+        "segment",
+        "previous",
+        "segment_count",
+        "path_fingerprint",
+        "serial",
+    }
+    assert "segments" not in planner._SketchState.__slots__
+
+
+def test_planner_rejects_mixed_exact_key_budgets() -> None:
+    sketches = (
+        _sketch(0, object_key=(10, 0), key_budget=1),
+        _sketch(1, object_key=(10, 0), key_budget=2),
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="must share one key budget",
+    ):
+        plan_interface_segments(
+            sketches,
+            profile=MdlProfile(max_window=4, beam_width=3),
+        )
