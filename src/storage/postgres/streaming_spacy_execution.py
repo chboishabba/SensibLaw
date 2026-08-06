@@ -209,52 +209,68 @@ def run_streaming_spacy_execution(
         parser_contract_ref=parser_contract_ref,
         partitions=partitions,
     )
-    context = mp.get_context("spawn")
-    for round_ordinal in range(128):
-        with ProcessPoolExecutor(
-            max_workers=worker_count,
-            mp_context=context,
-            initializer=linux_parent_death_initializer,
-        ) as pool:
-            futures = [
-                pool.submit(
-                    _worker_drain,
-                    database_url,
-                    run_ref,
-                    f"parser-worker:{run_ref}:{round_ordinal}:{index}",
-                    policy,
-                    str(root),
-                )
-                for index in range(worker_count)
-            ]
-            for future in futures:
-                future.result()
-        recover_expired(database_url, run_ref=run_ref)
-        state, ready, leased, failed = execution_state(
-            database_url,
-            run_ref=run_ref,
-            document_ref=document_ref,
-        )
-        _emit_progress(
-            progress_observer,
-            round_ordinal=round_ordinal,
-            state=state,
-            ready=ready,
-            leased=leased,
-            failed=failed,
-        )
-        if failed:
-            raise RuntimeError("typed parser partition failed")
-        if state == "complete":
-            break
-        if ready:
-            continue
-        if leased:
-            time.sleep(min(1.0, policy.lease_seconds / 4))
-            continue
-        raise RuntimeError("parser coverage remained open without runnable work")
-    else:
-        raise RuntimeError("parser execution exceeded bounded scheduling rounds")
+    state, ready, leased, failed = execution_state(
+        database_url,
+        run_ref=run_ref,
+        document_ref=document_ref,
+    )
+    _emit_progress(
+        progress_observer,
+        round_ordinal=-1,
+        state=state,
+        ready=ready,
+        leased=leased,
+        failed=failed,
+    )
+    if failed:
+        raise RuntimeError("typed parser partition failed")
+    if state != "complete":
+        context = mp.get_context("spawn")
+        for round_ordinal in range(128):
+            with ProcessPoolExecutor(
+                max_workers=worker_count,
+                mp_context=context,
+                initializer=linux_parent_death_initializer,
+            ) as pool:
+                futures = [
+                    pool.submit(
+                        _worker_drain,
+                        database_url,
+                        run_ref,
+                        f"parser-worker:{run_ref}:{round_ordinal}:{index}",
+                        policy,
+                        str(root),
+                    )
+                    for index in range(worker_count)
+                ]
+                for future in futures:
+                    future.result()
+            recover_expired(database_url, run_ref=run_ref)
+            state, ready, leased, failed = execution_state(
+                database_url,
+                run_ref=run_ref,
+                document_ref=document_ref,
+            )
+            _emit_progress(
+                progress_observer,
+                round_ordinal=round_ordinal,
+                state=state,
+                ready=ready,
+                leased=leased,
+                failed=failed,
+            )
+            if failed:
+                raise RuntimeError("typed parser partition failed")
+            if state == "complete":
+                break
+            if ready:
+                continue
+            if leased:
+                time.sleep(min(1.0, policy.lease_seconds / 4))
+                continue
+            raise RuntimeError("parser coverage remained open without runnable work")
+        else:
+            raise RuntimeError("parser execution exceeded bounded scheduling rounds")
     summary = execution_summary(
         database_url,
         run_ref=run_ref,
