@@ -15,6 +15,7 @@ PYTHON_AUTHORITY = (
     Path("src/policy/numeric_pnf_compilation.py"),
     Path("src/policy/streaming_spacy_parser_execution.py"),
     Path("src/storage/postgres/numeric_symbol_store.py"),
+    Path("src/storage/postgres/numeric_hierarchy_planner.py"),
     Path("src/storage/postgres/numeric_hyperfabric_store.py"),
     Path("src/storage/postgres/spacy_numeric_projection.py"),
     Path("src/storage/postgres/streaming_spacy_execution.py"),
@@ -131,6 +132,19 @@ def main() -> int:
         violations.append("bounded segmentation complexity contract is absent")
     if "_prefix_join" in numeric_source:
         violations.append("bounded segmentation still rescans interval prefixes")
+
+    planner_source = (
+        ROOT / "src/storage/postgres/numeric_hierarchy_planner.py"
+    ).read_text(encoding="utf-8")
+    for marker in (
+        "InterfaceSketch",
+        "plan_interface_segments",
+        "object_keys=self.object_keys | other.object_keys",
+        "O(N * W * B)",
+        "_refresh_reductive_measure",
+    ):
+        if marker not in planner_source:
+            violations.append(f"reductive hierarchy planner lacks {marker}")
 
     strict_source = (
         ROOT / "src/policy/streaming_spacy_parser_execution.py"
