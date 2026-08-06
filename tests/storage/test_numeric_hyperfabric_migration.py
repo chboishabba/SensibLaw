@@ -4,7 +4,7 @@ from pathlib import Path
 MIGRATION_ROOT = Path("database/postgres_migrations")
 MIGRATIONS = tuple(
     path
-    for ordinal in range(40, 56)
+    for ordinal in range(40, 57)
     for path in sorted(MIGRATION_ROOT.glob(f"{ordinal:03d}_*.sql"))
 )
 
@@ -20,7 +20,7 @@ def _migration(ordinal: int) -> str:
 
 
 def test_numeric_hyperfabric_schema_contains_no_json_authority() -> None:
-    assert len(MIGRATIONS) == 16
+    assert len(MIGRATIONS) == 17
     source = _source().casefold()
     assert " json " not in source
     assert " jsonb" not in source
@@ -142,9 +142,31 @@ def test_adjacent_scales_materialize_overlapping_regions_and_fenced_work() -> No
         "operation_id, state_id, priority",
         "int2send(2::SMALLINT)",
         "semantic_pnf_adjacent_region_materialization",
+        "pair_region_id, left_region.parent_region_id, 5",
     ):
         assert required in source
+    assert "left_region.parent_region_id,\n        1," not in source
     assert "resolved_target_id" not in source
+    assert "SET state = 4" not in source
+
+
+def test_adjacent_executor_is_fenced_and_separates_candidates_from_resolution() -> None:
+    source = _migration(56)
+    for required in (
+        "semantic_pnf_adjacent_candidate_evidence",
+        "execute_numeric_pnf_adjacent_work",
+        "selected_lease_token",
+        "selected_lease_epoch",
+        "adjacent reconciliation work fence changed",
+        "selected_pair_interface_id",
+        "source_member_region_id <> target_member_region_id",
+        "semantic_pnf_demand_lookup_key",
+        "rebuild_pnf_interface_ancestors",
+    ):
+        assert required in source
+    assert "pair_interface_id = pair_interface_id" not in source
+    assert "resolved_target_id" not in source
+    assert "resolved_target_kind" not in source
     assert "SET state = 4" not in source
 
 
