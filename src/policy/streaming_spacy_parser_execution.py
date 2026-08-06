@@ -59,6 +59,12 @@ def _safe_ref(value: str) -> str:
     )
 
 
+def _is_strict_strategy(strategy: str) -> bool:
+    return strategy in _STRICT_STRATEGIES or (
+        strategy.startswith("postgresql-") and "exact" in strategy
+    )
+
+
 def install_streaming_spacy_parser_execution() -> bool:
     """Route strict parser work through typed PostgreSQL observations."""
 
@@ -68,6 +74,23 @@ def install_streaming_spacy_parser_execution() -> bool:
         return False
     original_compile = operational.compile_document_operational
     compatibility_parser = operational.parse_document_fibres
+    original_policy_to_dict = operational.DocumentFibrePolicy.to_dict
+
+    def semantic_policy_to_dict(self: Any) -> dict[str, Any]:
+        execution = _CURRENT.get()
+        if execution is None:
+            return original_policy_to_dict(self)
+        # Physical chunk size, overlap, and worker count are scheduling facts.
+        # They are persisted in typed partition rows but excluded from semantic
+        # build identity, so tuning throughput cannot fork the document graph.
+        return {
+            "contract_ref": "parser-physical-partitioning:semantic-inert:v1",
+            "parser_contract_ref": execution.parser_contract_ref,
+            "physical_partition_semantic_effect": "none",
+            "worker_count_semantic_effect": "none",
+            "ownership_coverage": "exactly_once",
+            "boundary_policy": "durable_obligation_and_targeted_repair",
+        }
 
     def parser_dispatch(
         *,
@@ -154,7 +177,7 @@ def install_streaming_spacy_parser_execution() -> bool:
             kwargs.get("execution_strategy_ref")
             or "local-compatibility-replay"
         )
-        strict = strategy in _STRICT_STRATEGIES
+        strict = _is_strict_strategy(strategy)
         database_url = kwargs.get("database_url")
         if strict and not database_url:
             from src.runtime.strict_postgres_execution import StrictExecutionError
@@ -187,6 +210,7 @@ def install_streaming_spacy_parser_execution() -> bool:
         finally:
             _CURRENT.reset(token)
 
+    operational.DocumentFibrePolicy.to_dict = semantic_policy_to_dict
     operational.parse_document_fibres = parser_dispatch
     operational.compile_document_operational = compile_wrapper
     operational._compile_document_operational_without_streaming_spacy = original_compile
