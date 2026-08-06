@@ -12,6 +12,7 @@ on:
       - "database/postgres_migrations/038_*.sql"
       - "database/postgres_migrations/039_*.sql"
       - "tests/storage/test_streaming_spacy_*.py"
+      - "tests/policy/test_streaming_spacy_parser_execution.py"
       - "tests/architecture/test_no_json_execution_authority.py"
       - "scripts/audit_json_sin_bin.py"
       - "docs/architecture/JSON_SIN_BIN.md"
@@ -41,6 +42,7 @@ jobs:
           uv run python -m compileall -q \
             src/nlp/spacy_adapter.py \
             src/policy/streaming_spacy_parser_execution.py \
+            src/storage/postgres/spacy_parser_carrier.py \
             src/storage/postgres/spacy_parser_model.py \
             src/storage/postgres/spacy_parser_store.py \
             src/storage/postgres/streaming_spacy_execution.py \
@@ -52,11 +54,13 @@ jobs:
             src/nlp/spacy_adapter.py
             src/policy/stage_budget_execution.py
             src/policy/streaming_spacy_parser_execution.py
+            src/storage/postgres/spacy_parser_carrier.py
             src/storage/postgres/spacy_parser_model.py
             src/storage/postgres/spacy_parser_store.py
             src/storage/postgres/streaming_spacy_execution.py
             scripts/audit_json_sin_bin.py
             tests/architecture/test_no_json_execution_authority.py
+            tests/policy/test_streaming_spacy_parser_execution.py
             tests/storage/test_streaming_spacy_parser_migration.py
             tests/storage/test_streaming_spacy_parser_model.py
             tests/storage/test_streaming_spacy_postgres_integration.py
@@ -71,6 +75,7 @@ jobs:
             --check-authority
           uv run pytest -q \
             tests/architecture/test_no_json_execution_authority.py \
+            tests/policy/test_streaming_spacy_parser_execution.py \
             tests/storage/test_streaming_spacy_parser_migration.py \
             tests/storage/test_streaming_spacy_parser_model.py
 
