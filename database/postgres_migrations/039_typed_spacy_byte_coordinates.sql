@@ -4,6 +4,9 @@ ALTER TABLE execution.semantic_parser_source
     ADD COLUMN IF NOT EXISTS char_count BIGINT NOT NULL DEFAULT 0
         CHECK (char_count >= 0);
 
+CREATE UNIQUE INDEX IF NOT EXISTS semantic_parser_source_run_document_idx
+    ON execution.semantic_parser_source (run_ref, document_ref);
+
 ALTER TABLE execution.semantic_parser_partition
     ADD COLUMN IF NOT EXISTS owner_start_byte BIGINT NOT NULL DEFAULT 0
         CHECK (owner_start_byte >= 0),
