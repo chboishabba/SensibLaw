@@ -7,6 +7,9 @@ import pytest
 
 from src.pnf.streaming_fixed_point import OwnerKey, SolverJob, SolverReceipt
 from src.runtime.strict_postgres_execution import PostgresLeasedExecution
+from src.storage.postgres.deterministic_admission_execution import (
+    install_deterministic_admission_execution,
+)
 from src.storage.postgres.distributed_semantic_execution import (
     ImmutableJobManifest,
     execute_serialized_streaming_job,
@@ -19,6 +22,11 @@ def _database_url() -> str:
     if not database_url:
         pytest.skip("DATABASE_URL is required for the strict PostgreSQL probe")
     return database_url
+
+
+def _install_typed_execution() -> None:
+    install_typed_execution_pool()
+    install_deterministic_admission_execution()
 
 
 def _manifest(
@@ -53,7 +61,7 @@ def _manifest(
 
 def test_strict_postgres_two_round_probe() -> None:
     database_url = _database_url()
-    install_typed_execution_pool()
+    _install_typed_execution()
 
     import psycopg
 
@@ -138,15 +146,15 @@ def test_strict_postgres_two_round_probe() -> None:
             assert digest_present is True
 
 
-def test_concurrent_jobs_append_without_revision_stale_recomputation() -> None:
+def test_concurrent_jobs_admit_in_stable_order_without_recomputation() -> None:
     database_url = _database_url()
-    install_typed_execution_pool()
+    _install_typed_execution()
 
     import psycopg
 
-    run_ref = f"probe:typed-append:{uuid4().hex}"
-    document_ref = f"document:typed-append:{uuid4().hex}"
-    owner_ref = "owner:typed-append"
+    run_ref = f"probe:typed-admission:{uuid4().hex}"
+    document_ref = f"document:typed-admission:{uuid4().hex}"
+    owner_ref = "owner:typed-admission"
     manifests = tuple(
         _manifest(
             run_ref=run_ref,
@@ -175,11 +183,9 @@ def test_concurrent_jobs_append_without_revision_stale_recomputation() -> None:
         owner_ref=owner_ref,
     )
 
+    expected_job_order = sorted(manifest.job_ref for manifest in manifests)
     assert result["replayed"] == 4
-    assert [revision for revision, _job_ref in applied] == [1, 2, 3, 4]
-    assert {job_ref for _revision, job_ref in applied} == {
-        manifest.job_ref for manifest in manifests
-    }
+    assert applied == list(enumerate(expected_job_order, start=1))
 
     with psycopg.connect(database_url) as connection:
         with connection.cursor() as cursor:
@@ -195,11 +201,23 @@ def test_concurrent_jobs_append_without_revision_stale_recomputation() -> None:
             assert int(cursor.fetchone()[0]) == 0
             cursor.execute(
                 """
-                SELECT count(*), min(resulting_revision), max(resulting_revision)
-                FROM execution.semantic_strict_delta_admission
-                WHERE run_ref = %s
+                SELECT admission.resulting_revision, delta.job_ref
+                FROM execution.semantic_strict_delta_admission admission
+                JOIN execution.semantic_immutable_delta delta USING (delta_ref)
+                WHERE admission.run_ref = %s
+                ORDER BY admission.resulting_revision
                 """,
                 (run_ref,),
             )
-            count, minimum, maximum = cursor.fetchone()
-            assert (int(count), int(minimum), int(maximum)) == (4, 1, 4)
+            assert cursor.fetchall() == list(
+                enumerate(expected_job_order, start=1)
+            )
+            cursor.execute(
+                """
+                SELECT count(*)
+                FROM execution.semantic_closure_job
+                WHERE run_ref = %s AND state = 'computed'
+                """,
+                (run_ref,),
+            )
+            assert int(cursor.fetchone()[0]) == 0
