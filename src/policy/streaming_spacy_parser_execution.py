@@ -137,14 +137,12 @@ def install_streaming_spacy_parser_execution() -> bool:
         )
         if progress is not None and hasattr(progress, "observe"):
             progress.observe(
-                measures={
-                    "fibres": carrier.partition_count,
-                    "sentences": carrier.sentence_count,
-                    "tokens": carrier.token_count,
-                },
+                measures={"fibres": carrier.partition_count},
                 details={
                     "parser_execution_contract": "postgres-streaming-spacy:v1",
                     "authority_backend": "postgresql",
+                    "sentence_count": carrier.sentence_count,
+                    "token_count": carrier.token_count,
                 },
             )
         return carrier
