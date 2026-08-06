@@ -1,0 +1,216 @@
+name: No-JSON typed execution PR validation v2
+
+on:
+  pull_request:
+    paths:
+      - "database/postgres_migrations/03[2-9]_*.sql"
+      - "scripts/audit_json_sin_bin.py"
+      - "scripts/run_durable_coordinator_kill_probe.py"
+      - "scripts/run_post_closure_probe.py"
+      - "src/pnf/streaming_build_reader.py"
+      - "src/policy/binary_family_integrity_execution.py"
+      - "src/policy/carriers/canonical.py"
+      - "src/policy/no_json_checkpoint_execution.py"
+      - "src/policy/reference_backed_finalization.py"
+      - "src/policy/stage_budget_execution.py"
+      - "src/policy/typed_execution_callback_views.py"
+      - "src/runtime/durable_*.py"
+      - "src/runtime/reference_receipt.py"
+      - "src/runtime/strict_postgres_execution.py"
+      - "src/storage/postgres/deterministic_admission_execution.py"
+      - "src/storage/postgres/distributed_semantic_execution.py"
+      - "src/storage/postgres/typed_execution_pool.py"
+      - "src/storage/postgres/typed_value_store.py"
+      - "tests/architecture/test_no_json_execution_authority.py"
+      - "tests/pnf/test_streaming_build_reader.py"
+      - "tests/policy/test_typed_*.py"
+      - "tests/runtime/test_durable_*.py"
+      - "tests/runtime/test_reference_receipt.py"
+      - "tests/runtime/test_strict_postgres_two_round_probe.py"
+      - "tests/storage/test_durable_work_item_migration.py"
+      - "tests/storage/test_strict_replay_identity.py"
+      - "tests/storage/test_typed_value_store.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: no-json-typed-execution-v2-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static:
+    runs-on: self-hosted
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Record exact head
+        run: git rev-parse HEAD
+      - name: Compile
+        run: |
+          uv run python -m compileall -q \
+            src/pnf/streaming_build_reader.py \
+            src/policy/binary_family_integrity_execution.py \
+            src/policy/carriers/canonical.py \
+            src/policy/no_json_checkpoint_execution.py \
+            src/policy/reference_backed_finalization.py \
+            src/policy/stage_budget_execution.py \
+            src/policy/typed_execution_callback_views.py \
+            src/runtime/durable_stage_state.py \
+            src/runtime/durable_work_item_hardening.py \
+            src/runtime/durable_work_items.py \
+            src/runtime/reference_receipt.py \
+            src/runtime/strict_postgres_execution.py \
+            src/storage/postgres/deterministic_admission_execution.py \
+            src/storage/postgres/distributed_semantic_execution.py \
+            src/storage/postgres/typed_execution_pool.py \
+            src/storage/postgres/typed_value_store.py \
+            scripts/audit_json_sin_bin.py \
+            scripts/run_durable_coordinator_kill_probe.py \
+            scripts/run_post_closure_probe.py
+      - name: Lint and format
+        run: |
+          files=(
+            src/pnf/streaming_build_reader.py
+            src/policy/binary_family_integrity_execution.py
+            src/policy/carriers/canonical.py
+            src/policy/no_json_checkpoint_execution.py
+            src/policy/reference_backed_finalization.py
+            src/policy/stage_budget_execution.py
+            src/policy/typed_execution_callback_views.py
+            src/runtime/durable_stage_state.py
+            src/runtime/durable_work_item_hardening.py
+            src/runtime/durable_work_items.py
+            src/runtime/reference_receipt.py
+            src/runtime/strict_postgres_execution.py
+            src/storage/postgres/deterministic_admission_execution.py
+            src/storage/postgres/distributed_semantic_execution.py
+            src/storage/postgres/typed_execution_pool.py
+            src/storage/postgres/typed_value_store.py
+            scripts/audit_json_sin_bin.py
+            scripts/run_durable_coordinator_kill_probe.py
+            scripts/run_post_closure_probe.py
+            tests/architecture/test_no_json_execution_authority.py
+            tests/pnf/test_streaming_build_reader.py
+            tests/policy/test_typed_canonical_identity.py
+            tests/policy/test_typed_execution_callback_views.py
+            tests/runtime/test_durable_stage_cursor.py
+            tests/runtime/test_durable_work_item_hardening.py
+            tests/runtime/test_durable_work_items.py
+            tests/runtime/test_reference_receipt.py
+            tests/runtime/test_strict_postgres_two_round_probe.py
+            tests/storage/test_durable_work_item_migration.py
+            tests/storage/test_strict_replay_identity.py
+            tests/storage/test_typed_value_store.py
+          )
+          uv run ruff check "${files[@]}"
+          uv run ruff format --check "${files[@]}"
+      - name: Sin bin
+        run: |
+          mkdir -p .tmp/no-json-audit
+          uv run python scripts/audit_json_sin_bin.py \
+            --write .tmp/no-json-audit/JSON_SIN_BIN.md \
+            --check-authority
+          sed -n '1,120p' .tmp/no-json-audit/JSON_SIN_BIN.md
+      - name: Unit tests
+        run: |
+          uv run pytest -q \
+            tests/architecture/test_no_json_execution_authority.py \
+            tests/pnf/test_streaming_build_reader.py \
+            tests/policy/test_typed_canonical_identity.py \
+            tests/policy/test_typed_execution_callback_views.py \
+            tests/runtime/test_durable_stage_cursor.py \
+            tests/runtime/test_durable_work_item_hardening.py \
+            tests/runtime/test_durable_work_items.py \
+            tests/runtime/test_reference_receipt.py \
+            tests/storage/test_durable_work_item_migration.py \
+            tests/storage/test_strict_replay_identity.py \
+            tests/storage/test_typed_value_store.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: JSON-SIN-BIN-v2
+          path: .tmp/no-json-audit/JSON_SIN_BIN.md
+          if-no-files-found: error
+
+  postgres:
+    needs: static
+    runs-on: self-hosted
+    timeout-minutes: 30
+    env:
+      SENSIBLAW_LOCAL_POSTGRES_URL: postgresql://postgres@127.0.0.1:5433/postgres
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Provision isolated database
+        id: database
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(uv run python - <<'PY'
+          import os
+          from pathlib import Path
+          from src.runtime.postgres_provisioning import provision_local_postgres
+          ref = 'nojson-v2-{}-{}'.format(os.environ['GITHUB_RUN_ID'], os.environ['GITHUB_RUN_ATTEMPT'])
+          url, name = provision_local_postgres(
+              admin_url=os.environ['SENSIBLAW_LOCAL_POSTGRES_URL'],
+              migration_root=Path('database/postgres_migrations'),
+              run_ref=ref,
+          )
+          print(url)
+          print(name)
+          PY
+          )"
+          printf 'database_url=%s\n' "$(printf '%s\n' "$output" | sed -n '1p')" >> "$GITHUB_OUTPUT"
+          printf 'database_name=%s\n' "$(printf '%s\n' "$output" | sed -n '2p')" >> "$GITHUB_OUTPUT"
+      - name: Typed closure and canonical admission probes
+        env:
+          DATABASE_URL: ${{ steps.database.outputs.database_url }}
+        run: uv run pytest -q tests/runtime/test_strict_postgres_two_round_probe.py
+      - name: Coordinator kill and resume
+        run: |
+          rm -rf .tmp/no-json-kill-probe
+          uv run python scripts/run_durable_coordinator_kill_probe.py \
+            --database-url '${{ steps.database.outputs.database_url }}' \
+            --artifact-root .tmp/no-json-kill-probe \
+            --run-ref 'nojson-v2-kill:${{ github.run_id }}:${{ github.run_attempt }}' \
+            --workers 4 --work-items 12 --fast-items 4 --lease-seconds 2
+          uv run python - <<'PY'
+          import pickle
+          from pathlib import Path
+          row = pickle.loads(Path('.tmp/no-json-kill-probe/coordinator-kill-probe-report.pkl').read_bytes())
+          assert row['state'] == 'passed'
+          assert row['recomputed_completed_work'] == 0
+          assert row['orphan_worker_count'] == 0
+          assert row['completed_after_resume'] == 12
+          assert row['text_serialization'] is False
+          PY
+      - name: Typed authority assertions
+        run: |
+          psql '${{ steps.database.outputs.database_url }}' -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          BEGIN
+            IF EXISTS (SELECT 1 FROM execution.semantic_closure_job WHERE input_manifest IS NOT NULL) THEN RAISE EXCEPTION 'closure JSON authority'; END IF;
+            IF EXISTS (SELECT 1 FROM execution.semantic_immutable_delta WHERE payload IS NOT NULL) THEN RAISE EXCEPTION 'delta JSON authority'; END IF;
+            IF EXISTS (SELECT 1 FROM execution.semantic_round_manifest WHERE manifest IS NOT NULL) THEN RAISE EXCEPTION 'round JSON authority'; END IF;
+            IF EXISTS (SELECT 1 FROM execution.semantic_work_item WHERE input_manifest IS NOT NULL) THEN RAISE EXCEPTION 'work JSON authority'; END IF;
+            IF EXISTS (SELECT 1 FROM execution.semantic_work_receipt WHERE payload IS NOT NULL) THEN RAISE EXCEPTION 'receipt JSON authority'; END IF;
+            IF EXISTS (SELECT 1 FROM execution.semantic_stage_cursor WHERE cursor_manifest IS NOT NULL) THEN RAISE EXCEPTION 'cursor JSON authority'; END IF;
+            IF EXISTS (SELECT 1 FROM execution.semantic_outbox WHERE payload IS NOT NULL) THEN RAISE EXCEPTION 'outbox JSON authority'; END IF;
+          END;
+          $$;
+          SELECT event_type_ref, count(*)
+          FROM execution.semantic_outbox
+          GROUP BY event_type_ref
+          ORDER BY event_type_ref;
+          SQL
+      - name: Drop isolated database
+        if: always() && steps.database.outputs.database_name != ''
+        run: |
+          dropdb --if-exists --host=127.0.0.1 --port=5433 --username=postgres '${{ steps.database.outputs.database_name }}'
