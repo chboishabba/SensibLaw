@@ -4,7 +4,7 @@ from pathlib import Path
 MIGRATION_ROOT = Path("database/postgres_migrations")
 MIGRATIONS = tuple(
     path
-    for ordinal in range(40, 54)
+    for ordinal in range(40, 55)
     for path in sorted(MIGRATION_ROOT.glob(f"{ordinal:03d}_*.sql"))
 )
 
@@ -13,8 +13,14 @@ def _source() -> str:
     return "\n".join(path.read_text(encoding="utf-8") for path in MIGRATIONS)
 
 
+def _migration(ordinal: int) -> str:
+    matches = [path for path in MIGRATIONS if path.name.startswith(f"{ordinal:03d}_")]
+    assert len(matches) == 1
+    return matches[0].read_text(encoding="utf-8")
+
+
 def test_numeric_hyperfabric_schema_contains_no_json_authority() -> None:
-    assert len(MIGRATIONS) == 14
+    assert len(MIGRATIONS) == 15
     source = _source().casefold()
     assert " json " not in source
     assert " jsonb" not in source
@@ -97,7 +103,7 @@ def test_hierarchy_is_reductive_indexed_and_demand_driven() -> None:
 
 
 def test_demand_planning_normalizes_keys_and_runs_set_wise() -> None:
-    latest = MIGRATIONS[-1].read_text(encoding="utf-8")
+    source = _migration(53)
     for required in (
         "semantic_pnf_demand_lookup_key",
         "semantic_pnf_demand_lookup_key_join_idx",
@@ -106,9 +112,23 @@ def test_demand_planning_normalizes_keys_and_runs_set_wise() -> None:
         "LEFT JOIN LATERAL",
         "DROP TRIGGER IF EXISTS semantic_pnf_demand_candidate_visibility",
     ):
-        assert required in latest
-    assert "FOR demand_row IN" not in latest
-    assert "WITH RECURSIVE" not in latest
+        assert required in source
+    assert "FOR demand_row IN" not in source
+    assert "WITH RECURSIVE" not in source
+
+
+def test_interface_lookup_requires_an_admitted_export_for_every_target_kind() -> None:
+    source = _migration(54)
+    for required in (
+        "admit_numeric_pnf_interface_lookup",
+        "export.interface_id = NEW.interface_id",
+        "export.target_kind = NEW.target_kind",
+        "export.target_id = NEW.target_id",
+        "RETURN NULL",
+        "DELETE FROM execution.semantic_pnf_interface_lookup",
+    ):
+        assert required in source
+    assert "IF NEW.target_kind <> 1" not in source
 
 
 def test_old_decorative_parser_work_triggers_are_removed() -> None:
