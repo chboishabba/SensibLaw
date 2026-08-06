@@ -1,0 +1,203 @@
+name: Apply PR470 backpointer fix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/apply-pr470-backpointer-fix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: self-hosted
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/streaming-spacy-typed-parser
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Replace copied paths with backpointers
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("src/storage/postgres/numeric_hierarchy_planner.py")
+          source = path.read_text(encoding="utf-8")
+          start_marker = "def plan_interface_segments(\n"
+          end_marker = "\n\ndef _load_paragraph_sketches("
+          if source.count(start_marker) != 1 or source.count(end_marker) != 1:
+              raise SystemExit("numeric hierarchy planner markers changed")
+          start = source.index(start_marker)
+          end = source.index(end_marker, start)
+          replacement = '''@dataclass(frozen=True, slots=True)
+          class _SketchState:
+              total_cost: float
+              segment: PlannedSegment | None
+              previous: "_SketchState | None"
+              segment_count: int
+              serial: int
+
+
+          def _unwind_planned_segments(
+              state: _SketchState,
+          ) -> tuple[PlannedSegment, ...]:
+              segments: list[PlannedSegment] = []
+              current: _SketchState | None = state
+              while current is not None and current.segment is not None:
+                  segments.append(current.segment)
+                  current = current.previous
+              segments.reverse()
+              return tuple(segments)
+
+
+          def plan_interface_segments(
+              sketches: Sequence[InterfaceSketch],
+              *,
+              profile: MdlProfile,
+          ) -> SketchSegmentation:
+              """Windowed beam DP over incrementally joined interface sketches.
+
+              Runtime is O(N * W * B) and memory is O(N * B). Candidate states
+              retain one constant-size backpointer rather than copying complete
+              segment paths. Recurrence and boundary discharge can justify merges.
+              """
+
+              if not sketches:
+                  return SketchSegmentation((), 0.0, 0, 0)
+              n = len(sketches)
+              window = min(profile.max_window, n)
+              beam = profile.beam_width
+              root = _SketchState(0.0, None, None, 0, 0)
+              paths: list[list[_SketchState]] = [[] for _ in range(n + 1)]
+              paths[0] = [root]
+              evaluations = 0
+              serial = 1
+
+              for end in range(1, n + 1):
+                  candidates: list[_SketchState] = []
+                  aggregate: InterfaceSketch | None = None
+                  raw_demand_count = 0
+                  for start in range(
+                      end - 1,
+                      max(-1, end - window - 1),
+                      -1,
+                  ):
+                      sketch = sketches[start]
+                      aggregate = (
+                          sketch if aggregate is None else sketch.join(aggregate)
+                      )
+                      raw_demand_count += len(sketch.demand_keys)
+                      child_count = end - start
+                      measure = aggregate.measure(
+                          child_count=child_count,
+                          raw_demand_count=raw_demand_count,
+                      )
+                      local_cost = description_length(measure, profile)
+                      if child_count > 1:
+                          local_cost += profile.merge_threshold
+                      if not isfinite(local_cost):
+                          raise ValueError(
+                              "interface-sketch MDL cost must be finite"
+                          )
+                      segment = PlannedSegment(start, end, local_cost, measure)
+                      for prior in paths[start][:beam]:
+                          candidates.append(
+                              _SketchState(
+                                  total_cost=prior.total_cost + local_cost,
+                                  segment=segment,
+                                  previous=prior,
+                                  segment_count=prior.segment_count + 1,
+                                  serial=serial,
+                              )
+                          )
+                          serial += 1
+                          evaluations += 1
+                  candidates.sort(
+                      key=lambda state: (
+                          state.total_cost,
+                          state.segment_count,
+                          (
+                              state.segment.start
+                              if state.segment is not None
+                              else -1
+                          ),
+                          state.serial,
+                      )
+                  )
+                  paths[end] = candidates[:beam]
+
+              best = paths[n][0]
+              return SketchSegmentation(
+                  segments=_unwind_planned_segments(best),
+                  total_cost=best.total_cost,
+                  evaluated_candidates=evaluations,
+                  asymptotic_bound=n * window * beam,
+              )
+          '''
+          replacement = "\n".join(
+              line[10:] if line.startswith("          ") else line
+              for line in replacement.splitlines()
+          )
+          updated = source[:start] + replacement + source[end:]
+          if "(*prior_segments, segment)" in updated:
+              raise SystemExit("copied segment paths remain")
+          path.write_text(updated, encoding="utf-8")
+
+          store = Path("src/storage/postgres/numeric_hyperfabric_store.py")
+          store_source = store.read_text(encoding="utf-8")
+          store_source = store_source.replace("from pathlib import Path\n", "")
+          store_source = store_source.replace(
+              "from typing import Any, Iterable, Mapping, Sequence\n",
+              "from typing import Any, Mapping, Sequence\n",
+          )
+          store.write_text(store_source, encoding="utf-8")
+          PY
+
+      - name: Format and verify
+        run: |
+          uv run ruff check --fix \
+            src/pnf/numeric_hyperfabric.py \
+            src/storage/postgres/numeric_hierarchy_planner.py \
+            src/storage/postgres/numeric_hyperfabric_store.py \
+            tests/storage/test_numeric_hierarchy_planner.py
+          uv run ruff format \
+            src/pnf/numeric_hyperfabric.py \
+            src/storage/postgres/numeric_hierarchy_planner.py \
+            src/storage/postgres/numeric_hyperfabric_store.py \
+            tests/storage/test_numeric_hierarchy_planner.py
+          uv run python -m compileall -q \
+            src/pnf/numeric_hyperfabric.py \
+            src/storage/postgres/numeric_hierarchy_planner.py \
+            src/storage/postgres/numeric_hyperfabric_store.py
+          uv run pytest -q \
+            tests/pnf/test_numeric_hyperfabric.py \
+            tests/storage/test_numeric_hierarchy_planner.py
+          grep -q 'memory is O(N \* B)' \
+            src/storage/postgres/numeric_hierarchy_planner.py
+          ! grep -q '\*prior_segments' \
+            src/storage/postgres/numeric_hierarchy_planner.py
+
+      - name: Commit fix and marker
+        run: |
+          mkdir -p .validation
+          {
+            printf 'contract=pr470-backpointer-fix:v1\n'
+            printf 'source_head=%s\n' "$(git rev-parse HEAD)"
+            printf 'planner_time=O(N*W*B)\n'
+            printf 'planner_memory=O(N*B)\n'
+            printf 'copied_paths=0\n'
+          } > .validation/pr470-backpointer-applied.txt
+          git config user.name "sensiblaw-validation-bot"
+          git config user.email "sensiblaw-validation-bot@users.noreply.github.com"
+          git add \
+            src/pnf/numeric_hyperfabric.py \
+            src/storage/postgres/numeric_hierarchy_planner.py \
+            src/storage/postgres/numeric_hyperfabric_store.py \
+            tests/storage/test_numeric_hierarchy_planner.py \
+            .validation/pr470-backpointer-applied.txt
+          git commit -m "Use backpointers for numeric PNF hierarchy planning"
+          git push origin HEAD:agent/streaming-spacy-typed-parser
