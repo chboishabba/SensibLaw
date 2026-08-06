@@ -1,10 +1,9 @@
-"""Reference-backed, release-before-serialize closure finalisation.
+"""Reference-backed, release-before-handoff closure finalisation.
 
-Large semantic families are sealed as immutable streams before the owner drops
-its document-sized Python state. A fresh interpreter then serializes only the
-compact manifest receipt. JSONL is a transitional local transport; each family
-is content-addressed so PostgreSQL/object segments can replace it without
-changing the outward semantic identity.
+Large semantic families are sealed as framed binary streams before the owner
+drops its document-sized Python state.  A fresh interpreter receives only a
+compact binary spec.  Semantic digests use typed canonical bytes; neither local
+checkpointing nor PostgreSQL authority uses JSON or JSONL.
 """
 
 from __future__ import annotations
@@ -14,64 +13,80 @@ import gc
 from hashlib import sha256
 import os
 from pathlib import Path
+import pickle
 from time import monotonic_ns
 from typing import Any, Iterable, Mapping
 
 from src.pnf.factor_proposals import ProposalReduction
 from src.pnf.streaming_build_reader import (
+    BINARY_FAMILY_ENCODING,
     REFERENCE_BUILD_SCHEMA_VERSION,
     family_descriptor,
 )
+from src.policy.carriers.canonical import canonical_bytes
 from src.policy.closure_finalization_hardening import FinalizationHardenedOwner
 from src.policy.closure_liveness_execution import (
     FinalizationPhase,
     LivenessBoundedStreamingSemanticOwner,
-    _atomic_json,
 )
 from src.runtime.reference_receipt import (
-    atomic_stream_json,
+    atomic_write_binary,
     run_isolated_reference_serializer,
-    stream_jsonl_family,
+    stream_binary_family,
 )
 from src.runtime.stage_memory_budget import StageMemoryBudgetGuard
 
 
 _INSTALL_MARKER = "_reference_backed_finalization_installed"
-REFERENCE_FINALIZATION_CONTRACT = "reference-backed-finalization:v1"
+REFERENCE_FINALIZATION_CONTRACT = "reference-backed-finalization:v2"
 MIB = 1024 * 1024
 
 
-def _existing_jsonl_descriptor(
+def _existing_binary_descriptor(
     path: Path,
     *,
     family: str,
     record_count: int,
 ) -> dict[str, Any]:
     digest = sha256()
-    byte_count = 0
+    semantic_byte_count = 0
+    artifact_byte_count = 0
     observed = 0
     with path.open("rb") as handle:
-        for line in handle:
-            if not line.strip():
-                continue
-            digest.update(line)
-            byte_count += len(line)
+        while True:
+            length_bytes = handle.read(8)
+            if not length_bytes:
+                break
+            if len(length_bytes) != 8:
+                raise ValueError(f"{family} checkpoint has a truncated frame")
+            length = int.from_bytes(length_bytes, "big")
+            encoded = handle.read(length)
+            if len(encoded) != length:
+                raise ValueError(f"{family} checkpoint has a truncated payload")
+            value = pickle.loads(encoded)
+            if not isinstance(value, Mapping):
+                raise ValueError(f"{family} checkpoint row is not a mapping")
+            semantic = canonical_bytes(dict(value))
+            frame = len(semantic).to_bytes(8, "big") + semantic
+            digest.update(frame)
+            semantic_byte_count += len(frame)
+            artifact_byte_count += 8 + length
             observed += 1
     if observed != record_count:
         raise ValueError(f"{family} checkpoint count changed")
     return family_descriptor(
         family=family,
-        storage_kind="jsonl",
+        storage_kind="binary",
         record_count=observed,
-        byte_count=byte_count,
+        byte_count=semantic_byte_count,
+        artifact_byte_count=artifact_byte_count,
         ordered_digest=digest.hexdigest(),
         path=str(path),
+        encoding_ref=BINARY_FAMILY_ENCODING,
     )
 
 
 def _malloc_trim() -> bool:
-    """Best-effort glibc arena release; process exit remains the hard boundary."""
-
     try:
         libc = ctypes.CDLL(None)
         trim = libc.malloc_trim
@@ -83,7 +98,7 @@ def _malloc_trim() -> bool:
 
 
 class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
-    """Return a compact build while preserving one canonical semantic owner."""
+    """Return a compact reference build while preserving canonical semantics."""
 
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
@@ -112,8 +127,6 @@ class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
                 yield value.to_dict()
 
     def _materialize_reduction_now(self, generation: int) -> ProposalReduction:
-        """Assemble once and stream rows; never build a second row dictionary list."""
-
         if self._materialized_reduction_cache is not None:
             return self._materialized_reduction_cache
         started = monotonic_ns()
@@ -127,18 +140,18 @@ class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
             self._finalization_root = original_root
         if original_root is None:
             return reduction
-        factors = stream_jsonl_family(
-            original_root / "materialized-factors.jsonl",
+        factors = stream_binary_family(
+            original_root / "materialized-factors.bin",
             family="factors",
             rows=self._rows(reduction.factors),
         )
-        residuals = stream_jsonl_family(
-            original_root / "materialized-residuals.jsonl",
+        residuals = stream_binary_family(
+            original_root / "materialized-residuals.bin",
             family="residuals",
             rows=self._rows(reduction.residuals),
         )
-        _atomic_json(
-            original_root / "materialized-reduction.manifest.json",
+        atomic_write_binary(
+            original_root / "materialized-reduction.manifest.pkl",
             {
                 "owner_fingerprint": self._owner_fingerprint(),
                 "graph_ref": reduction.graph_ref,
@@ -155,28 +168,27 @@ class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
                 "resumability_boundary": (
                     "settled_owner_index_plus_canonical_reduction"
                 ),
+                "text_serialization": False,
             },
         )
         return reduction
 
     def _seal_families(self, root: Path) -> dict[str, dict[str, Any]]:
         materialized = self.materialized_reduction
-        factors = _existing_jsonl_descriptor(
-            root / "materialized-factors.jsonl",
+        factors = _existing_binary_descriptor(
+            root / "materialized-factors.bin",
             family="factors",
             record_count=len(materialized.factors),
         )
-        residuals = _existing_jsonl_descriptor(
-            root / "materialized-residuals.jsonl",
+        residuals = _existing_binary_descriptor(
+            root / "materialized-residuals.bin",
             family="residuals",
             record_count=len(materialized.residuals),
         )
 
         self._build_boundary_summaries()
         jobs = self._compact_jobs if self._compact_jobs else self._jobs
-        receipts = (
-            self._compact_receipts if self._compact_receipts else self._receipts
-        )
+        receipts = self._compact_receipts if self._compact_receipts else self._receipts
         specifications: tuple[tuple[str, Iterable[Any]], ...] = (
             (
                 "observation_deltas",
@@ -192,18 +204,12 @@ class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
                     for key in sorted(self._coverage_notices)
                 ),
             ),
-            (
-                "proposals",
-                (self._proposals[key] for key in sorted(self._proposals)),
-            ),
+            ("proposals", (self._proposals[key] for key in sorted(self._proposals))),
             ("solver_jobs", (jobs[key] for key in sorted(jobs))),
             ("solver_receipts", (receipts[key] for key in sorted(receipts))),
             (
                 "state_deltas",
-                (
-                    self._state_deltas[index]
-                    for index in range(len(self._state_deltas))
-                ),
+                (self._state_deltas[index] for index in range(len(self._state_deltas))),
             ),
             (
                 "region_boundary_summaries",
@@ -218,16 +224,14 @@ class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
             "residuals": residuals,
         }
         for family, rows in specifications:
-            manifests[family] = stream_jsonl_family(
-                root / f"{family.replace('_', '-')}.jsonl",
+            manifests[family] = stream_binary_family(
+                root / f"{family.replace('_', '-')}.bin",
                 family=family,
                 rows=self._rows(rows),
             )
         return manifests
 
     def _release_heavy_owner_state(self) -> dict[str, Any]:
-        # Releasing the still-heavy owner belongs to the finalisation budget.
-        # The stricter serialization budget starts only after release completes.
         before = self._stage_budget.checkpoint(
             "finalization",
             phase="release_owner_state_started",
@@ -273,9 +277,6 @@ class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
         self._boundary_obligations.clear()
         self._complete_coverage.clear()
         self._known_dependency_refs.clear()
-        # Keep the already-built boundary-summary cache and its small scope
-        # indexes until the outer compatibility view has consumed them. They no
-        # longer retain factor/proposal objects because `_reductions` is cleared.
         self._materialized_reduction_cache = None
         self._deferred_reduction = None
         self._ledger_cache = None
@@ -308,8 +309,6 @@ class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
         if self._reference_build_cache is not None:
             return dict(self._reference_build_cache)
         if self._finalization_root is None:
-            # Small fixtures retain the established materialised contract. Exact
-            # and production runs always configure a durable checkpoint root.
             return super().to_dict()
 
         root = self._finalization_root
@@ -369,16 +368,16 @@ class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
             "retention_counts": super().retention_counts(),
             "compact_execution_evidence": True,
             "reference_backed": True,
-            "jsonl_authority": "transitional_debug_transport_only",
-            "durable_authority_target": "postgresql_execution_schema",
+            "text_serialization": False,
+            "durable_authority": "postgresql_typed_execution_schema",
         }
-        spec_path = root / "closure-reference-receipt.spec.json"
-        output_path = root / "closure-receipt.json"
-        report_path = root / "closure-reference-serializer-report.json"
-        atomic_stream_json(spec_path, payload)
+        spec_path = root / "closure-reference-receipt.spec.pkl"
+        output_path = root / "closure-receipt.pkl"
+        report_path = root / "closure-reference-serializer-report.pkl"
+        atomic_write_binary(spec_path, payload)
         release_receipt = self._release_heavy_owner_state()
         payload["owner_release"] = release_receipt
-        atomic_stream_json(spec_path, payload)
+        atomic_write_binary(spec_path, payload)
 
         self._stage_budget.checkpoint(
             "serialization",
@@ -414,8 +413,6 @@ class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
 
 
 def install_reference_backed_finalization() -> bool:
-    """Install after liveness/finalisation hardening and before parallel wrappers."""
-
     from src.policy import bounded_operational_execution as bounded
 
     if getattr(bounded, _INSTALL_MARKER, False):
