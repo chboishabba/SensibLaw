@@ -4,7 +4,7 @@ from pathlib import Path
 MIGRATION_ROOT = Path("database/postgres_migrations")
 MIGRATIONS = tuple(
     path
-    for ordinal in range(40, 57)
+    for ordinal in range(40, 58)
     for path in sorted(MIGRATION_ROOT.glob(f"{ordinal:03d}_*.sql"))
 )
 
@@ -20,7 +20,7 @@ def _migration(ordinal: int) -> str:
 
 
 def test_numeric_hyperfabric_schema_contains_no_json_authority() -> None:
-    assert len(MIGRATIONS) == 17
+    assert len(MIGRATIONS) == 18
     source = _source().casefold()
     assert " json " not in source
     assert " jsonb" not in source
@@ -168,6 +168,22 @@ def test_adjacent_executor_is_fenced_and_separates_candidates_from_resolution() 
     assert "resolved_target_id" not in source
     assert "resolved_target_kind" not in source
     assert "SET state = 4" not in source
+
+
+def test_demand_state_two_requires_an_explicit_resolved_target() -> None:
+    source = _migration(57)
+    for required in (
+        "semantic_pnf_demand_resolution_state_ck",
+        "state = 2",
+        "resolved_target_kind IS NOT NULL",
+        "resolved_target_id IS NOT NULL",
+        "enforce_numeric_pnf_demand_state",
+        "candidate_count > 0",
+        "NEW.state := 1",
+        "resolved numeric PNF demand",
+    ):
+        assert required in source
+    assert "candidate availability" in source.casefold()
 
 
 def test_old_decorative_parser_work_triggers_are_removed() -> None:
