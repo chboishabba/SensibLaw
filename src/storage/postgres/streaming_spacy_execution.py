@@ -11,6 +11,9 @@ from time import monotonic_ns
 from typing import Any, Callable, Mapping
 
 from src.runtime.durable_work_items import linux_parent_death_initializer
+from src.storage.postgres.numeric_adjacent_reconciliation import (
+    drain_adjacent_reconciliation,
+)
 from src.storage.postgres.numeric_hierarchy_planner import (
     materialize_numeric_document_hierarchy,
 )
@@ -200,6 +203,45 @@ def _drain_remaining_sentence_closure(
             return total
 
 
+def _drain_remaining_adjacent_reconciliation(
+    database_url: str,
+    *,
+    run_ref: str,
+    stage: str,
+) -> int:
+    total = 0
+    while True:
+        summary = drain_adjacent_reconciliation(
+            database_url,
+            run_ref=run_ref,
+            worker_ref=f"parser-coordinator:{run_ref}:adjacent:{stage}",
+            limit=256,
+        )
+        total += summary.completed_pairs
+        if summary.completed_pairs == 0:
+            return total
+
+
+def _refresh_final_numeric_lookup(
+    database_url: str,
+    *,
+    run_ref: str,
+    document_ref: str,
+) -> int:
+    connection = connect(database_url)
+    try:
+        with connection.transaction():
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT execution.refresh_pnf_global_lookup(%s, %s)",
+                    (run_ref, document_ref),
+                )
+                row = cursor.fetchone()
+                return int(row[0]) if row is not None else 0
+    finally:
+        connection.close()
+
+
 def run_streaming_spacy_execution(
     *,
     database_url: str,
@@ -212,7 +254,7 @@ def run_streaming_spacy_execution(
     policy: ParserStreamingPolicy | None = None,
     progress_observer: Callable[[Mapping[str, Any]], None] | None = None,
 ) -> PostgresSentenceCarrier:
-    """Parse once, close numeric sentence PNF, then materialize the region DAG."""
+    """Parse once, close numeric PNF, reconcile adjacency, and close the DAG."""
 
     if not 1 <= worker_count <= 32:
         raise ValueError("parser worker_count must be between 1 and 32")
@@ -321,7 +363,22 @@ def run_streaming_spacy_execution(
             raise RuntimeError("parser execution exceeded bounded scheduling rounds")
 
     _drain_remaining_sentence_closure(database_url, run_ref=run_ref)
+    sentence_pair_count = _drain_remaining_adjacent_reconciliation(
+        database_url,
+        run_ref=run_ref,
+        stage="sentence",
+    )
     hierarchy = materialize_numeric_document_hierarchy(
+        database_url,
+        run_ref=run_ref,
+        document_ref=document_ref,
+    )
+    paragraph_pair_count = _drain_remaining_adjacent_reconciliation(
+        database_url,
+        run_ref=run_ref,
+        stage="paragraph",
+    )
+    final_lookup_rows = _refresh_final_numeric_lookup(
         database_url,
         run_ref=run_ref,
         document_ref=document_ref,
@@ -354,7 +411,9 @@ def run_streaming_spacy_execution(
         "pnf_document_interface_id": hierarchy.document_interface_id,
         "pnf_segmentation_evaluations": hierarchy.segmentation_evaluations,
         "pnf_segmentation_bound": hierarchy.segmentation_bound,
-        "pnf_visible_index_rows": hierarchy.visible_index_rows,
+        "pnf_visible_index_rows": final_lookup_rows,
+        "pnf_sentence_adjacent_pairs": sentence_pair_count,
+        "pnf_paragraph_adjacent_pairs": paragraph_pair_count,
         "pnf_region_count": counts["regions"],
         "pnf_factor_count": counts["factors"],
         "pnf_object_count": counts["objects"],
