@@ -51,7 +51,7 @@ def test_parser_run_ref_is_stable_and_semantically_scoped() -> None:
     )
 
 
-def test_wrappers_bind_the_real_function_signatures() -> None:
+def test_wrappers_bind_signatures_and_bypass_legacy_strict_materialization() -> None:
     import src.policy.streaming_spacy_parser_execution as execution
 
     source = Path(execution.__file__).read_text(encoding="utf-8")
@@ -63,6 +63,9 @@ def test_wrappers_bind_the_real_function_signatures() -> None:
     assert "arguments.get(\"strict_run_ref\")" in source
     assert source.count("original_compile(*bound.args, **bound.kwargs)") == 1
     assert source.count("original_persist(*bound.args, **bound.kwargs)") == 1
+    assert source.count("compile_numeric_pnf_document(") == 1
+    assert source.count("persist_numeric_pnf_document(") == 1
+    assert "kernel_key=\"strict.numeric_pnf\"" in source
 
 
 def test_policy_installs_in_a_fresh_interpreter_without_import_cycle() -> None:
