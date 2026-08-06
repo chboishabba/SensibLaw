@@ -1,4 +1,4 @@
-name: Apply PR470 backpointer fix
+name: Apply PR470 runtime conformance fixes
 
 on:
   push:
@@ -9,10 +9,14 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: apply-pr470-runtime-conformance
+  cancel-in-progress: false
+
 jobs:
   apply:
     runs-on: self-hosted
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -20,19 +24,271 @@ jobs:
           persist-credentials: true
           fetch-depth: 0
 
-      - name: Replace copied paths with backpointers
+      - name: Apply faithful heads, backpointers, and adjacency indexes
         run: |
           python - <<'PY'
           from pathlib import Path
 
-          path = Path("src/storage/postgres/numeric_hierarchy_planner.py")
-          source = path.read_text(encoding="utf-8")
+
+          def replace_once(source: str, old: str, new: str, label: str) -> str:
+              if source.count(old) != 1:
+                  raise SystemExit(
+                      f"{label}: expected one marker, found {source.count(old)}"
+                  )
+              return source.replace(old, new, 1)
+
+
+          projection_path = Path(
+              "src/storage/postgres/spacy_numeric_projection.py"
+          )
+          projection = projection_path.read_text(encoding="utf-8")
+          projection = replace_once(
+              projection,
+              "from typing import Any\n",
+              "from typing import Any, Mapping\n",
+              "projection typing import",
+          )
+          projection = replace_once(
+              projection,
+              "\n\n@dataclass(frozen=True, slots=True)\nclass _RawSentence:",
+              '''\n\nclass NumericHeadProjectionError(RuntimeError):
+              """A declared non-root dependency head was not committed."""
+
+
+          @dataclass(frozen=True, slots=True)
+          class _RawSentence:''',
+              "projection error carrier",
+          )
+          projection = replace_once(
+              projection,
+              "    dependency: str\n    head_start_char: int\n",
+              "    dependency: str\n    head_is_self: bool\n    head_start_char: int\n",
+              "raw-token root evidence",
+          )
+          projection = replace_once(
+              projection,
+              '''                    dependency=str(token.dep_),
+                              head_start_char=head_start,''',
+              '''                    dependency=str(token.dep_),
+                              head_is_self=bool(token.head == token),
+                              head_start_char=head_start,''',
+              "collect explicit root evidence",
+          )
+          helper_marker = "\n\ndef _collect_doc(\n"
+          if projection.count(helper_marker) != 1:
+              raise SystemExit("projection helper insertion marker changed")
+          helper = '''
+
+          def _project_numeric_heads(
+              raw_tokens: tuple[_RawToken, ...],
+              token_rows_by_ref: Mapping[str, tuple[int, int, int]],
+          ) -> tuple[tuple[int, int], ...]:
+              """Resolve dependency heads without inventing root self-loops."""
+
+              token_id_by_span: dict[tuple[int, int], int] = {}
+              for token_id, start_char, end_char in token_rows_by_ref.values():
+                  span = (start_char, end_char)
+                  prior = token_id_by_span.setdefault(span, token_id)
+                  if prior != token_id:
+                      raise NumericHeadProjectionError(
+                          f"duplicate committed token span {span!r}"
+                      )
+
+              updates: list[tuple[int, int]] = []
+              for raw in raw_tokens:
+                  committed = token_rows_by_ref.get(raw.token_ref)
+                  if committed is None:
+                      raise NumericHeadProjectionError(
+                          f"numeric token row missing for {raw.token_ref}"
+                      )
+                  token_id, start_char, end_char = committed
+                  token_span = (start_char, end_char)
+                  declared_head_span = (
+                      raw.head_start_char,
+                      raw.head_end_char,
+                  )
+                  if raw.head_is_self:
+                      if declared_head_span != token_span:
+                          raise NumericHeadProjectionError(
+                              "explicit parser root has a non-self head span: "
+                              f"token={token_span!r} head={declared_head_span!r}"
+                          )
+                      head_token_id = token_id
+                  else:
+                      head_token_id = token_id_by_span.get(declared_head_span)
+                      if head_token_id is None:
+                          raise NumericHeadProjectionError(
+                              "declared non-root dependency head is absent: "
+                              f"token={token_span!r} head={declared_head_span!r}"
+                          )
+                      if head_token_id == token_id:
+                          raise NumericHeadProjectionError(
+                              "non-root dependency resolved to its own token id"
+                          )
+                  updates.append((head_token_id, token_id))
+              return tuple(updates)
+          '''
+          helper = "\n".join(
+              line[10:] if line.startswith("          ") else line
+              for line in helper.splitlines()
+          )
+          projection = projection.replace(
+              helper_marker,
+              helper + helper_marker,
+              1,
+          )
+          projection = replace_once(
+              projection,
+              "SELECT token_ref, token_id, start_char\n",
+              "SELECT token_ref, token_id, start_char, end_char\n",
+              "load committed token spans",
+          )
+          old_head_block = '''                token_rows_by_ref = {
+                              str(token_ref): (int(token_id), int(start_char))
+                              for token_ref, token_id, start_char in cursor.fetchall()
+                          }
+                          token_id_by_start = {
+                              start_char: token_id
+                              for token_id, start_char in token_rows_by_ref.values()
+                          }
+                          cursor.executemany(
+                              """
+                              UPDATE execution.semantic_parser_token
+                                 SET head_token_id = %s
+                               WHERE token_id = %s
+                              """,
+                              [
+                                  (
+                                      token_id_by_start.get(
+                                          raw.head_start_char,
+                                          token_rows_by_ref[raw.token_ref][0],
+                                      ),
+                                      token_rows_by_ref[raw.token_ref][0],
+                                  )
+                                  for raw in raw_tokens
+                                  if raw.token_ref in token_rows_by_ref
+                              ],
+                          )'''
+          new_head_block = '''                token_rows_by_ref = {
+                              str(token_ref): (
+                                  int(token_id),
+                                  int(start_char),
+                                  int(end_char),
+                              )
+                              for token_ref, token_id, start_char, end_char
+                              in cursor.fetchall()
+                          }
+                          cursor.executemany(
+                              """
+                              UPDATE execution.semantic_parser_token
+                                 SET head_token_id = %s
+                               WHERE token_id = %s
+                              """,
+                              _project_numeric_heads(
+                                  raw_tokens,
+                                  token_rows_by_ref,
+                              ),
+                          )'''
+          projection = replace_once(
+              projection,
+              old_head_block,
+              new_head_block,
+              "replace silent head fallback",
+          )
+          projection = projection.replace(
+              '__all__ = ["commit_numeric_doc"]',
+              '__all__ = ["NumericHeadProjectionError", "commit_numeric_doc"]',
+          )
+          projection_path.write_text(projection, encoding="utf-8")
+
+          store_path = Path(
+              "src/storage/postgres/numeric_hyperfabric_store.py"
+          )
+          store_source = store_path.read_text(encoding="utf-8")
+          load_marker = '''def _load_sentence_tokens(
+              cursor: Any,
+              region_id: int,
+          ) -> tuple[NumericToken, ...]:
+              cursor.execute(
+          '''
+          capability_block = '''def _load_sentence_tokens(
+              cursor: Any,
+              region_id: int,
+          ) -> tuple[NumericToken, ...]:
+              cursor.execute(
+                  """
+                  SELECT receipt.dependencies, receipt.part_of_speech
+                    FROM execution.semantic_pnf_sentence_region AS link
+                    JOIN execution.semantic_parser_sentence AS sentence
+                      ON sentence.sentence_id = link.sentence_id
+                    JOIN execution.semantic_parser_partition_receipt AS receipt
+                      ON receipt.partition_ref = sentence.partition_ref
+                   WHERE link.region_id = %s
+                  """,
+                  (region_id,),
+              )
+              capability = cursor.fetchone()
+              if capability is None:
+                  raise RuntimeError(
+                      "numeric sentence region lacks a parser capability receipt"
+                  )
+              if not bool(capability[0]):
+                  raise RuntimeError(
+                      "numeric sentence closure requires dependency annotations"
+                  )
+              if not bool(capability[1]):
+                  raise RuntimeError(
+                      "numeric sentence closure requires POS annotations"
+                  )
+              cursor.execute(
+          '''
+          store_source = replace_once(
+              store_source,
+              load_marker,
+              capability_block,
+              "sentence capability gate",
+          )
+          store_source = replace_once(
+              store_source,
+              '''    rows = cursor.fetchall()
+              tokens = tuple(
+          ''',
+              '''    rows = cursor.fetchall()
+              missing_head_ids = tuple(
+                  int(row[0]) for row in rows if row[6] is None
+              )
+              if missing_head_ids:
+                  raise RuntimeError(
+                      "numeric sentence contains unprojected dependency heads: "
+                      f"{missing_head_ids!r}"
+                  )
+              tokens = tuple(
+          ''',
+              "nullable head rejection",
+          )
+          store_source = replace_once(
+              store_source,
+              "            head_token_id=int(row[6] or row[0]),\n",
+              "            head_token_id=int(row[6]),\n",
+              "remove load-time self fallback",
+          )
+          store_source = store_source.replace("from pathlib import Path\n", "")
+          store_source = store_source.replace(
+              "from typing import Any, Iterable, Mapping, Sequence\n",
+              "from typing import Any, Mapping, Sequence\n",
+          )
+          store_path.write_text(store_source, encoding="utf-8")
+
+          planner_path = Path(
+              "src/storage/postgres/numeric_hierarchy_planner.py"
+          )
+          planner = planner_path.read_text(encoding="utf-8")
           start_marker = "def plan_interface_segments(\n"
           end_marker = "\n\ndef _load_paragraph_sketches("
-          if source.count(start_marker) != 1 or source.count(end_marker) != 1:
+          if planner.count(start_marker) != 1 or planner.count(end_marker) != 1:
               raise SystemExit("numeric hierarchy planner markers changed")
-          start = source.index(start_marker)
-          end = source.index(end_marker, start)
+          start = planner.index(start_marker)
+          end = planner.index(end_marker, start)
           replacement = '''@dataclass(frozen=True, slots=True)
           class _SketchState:
               total_cost: float
@@ -59,11 +315,11 @@ jobs:
               *,
               profile: MdlProfile,
           ) -> SketchSegmentation:
-              """Windowed beam DP over incrementally joined interface sketches.
+              """Windowed beam DP with constant-size predecessor cells.
 
-              Runtime is O(N * W * B) and memory is O(N * B). Candidate states
-              retain one constant-size backpointer rather than copying complete
-              segment paths. Recurrence and boundary discharge can justify merges.
+              Candidate-state count is O(N * W * B) and retained DP state is
+              O(N * B). Exact key-set union cost remains proportional to the
+              bounded planning window's interface-sketch cardinality.
               """
 
               if not sketches:
@@ -120,11 +376,7 @@ jobs:
                       key=lambda state: (
                           state.total_cost,
                           state.segment_count,
-                          (
-                              state.segment.start
-                              if state.segment is not None
-                              else -1
-                          ),
+                          state.segment.start if state.segment else -1,
                           state.serial,
                       )
                   )
@@ -142,62 +394,273 @@ jobs:
               line[10:] if line.startswith("          ") else line
               for line in replacement.splitlines()
           )
-          updated = source[:start] + replacement + source[end:]
-          if "(*prior_segments, segment)" in updated:
+          planner = planner[:start] + replacement + planner[end:]
+          if "(*prior_segments, segment)" in planner:
               raise SystemExit("copied segment paths remain")
-          path.write_text(updated, encoding="utf-8")
+          planner_path.write_text(planner, encoding="utf-8")
 
-          store = Path("src/storage/postgres/numeric_hyperfabric_store.py")
-          store_source = store.read_text(encoding="utf-8")
-          store_source = store_source.replace("from pathlib import Path\n", "")
-          store_source = store_source.replace(
-              "from typing import Any, Iterable, Mapping, Sequence\n",
-              "from typing import Any, Mapping, Sequence\n",
+          operator_path = Path("src/pnf/numeric_operator_composition.py")
+          operator = operator_path.read_text(encoding="utf-8")
+          old_subject = '''def _children(
+              token_id: int,
+              tokens: Sequence[NumericToken],
+          ) -> tuple[NumericToken, ...]:
+              return tuple(token for token in tokens if token.head_token_id == token_id)
+
+
+          def _subject_and_object(
+              head: NumericToken,
+              tokens: Sequence[NumericToken],
+              lexicon: OperatorLexicon,
+          ) -> tuple[NumericToken | None, NumericToken | None]:
+              children = _children(head.token_id, tokens)
+          '''
+          new_subject = '''def _subject_and_object(
+              children: Sequence[NumericToken],
+              lexicon: OperatorLexicon,
+          ) -> tuple[NumericToken | None, NumericToken | None]:
+          '''
+          operator = replace_once(
+              operator,
+              old_subject,
+              new_subject,
+              "linear child adjacency helper",
           )
-          store.write_text(store_source, encoding="utf-8")
+          operator = replace_once(
+              operator,
+              '''    token_by_id = {token.token_id: token for token in tokens}
+              objects: dict[int, NumericObjectSpec] = {}
+          ''',
+              '''    token_by_id = {token.token_id: token for token in tokens}
+              children_by_head: dict[int, list[NumericToken]] = {}
+              for token in tokens:
+                  children_by_head.setdefault(token.head_token_id, []).append(token)
+              objects: dict[int, NumericObjectSpec] = {}
+          ''',
+              "build sentence adjacency index",
+          )
+          operator = operator.replace(
+              "_subject_and_object(head, tokens, lexicon)",
+              "_subject_and_object(children_by_head.get(head.token_id, ()), lexicon)",
+          )
+          operator = operator.replace(
+              "_subject_and_object(predicate, tokens, lexicon)",
+              "_subject_and_object(\n            children_by_head.get(predicate.token_id, ()), lexicon\n        )",
+          )
+          old_negation = '''        negation = next(
+                      (
+                          token
+                          for token in tokens
+                          if token.lemma_id in negation_lemmas
+                          and token.head_token_id in {head.token_id, modal.token_id}
+                      ),
+                      None,
+                  )'''
+          new_negation = '''        negation = next(
+                      (
+                          token
+                          for head_id in (head.token_id, modal.token_id)
+                          for token in children_by_head.get(head_id, ())
+                          if token.lemma_id in negation_lemmas
+                      ),
+                      None,
+                  )'''
+          operator = replace_once(
+              operator,
+              old_negation,
+              new_negation,
+              "indexed negation lookup",
+          )
+          operator_path.write_text(operator, encoding="utf-8")
+
+          projection_test = Path(
+              "tests/storage/test_spacy_numeric_projection.py"
+          )
+          projection_test.write_text(
+              '''from __future__ import annotations
+
+          import pytest
+
+          from src.storage.postgres.spacy_numeric_projection import (
+              NumericHeadProjectionError,
+              _RawToken,
+              _project_numeric_heads,
+          )
+
+
+          def _token(
+              ref: str,
+              *,
+              start: int,
+              end: int,
+              head_start: int,
+              head_end: int,
+              is_root: bool,
+          ) -> _RawToken:
+              return _RawToken(
+                  token_ref=ref,
+                  token_digest=b"x" * 32,
+                  sentence_ref="sentence",
+                  ordinal=0,
+                  start_char=start,
+                  end_char=end,
+                  orth=ref,
+                  lemma=ref,
+                  pos="NOUN",
+                  tag="NN",
+                  dependency="ROOT" if is_root else "nsubj",
+                  head_is_self=is_root,
+                  head_start_char=head_start,
+                  head_end_char=head_end,
+                  morphology=(),
+              )
+
+
+          def test_explicit_root_and_dependent_head_project() -> None:
+              root = _token(
+                  "root",
+                  start=10,
+                  end=14,
+                  head_start=10,
+                  head_end=14,
+                  is_root=True,
+              )
+              child = _token(
+                  "child",
+                  start=0,
+                  end=5,
+                  head_start=10,
+                  head_end=14,
+                  is_root=False,
+              )
+
+              assert _project_numeric_heads(
+                  (root, child),
+                  {
+                      "root": (101, 10, 14),
+                      "child": (102, 0, 5),
+                  },
+              ) == ((101, 101), (101, 102))
+
+
+          def test_missing_non_root_head_fails_closed() -> None:
+              child = _token(
+                  "child",
+                  start=0,
+                  end=5,
+                  head_start=10,
+                  head_end=14,
+                  is_root=False,
+              )
+
+              with pytest.raises(
+                  NumericHeadProjectionError,
+                  match="declared non-root dependency head is absent",
+              ):
+                  _project_numeric_heads((child,), {"child": (102, 0, 5)})
+
+
+          def test_root_requires_matching_self_span() -> None:
+              root = _token(
+                  "root",
+                  start=10,
+                  end=14,
+                  head_start=0,
+                  head_end=5,
+                  is_root=True,
+              )
+
+              with pytest.raises(
+                  NumericHeadProjectionError,
+                  match="explicit parser root has a non-self head span",
+              ):
+                  _project_numeric_heads((root,), {"root": (101, 10, 14)})
+          '''.replace("          ", ""),
+              encoding="utf-8",
+          )
+
+          planner_test = Path("tests/storage/test_numeric_hierarchy_planner.py")
+          planner_tests = planner_test.read_text(encoding="utf-8")
+          if "test_beam_cells_store_constant_size_backpointers" not in planner_tests:
+              planner_tests += '''
+
+          def test_beam_cells_store_constant_size_backpointers() -> None:
+              from src.storage.postgres import numeric_hierarchy_planner as planner
+
+              assert set(planner._SketchState.__slots__) == {
+                  "total_cost",
+                  "segment",
+                  "previous",
+                  "segment_count",
+                  "serial",
+              }
+              assert "segments" not in planner._SketchState.__slots__
+          '''.replace("          ", "")
+          planner_test.write_text(planner_tests, encoding="utf-8")
           PY
 
-      - name: Format and verify
+      - name: Format and verify focused conformance
         run: |
           uv run ruff check --fix \
-            src/pnf/numeric_hyperfabric.py \
+            src/pnf/numeric_operator_composition.py \
             src/storage/postgres/numeric_hierarchy_planner.py \
             src/storage/postgres/numeric_hyperfabric_store.py \
-            tests/storage/test_numeric_hierarchy_planner.py
+            src/storage/postgres/spacy_numeric_projection.py \
+            tests/pnf/test_numeric_operator_composition.py \
+            tests/storage/test_numeric_hierarchy_planner.py \
+            tests/storage/test_spacy_numeric_projection.py
           uv run ruff format \
-            src/pnf/numeric_hyperfabric.py \
+            src/pnf/numeric_operator_composition.py \
             src/storage/postgres/numeric_hierarchy_planner.py \
             src/storage/postgres/numeric_hyperfabric_store.py \
-            tests/storage/test_numeric_hierarchy_planner.py
+            src/storage/postgres/spacy_numeric_projection.py \
+            tests/pnf/test_numeric_operator_composition.py \
+            tests/storage/test_numeric_hierarchy_planner.py \
+            tests/storage/test_spacy_numeric_projection.py
           uv run python -m compileall -q \
-            src/pnf/numeric_hyperfabric.py \
+            src/pnf/numeric_operator_composition.py \
             src/storage/postgres/numeric_hierarchy_planner.py \
-            src/storage/postgres/numeric_hyperfabric_store.py
+            src/storage/postgres/numeric_hyperfabric_store.py \
+            src/storage/postgres/spacy_numeric_projection.py
           uv run pytest -q \
-            tests/pnf/test_numeric_hyperfabric.py \
-            tests/storage/test_numeric_hierarchy_planner.py
-          grep -q 'memory is O(N \* B)' \
-            src/storage/postgres/numeric_hierarchy_planner.py
+            tests/pnf/test_numeric_operator_composition.py \
+            tests/storage/test_numeric_hierarchy_planner.py \
+            tests/storage/test_spacy_numeric_projection.py
+          ! grep -q 'token_id_by_start.get' \
+            src/storage/postgres/spacy_numeric_projection.py
+          ! grep -q 'row\[6\] or row\[0\]' \
+            src/storage/postgres/numeric_hyperfabric_store.py
           ! grep -q '\*prior_segments' \
             src/storage/postgres/numeric_hierarchy_planner.py
 
-      - name: Commit fix and marker
+      - name: Commit conformance fixes and receipt
         run: |
           mkdir -p .validation
           {
-            printf 'contract=pr470-backpointer-fix:v1\n'
+            printf 'contract=pr470-runtime-conformance:v2\n'
             printf 'source_head=%s\n' "$(git rev-parse HEAD)"
-            printf 'planner_time=O(N*W*B)\n'
-            printf 'planner_memory=O(N*B)\n'
+            printf 'explicit_root_evidence=1\n'
+            printf 'missing_non_root_fails=1\n'
+            printf 'nullable_head_fallback=0\n'
+            printf 'constant_backpointer_cells=1\n'
             printf 'copied_paths=0\n'
-          } > .validation/pr470-backpointer-applied.txt
+            printf 'sentence_adjacency_index=1\n'
+            printf 'planner_candidate_bound=O(N*W*B)\n'
+            printf 'planner_state_bound=O(N*B)\n'
+            printf 'sketch_union_bound=pending\n'
+          } > .validation/pr470-runtime-conformance.txt
           git config user.name "sensiblaw-validation-bot"
           git config user.email "sensiblaw-validation-bot@users.noreply.github.com"
           git add \
-            src/pnf/numeric_hyperfabric.py \
+            src/pnf/numeric_operator_composition.py \
             src/storage/postgres/numeric_hierarchy_planner.py \
             src/storage/postgres/numeric_hyperfabric_store.py \
+            src/storage/postgres/spacy_numeric_projection.py \
             tests/storage/test_numeric_hierarchy_planner.py \
-            .validation/pr470-backpointer-applied.txt
-          git commit -m "Use backpointers for numeric PNF hierarchy planning"
-          git push origin HEAD:agent/streaming-spacy-typed-parser
+            tests/storage/test_spacy_numeric_projection.py \
+            .validation/pr470-runtime-conformance.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Conform numeric PNF runtime to head and planner contracts"
+            git pull --rebase origin agent/streaming-spacy-typed-parser
+            git push origin HEAD:agent/streaming-spacy-typed-parser
+          fi
