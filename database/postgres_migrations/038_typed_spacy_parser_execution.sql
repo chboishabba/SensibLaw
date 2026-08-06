@@ -51,11 +51,12 @@ CREATE TABLE IF NOT EXISTS execution.semantic_parser_partition (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CHECK (context_start_char <= owner_start_char),
     CHECK (context_end_char >= owner_end_char),
-    UNIQUE (run_ref, sequence_no)
+    UNIQUE (run_ref, document_ref, sequence_no)
 );
 
 CREATE INDEX IF NOT EXISTS semantic_parser_partition_ready_idx
-    ON execution.semantic_parser_partition (run_ref, state, sequence_no)
+    ON execution.semantic_parser_partition
+       (run_ref, document_ref, state, sequence_no)
     WHERE state IN ('ready', 'leased');
 
 CREATE TABLE IF NOT EXISTS execution.semantic_parser_attempt (
