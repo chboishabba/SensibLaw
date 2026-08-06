@@ -1,4 +1,4 @@
-"""Install typed streamed spaCy execution at the operational parser seam."""
+"""Install numeric streamed spaCy and PNF execution for strict compilation."""
 
 from __future__ import annotations
 
@@ -10,6 +10,10 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from src.policy.carriers.canonical import canonical_fields_sha256
+from src.policy.numeric_pnf_compilation import (
+    compile_numeric_pnf_document,
+    persist_numeric_pnf_document,
+)
 from src.storage.postgres.streaming_spacy_execution import (
     STREAMING_SPACY_CONTRACT,
     ParserStreamingPolicy,
@@ -101,16 +105,55 @@ def _execution_context(
     )
 
 
+def _parser_policy(policy: Any) -> ParserStreamingPolicy:
+    return ParserStreamingPolicy(
+        target_chars=_integer_env(
+            "SENSIBLAW_SPACY_PARTITION_TARGET_CHARS",
+            min(int(policy.target_chars), 32_768),
+            minimum=1_024,
+        ),
+        context_chars=_integer_env(
+            "SENSIBLAW_SPACY_PARTITION_CONTEXT_CHARS",
+            min(int(policy.overlap_chars), 2_048),
+            minimum=0,
+        ),
+        batch_size=_integer_env(
+            "SENSIBLAW_SPACY_PIPE_BATCH_SIZE",
+            4,
+        ),
+        lease_seconds=_integer_env(
+            "SENSIBLAW_SPACY_PARTITION_LEASE_SECONDS",
+            180,
+        ),
+        max_repair_depth=_integer_env(
+            "SENSIBLAW_SPACY_BOUNDARY_REPAIR_DEPTH",
+            2,
+            minimum=0,
+        ),
+        cache_docbin=_boolean_env("SENSIBLAW_SPACY_DOCBIN_CACHE", True),
+    )
+
+
+def _artifact_root(
+    *,
+    execution: _ParserExecution,
+    checkpoint_dir: str | None,
+) -> Path:
+    configured_root = os.environ.get("SENSIBLAW_TYPED_PARSER_ARTIFACT_ROOT")
+    if configured_root:
+        return Path(configured_root) / _safe_ref(execution.run_ref)
+    if checkpoint_dir:
+        return Path(checkpoint_dir) / "typed-spacy"
+    return Path(".tmp") / "typed-spacy-parser" / _safe_ref(execution.run_ref)
+
+
 def install_streaming_spacy_parser_execution() -> bool:
-    """Route strict parser work through typed PostgreSQL observations."""
+    """Route strict parser and PNF work through numeric PostgreSQL authority."""
 
     from src.policy import operational_corpus_compilation as operational
 
     if getattr(operational, _INSTALL_MARKER, False):
         return False
-    # Import after the operational module is available. This module copied the
-    # compiler function with ``from ... import`` historically, so its bindings
-    # are explicitly updated below rather than relying on import timing.
     from src.policy import postgres_corpus_compilation as postgres
 
     original_compile = operational.compile_document_operational
@@ -124,9 +167,6 @@ def install_streaming_spacy_parser_execution() -> bool:
         execution = _CURRENT.get()
         if execution is None:
             return original_policy_to_dict(self)
-        # Physical chunk size, overlap, and worker count are scheduling facts.
-        # They are persisted in typed partition rows but excluded from semantic
-        # build identity, so tuning throughput cannot fork the document graph.
         return {
             "contract_ref": "parser-physical-partitioning:semantic-inert:v1",
             "parser_contract_ref": execution.parser_contract_ref,
@@ -155,59 +195,25 @@ def install_streaming_spacy_parser_execution() -> bool:
                 checkpoint_dir=checkpoint_dir,
                 progress=progress,
             )
-        configured_root = os.environ.get("SENSIBLAW_TYPED_PARSER_ARTIFACT_ROOT")
-        if configured_root:
-            artifact_root = Path(configured_root) / _safe_ref(execution.run_ref)
-        elif checkpoint_dir:
-            artifact_root = Path(checkpoint_dir) / "typed-spacy"
-        else:
-            artifact_root = (
-                Path(".tmp")
-                / "typed-spacy-parser"
-                / _safe_ref(execution.run_ref)
-            )
-        parser_policy = ParserStreamingPolicy(
-            target_chars=_integer_env(
-                "SENSIBLAW_SPACY_PARTITION_TARGET_CHARS",
-                min(int(policy.target_chars), 32_768),
-                minimum=1_024,
-            ),
-            context_chars=_integer_env(
-                "SENSIBLAW_SPACY_PARTITION_CONTEXT_CHARS",
-                min(int(policy.overlap_chars), 2_048),
-                minimum=0,
-            ),
-            batch_size=_integer_env(
-                "SENSIBLAW_SPACY_PIPE_BATCH_SIZE",
-                4,
-            ),
-            lease_seconds=_integer_env(
-                "SENSIBLAW_SPACY_PARTITION_LEASE_SECONDS",
-                180,
-            ),
-            max_repair_depth=_integer_env(
-                "SENSIBLAW_SPACY_BOUNDARY_REPAIR_DEPTH",
-                2,
-                minimum=0,
-            ),
-            cache_docbin=_boolean_env("SENSIBLAW_SPACY_DOCBIN_CACHE", True),
-        )
         carrier = run_streaming_spacy_execution(
             database_url=execution.database_url,
             run_ref=execution.run_ref,
             document_ref=document_ref,
             canonical_text=canonical_text,
             parser_contract_ref=execution.parser_contract_ref,
-            artifact_root=artifact_root,
+            artifact_root=_artifact_root(
+                execution=execution,
+                checkpoint_dir=checkpoint_dir,
+            ),
             worker_count=int(policy.workers),
-            policy=parser_policy,
+            policy=_parser_policy(policy),
         )
         if progress is not None and hasattr(progress, "observe"):
             progress.observe(
                 measures={"fibres": carrier.partition_count},
                 details={
-                    "parser_execution_contract": "postgres-streaming-spacy:v1",
-                    "authority_backend": "postgresql",
+                    "parser_execution_contract": STREAMING_SPACY_CONTRACT,
+                    "authority_backend": "postgresql_numeric_hyperfabric",
                     "sentence_count": carrier.sentence_count,
                     "token_count": carrier.token_count,
                 },
@@ -218,48 +224,104 @@ def install_streaming_spacy_parser_execution() -> bool:
         bound = compile_signature.bind_partial(*args, **kwargs)
         bound.apply_defaults()
         arguments = bound.arguments
-        document_input = arguments.get("document_input")
-        compiler_context = arguments.get("compiler_context")
         strategy = str(
             arguments.get("execution_strategy_ref")
             or "local-compatibility-replay"
         )
-        strict = _is_strict_strategy(strategy)
+        if not _is_strict_strategy(strategy):
+            return original_compile(*bound.args, **bound.kwargs)
         database_url = arguments.get("database_url")
-        if strict and not database_url:
+        if not database_url:
             from src.runtime.strict_postgres_execution import StrictExecutionError
 
             raise StrictExecutionError(
                 "postgresql_authority_missing",
-                kernel_key="strict.parser_annotation",
+                kernel_key="strict.numeric_pnf",
             )
-        if not strict:
-            return original_compile(*args, **kwargs)
+        document_input = arguments.get("document_input")
+        context = arguments.get("compiler_context")
         if not isinstance(document_input, Mapping):
-            raise ValueError("strict parser execution requires document_input")
+            raise ValueError("strict numeric compilation requires document_input")
         document_ref = str(document_input.get("document_ref") or "")
-        parser_contract_ref = str(
-            getattr(compiler_context, "annotation_backend_ref", "parser:spacy")
+        content_sha256 = str(document_input.get("content_sha256") or "")
+        media_type = str(document_input.get("media_type") or "")
+        source_text = document_input.get("canonical_text")
+        if not isinstance(source_text, str) or not source_text:
+            raise ValueError("strict numeric compilation requires canonical text")
+        source_ref = str(document_input.get("source_ref") or "")
+        canonical_text, canonical_sha, adapter_ref = (
+            postgres._canonical_source_coordinates(
+                media_type=media_type,
+                source_text=source_text,
+                source_ref=source_ref,
+            )
         )
-        requested_run_ref = str(
-            arguments.get("strict_run_ref")
-            or f"strict-parser:{document_ref}"
+        expected_document_ref = postgres._operational_document_ref(
+            source_content_sha256=content_sha256,
+            canonical_text_sha256=canonical_sha,
+            media_type=media_type,
+            media_adapter_ref=adapter_ref,
+            context=context,
         )
+        if document_ref != expected_document_ref:
+            raise ValueError(
+                "numeric operational document identity disagrees with canonical text"
+            )
+        parser_contract_ref = str(context.annotation_backend_ref)
         effective_run_ref = _scoped_run_ref(
-            requested_run_ref=requested_run_ref,
+            requested_run_ref=str(
+                arguments.get("strict_run_ref")
+                or f"strict-parser:{document_ref}"
+            ),
             document_ref=document_ref,
-            content_sha256=str(document_input.get("content_sha256") or ""),
+            content_sha256=content_sha256,
             parser_contract_ref=parser_contract_ref,
         )
-        arguments["strict_run_ref"] = effective_run_ref
         execution = _execution_context(
             database_url=str(database_url),
             run_ref=effective_run_ref,
-            compiler_context=compiler_context,
+            compiler_context=context,
         )
         token = _CURRENT.set(execution)
         try:
-            return original_compile(*bound.args, **bound.kwargs)
+            build_key = postgres._operational_build_key(
+                document_ref=document_ref,
+                content_sha256=content_sha256,
+                canonical_text_sha256=canonical_sha,
+                media_adapter_ref=adapter_ref,
+                context=context,
+                parser_workers=int(arguments.get("parser_workers") or 2),
+                parser_limit_chars=int(
+                    arguments.get("parser_limit_chars") or 1_000_000
+                ),
+                parser_target_chars=int(
+                    arguments.get("parser_target_chars") or 400_000
+                ),
+                parser_overlap_chars=int(
+                    arguments.get("parser_overlap_chars") or 8_192
+                ),
+            )
+            return compile_numeric_pnf_document(
+                database_url=str(database_url),
+                run_ref=effective_run_ref,
+                document_ref=document_ref,
+                content_sha256=content_sha256,
+                media_type=media_type,
+                canonical_text=canonical_text,
+                canonical_text_sha256=canonical_sha,
+                media_adapter_ref=adapter_ref,
+                parser_contract_ref=parser_contract_ref,
+                build_key_sha256=build_key,
+                parser_workers=int(arguments.get("parser_workers") or 2),
+                parser_target_chars=int(
+                    arguments.get("parser_target_chars") or 400_000
+                ),
+                parser_overlap_chars=int(
+                    arguments.get("parser_overlap_chars") or 8_192
+                ),
+                parser_checkpoint_dir=arguments.get("parser_checkpoint_dir"),
+                progress=arguments.get("progress"),
+            )
         finally:
             _CURRENT.reset(token)
 
@@ -272,42 +334,103 @@ def install_streaming_spacy_parser_execution() -> bool:
             or "local-compatibility-replay"
         )
         if not _is_strict_strategy(strategy):
-            return original_persist(*args, **kwargs)
+            return original_persist(*bound.args, **bound.kwargs)
         database_url = arguments.get("database_url")
         if not database_url:
             from src.runtime.strict_postgres_execution import StrictExecutionError
 
             raise StrictExecutionError(
                 "postgresql_authority_missing",
-                kernel_key="strict.parser_annotation",
+                kernel_key="strict.numeric_pnf",
             )
         entry = arguments.get("entry")
-        compiler_context = arguments.get("context")
-        if not isinstance(entry, Mapping):
-            raise ValueError("strict persistence requires a document entry")
+        context = arguments.get("context")
+        source_text = arguments.get("source_text")
+        if not isinstance(entry, Mapping) or not isinstance(source_text, str):
+            raise ValueError("strict numeric persistence requires entry and source text")
         document_ref = str(entry.get("document_ref") or "")
-        parser_contract_ref = str(
-            getattr(compiler_context, "annotation_backend_ref", "parser:spacy")
+        content_sha256 = str(entry.get("content_sha256") or "")
+        media_type = str(entry.get("media_type") or "")
+        source_ref = f"document-source:{document_ref}"
+        canonical_text, canonical_sha, adapter_ref = (
+            postgres._canonical_source_coordinates(
+                media_type=media_type,
+                source_text=source_text,
+                source_ref=source_ref,
+            )
         )
-        requested_run_ref = str(
-            arguments.get("strict_run_ref")
-            or f"strict-parser:{document_ref}"
+        expected_document_ref = postgres._operational_document_ref(
+            source_content_sha256=content_sha256,
+            canonical_text_sha256=canonical_sha,
+            media_type=media_type,
+            media_adapter_ref=adapter_ref,
+            context=context,
         )
+        if document_ref != expected_document_ref:
+            raise ValueError(
+                "numeric operational document identity disagrees with canonical text"
+            )
+        if str(entry.get("canonical_text_sha256") or "") != canonical_sha:
+            raise ValueError("manifest canonical text hash disagrees with numeric PNF")
+        if str(entry.get("media_adapter_ref") or "") != adapter_ref:
+            raise ValueError("manifest media adapter disagrees with numeric PNF")
+        parser_contract_ref = str(context.annotation_backend_ref)
         effective_run_ref = _scoped_run_ref(
-            requested_run_ref=requested_run_ref,
+            requested_run_ref=str(
+                arguments.get("strict_run_ref")
+                or f"strict-parser:{document_ref}"
+            ),
             document_ref=document_ref,
-            content_sha256=str(entry.get("content_sha256") or ""),
+            content_sha256=content_sha256,
             parser_contract_ref=parser_contract_ref,
         )
-        arguments["strict_run_ref"] = effective_run_ref
         execution = _execution_context(
             database_url=str(database_url),
             run_ref=effective_run_ref,
-            compiler_context=compiler_context,
+            compiler_context=context,
         )
         token = _CURRENT.set(execution)
         try:
-            return original_persist(*bound.args, **bound.kwargs)
+            build_key = postgres._operational_build_key(
+                document_ref=document_ref,
+                content_sha256=content_sha256,
+                canonical_text_sha256=canonical_sha,
+                media_adapter_ref=adapter_ref,
+                context=context,
+                parser_workers=int(arguments.get("parser_workers") or 2),
+                parser_limit_chars=int(
+                    arguments.get("parser_limit_chars") or 1_000_000
+                ),
+                parser_target_chars=int(
+                    arguments.get("parser_target_chars") or 400_000
+                ),
+                parser_overlap_chars=int(
+                    arguments.get("parser_overlap_chars") or 8_192
+                ),
+            )
+            return persist_numeric_pnf_document(
+                store=arguments["store"],
+                corpus_ref=str(arguments["corpus_ref"]),
+                relative_path=str(arguments["relative_path"]),
+                entry=entry,
+                source_bytes=bytes(arguments["source_bytes"]),
+                canonical_text=canonical_text,
+                canonical_text_sha256=canonical_sha,
+                media_adapter_ref=adapter_ref,
+                context=context,
+                build_key_sha256=build_key,
+                database_url=str(database_url),
+                run_ref=effective_run_ref,
+                parser_workers=int(arguments.get("parser_workers") or 2),
+                parser_target_chars=int(
+                    arguments.get("parser_target_chars") or 400_000
+                ),
+                parser_overlap_chars=int(
+                    arguments.get("parser_overlap_chars") or 8_192
+                ),
+                parser_checkpoint_dir=arguments.get("parser_checkpoint_dir"),
+                progress=arguments.get("progress"),
+            )
         finally:
             _CURRENT.reset(token)
 
@@ -315,8 +438,6 @@ def install_streaming_spacy_parser_execution() -> bool:
     operational.parse_document_fibres = parser_dispatch
     operational.compile_document_operational = compile_wrapper
     operational._compile_document_operational_without_streaming_spacy = original_compile
-    # Keep the copied compiler/persistence bindings in the PostgreSQL module on
-    # the same strict execution context before its outer build-key calculation.
     postgres.compile_document_operational = compile_wrapper
     postgres.persist_document_compilation = persist_wrapper
     postgres._persist_document_compilation_without_streaming_spacy = original_persist
