@@ -18,6 +18,7 @@ from src.storage.postgres.spacy_parser_model import (
     build_structural_partitions,
     connect,
     read_partition_text,
+    typed_ref,
     write_source,
 )
 from src.storage.postgres.spacy_parser_store import (
@@ -177,9 +178,15 @@ def run_streaming_spacy_execution(
     policy = policy or ParserStreamingPolicy()
     root = Path(artifact_root)
     root.mkdir(parents=True, exist_ok=True)
-    source_ref, source_path, source_digest, source_bytes = write_source(
+    _content_ref, source_path, source_digest, source_bytes = write_source(
         canonical_text,
         root,
+    )
+    source_ref = typed_ref(
+        "parser-source:",
+        run_ref,
+        document_ref,
+        source_digest,
     )
     partitions = build_structural_partitions(
         run_ref=run_ref,
