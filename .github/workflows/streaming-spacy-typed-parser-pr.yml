@@ -16,9 +16,11 @@ on:
       - "src/storage/postgres/streaming_spacy_execution.py"
       - "database/postgres_migrations/038_*.sql"
       - "database/postgres_migrations/039_*.sql"
-      - "database/postgres_migrations/04[0-8]_*.sql"
+      - "database/postgres_migrations/04[0-9]_*.sql"
+      - "database/postgres_migrations/05[0-8]_*.sql"
       - "tests/pnf/test_numeric_*.py"
       - "tests/storage/test_numeric_*.py"
+      - "tests/storage/test_spacy_numeric_projection.py"
       - "tests/storage/test_streaming_spacy_*.py"
       - "tests/policy/test_streaming_spacy_parser_execution.py"
       - "tests/architecture/test_no_json_execution_authority.py"
@@ -44,7 +46,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Compile numeric parser and PNF surfaces
         run: |
@@ -55,6 +57,7 @@ jobs:
             src/policy/numeric_pnf_compilation.py \
             src/policy/streaming_spacy_parser_execution.py \
             src/storage/postgres/numeric_symbol_store.py \
+            src/storage/postgres/numeric_adjacent_reconciliation.py \
             src/storage/postgres/numeric_hierarchy_planner.py \
             src/storage/postgres/numeric_hyperfabric_store.py \
             src/storage/postgres/spacy_numeric_projection.py \
@@ -75,6 +78,7 @@ jobs:
             src/policy/stage_budget_execution.py
             src/policy/streaming_spacy_parser_execution.py
             src/storage/postgres/numeric_symbol_store.py
+            src/storage/postgres/numeric_adjacent_reconciliation.py
             src/storage/postgres/numeric_hierarchy_planner.py
             src/storage/postgres/numeric_hyperfabric_store.py
             src/storage/postgres/spacy_numeric_projection.py
@@ -88,8 +92,10 @@ jobs:
             tests/pnf/test_numeric_hyperfabric.py
             tests/pnf/test_numeric_operator_composition.py
             tests/policy/test_streaming_spacy_parser_execution.py
+            tests/storage/test_numeric_adjacent_reconciliation.py
             tests/storage/test_numeric_hierarchy_planner.py
             tests/storage/test_numeric_hyperfabric_migration.py
+            tests/storage/test_spacy_numeric_projection.py
             tests/storage/test_streaming_spacy_parser_migration.py
             tests/storage/test_streaming_spacy_parser_model.py
             tests/storage/test_streaming_spacy_postgres_integration.py
@@ -108,8 +114,10 @@ jobs:
             tests/pnf/test_numeric_hyperfabric.py \
             tests/pnf/test_numeric_operator_composition.py \
             tests/policy/test_streaming_spacy_parser_execution.py \
+            tests/storage/test_numeric_adjacent_reconciliation.py \
             tests/storage/test_numeric_hierarchy_planner.py \
             tests/storage/test_numeric_hyperfabric_migration.py \
+            tests/storage/test_spacy_numeric_projection.py \
             tests/storage/test_streaming_spacy_parser_migration.py \
             tests/storage/test_streaming_spacy_parser_model.py
 
