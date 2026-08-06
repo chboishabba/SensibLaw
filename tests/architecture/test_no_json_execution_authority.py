@@ -11,6 +11,7 @@ AUTHORITY_PYTHON = (
     "src/policy/no_json_checkpoint_execution.py",
     "src/policy/reference_backed_finalization.py",
     "src/policy/stage_budget_execution.py",
+    "src/policy/typed_execution_callback_views.py",
     "src/pnf/streaming_build_reader.py",
     "src/runtime/durable_stage_state.py",
     "src/runtime/durable_work_item_hardening.py",
@@ -19,6 +20,7 @@ AUTHORITY_PYTHON = (
     "src/runtime/strict_postgres_execution.py",
     "src/storage/postgres/distributed_semantic_execution.py",
     "src/storage/postgres/typed_value_store.py",
+    "scripts/run_durable_coordinator_kill_probe.py",
     "scripts/run_post_closure_probe.py",
 )
 AUTHORITY_SQL = tuple(
