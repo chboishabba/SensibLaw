@@ -25,6 +25,7 @@ AUTHORITY_PYTHON = (
     "src/storage/postgres/distributed_semantic_execution.py",
     "src/storage/postgres/spacy_parser_carrier.py",
     "src/storage/postgres/spacy_parser_model.py",
+    "src/storage/postgres/spacy_parser_registration.py",
     "src/storage/postgres/spacy_parser_store.py",
     "src/storage/postgres/streaming_spacy_execution.py",
     "src/storage/postgres/typed_execution_pool.py",
