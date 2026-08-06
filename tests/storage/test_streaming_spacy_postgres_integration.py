@@ -53,7 +53,11 @@ def test_streamed_parser_commits_typed_rows_and_graph_readiness(
         assert carrier.token_count > 0
         sentences = tuple(carrier["sents"])
         assert len(sentences) == carrier.sentence_count
-        assert all("head_text" not in token for row in sentences for token in row["tokens"])
+        assert all(
+            "head_text" not in token
+            for row in sentences
+            for token in row["tokens"]
+        )
         assert all(
             int(token["index"]) == int(token["start"])
             for row in sentences
@@ -75,6 +79,7 @@ def test_streamed_parser_commits_typed_rows_and_graph_readiness(
                 assert state == "complete"
                 assert int(completed) == int(total)
                 assert int(open_obligations) == 0
+                initial_partition_count = int(total)
 
                 cursor.execute(
                     """
@@ -113,6 +118,9 @@ def test_streamed_parser_commits_typed_rows_and_graph_readiness(
                 )
                 assert int(cursor.fetchone()[0]) == carrier.sentence_count * 3 + 1
 
+        # Physical retuning is semantically inert.  The second invocation must
+        # reuse the registered partition plan and completed observations rather
+        # than insert a differently partitioned plan or load spaCy again.
         resumed = run_streaming_spacy_execution(
             database_url=database_url,
             run_ref=run_ref,
@@ -120,12 +128,12 @@ def test_streamed_parser_commits_typed_rows_and_graph_readiness(
             canonical_text=text,
             parser_contract_ref="parser:spacy:integration:v1",
             artifact_root=tmp_path,
-            worker_count=1,
+            worker_count=2,
             policy=ParserStreamingPolicy(
-                target_chars=1_024,
-                context_chars=64,
-                batch_size=1,
-                cache_docbin=False,
+                target_chars=2_048,
+                context_chars=16,
+                batch_size=4,
+                cache_docbin=True,
             ),
         )
         assert resumed.sentence_count == carrier.sentence_count
@@ -135,13 +143,31 @@ def test_streamed_parser_commits_typed_rows_and_graph_readiness(
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT max(attempt_count)
+                    SELECT count(*), max(attempt_count)
                     FROM execution.semantic_parser_partition
-                    WHERE run_ref = %s
+                    WHERE run_ref = %s AND document_ref = %s
                     """,
-                    (run_ref,),
+                    (run_ref, document_ref),
                 )
-                assert int(cursor.fetchone()[0]) == 1
+                partition_count, max_attempt_count = cursor.fetchone()
+                assert int(partition_count) == initial_partition_count
+                assert int(max_attempt_count) == 1
+
+        with pytest.raises(RuntimeError, match="contract identity changed"):
+            run_streaming_spacy_execution(
+                database_url=database_url,
+                run_ref=run_ref,
+                document_ref=document_ref,
+                canonical_text=text,
+                parser_contract_ref="parser:spacy:integration:v2",
+                artifact_root=tmp_path,
+                worker_count=1,
+                policy=ParserStreamingPolicy(
+                    target_chars=1_024,
+                    context_chars=64,
+                    cache_docbin=False,
+                ),
+            )
     finally:
         with psycopg.connect(database_url, autocommit=True) as connection:
             with connection.cursor() as cursor:
