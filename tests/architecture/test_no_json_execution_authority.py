@@ -19,6 +19,7 @@ AUTHORITY_PYTHON = (
     "src/runtime/reference_receipt.py",
     "src/runtime/strict_postgres_execution.py",
     "src/storage/postgres/distributed_semantic_execution.py",
+    "src/storage/postgres/typed_execution_pool.py",
     "src/storage/postgres/typed_value_store.py",
     "scripts/run_durable_coordinator_kill_probe.py",
     "scripts/run_post_closure_probe.py",
