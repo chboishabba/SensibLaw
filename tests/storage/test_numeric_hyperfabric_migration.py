@@ -4,7 +4,7 @@ from pathlib import Path
 MIGRATION_ROOT = Path("database/postgres_migrations")
 MIGRATIONS = tuple(
     path
-    for ordinal in range(40, 49)
+    for ordinal in range(40, 53)
     for path in sorted(MIGRATION_ROOT.glob(f"{ordinal:03d}_*.sql"))
 )
 
@@ -14,7 +14,7 @@ def _source() -> str:
 
 
 def test_numeric_hyperfabric_schema_contains_no_json_authority() -> None:
-    assert len(MIGRATIONS) == 9
+    assert len(MIGRATIONS) == 13
     source = _source().casefold()
     assert " json " not in source
     assert " jsonb" not in source
@@ -43,6 +43,7 @@ def test_numeric_hyperfabric_schema_declares_compact_ids_and_skip_indexes() -> N
         "semantic_pnf_hyperedge",
         "semantic_pnf_demand",
         "semantic_pnf_visible_lookup",
+        "semantic_pnf_global_lookup",
         "semantic_pnf_mdl_profile",
         "semantic_pnf_work_item",
     ):
@@ -63,6 +64,20 @@ def test_numeric_parser_representation_excludes_legacy_text_refs() -> None:
     assert "assign_numeric_parser_sentence_id" in source
 
 
+def test_numeric_parser_head_projection_is_commit_checked() -> None:
+    source = _source()
+    for required in (
+        "validate_numeric_parser_head_integrity",
+        "CREATE CONSTRAINT TRIGGER semantic_parser_token_head_integrity",
+        "DEFERRABLE INITIALLY DEFERRED",
+        "has no committed dependency head",
+        "lacks explicit self coordinates",
+        "head coordinates do not identify head",
+        "crosses sentence identity",
+    ):
+        assert required in source
+
+
 def test_hierarchy_is_reductive_indexed_and_demand_driven() -> None:
     source = _source()
     for required in (
@@ -74,6 +89,8 @@ def test_hierarchy_is_reductive_indexed_and_demand_driven() -> None:
         "semantic_pnf_demand_candidate",
         "plan_numeric_pnf_demand_candidates",
         "semantic_pnf_visible_demand_planning",
+        "semantic_pnf_global_lookup",
+        "nearest_common_pnf_interface",
         "rebuild_pnf_document_ancestors",
     ):
         assert required in source
