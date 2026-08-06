@@ -12,6 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 PYTHON_AUTHORITY = (
     Path("src/pnf/numeric_hyperfabric.py"),
     Path("src/pnf/numeric_operator_composition.py"),
+    Path("src/policy/numeric_pnf_compilation.py"),
+    Path("src/policy/streaming_spacy_parser_execution.py"),
     Path("src/storage/postgres/numeric_symbol_store.py"),
     Path("src/storage/postgres/numeric_hyperfabric_store.py"),
     Path("src/storage/postgres/spacy_numeric_projection.py"),
@@ -129,6 +131,17 @@ def main() -> int:
         violations.append("bounded segmentation complexity contract is absent")
     if "_prefix_join" in numeric_source:
         violations.append("bounded segmentation still rescans interval prefixes")
+
+    strict_source = (
+        ROOT / "src/policy/streaming_spacy_parser_execution.py"
+    ).read_text(encoding="utf-8")
+    if "persist_numeric_pnf_document" not in strict_source:
+        violations.append("strict persistence does not use numeric PNF authority")
+    strict_branch = strict_source.split("def persist_wrapper", 1)[-1]
+    if "return original_persist(*bound.args, **bound.kwargs)" not in strict_branch:
+        violations.append("compatibility persistence fallback is missing")
+    if strict_branch.count("persist_numeric_pnf_document(") != 1:
+        violations.append("strict numeric persistence is not singular")
 
     if violations:
         print("Numeric hyperfabric authority violations:")
