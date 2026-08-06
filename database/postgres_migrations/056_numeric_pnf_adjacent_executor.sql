@@ -45,7 +45,7 @@ DECLARE
     left_interface RECORD;
     right_interface RECORD;
     canonical_parent_interface_id BIGINT;
-    pair_interface_id BIGINT;
+    selected_pair_interface_id BIGINT;
     next_revision BIGINT;
     pair_digest BYTEA;
     aggregate RECORD;
@@ -197,13 +197,13 @@ BEGIN
         query_cost_ns = EXCLUDED.query_cost_ns,
         hierarchy_cost = EXCLUDED.hierarchy_cost,
         mdl_cost = EXCLUDED.mdl_cost
-    RETURNING interface_id INTO pair_interface_id;
+    RETURNING interface_id INTO selected_pair_interface_id;
 
     INSERT INTO execution.semantic_pnf_interface_export
         (interface_id, export_kind, target_kind, target_id,
          key_symbol_id, role_symbol_id, residual_type_symbol_id,
          rank, promotion_score)
-    SELECT pair_interface_id,
+    SELECT selected_pair_interface_id,
            export.export_kind,
            export.target_kind,
            export.target_id,
@@ -228,7 +228,7 @@ BEGIN
     INSERT INTO execution.semantic_pnf_interface_lookup
         (interface_id, key_kind, key_a, key_b,
          target_kind, target_id, rank)
-    SELECT pair_interface_id,
+    SELECT selected_pair_interface_id,
            lookup.key_kind,
            lookup.key_a,
            lookup.key_b,
@@ -247,8 +247,8 @@ BEGIN
               lookup.target_id
     ON CONFLICT DO NOTHING;
 
-    DELETE FROM execution.semantic_pnf_adjacent_candidate_evidence
-     WHERE pair_interface_id = pair_interface_id;
+    DELETE FROM execution.semantic_pnf_adjacent_candidate_evidence AS evidence
+     WHERE evidence.pair_interface_id = selected_pair_interface_id;
 
     WITH member AS (
         SELECT left_row.region_id AS region_id,
@@ -329,7 +329,7 @@ BEGIN
         (pair_interface_id, demand_id, target_kind, target_id,
          candidate_interface_id, source_member_region_id,
          target_member_region_id, ordinal, candidate_score)
-    SELECT pair_interface_id,
+    SELECT selected_pair_interface_id,
            bounded.demand_id,
            bounded.target_kind,
            bounded.target_id,
@@ -351,11 +351,11 @@ BEGIN
                  count(*) FILTER (WHERE target_kind = 1) AS object_count,
                  count(*) FILTER (WHERE target_kind = 3) AS demand_count
             FROM execution.semantic_pnf_interface_export
-           WHERE interface_id = pair_interface_id
+           WHERE interface_id = selected_pair_interface_id
       ) AS counts
-     WHERE interface.interface_id = pair_interface_id;
+     WHERE interface.interface_id = selected_pair_interface_id;
 
-    PERFORM execution.rebuild_pnf_interface_ancestors(pair_interface_id);
+    PERFORM execution.rebuild_pnf_interface_ancestors(selected_pair_interface_id);
 
     UPDATE execution.semantic_pnf_region
        SET closure_state = 2,
@@ -377,7 +377,7 @@ BEGIN
         RAISE EXCEPTION 'adjacent reconciliation work fence changed at commit';
     END IF;
 
-    RETURN pair_interface_id;
+    RETURN selected_pair_interface_id;
 END;
 $$;
 
