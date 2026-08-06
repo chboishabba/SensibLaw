@@ -1,0 +1,123 @@
+name: Streamed typed spaCy parser validation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/streaming-spacy-typed-parser-validation.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: streamed-typed-spacy-parser-validation
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: self-hosted
+    timeout-minutes: 40
+    env:
+      SENSIBLAW_LOCAL_POSTGRES_URL: postgresql://postgres@127.0.0.1:5433/postgres
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: agent/streaming-spacy-typed-parser
+
+      - name: Compile parser execution surfaces
+        run: |
+          uv run python -m compileall -q \
+            src/nlp/spacy_adapter.py \
+            src/policy/streaming_spacy_parser_execution.py \
+            src/storage/postgres/spacy_parser_model.py \
+            src/storage/postgres/spacy_parser_store.py \
+            src/storage/postgres/streaming_spacy_execution.py
+
+      - name: Ruff lint and formatting
+        run: |
+          files=(
+            src/nlp/spacy_adapter.py
+            src/policy/stage_budget_execution.py
+            src/policy/streaming_spacy_parser_execution.py
+            src/storage/postgres/spacy_parser_model.py
+            src/storage/postgres/spacy_parser_store.py
+            src/storage/postgres/streaming_spacy_execution.py
+            tests/architecture/test_no_json_execution_authority.py
+            tests/storage/test_streaming_spacy_parser_migration.py
+            tests/storage/test_streaming_spacy_parser_model.py
+            tests/storage/test_streaming_spacy_postgres_integration.py
+          )
+          uv run ruff check "${files[@]}"
+          uv run ruff format --check "${files[@]}"
+
+      - name: No-text-serialization authority and unit tests
+        run: |
+          uv run pytest -q \
+            tests/architecture/test_no_json_execution_authority.py \
+            tests/storage/test_streaming_spacy_parser_migration.py \
+            tests/storage/test_streaming_spacy_parser_model.py
+
+      - name: Provision isolated database and apply every migration
+        id: database
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(uv run python - <<'PY'
+          import os
+          from pathlib import Path
+          from src.runtime.postgres_provisioning import provision_local_postgres
+
+          run_ref = "streaming-spacy-{}-{}".format(
+              os.environ["GITHUB_RUN_ID"],
+              os.environ["GITHUB_RUN_ATTEMPT"],
+          )
+          url, name = provision_local_postgres(
+              admin_url=os.environ["SENSIBLAW_LOCAL_POSTGRES_URL"],
+              migration_root=Path("database/postgres_migrations"),
+              run_ref=run_ref,
+          )
+          print(url)
+          print(name)
+          PY
+          )"
+          database_url="$(printf '%s\n' "$output" | sed -n '1p')"
+          database_name="$(printf '%s\n' "$output" | sed -n '2p')"
+          test -n "$database_url"
+          test -n "$database_name"
+          printf 'database_url=%s\n' "$database_url" >> "$GITHUB_OUTPUT"
+          printf 'database_name=%s\n' "$database_name" >> "$GITHUB_OUTPUT"
+
+      - name: Run PostgreSQL and spaCy integration probe
+        env:
+          DATABASE_URL: ${{ steps.database.outputs.database_url }}
+        run: |
+          uv run pytest -q tests/storage/test_streaming_spacy_postgres_integration.py
+
+      - name: Verify parser schema has no JSON columns
+        run: |
+          psql '${{ steps.database.outputs.database_url }}' -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          BEGIN
+            IF EXISTS (
+              SELECT 1
+              FROM information_schema.columns
+              WHERE table_schema = 'execution'
+                AND table_name LIKE 'semantic_parser_%'
+                AND data_type IN ('json', 'jsonb')
+            ) THEN
+              RAISE EXCEPTION 'typed parser schema contains JSON authority';
+            END IF;
+          END;
+          $$;
+          SQL
+
+      - name: Drop isolated database
+        if: always() && steps.database.outputs.database_name != ''
+        run: |
+          dropdb --if-exists \
+            --host=127.0.0.1 \
+            --port=5433 \
+            --username=postgres \
+            '${{ steps.database.outputs.database_name }}'
