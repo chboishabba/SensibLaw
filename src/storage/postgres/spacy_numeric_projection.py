@@ -37,6 +37,11 @@ from src.storage.postgres.spacy_parser_store import (
 )
 
 
+_PARSER_ORIGIN_ID = 1
+_ORTHOGRAPHIC_FALLBACK_ORIGIN_ID = 2
+_POS_FALLBACK_ORIGIN_ID = 3
+
+
 class NumericHeadProjectionError(RuntimeError):
     """A declared non-root dependency head was not committed."""
 
@@ -63,6 +68,10 @@ class _RawToken:
     pos: str
     tag: str
     dependency: str
+    lemma_origin_id: int
+    pos_origin_id: int
+    tag_origin_id: int
+    dependency_origin_id: int
     head_is_self: bool
     head_start_char: int
     head_end_char: int
@@ -243,6 +252,29 @@ def _collect_doc(
             head_end = partition.context_start_char + int(
                 token.head.idx + len(token.head.text)
             )
+            orth = str(token.text)
+            lemma = str(token.lemma_) if token.lemma_ else orth
+            pos = str(token.pos_)
+            tag = str(token.tag_) if token.tag_ else pos
+            dependency = str(token.dep_)
+            if not pos:
+                raise RuntimeError(
+                    f"strict numeric PNF token lacks POS annotation at {token_start}"
+                )
+            if not dependency:
+                raise RuntimeError(
+                    "strict numeric PNF token lacks dependency annotation at "
+                    f"{token_start}"
+                )
+            lemma_origin_id = (
+                _PARSER_ORIGIN_ID
+                if token.lemma_
+                else _ORTHOGRAPHIC_FALLBACK_ORIGIN_ID
+            )
+            tag_origin_id = (
+                _PARSER_ORIGIN_ID if token.tag_ else _POS_FALLBACK_ORIGIN_ID
+            )
+
             morphology: list[tuple[str, str]] = []
             for feature, raw_values in sorted(token.morph.to_dict().items()):
                 values = (
@@ -257,13 +289,13 @@ def _collect_doc(
                     )
                     symbols.add(SymbolValue(SymbolKind.MORPH_VALUE, str(value)))
             for kind, text in (
-                (SymbolKind.ORTH, token.text),
-                (SymbolKind.LEMMA, token.lemma_ or token.text),
-                (SymbolKind.POS, token.pos_),
-                (SymbolKind.TAG, token.tag_ or token.pos_),
-                (SymbolKind.DEPENDENCY, token.dep_),
+                (SymbolKind.ORTH, orth),
+                (SymbolKind.LEMMA, lemma),
+                (SymbolKind.POS, pos),
+                (SymbolKind.TAG, tag),
+                (SymbolKind.DEPENDENCY, dependency),
             ):
-                symbols.add(SymbolValue(kind, str(text)))
+                symbols.add(SymbolValue(kind, text))
             token_digest = numeric_digest(
                 sentence_digest,
                 token_start,
@@ -278,11 +310,15 @@ def _collect_doc(
                     ordinal=ordinal,
                     start_char=token_start,
                     end_char=token_end,
-                    orth=str(token.text),
-                    lemma=str(token.lemma_ or token.text),
-                    pos=str(token.pos_),
-                    tag=str(token.tag_ or token.pos_),
-                    dependency=str(token.dep_),
+                    orth=orth,
+                    lemma=lemma,
+                    pos=pos,
+                    tag=tag,
+                    dependency=dependency,
+                    lemma_origin_id=lemma_origin_id,
+                    pos_origin_id=_PARSER_ORIGIN_ID,
+                    tag_origin_id=tag_origin_id,
+                    dependency_origin_id=_PARSER_ORIGIN_ID,
                     head_is_self=bool(token.head == token),
                     head_start_char=head_start,
                     head_end_char=head_end,
@@ -491,6 +527,10 @@ def commit_numeric_doc(
                             SymbolKind.DEPENDENCY,
                             raw.dependency,
                         ),
+                        raw.lemma_origin_id,
+                        raw.pos_origin_id,
+                        raw.tag_origin_id,
+                        raw.dependency_origin_id,
                         morph_ids.get(morph_members_by_token[raw.token_ref]),
                         2,
                     )
@@ -522,6 +562,10 @@ def commit_numeric_doc(
                         "pos_symbol_id",
                         "tag_symbol_id",
                         "dependency_symbol_id",
+                        "lemma_origin_id",
+                        "pos_origin_id",
+                        "tag_origin_id",
+                        "dependency_origin_id",
                         "morph_set_id",
                         "representation_version",
                     ),
