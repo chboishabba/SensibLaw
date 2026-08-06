@@ -1,9 +1,9 @@
-"""Install binary-only semantic checkpoint persistence.
+"""Install binary-only semantic checkpoint and progress persistence.
 
 The semantic execution modules predate the repository-wide JSON prohibition.
-This execution-policy layer replaces their physical readers, writers, and path
-constructors before any document work begins.  Semantic functions and identities
-remain unchanged; no active checkpoint crosses a text serialization boundary.
+This policy replaces their physical readers, writers, path constructors, and
+progress sink before any document work begins. Semantic functions and identities
+remain unchanged; no active checkpoint or heartbeat is text-serialized.
 """
 
 from __future__ import annotations
@@ -11,13 +11,14 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import pickle
+import sys
 from typing import Any, Mapping
 
 
 _INSTALL_MARKER = "_no_json_checkpoint_execution_installed"
 
 
-def _atomic_write_binary(path: Path, payload: Mapping[str, Any]) -> None:
+def _atomic_write_binary(path: Path, payload: Mapping[str, Any]) -> int:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
     encoded = pickle.dumps(dict(payload), protocol=5)
@@ -26,6 +27,18 @@ def _atomic_write_binary(path: Path, payload: Mapping[str, Any]) -> None:
         handle.flush()
         os.fsync(handle.fileno())
     temporary.replace(path)
+    return len(encoded)
+
+
+def _append_binary_frame(path: Path, payload: Mapping[str, Any]) -> int:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    encoded = pickle.dumps(dict(payload), protocol=5)
+    frame = len(encoded).to_bytes(8, "big") + encoded
+    with path.open("ab") as stream:
+        stream.write(frame)
+        stream.flush()
+        os.fsync(stream.fileno())
+    return len(frame)
 
 
 def _read_binary(path: Path) -> dict[str, Any] | None:
@@ -43,9 +56,36 @@ def _safe_ref(value: str) -> str:
     )
 
 
+def _progress_line(envelope: Mapping[str, Any]) -> str:
+    fields = (
+        "run_ref",
+        "document_ref",
+        "stage",
+        "phase",
+        "completed",
+        "total",
+        "current_work_key",
+        "queue_count",
+        "in_flight_count",
+        "active_workers",
+        "wait_reason",
+        "wait_dependency",
+        "rss_bytes",
+        "pss_bytes",
+        "uss_bytes",
+    )
+    parts = [
+        f"{field}={envelope[field]}"
+        for field in fields
+        if envelope.get(field) is not None
+    ]
+    return "SENSIBLAW_PROGRESS " + " ".join(parts)
+
+
 def install_no_json_checkpoint_execution() -> bool:
     from src.policy import parallel_semantic_execution as semantic
     from src.policy import parallel_typing_tail as typing_tail
+    from src.policy import progress_observability_execution as progress
 
     if getattr(semantic, _INSTALL_MARKER, False):
         return False
@@ -134,6 +174,19 @@ def install_no_json_checkpoint_execution() -> bool:
         return root / operation / f"{_safe_ref(leaf_ref)}.pkl"
 
     typing_tail._leaf_path = typing_leaf_path
+
+    progress._atomic_json = _atomic_write_binary
+    progress._append_jsonl = _append_binary_frame
+
+    def persist_and_log(context: Any, envelope: Mapping[str, Any]) -> None:
+        root = context.checkpoint_root
+        if root is not None:
+            progress_root = Path(root) / "progress"
+            _atomic_write_binary(progress_root / "latest.pkl", envelope)
+            _append_binary_frame(progress_root / "events.bin", envelope)
+        print(_progress_line(envelope), file=sys.stderr, flush=True)
+
+    progress._persist_and_log = persist_and_log
     setattr(semantic, _INSTALL_MARKER, True)
     return True
 
