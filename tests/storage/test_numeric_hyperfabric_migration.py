@@ -4,7 +4,7 @@ from pathlib import Path
 MIGRATION_ROOT = Path("database/postgres_migrations")
 MIGRATIONS = tuple(
     path
-    for ordinal in range(40, 55)
+    for ordinal in range(40, 56)
     for path in sorted(MIGRATION_ROOT.glob(f"{ordinal:03d}_*.sql"))
 )
 
@@ -20,7 +20,7 @@ def _migration(ordinal: int) -> str:
 
 
 def test_numeric_hyperfabric_schema_contains_no_json_authority() -> None:
-    assert len(MIGRATIONS) == 15
+    assert len(MIGRATIONS) == 16
     source = _source().casefold()
     assert " json " not in source
     assert " jsonb" not in source
@@ -129,6 +129,23 @@ def test_interface_lookup_requires_an_admitted_export_for_every_target_kind() ->
     ):
         assert required in source
     assert "IF NEW.target_kind <> 1" not in source
+
+
+def test_adjacent_scales_materialize_overlapping_regions_and_fenced_work() -> None:
+    source = _migration(55)
+    for required in (
+        "ensure_numeric_pnf_adjacent_pair",
+        "materialize_numeric_pnf_adjacent_regions",
+        "adjacent PNF pair must share a canonical parent",
+        "selected_pair_kind <> 2",
+        "selected_pair_kind <> 4",
+        "operation_id, state_id, priority",
+        "int2send(2::SMALLINT)",
+        "semantic_pnf_adjacent_region_materialization",
+    ):
+        assert required in source
+    assert "resolved_target_id" not in source
+    assert "SET state = 4" not in source
 
 
 def test_old_decorative_parser_work_triggers_are_removed() -> None:
