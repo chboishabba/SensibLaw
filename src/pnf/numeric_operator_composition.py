@@ -237,19 +237,10 @@ def build_operator_lexicon(
     return lexicon
 
 
-def _children(
-    token_id: int,
-    tokens: Sequence[NumericToken],
-) -> tuple[NumericToken, ...]:
-    return tuple(token for token in tokens if token.head_token_id == token_id)
-
-
 def _subject_and_object(
-    head: NumericToken,
-    tokens: Sequence[NumericToken],
+    children: Sequence[NumericToken],
     lexicon: OperatorLexicon,
 ) -> tuple[NumericToken | None, NumericToken | None]:
-    children = _children(head.token_id, tokens)
     subject_dependencies = {
         lexicon.dependency_ids[name] for name in ("nsubj", "nsubjpass", "csubj")
     }
@@ -373,6 +364,9 @@ def compose_numeric_sentence(
     lexicon: OperatorLexicon,
 ) -> NumericSentenceClosure:
     token_by_id = {token.token_id: token for token in tokens}
+    children_by_head: dict[int, list[NumericToken]] = {}
+    for token in tokens:
+        children_by_head.setdefault(token.head_token_id, []).append(token)
     objects: dict[int, NumericObjectSpec] = {}
     factors: list[NumericFactorSpec] = []
     demands: list[NumericDemandSpec] = []
@@ -397,14 +391,17 @@ def compose_numeric_sentence(
         head = token_by_id.get(modal.head_token_id)
         if head is None:
             continue
-        subject, object_token = _subject_and_object(head, tokens, lexicon)
+        subject, object_token = _subject_and_object(
+            children_by_head.get(head.token_id, ()),
+            lexicon,
+        )
         modality, predicate_id = modal_contract
         negation = next(
             (
                 token
-                for token in tokens
+                for head_id in (head.token_id, modal.token_id)
+                for token in children_by_head.get(head_id, ())
                 if token.lemma_id in negation_lemmas
-                and token.head_token_id in {head.token_id, modal.token_id}
             ),
             None,
         )
@@ -533,7 +530,10 @@ def compose_numeric_sentence(
         if transition is None or predicate.pos_id not in verb_pos:
             continue
         prior_state, next_state, predicate_name = transition
-        subject, object_token = _subject_and_object(predicate, tokens, lexicon)
+        subject, object_token = _subject_and_object(
+            children_by_head.get(predicate.token_id, ()),
+            lexicon,
+        )
         legal_object = subject or object_token
         slots = [
             NumericSlotSpec(lexicon.role_ids["transition"], predicate.token_id),
