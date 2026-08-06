@@ -7,6 +7,7 @@ import re
 
 ROOT = Path(__file__).resolve().parents[2]
 AUTHORITY_PYTHON = (
+    "src/policy/binary_family_integrity_execution.py",
     "src/policy/carriers/canonical.py",
     "src/policy/no_json_checkpoint_execution.py",
     "src/policy/reference_backed_finalization.py",
