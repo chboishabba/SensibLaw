@@ -61,12 +61,16 @@ def test_streamed_parser_commits_numeric_rows_and_pnf_hyperfabric(
             policy=_policy(),
         )
 
+        receipt = carrier["parser_receipt"]
         assert carrier.sentence_count >= 2
         assert carrier.token_count > 0
-        assert carrier["parser_receipt"]["pnf_document_interface_id"] > 0
+        assert receipt["pnf_document_interface_id"] > 0
+        assert receipt["pnf_sentence_adjacent_pairs"] >= 1
+        assert receipt["pnf_paragraph_adjacent_pairs"] >= 1
+        assert receipt["pnf_visible_index_rows"] >= 0
         assert (
-            carrier["parser_receipt"]["pnf_segmentation_evaluations"]
-            <= carrier["parser_receipt"]["pnf_segmentation_bound"]
+            receipt["pnf_segmentation_evaluations"]
+            <= receipt["pnf_segmentation_bound"]
         )
         sentences = tuple(carrier["sents"])
         assert len(sentences) == carrier.sentence_count
@@ -122,6 +126,43 @@ def test_streamed_parser_commits_numeric_rows_and_pnf_hyperfabric(
 
                 cursor.execute(
                     """
+                    SELECT
+                        count(*) FILTER (
+                            WHERE token.head_token_id = token.token_id
+                        ) AS root_count,
+                        count(*) FILTER (
+                            WHERE token.head_token_id = token.token_id
+                              AND (
+                                  token.head_start_char IS DISTINCT FROM token.start_char
+                                  OR token.head_end_char IS DISTINCT FROM token.end_char
+                              )
+                        ) AS invalid_root_count,
+                        count(*) FILTER (
+                            WHERE token.head_token_id <> token.token_id
+                              AND (
+                                  token.head_start_char IS DISTINCT FROM head.start_char
+                                  OR token.head_end_char IS DISTINCT FROM head.end_char
+                                  OR token.sentence_id IS DISTINCT FROM head.sentence_id
+                              )
+                        ) AS invalid_dependent_count
+                    FROM execution.semantic_parser_token AS token
+                    JOIN execution.semantic_parser_token AS head
+                      ON head.token_id = token.head_token_id
+                    WHERE token.run_ref = %s
+                      AND token.document_ref = %s
+                      AND token.representation_version = 2
+                    """,
+                    (run_ref, document_ref),
+                )
+                root_count, invalid_root_count, invalid_dependent_count = (
+                    int(value) for value in cursor.fetchone()
+                )
+                assert root_count == carrier.sentence_count
+                assert invalid_root_count == 0
+                assert invalid_dependent_count == 0
+
+                cursor.execute(
+                    """
                     SELECT count(*)
                     FROM execution.semantic_pnf_region
                     WHERE run_ref = %s AND document_ref = %s
@@ -133,6 +174,27 @@ def test_streamed_parser_commits_numeric_rows_and_pnf_hyperfabric(
 
                 cursor.execute(
                     """
+                    SELECT
+                        count(*) FILTER (WHERE region_kind = 2),
+                        count(*) FILTER (WHERE region_kind = 4),
+                        count(*) FILTER (
+                            WHERE region_kind IN (2, 4)
+                              AND parent_region_id IS NOT NULL
+                        )
+                    FROM execution.semantic_pnf_region
+                    WHERE run_ref = %s AND document_ref = %s
+                    """,
+                    (run_ref, document_ref),
+                )
+                sentence_pairs, paragraph_pairs, canonical_pair_children = (
+                    int(value) for value in cursor.fetchone()
+                )
+                assert sentence_pairs == receipt["pnf_sentence_adjacent_pairs"]
+                assert paragraph_pairs == receipt["pnf_paragraph_adjacent_pairs"]
+                assert canonical_pair_children == 0
+
+                cursor.execute(
+                    """
                     SELECT count(*)
                     FROM execution.semantic_pnf_work_item
                     WHERE run_ref = %s AND state_id <> 3
@@ -141,9 +203,52 @@ def test_streamed_parser_commits_numeric_rows_and_pnf_hyperfabric(
                 )
                 assert int(cursor.fetchone()[0]) == 0
 
-                document_interface_id = int(
-                    carrier["parser_receipt"]["pnf_document_interface_id"]
+                cursor.execute(
+                    """
+                    SELECT count(*)
+                    FROM execution.semantic_pnf_demand
+                    WHERE source_region_id IN (
+                        SELECT region_id
+                        FROM execution.semantic_pnf_region
+                        WHERE run_ref = %s AND document_ref = %s
+                    )
+                      AND (
+                          (
+                              state = 2
+                              AND (
+                                  resolved_target_kind IS NULL
+                                  OR resolved_target_id IS NULL
+                              )
+                          )
+                          OR (
+                              state <> 2
+                              AND (
+                                  resolved_target_kind IS NOT NULL
+                                  OR resolved_target_id IS NOT NULL
+                              )
+                          )
+                      )
+                    """,
+                    (run_ref, document_ref),
                 )
+                assert int(cursor.fetchone()[0]) == 0
+
+                cursor.execute(
+                    """
+                    SELECT count(*)
+                    FROM execution.semantic_pnf_adjacent_candidate_evidence AS evidence
+                    JOIN execution.semantic_pnf_demand AS demand
+                      ON demand.demand_id = evidence.demand_id
+                    WHERE demand.state = 2
+                      AND (
+                          demand.resolved_target_kind IS NULL
+                          OR demand.resolved_target_id IS NULL
+                      )
+                    """,
+                )
+                assert int(cursor.fetchone()[0]) == 0
+
+                document_interface_id = int(receipt["pnf_document_interface_id"])
                 cursor.execute(
                     """
                     SELECT region.region_kind, interface.closure_state,
@@ -174,6 +279,21 @@ def test_streamed_parser_commits_numeric_rows_and_pnf_hyperfabric(
                     (run_ref, document_ref),
                 )
                 assert int(cursor.fetchone()[0]) > 0
+
+                cursor.execute(
+                    """
+                    SELECT count(*)
+                    FROM execution.semantic_pnf_interface_lookup AS lookup
+                    WHERE NOT EXISTS (
+                        SELECT 1
+                        FROM execution.semantic_pnf_interface_export AS export
+                        WHERE export.interface_id = lookup.interface_id
+                          AND export.target_kind = lookup.target_kind
+                          AND export.target_id = lookup.target_id
+                    )
+                    """,
+                )
+                assert int(cursor.fetchone()[0]) == 0
 
                 cursor.execute(
                     """
@@ -232,6 +352,9 @@ def test_streamed_parser_commits_numeric_rows_and_pnf_hyperfabric(
         )
         assert resumed.sentence_count == carrier.sentence_count
         assert resumed.token_count == carrier.token_count
+        assert resumed["parser_receipt"]["pnf_document_interface_id"] == receipt[
+            "pnf_document_interface_id"
+        ]
 
         with psycopg.connect(database_url) as connection:
             with connection.cursor() as cursor:
