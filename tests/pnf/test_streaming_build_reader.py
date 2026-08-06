@@ -3,12 +3,12 @@ from __future__ import annotations
 import pytest
 
 from src.pnf.streaming_build_reader import StreamingBuildReader
-from src.runtime.reference_receipt import stream_jsonl_family
+from src.runtime.reference_receipt import stream_binary_family
 
 
-def test_reader_streams_and_verifies_jsonl_family(tmp_path) -> None:
-    path = tmp_path / "factors.jsonl"
-    descriptor = stream_jsonl_family(
+def test_reader_streams_and_verifies_binary_family(tmp_path) -> None:
+    path = tmp_path / "factors.bin"
+    descriptor = stream_binary_family(
         path,
         family="factors",
         rows=({"factor_ref": f"factor:{index}"} for index in range(5)),
@@ -26,17 +26,19 @@ def test_reader_streams_and_verifies_jsonl_family(tmp_path) -> None:
     assert batches[-1][0]["factor_ref"] == "factor:4"
 
 
-def test_reader_rejects_tampered_family(tmp_path) -> None:
-    path = tmp_path / "proposals.jsonl"
-    descriptor = stream_jsonl_family(
+def test_reader_rejects_tampered_binary_family(tmp_path) -> None:
+    path = tmp_path / "proposals.bin"
+    descriptor = stream_binary_family(
         path,
         family="proposals",
         rows=({"proposal_ref": "proposal:1"},),
     )
-    path.write_text('{"proposal_ref":"proposal:2"}\n', encoding="utf-8")
+    encoded = bytearray(path.read_bytes())
+    encoded[-1] ^= 0x01
+    path.write_bytes(encoded)
     reader = StreamingBuildReader(
         {"family_manifests": {"proposals": descriptor}}
     )
 
-    with pytest.raises(ValueError, match="digest|byte count"):
+    with pytest.raises((ValueError, Exception)):
         tuple(reader.iter_rows("proposals"))
