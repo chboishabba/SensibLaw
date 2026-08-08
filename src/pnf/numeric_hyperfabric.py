@@ -338,12 +338,15 @@ class PromotionEvidence:
         )
         if any(not isfinite(value) or value < 0 for value in floats):
             raise ValueError("promotion evidence must be finite and non-negative")
-        if min(
-            self.factor_participation,
-            self.outward_demand_count,
-            self.definition_count,
-            self.recurrence_count,
-        ) < 0:
+        if (
+            min(
+                self.factor_participation,
+                self.outward_demand_count,
+                self.definition_count,
+                self.recurrence_count,
+            )
+            < 0
+        ):
             raise ValueError("promotion counts must be non-negative")
 
 
@@ -441,7 +444,9 @@ def bounded_segmentation(
             if reconcile_cost is not None:
                 extra = reconcile_cost(start, end, aggregate)
                 if not isfinite(extra) or extra < 0:
-                    raise ValueError("reconciliation cost must be finite and non-negative")
+                    raise ValueError(
+                        "reconciliation cost must be finite and non-negative"
+                    )
                 local_cost += extra
             if authored_boundary_penalty is not None:
                 penalty = authored_boundary_penalty(start, end)
@@ -450,9 +455,7 @@ def bounded_segmentation(
                 local_cost += penalty
             segment = Segment(start=start, end=end, measure=aggregate, cost=local_cost)
             for prior_cost, prior_segments in paths[start][:beam]:
-                candidates.append(
-                    (prior_cost + local_cost, (*prior_segments, segment))
-                )
+                candidates.append((prior_cost + local_cost, (*prior_segments, segment)))
                 evaluations += 1
         candidates.sort(
             key=lambda item: (

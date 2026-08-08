@@ -35,10 +35,7 @@ def test_parser_run_ref_is_stable_and_semantically_scoped() -> None:
     assert first.startswith("typed-spacy-run:")
     assert _scoped_run_ref(**{**values, "content_sha256": "def"}) != first
     assert (
-        _scoped_run_ref(
-            **{**values, "parser_contract_ref": "parser:spacy:v2"}
-        )
-        != first
+        _scoped_run_ref(**{**values, "parser_contract_ref": "parser:spacy:v2"}) != first
     )
     assert (
         _scoped_run_ref(
@@ -58,14 +55,14 @@ def test_wrappers_bind_signatures_and_bypass_legacy_strict_materialization() -> 
     assert "inspect.signature(original_compile)" in source
     assert "inspect.signature(original_persist)" in source
     assert source.count(".bind_partial(*args, **kwargs)") == 2
-    assert "arguments.get(\"execution_strategy_ref\")" in source
-    assert "arguments.get(\"database_url\")" in source
-    assert "arguments.get(\"strict_run_ref\")" in source
+    assert 'arguments.get("execution_strategy_ref")' in source
+    assert 'arguments.get("database_url")' in source
+    assert 'arguments.get("strict_run_ref")' in source
     assert source.count("original_compile(*bound.args, **bound.kwargs)") == 1
     assert source.count("original_persist(*bound.args, **bound.kwargs)") == 1
     assert source.count("compile_numeric_pnf_document(") == 1
     assert source.count("persist_numeric_pnf_document(") == 1
-    assert "kernel_key=\"strict.numeric_pnf\"" in source
+    assert 'kernel_key="strict.numeric_pnf"' in source
 
 
 def test_policy_installs_in_a_fresh_interpreter_without_import_cycle() -> None:

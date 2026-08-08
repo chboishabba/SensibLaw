@@ -27,9 +27,7 @@ def _sketch(
         object_keys=frozenset((object_key,)),
         factor_keys=frozenset(),
         demand_keys=(
-            frozenset((demand_key,))
-            if demand_key is not None
-            else frozenset()
+            frozenset((demand_key,)) if demand_key is not None else frozenset()
         ),
         edge_count=0,
         encoded_byte_count=128,

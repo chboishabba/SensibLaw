@@ -408,7 +408,7 @@ CREATE TABLE IF NOT EXISTS execution.semantic_pnf_object (
     head_symbol_id BIGINT
         REFERENCES execution.semantic_symbol(symbol_id) ON DELETE RESTRICT,
     scope_region_id BIGINT
-        REFERENCES execution.semantic_pnf_region(region_id) ON DELETE RESTRICT,
+        REFERENCES execution.semantic_pnf_region(region_id) ON DELETE CASCADE,
     promotion_level SMALLINT NOT NULL DEFAULT 0 CHECK (promotion_level >= 0),
     information_gain DOUBLE PRECISION NOT NULL DEFAULT 0 CHECK (information_gain >= 0),
     representation_cost DOUBLE PRECISION NOT NULL DEFAULT 0 CHECK (representation_cost >= 0),
@@ -435,7 +435,7 @@ CREATE TABLE IF NOT EXISTS execution.semantic_pnf_object_token_support (
     object_id BIGINT NOT NULL
         REFERENCES execution.semantic_pnf_object(object_id) ON DELETE CASCADE,
     token_id BIGINT NOT NULL
-        REFERENCES execution.semantic_parser_token(token_id) ON DELETE RESTRICT,
+        REFERENCES execution.semantic_parser_token(token_id) ON DELETE CASCADE,
     ordinal SMALLINT NOT NULL DEFAULT 0 CHECK (ordinal >= 0),
     PRIMARY KEY (object_id, token_id)
 );
@@ -450,7 +450,7 @@ CREATE TABLE IF NOT EXISTS execution.semantic_pnf_factor (
     predicate_symbol_id BIGINT NOT NULL
         REFERENCES execution.semantic_symbol(symbol_id) ON DELETE RESTRICT,
     scope_region_id BIGINT
-        REFERENCES execution.semantic_pnf_region(region_id) ON DELETE RESTRICT,
+        REFERENCES execution.semantic_pnf_region(region_id) ON DELETE CASCADE,
     temporal_state SMALLINT NOT NULL DEFAULT 0,
     modal_state SMALLINT NOT NULL DEFAULT 0,
     promotion_level SMALLINT NOT NULL DEFAULT 0 CHECK (promotion_level >= 0),
@@ -470,7 +470,7 @@ CREATE TABLE IF NOT EXISTS execution.semantic_pnf_hyperedge (
     role_symbol_id BIGINT NOT NULL
         REFERENCES execution.semantic_symbol(symbol_id) ON DELETE RESTRICT,
     object_id BIGINT NOT NULL
-        REFERENCES execution.semantic_pnf_object(object_id) ON DELETE RESTRICT,
+        REFERENCES execution.semantic_pnf_object(object_id) ON DELETE CASCADE,
     resolution_state SMALLINT NOT NULL CHECK (resolution_state BETWEEN 1 AND 4),
     required BOOLEAN NOT NULL DEFAULT TRUE,
     PRIMARY KEY (factor_id, slot_ordinal),
@@ -485,7 +485,7 @@ CREATE TABLE IF NOT EXISTS execution.semantic_pnf_factor_token_support (
     factor_id BIGINT NOT NULL
         REFERENCES execution.semantic_pnf_factor(factor_id) ON DELETE CASCADE,
     token_id BIGINT NOT NULL
-        REFERENCES execution.semantic_parser_token(token_id) ON DELETE RESTRICT,
+        REFERENCES execution.semantic_parser_token(token_id) ON DELETE CASCADE,
     ordinal SMALLINT NOT NULL CHECK (ordinal >= 0),
     PRIMARY KEY (factor_id, token_id),
     UNIQUE (factor_id, ordinal)
@@ -822,7 +822,7 @@ BEGIN
        AND document_ref = NEW.document_ref
        AND region_kind IN (3, 5, 6, 7, 8, 10)
        AND start_char <= NEW.start_char
-       AND end_char >= NEW.end_char
+       AND end_char > NEW.start_char
      ORDER BY
        CASE region_kind
            WHEN 3 THEN 1

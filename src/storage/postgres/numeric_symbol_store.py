@@ -169,8 +169,7 @@ def intern_morph_sets(
         (list(digests.values()),),
     )
     by_digest = {
-        bytes(digest): int(morph_set_id)
-        for morph_set_id, digest in cursor.fetchall()
+        bytes(digest): int(morph_set_id) for morph_set_id, digest in cursor.fetchall()
     }
     result: dict[tuple[tuple[int, int], ...], int] = {}
     for members, digest in digests.items():

@@ -205,7 +205,9 @@ def build_structural_partitions(
     return tuple(partitions)
 
 
-def write_source(canonical_text: str, artifact_root: Path) -> tuple[str, Path, bytes, int]:
+def write_source(
+    canonical_text: str, artifact_root: Path
+) -> tuple[str, Path, bytes, int]:
     encoded = canonical_text.encode("utf-8")
     digest = sha256(encoded).digest()
     source_ref = "parser-source:" + digest.hex()
@@ -310,7 +312,10 @@ class PostgresSentenceCarrier(Mapping[str, Any]):
                     WHERE run_ref = %s AND document_ref = %s
                     ORDER BY start_char, end_char, sentence_ref
                 """
-                parameters: list[Any] = [self.summary.run_ref, self.summary.document_ref]
+                parameters: list[Any] = [
+                    self.summary.run_ref,
+                    self.summary.document_ref,
+                ]
                 if offset is not None:
                     query += " LIMIT 1 OFFSET %s"
                     parameters.append(offset)
@@ -371,7 +376,9 @@ class PostgresSentenceCarrier(Mapping[str, Any]):
                 )
                 result: dict[str, dict[str, list[str]]] = {}
                 for token_ref, feature, value in cursor.fetchall():
-                    result.setdefault(str(token_ref), {}).setdefault(str(feature), []).append(str(value))
+                    result.setdefault(str(token_ref), {}).setdefault(
+                        str(feature), []
+                    ).append(str(value))
                 return result
         finally:
             connection.close()
@@ -381,7 +388,17 @@ class PostgresSentenceCarrier(Mapping[str, Any]):
         token_rows = self._token_rows(str(sentence_ref))
         morph = self._morphology([str(value[0]) for value in token_rows])
         tokens: list[dict[str, Any]] = []
-        for token_ref, token_start, token_end, orth, lemma, pos, tag, dependency, head_start in token_rows:
+        for (
+            token_ref,
+            token_start,
+            token_end,
+            orth,
+            lemma,
+            pos,
+            tag,
+            dependency,
+            head_start,
+        ) in token_rows:
             start = int(token_start)
             end = int(token_end)
             tokens.append(

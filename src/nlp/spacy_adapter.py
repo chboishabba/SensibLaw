@@ -192,9 +192,7 @@ def parse(text: str, *, nlp: Optional["Language"] = None) -> Dict[str, Any]:
         "part_of_speech": any(
             name in pipe_names for name in ("tagger", "morphologizer")
         ),
-        "morphology": any(
-            name in pipe_names for name in ("tagger", "morphologizer")
-        ),
+        "morphology": any(name in pipe_names for name in ("tagger", "morphologizer")),
         "dependencies": "parser" in pipe_names,
         "named_entity_spans": "ner" in pipe_names,
         "coreference_candidates": False,

@@ -30,7 +30,6 @@ from src.policy.corpus_compilation import CompilerContext, build_corpus_manifest
 from src.policy.operational_corpus_compilation import (
     OPERATIONAL_COMPILER_CONTRACT,
     DOCUMENT_COMPILE_STAGE_COUNT,
-    compile_document_operational,
 )
 from src.runtime.document_stage_metrics import stage_measure_declaration
 from src.runtime.active_document_resources import ActiveDocumentResourceGuard
@@ -2062,3 +2061,13 @@ def compile_directory_postgres(
 
 
 __all__ = ["compile_directory_postgres", "persist_document_compilation"]
+
+
+def __getattr__(name: str) -> Any:
+    if name == "compile_document_operational":
+        from src.policy.operational_corpus_compilation import (
+            compile_document_operational,
+        )
+
+        return compile_document_operational
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

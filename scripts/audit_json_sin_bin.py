@@ -70,8 +70,7 @@ AUTHORITY_FILES = {
     "scripts/run_post_closure_probe.py",
 }
 AUTHORITY_PREFIXES = tuple(
-    f"database/postgres_migrations/{ordinal:03d}_"
-    for ordinal in range(32, 49)
+    f"database/postgres_migrations/{ordinal:03d}_" for ordinal in range(32, 49)
 )
 
 JSON_MODULES = {"json", "orjson", "ujson", "simplejson"}

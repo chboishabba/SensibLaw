@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS execution.semantic_pnf_mention (
     start_char BIGINT NOT NULL CHECK (start_char >= 0),
     end_char BIGINT NOT NULL CHECK (end_char > start_char),
     head_token_id BIGINT NOT NULL
-        REFERENCES execution.semantic_parser_token(token_id) ON DELETE RESTRICT,
+        REFERENCES execution.semantic_parser_token(token_id) ON DELETE CASCADE,
     head_symbol_id BIGINT NOT NULL
         REFERENCES execution.semantic_symbol(symbol_id) ON DELETE RESTRICT,
     entity_type_symbol_id BIGINT
@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS execution.semantic_pnf_mention_token (
     mention_id BIGINT NOT NULL
         REFERENCES execution.semantic_pnf_mention(mention_id) ON DELETE CASCADE,
     token_id BIGINT NOT NULL
-        REFERENCES execution.semantic_parser_token(token_id) ON DELETE RESTRICT,
+        REFERENCES execution.semantic_parser_token(token_id) ON DELETE CASCADE,
     ordinal SMALLINT NOT NULL CHECK (ordinal >= 0),
     PRIMARY KEY (mention_id, token_id),
     UNIQUE (mention_id, ordinal)
@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS execution.semantic_pnf_recurrence_member (
         REFERENCES execution.semantic_pnf_recurrence_group(recurrence_id)
         ON DELETE CASCADE,
     mention_id BIGINT NOT NULL
-        REFERENCES execution.semantic_pnf_mention(mention_id) ON DELETE RESTRICT,
+        REFERENCES execution.semantic_pnf_mention(mention_id) ON DELETE CASCADE,
     ordinal BIGINT NOT NULL CHECK (ordinal >= 0),
     PRIMARY KEY (recurrence_id, mention_id),
     UNIQUE (recurrence_id, ordinal)
@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS execution.semantic_pnf_object_mention_support (
     object_id BIGINT NOT NULL
         REFERENCES execution.semantic_pnf_object(object_id) ON DELETE CASCADE,
     mention_id BIGINT NOT NULL
-        REFERENCES execution.semantic_pnf_mention(mention_id) ON DELETE RESTRICT,
+        REFERENCES execution.semantic_pnf_mention(mention_id) ON DELETE CASCADE,
     PRIMARY KEY (object_id, mention_id)
 );
 
@@ -224,28 +224,28 @@ BEGIN
             information_value := 4.0;
             ambiguity_value := 0.5;
             selected_object_kind := execution.ensure_semantic_symbol(
-                14, 'mention.entity'
+                14::smallint, 'mention.entity'
             );
         ELSIF candidate.pos_name = 'PROPN' THEN
             candidate_kind := 3;
             information_value := 3.0;
             ambiguity_value := 0.5;
             selected_object_kind := execution.ensure_semantic_symbol(
-                14, 'mention.proper_noun'
+                14::smallint, 'mention.proper_noun'
             );
         ELSIF candidate.pos_name = 'PRON' THEN
             candidate_kind := 4;
             information_value := 1.0;
             ambiguity_value := 2.0;
             selected_object_kind := execution.ensure_semantic_symbol(
-                14, 'mention.pronoun'
+                14::smallint, 'mention.pronoun'
             );
         ELSE
             candidate_kind := 2;
             information_value := 2.0;
             ambiguity_value := 1.0;
             selected_object_kind := execution.ensure_semantic_symbol(
-                14, 'mention.noun'
+                14::smallint, 'mention.noun'
             );
         END IF;
 
@@ -261,7 +261,7 @@ BEGIN
             - profile.promotion_alpha * 1.0
             - profile.promotion_beta * ambiguity_value;
         selected_role_symbol := execution.ensure_semantic_symbol(
-            19,
+            19::smallint,
             COALESCE(
                 (
                     SELECT symbol_text
@@ -408,7 +408,7 @@ BEGIN
 
         IF candidate_kind = 4 THEN
             selected_residual_symbol := execution.ensure_semantic_symbol(
-                13, 'anaphor_unresolved'
+                13::smallint, 'anaphor_unresolved'
             );
             INSERT INTO execution.semantic_pnf_demand
                 (demand_digest, source_interface_id, source_region_id,
@@ -478,7 +478,7 @@ BEGIN
         RETURN NEW;
     END IF;
     selected_object_kind := execution.ensure_semantic_symbol(
-        14, 'mention.recurrence_group'
+        14::smallint, 'mention.recurrence_group'
     );
 
     FOR candidate IN

@@ -69,15 +69,12 @@ def test_streamed_parser_commits_numeric_rows_and_pnf_hyperfabric(
         assert receipt["pnf_paragraph_adjacent_pairs"] >= 1
         assert receipt["pnf_visible_index_rows"] >= 0
         assert (
-            receipt["pnf_segmentation_evaluations"]
-            <= receipt["pnf_segmentation_bound"]
+            receipt["pnf_segmentation_evaluations"] <= receipt["pnf_segmentation_bound"]
         )
         sentences = tuple(carrier["sents"])
         assert len(sentences) == carrier.sentence_count
         assert all(
-            "head_text" not in token
-            for row in sentences
-            for token in row["tokens"]
+            "head_text" not in token for row in sentences for token in row["tokens"]
         )
         assert all(
             int(token["index"]) == int(token["start"])
@@ -352,9 +349,10 @@ def test_streamed_parser_commits_numeric_rows_and_pnf_hyperfabric(
         )
         assert resumed.sentence_count == carrier.sentence_count
         assert resumed.token_count == carrier.token_count
-        assert resumed["parser_receipt"]["pnf_document_interface_id"] == receipt[
-            "pnf_document_interface_id"
-        ]
+        assert (
+            resumed["parser_receipt"]["pnf_document_interface_id"]
+            == receipt["pnf_document_interface_id"]
+        )
 
         with psycopg.connect(database_url) as connection:
             with connection.cursor() as cursor:

@@ -21,6 +21,20 @@ from src.storage.postgres.streaming_spacy_execution import (
 )
 
 
+def _postgres():
+    """Late-import the postgres corpus compiler to avoid install-time cycles.
+
+    ``postgres_corpus_compilation`` imports ``StrictExecutionError`` from
+    ``strict_postgres_execution``, which is still partially initialized while
+    the policy install chain runs.  Deferring the import keeps the streaming
+    install, which runs inside ``stage_budget_execution``, off the cycle.
+    """
+
+    from src.policy import postgres_corpus_compilation
+
+    return postgres_corpus_compilation
+
+
 _INSTALL_MARKER = "_streaming_spacy_parser_execution_installed"
 _STRICT_STRATEGIES = frozenset(
     {
@@ -154,10 +168,9 @@ def install_streaming_spacy_parser_execution() -> bool:
 
     if getattr(operational, _INSTALL_MARKER, False):
         return False
-    from src.policy import postgres_corpus_compilation as postgres
 
     original_compile = operational.compile_document_operational
-    original_persist = postgres.persist_document_compilation
+    original_persist = _postgres().persist_document_compilation
     compile_signature = inspect.signature(original_compile)
     persist_signature = inspect.signature(original_persist)
     compatibility_parser = operational.parse_document_fibres
@@ -225,8 +238,7 @@ def install_streaming_spacy_parser_execution() -> bool:
         bound.apply_defaults()
         arguments = bound.arguments
         strategy = str(
-            arguments.get("execution_strategy_ref")
-            or "local-compatibility-replay"
+            arguments.get("execution_strategy_ref") or "local-compatibility-replay"
         )
         if not _is_strict_strategy(strategy):
             return original_compile(*bound.args, **bound.kwargs)
@@ -250,13 +262,13 @@ def install_streaming_spacy_parser_execution() -> bool:
             raise ValueError("strict numeric compilation requires canonical text")
         source_ref = str(document_input.get("source_ref") or "")
         canonical_text, canonical_sha, adapter_ref = (
-            postgres._canonical_source_coordinates(
+            _postgres()._canonical_source_coordinates(
                 media_type=media_type,
                 source_text=source_text,
                 source_ref=source_ref,
             )
         )
-        expected_document_ref = postgres._operational_document_ref(
+        expected_document_ref = _postgres()._operational_document_ref(
             source_content_sha256=content_sha256,
             canonical_text_sha256=canonical_sha,
             media_type=media_type,
@@ -270,8 +282,7 @@ def install_streaming_spacy_parser_execution() -> bool:
         parser_contract_ref = str(context.annotation_backend_ref)
         effective_run_ref = _scoped_run_ref(
             requested_run_ref=str(
-                arguments.get("strict_run_ref")
-                or f"strict-parser:{document_ref}"
+                arguments.get("strict_run_ref") or f"strict-parser:{document_ref}"
             ),
             document_ref=document_ref,
             content_sha256=content_sha256,
@@ -284,7 +295,7 @@ def install_streaming_spacy_parser_execution() -> bool:
         )
         token = _CURRENT.set(execution)
         try:
-            build_key = postgres._operational_build_key(
+            build_key = _postgres()._operational_build_key(
                 document_ref=document_ref,
                 content_sha256=content_sha256,
                 canonical_text_sha256=canonical_sha,
@@ -330,8 +341,7 @@ def install_streaming_spacy_parser_execution() -> bool:
         bound.apply_defaults()
         arguments = bound.arguments
         strategy = str(
-            arguments.get("execution_strategy_ref")
-            or "local-compatibility-replay"
+            arguments.get("execution_strategy_ref") or "local-compatibility-replay"
         )
         if not _is_strict_strategy(strategy):
             return original_persist(*bound.args, **bound.kwargs)
@@ -347,19 +357,21 @@ def install_streaming_spacy_parser_execution() -> bool:
         context = arguments.get("context")
         source_text = arguments.get("source_text")
         if not isinstance(entry, Mapping) or not isinstance(source_text, str):
-            raise ValueError("strict numeric persistence requires entry and source text")
+            raise ValueError(
+                "strict numeric persistence requires entry and source text"
+            )
         document_ref = str(entry.get("document_ref") or "")
         content_sha256 = str(entry.get("content_sha256") or "")
         media_type = str(entry.get("media_type") or "")
         source_ref = f"document-source:{document_ref}"
         canonical_text, canonical_sha, adapter_ref = (
-            postgres._canonical_source_coordinates(
+            _postgres()._canonical_source_coordinates(
                 media_type=media_type,
                 source_text=source_text,
                 source_ref=source_ref,
             )
         )
-        expected_document_ref = postgres._operational_document_ref(
+        expected_document_ref = _postgres()._operational_document_ref(
             source_content_sha256=content_sha256,
             canonical_text_sha256=canonical_sha,
             media_type=media_type,
@@ -377,8 +389,7 @@ def install_streaming_spacy_parser_execution() -> bool:
         parser_contract_ref = str(context.annotation_backend_ref)
         effective_run_ref = _scoped_run_ref(
             requested_run_ref=str(
-                arguments.get("strict_run_ref")
-                or f"strict-parser:{document_ref}"
+                arguments.get("strict_run_ref") or f"strict-parser:{document_ref}"
             ),
             document_ref=document_ref,
             content_sha256=content_sha256,
@@ -391,7 +402,7 @@ def install_streaming_spacy_parser_execution() -> bool:
         )
         token = _CURRENT.set(execution)
         try:
-            build_key = postgres._operational_build_key(
+            build_key = _postgres()._operational_build_key(
                 document_ref=document_ref,
                 content_sha256=content_sha256,
                 canonical_text_sha256=canonical_sha,
@@ -438,9 +449,8 @@ def install_streaming_spacy_parser_execution() -> bool:
     operational.parse_document_fibres = parser_dispatch
     operational.compile_document_operational = compile_wrapper
     operational._compile_document_operational_without_streaming_spacy = original_compile
-    postgres.compile_document_operational = compile_wrapper
-    postgres.persist_document_compilation = persist_wrapper
-    postgres._persist_document_compilation_without_streaming_spacy = original_persist
+    _postgres().persist_document_compilation = persist_wrapper
+    _postgres()._persist_document_compilation_without_streaming_spacy = original_persist
     setattr(operational, _INSTALL_MARKER, True)
     return True
 

@@ -10,9 +10,8 @@ in immutable child graphs.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 import re
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Mapping, Sequence
 from uuid import uuid4
 
 from src.pnf.numeric_hyperfabric import (
@@ -502,8 +501,6 @@ def _persist_sentence_closure(
         or int(row[2]) != lease.lease_epoch
     ):
         raise RuntimeError("numeric PNF work fence changed")
-    run_ref = str(row[3])
-    document_ref = str(row[4])
     parent_region_id = int(row[5]) if row[5] is not None else None
     graph_revision = int(row[6]) + 1
 
@@ -548,9 +545,7 @@ def _persist_sentence_closure(
             (object_id, object_spec.source_token_id),
         )
         if should_promote(object_spec.promotion_evidence, profile):
-            promoted_object_ids.append(
-                (object_id, object_spec.head_symbol_id, score)
-            )
+            promoted_object_ids.append((object_id, object_spec.head_symbol_id, score))
 
     factor_ids: list[tuple[int, int, int]] = []
     for factor_spec in closure.factors:
@@ -593,9 +588,7 @@ def _persist_sentence_closure(
             """,
             [
                 (factor_id, token_id, ordinal)
-                for ordinal, token_id in enumerate(
-                    factor_spec.support_token_ids
-                )
+                for ordinal, token_id in enumerate(factor_spec.support_token_ids)
             ],
         )
         cursor.executemany(
@@ -727,11 +720,7 @@ def _persist_sentence_closure(
             measure.closure_rounds,
             measure.query_cost_ns,
             len(promoted_object_ids),
-            (
-                len(promoted_object_ids)
-                + len(factor_ids)
-                + len(demand_ids)
-            ),
+            (len(promoted_object_ids) + len(factor_ids) + len(demand_ids)),
             measure.hierarchy_cost,
             description_length(measure, profile),
         ),
@@ -812,9 +801,7 @@ def _persist_sentence_closure(
     )
 
     lookup_rows: list[tuple[int, int, int, int, int, int, int]] = []
-    for rank, (object_id, head_symbol_id, _score) in enumerate(
-        promoted_object_ids
-    ):
+    for rank, (object_id, head_symbol_id, _score) in enumerate(promoted_object_ids):
         lookup_rows.append(
             (
                 interface_id,
@@ -1303,9 +1290,7 @@ def materialize_document_hierarchy(
                     (run_ref, document_ref, int(RegionKind.PARAGRAPH)),
                 )
                 paragraph_ids = tuple(int(row[0]) for row in cursor.fetchall())
-                paragraph_interfaces: list[
-                    tuple[int, int, int, RegionMeasure]
-                ] = []
+                paragraph_interfaces: list[tuple[int, int, int, RegionMeasure]] = []
                 for paragraph_id in paragraph_ids:
                     cursor.execute(
                         """
@@ -1583,9 +1568,7 @@ def lookup_candidates(
 
     if not 1 <= limit <= 256:
         raise ValueError("numeric PNF lookup limit must be between 1 and 256")
-    target_filter = (
-        "AND target_kind = %s" if target_kind is not None else ""
-    )
+    target_filter = "AND target_kind = %s" if target_kind is not None else ""
     parameters: list[Any] = [
         interface_id,
         int(key_kind),

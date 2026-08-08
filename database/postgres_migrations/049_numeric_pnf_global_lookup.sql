@@ -1,5 +1,19 @@
 BEGIN;
 
+CREATE TABLE IF NOT EXISTS execution.semantic_pnf_key_kind (
+    kind_id SMALLINT PRIMARY KEY,
+    kind_name TEXT NOT NULL UNIQUE
+);
+INSERT INTO execution.semantic_pnf_key_kind VALUES
+    (1, 'factor_type'),
+    (2, 'object_kind'),
+    (3, 'normalized_symbol'),
+    (4, 'role'),
+    (5, 'residual_type'),
+    (6, 'definition'),
+    (7, 'scope')
+ON CONFLICT (kind_id) DO UPDATE SET kind_name = EXCLUDED.kind_name;
+
 -- One row per exported key.  Visibility is evaluated from region coordinates
 -- and the region DAG at lookup time; ancestor exports are never copied into
 -- every descendant interface.

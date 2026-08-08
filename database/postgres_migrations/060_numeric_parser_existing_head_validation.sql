@@ -44,11 +44,10 @@ BEGIN
 END;
 $$;
 
-ALTER TABLE execution.semantic_parser_token
-    DROP CONSTRAINT IF EXISTS semantic_parser_token_v2_head_required_ck;
-ALTER TABLE execution.semantic_parser_token
-    ADD CONSTRAINT semantic_parser_token_v2_head_required_ck CHECK (
-        representation_version <> 2 OR head_token_id IS NOT NULL
-    );
+-- New writes keep the deferred head-integrity constraint trigger from 052:
+-- a v2 token is inserted before its head token id is known and resolved by a
+-- later UPDATE in the same fenced transaction, so a non-deferrable CHECK here
+-- would reject the legitimate insert path.  The constraint trigger validates
+-- head presence and coordinates for every committed v2 row instead.
 
 COMMIT;

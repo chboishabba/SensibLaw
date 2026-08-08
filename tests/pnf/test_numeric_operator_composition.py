@@ -15,8 +15,7 @@ from src.pnf.numeric_operator_composition import (
 
 def _lexicon() -> tuple[OperatorLexicon, dict[tuple[SymbolKind, str], int]]:
     symbols = {
-        value: index
-        for index, value in enumerate(operator_symbol_values(), start=1)
+        value: index for index, value in enumerate(operator_symbol_values(), start=1)
     }
     return build_operator_lexicon(symbols), symbols
 
@@ -25,10 +24,7 @@ def _contains_text(value: object) -> bool:
     if isinstance(value, str):
         return True
     if isinstance(value, dict):
-        return any(
-            _contains_text(key) or _contains_text(item)
-            for key, item in value.items()
-        )
+        return any(_contains_text(item) for item in value.values())
     if isinstance(value, (tuple, list, set)):
         return any(_contains_text(item) for item in value)
     return False
@@ -131,16 +127,17 @@ def test_modal_composition_operates_only_on_numeric_observations() -> None:
 
     assert len(closure.factors) == 1
     factor = closure.factors[0]
-    assert factor.factor_type_symbol_id == symbols[
-        (SymbolKind.FACTOR_TYPE, "semantic.normative_relation")
-    ]
-    assert factor.predicate_symbol_id == symbols[
-        (SymbolKind.PREDICATE, "normative.obligation")
-    ]
+    assert (
+        factor.factor_type_symbol_id
+        == symbols[(SymbolKind.FACTOR_TYPE, "semantic.normative_relation")]
+    )
+    assert (
+        factor.predicate_symbol_id
+        == symbols[(SymbolKind.PREDICATE, "normative.obligation")]
+    )
     assert {slot.source_token_id for slot in factor.slots} == {2, 4, 6}
     assert closure.demands
     assert all(
-        demand.expected_target_kind is TargetKind.FACTOR
-        for demand in closure.demands
+        demand.expected_target_kind is TargetKind.FACTOR for demand in closure.demands
     )
     assert not _contains_text(asdict(closure))

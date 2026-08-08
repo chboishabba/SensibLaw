@@ -38,8 +38,7 @@ def _bounded_union(
     joined = left | right
     if len(joined) > budget:
         raise InterfaceSketchBudgetExceeded(
-            f"{key_family} interface keys exceed exact budget {budget}: "
-            f"{len(joined)}"
+            f"{key_family} interface keys exceed exact budget {budget}: {len(joined)}"
         )
     return joined
 
@@ -82,6 +81,8 @@ class InterfaceSketch:
             sequence_no=min(self.sequence_no, other.sequence_no),
             start_char=min(self.start_char, other.start_char),
             end_char=max(self.end_char, other.end_char),
+            # reductive merge contract:
+            # object_keys=self.object_keys | other.object_keys
             object_keys=_bounded_union(
                 self.object_keys,
                 other.object_keys,
@@ -187,10 +188,10 @@ def plan_interface_segments(
 ) -> SketchSegmentation:
     """Windowed beam DP with bounded exact sketches and backpointers.
 
-    Candidate-state work is bounded by ``N * W * B`` and retained DP state by
-    ``N * B``. Exact set-union work is bounded by ``N * W * 3C`` for the object,
-    factor and demand key families. The runtime fails closed rather than
-    truncating keys when a sketch exceeds the configured budget ``C``.
+    Candidate-state work is bounded by ``O(N * W * B)`` and retained DP state
+    by ``N * B``. Exact set-union work is bounded by ``N * W * 3C`` for the
+    object, factor and demand key families. The runtime fails closed rather
+    than truncating keys when a sketch exceeds the configured budget ``C``.
     """
 
     if not sketches:
@@ -321,9 +322,7 @@ def _load_paragraph_sketches(
             set[tuple[int, int]],
             set[tuple[int, int]],
         ],
-    ] = {
-        interface_id: (set(), set(), set()) for interface_id in interface_ids
-    }
+    ] = {interface_id: (set(), set(), set()) for interface_id in interface_ids}
     cursor.execute(
         """
         SELECT export.interface_id,

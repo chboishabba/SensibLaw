@@ -269,7 +269,10 @@ class PostgresSentenceCarrier(Mapping[str, Any]):
                 value,
             ) = row
             sentence_ref = str(sentence_ref_raw)
-            if current_sentence_ref is not None and sentence_ref != current_sentence_ref:
+            if (
+                current_sentence_ref is not None
+                and sentence_ref != current_sentence_ref
+            ):
                 completed = finish_sentence()
                 if completed is not None:
                     yield completed

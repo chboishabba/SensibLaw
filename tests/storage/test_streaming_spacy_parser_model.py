@@ -25,8 +25,7 @@ def test_structural_partitions_have_exact_owner_coverage_and_bounded_context(
     tmp_path: Path,
 ) -> None:
     text = "\n\n".join(
-        f"Section {index}. The café must retain record {index}."
-        for index in range(140)
+        f"Section {index}. The café must retain record {index}." for index in range(140)
     )
     source_ref, source_path, _digest, _byte_count = write_source(text, tmp_path)
     policy = ParserStreamingPolicy(
@@ -56,9 +55,10 @@ def test_structural_partitions_have_exact_owner_coverage_and_bounded_context(
     for partition in partitions:
         assert partition.context_start_char <= partition.owner_start_char
         assert partition.context_end_char >= partition.owner_end_char
-        assert read_partition_text(partition) == text[
-            partition.context_start_char : partition.context_end_char
-        ]
+        assert (
+            read_partition_text(partition)
+            == text[partition.context_start_char : partition.context_end_char]
+        )
         assert partition.context_text_byte_count == len(
             text[partition.context_start_char : partition.context_end_char].encode(
                 "utf-8"
@@ -90,6 +90,4 @@ def test_partition_identity_ignores_worker_and_completion_order(tmp_path: Path) 
         policy=policy,
     )
 
-    assert [row.partition_ref for row in first] == [
-        row.partition_ref for row in second
-    ]
+    assert [row.partition_ref for row in first] == [row.partition_ref for row in second]

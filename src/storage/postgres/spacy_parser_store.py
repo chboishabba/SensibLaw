@@ -280,6 +280,18 @@ def _copy_rows(
         f"CREATE TEMP TABLE {temporary} "
         f"(LIKE execution.{table} INCLUDING DEFAULTS) ON COMMIT DROP"
     )
+    cursor.execute(
+        "SELECT column_name "
+        "FROM information_schema.columns "
+        "WHERE table_schema = 'execution' AND table_name = %s "
+        "  AND is_nullable = 'NO'",
+        (table,),
+    )
+    for (column,) in cursor.fetchall():
+        if column not in columns:
+            cursor.execute(
+                f"ALTER TABLE {temporary} ALTER COLUMN {column} DROP NOT NULL"
+            )
     with cursor.copy(f"COPY {temporary} ({column_sql}) FROM STDIN") as copy:
         for row in rows:
             copy.write_row(row)
@@ -473,12 +485,12 @@ def refresh_coverage(cursor: Any, *, run_ref: str, document_ref: str) -> str:
         """,
         (run_ref, document_ref),
     )
-    open_obligations, failed_obligations = (
-        int(value) for value in cursor.fetchone()
-    )
+    open_obligations, failed_obligations = (int(value) for value in cursor.fetchone())
     failed = failed_partitions > 0 or failed_obligations > 0
-    state = "failed" if failed else (
-        "complete" if completed == total and open_obligations == 0 else "open"
+    state = (
+        "failed"
+        if failed
+        else ("complete" if completed == total and open_obligations == 0 else "open")
     )
     cursor.execute(
         """
@@ -553,9 +565,7 @@ def commit_doc(
         "part_of_speech": any(
             name in pipe_names for name in ("tagger", "morphologizer")
         ),
-        "morphology": any(
-            name in pipe_names for name in ("tagger", "morphologizer")
-        ),
+        "morphology": any(name in pipe_names for name in ("tagger", "morphologizer")),
         "dependencies": "parser" in pipe_names,
         "named_entities": "ner" in pipe_names,
     }
@@ -571,9 +581,7 @@ def commit_doc(
     symbols: dict[str, tuple[str, str, str]] = {}
     crossing_sentences: list[tuple[int, int, int, int]] = []
     sentence_for_span: list[tuple[int, int, str]] = []
-    sentence_spans = (
-        tuple(doc.sents) if doc.has_annotation("SENT_START") else (doc[:],)
-    )
+    sentence_spans = tuple(doc.sents) if doc.has_annotation("SENT_START") else (doc[:],)
     owned_sentence_ordinal = 0
     for span in sentence_spans:
         local_start = int(span.start_char)
@@ -596,9 +604,7 @@ def commit_doc(
             start_char >= partition.owner_start_char
             and end_char <= partition.owner_end_char
         ):
-            crossing_sentences.append(
-                (start_char, end_char, start_byte, end_byte)
-            )
+            crossing_sentences.append((start_char, end_char, start_byte, end_byte))
             continue
         sentence_ref = _sentence_ref(partition, start_char, end_char)
         sentence_rows.append(
@@ -620,16 +626,13 @@ def commit_doc(
             token.i: _token_ref(
                 sentence_ref,
                 partition.context_start_char + int(token.idx),
-                partition.context_start_char
-                + int(token.idx + len(token.text)),
+                partition.context_start_char + int(token.idx + len(token.text)),
             )
             for token in local_tokens
         }
         for local_ordinal, token in enumerate(local_tokens):
             token_start = partition.context_start_char + int(token.idx)
-            token_end = partition.context_start_char + int(
-                token.idx + len(token.text)
-            )
+            token_end = partition.context_start_char + int(token.idx + len(token.text))
             head_start = partition.context_start_char + int(token.head.idx)
             head_end = partition.context_start_char + int(
                 token.head.idx + len(token.head.text)
@@ -854,7 +857,9 @@ def commit_doc(
                     )
                 artifact_ref: str | None = None
                 if artifact is not None:
-                    artifact_ref, artifact_path, artifact_digest, artifact_bytes = artifact
+                    artifact_ref, artifact_path, artifact_digest, artifact_bytes = (
+                        artifact
+                    )
                     cursor.execute(
                         """
                         INSERT INTO execution.semantic_parser_artifact
@@ -953,7 +958,9 @@ def commit_doc(
                     ),
                 )
                 if cursor.rowcount != 1:
-                    raise RuntimeError("parser partition fence changed during completion")
+                    raise RuntimeError(
+                        "parser partition fence changed during completion"
+                    )
                 cursor.execute(
                     """
                     UPDATE execution.semantic_parser_attempt

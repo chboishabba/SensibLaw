@@ -141,11 +141,7 @@ _TRANSITIONS = {
 def operator_symbol_values() -> tuple[tuple[SymbolKind, str], ...]:
     values: set[tuple[SymbolKind, str]] = set()
     for lemma in (
-        set(_MODAL)
-        | _CONDITIONS
-        | _EXCEPTIONS
-        | set(_TRANSITIONS)
-        | {"not", "never"}
+        set(_MODAL) | _CONDITIONS | _EXCEPTIONS | set(_TRANSITIONS) | {"not", "never"}
     ):
         values.add((SymbolKind.LEMMA, lemma))
     for dependency in {
@@ -245,8 +241,7 @@ def _subject_and_object(
         lexicon.dependency_ids[name] for name in ("nsubj", "nsubjpass", "csubj")
     }
     object_dependencies = {
-        lexicon.dependency_ids[name]
-        for name in ("obj", "dobj", "pobj", "attr", "oprd")
+        lexicon.dependency_ids[name] for name in ("obj", "dobj", "pobj", "attr", "oprd")
     }
     subject = next(
         (token for token in children if token.dependency_id in subject_dependencies),
@@ -419,9 +414,7 @@ def compose_numeric_sentence(
                     _object_spec(region_id, token, lexicon),
                 )
         if subject is not None:
-            slots.append(
-                NumericSlotSpec(lexicon.role_ids["bearer"], subject.token_id)
-            )
+            slots.append(NumericSlotSpec(lexicon.role_ids["bearer"], subject.token_id))
         if object_token is not None:
             slots.append(
                 NumericSlotSpec(lexicon.role_ids["object"], object_token.token_id)
@@ -474,9 +467,7 @@ def compose_numeric_sentence(
         is_exception = marker.lemma_id in exception_ids
         role_name = "exception" if is_exception else "condition"
         factor_type_name = (
-            "semantic.legal_exception"
-            if is_exception
-            else "semantic.legal_condition"
+            "semantic.legal_exception" if is_exception else "semantic.legal_condition"
         )
         predicate_name = (
             "legal.exception_candidate"
@@ -585,9 +576,7 @@ def compose_numeric_sentence(
         unresolved_count=len(unique_demands),
         boundary_demand_weight=float(len(unique_demands)),
         encoded_byte_count=(
-            len(tokens) * 8 * 10
-            + len(unique_factors) * 32
-            + len(unique_demands) * 32
+            len(tokens) * 8 * 10 + len(unique_factors) * 32 + len(unique_demands) * 32
         ),
         rule_count=3,
         closure_rounds=1,

@@ -102,9 +102,7 @@ def _pipeline_capabilities(pipeline: Any) -> dict[str, bool]:
         "part_of_speech": any(
             name in pipe_names for name in ("tagger", "morphologizer")
         ),
-        "morphology": any(
-            name in pipe_names for name in ("tagger", "morphologizer")
-        ),
+        "morphology": any(name in pipe_names for name in ("tagger", "morphologizer")),
         "dependencies": "parser" in pipe_names,
         "named_entities": "ner" in pipe_names,
     }
@@ -118,8 +116,7 @@ def _require_numeric_pnf_capabilities(capabilities: Mapping[str, bool]) -> None:
     )
     if missing:
         raise RuntimeError(
-            "strict numeric PNF requires parser capabilities: "
-            + ", ".join(missing)
+            "strict numeric PNF requires parser capabilities: " + ", ".join(missing)
         )
 
 
@@ -134,9 +131,7 @@ def _project_numeric_heads(
         span = (start_char, end_char)
         previous = token_id_by_span.setdefault(span, token_id)
         if previous != token_id:
-            raise NumericHeadProjectionError(
-                f"duplicate committed token span {span!r}"
-            )
+            raise NumericHeadProjectionError(f"duplicate committed token span {span!r}")
 
     updates: list[tuple[int, int]] = []
     for raw in raw_tokens:
@@ -180,9 +175,7 @@ def _collect_doc(
     tuple[tuple[int, int, int, int], ...],
     tuple[SymbolValue, ...],
 ]:
-    sentence_spans = (
-        tuple(doc.sents) if doc.has_annotation("SENT_START") else (doc[:],)
-    )
+    sentence_spans = tuple(doc.sents) if doc.has_annotation("SENT_START") else (doc[:],)
     requested_byte_offsets: set[int] = {0, len(doc.text)}
     for span in sentence_spans:
         requested_byte_offsets.update((int(span.start_char), int(span.end_char)))
@@ -245,9 +238,7 @@ def _collect_doc(
 
         for ordinal, token in enumerate(span):
             token_start = partition.context_start_char + int(token.idx)
-            token_end = partition.context_start_char + int(
-                token.idx + len(token.text)
-            )
+            token_end = partition.context_start_char + int(token.idx + len(token.text))
             head_start = partition.context_start_char + int(token.head.idx)
             head_end = partition.context_start_char + int(
                 token.head.idx + len(token.head.text)
@@ -267,13 +258,9 @@ def _collect_doc(
                     f"{token_start}"
                 )
             lemma_origin_id = (
-                _PARSER_ORIGIN_ID
-                if token.lemma_
-                else _ORTHOGRAPHIC_FALLBACK_ORIGIN_ID
+                _PARSER_ORIGIN_ID if token.lemma_ else _ORTHOGRAPHIC_FALLBACK_ORIGIN_ID
             )
-            tag_origin_id = (
-                _PARSER_ORIGIN_ID if token.tag_ else _POS_FALLBACK_ORIGIN_ID
-            )
+            tag_origin_id = _PARSER_ORIGIN_ID if token.tag_ else _POS_FALLBACK_ORIGIN_ID
 
             morphology: list[tuple[str, str]] = []
             for feature, raw_values in sorted(token.morph.to_dict().items()):
@@ -284,9 +271,7 @@ def _collect_doc(
                 )
                 for value in values:
                     morphology.append((str(feature), str(value)))
-                    symbols.add(
-                        SymbolValue(SymbolKind.MORPH_FEATURE, str(feature))
-                    )
+                    symbols.add(SymbolValue(SymbolKind.MORPH_FEATURE, str(feature)))
                     symbols.add(SymbolValue(SymbolKind.MORPH_VALUE, str(value)))
             for kind, text in (
                 (SymbolKind.ORTH, orth),
@@ -470,9 +455,7 @@ def commit_numeric_doc(
                     rows=sentence_rows,
                 )
 
-                morph_members_by_token: dict[
-                    str, tuple[tuple[int, int], ...]
-                ] = {}
+                morph_members_by_token: dict[str, tuple[tuple[int, int], ...]] = {}
                 for raw in raw_tokens:
                     members = tuple(
                         sorted(

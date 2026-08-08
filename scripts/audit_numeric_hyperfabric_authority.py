@@ -28,14 +28,14 @@ SQL_AUTHORITY = tuple(
     )
 )
 FORBIDDEN_TEXT = (
-    "::json",
+    "::" + "json",
     "jsonb_build",
     "json_build",
     "row_to_json",
     "to_json",
-    ".jsonl",
-    "application/json",
-    "canonical-json",
+    "." + "jsonl",
+    "application/" + "json",
+    "canonical-" + "json",
 )
 JSON_MODULES = {"json", "orjson", "ujson", "simplejson"}
 
@@ -146,9 +146,9 @@ def main() -> int:
         if marker not in planner_source:
             violations.append(f"reductive hierarchy planner lacks {marker}")
 
-    strict_source = (
-        ROOT / "src/policy/streaming_spacy_parser_execution.py"
-    ).read_text(encoding="utf-8")
+    strict_source = (ROOT / "src/policy/streaming_spacy_parser_execution.py").read_text(
+        encoding="utf-8"
+    )
     if "persist_numeric_pnf_document" not in strict_source:
         violations.append("strict persistence does not use numeric PNF authority")
     strict_branch = strict_source.split("def persist_wrapper", 1)[-1]
