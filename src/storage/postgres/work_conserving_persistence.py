@@ -17,6 +17,9 @@ from src.storage.postgres.work_conserving_binding_persistence import (
     persist_streamed_candidate_builds_work_conserving,
     persist_streamed_candidate_links_work_conserving,
 )
+from src.storage.postgres.work_conserving_copy_observability import (
+    observable_stage_partition,
+)
 from src.storage.postgres.work_conserving_graph_persistence import (
     _factor_payloads,
     deferred_factor_revision,
@@ -49,6 +52,7 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
     """Temporarily replace only physical persistence helpers in the compiler."""
 
     import src.policy.postgres_corpus_compilation as compiler
+    from src.storage.postgres import work_conserving_stage as stage
 
     replacements = {
         "persist_licensed_spans": persist_licensed_spans_work_conserving,
@@ -66,11 +70,14 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
         ),
     }
     originals = {name: getattr(compiler, name) for name in replacements}
+    original_stage_partition = stage._stage_partition
     for name, replacement in replacements.items():
         setattr(compiler, name, replacement)
+    stage._stage_partition = observable_stage_partition
     try:
         yield
     finally:
+        stage._stage_partition = original_stage_partition
         for name, original in originals.items():
             setattr(compiler, name, original)
 
