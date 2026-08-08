@@ -4,14 +4,14 @@ The semantic compiler is an ordered fold::
 
     W_0 --compile D_1--> W_1 --compile D_2--> ... --compile D_n--> W_n
 
-Only parser observations may run ahead of that frontier.  They are immutable,
+Only parser observations may run ahead of that frontier. They are immutable,
 document-local evidence and are persisted only in the existing parser-fibre
-checkpoint directory.  Mention licensing, PNF closure, demand discharge,
+checkpoint directory. Mention licensing, PNF closure, demand discharge,
 canonical identity, PostgreSQL publication, and world extension remain strictly
 ordered one document at a time.
 
 This module is deliberately an execution wrapper around
-``compile_directory_postgres``.  It does not introduce a second compiler and it
+``compile_directory_postgres``. It does not introduce a second compiler and it
 does not give parser fibres semantic authority.
 """
 
@@ -74,9 +74,9 @@ def allocate_parser_lookahead(
     """Reserve a parser lane without changing parser-fibre identity.
 
     ``DocumentFibrePolicy`` currently includes worker count in its checkpoint
-    identity.  The lookahead lane must therefore use exactly the same
-    ``parser_workers`` value as foreground replay.  We enable overlap only when
-    the global budget can reserve that many workers for both lanes.  Otherwise
+    identity. The lookahead lane must therefore use exactly the same
+    ``parser_workers`` value as foreground replay. We enable overlap only when
+    the global budget can reserve that many workers for both lanes. Otherwise
     compilation remains ordered and simply parses inline.
     """
 
@@ -313,23 +313,68 @@ class OrderedWorldParserLookahead:
         self._schedule_next()
         return result
 
-    def close(self) -> None:
+    def close(self, *, propagate_errors: bool = True) -> None:
+        """Release the parser lane without hiding a foreground exception."""
+
         if self._executor is None:
             if self._state == "created":
                 self._state = "disabled"
                 self._write_receipt()
             return
-        try:
-            if self._active_future is not None:
-                result = self._active_future.result()
-                self._results.append(result)
-                self._active_future = None
-                self._active_candidate = None
-        finally:
-            self._executor.shutdown(wait=True, cancel_futures=True)
-            self._executor = None
+
+        prefetch_error: BaseException | None = None
+        if self._active_future is not None:
+            if propagate_errors:
+                try:
+                    result = self._active_future.result()
+                    self._results.append(result)
+                except BaseException as error:
+                    prefetch_error = error
+                    self._results.append(
+                        {
+                            "document_ref": (
+                                self._active_candidate.document_ref
+                                if self._active_candidate is not None
+                                else None
+                            ),
+                            "state": "failed",
+                            "error_type": type(error).__name__,
+                            "error": str(error),
+                            "authority": "parser_observation_only",
+                        }
+                    )
+                    self._state = "failed"
+            else:
+                cancelled = self._active_future.cancel()
+                self._results.append(
+                    {
+                        "document_ref": (
+                            self._active_candidate.document_ref
+                            if self._active_candidate is not None
+                            else None
+                        ),
+                        "state": (
+                            "cancelled_after_foreground_failure"
+                            if cancelled
+                            else "detached_after_foreground_failure"
+                        ),
+                        "authority": "parser_observation_only",
+                    }
+                )
+                self._state = "foreground_failed"
+            self._active_future = None
+            self._active_candidate = None
+
+        self._executor.shutdown(
+            wait=propagate_errors,
+            cancel_futures=True,
+        )
+        self._executor = None
+        if self._state not in {"failed", "foreground_failed"}:
             self._state = "completed"
-            self._write_receipt()
+        self._write_receipt()
+        if prefetch_error is not None:
+            raise prefetch_error
 
 
 @contextmanager
@@ -447,8 +492,8 @@ def compile_directory_postgres_ordered_world(
     """Compile an ordered world fold while pre-parsing one heavy document.
 
     This is signature-compatible with ``compile_directory_postgres`` for the
-    complete-tranche runner.  ``document_workers`` must remain one because that
-    parameter otherwise enables concurrent semantic publication.  The existing
+    complete-tranche runner. ``document_workers`` must remain one because that
+    parameter otherwise enables concurrent semantic publication. The existing
     ``parser_workers`` and ``worker_budget`` parameters control the two physical
     lanes without changing the compiler's semantic contract.
     """
@@ -501,9 +546,7 @@ def compile_directory_postgres_ordered_world(
             max_total_bytes=compile_kwargs.get("max_total_bytes"),
             admission_policy=compile_kwargs.get("admission_policy"),
         )
-    receipt_path = state_path.with_name(
-        f"{state_path.stem}_parser_lookahead.json"
-    )
+    receipt_path = state_path.with_name(f"{state_path.stem}_parser_lookahead.json")
     coordinator = OrderedWorldParserLookahead(
         candidates=candidates,
         parser_policy=parser_policy,
@@ -525,21 +568,29 @@ def compile_directory_postgres_ordered_world(
     foreground_kwargs = dict(compile_kwargs)
     if allocation.enabled and candidates:
         foreground_kwargs["worker_budget"] = allocation.foreground_worker_budget
+
+    foreground_error: BaseException | None = None
     try:
         with _cooperative_parser_replay(coordinator):
             result = compile_directory_postgres(input_dir, **foreground_kwargs)
+    except BaseException as error:
+        foreground_error = error
+        raise
     finally:
-        coordinator.close()
-    if resource_ledger is not None:
-        resource_ledger.sample(
-            "ordered_world_parser_lookahead:after",
-            phase="parser_lookahead",
-            semantic_counts={"candidate_documents": len(candidates)},
-            details={
-                "contract_ref": ORDERED_WORLD_LOOKAHEAD_CONTRACT,
-                "receipt_ref": str(receipt_path),
-            },
-        )
+        coordinator.close(propagate_errors=foreground_error is None)
+        if resource_ledger is not None:
+            resource_ledger.sample(
+                "ordered_world_parser_lookahead:after",
+                phase="parser_lookahead",
+                semantic_counts={"candidate_documents": len(candidates)},
+                details={
+                    "contract_ref": ORDERED_WORLD_LOOKAHEAD_CONTRACT,
+                    "receipt_ref": str(receipt_path),
+                    "foreground_state": (
+                        "failed" if foreground_error is not None else "completed"
+                    ),
+                },
+            )
     return result
 
 
