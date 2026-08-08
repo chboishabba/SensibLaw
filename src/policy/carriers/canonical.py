@@ -53,9 +53,8 @@ def _primitive_copy(value: Any) -> Any:
     if isinstance(value, Mapping):
         normalized: dict[str, Any] = {}
         for key in sorted(value, key=lambda item: str(item)):
-            if not isinstance(key, str):
-                raise ValueError("canonical mappings require text keys")
-            normalized[key] = _primitive_copy(value[key])
+            text_key = str(key) if not isinstance(key, str) else key
+            normalized[text_key] = _primitive_copy(value[key])
         return normalized
     if isinstance(value, (set, frozenset)):
         rows = [_primitive_copy(item) for item in value]
