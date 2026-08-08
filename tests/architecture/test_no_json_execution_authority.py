@@ -7,13 +7,18 @@ import re
 
 ROOT = Path(__file__).resolve().parents[2]
 AUTHORITY_PYTHON = (
+    "src/nlp/spacy_adapter.py",
+    "src/pnf/numeric_hyperfabric.py",
+    "src/pnf/numeric_operator_composition.py",
+    "src/pnf/streaming_build_reader.py",
     "src/policy/binary_family_integrity_execution.py",
     "src/policy/carriers/canonical.py",
     "src/policy/no_json_checkpoint_execution.py",
+    "src/policy/numeric_pnf_compilation.py",
     "src/policy/reference_backed_finalization.py",
     "src/policy/stage_budget_execution.py",
+    "src/policy/streaming_spacy_parser_execution.py",
     "src/policy/typed_execution_callback_views.py",
-    "src/pnf/streaming_build_reader.py",
     "src/runtime/durable_stage_state.py",
     "src/runtime/durable_work_item_hardening.py",
     "src/runtime/durable_work_items.py",
@@ -21,14 +26,27 @@ AUTHORITY_PYTHON = (
     "src/runtime/strict_postgres_execution.py",
     "src/storage/postgres/deterministic_admission_execution.py",
     "src/storage/postgres/distributed_semantic_execution.py",
+    "src/storage/postgres/numeric_hierarchy_planner.py",
+    "src/storage/postgres/numeric_hyperfabric_store.py",
+    "src/storage/postgres/numeric_symbol_store.py",
+    "src/storage/postgres/spacy_numeric_projection.py",
+    "src/storage/postgres/spacy_parser_carrier.py",
+    "src/storage/postgres/spacy_parser_model.py",
+    "src/storage/postgres/spacy_parser_registration.py",
+    "src/storage/postgres/spacy_parser_store.py",
+    "src/storage/postgres/streaming_spacy_execution.py",
     "src/storage/postgres/typed_execution_pool.py",
     "src/storage/postgres/typed_value_store.py",
+    "scripts/audit_numeric_hyperfabric_authority.py",
     "scripts/run_durable_coordinator_kill_probe.py",
     "scripts/run_post_closure_probe.py",
 )
 AUTHORITY_SQL = tuple(
     path.relative_to(ROOT).as_posix()
-    for path in sorted((ROOT / "database/postgres_migrations").glob("03[2-9]_*.sql"))
+    for ordinal in range(32, 49)
+    for path in sorted(
+        (ROOT / "database/postgres_migrations").glob(f"{ordinal:03d}_*.sql")
+    )
 )
 JSON_MODULES = {"json", "orjson", "ujson", "simplejson"}
 FORBIDDEN_TEXT = (

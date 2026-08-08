@@ -23,6 +23,9 @@ def install_stage_budget_execution() -> bool:
     from src.policy.no_json_checkpoint_execution import (
         install_no_json_checkpoint_execution,
     )
+    from src.policy.streaming_spacy_parser_execution import (
+        install_streaming_spacy_parser_execution,
+    )
     from src.policy.typed_execution_callback_views import (
         install_typed_execution_callback_views,
     )
@@ -36,9 +39,10 @@ def install_stage_budget_execution() -> bool:
     if getattr(semantic, _INSTALL_MARKER, False):
         return False
     # These policies wrap physical execution only. Binary format enforcement,
-    # pre-decode integrity, concurrent typed staging, canonical admission, and
-    # callback views must all precede the first replay.
+    # streamed parser authority, pre-decode integrity, concurrent typed staging,
+    # canonical admission, and callback views precede the first replay.
     install_no_json_checkpoint_execution()
+    install_streaming_spacy_parser_execution()
     install_binary_family_integrity_execution()
     install_typed_execution_pool()
     install_deterministic_admission_execution()
