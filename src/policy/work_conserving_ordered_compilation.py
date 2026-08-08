@@ -47,13 +47,30 @@ class WorkConservingOrderedWorldParserLookahead(OrderedWorldParserLookahead):
             allocation=allocation,
         )
         self._foreground_kernel_owns_budget = False
+        self._completed_unconsumed: dict[str, Any] | None = None
 
     def _schedule_next(self) -> None:
         if self._foreground_kernel_owns_budget:
             self._state = "foreground_kernel_owns_budget"
             self._write_receipt()
             return
+        if self._completed_unconsumed is not None:
+            self._state = "completed_parser_buffer_waiting_for_foreground"
+            self._write_receipt()
+            return
         super()._schedule_next()
+
+    def wait_for(self, document_ref: str) -> dict[str, Any] | None:
+        buffered = self._completed_unconsumed
+        if buffered is not None and str(buffered.get("document_ref")) == document_ref:
+            self._completed_unconsumed = None
+            if not self._foreground_kernel_owns_budget:
+                self._state = "running"
+                self._schedule_next()
+            else:
+                self._write_receipt()
+            return buffered
+        return super().wait_for(document_ref)
 
     def quiesce_for_foreground_kernel(self) -> None:
         """Finish one speculative parse, then return all workers to persistence."""
@@ -82,6 +99,7 @@ class WorkConservingOrderedWorldParserLookahead(OrderedWorldParserLookahead):
                     "state": "completed_before_persistence_budget_transfer",
                 }
             self._results.append(result)
+            self._completed_unconsumed = result
             self._active_candidate = None
             self._active_future = None
         self._state = "foreground_kernel_owns_budget"
@@ -92,8 +110,12 @@ class WorkConservingOrderedWorldParserLookahead(OrderedWorldParserLookahead):
             return
         self._foreground_kernel_owns_budget = False
         if self._executor is not None:
-            self._state = "running"
-            self._schedule_next()
+            if self._completed_unconsumed is None:
+                self._state = "running"
+                self._schedule_next()
+            else:
+                self._state = "completed_parser_buffer_waiting_for_foreground"
+                self._write_receipt()
         else:
             self._write_receipt()
 
