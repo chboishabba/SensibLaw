@@ -9,6 +9,7 @@ on:
       - "src/nlp/spacy_adapter.py"
       - "src/pnf/numeric_*.py"
       - "src/policy/numeric_pnf_compilation.py"
+      - "src/policy/ordered_world_parser_lookahead.py"
       - "src/policy/stage_budget_execution.py"
       - "src/policy/streaming_spacy_parser_execution.py"
       - "src/storage/postgres/numeric_*.py"
@@ -17,17 +18,21 @@ on:
       - "database/postgres_migrations/038_*.sql"
       - "database/postgres_migrations/039_*.sql"
       - "database/postgres_migrations/04[0-9]_*.sql"
-      - "database/postgres_migrations/05[0-8]_*.sql"
+      - "database/postgres_migrations/05[0-9]_*.sql"
+      - "database/postgres_migrations/060_*.sql"
       - "tests/nlp/test_spacy_adapter_strict.py"
       - "tests/pnf/test_numeric_*.py"
       - "tests/storage/test_numeric_*.py"
       - "tests/storage/test_spacy_numeric_projection.py"
       - "tests/storage/test_streaming_spacy_*.py"
+      - "tests/policy/test_ordered_world_parser_lookahead.py"
       - "tests/policy/test_streaming_spacy_parser_execution.py"
       - "tests/architecture/test_no_json_execution_authority.py"
+      - "scripts/run_complete_tranche_ordered.py"
       - "scripts/audit_json_sin_bin.py"
       - "scripts/audit_numeric_hyperfabric_authority.py"
       - "docs/architecture/JSON_SIN_BIN.md"
+      - "docs/architecture/ORDERED_WORLD_PARSER_LOOKAHEAD.md"
       - ".github/workflows/streaming-spacy-typed-parser-pr.yml"
 
 permissions:
@@ -56,6 +61,7 @@ jobs:
             src/pnf/numeric_hyperfabric.py \
             src/pnf/numeric_operator_composition.py \
             src/policy/numeric_pnf_compilation.py \
+            src/policy/ordered_world_parser_lookahead.py \
             src/policy/streaming_spacy_parser_execution.py \
             src/storage/postgres/numeric_symbol_store.py \
             src/storage/postgres/numeric_adjacent_reconciliation.py \
@@ -66,6 +72,7 @@ jobs:
             src/storage/postgres/spacy_parser_model.py \
             src/storage/postgres/spacy_parser_store.py \
             src/storage/postgres/streaming_spacy_execution.py \
+            scripts/run_complete_tranche_ordered.py \
             scripts/audit_json_sin_bin.py \
             scripts/audit_numeric_hyperfabric_authority.py
 
@@ -76,6 +83,7 @@ jobs:
             src/pnf/numeric_hyperfabric.py
             src/pnf/numeric_operator_composition.py
             src/policy/numeric_pnf_compilation.py
+            src/policy/ordered_world_parser_lookahead.py
             src/policy/stage_budget_execution.py
             src/policy/streaming_spacy_parser_execution.py
             src/storage/postgres/numeric_symbol_store.py
@@ -87,12 +95,14 @@ jobs:
             src/storage/postgres/spacy_parser_model.py
             src/storage/postgres/spacy_parser_store.py
             src/storage/postgres/streaming_spacy_execution.py
+            scripts/run_complete_tranche_ordered.py
             scripts/audit_json_sin_bin.py
             scripts/audit_numeric_hyperfabric_authority.py
             tests/architecture/test_no_json_execution_authority.py
             tests/nlp/test_spacy_adapter_strict.py
             tests/pnf/test_numeric_hyperfabric.py
             tests/pnf/test_numeric_operator_composition.py
+            tests/policy/test_ordered_world_parser_lookahead.py
             tests/policy/test_streaming_spacy_parser_execution.py
             tests/storage/test_numeric_adjacent_reconciliation.py
             tests/storage/test_numeric_hierarchy_planner.py
@@ -116,6 +126,7 @@ jobs:
             tests/nlp/test_spacy_adapter_strict.py \
             tests/pnf/test_numeric_hyperfabric.py \
             tests/pnf/test_numeric_operator_composition.py \
+            tests/policy/test_ordered_world_parser_lookahead.py \
             tests/policy/test_streaming_spacy_parser_execution.py \
             tests/storage/test_numeric_adjacent_reconciliation.py \
             tests/storage/test_numeric_hierarchy_planner.py \
