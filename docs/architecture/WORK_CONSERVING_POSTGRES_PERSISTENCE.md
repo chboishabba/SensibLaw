@@ -155,6 +155,11 @@ cannot use every PostgreSQL parallel worker.
 - wall time and client user/system CPU time;
 - sampled backend wait-event type and event.
 
+Each lane publishes its backend PID with state `staging` before `COPY` begins,
+then transitions to `staged` or `failed`. This makes live CPU and wait-state
+inspection possible while the expensive operation is still running rather than
+only after it finishes.
+
 These rows make it possible to distinguish CPU work from client, lock, WAL or
 storage waits without turning an execution receipt into semantic authority.
 
@@ -179,6 +184,20 @@ uv run python scripts/run_complete_tranche_ordered.py \
 number of application workers the machine should make available to the active
 critical kernel. PostgreSQL server-side parallel-worker, memory and WAL settings
 remain independent resource limits and should be measured rather than assumed.
+
+In another terminal, the live watcher shows every active PostgreSQL lane,
+backend PID, local backend CPU percentage, row/byte target, and PostgreSQL wait
+state:
+
+```bash
+uv run python scripts/watch_work_conserving_persistence.py \
+  --database-url "$DATABASE_URL" \
+  --interval 1
+```
+
+On Linux with PostgreSQL running on the same host, aggregate backend CPU is read
+from `/proc/<backend-pid>/stat`. For remote PostgreSQL servers the PID and wait
+state remain available, while local CPU is reported as unavailable.
 
 ## Acceptance
 
