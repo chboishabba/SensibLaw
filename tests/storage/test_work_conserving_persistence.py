@@ -186,8 +186,10 @@ def test_store_bindings_restore_instance_surface() -> None:
 
 def test_compiler_bindings_restore_module_globals() -> None:
     import src.policy.postgres_corpus_compilation as compiler
+    from src.storage.postgres import work_conserving_stage
 
-    original = compiler.persist_pnf_graph
+    original_graph = compiler.persist_pnf_graph
+    original_partition = work_conserving_stage._stage_partition
     with persistence.activate_work_conserving_postgres_bindings():
         assert compiler.persist_pnf_graph is (
             persistence.persist_pnf_graph_work_conserving
@@ -195,7 +197,9 @@ def test_compiler_bindings_restore_module_globals() -> None:
         assert compiler.persist_licensed_spans is (
             persistence.persist_licensed_spans_work_conserving
         )
-    assert compiler.persist_pnf_graph is original
+        assert work_conserving_stage._stage_partition is not original_partition
+    assert compiler.persist_pnf_graph is original_graph
+    assert work_conserving_stage._stage_partition is original_partition
 
 
 def test_migration_is_typed_and_execution_only() -> None:
@@ -216,6 +220,7 @@ def test_work_conserving_authority_surface_has_no_json_serde() -> None:
     root = Path(__file__).resolve().parents[2]
     paths = (
         root / "src/storage/postgres/work_conserving_stage.py",
+        root / "src/storage/postgres/work_conserving_copy_observability.py",
         root / "src/storage/postgres/work_conserving_graph_persistence.py",
         root / "src/storage/postgres/work_conserving_language_persistence.py",
         root / "src/storage/postgres/work_conserving_resolution_persistence.py",
