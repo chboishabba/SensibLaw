@@ -10,18 +10,24 @@ import os
 import resource
 from threading import Lock
 from time import monotonic_ns
-from typing import Any, Callable, Iterator, Mapping, Sequence
+from typing import Any, Callable, Iterator, Sequence
 
 from src.policy.carriers.canonical import canonical_sha256
 
 
 WORK_CONSERVING_PERSISTENCE_CONTRACT = "work-conserving-postgres-persistence:v0_1"
 _STAGE_COLUMNS = (
-    "stage_ref", "document_ref", "build_key_sha256", "lane_ref",
-    "row_kind_ref", "partition_no", "ordinal",
+    "stage_ref",
+    "document_ref",
+    "build_key_sha256",
+    "lane_ref",
+    "row_kind_ref",
+    "partition_no",
+    "ordinal",
     *(f"text_{index:02d}" for index in range(1, 13)),
     *(f"int_{index:02d}" for index in range(1, 7)),
-    "bytea_01", "bytea_02",
+    "bytea_01",
+    "bytea_02",
 )
 _COPY_SQL = (
     "COPY execution.document_persistence_stage ("
@@ -101,6 +107,8 @@ class DocumentPersistenceRuntime:
     build_key_sha256: str
     config: PersistenceRuntimeConfig
     family_calls: dict[str, int] = field(default_factory=dict)
+    stage_refs: list[str] = field(default_factory=list)
+    dsn: str | None = None
     quiesced: bool = False
     _lock: Lock = field(default_factory=Lock, repr=False)
 
@@ -129,6 +137,35 @@ class DocumentPersistenceRuntime:
                 "call_no": call_no,
             }
         )
+
+    def register_stage(self, *, stage_ref: str, dsn: str) -> None:
+        with self._lock:
+            if stage_ref not in self.stage_refs:
+                self.stage_refs.append(stage_ref)
+            if self.dsn is None:
+                self.dsn = dsn
+            elif self.dsn != dsn:
+                raise RuntimeError("one document persistence runtime used multiple DSNs")
+
+    def fail(self, error: BaseException) -> None:
+        with self._lock:
+            dsn = self.dsn
+            stage_refs = tuple(self.stage_refs)
+        if dsn is None or not stage_refs:
+            return
+        psycopg = _require_psycopg()
+        with psycopg.connect(dsn) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    UPDATE execution.document_persistence_run
+                    SET state_ref = 'failed', failure_type_ref = %s,
+                        failure_message = %s
+                    WHERE stage_ref = ANY(%s)
+                      AND state_ref <> 'published'
+                    """,
+                    (type(error).__name__, str(error), list(stage_refs)),
+                )
 
     def finish(self) -> None:
         with self._lock:
@@ -182,6 +219,13 @@ def document_persistence_runtime(
     token = _DOCUMENT_RUNTIME.set(runtime)
     try:
         yield runtime
+    except BaseException as error:
+        try:
+            runtime.fail(error)
+        except Exception:
+            # Failure telemetry must never replace the document failure.
+            pass
+        raise
     finally:
         runtime.finish()
         _DOCUMENT_RUNTIME.reset(token)
@@ -430,6 +474,7 @@ def _stage_payloads(
         raise RuntimeError(
             "PostgreSQL cursor does not expose a reusable DSN"
         ) from error
+    runtime.register_stage(stage_ref=stage_ref, dsn=dsn)
     _prepare_stage(
         dsn=dsn,
         stage_ref=stage_ref,
@@ -440,6 +485,22 @@ def _stage_payloads(
         payloads=payloads,
         worker_budget=runtime.worker_budget,
     )
+    cursor.execute(
+        """
+        SELECT run.row_count, COUNT(stage.ordinal)
+        FROM execution.document_persistence_run AS run
+        LEFT JOIN execution.document_persistence_stage AS stage
+          ON stage.stage_ref = run.stage_ref
+        WHERE run.stage_ref = %s AND run.state_ref = 'staged'
+        GROUP BY run.row_count
+        """,
+        (stage_ref,),
+    )
+    completeness = cursor.fetchone()
+    if completeness is None or int(completeness[0]) != int(completeness[1]):
+        raise RuntimeError(
+            "provisional persistence stage is incomplete before authority merge"
+        )
     cursor.execute("SHOW transaction_isolation")
     isolation = str(cursor.fetchone()[0]).casefold().replace(" ", "_")
     if isolation != "read_committed":
