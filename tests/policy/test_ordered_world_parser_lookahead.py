@@ -117,15 +117,8 @@ def test_disabled_lookahead_forwards_to_ordered_compiler(monkeypatch) -> None:
     ]
 
 
-def test_cleanup_does_not_replace_foreground_failure(tmp_path) -> None:
-    class FakeExecutor:
-        def __init__(self) -> None:
-            self.shutdown_calls: list[tuple[bool, bool]] = []
-
-        def shutdown(self, *, wait: bool, cancel_futures: bool) -> None:
-            self.shutdown_calls.append((wait, cancel_futures))
-
-    candidate = ParserPrefetchCandidate(
+def _candidate(tmp_path) -> ParserPrefetchCandidate:
+    return ParserPrefetchCandidate(
         sequence_no=8,
         document_ref="document:0008",
         relative_path="0008.txt",
@@ -135,7 +128,10 @@ def test_cleanup_does_not_replace_foreground_failure(tmp_path) -> None:
         checkpoint_dir=str(tmp_path / "chunks"),
         canonical_chars=2_000_000,
     )
-    coordinator = OrderedWorldParserLookahead(
+
+
+def _coordinator(tmp_path, candidate) -> OrderedWorldParserLookahead:
+    return OrderedWorldParserLookahead(
         candidates=(candidate,),
         parser_policy=DocumentFibrePolicy(workers=1),
         receipt_path=tmp_path / "lookahead.json",
@@ -147,6 +143,34 @@ def test_cleanup_does_not_replace_foreground_failure(tmp_path) -> None:
             reason="test",
         ),
     )
+
+
+def test_prefetch_failure_falls_back_to_foreground(tmp_path) -> None:
+    candidate = _candidate(tmp_path)
+    coordinator = _coordinator(tmp_path, candidate)
+    future: Future[dict[str, object]] = Future()
+    future.set_exception(RuntimeError("prefetch failed"))
+    coordinator._active_candidate = candidate
+    coordinator._active_future = future  # type: ignore[assignment]
+
+    result = coordinator.wait_for(candidate.document_ref)
+
+    assert result is not None
+    assert result["state"] == "prefetch_failed_fallback_to_foreground"
+    assert coordinator._active_future is None
+    assert coordinator._active_candidate is None
+
+
+def test_cleanup_does_not_replace_foreground_failure(tmp_path) -> None:
+    class FakeExecutor:
+        def __init__(self) -> None:
+            self.shutdown_calls: list[tuple[bool, bool]] = []
+
+        def shutdown(self, *, wait: bool, cancel_futures: bool) -> None:
+            self.shutdown_calls.append((wait, cancel_futures))
+
+    candidate = _candidate(tmp_path)
+    coordinator = _coordinator(tmp_path, candidate)
     future: Future[dict[str, object]] = Future()
     future.set_exception(RuntimeError("prefetch failed"))
     executor = FakeExecutor()
@@ -169,28 +193,8 @@ def test_cleanup_propagates_prefetch_failure_without_foreground_failure(
             assert wait is True
             assert cancel_futures is True
 
-    candidate = ParserPrefetchCandidate(
-        sequence_no=8,
-        document_ref="document:0008",
-        relative_path="0008.txt",
-        source_path="0008.txt",
-        media_type="text/plain",
-        source_ref="document-source:0008",
-        checkpoint_dir=str(tmp_path / "chunks"),
-        canonical_chars=2_000_000,
-    )
-    coordinator = OrderedWorldParserLookahead(
-        candidates=(candidate,),
-        parser_policy=DocumentFibrePolicy(workers=1),
-        receipt_path=tmp_path / "lookahead.json",
-        allocation=ParserLookaheadAllocation(
-            global_worker_budget=2,
-            foreground_worker_budget=1,
-            parser_lookahead_workers=1,
-            enabled=True,
-            reason="test",
-        ),
-    )
+    candidate = _candidate(tmp_path)
+    coordinator = _coordinator(tmp_path, candidate)
     future: Future[dict[str, object]] = Future()
     future.set_exception(RuntimeError("prefetch failed"))
     coordinator._executor = FakeExecutor()  # type: ignore[assignment]
