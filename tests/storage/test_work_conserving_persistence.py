@@ -212,6 +212,24 @@ def test_migration_is_typed_and_execution_only() -> None:
     assert "never semantic authority" in lowered
 
 
+def test_work_conserving_authority_surface_has_no_json_serde() -> None:
+    root = Path(__file__).resolve().parents[2]
+    paths = (
+        root / "src/storage/postgres/work_conserving_stage.py",
+        root / "src/storage/postgres/work_conserving_graph_persistence.py",
+        root / "src/storage/postgres/work_conserving_language_persistence.py",
+        root / "src/storage/postgres/work_conserving_resolution_persistence.py",
+        root / "src/storage/postgres/work_conserving_binding_persistence.py",
+        root / "src/storage/postgres/work_conserving_persistence.py",
+    )
+    for path in paths:
+        lowered = path.read_text(encoding="utf-8").casefold()
+        assert "import json" not in lowered, path
+        assert "json.dumps" not in lowered, path
+        assert "json.loads" not in lowered, path
+        assert "jsonb" not in lowered, path
+
+
 def test_stage_partition_count_is_bounded_by_worker_budget(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
