@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import hashlib
-import json
 from types import MethodType
 from typing import Any, Callable, Iterator, Mapping, Sequence
 
@@ -38,11 +37,12 @@ def _token_stream_header(
         for token in batch:
             if seen:
                 digest.update(b",")
-            digest.update(
-                json.dumps(
-                    token, ensure_ascii=False, separators=(",", ":")
-                ).encode("utf-8")
-            )
+            surface, start, end = token
+            encoded_surface = surface.encode("utf-8")
+            digest.update(len(encoded_surface).to_bytes(8, "big"))
+            digest.update(encoded_surface)
+            digest.update(int(start).to_bytes(8, "big", signed=True))
+            digest.update(int(end).to_bytes(8, "big", signed=True))
             seen += 1
             key = token[0].casefold()
             vocabulary.add(key)
