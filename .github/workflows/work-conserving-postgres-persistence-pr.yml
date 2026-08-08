@@ -1,0 +1,100 @@
+name: Work-conserving PostgreSQL persistence
+
+on:
+  pull_request:
+    paths:
+      - "database/postgres_migrations/061_work_conserving_document_persistence.sql"
+      - "src/storage/postgres/work_conserving_*.py"
+      - "src/policy/work_conserving_postgres_corpus_compilation.py"
+      - "src/policy/work_conserving_ordered_compilation.py"
+      - "scripts/run_complete_tranche_ordered.py"
+      - "tests/storage/test_work_conserving_persistence.py"
+      - "tests/policy/test_work_conserving_ordered_compilation.py"
+      - "docs/architecture/WORK_CONSERVING_POSTGRES_PERSISTENCE.md"
+      - ".github/workflows/work-conserving-postgres-persistence-pr.yml"
+  push:
+    branches:
+      - "agent/repair-corpus-progress-stage-lifecycle"
+    paths:
+      - "database/postgres_migrations/061_work_conserving_document_persistence.sql"
+      - "src/storage/postgres/work_conserving_*.py"
+      - "src/policy/work_conserving_postgres_corpus_compilation.py"
+      - "src/policy/work_conserving_ordered_compilation.py"
+      - "scripts/run_complete_tranche_ordered.py"
+      - "tests/storage/test_work_conserving_persistence.py"
+      - "tests/policy/test_work_conserving_ordered_compilation.py"
+      - "docs/architecture/WORK_CONSERVING_POSTGRES_PERSISTENCE.md"
+      - ".github/workflows/work-conserving-postgres-persistence-pr.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sensiblaw_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sensiblaw_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/sensiblaw_test
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install
+        run: uv sync --frozen
+
+      - name: Compile
+        run: |
+          uv run python -m py_compile \
+            src/storage/postgres/work_conserving_stage.py \
+            src/storage/postgres/work_conserving_graph_persistence.py \
+            src/storage/postgres/work_conserving_language_persistence.py \
+            src/storage/postgres/work_conserving_resolution_persistence.py \
+            src/storage/postgres/work_conserving_binding_persistence.py \
+            src/storage/postgres/work_conserving_persistence.py \
+            src/policy/work_conserving_postgres_corpus_compilation.py \
+            src/policy/work_conserving_ordered_compilation.py \
+            scripts/run_complete_tranche_ordered.py \
+            tests/storage/test_work_conserving_persistence.py \
+            tests/policy/test_work_conserving_ordered_compilation.py
+
+      - name: Ruff
+        run: |
+          uv run ruff check \
+            src/storage/postgres/work_conserving_stage.py \
+            src/storage/postgres/work_conserving_graph_persistence.py \
+            src/storage/postgres/work_conserving_language_persistence.py \
+            src/storage/postgres/work_conserving_resolution_persistence.py \
+            src/storage/postgres/work_conserving_binding_persistence.py \
+            src/storage/postgres/work_conserving_persistence.py \
+            src/policy/work_conserving_postgres_corpus_compilation.py \
+            src/policy/work_conserving_ordered_compilation.py \
+            scripts/run_complete_tranche_ordered.py \
+            tests/storage/test_work_conserving_persistence.py \
+            tests/policy/test_work_conserving_ordered_compilation.py
+
+      - name: Apply migrations
+        run: bash scripts/apply_pg_migrations.sh
+
+      - name: Focused tests
+        run: |
+          uv run pytest -q \
+            tests/storage/test_work_conserving_persistence.py \
+            tests/policy/test_work_conserving_ordered_compilation.py
