@@ -11,6 +11,16 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import Iterator
 
+from src.storage.postgres import (
+    work_conserving_binding_persistence as binding_persistence,
+)
+from src.storage.postgres import work_conserving_graph_persistence as graph_persistence
+from src.storage.postgres import (
+    work_conserving_language_persistence as language_persistence,
+)
+from src.storage.postgres import (
+    work_conserving_resolution_persistence as resolution_persistence,
+)
 from src.storage.postgres.work_conserving_binding_persistence import (
     _binding_payloads,
     persist_binding_candidate_sets_work_conserving,
@@ -18,7 +28,9 @@ from src.storage.postgres.work_conserving_binding_persistence import (
     persist_streamed_candidate_links_work_conserving,
 )
 from src.storage.postgres.work_conserving_copy_observability import (
+    observable_complete_stage,
     observable_stage_partition,
+    observable_stage_payloads,
 )
 from src.storage.postgres.work_conserving_graph_persistence import (
     _factor_payloads,
@@ -69,16 +81,33 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
             persist_streamed_candidate_links_work_conserving
         ),
     }
-    originals = {name: getattr(compiler, name) for name in replacements}
+    helper_modules = (
+        graph_persistence,
+        language_persistence,
+        resolution_persistence,
+        binding_persistence,
+    )
+    compiler_originals = {
+        name: getattr(compiler, name) for name in replacements
+    }
+    helper_originals = {
+        module: (module._stage_payloads, module._complete_stage)
+        for module in helper_modules
+    }
     original_stage_partition = stage._stage_partition
     for name, replacement in replacements.items():
         setattr(compiler, name, replacement)
     stage._stage_partition = observable_stage_partition
+    for module in helper_modules:
+        module._stage_payloads = observable_stage_payloads
+        module._complete_stage = observable_complete_stage
     try:
         yield
     finally:
+        for module, originals in helper_originals.items():
+            module._stage_payloads, module._complete_stage = originals
         stage._stage_partition = original_stage_partition
-        for name, original in originals.items():
+        for name, original in compiler_originals.items():
             setattr(compiler, name, original)
 
 
