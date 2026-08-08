@@ -1,20 +1,14 @@
 #!/usr/bin/env python3
-"""Prove committed bounded work survives SIGKILL of its coordinator.
-
-The probe uses the real PostgreSQL work-item protocol and real process workers.
-It is destructive only to the supplied run_ref. The replacement coordinator
-must reuse every committed unit and compute only work whose transaction never
-committed.
-"""
+"""Prove committed bounded work survives SIGKILL of its coordinator."""
 
 from __future__ import annotations
 
 import argparse
 from concurrent.futures import ProcessPoolExecutor, as_completed
-import json
 import multiprocessing as mp
 import os
 from pathlib import Path
+import pickle
 import signal
 import subprocess
 import sys
@@ -51,7 +45,7 @@ def _specs(args: argparse.Namespace) -> tuple[DurableWorkSpec, ...]:
             database_url=args.database_url,
             run_ref=args.run_ref,
             document_ref=args.document_ref,
-            stage_contract_ref="coordinator-kill-probe:v1",
+            stage_contract_ref="coordinator-kill-probe:v2",
             operation_ref="probe.square",
             partition_ref=f"probe:{ordinal}",
             ordinal=ordinal,
@@ -110,7 +104,10 @@ def _coordinator(args: argparse.Namespace) -> int:
         ]
         for future in as_completed(futures):
             row = future.result()
-            print(json.dumps(row, sort_keys=True), flush=True)
+            print(
+                f"work_ref={row['work_ref']} reused={row['reused']}",
+                flush=True,
+            )
     return 0
 
 
@@ -119,7 +116,12 @@ def _completed(database_url: str, run_ref: str) -> tuple[int, list[str]]:
     try:
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT count(*), coalesce(array_agg(work_ref ORDER BY ordinal), ARRAY[]::text[]) FROM execution.semantic_work_item WHERE run_ref = %s AND state = 'completed'",
+                """
+                SELECT count(*),
+                       coalesce(array_agg(work_ref ORDER BY ordinal), ARRAY[]::text[])
+                FROM execution.semantic_work_item
+                WHERE run_ref = %s AND state = 'completed'
+                """,
                 (run_ref,),
             )
             count, refs = cursor.fetchone()
@@ -268,7 +270,7 @@ def main() -> int:
         raise RuntimeError("replacement coordinator recomputed committed work")
 
     report = {
-        "schema_version": "sensiblaw.coordinator-kill-probe.v1",
+        "schema_version": "sensiblaw.coordinator-kill-probe.v2",
         "state": "passed",
         "run_ref": args.run_ref,
         "committed_before_kill": committed_before_kill,
@@ -278,10 +280,15 @@ def main() -> int:
         "completed_after_resume": completed_after,
         "manifest_sha256": _manifest(args.database_url, args.run_ref),
         "orphan_worker_count": 0,
+        "text_serialization": False,
     }
-    report_path = args.artifact_root / "coordinator-kill-probe-report.json"
-    report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
-    print(json.dumps(report, indent=2, sort_keys=True))
+    report_path = args.artifact_root / "coordinator-kill-probe-report.pkl"
+    report_path.write_bytes(pickle.dumps(report, protocol=5))
+    print(
+        "coordinator-kill-probe "
+        f"state={report['state']} committed_before_kill={committed_before_kill} "
+        f"reused={reused} recomputed=0 orphan_workers=0"
+    )
     return 0
 
 

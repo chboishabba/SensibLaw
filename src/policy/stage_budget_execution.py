@@ -1,4 +1,4 @@
-"""Install proactive stage budgets on the existing semantic telemetry seam."""
+"""Install proactive stage budgets on the semantic telemetry seam."""
 
 from __future__ import annotations
 
@@ -11,21 +11,42 @@ _INSTALL_MARKER = "_stage_budget_execution_installed"
 
 
 def install_stage_budget_execution() -> bool:
-    """Turn every semantic kernel sample into a durable budget observation.
-
-    The durable work-item policy is installed here because this hook runs after
-    process-backed typing and parent/child progress wrappers have been installed.
-    That keeps semantic functions pure while ensuring every physical typing leaf
-    commits before its parent observes success.
-    """
+    """Install typed durability and enforce every semantic budget sample."""
 
     from src.policy import parallel_semantic_execution as semantic
+    from src.policy.binary_family_integrity_execution import (
+        install_binary_family_integrity_execution,
+    )
     from src.policy.durable_work_item_execution import (
         install_durable_work_item_execution,
+    )
+    from src.policy.no_json_checkpoint_execution import (
+        install_no_json_checkpoint_execution,
+    )
+    from src.policy.streaming_spacy_parser_execution import (
+        install_streaming_spacy_parser_execution,
+    )
+    from src.policy.typed_execution_callback_views import (
+        install_typed_execution_callback_views,
+    )
+    from src.storage.postgres.deterministic_admission_execution import (
+        install_deterministic_admission_execution,
+    )
+    from src.storage.postgres.typed_execution_pool import (
+        install_typed_execution_pool,
     )
 
     if getattr(semantic, _INSTALL_MARKER, False):
         return False
+    # These policies wrap physical execution only. Binary format enforcement,
+    # streamed parser authority, pre-decode integrity, concurrent typed staging,
+    # canonical admission, and callback views precede the first replay.
+    install_no_json_checkpoint_execution()
+    install_streaming_spacy_parser_execution()
+    install_binary_family_integrity_execution()
+    install_typed_execution_pool()
+    install_deterministic_admission_execution()
+    install_typed_execution_callback_views()
     install_durable_work_item_execution()
     original = semantic.SemanticExecutionContext.sample
 
