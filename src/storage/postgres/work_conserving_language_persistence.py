@@ -18,6 +18,40 @@ from src.storage.postgres.work_conserving_stage import (
 )
 
 
+def _canonical_token_tuple_bytes(token: tuple[str, int, int]) -> bytes:
+    """Match the established token identity bytes without JSON serde."""
+
+    surface, start, end = token
+    escaped: list[str] = ['"']
+    substitutions = {
+        '"': '\\"',
+        "\\": "\\\\",
+        "\b": "\\b",
+        "\f": "\\f",
+        "\n": "\\n",
+        "\r": "\\r",
+        "\t": "\\t",
+    }
+    for character in surface:
+        replacement = substitutions.get(character)
+        if replacement is not None:
+            escaped.append(replacement)
+        elif ord(character) < 0x20:
+            escaped.append(f"\\u{ord(character):04x}")
+        else:
+            escaped.append(character)
+    escaped.append('"')
+    return (
+        "["
+        + "".join(escaped)
+        + ","
+        + str(start)
+        + ","
+        + str(end)
+        + "]"
+    ).encode("utf-8")
+
+
 def _token_stream_header(
     *,
     document_ref: str,
@@ -37,12 +71,7 @@ def _token_stream_header(
         for token in batch:
             if seen:
                 digest.update(b",")
-            surface, start, end = token
-            encoded_surface = surface.encode("utf-8")
-            digest.update(len(encoded_surface).to_bytes(8, "big"))
-            digest.update(encoded_surface)
-            digest.update(int(start).to_bytes(8, "big", signed=True))
-            digest.update(int(end).to_bytes(8, "big", signed=True))
+            digest.update(_canonical_token_tuple_bytes(token))
             seen += 1
             key = token[0].casefold()
             vocabulary.add(key)
