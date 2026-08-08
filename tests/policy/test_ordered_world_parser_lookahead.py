@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+from concurrent.futures import Future
 import json
 
 import pytest
 
+from src.pnf.document_fibres import DocumentFibrePolicy
 from src.policy.ordered_world_parser_lookahead import (
     ORDERED_WORLD_LOOKAHEAD_CONTRACT,
+    OrderedWorldParserLookahead,
     ParserLookaheadAllocation,
+    ParserPrefetchCandidate,
     allocate_parser_lookahead,
     compile_directory_postgres_ordered_world,
 )
@@ -77,6 +81,124 @@ def test_ordered_world_rejects_parallel_semantic_documents() -> None:
             ".",
             document_workers=2,
         )
+
+
+def test_disabled_lookahead_forwards_to_ordered_compiler(monkeypatch) -> None:
+    import src.policy.postgres_corpus_compilation as postgres_compilation
+
+    calls: list[tuple[str, dict[str, object]]] = []
+
+    def fake_compile(input_dir: str, **kwargs: object) -> str:
+        calls.append((input_dir, kwargs))
+        return "compiled"
+
+    monkeypatch.setenv("SENSIBLAW_ORDERED_WORLD_LOOKAHEAD", "0")
+    monkeypatch.setattr(
+        postgres_compilation,
+        "compile_directory_postgres",
+        fake_compile,
+    )
+
+    result = compile_directory_postgres_ordered_world(
+        "corpus",
+        document_workers=1,
+        worker_budget=4,
+    )
+
+    assert result == "compiled"
+    assert calls == [
+        (
+            "corpus",
+            {
+                "document_workers": 1,
+                "worker_budget": 4,
+            },
+        )
+    ]
+
+
+def test_cleanup_does_not_replace_foreground_failure(tmp_path) -> None:
+    class FakeExecutor:
+        def __init__(self) -> None:
+            self.shutdown_calls: list[tuple[bool, bool]] = []
+
+        def shutdown(self, *, wait: bool, cancel_futures: bool) -> None:
+            self.shutdown_calls.append((wait, cancel_futures))
+
+    candidate = ParserPrefetchCandidate(
+        sequence_no=8,
+        document_ref="document:0008",
+        relative_path="0008.txt",
+        source_path="0008.txt",
+        media_type="text/plain",
+        source_ref="document-source:0008",
+        checkpoint_dir=str(tmp_path / "chunks"),
+        canonical_chars=2_000_000,
+    )
+    coordinator = OrderedWorldParserLookahead(
+        candidates=(candidate,),
+        parser_policy=DocumentFibrePolicy(workers=1),
+        receipt_path=tmp_path / "lookahead.json",
+        allocation=ParserLookaheadAllocation(
+            global_worker_budget=2,
+            foreground_worker_budget=1,
+            parser_lookahead_workers=1,
+            enabled=True,
+            reason="test",
+        ),
+    )
+    future: Future[dict[str, object]] = Future()
+    future.set_exception(RuntimeError("prefetch failed"))
+    executor = FakeExecutor()
+    coordinator._executor = executor  # type: ignore[assignment]
+    coordinator._active_candidate = candidate
+    coordinator._active_future = future  # type: ignore[assignment]
+
+    coordinator.close(propagate_errors=False)
+
+    payload = json.loads((tmp_path / "lookahead.json").read_text(encoding="utf-8"))
+    assert payload["state"] == "foreground_failed"
+    assert executor.shutdown_calls == [(False, True)]
+
+
+def test_cleanup_propagates_prefetch_failure_without_foreground_failure(
+    tmp_path,
+) -> None:
+    class FakeExecutor:
+        def shutdown(self, *, wait: bool, cancel_futures: bool) -> None:
+            assert wait is True
+            assert cancel_futures is True
+
+    candidate = ParserPrefetchCandidate(
+        sequence_no=8,
+        document_ref="document:0008",
+        relative_path="0008.txt",
+        source_path="0008.txt",
+        media_type="text/plain",
+        source_ref="document-source:0008",
+        checkpoint_dir=str(tmp_path / "chunks"),
+        canonical_chars=2_000_000,
+    )
+    coordinator = OrderedWorldParserLookahead(
+        candidates=(candidate,),
+        parser_policy=DocumentFibrePolicy(workers=1),
+        receipt_path=tmp_path / "lookahead.json",
+        allocation=ParserLookaheadAllocation(
+            global_worker_budget=2,
+            foreground_worker_budget=1,
+            parser_lookahead_workers=1,
+            enabled=True,
+            reason="test",
+        ),
+    )
+    future: Future[dict[str, object]] = Future()
+    future.set_exception(RuntimeError("prefetch failed"))
+    coordinator._executor = FakeExecutor()  # type: ignore[assignment]
+    coordinator._active_candidate = candidate
+    coordinator._active_future = future  # type: ignore[assignment]
+
+    with pytest.raises(RuntimeError, match="prefetch failed"):
+        coordinator.close(propagate_errors=True)
 
 
 def test_contract_names_parser_authority_only() -> None:
