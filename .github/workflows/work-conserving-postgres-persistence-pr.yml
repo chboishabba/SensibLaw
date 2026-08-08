@@ -8,6 +8,7 @@ on:
       - "src/policy/work_conserving_postgres_corpus_compilation.py"
       - "src/policy/work_conserving_ordered_compilation.py"
       - "scripts/run_complete_tranche_ordered.py"
+      - "scripts/watch_work_conserving_persistence.py"
       - "tests/storage/test_work_conserving_persistence.py"
       - "tests/policy/test_work_conserving_ordered_compilation.py"
       - "docs/architecture/WORK_CONSERVING_POSTGRES_PERSISTENCE.md"
@@ -21,6 +22,7 @@ on:
       - "src/policy/work_conserving_postgres_corpus_compilation.py"
       - "src/policy/work_conserving_ordered_compilation.py"
       - "scripts/run_complete_tranche_ordered.py"
+      - "scripts/watch_work_conserving_persistence.py"
       - "tests/storage/test_work_conserving_persistence.py"
       - "tests/policy/test_work_conserving_ordered_compilation.py"
       - "docs/architecture/WORK_CONSERVING_POSTGRES_PERSISTENCE.md"
@@ -64,6 +66,7 @@ jobs:
         run: |
           uv run python -m py_compile \
             src/storage/postgres/work_conserving_stage.py \
+            src/storage/postgres/work_conserving_copy_observability.py \
             src/storage/postgres/work_conserving_graph_persistence.py \
             src/storage/postgres/work_conserving_language_persistence.py \
             src/storage/postgres/work_conserving_resolution_persistence.py \
@@ -72,6 +75,7 @@ jobs:
             src/policy/work_conserving_postgres_corpus_compilation.py \
             src/policy/work_conserving_ordered_compilation.py \
             scripts/run_complete_tranche_ordered.py \
+            scripts/watch_work_conserving_persistence.py \
             tests/storage/test_work_conserving_persistence.py \
             tests/policy/test_work_conserving_ordered_compilation.py
 
@@ -79,6 +83,7 @@ jobs:
         run: |
           uv run ruff check \
             src/storage/postgres/work_conserving_stage.py \
+            src/storage/postgres/work_conserving_copy_observability.py \
             src/storage/postgres/work_conserving_graph_persistence.py \
             src/storage/postgres/work_conserving_language_persistence.py \
             src/storage/postgres/work_conserving_resolution_persistence.py \
@@ -87,6 +92,7 @@ jobs:
             src/policy/work_conserving_postgres_corpus_compilation.py \
             src/policy/work_conserving_ordered_compilation.py \
             scripts/run_complete_tranche_ordered.py \
+            scripts/watch_work_conserving_persistence.py \
             tests/storage/test_work_conserving_persistence.py \
             tests/policy/test_work_conserving_ordered_compilation.py
 
