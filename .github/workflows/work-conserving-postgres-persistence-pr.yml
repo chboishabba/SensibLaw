@@ -10,6 +10,7 @@ on:
       - "scripts/run_complete_tranche_ordered.py"
       - "scripts/watch_work_conserving_persistence.py"
       - "tests/storage/test_work_conserving_persistence.py"
+      - "tests/storage/test_work_conserving_token_identity.py"
       - "tests/policy/test_work_conserving_ordered_compilation.py"
       - "docs/architecture/WORK_CONSERVING_POSTGRES_PERSISTENCE.md"
       - ".github/workflows/work-conserving-postgres-persistence-pr.yml"
@@ -24,6 +25,7 @@ on:
       - "scripts/run_complete_tranche_ordered.py"
       - "scripts/watch_work_conserving_persistence.py"
       - "tests/storage/test_work_conserving_persistence.py"
+      - "tests/storage/test_work_conserving_token_identity.py"
       - "tests/policy/test_work_conserving_ordered_compilation.py"
       - "docs/architecture/WORK_CONSERVING_POSTGRES_PERSISTENCE.md"
       - ".github/workflows/work-conserving-postgres-persistence-pr.yml"
@@ -77,6 +79,7 @@ jobs:
             scripts/run_complete_tranche_ordered.py \
             scripts/watch_work_conserving_persistence.py \
             tests/storage/test_work_conserving_persistence.py \
+            tests/storage/test_work_conserving_token_identity.py \
             tests/policy/test_work_conserving_ordered_compilation.py
 
       - name: Ruff
@@ -94,6 +97,7 @@ jobs:
             scripts/run_complete_tranche_ordered.py \
             scripts/watch_work_conserving_persistence.py \
             tests/storage/test_work_conserving_persistence.py \
+            tests/storage/test_work_conserving_token_identity.py \
             tests/policy/test_work_conserving_ordered_compilation.py
 
       - name: Apply migrations
@@ -103,4 +107,5 @@ jobs:
         run: |
           uv run pytest -q \
             tests/storage/test_work_conserving_persistence.py \
+            tests/storage/test_work_conserving_token_identity.py \
             tests/policy/test_work_conserving_ordered_compilation.py
