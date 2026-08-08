@@ -181,4 +181,90 @@ def observable_stage_partition(
     }
 
 
-__all__ = ["observable_stage_partition"]
+def observable_stage_payloads(
+    cursor: Any,
+    *,
+    family_ref: str,
+    lane_ref: str,
+    payloads: Sequence[stage.StagePayload],
+) -> str:
+    """Stage a family, then expose the authority-merge leader PID."""
+
+    stage_ref = stage._stage_payloads(
+        cursor,
+        family_ref=family_ref,
+        lane_ref=lane_ref,
+        payloads=payloads,
+    )
+    dsn = str(cursor.connection.info.dsn)
+    cursor.execute("SELECT pg_backend_pid()")
+    backend_pid = int(cursor.fetchone()[0])
+    psycopg = stage._require_psycopg()
+    with psycopg.connect(dsn) as connection:
+        with connection.cursor() as telemetry:
+            telemetry.execute(
+                """
+                INSERT INTO execution.document_persistence_lane
+                    (stage_ref, lane_ref, partition_no, state_ref,
+                     backend_pid, worker_pid, row_count, byte_count,
+                     started_at)
+                VALUES (%s, 'authority', 0, 'staging', %s, %s, %s, 0,
+                        CURRENT_TIMESTAMP)
+                ON CONFLICT (stage_ref, lane_ref, partition_no) DO UPDATE SET
+                    state_ref = 'staging',
+                    backend_pid = EXCLUDED.backend_pid,
+                    worker_pid = EXCLUDED.worker_pid,
+                    row_count = EXCLUDED.row_count,
+                    byte_count = 0,
+                    elapsed_ms = 0,
+                    client_user_cpu_ms = 0,
+                    client_system_cpu_ms = 0,
+                    wait_event_type_ref = NULL,
+                    wait_event_ref = NULL,
+                    started_at = CURRENT_TIMESTAMP,
+                    completed_at = NULL
+                """,
+                (stage_ref, backend_pid, os.getpid(), len(payloads)),
+            )
+    return stage_ref
+
+
+def observable_complete_stage(
+    cursor: Any,
+    *,
+    stage_ref: str,
+    statement_count: int,
+) -> None:
+    """Complete authority merge and close its externally visible lane."""
+
+    stage._complete_stage(
+        cursor,
+        stage_ref=stage_ref,
+        statement_count=statement_count,
+    )
+    dsn = str(cursor.connection.info.dsn)
+    psycopg = stage._require_psycopg()
+    with psycopg.connect(dsn) as connection:
+        with connection.cursor() as telemetry:
+            telemetry.execute(
+                """
+                UPDATE execution.document_persistence_lane
+                SET state_ref = 'staged',
+                    elapsed_ms = GREATEST(
+                        0,
+                        FLOOR(EXTRACT(EPOCH FROM
+                            (CURRENT_TIMESTAMP - started_at)) * 1000)::bigint
+                    ),
+                    completed_at = CURRENT_TIMESTAMP
+                WHERE stage_ref = %s AND lane_ref = 'authority'
+                  AND partition_no = 0
+                """,
+                (stage_ref,),
+            )
+
+
+__all__ = [
+    "observable_complete_stage",
+    "observable_stage_partition",
+    "observable_stage_payloads",
+]
