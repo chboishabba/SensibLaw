@@ -136,7 +136,10 @@ class SemanticExecutionContext:
     def closure_handoff_checkpoint_path(self) -> Path | None:
         if self.closure_activation_checkpoint_root is None:
             return None
-        return self.closure_activation_checkpoint_root / "handoff-state.json"
+        return (
+            self.closure_activation_checkpoint_root
+            / f"handoff-{self.build_key_sha256}.json"
+        )
 
     @property
     def closure_replay_artifact_root(self) -> Path | None:
@@ -799,7 +802,7 @@ class ClosureOwnerReplayContract:
             return None
         payload = _read_json(path)
         if payload is None:
-            raise ValueError("closure handoff checkpoint is corrupt")
+            return None
         checkpoint_ref = payload.pop("checkpoint_ref", None)
         expected_ref = "closure-handoff:" + canonical_sha256(payload)
         payload["checkpoint_ref"] = checkpoint_ref
@@ -812,7 +815,7 @@ class ClosureOwnerReplayContract:
             )
             or checkpoint_ref != expected_ref
         ):
-            raise ValueError("closure handoff checkpoint identity mismatch")
+            return None
         events = payload.get("replay_events")
         if not isinstance(events, list) or any(
             not isinstance(event, Mapping)
@@ -827,7 +830,7 @@ class ClosureOwnerReplayContract:
             or not event.get("artifact_ref")
             for event in events
         ):
-            raise ValueError("closure handoff checkpoint replay log is incomplete")
+            return None
         expected_by_kind = {
             "proposal_batch": list(payload.get("proposal_batch_artifact_refs") or ()),
             "solver_receipt": list(payload.get("receipt_artifact_refs") or ()),
@@ -848,9 +851,9 @@ class ClosureOwnerReplayContract:
             in {"observation_delta", "observation_delta_batch"}
         ]
         if delta_events != list(payload.get("delta_artifact_refs") or ()):
-            raise ValueError("closure handoff checkpoint delta index is incomplete")
+            return None
         if actual_by_kind != expected_by_kind:
-            raise ValueError("closure handoff checkpoint artifact index is incomplete")
+            return None
         self.context.closure_activation.update(
             {
                 key: tuple(value) if isinstance(value, list) else value

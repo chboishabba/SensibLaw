@@ -852,6 +852,10 @@ def persist_document_compilation(
         with store.transaction() as cursor:
             store.persist_projection_partitions(cursor, partitions=partitions)
 
+    from src.policy.operational_corpus_compilation import (
+        compile_document_operational,
+    )
+
     compilation = compile_document_operational(
         {
             "document_ref": document_ref,
