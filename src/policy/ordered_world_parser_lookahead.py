@@ -298,18 +298,33 @@ class OrderedWorldParserLookahead:
         self._write_receipt()
 
     def wait_for(self, document_ref: str) -> dict[str, Any] | None:
-        """Fence semantic use of a document behind its active parser prefetch."""
+        """Fence duplicate work, but leave failure authority to foreground."""
 
         if self._active_candidate is None or self._active_future is None:
             return None
         if self._active_candidate.document_ref != document_ref:
             return None
-        result = self._active_future.result()
+        candidate = self._active_candidate
+        future = self._active_future
+        try:
+            result = future.result()
+        except BaseException as error:
+            # Lookahead is an optimisation only. Record its failure, clear the
+            # slot, and let the canonical foreground parser try normally.
+            result = {
+                "document_ref": candidate.document_ref,
+                "relative_path": candidate.relative_path,
+                "checkpoint_dir": candidate.checkpoint_dir,
+                "state": "prefetch_failed_fallback_to_foreground",
+                "error_type": type(error).__name__,
+                "error": str(error),
+                "authority": "parser_observation_only",
+            }
         self._results.append(result)
         self._active_candidate = None
         self._active_future = None
-        # As soon as the foreground consumes this checkpoint, the single
-        # buffered slot becomes available for the next heavy document.
+        # As soon as the foreground consumes or abandons this prefetch, the
+        # single buffered slot becomes available for the next heavy document.
         self._schedule_next()
         return result
 
