@@ -109,6 +109,35 @@ def test_parser_resumes_only_after_budget_return(
     assert scheduled == ["scheduled"]
 
 
+def test_completed_parser_buffer_blocks_second_future_until_consumed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    coordinator = _coordinator(tmp_path)
+    coordinator._foreground_kernel_owns_budget = True
+    coordinator._executor = object()  # type: ignore[assignment]
+    buffered = {
+        "document_ref": "document:7",
+        "authority": "parser_observation_only",
+        "state": "completed_before_persistence_budget_transfer",
+    }
+    coordinator._completed_unconsumed = buffered
+    scheduled: list[str] = []
+    monkeypatch.setattr(
+        coordinator,
+        "_schedule_next",
+        lambda: scheduled.append("scheduled"),
+    )
+
+    coordinator.resume_parser_lookahead()
+
+    assert scheduled == []
+    assert coordinator._state == (
+        "completed_parser_buffer_waiting_for_foreground"
+    )
+    assert coordinator.wait_for("document:7") is buffered
+    assert scheduled == ["scheduled"]
+
+
 def test_ordered_wrapper_rejects_parallel_semantic_documents() -> None:
     with pytest.raises(ValueError, match="document_workers=1"):
         compile_directory_postgres_work_conserving_ordered(
