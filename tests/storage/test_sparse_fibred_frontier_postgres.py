@@ -59,6 +59,7 @@ def test_sparse_frontier_functions_are_installed() -> None:
         "normalize_numeric_pnf_anaphor_surface",
         "capture_numeric_pnf_actor_export_profiles",
         "filter_numeric_pnf_candidate_constraints",
+        "index_numeric_pnf_object_exports_batch",
         "rebuild_numeric_pnf_parent_frontier",
         "reduce_numeric_pnf_interface_on_close",
         "reduce_numeric_pnf_document_frontiers",
@@ -68,7 +69,7 @@ def test_sparse_frontier_functions_are_installed() -> None:
     } <= names
 
 
-def test_hidden_lookup_planning_triggers_are_absent() -> None:
+def test_hidden_and_row_wise_planning_triggers_are_absent() -> None:
     names = _fetch_names(
         """
         SELECT trigger_name
@@ -78,11 +79,13 @@ def test_hidden_lookup_planning_triggers_are_absent() -> None:
     )
     assert "semantic_pnf_global_demand_planning" not in names
     assert "semantic_pnf_visible_demand_planning" not in names
+    assert "semantic_pnf_object_export_kind_index" not in names
     assert "semantic_pnf_sparse_frontier_on_close" in names
     assert "semantic_pnf_actor_profile_key_normalisation" in names
     assert "semantic_pnf_anaphor_surface_normalisation" in names
     assert "semantic_pnf_actor_export_profile" in names
     assert "semantic_pnf_typed_candidate_constraints" in names
+    assert "semantic_pnf_object_export_kind_index_batch" in names
 
 
 def test_global_lookup_function_is_root_frontier_only() -> None:
