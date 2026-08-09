@@ -173,6 +173,7 @@ def _actor_child(
             (interface_id, export_kind, target_kind, target_id,
              key_symbol_id, rank, promotion_score)
         VALUES (%s, %s, %s, %s, %s, 0, 10)
+        ON CONFLICT DO NOTHING
         """,
         (
             (interface_id, 1, 1, object_id, head_symbol_id),
@@ -185,6 +186,7 @@ def _actor_child(
             (interface_id, key_kind, key_a, key_b,
              target_kind, target_id, rank)
         VALUES (%s, %s, %s, 0, %s, %s, 0)
+        ON CONFLICT DO NOTHING
         """,
         (
             (interface_id, 2, object_kind_symbol_id, 1, object_id),
