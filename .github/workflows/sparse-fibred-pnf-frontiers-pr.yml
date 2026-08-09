@@ -5,9 +5,11 @@ on:
     paths:
       - "database/postgres_migrations/062_sparse_fibred_pnf_frontiers.sql"
       - "database/postgres_migrations/063_sparse_actor_profile_null_normalisation.sql"
+      - "database/postgres_migrations/064_anaphor_surface_lexical_evidence.sql"
       - "scripts/report_numeric_pnf_frontier.py"
       - "tests/storage/test_sparse_fibred_frontier_migration.py"
       - "tests/storage/test_sparse_fibred_frontier_postgres.py"
+      - "tests/storage/test_sparse_fibred_frontier_resolution.py"
       - "docs/architecture/SPARSE_FIBRED_PNF_FRONTIERS.md"
       - ".github/workflows/sparse-fibred-pnf-frontiers-pr.yml"
   push:
@@ -16,9 +18,11 @@ on:
     paths:
       - "database/postgres_migrations/062_sparse_fibred_pnf_frontiers.sql"
       - "database/postgres_migrations/063_sparse_actor_profile_null_normalisation.sql"
+      - "database/postgres_migrations/064_anaphor_surface_lexical_evidence.sql"
       - "scripts/report_numeric_pnf_frontier.py"
       - "tests/storage/test_sparse_fibred_frontier_migration.py"
       - "tests/storage/test_sparse_fibred_frontier_postgres.py"
+      - "tests/storage/test_sparse_fibred_frontier_resolution.py"
       - "docs/architecture/SPARSE_FIBRED_PNF_FRONTIERS.md"
       - ".github/workflows/sparse-fibred-pnf-frontiers-pr.yml"
 
@@ -61,14 +65,16 @@ jobs:
           uv run python -m py_compile \
             scripts/report_numeric_pnf_frontier.py \
             tests/storage/test_sparse_fibred_frontier_migration.py \
-            tests/storage/test_sparse_fibred_frontier_postgres.py
+            tests/storage/test_sparse_fibred_frontier_postgres.py \
+            tests/storage/test_sparse_fibred_frontier_resolution.py
 
       - name: Ruff
         run: |
           uv run ruff check \
             scripts/report_numeric_pnf_frontier.py \
             tests/storage/test_sparse_fibred_frontier_migration.py \
-            tests/storage/test_sparse_fibred_frontier_postgres.py
+            tests/storage/test_sparse_fibred_frontier_postgres.py \
+            tests/storage/test_sparse_fibred_frontier_resolution.py
 
       - name: Static frontier tests
         run: |
@@ -81,4 +87,5 @@ jobs:
       - name: PostgreSQL frontier tests
         run: |
           uv run pytest -q \
-            tests/storage/test_sparse_fibred_frontier_postgres.py
+            tests/storage/test_sparse_fibred_frontier_postgres.py \
+            tests/storage/test_sparse_fibred_frontier_resolution.py
