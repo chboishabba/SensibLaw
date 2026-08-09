@@ -6,8 +6,10 @@ on:
       - "database/postgres_migrations/062_sparse_fibred_pnf_frontiers.sql"
       - "database/postgres_migrations/063_sparse_actor_profile_null_normalisation.sql"
       - "database/postgres_migrations/064_anaphor_surface_lexical_evidence.sql"
+      - "database/postgres_migrations/065_actor_profile_dimension_integrity.sql"
       - "scripts/report_numeric_pnf_frontier.py"
       - "tests/storage/test_sparse_fibred_frontier_migration.py"
+      - "tests/storage/test_sparse_actor_profile_integrity_migration.py"
       - "tests/storage/test_sparse_fibred_frontier_postgres.py"
       - "tests/storage/test_sparse_fibred_frontier_resolution.py"
       - "docs/architecture/SPARSE_FIBRED_PNF_FRONTIERS.md"
@@ -19,8 +21,10 @@ on:
       - "database/postgres_migrations/062_sparse_fibred_pnf_frontiers.sql"
       - "database/postgres_migrations/063_sparse_actor_profile_null_normalisation.sql"
       - "database/postgres_migrations/064_anaphor_surface_lexical_evidence.sql"
+      - "database/postgres_migrations/065_actor_profile_dimension_integrity.sql"
       - "scripts/report_numeric_pnf_frontier.py"
       - "tests/storage/test_sparse_fibred_frontier_migration.py"
+      - "tests/storage/test_sparse_actor_profile_integrity_migration.py"
       - "tests/storage/test_sparse_fibred_frontier_postgres.py"
       - "tests/storage/test_sparse_fibred_frontier_resolution.py"
       - "docs/architecture/SPARSE_FIBRED_PNF_FRONTIERS.md"
@@ -65,6 +69,7 @@ jobs:
           uv run python -m py_compile \
             scripts/report_numeric_pnf_frontier.py \
             tests/storage/test_sparse_fibred_frontier_migration.py \
+            tests/storage/test_sparse_actor_profile_integrity_migration.py \
             tests/storage/test_sparse_fibred_frontier_postgres.py \
             tests/storage/test_sparse_fibred_frontier_resolution.py
 
@@ -73,13 +78,15 @@ jobs:
           uv run ruff check \
             scripts/report_numeric_pnf_frontier.py \
             tests/storage/test_sparse_fibred_frontier_migration.py \
+            tests/storage/test_sparse_actor_profile_integrity_migration.py \
             tests/storage/test_sparse_fibred_frontier_postgres.py \
             tests/storage/test_sparse_fibred_frontier_resolution.py
 
       - name: Static frontier tests
         run: |
           uv run pytest -q \
-            tests/storage/test_sparse_fibred_frontier_migration.py
+            tests/storage/test_sparse_fibred_frontier_migration.py \
+            tests/storage/test_sparse_actor_profile_integrity_migration.py
 
       - name: Apply migrations
         run: bash scripts/apply_pg_migrations.sh
