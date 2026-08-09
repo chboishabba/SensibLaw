@@ -56,6 +56,7 @@ def test_sparse_frontier_functions_are_installed() -> None:
     assert {
         "refresh_numeric_pnf_demand_constraints",
         "normalize_numeric_pnf_actor_profile_key",
+        "normalize_numeric_pnf_anaphor_surface",
         "rebuild_numeric_pnf_parent_frontier",
         "reduce_numeric_pnf_interface_on_close",
         "reduce_numeric_pnf_document_frontiers",
@@ -77,6 +78,7 @@ def test_hidden_lookup_planning_triggers_are_absent() -> None:
     assert "semantic_pnf_visible_demand_planning" not in names
     assert "semantic_pnf_sparse_frontier_on_close" in names
     assert "semantic_pnf_actor_profile_key_normalisation" in names
+    assert "semantic_pnf_anaphor_surface_normalisation" in names
 
 
 def test_global_lookup_function_is_root_frontier_only() -> None:
@@ -133,3 +135,24 @@ def test_actor_profile_unspecified_dimensions_are_numeric() -> None:
     assert len(rows) == 4
     assert all(str(default) == "0" for _, default, _ in rows)
     assert all(str(nullable) == "NO" for _, _, nullable in rows)
+
+
+def test_anaphor_surface_column_is_installed() -> None:
+    assert DATABASE_URL is not None
+    connection = connect(DATABASE_URL)
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT is_nullable
+                  FROM information_schema.columns
+                 WHERE table_schema = 'execution'
+                   AND table_name = 'semantic_pnf_demand'
+                   AND column_name = 'surface_lexical_symbol_id'
+                """
+            )
+            row = cursor.fetchone()
+    finally:
+        connection.close()
+    assert row is not None
+    assert str(row[0]) == "YES"
