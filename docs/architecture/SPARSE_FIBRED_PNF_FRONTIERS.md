@@ -6,6 +6,8 @@ Implemented by PostgreSQL migrations:
 
 - `062_sparse_fibred_pnf_frontiers.sql`
 - `063_sparse_actor_profile_null_normalisation.sql`
+- `064_anaphor_surface_lexical_evidence.sql`
+- `065_actor_profile_dimension_integrity.sql`
 
 The implementation replaces document-wide reconsideration of closed region
 interiors with hierarchical reconciliation over sparse typed frontiers.
@@ -50,6 +52,11 @@ outward demand:
   recency/scope: surrounding paragraph or parent region
 ```
 
+The surface word “you” is retained in `surface_lexical_symbol_id`. It is not
+used as an exact identity key for the actor witness. This prevents the solver
+from requiring the eventual actor’s canonical lexical symbol to literally be
+“you”.
+
 The parent does not reopen the paragraph or scan every document object. It
 compares this typed hole with compressed actor profiles exported by its direct
 children:
@@ -84,12 +91,13 @@ boundary. Ordinary child propositions do not.
 
 - expected factor type;
 - expected object kind;
-- lexical symbol;
+- canonical lexical identity, when applicable;
 - semantic role; and
 - residual type.
 
-A demand is therefore a constrained hole, not a request for unrestricted
-search.
+For anaphoric demands, the pronoun surface is retained separately and the
+canonical lexical identity constraint is absent. A demand is therefore a
+constrained hole, not a request for unrestricted search.
 
 ### Actor/action fibres
 
@@ -103,8 +111,10 @@ answer outward actor demands:
 - first and last structural coordinates; and
 - promotion score.
 
-Numeric zero is the canonical unspecified profile dimension. Semantic symbol
-identities remain positive.
+Numeric zero is the canonical unspecified profile dimension. Concrete nonzero
+dimensions have generated nullable foreign-key projections into
+`semantic_symbol`; zero remains absence without requiring hot-path trigger
+queries. All four profile dimensions are non-null and nonnegative.
 
 ### Resolution outcomes
 
@@ -220,7 +230,7 @@ inventory is a failed reduction, even if the SQL finishes quickly.
 
 ## Rollout
 
-Apply migrations through `063` before restarting the tranche process. Existing
+Apply migrations through `065` before restarting the tranche process. Existing
 long-running Python/PostgreSQL transactions do not hot-reload schema or
 function definitions reliably enough for a controlled comparison.
 
@@ -230,8 +240,8 @@ run. Keep the old run as a forensic baseline.
 Recommended acceptance sequence:
 
 ```text
-1. apply migrations 062 and 063
-2. run migration/static tests
+1. apply migrations 062 through 065
+2. run migration/static and PostgreSQL semantic fixture tests
 3. compile one medium document
 4. inspect frontier receipts and root cardinality
 5. verify unique/ambiguous/deferred demand outcomes
@@ -244,12 +254,14 @@ Recommended acceptance sequence:
 Correctness:
 
 - no resolved demand lacks an explicit target;
+- anaphor surface evidence is preserved without becoming actor identity;
 - a unique witness binds deterministically;
 - multiple witnesses remain ambiguous;
 - a root no-witness becomes deferred-world;
 - resolved demands disappear from outward interfaces;
 - every lookup row has a corresponding admitted export;
 - child provenance remains intact;
+- concrete actor-profile dimensions retain referential integrity;
 - no JSON/JSONB execution authority is introduced.
 
 Performance and reduction:
@@ -260,8 +272,21 @@ Performance and reduction:
   interface rows;
 - each nontrivial parent has a recorded input/output frontier ratio;
 - document closure time is attributed separately from lookup projection;
+- actor-profile integrity introduces no per-row catalog query trigger;
 - large documents do not require increasing an interface budget merely because
   local interiors were copied to the root.
+
+## Focused semantic fixture
+
+`test_sparse_fibred_frontier_resolution.py` constructs a minimal PostgreSQL
+hierarchy and verifies:
+
+1. the surface “you” is retained while exact lexical identity is cleared;
+2. one compatible actor resolves the demand and removes it from the root
+   frontier;
+3. two compatible actors preserve ambiguity and do not set a target;
+4. no compatible actor becomes `deferred_world` at the root; and
+5. global lookup contains no non-root interface rows.
 
 ## Remaining extensions
 
