@@ -6,6 +6,9 @@ SPARSE_FRONTIER = MIGRATION_ROOT / "062_sparse_fibred_pnf_frontiers.sql"
 ACTOR_NORMALISATION = (
     MIGRATION_ROOT / "063_sparse_actor_profile_null_normalisation.sql"
 )
+ANAPHOR_SURFACE = (
+    MIGRATION_ROOT / "064_anaphor_surface_lexical_evidence.sql"
+)
 
 
 def _source() -> str:
@@ -15,10 +18,14 @@ def _source() -> str:
 def test_sparse_frontier_migrations_exist_and_remain_numeric() -> None:
     assert SPARSE_FRONTIER.is_file()
     assert ACTOR_NORMALISATION.is_file()
-    source = (
-        _source()
-        + "\n"
-        + ACTOR_NORMALISATION.read_text(encoding="utf-8")
+    assert ANAPHOR_SURFACE.is_file()
+    source = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (
+            SPARSE_FRONTIER,
+            ACTOR_NORMALISATION,
+            ANAPHOR_SURFACE,
+        )
     ).casefold()
     assert " json " not in source
     assert " jsonb" not in source
@@ -164,5 +171,19 @@ def test_actor_profile_uses_one_numeric_unspecified_value() -> None:
         "COALESCE(NEW.factor_type_symbol_id",
         "COALESCE(NEW.predicate_symbol_id, 0)",
         "semantic_pnf_actor_profile_key_normalisation",
+    ):
+        assert required in source
+
+
+def test_anaphor_surface_is_not_an_identity_constraint() -> None:
+    source = ANAPHOR_SURFACE.read_text(encoding="utf-8")
+    for required in (
+        "surface_lexical_symbol_id",
+        "normalize_numeric_pnf_anaphor_surface",
+        "symbol_text = 'anaphor_unresolved'",
+        "NEW.surface_lexical_symbol_id := COALESCE",
+        "NEW.lexical_symbol_id := NULL",
+        "semantic_pnf_anaphor_surface_normalisation",
+        "DELETE FROM execution.semantic_pnf_interface_lookup",
     ):
         assert required in source
