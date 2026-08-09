@@ -9,10 +9,12 @@ on:
       - "database/postgres_migrations/065_actor_profile_dimension_integrity.sql"
       - "database/postgres_migrations/066_standalone_actor_profiles.sql"
       - "database/postgres_migrations/067_typed_frontier_candidate_constraints.sql"
+      - "database/postgres_migrations/068_complete_frontier_reduction_and_batch_indexes.sql"
       - "scripts/report_numeric_pnf_frontier.py"
       - "tests/storage/test_sparse_fibred_frontier_migration.py"
       - "tests/storage/test_sparse_actor_profile_integrity_migration.py"
       - "tests/storage/test_sparse_frontier_constraint_migrations.py"
+      - "tests/storage/test_sparse_frontier_batch_migration.py"
       - "tests/storage/test_sparse_fibred_frontier_postgres.py"
       - "tests/storage/test_sparse_fibred_frontier_resolution.py"
       - "tests/storage/test_typed_frontier_candidate_constraints.py"
@@ -28,10 +30,12 @@ on:
       - "database/postgres_migrations/065_actor_profile_dimension_integrity.sql"
       - "database/postgres_migrations/066_standalone_actor_profiles.sql"
       - "database/postgres_migrations/067_typed_frontier_candidate_constraints.sql"
+      - "database/postgres_migrations/068_complete_frontier_reduction_and_batch_indexes.sql"
       - "scripts/report_numeric_pnf_frontier.py"
       - "tests/storage/test_sparse_fibred_frontier_migration.py"
       - "tests/storage/test_sparse_actor_profile_integrity_migration.py"
       - "tests/storage/test_sparse_frontier_constraint_migrations.py"
+      - "tests/storage/test_sparse_frontier_batch_migration.py"
       - "tests/storage/test_sparse_fibred_frontier_postgres.py"
       - "tests/storage/test_sparse_fibred_frontier_resolution.py"
       - "tests/storage/test_typed_frontier_candidate_constraints.py"
@@ -79,6 +83,7 @@ jobs:
             tests/storage/test_sparse_fibred_frontier_migration.py \
             tests/storage/test_sparse_actor_profile_integrity_migration.py \
             tests/storage/test_sparse_frontier_constraint_migrations.py \
+            tests/storage/test_sparse_frontier_batch_migration.py \
             tests/storage/test_sparse_fibred_frontier_postgres.py \
             tests/storage/test_sparse_fibred_frontier_resolution.py \
             tests/storage/test_typed_frontier_candidate_constraints.py
@@ -90,6 +95,7 @@ jobs:
             tests/storage/test_sparse_fibred_frontier_migration.py \
             tests/storage/test_sparse_actor_profile_integrity_migration.py \
             tests/storage/test_sparse_frontier_constraint_migrations.py \
+            tests/storage/test_sparse_frontier_batch_migration.py \
             tests/storage/test_sparse_fibred_frontier_postgres.py \
             tests/storage/test_sparse_fibred_frontier_resolution.py \
             tests/storage/test_typed_frontier_candidate_constraints.py
@@ -99,7 +105,8 @@ jobs:
           uv run pytest -q \
             tests/storage/test_sparse_fibred_frontier_migration.py \
             tests/storage/test_sparse_actor_profile_integrity_migration.py \
-            tests/storage/test_sparse_frontier_constraint_migrations.py
+            tests/storage/test_sparse_frontier_constraint_migrations.py \
+            tests/storage/test_sparse_frontier_batch_migration.py
 
       - name: Apply migrations
         run: bash scripts/apply_pg_migrations.sh
