@@ -8,6 +8,8 @@ Implemented by PostgreSQL migrations:
 - `063_sparse_actor_profile_null_normalisation.sql`
 - `064_anaphor_surface_lexical_evidence.sql`
 - `065_actor_profile_dimension_integrity.sql`
+- `066_standalone_actor_profiles.sql`
+- `067_typed_frontier_candidate_constraints.sql`
 
 The implementation replaces document-wide reconsideration of closed region
 interiors with hierarchical reconciliation over sparse typed frontiers.
@@ -92,8 +94,16 @@ boundary. Ordinary child propositions do not.
 - expected factor type;
 - expected object kind;
 - canonical lexical identity, when applicable;
-- semantic role; and
-- residual type.
+- semantic role;
+- residual type;
+- definition keys; and
+- explicit scope keys.
+
+Constraints carry required/optional status and positive/negative polarity.
+Positive required constraints are conjunctive: every one must be witnessed by
+the same candidate actor or factor, although different actor/action profile
+rows may jointly provide the evidence. A negative required constraint excludes
+a candidate when the forbidden evidence is present.
 
 For anaphoric demands, the pronoun surface is retained separately and the
 canonical lexical identity constraint is absent. A demand is therefore a
@@ -110,6 +120,12 @@ answer outward actor demands:
 - occurrence count;
 - first and last structural coordinates; and
 - promotion score.
+
+Object exports also create a generic actor summary with zero role, factor and
+predicate dimensions in one statement-level operation. Factor participation
+enriches that actor with relational summaries. This permits a bare named actor
+to answer a kind/identity demand without pretending that it performed an
+unobserved action.
 
 Numeric zero is the canonical unspecified profile dimension. Concrete nonzero
 dimensions have generated nullable foreign-key projections into
@@ -140,22 +156,27 @@ When a non-sentence region closes:
 1. Read only its direct child interfaces.
 2. Aggregate already-compressed child actor profiles.
 3. Add direct factor participation to those profiles.
-4. Remove low-salience one-off actor summaries unless an exported typed demand
+4. Retain generic standalone-actor profiles for admitted object exports.
+5. Remove low-salience one-off actor summaries unless an exported typed demand
    can ask for them.
-5. Carry unresolved demands upward.
-6. Carry explicit definitions/scopes/bindings upward.
-7. Admit only salient, recurrent, demanded or already-resolved actors.
-8. Admit full factors only when they are strongly supported or explicitly
+6. Carry unresolved demands upward.
+7. Carry explicit definitions/scopes/bindings upward.
+8. Admit only salient, recurrent, demanded or already-resolved actors.
+9. Admit full factors only when they are strongly supported or explicitly
    demanded.
-9. Rebuild the parent lookup from admitted exports only.
-10. Resolve exported demands against the compressed parent frontier.
-11. Bind a demand only when exactly one witness survives.
-12. Remove resolved demands from the outward frontier.
-13. Update interface measures and write a reduction receipt.
+10. Rebuild the parent lookup from admitted exports only.
+11. Generate a bounded candidate set against the compressed parent frontier.
+12. Apply all required positive and negative typed constraints set-wise to the
+    newly inserted candidates.
+13. Bind a demand only when exactly one witness survives.
+14. Remove resolved demands from the outward frontier.
+15. Update interface measures and write a reduction receipt.
 
-This occurs in one set-oriented function,
-`rebuild_numeric_pnf_parent_frontier(interface_id)`, after the parent region
-moves to a closed state.
+The parent reduction occurs in
+`rebuild_numeric_pnf_parent_frontier(interface_id)` after the parent region
+moves to a closed state. Constraint filtering is an `AFTER INSERT ... FOR EACH
+STATEMENT` operation over the newly inserted bounded candidate relation; it
+does not scan global document objects.
 
 ## Explicit stages
 
@@ -167,6 +188,7 @@ The explicit final path is:
 ```text
 close child fibres
 -> reduce parent frontiers bottom-up
+-> filter bounded candidates by typed constraints
 -> project the closed document frontier
 -> refresh the root-only global lookup
 -> publish receipts
@@ -187,7 +209,7 @@ The final cost target is therefore related to:
 
 ```text
 root frontier size
-+ unresolved demand count * indexed compatible actor profiles
++ bounded candidate count * typed constraint count
 ```
 
 not:
@@ -230,7 +252,7 @@ inventory is a failed reduction, even if the SQL finishes quickly.
 
 ## Rollout
 
-Apply migrations through `065` before restarting the tranche process. Existing
+Apply migrations through `067` before restarting the tranche process. Existing
 long-running Python/PostgreSQL transactions do not hot-reload schema or
 function definitions reliably enough for a controlled comparison.
 
@@ -240,13 +262,14 @@ run. Keep the old run as a forensic baseline.
 Recommended acceptance sequence:
 
 ```text
-1. apply migrations 062 through 065
-2. run migration/static and PostgreSQL semantic fixture tests
+1. apply migrations 062 through 067
+2. run static, catalog and PostgreSQL semantic fixture tests
 3. compile one medium document
 4. inspect frontier receipts and root cardinality
 5. verify unique/ambiguous/deferred demand outcomes
-6. compile document 0007 as the performance baseline
-7. compile documents 0008-0010 only after semantic checks pass
+6. verify multi-action conjunction and negative constraints
+7. compile document 0007 as the performance baseline
+8. compile documents 0008-0010 only after semantic checks pass
 ```
 
 ## Acceptance criteria
@@ -258,6 +281,8 @@ Correctness:
 - a unique witness binds deterministically;
 - multiple witnesses remain ambiguous;
 - a root no-witness becomes deferred-world;
+- all required positive constraints are witnessed;
+- any matched negative required constraint excludes the candidate;
 - resolved demands disappear from outward interfaces;
 - every lookup row has a corresponding admitted export;
 - child provenance remains intact;
@@ -273,10 +298,13 @@ Performance and reduction:
 - each nontrivial parent has a recorded input/output frontier ratio;
 - document closure time is attributed separately from lookup projection;
 - actor-profile integrity introduces no per-row catalog query trigger;
+- standalone actor capture is statement-level;
+- typed constraint filtering is statement-level and runs only over bounded
+  candidate insertions;
 - large documents do not require increasing an interface budget merely because
   local interiors were copied to the root.
 
-## Focused semantic fixture
+## Focused semantic fixtures
 
 `test_sparse_fibred_frontier_resolution.py` constructs a minimal PostgreSQL
 hierarchy and verifies:
@@ -287,6 +315,14 @@ hierarchy and verifies:
 3. two compatible actors preserve ambiguity and do not set a target;
 4. no compatible actor becomes `deferred_world` at the root; and
 5. global lookup contains no non-root interface rows.
+
+`test_typed_frontier_candidate_constraints.py` verifies that:
+
+1. a batch of bounded actor candidates is filtered by object kind, role,
+   factor-type and predicate constraints;
+2. evidence may be supplied by compressed actor/action profiles;
+3. a candidate missing one required constraint is removed; and
+4. a matched negative constraint removes an otherwise compatible candidate.
 
 ## Remaining extensions
 
