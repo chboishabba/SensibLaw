@@ -57,6 +57,8 @@ def test_sparse_frontier_functions_are_installed() -> None:
         "refresh_numeric_pnf_demand_constraints",
         "normalize_numeric_pnf_actor_profile_key",
         "normalize_numeric_pnf_anaphor_surface",
+        "capture_numeric_pnf_actor_export_profiles",
+        "filter_numeric_pnf_candidate_constraints",
         "rebuild_numeric_pnf_parent_frontier",
         "reduce_numeric_pnf_interface_on_close",
         "reduce_numeric_pnf_document_frontiers",
@@ -79,6 +81,8 @@ def test_hidden_lookup_planning_triggers_are_absent() -> None:
     assert "semantic_pnf_sparse_frontier_on_close" in names
     assert "semantic_pnf_actor_profile_key_normalisation" in names
     assert "semantic_pnf_anaphor_surface_normalisation" in names
+    assert "semantic_pnf_actor_export_profile" in names
+    assert "semantic_pnf_typed_candidate_constraints" in names
 
 
 def test_global_lookup_function_is_root_frontier_only() -> None:
@@ -135,6 +139,34 @@ def test_actor_profile_unspecified_dimensions_are_numeric() -> None:
     assert len(rows) == 4
     assert all(str(default) == "0" for _, default, _ in rows)
     assert all(str(nullable) == "NO" for _, _, nullable in rows)
+
+
+def test_actor_profile_nonzero_dimensions_have_fk_projections() -> None:
+    assert DATABASE_URL is not None
+    connection = connect(DATABASE_URL)
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT column_name, is_generated, generation_expression
+                  FROM information_schema.columns
+                 WHERE table_schema = 'execution'
+                   AND table_name = 'semantic_pnf_actor_profile'
+                   AND column_name IN (
+                       'object_kind_symbol_fk',
+                       'role_symbol_fk',
+                       'factor_type_symbol_fk',
+                       'predicate_symbol_fk'
+                   )
+                """
+            )
+            rows = tuple(cursor.fetchall())
+    finally:
+        connection.close()
+
+    assert len(rows) == 4
+    assert all(str(generated) == "ALWAYS" for _, generated, _ in rows)
+    assert all("nullif" in str(expression).casefold() for _, _, expression in rows)
 
 
 def test_anaphor_surface_column_is_installed() -> None:
