@@ -19,6 +19,7 @@ on:
       - "tests/storage/test_sparse_fibred_frontier_resolution.py"
       - "tests/storage/test_typed_frontier_candidate_constraints.py"
       - "docs/architecture/SPARSE_FIBRED_PNF_FRONTIERS.md"
+      - "docs/architecture/SPARSE_FRONTIER_BATCH_OPTIMISATIONS.md"
       - ".github/workflows/sparse-fibred-pnf-frontiers-pr.yml"
   push:
     branches:
@@ -40,6 +41,7 @@ on:
       - "tests/storage/test_sparse_fibred_frontier_resolution.py"
       - "tests/storage/test_typed_frontier_candidate_constraints.py"
       - "docs/architecture/SPARSE_FIBRED_PNF_FRONTIERS.md"
+      - "docs/architecture/SPARSE_FRONTIER_BATCH_OPTIMISATIONS.md"
       - ".github/workflows/sparse-fibred-pnf-frontiers-pr.yml"
 
 permissions:
