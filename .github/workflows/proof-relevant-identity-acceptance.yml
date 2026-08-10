@@ -11,9 +11,14 @@ on:
       - "database/postgres_migrations/074_identity_admission_integrity.sql"
       - "database/postgres_migrations/075_reference_mode_outcomes.sql"
       - "database/postgres_migrations/076_factor_participation_actor_profiles.sql"
+      - "database/postgres_migrations/077_identity_evidence_production_v1.sql"
+      - "database/postgres_migrations/078_identity_evidence_parser_sentence_alignment.sql"
+      - "database/postgres_migrations/079_identity_evidence_admission_policy.sql"
+      - "scripts/report_identity_evidence_yield.py"
       - "tests/storage/test_proof_relevant_identity_acceptance.py"
       - "tests/storage/test_reference_mode_outcomes.py"
       - "tests/storage/test_factor_participation_actor_profiles.py"
+      - "tests/storage/test_identity_evidence_production_v1.py"
       - "docs/architecture/PROOF_RELEVANT_IDENTITY_ACCEPTANCE.md"
       - ".github/workflows/proof-relevant-identity-acceptance.yml"
   push:
@@ -28,9 +33,14 @@ on:
       - "database/postgres_migrations/074_identity_admission_integrity.sql"
       - "database/postgres_migrations/075_reference_mode_outcomes.sql"
       - "database/postgres_migrations/076_factor_participation_actor_profiles.sql"
+      - "database/postgres_migrations/077_identity_evidence_production_v1.sql"
+      - "database/postgres_migrations/078_identity_evidence_parser_sentence_alignment.sql"
+      - "database/postgres_migrations/079_identity_evidence_admission_policy.sql"
+      - "scripts/report_identity_evidence_yield.py"
       - "tests/storage/test_proof_relevant_identity_acceptance.py"
       - "tests/storage/test_reference_mode_outcomes.py"
       - "tests/storage/test_factor_participation_actor_profiles.py"
+      - "tests/storage/test_identity_evidence_production_v1.py"
       - "docs/architecture/PROOF_RELEVANT_IDENTITY_ACCEPTANCE.md"
       - ".github/workflows/proof-relevant-identity-acceptance.yml"
 
@@ -68,18 +78,23 @@ jobs:
       - name: Compile and lint acceptance surface
         run: |
           uv run python -m py_compile \
+            scripts/report_identity_evidence_yield.py \
             tests/storage/test_proof_relevant_identity_acceptance.py \
             tests/storage/test_reference_mode_outcomes.py \
-            tests/storage/test_factor_participation_actor_profiles.py
+            tests/storage/test_factor_participation_actor_profiles.py \
+            tests/storage/test_identity_evidence_production_v1.py
           uv run ruff check \
+            scripts/report_identity_evidence_yield.py \
             tests/storage/test_proof_relevant_identity_acceptance.py \
             tests/storage/test_reference_mode_outcomes.py \
-            tests/storage/test_factor_participation_actor_profiles.py
+            tests/storage/test_factor_participation_actor_profiles.py \
+            tests/storage/test_identity_evidence_production_v1.py
       - name: Static contracts
         run: |
           uv run pytest -q \
             tests/storage/test_reference_mode_outcomes.py \
-            tests/storage/test_factor_participation_actor_profiles.py
+            tests/storage/test_factor_participation_actor_profiles.py \
+            tests/storage/test_identity_evidence_production_v1.py
       - name: Apply full migration chain
         run: bash scripts/apply_pg_migrations.sh
       - name: Reversible identity acceptance
@@ -87,3 +102,5 @@ jobs:
           uv run pytest -q \
             tests/storage/test_proof_relevant_identity_postgres.py \
             tests/storage/test_proof_relevant_identity_acceptance.py
+      - name: Identity yield CLI import
+        run: uv run python scripts/report_identity_evidence_yield.py --help
