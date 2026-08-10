@@ -116,8 +116,8 @@ CREATE INDEX IF NOT EXISTS semantic_pnf_factor_derivation_premise_factor_idx
     );
 
 -- Exactly one carrier is active for each derived argument: either the original
--- local object or an identity entity.  witness_ids is non-null only for an
--- identity substitution and makes the substitution itself auditable.
+-- local object or an identity entity.  witness_ids is mandatory for an identity
+-- substitution and makes the substitution itself auditable.
 CREATE TABLE IF NOT EXISTS execution.semantic_pnf_factor_derivation_argument (
     derivation_id BIGINT NOT NULL
         REFERENCES execution.semantic_pnf_factor_derivation(derivation_id)
@@ -141,7 +141,10 @@ CREATE TABLE IF NOT EXISTS execution.semantic_pnf_factor_derivation_argument (
     ),
     CHECK (
         identity_entity_id IS NULL
-        OR cardinality(identity_witness_ids) > 0
+        OR (
+            identity_witness_ids IS NOT NULL
+            AND cardinality(identity_witness_ids) > 0
+        )
     )
 );
 CREATE INDEX IF NOT EXISTS semantic_pnf_factor_derivation_argument_object_idx
@@ -335,6 +338,7 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
     inserted_count BIGINT := 0;
+    identity_inserted_count BIGINT := 0;
 BEGIN
     IF max_per_bridge < 1 OR max_per_bridge > 256 THEN
         RAISE EXCEPTION 'max_per_bridge must be between 1 and 256';
@@ -462,7 +466,8 @@ BEGIN
       FROM raw
      WHERE candidate_rank < max_per_bridge
     ON CONFLICT DO NOTHING;
-    GET DIAGNOSTICS inserted_count = inserted_count + ROW_COUNT;
+    GET DIAGNOSTICS identity_inserted_count = ROW_COUNT;
+    inserted_count := inserted_count + identity_inserted_count;
 
     RETURN inserted_count;
 END;
