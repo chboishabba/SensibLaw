@@ -8,6 +8,9 @@ PUBLICATION = MIGRATION_ROOT / "071_sparse_root_derivation_publication.sql"
 RETRACTION = (
     MIGRATION_ROOT / "072_retractable_identity_and_external_alignment.sql"
 )
+EXTERNAL_HARDENING = (
+    MIGRATION_ROOT / "073_external_identity_ref_and_retraction.sql"
+)
 PERFORMANCE = MIGRATION_ROOT / "062_demand_planner_performance.sql"
 
 
@@ -133,8 +136,6 @@ def test_later_publication_migration_restores_root_only_global_lookup() -> None:
     assert "lookup.interface_id = root_interface_id" in function
     assert "global.interface_id <> root_interface_id" in function
     assert "interface.closure_state IN (2, 3)" in function
-    # This later migration intentionally supersedes the benchmark migration's
-    # all-closed-interface materialisation on upgraded databases.
     assert PUBLICATION.name > PERFORMANCE.name
 
 
@@ -201,7 +202,7 @@ def test_identity_substitutions_are_rebuilt_from_current_witnesses() -> None:
 
 
 def test_external_world_identity_requires_explicit_authority_admission() -> None:
-    source = _source(RETRACTION)
+    source = _source(EXTERNAL_HARDENING)
     function = source.split(
         "CREATE OR REPLACE FUNCTION "
         "execution.admit_numeric_pnf_external_identity_alignment",
@@ -209,18 +210,67 @@ def test_external_world_identity_requires_explicit_authority_admission() -> None
     )[1]
     assert "selected_authority_namespace" in function
     assert "selected_authority_identifier" in function
-    assert "authority_class" in function
     assert "        4," in function
     assert "        10," in function
     assert "semantic_pnf_identity_witness_admission" in function
     assert "paragraph" not in function.casefold()
     assert "similar" not in function.casefold()
+    assert "semantic_pnf_global_lookup" not in function
+
+
+def test_external_identity_ref_uses_unambiguous_byte_separator() -> None:
+    source = _source(EXTERNAL_HARDENING)
+    function = source.split(
+        "CREATE OR REPLACE FUNCTION "
+        "execution.admit_numeric_pnf_external_identity_alignment",
+        1,
+    )[1]
+    assert "convert_to(selected_authority_namespace, 'UTF8')" in function
+    assert "decode('00', 'hex')" in function
+    assert "convert_to(selected_authority_identifier, 'UTF8')" in function
+    assert "digest(" in function
+
+
+def test_explicit_identity_retraction_refreshes_current_derivations() -> None:
+    source = _source(EXTERNAL_HARDENING)
+    function = source.split(
+        "CREATE OR REPLACE FUNCTION execution.retract_numeric_pnf_identity_witness",
+        1,
+    )[1].split(
+        "CREATE OR REPLACE FUNCTION "
+        "execution.admit_numeric_pnf_external_identity_alignment",
+        1,
+    )[0]
+    assert "admission_state = 3" in function
+    assert "refresh_numeric_pnf_identity_substitution_derivations" in function
+    assert "refresh_numeric_pnf_factor_composition_candidates" in function
+    assert "resolved_run_id" in function
+    assert "resolved_document_id" in function
+
+
+def test_external_identity_admission_refreshes_current_derivations() -> None:
+    source = _source(EXTERNAL_HARDENING)
+    function = source.split(
+        "CREATE OR REPLACE FUNCTION "
+        "execution.admit_numeric_pnf_external_identity_alignment",
+        1,
+    )[1]
+    assert "refresh_numeric_pnf_identity_substitution_derivations" in function
+    assert "refresh_numeric_pnf_factor_composition_candidates" in function
+    assert "resolved_run_id" in function
+    assert "resolved_document_id" in function
 
 
 def test_proof_migrations_do_not_add_json_authority() -> None:
     source = "\n".join(
         _source(path).casefold()
-        for path in (IDENTITY, DERIVATIONS, PUBLICATION, RETRACTION)
+        for path in (
+            IDENTITY,
+            DERIVATIONS,
+            PUBLICATION,
+            RETRACTION,
+            EXTERNAL_HARDENING,
+        )
     )
     assert " json " not in source
     assert "jsonb" not in source
