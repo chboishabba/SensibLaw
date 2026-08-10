@@ -245,7 +245,7 @@ def _base_fixture(cursor: object, marker: str) -> dict[str, int | str]:
     notice = _symbol(cursor, kind=10, text=f"notice:{marker}")
     respond = _symbol(cursor, kind=11, text=f"must_respond:{marker}")
     observed_response = _symbol(cursor, kind=11, text=f"responded:{marker}")
-    anaphor = _symbol(cursor, kind=13, text="anaphor_unresolved")
+    anaphor = _symbol(cursor, kind=13, text=f"anaphor_unresolved:{marker}")
     root_region_id = _region(
         cursor,
         run_ref=run_ref,
@@ -342,7 +342,7 @@ def _source_demand(
             source_object_id,
             int(fixture["notice"]),
             int(fixture["person"]),
-            surface_symbol_id,
+            None,
             int(fixture["addressee"]),
             int(fixture["anaphor"]),
             reference_mode,

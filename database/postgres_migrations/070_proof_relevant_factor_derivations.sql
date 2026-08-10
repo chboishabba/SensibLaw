@@ -331,7 +331,7 @@ $$;
 CREATE OR REPLACE FUNCTION execution.refresh_numeric_pnf_factor_composition_candidates(
     selected_run_id BIGINT,
     selected_document_id BIGINT,
-    max_per_bridge SMALLINT DEFAULT 16
+    max_per_bridge INTEGER DEFAULT 16
 )
 RETURNS BIGINT
 LANGUAGE plpgsql
