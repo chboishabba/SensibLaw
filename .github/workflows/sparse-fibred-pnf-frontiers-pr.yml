@@ -17,6 +17,7 @@ on:
       - "database/postgres_migrations/072_retractable_identity_and_external_alignment.sql"
       - "database/postgres_migrations/073_external_identity_ref_and_retraction.sql"
       - "database/postgres_migrations/074_identity_admission_integrity.sql"
+      - "database/postgres_migrations/075_reference_mode_outcomes.sql"
       - "src/storage/postgres/epistemic_factor_report.py"
       - "scripts/report_numeric_pnf_frontier.py"
       - "scripts/generate_entity_factor_report.py"
@@ -30,6 +31,8 @@ on:
       - "tests/storage/test_typed_frontier_candidate_constraints.py"
       - "tests/storage/test_proof_relevant_identity_derivations.py"
       - "tests/storage/test_proof_relevant_identity_postgres.py"
+      - "tests/storage/test_proof_relevant_identity_acceptance.py"
+      - "tests/storage/test_reference_mode_outcomes.py"
       - "tests/storage/test_epistemic_factor_report.py"
       - "docs/architecture/SPARSE_FIBRED_PNF_FRONTIERS.md"
       - "docs/architecture/SPARSE_FRONTIER_BATCH_OPTIMISATIONS.md"
@@ -53,6 +56,7 @@ on:
       - "database/postgres_migrations/072_retractable_identity_and_external_alignment.sql"
       - "database/postgres_migrations/073_external_identity_ref_and_retraction.sql"
       - "database/postgres_migrations/074_identity_admission_integrity.sql"
+      - "database/postgres_migrations/075_reference_mode_outcomes.sql"
       - "src/storage/postgres/epistemic_factor_report.py"
       - "scripts/report_numeric_pnf_frontier.py"
       - "scripts/generate_entity_factor_report.py"
@@ -66,6 +70,8 @@ on:
       - "tests/storage/test_typed_frontier_candidate_constraints.py"
       - "tests/storage/test_proof_relevant_identity_derivations.py"
       - "tests/storage/test_proof_relevant_identity_postgres.py"
+      - "tests/storage/test_proof_relevant_identity_acceptance.py"
+      - "tests/storage/test_reference_mode_outcomes.py"
       - "tests/storage/test_epistemic_factor_report.py"
       - "docs/architecture/SPARSE_FIBRED_PNF_FRONTIERS.md"
       - "docs/architecture/SPARSE_FRONTIER_BATCH_OPTIMISATIONS.md"
@@ -122,6 +128,8 @@ jobs:
             tests/storage/test_typed_frontier_candidate_constraints.py \
             tests/storage/test_proof_relevant_identity_derivations.py \
             tests/storage/test_proof_relevant_identity_postgres.py \
+            tests/storage/test_proof_relevant_identity_acceptance.py \
+            tests/storage/test_reference_mode_outcomes.py \
             tests/storage/test_epistemic_factor_report.py
 
       - name: Ruff
@@ -140,6 +148,8 @@ jobs:
             tests/storage/test_typed_frontier_candidate_constraints.py \
             tests/storage/test_proof_relevant_identity_derivations.py \
             tests/storage/test_proof_relevant_identity_postgres.py \
+            tests/storage/test_proof_relevant_identity_acceptance.py \
+            tests/storage/test_reference_mode_outcomes.py \
             tests/storage/test_epistemic_factor_report.py
 
       - name: Static frontier tests
@@ -150,6 +160,7 @@ jobs:
             tests/storage/test_sparse_frontier_constraint_migrations.py \
             tests/storage/test_sparse_frontier_batch_migration.py \
             tests/storage/test_proof_relevant_identity_derivations.py \
+            tests/storage/test_reference_mode_outcomes.py \
             tests/storage/test_epistemic_factor_report.py
 
       - name: Apply migrations
@@ -161,4 +172,5 @@ jobs:
             tests/storage/test_sparse_fibred_frontier_postgres.py \
             tests/storage/test_sparse_fibred_frontier_resolution.py \
             tests/storage/test_typed_frontier_candidate_constraints.py \
-            tests/storage/test_proof_relevant_identity_postgres.py
+            tests/storage/test_proof_relevant_identity_postgres.py \
+            tests/storage/test_proof_relevant_identity_acceptance.py
