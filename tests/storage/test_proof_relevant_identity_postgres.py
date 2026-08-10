@@ -99,6 +99,7 @@ def test_proof_relevant_functions_are_installed() -> None:
         "refresh_numeric_pnf_factor_composition_candidates",
         "refresh_numeric_pnf_semantic_derivations",
         "admit_numeric_pnf_external_identity_alignment",
+        "retract_numeric_pnf_identity_witness",
     } <= names
 
 
@@ -171,6 +172,23 @@ def test_external_alignment_function_has_no_discovery_surface() -> None:
     assert "authority_namespace" in source
     assert "authority_identifier" in source
     assert "semantic_pnf_identity_witness" in source
+    assert "decode('00'::text, 'hex'::text)" in source or "decode('00', 'hex')" in source
     assert "paragraph" not in source
     assert "similarity" not in source
     assert "semantic_pnf_global_lookup" not in source
+
+
+def test_external_alignment_and_retraction_refresh_current_derived_surface() -> None:
+    admit = _function_source(
+        "admit_numeric_pnf_external_identity_alignment",
+        "selected_source_object_id bigint, selected_authority_namespace text, "
+        "selected_authority_identifier text, selected_canonical_symbol_id bigint, "
+        "selected_source_interface_id bigint",
+    )
+    retract = _function_source(
+        "retract_numeric_pnf_identity_witness",
+        "selected_witness_id bigint",
+    )
+    for source in (admit, retract):
+        assert "refresh_numeric_pnf_identity_substitution_derivations" in source
+        assert "refresh_numeric_pnf_factor_composition_candidates" in source
