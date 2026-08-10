@@ -1,7 +1,7 @@
 # Proof-Relevant Identity Acceptance
 
 This acceptance surface now covers the proof kernel and the first real-text
-identity-evidence producers through migrations 075–079.  Synthetic fixtures keep
+identity-evidence producers through migrations 075–080. Synthetic fixtures keep
 expected proof states exact; corpus-yield reporting measures what the same runtime
 produces over an existing numeric PNF corpus.
 
@@ -12,8 +12,8 @@ export DATABASE_URL='postgresql://postgres@127.0.0.1:5433/sensiblaw_sparse_bench
 bash scripts/apply_pg_migrations.sh
 ```
 
-For a benchmark database already migrated through 076, apply 077, 078 and 079 in
-order.
+For a benchmark database already migrated through 076, apply 077, 078, 079 and
+080 in order.
 
 ## Kernel acceptance
 
@@ -45,9 +45,9 @@ explicit aka / alias / known as cue -> explicit_alias
 resolved typed anaphor demand       -> anaphor_demand_resolution (existing path)
 ```
 
-Migration 078 makes sentence identity use persisted parser `sentence_ref`
-throughout and orients title/apposition evidence toward a PERSON anchor when
-exactly one side of the dependency lies inside a PERSON entity span.
+Migration 078 aligns all parser evidence through persisted `sentence_ref` and
+orients title/apposition evidence toward a PERSON anchor when exactly one side of
+the dependency lies inside a PERSON entity span.
 
 No lane uses paragraph co-presence, nearest-person search, generic string
 similarity, n-grams, or the global lookup as identity evidence.
@@ -66,7 +66,7 @@ Failure of uniqueness yields no anchor and therefore no parser identity evidence
 
 Candidate evidence is not automatically authority.
 
-Migration 079 distinguishes strong local structural evidence from useful but
+Migrations 079–080 distinguish strong local structural evidence from useful but
 insufficient lexical evidence:
 
 ```text
@@ -81,6 +81,12 @@ A document-unique surname therefore does **not** bootstrap identity by itself.
 A `proper_name_expansion` witness can be admitted only when its target entity
 already has an accepted non-anchor proof from apposition, title-role closure,
 explicit alias, anaphor resolution, or another uniquely resolved typed demand.
+
+Migration 080 adds
+`semantic_pnf_identity_evidence_witness(candidate_id, witness_id, witness_role)`.
+Parser-produced anchor/source witnesses are therefore retracted and re-admitted
+through their exact evidence provenance rather than by witness kind. This prevents
+a parser refresh from superseding an unrelated typed-demand `resolution_anchor`.
 
 All admissions remain subject to migration 074's write-boundary invariant:
 
@@ -124,9 +130,6 @@ Only `singular + one witness` can feed scalar identity projection.
 
 ## GWB / corpus identity-yield benchmark
 
-To run the real evidence producers over the selected numeric PNF run and measure
-what survives the proof boundary:
-
 ```bash
 PYTHONPATH=. uv run python scripts/report_identity_evidence_yield.py \
   --database-url "$DATABASE_URL" \
@@ -140,21 +143,11 @@ PYTHONPATH=. uv run python scripts/report_identity_evidence_yield.py \
 Use `--run-id N` to select a particular numeric run and repeat `--document-id N`
 to constrain the corpus slice.
 
-The report measures:
+The report measures local PNF objects, factor participants, parser-grounded
+identity candidates, admitted candidates/witnesses, Level-3 substitutions,
+world-authority entities, evidence-kind yield, and requested-surface counts.
 
-```text
-local PNF objects
-factor-participating objects
-parser-grounded identity candidates
-admitted parser candidates
-currently admitted identity witnesses
-Level-3 identity substitutions
-world-authority entities
-candidate/admitted/ambiguous counts by witness kind
-requested-surface object/factor/entity/witness counts
-```
-
-The useful sparsification series is therefore observable directly:
+The useful sparsification series is directly observable:
 
 ```text
 |local objects|
@@ -184,5 +177,5 @@ candidate identity evidence
   != world identity authority
 ```
 
-Every promotion must retain an inspectable witness; no proximity shortcut can
-manufacture one.
+Every promotion retains an inspectable witness and parser-evidence provenance; no
+proximity shortcut can manufacture one.
