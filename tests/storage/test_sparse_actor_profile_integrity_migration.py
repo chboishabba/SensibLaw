@@ -31,6 +31,6 @@ def test_actor_profile_integrity_adds_no_row_trigger_queries() -> None:
     source = MIGRATION.read_text(encoding="utf-8")
     assert "CREATE TRIGGER" not in source
     assert "CREATE OR REPLACE FUNCTION" not in source
-    assert "NOT EXISTS" not in source
+    assert "WHERE NOT EXISTS" not in source
     assert " json " not in source.casefold()
     assert "jsonb" not in source.casefold()

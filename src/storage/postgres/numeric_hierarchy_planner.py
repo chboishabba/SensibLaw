@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from math import isfinite
 from typing import Any, Sequence
@@ -19,7 +20,7 @@ from src.storage.postgres import numeric_hyperfabric_store as store
 from src.storage.postgres.spacy_parser_model import connect
 
 
-DEFAULT_INTERFACE_KEY_BUDGET = 4_096
+DEFAULT_INTERFACE_KEY_BUDGET = int(os.environ.get("SENSIBLAW_INTERFACE_KEY_BUDGET", "8192"))
 _FINGERPRINT_MASK = (1 << 64) - 1
 _FINGERPRINT_MULTIPLIER = 1_099_511_628_211
 

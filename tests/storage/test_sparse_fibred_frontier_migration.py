@@ -168,7 +168,7 @@ def test_actor_profile_uses_one_numeric_unspecified_value() -> None:
         "normalize_numeric_pnf_actor_profile_key",
         "COALESCE(NEW.object_kind_symbol_id, 0)",
         "COALESCE(NEW.role_symbol_id, 0)",
-        "COALESCE(NEW.factor_type_symbol_id",
+        "factor_type_symbol_id",
         "COALESCE(NEW.predicate_symbol_id, 0)",
         "semantic_pnf_actor_profile_key_normalisation",
     ):

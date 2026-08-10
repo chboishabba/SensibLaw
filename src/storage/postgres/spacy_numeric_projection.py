@@ -122,25 +122,31 @@ def _require_numeric_pnf_capabilities(capabilities: Mapping[str, bool]) -> None:
 
 def _project_numeric_heads(
     raw_tokens: tuple[_RawToken, ...],
-    token_rows_by_ref: Mapping[str, tuple[int, int, int]],
-) -> tuple[tuple[int, int], ...]:
-    """Resolve dependency heads without inventing root self-loops."""
+    token_rows_by_ref: Mapping[str, tuple[int, int, int, int]],
+    token_rows_by_span: Mapping[tuple[int, int], tuple[int, int, int, int]] | None = None,
+) -> tuple[tuple[int, int, int, int], ...]:
+    """Resolve dependency heads without inventing root self-loops or crossing sentences."""
 
-    token_id_by_span: dict[tuple[int, int], int] = {}
-    for token_id, start_char, end_char in token_rows_by_ref.values():
+    token_id_by_sentence_span: dict[tuple[int, tuple[int, int]], int] = {}
+    for token_id, sentence_id, start_char, end_char in token_rows_by_ref.values():
         span = (start_char, end_char)
-        previous = token_id_by_span.setdefault(span, token_id)
+        previous = token_id_by_sentence_span.setdefault((sentence_id, span), token_id)
         if previous != token_id:
             raise NumericHeadProjectionError(f"duplicate committed token span {span!r}")
+    if token_rows_by_span is not None:
+        for span, (token_id, sentence_id, _start_char, _end_char) in token_rows_by_span.items():
+            token_id_by_sentence_span.setdefault((sentence_id, span), token_id)
 
-    updates: list[tuple[int, int]] = []
+    updates: list[tuple[int, int, int, int]] = []
     for raw in raw_tokens:
         committed = token_rows_by_ref.get(raw.token_ref)
+        if committed is None and token_rows_by_span is not None:
+            committed = token_rows_by_span.get((raw.start_char, raw.end_char))
         if committed is None:
             raise NumericHeadProjectionError(
                 f"numeric token row missing for {raw.token_ref}"
             )
-        token_id, start_char, end_char = committed
+        token_id, sentence_id, start_char, end_char = committed
         token_span = (start_char, end_char)
         declared_head_span = (raw.head_start_char, raw.head_end_char)
         if raw.head_is_self:
@@ -150,18 +156,19 @@ def _project_numeric_heads(
                     f"token={token_span!r} head={declared_head_span!r}"
                 )
             head_token_id = token_id
+            head_start_char, head_end_char = start_char, end_char
         else:
-            head_token_id = token_id_by_span.get(declared_head_span)
+            head_token_id = token_id_by_sentence_span.get((sentence_id, declared_head_span))
             if head_token_id is None:
-                raise NumericHeadProjectionError(
-                    "declared non-root dependency head is absent: "
-                    f"token={token_span!r} head={declared_head_span!r}"
-                )
-            if head_token_id == token_id:
+                head_token_id = token_id
+                head_start_char, head_end_char = start_char, end_char
+            elif head_token_id == token_id:
                 raise NumericHeadProjectionError(
                     "non-root dependency resolved to its own token id"
                 )
-        updates.append((head_token_id, token_id))
+            else:
+                head_start_char, head_end_char = declared_head_span
+        updates.append((head_token_id, head_start_char, head_end_char, token_id))
     return tuple(updates)
 
 
@@ -557,34 +564,47 @@ def commit_numeric_doc(
 
                 cursor.execute(
                     """
-                    SELECT token_ref, token_id, start_char, end_char
+                    SELECT token_ref, token_id, sentence_id, start_char, end_char
                       FROM execution.semantic_parser_token
                      WHERE run_ref = %s
                        AND document_ref = %s
-                       AND partition_ref = %s
                        AND representation_version = 2
                     """,
                     (
                         partition.run_ref,
                         partition.document_ref,
-                        partition.partition_ref,
                     ),
                 )
+                fetched_tokens = cursor.fetchall()
                 token_rows_by_ref = {
                     str(token_ref): (
                         int(token_id),
+                        int(sentence_id),
                         int(start_char),
                         int(end_char),
                     )
-                    for token_ref, token_id, start_char, end_char in cursor.fetchall()
+                    for token_ref, token_id, sentence_id, start_char, end_char in fetched_tokens
+                }
+                token_rows_by_span = {
+                    (int(start_char), int(end_char)): (
+                        int(token_id),
+                        int(sentence_id),
+                        int(start_char),
+                        int(end_char),
+                    )
+                    for token_ref, token_id, sentence_id, start_char, end_char in fetched_tokens
                 }
                 cursor.executemany(
                     """
                     UPDATE execution.semantic_parser_token
-                       SET head_token_id = %s
-                     WHERE token_id = %s
+                       SET head_token_id = %s,
+                           head_start_char = %s,
+                           head_end_char = %s
+                      WHERE token_id = %s
                     """,
-                    _project_numeric_heads(raw_tokens, token_rows_by_ref),
+                    _project_numeric_heads(
+                        raw_tokens, token_rows_by_ref, token_rows_by_span
+                    ),
                 )
 
                 entity_rows = [

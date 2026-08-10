@@ -110,6 +110,16 @@ def persist_completed_operational_build(
     )
     cursor.execute(
         """
+        INSERT INTO pnf.graph
+            (graph_ref, document_ref, graph_type_ref, schema_version_ref,
+             closure_state_ref, graph_sha256)
+        VALUES (%s, %s, 'generic.factor_graph', 'v0_1', 'completed', %s)
+        ON CONFLICT (graph_ref) DO NOTHING
+        """,
+        (graph_ref, document_ref, _digest(build_key_sha256)),
+    )
+    cursor.execute(
+        """
         INSERT INTO execution.document_compilation_build
             (build_ref, document_ref, compiler_contract_ref,
              build_key_sha256, graph_ref)
@@ -129,10 +139,13 @@ def persist_completed_operational_build(
             """
             INSERT INTO execution.document_compilation_build_demand
                 (build_ref, demand_ref)
-            VALUES (%s, %s)
+            SELECT %s, %s
+             WHERE EXISTS (
+                 SELECT 1 FROM resolution.demand WHERE demand_ref = %s
+             )
             ON CONFLICT DO NOTHING
             """,
-            (build_ref, demand_ref),
+            (build_ref, demand_ref, demand_ref),
         )
     return build_ref
 

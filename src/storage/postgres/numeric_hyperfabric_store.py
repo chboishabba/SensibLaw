@@ -957,6 +957,28 @@ def drain_sentence_closure(
                             profile=profile,
                         )
                 completed += 1
+            except (psycopg.errors.DeadlockDetected, psycopg.errors.OperationalError):
+                with connection.transaction():
+                    with connection.cursor() as cursor:
+                        cursor.execute(
+                            """
+                            UPDATE execution.semantic_pnf_work_item
+                               SET state_id = %s,
+                                   lease_owner = NULL,
+                                   lease_token = NULL,
+                                   lease_expires_at = NULL,
+                                   last_error_code = 2
+                             WHERE work_id = %s
+                               AND lease_token = %s
+                               AND lease_epoch = %s
+                            """,
+                            (
+                                int(WorkState.READY),
+                                lease.work_id,
+                                lease.lease_token,
+                                lease.lease_epoch,
+                            ),
+                        )
             except BaseException:
                 with connection.transaction():
                     with connection.cursor() as cursor:
@@ -984,7 +1006,7 @@ def drain_sentence_closure(
                             """
                             UPDATE execution.semantic_pnf_region
                                SET closure_state = %s
-                             WHERE region_id = %s
+                              WHERE region_id = %s
                             """,
                             (int(ClosureState.FAILED), lease.region_id),
                         )

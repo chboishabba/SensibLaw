@@ -204,6 +204,7 @@ def lease_partitions(
                             (attempt_ref, partition_ref, worker_ref, worker_pid,
                              backend_pid, lease_token, lease_epoch, state)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, 'leased')
+                        ON CONFLICT DO NOTHING
                         """,
                         (
                             attempt_ref,
@@ -393,26 +394,6 @@ def _create_boundary_repair(
     )
     cursor.execute(
         """
-        INSERT INTO execution.semantic_parser_boundary_obligation
-            (obligation_ref, run_ref, document_ref, source_partition_ref,
-             repair_partition_ref, obligation_kind,
-             suspected_start_char, suspected_end_char, state)
-        VALUES (%s, %s, %s, %s, %s,
-                'sentence_crosses_owner', %s, %s, 'open')
-        ON CONFLICT (obligation_ref) DO NOTHING
-        """,
-        (
-            obligation_ref,
-            partition.run_ref,
-            partition.document_ref,
-            partition.partition_ref,
-            repair_ref,
-            start_char,
-            end_char,
-        ),
-    )
-    cursor.execute(
-        """
         INSERT INTO execution.semantic_parser_partition
             (partition_ref, run_ref, document_ref, source_ref,
              parser_contract_ref, partition_kind, sequence_no,
@@ -442,6 +423,26 @@ def _create_boundary_repair(
             partition.context_end_byte,
             partition.repair_depth + 1,
             obligation_ref,
+        ),
+    )
+    cursor.execute(
+        """
+        INSERT INTO execution.semantic_parser_boundary_obligation
+            (obligation_ref, run_ref, document_ref, source_partition_ref,
+             repair_partition_ref, obligation_kind,
+             suspected_start_char, suspected_end_char, state)
+        VALUES (%s, %s, %s, %s, %s,
+                'sentence_crosses_owner', %s, %s, 'open')
+        ON CONFLICT (obligation_ref) DO NOTHING
+        """,
+        (
+            obligation_ref,
+            partition.run_ref,
+            partition.document_ref,
+            partition.partition_ref,
+            repair_ref,
+            start_char,
+            end_char,
         ),
     )
     cursor.execute(
