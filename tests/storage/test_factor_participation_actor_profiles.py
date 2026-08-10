@@ -16,6 +16,9 @@ def test_factor_participation_enriches_actor_profiles_set_wise() -> None:
         "capture_numeric_pnf_factor_actor_profiles",
         "semantic_pnf_factor_actor_profile",
         "REFERENCING NEW TABLE AS inserted_edge",
+        "capture_numeric_pnf_export_factor_profiles",
+        "semantic_pnf_export_factor_actor_profile",
+        "REFERENCING NEW TABLE AS inserted_export",
         "FOR EACH STATEMENT",
         "edge.role_symbol_id",
         "factor.factor_type_symbol_id",
@@ -23,6 +26,26 @@ def test_factor_participation_enriches_actor_profiles_set_wise() -> None:
         "ON CONFLICT",
     ):
         assert required in source
+
+
+def test_factor_profile_enrichment_is_persistence_order_independent() -> None:
+    source = _source()
+    hyperedge_path = source.split(
+        "CREATE OR REPLACE FUNCTION execution.capture_numeric_pnf_factor_actor_profiles",
+        1,
+    )[1].split(
+        "CREATE OR REPLACE FUNCTION execution.capture_numeric_pnf_export_factor_profiles",
+        1,
+    )[0]
+    export_path = source.split(
+        "CREATE OR REPLACE FUNCTION execution.capture_numeric_pnf_export_factor_profiles",
+        1,
+    )[1].split("-- Backfill upgraded databases set-wise.", 1)[0]
+    assert "inserted_edge AS edge" in hyperedge_path
+    assert "semantic_pnf_interface AS interface" in hyperedge_path
+    assert "inserted_export AS export" in export_path
+    assert "semantic_pnf_hyperedge AS edge" in export_path
+    assert "export.interface_id" in export_path
 
 
 def test_factor_profile_backfill_is_relational_not_generic_only() -> None:
