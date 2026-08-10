@@ -8,10 +8,12 @@ on:
       - "database/postgres_migrations/079_identity_evidence_admission_policy.sql"
       - "database/postgres_migrations/080_identity_evidence_witness_provenance.sql"
       - "database/postgres_migrations/081_document_scoped_identity_evidence_anchor.sql"
+      - "database/postgres_migrations/082_bounded_factor_composition_generation.sql"
       - "scripts/report_identity_evidence_yield.py"
       - "scripts/benchmark_identity_evidence_refresh.py"
       - "tests/storage/test_identity_evidence_production_v1.py"
       - "tests/storage/test_document_scoped_identity_evidence_anchor.py"
+      - "tests/storage/test_bounded_factor_composition_generation.py"
       - ".github/workflows/identity-evidence-production.yml"
   push:
     branches:
@@ -22,10 +24,12 @@ on:
       - "database/postgres_migrations/079_identity_evidence_admission_policy.sql"
       - "database/postgres_migrations/080_identity_evidence_witness_provenance.sql"
       - "database/postgres_migrations/081_document_scoped_identity_evidence_anchor.sql"
+      - "database/postgres_migrations/082_bounded_factor_composition_generation.sql"
       - "scripts/report_identity_evidence_yield.py"
       - "scripts/benchmark_identity_evidence_refresh.py"
       - "tests/storage/test_identity_evidence_production_v1.py"
       - "tests/storage/test_document_scoped_identity_evidence_anchor.py"
+      - "tests/storage/test_bounded_factor_composition_generation.py"
       - ".github/workflows/identity-evidence-production.yml"
 
 permissions:
@@ -65,15 +69,18 @@ jobs:
             scripts/report_identity_evidence_yield.py \
             scripts/benchmark_identity_evidence_refresh.py \
             tests/storage/test_identity_evidence_production_v1.py \
-            tests/storage/test_document_scoped_identity_evidence_anchor.py
+            tests/storage/test_document_scoped_identity_evidence_anchor.py \
+            tests/storage/test_bounded_factor_composition_generation.py
           uv run ruff check \
             scripts/report_identity_evidence_yield.py \
             scripts/benchmark_identity_evidence_refresh.py \
             tests/storage/test_identity_evidence_production_v1.py \
-            tests/storage/test_document_scoped_identity_evidence_anchor.py
+            tests/storage/test_document_scoped_identity_evidence_anchor.py \
+            tests/storage/test_bounded_factor_composition_generation.py
           uv run pytest -q \
             tests/storage/test_identity_evidence_production_v1.py \
-            tests/storage/test_document_scoped_identity_evidence_anchor.py
+            tests/storage/test_document_scoped_identity_evidence_anchor.py \
+            tests/storage/test_bounded_factor_composition_generation.py
       - name: Apply full migration chain
         run: bash scripts/apply_pg_migrations.sh
       - name: Proof kernel regression
