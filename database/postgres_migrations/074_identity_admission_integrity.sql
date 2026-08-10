@@ -94,4 +94,30 @@ SELECT witness.source_object_id,
  GROUP BY witness.source_object_id, witness.authority_class
 HAVING count(DISTINCT witness.target_entity_id) = 1;
 
+-- An upgraded database may already contain Level-3 rows materialised before the
+-- stricter integrity gate. Remove only substitutions whose projected argument
+-- no longer exists in the current proof relation. Their immutable Level-1
+-- premise factors and witness evidence are untouched.
+DELETE FROM execution.semantic_pnf_factor_derivation AS derivation
+ WHERE derivation.rule_ref = 'identity-substitution:v1'
+   AND EXISTS (
+       SELECT 1
+         FROM execution.semantic_pnf_factor_derivation_argument AS argument
+        WHERE argument.derivation_id = derivation.derivation_id
+          AND argument.identity_entity_id IS NOT NULL
+          AND NOT EXISTS (
+              SELECT 1
+                FROM execution.semantic_pnf_identity_projection AS projection
+               WHERE projection.source_object_id = argument.source_object_id
+                 AND projection.authority_class = derivation.authority_class
+                 AND projection.target_entity_id = argument.identity_entity_id
+          )
+   );
+
+-- Identity-bridge composition rows are candidates, not evidence. Recompute them
+-- lazily from the stricter current projection rather than risk preserving a
+-- bridge justified by a superseded witness.
+DELETE FROM execution.semantic_pnf_factor_composition_candidate
+ WHERE bridge_entity_id IS NOT NULL;
+
 COMMIT;
