@@ -1,0 +1,89 @@
+name: Proof-relevant identity acceptance
+
+on:
+  pull_request:
+    paths:
+      - "database/postgres_migrations/069_proof_relevant_identity_fibres.sql"
+      - "database/postgres_migrations/070_proof_relevant_factor_derivations.sql"
+      - "database/postgres_migrations/071_sparse_root_derivation_publication.sql"
+      - "database/postgres_migrations/072_retractable_identity_and_external_alignment.sql"
+      - "database/postgres_migrations/073_external_identity_ref_and_retraction.sql"
+      - "database/postgres_migrations/074_identity_admission_integrity.sql"
+      - "database/postgres_migrations/075_reference_mode_outcomes.sql"
+      - "database/postgres_migrations/076_factor_participation_actor_profiles.sql"
+      - "tests/storage/test_proof_relevant_identity_acceptance.py"
+      - "tests/storage/test_reference_mode_outcomes.py"
+      - "tests/storage/test_factor_participation_actor_profiles.py"
+      - "docs/architecture/PROOF_RELEVANT_IDENTITY_ACCEPTANCE.md"
+      - ".github/workflows/proof-relevant-identity-acceptance.yml"
+  push:
+    branches:
+      - "agent/repair-corpus-progress-stage-lifecycle"
+    paths:
+      - "database/postgres_migrations/069_proof_relevant_identity_fibres.sql"
+      - "database/postgres_migrations/070_proof_relevant_factor_derivations.sql"
+      - "database/postgres_migrations/071_sparse_root_derivation_publication.sql"
+      - "database/postgres_migrations/072_retractable_identity_and_external_alignment.sql"
+      - "database/postgres_migrations/073_external_identity_ref_and_retraction.sql"
+      - "database/postgres_migrations/074_identity_admission_integrity.sql"
+      - "database/postgres_migrations/075_reference_mode_outcomes.sql"
+      - "database/postgres_migrations/076_factor_participation_actor_profiles.sql"
+      - "tests/storage/test_proof_relevant_identity_acceptance.py"
+      - "tests/storage/test_reference_mode_outcomes.py"
+      - "tests/storage/test_factor_participation_actor_profiles.py"
+      - "docs/architecture/PROOF_RELEVANT_IDENTITY_ACCEPTANCE.md"
+      - ".github/workflows/proof-relevant-identity-acceptance.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sensiblaw_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sensiblaw_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/sensiblaw_test
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install
+        run: uv sync --frozen
+      - name: Compile and lint acceptance surface
+        run: |
+          uv run python -m py_compile \
+            tests/storage/test_proof_relevant_identity_acceptance.py \
+            tests/storage/test_reference_mode_outcomes.py \
+            tests/storage/test_factor_participation_actor_profiles.py
+          uv run ruff check \
+            tests/storage/test_proof_relevant_identity_acceptance.py \
+            tests/storage/test_reference_mode_outcomes.py \
+            tests/storage/test_factor_participation_actor_profiles.py
+      - name: Static contracts
+        run: |
+          uv run pytest -q \
+            tests/storage/test_reference_mode_outcomes.py \
+            tests/storage/test_factor_participation_actor_profiles.py
+      - name: Apply full migration chain
+        run: bash scripts/apply_pg_migrations.sh
+      - name: Reversible identity acceptance
+        run: |
+          uv run pytest -q \
+            tests/storage/test_proof_relevant_identity_postgres.py \
+            tests/storage/test_proof_relevant_identity_acceptance.py
