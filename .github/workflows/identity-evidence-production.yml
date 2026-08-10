@@ -7,8 +7,10 @@ on:
       - "database/postgres_migrations/078_identity_evidence_parser_sentence_alignment.sql"
       - "database/postgres_migrations/079_identity_evidence_admission_policy.sql"
       - "database/postgres_migrations/080_identity_evidence_witness_provenance.sql"
+      - "database/postgres_migrations/081_document_scoped_identity_evidence_anchor.sql"
       - "scripts/report_identity_evidence_yield.py"
       - "tests/storage/test_identity_evidence_production_v1.py"
+      - "tests/storage/test_document_scoped_identity_evidence_anchor.py"
       - ".github/workflows/identity-evidence-production.yml"
   push:
     branches:
@@ -18,8 +20,10 @@ on:
       - "database/postgres_migrations/078_identity_evidence_parser_sentence_alignment.sql"
       - "database/postgres_migrations/079_identity_evidence_admission_policy.sql"
       - "database/postgres_migrations/080_identity_evidence_witness_provenance.sql"
+      - "database/postgres_migrations/081_document_scoped_identity_evidence_anchor.sql"
       - "scripts/report_identity_evidence_yield.py"
       - "tests/storage/test_identity_evidence_production_v1.py"
+      - "tests/storage/test_document_scoped_identity_evidence_anchor.py"
       - ".github/workflows/identity-evidence-production.yml"
 
 permissions:
@@ -57,11 +61,15 @@ jobs:
         run: |
           uv run python -m py_compile \
             scripts/report_identity_evidence_yield.py \
-            tests/storage/test_identity_evidence_production_v1.py
+            tests/storage/test_identity_evidence_production_v1.py \
+            tests/storage/test_document_scoped_identity_evidence_anchor.py
           uv run ruff check \
             scripts/report_identity_evidence_yield.py \
-            tests/storage/test_identity_evidence_production_v1.py
-          uv run pytest -q tests/storage/test_identity_evidence_production_v1.py
+            tests/storage/test_identity_evidence_production_v1.py \
+            tests/storage/test_document_scoped_identity_evidence_anchor.py
+          uv run pytest -q \
+            tests/storage/test_identity_evidence_production_v1.py \
+            tests/storage/test_document_scoped_identity_evidence_anchor.py
       - name: Apply full migration chain
         run: bash scripts/apply_pg_migrations.sh
       - name: Proof kernel regression
