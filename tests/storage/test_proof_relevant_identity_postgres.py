@@ -100,6 +100,7 @@ def test_proof_relevant_functions_are_installed() -> None:
         "refresh_numeric_pnf_semantic_derivations",
         "admit_numeric_pnf_external_identity_alignment",
         "retract_numeric_pnf_identity_witness",
+        "validate_numeric_pnf_identity_admission",
     } <= names
 
 
@@ -143,7 +144,7 @@ def test_planner_definition_is_history_independent_sparse_reduction() -> None:
     assert "LATERAL" not in source
 
 
-def test_identity_projection_requires_accepted_unambiguous_target() -> None:
+def test_identity_projection_requires_accepted_unique_matching_authority() -> None:
     assert DATABASE_URL is not None
     with connect(DATABASE_URL) as connection:
         with connection.cursor() as cursor:
@@ -159,7 +160,26 @@ def test_identity_projection_requires_accepted_unambiguous_target() -> None:
     assert row is not None
     source = str(row[0]).casefold()
     assert "admission_state = 2" in source
+    assert "candidate_count = 1" in source
+    assert "entity.authority_class = witness.authority_class" in source
     assert "count(distinct witness.target_entity_id) = 1" in source
+
+
+def test_identity_admission_integrity_trigger_is_installed() -> None:
+    names = _names(
+        """
+        SELECT trigger_name
+          FROM information_schema.triggers
+         WHERE trigger_schema = 'execution'
+        """
+    )
+    assert "semantic_pnf_identity_admission_integrity" in names
+    source = _function_source(
+        "validate_numeric_pnf_identity_admission",
+        "",
+    )
+    assert "witness_candidate_count <> 1" in source
+    assert "witness_authority_class <> entity_authority_class" in source
 
 
 def test_external_alignment_function_has_no_discovery_surface() -> None:
