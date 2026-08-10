@@ -5,6 +5,9 @@ MIGRATION_ROOT = Path("database/postgres_migrations")
 IDENTITY = MIGRATION_ROOT / "069_proof_relevant_identity_fibres.sql"
 DERIVATIONS = MIGRATION_ROOT / "070_proof_relevant_factor_derivations.sql"
 PUBLICATION = MIGRATION_ROOT / "071_sparse_root_derivation_publication.sql"
+RETRACTION = (
+    MIGRATION_ROOT / "072_retractable_identity_and_external_alignment.sql"
+)
 PERFORMANCE = MIGRATION_ROOT / "062_demand_planner_performance.sql"
 
 
@@ -122,7 +125,8 @@ def test_later_publication_migration_restores_root_only_global_lookup() -> None:
         "CREATE OR REPLACE FUNCTION execution.refresh_pnf_global_lookup_ids",
         1,
     )[1].split(
-        "CREATE OR REPLACE FUNCTION execution.refresh_pnf_visible_lookup",
+        "CREATE OR REPLACE FUNCTION "
+        "execution.plan_numeric_pnf_demand_candidates_ids",
         1,
     )[0]
     assert "region.region_kind = 10" in function
@@ -132,6 +136,21 @@ def test_later_publication_migration_restores_root_only_global_lookup() -> None:
     # This later migration intentionally supersedes the benchmark migration's
     # all-closed-interface materialisation on upgraded databases.
     assert PUBLICATION.name > PERFORMANCE.name
+
+
+def test_later_publication_migration_converges_planner_semantics() -> None:
+    source = _source(PUBLICATION)
+    function = source.split(
+        "CREATE OR REPLACE FUNCTION "
+        "execution.plan_numeric_pnf_demand_candidates_ids",
+        1,
+    )[1].split(
+        "CREATE OR REPLACE FUNCTION execution.refresh_pnf_visible_lookup",
+        1,
+    )[0]
+    assert "reduce_numeric_pnf_document_frontiers" in function
+    assert "semantic_pnf_global_lookup" not in function
+    assert "LATERAL" not in function
 
 
 def test_derivation_stage_runs_before_root_publication() -> None:
@@ -146,10 +165,62 @@ def test_derivation_stage_runs_before_root_publication() -> None:
     assert "'proof_relevant_derivations'" in function
 
 
+def test_document_identity_admission_is_retractable() -> None:
+    source = _source(RETRACTION)
+    function = source.split(
+        "CREATE OR REPLACE FUNCTION execution.refresh_numeric_pnf_identity_witnesses",
+        1,
+    )[1].split(
+        "CREATE OR REPLACE FUNCTION "
+        "execution.refresh_numeric_pnf_identity_substitution_derivations",
+        1,
+    )[0]
+    assert "admission_state = 4" in function
+    assert "witness.authority_class = 2" in function
+    assert "resolution.outcome_state = 2" in function
+    assert "resolution.candidate_count = 1" in function
+    assert "admission_state = 2" in function
+
+
+def test_identity_substitutions_are_rebuilt_from_current_witnesses() -> None:
+    source = _source(RETRACTION)
+    function = source.split(
+        "CREATE OR REPLACE FUNCTION "
+        "execution.refresh_numeric_pnf_identity_substitution_derivations",
+        1,
+    )[1].split(
+        "CREATE OR REPLACE FUNCTION "
+        "execution.admit_numeric_pnf_external_identity_alignment",
+        1,
+    )[0]
+    delete_at = function.index("DELETE FROM execution.semantic_pnf_factor_derivation")
+    insert_at = function.index("INSERT INTO execution.semantic_pnf_factor_derivation")
+    assert delete_at < insert_at
+    assert "semantic_pnf_identity_projection" in function
+    assert "identity_witness_ids" in function
+
+
+def test_external_world_identity_requires_explicit_authority_admission() -> None:
+    source = _source(RETRACTION)
+    function = source.split(
+        "CREATE OR REPLACE FUNCTION "
+        "execution.admit_numeric_pnf_external_identity_alignment",
+        1,
+    )[1]
+    assert "selected_authority_namespace" in function
+    assert "selected_authority_identifier" in function
+    assert "authority_class" in function
+    assert "        4," in function
+    assert "        10," in function
+    assert "semantic_pnf_identity_witness_admission" in function
+    assert "paragraph" not in function.casefold()
+    assert "similar" not in function.casefold()
+
+
 def test_proof_migrations_do_not_add_json_authority() -> None:
     source = "\n".join(
         _source(path).casefold()
-        for path in (IDENTITY, DERIVATIONS, PUBLICATION)
+        for path in (IDENTITY, DERIVATIONS, PUBLICATION, RETRACTION)
     )
     assert " json " not in source
     assert "jsonb" not in source
