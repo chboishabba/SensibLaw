@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Time proof-relevant semantic refresh by document and semantic phase.
 
-This is diagnostic execution, not semantic authority.  Each production refresh
-function is timed independently so a slow parser-evidence, admission,
-substitution, or composition operator is visible instead of appearing as an
-opaque tranche-wide hang.
+This is diagnostic execution, not semantic authority. Each document runs in its
+own transaction and each production refresh function is timed independently so
+locks are released at document boundaries and a slow operator is visible instead
+of appearing as an opaque tranche-wide hang.
 """
 
 from __future__ import annotations
@@ -121,13 +121,16 @@ def main() -> None:
             with connection.cursor() as cursor:
                 run_id = _resolve_run(cursor, args.run_id)
                 document_ids = _documents(cursor, run_id, tuple(args.document_id))
-                print(f"run_id={run_id} documents={len(document_ids)}")
-                for ordinal, document_id in enumerate(document_ids, start=1):
-                    print(
-                        f"[{ordinal}/{len(document_ids)}] document_id={document_id}",
-                        flush=True,
-                    )
-                    document_started = perf_counter()
+        print(f"run_id={run_id} documents={len(document_ids)}")
+
+        for ordinal, document_id in enumerate(document_ids, start=1):
+            print(
+                f"[{ordinal}/{len(document_ids)}] document_id={document_id}",
+                flush=True,
+            )
+            document_started = perf_counter()
+            with connection.transaction():
+                with connection.cursor() as cursor:
                     for phase, function_name, arity in _PHASES:
                         cursor.execute(
                             "SELECT set_config('statement_timeout', %s, true)",
@@ -143,7 +146,6 @@ def main() -> None:
                             document_id=document_id,
                             composition_limit=args.composition_limit,
                         )
-                    document_ms = (perf_counter() - document_started) * 1000.0
                     cursor.execute(
                         """
                         SELECT count(*)
@@ -153,11 +155,13 @@ def main() -> None:
                         (run_id, document_id),
                     )
                     overflow_count = int(cursor.fetchone()[0])
-                    print(
-                        f"    document_total_ms={document_ms:.3f} "
-                        f"composition_overflow_bridges={overflow_count}",
-                        flush=True,
-                    )
+            document_ms = (perf_counter() - document_started) * 1000.0
+            print(
+                f"    document_total_ms={document_ms:.3f} "
+                f"composition_overflow_bridges={overflow_count}",
+                flush=True,
+            )
+
         total_ms = (perf_counter() - total_started) * 1000.0
         print(f"total_elapsed_ms={total_ms:.3f}")
     finally:
