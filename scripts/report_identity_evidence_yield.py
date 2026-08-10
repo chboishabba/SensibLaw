@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 """Measure proof-relevant identity evidence yield over a numeric PNF run.
 
-The report never treats lexical co-occurrence as identity.  It counts local
-objects/factor participants, parser-grounded identity candidates, currently
-accepted witnesses, Level-3 substitutions, and world-authority alignments.
+The report never treats lexical co-occurrence as identity. Local objects/factor
+participants, parser-grounded identity candidates, currently accepted witnesses,
+Level-3 substitutions, and world-authority alignments are counted separately.
+Refresh, when requested, commits one document at a time so locks and failures do
+not accumulate across the tranche.
 """
 
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import sys
+from time import perf_counter
 from typing import Any
 
 from src.storage.postgres.spacy_parser_model import connect
@@ -58,16 +62,42 @@ def _document_ids(cursor: Any, run_id: int, requested: tuple[int, ...]) -> tuple
     return tuple(int(row[0]) for row in rows)
 
 
-def _refresh(cursor: Any, run_id: int, document_ids: tuple[int, ...]) -> None:
-    for document_id in document_ids:
-        cursor.execute(
-            "SELECT * FROM execution.refresh_numeric_pnf_semantic_derivations(%s, %s)",
-            (run_id, document_id),
+def _refresh_documents(
+    connection: Any,
+    *,
+    run_id: int,
+    document_ids: tuple[int, ...],
+    statement_timeout_ms: int,
+) -> None:
+    for ordinal, document_id in enumerate(document_ids, start=1):
+        started = perf_counter()
+        with connection.transaction():
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT set_config('statement_timeout', %s, true)",
+                    (f"{statement_timeout_ms}ms",),
+                )
+                cursor.fetchone()
+                cursor.execute(
+                    "SELECT * FROM execution.refresh_numeric_pnf_semantic_derivations(%s, %s)",
+                    (run_id, document_id),
+                )
+                result = cursor.fetchone()
+        elapsed_ms = (perf_counter() - started) * 1000.0
+        print(
+            f"refresh [{ordinal}/{len(document_ids)}] document_id={document_id} "
+            f"elapsed_ms={elapsed_ms:.3f} result={result!r}",
+            file=sys.stderr,
+            flush=True,
         )
-        cursor.fetchone()
 
 
-def _surface_rows(cursor: Any, run_id: int, surfaces: tuple[str, ...]) -> tuple[tuple[Any, ...], ...]:
+def _surface_rows(
+    cursor: Any,
+    run_id: int,
+    document_ids: tuple[int, ...],
+    surfaces: tuple[str, ...],
+) -> tuple[tuple[Any, ...], ...]:
     if not surfaces:
         return ()
     return _rows(
@@ -89,6 +119,7 @@ def _surface_rows(cursor: Any, run_id: int, surfaces: tuple[str, ...]) -> tuple[
               JOIN execution.semantic_pnf_region AS region
                 ON region.region_id = object.region_id
                AND region.run_id = %s
+               AND region.document_id = ANY(%s)
         )
         SELECT objects.surface,
                count(DISTINCT objects.object_id) AS local_objects,
@@ -109,7 +140,7 @@ def _surface_rows(cursor: Any, run_id: int, surfaces: tuple[str, ...]) -> tuple[
          GROUP BY objects.surface
          ORDER BY objects.surface
         """,
-        (list(surfaces), run_id),
+        (list(surfaces), run_id, list(document_ids)),
     )
 
 
@@ -120,6 +151,7 @@ def build_report(
     document_ids: tuple[int, ...],
     surfaces: tuple[str, ...],
     refresh: bool,
+    statement_timeout_ms: int = 30_000,
 ) -> str:
     connection = connect(database_url)
     try:
@@ -127,9 +159,17 @@ def build_report(
             with connection.cursor() as cursor:
                 selected_run_id = _resolve_run(cursor, run_id)
                 selected_documents = _document_ids(cursor, selected_run_id, document_ids)
-                if refresh:
-                    _refresh(cursor, selected_run_id, selected_documents)
 
+        if refresh:
+            _refresh_documents(
+                connection,
+                run_id=selected_run_id,
+                document_ids=selected_documents,
+                statement_timeout_ms=statement_timeout_ms,
+            )
+
+        with connection.transaction():
+            with connection.cursor() as cursor:
                 doc_filter = "AND region.document_id = ANY(%s)" if selected_documents else ""
                 params: tuple[object, ...] = (selected_run_id, list(selected_documents))
 
@@ -225,6 +265,15 @@ def build_report(
                     """,
                     params,
                 )
+                overflow_bridges = _scalar(
+                    cursor,
+                    """
+                    SELECT count(*)
+                      FROM execution.semantic_pnf_factor_composition_overflow
+                     WHERE run_id = %s AND document_id = ANY(%s)
+                    """,
+                    params,
+                )
 
                 kind_rows = _rows(
                     cursor,
@@ -244,7 +293,12 @@ def build_report(
                     """,
                     params,
                 )
-                surface_rows = _surface_rows(cursor, selected_run_id, surfaces)
+                surface_rows = _surface_rows(
+                    cursor,
+                    selected_run_id,
+                    selected_documents,
+                    surfaces,
+                )
 
                 lines = [
                     "# Identity Evidence Yield",
@@ -257,6 +311,7 @@ def build_report(
                     f"- Admitted parser candidates: **{accepted_candidates}**",
                     f"- Currently admitted identity witnesses: **{admitted_witnesses}**",
                     f"- Level-3 identity substitutions: **{derived}**",
+                    f"- Composition overflow bridges: **{overflow_bridges}**",
                     f"- World-authority entities: **{world_entities}**",
                     "",
                     "## Evidence kinds",
@@ -287,7 +342,7 @@ def build_report(
                         "",
                         "## Epistemic boundary",
                         "",
-                        "Candidate evidence is not identity authority. Only admitted witnesses enter the identity projection; world identity still requires external-authority evidence.",
+                        "Candidate evidence is not identity authority. Only admitted witnesses enter the identity projection; composition overflow is execution evidence only; world identity still requires external-authority evidence.",
                     ]
                 )
                 return "\n".join(lines) + "\n"
@@ -302,14 +357,18 @@ def main() -> None:
     parser.add_argument("--document-id", action="append", type=int, default=[])
     parser.add_argument("--surface", action="append", default=[])
     parser.add_argument("--refresh", action="store_true")
+    parser.add_argument("--statement-timeout-ms", type=int, default=30_000)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.statement_timeout_ms < 1:
+        raise SystemExit("--statement-timeout-ms must be positive")
     report = build_report(
         args.database_url,
         run_id=args.run_id,
         document_ids=tuple(args.document_id),
         surfaces=tuple(args.surface),
         refresh=args.refresh,
+        statement_timeout_ms=args.statement_timeout_ms,
     )
     if args.output is None:
         print(report, end="")
