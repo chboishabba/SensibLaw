@@ -3,8 +3,8 @@ BEGIN;
 -- Restore the sparse-fibre publication boundary after the benchmark-only
 -- demand-planner migration.  Existing upgraded databases may have applied the
 -- later-added 062_demand_planner_performance.sql after 062_sparse_fibred_...
--- and therefore carry its all-closed-interface refresh function.  Fresh and
--- upgraded databases must converge on the same root-only contract.
+-- while fresh databases see the two 062 files in lexical order.  This later
+-- migration makes both histories converge on one sparse semantic contract.
 CREATE OR REPLACE FUNCTION execution.refresh_pnf_global_lookup_ids(
     selected_run_id BIGINT,
     selected_document_id BIGINT
@@ -113,6 +113,27 @@ BEGIN
 
     RETURN inserted_count + affected_count;
 END;
+$$;
+
+-- Converge the compatibility planner as well.  All candidate discharge is a
+-- bottom-up sparse-frontier reduction; no complete document inventory is
+-- scanned here.  The benchmark migration's indexes remain useful to local
+-- structural queries without making its global-inventory planner authoritative.
+CREATE OR REPLACE FUNCTION execution.plan_numeric_pnf_demand_candidates_ids(
+    selected_run_id BIGINT,
+    selected_document_id BIGINT
+)
+RETURNS BIGINT
+LANGUAGE sql
+AS $$
+    SELECT execution.reduce_numeric_pnf_document_frontiers(
+        (SELECT run_ref
+           FROM execution.semantic_pnf_run_identity
+          WHERE run_id = selected_run_id),
+        (SELECT document_ref
+           FROM execution.semantic_pnf_document_identity
+          WHERE document_id = selected_document_id)
+    )
 $$;
 
 -- Publication now has an explicit proof-derivation phase.  It derives identity
