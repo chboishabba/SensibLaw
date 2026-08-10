@@ -1,9 +1,9 @@
 # Proof-Relevant Identity Acceptance
 
-This acceptance suite exercises the current identity layer through migration 075.
-It is deliberately synthetic: the fixture controls the semantic evidence so the
-expected proof state is known exactly, while all resolution, witness creation,
-derivation and retraction use the production PostgreSQL functions.
+This acceptance surface now covers the proof kernel and the first real-text
+identity-evidence producers through migrations 075–079.  Synthetic fixtures keep
+expected proof states exact; corpus-yield reporting measures what the same runtime
+produces over an existing numeric PNF corpus.
 
 ## Apply migrations
 
@@ -12,132 +12,165 @@ export DATABASE_URL='postgresql://postgres@127.0.0.1:5433/sensiblaw_sparse_bench
 bash scripts/apply_pg_migrations.sh
 ```
 
-For a benchmark database that already has migrations 069–074 applied, applying
-`075_reference_mode_outcomes.sql` is sufficient.
+For a benchmark database already migrated through 076, apply 077, 078 and 079 in
+order.
 
-## Run the acceptance suite
+## Kernel acceptance
 
 ```bash
 DATABASE_URL="$DATABASE_URL" \
 uv run pytest -q \
   tests/storage/test_reference_mode_outcomes.py \
+  tests/storage/test_factor_participation_actor_profiles.py \
+  tests/storage/test_identity_evidence_production_v1.py \
   tests/storage/test_proof_relevant_identity_postgres.py \
   tests/storage/test_proof_relevant_identity_acceptance.py
 ```
 
-The fixture rows are transaction-local and rolled back after each test.
+The reversible identity fixtures are transaction-local and rolled back.
 
-## Positive round trip
+## Real-text evidence production v1
 
-The positive fixture represents the structural situation:
+Migration 077 introduces a separate
+`semantic_pnf_identity_evidence_candidate` relation. Parser observations can
+produce candidate evidence without rewriting local objects or asserting identity.
+
+The first evidence lanes are:
 
 ```text
-Ronald Reagan ...
-He responded ...
+spaCy appos dependency              -> apposition
+PERSON <-> nominal apposition       -> title_role_closure
+multi-token PERSON + family lemma   -> proper_name_expansion candidate
+explicit aka / alias / known as cue -> explicit_alias
+resolved typed anaphor demand       -> anaphor_demand_resolution (existing path)
 ```
 
-without asking paragraph co-presence to prove anything. The target actor carries
-typed person/role/factor evidence. The local `he` object carries a typed unresolved
-demand and participates in an immutable Level-1 factor.
+Migration 078 makes sentence identity use persisted parser `sentence_ref`
+throughout and orients title/apposition evidence toward a PERSON anchor when
+exactly one side of the dependency lies inside a PERSON entity span.
 
-The test requires the production sparse frontier to establish:
+No lane uses paragraph co-presence, nearest-person search, generic string
+similarity, n-grams, or the global lookup as identity evidence.
+
+### Parser token to local object bridge
+
+`semantic_pnf_parser_object_anchor` maps a parser token to a PNF object only when:
+
+1. the object lies in a smallest PNF region containing that exact token span;
+2. the object head equals the token orthographic or lemma symbol; and
+3. exactly one object survives at that smallest region size.
+
+Failure of uniqueness yields no anchor and therefore no parser identity evidence.
+
+## Evidence strength and admission
+
+Candidate evidence is not automatically authority.
+
+Migration 079 distinguishes strong local structural evidence from useful but
+insufficient lexical evidence:
+
+```text
+apposition                    candidate_count=1 -> may establish document identity
+title/role apposition         candidate_count=1 -> may establish document identity
+explicit alias/equivalence    candidate_count=1 -> may establish document identity
+proper-name expansion         candidate only until independently corroborated
+anaphoric typed-hole result   admitted only through resolved_unique demand proof
+```
+
+A document-unique surname therefore does **not** bootstrap identity by itself.
+A `proper_name_expansion` witness can be admitted only when its target entity
+already has an accepted non-anchor proof from apposition, title-role closure,
+explicit alias, anaphor resolution, or another uniquely resolved typed demand.
+
+All admissions remain subject to migration 074's write-boundary invariant:
 
 ```text
 candidate_count = 1
-outcome = resolved_unique
-selected_target = Reagan-labelled local actor
+witness.authority_class = target_entity.authority_class
 ```
 
-Then `refresh_numeric_pnf_semantic_derivations` must produce:
+World identity remains impossible without explicit `external_authority` evidence.
+
+## Positive reversible round trip
+
+The controlled positive fixture requires the production sparse frontier to
+establish one typed actor target and then materialise:
 
 ```text
-pi : he-object ==> document-derived entity anchored at target actor
-F(he, ...)              -- immutable Level-1 premise retained
-F(E, ...)               -- separate Level-3 identity substitution
+pi : he-object ==> document-derived entity
+F(he, ...)  -- immutable Level-1 premise
+F(E, ...)   -- separate Level-3 substitution carrying pi
 ```
 
-The derived argument must retain the exact witness id used by `pi`.
-
-Finally the test retracts that witness through:
-
-```sql
-SELECT execution.retract_numeric_pnf_identity_witness(witness_id);
-```
-
-and requires:
-
-```text
-historical witness row still exists
-current witness admission = rejected
-current source-object identity projection = absent
-current Level-3 substitution = absent
-original Level-1 premise factor = still present
-```
-
-This is the executable round trip:
+Retraction must restore the current semantic surface while retaining historical
+proof evidence:
 
 ```text
 G_E^0 --(+ pi)--> G_E^1 --(- pi)--> G_E^0
 ```
 
-for the current semantic surface, while proof history remains auditable.
+## Ambiguity / plural / generic fixtures
 
-## Singular ambiguity
-
-The ambiguity fixture supplies two otherwise compatible actor profiles and one
-explicitly singular `he` demand.
-
-Required result:
+The same bounded frontier distinguishes:
 
 ```text
-candidate_count = 2
-reference_mode = singular
-outcome = ambiguous
-selected_target = NULL
-identity witness = absent
-identity projection = absent
+singular + one witness       -> resolved_unique
+singular + several witnesses -> ambiguous
+plural   + witnesses         -> plural
+generic  + witnesses         -> generic
 ```
 
-Thus candidate multiplicity is not collapsed by rank or lexical proximity.
+Only `singular + one witness` can feed scalar identity projection.
 
-## Plural and generic separation
+## GWB / corpus identity-yield benchmark
 
-Migration 075 introduces an explicit demand-level `reference_mode`:
+To run the real evidence producers over the selected numeric PNF run and measure
+what survives the proof boundary:
 
-```text
-1 singular
-2 plural
-3 generic
-4 inapplicable
+```bash
+PYTHONPATH=. uv run python scripts/report_identity_evidence_yield.py \
+  --database-url "$DATABASE_URL" \
+  --refresh \
+  --surface reagan \
+  --surface bush \
+  --surface cia \
+  --output .tmp/gwb-identity-yield.md
 ```
 
-The sparse solver still constructs the bounded candidate set. A later frontier
-classification trigger preserves the semantic mode supplied by the typed demand.
-This is important because candidate count alone cannot distinguish:
+Use `--run-id N` to select a particular numeric run and repeat `--document-id N`
+to constrain the corpus slice.
+
+The report measures:
 
 ```text
-two candidates for singular "he"   -> ambiguous
-two candidates for plural "they"   -> plural frontier
+local PNF objects
+factor-participating objects
+parser-grounded identity candidates
+admitted parser candidates
+currently admitted identity witnesses
+Level-3 identity substitutions
+world-authority entities
+candidate/admitted/ambiguous counts by witness kind
+requested-surface object/factor/entity/witness counts
 ```
 
-The acceptance fixture uses the same two compatible actors and requires:
+The useful sparsification series is therefore observable directly:
 
 ```text
-singular + several candidates -> ambiguous
-plural   + several candidates -> plural
-generic  + candidates         -> generic
+|local objects|
+  >> |factor participants|
+  >> |identity candidates|
+  >= |accepted identity witnesses|
 ```
 
-Plural, generic and inapplicable outcomes clear any scalar resolved target and
-can never feed the current scalar identity-witness materialiser, which accepts
-only `resolved_unique`.
+A high candidate count with a low admission count is not itself failure: the
+central acceptance criterion is that uncorroborated or ambiguous evidence remains
+outside the admitted identity fibre.
 
-## Epistemic invariant
-
-The complete acceptance boundary is therefore:
+## Epistemic boundary
 
 ```text
-surface occurrence
+mention
   != referent
   != document entity
   != world entity
@@ -146,9 +179,10 @@ surface occurrence
 and:
 
 ```text
-successful semantic classification
-  != scalar identity permission
+candidate identity evidence
+  != admitted identity proof
+  != world identity authority
 ```
 
-Only an explicitly singular uniquely witnessed reference may enter the scalar
-identity fibre. World identity remains a separate external-authority operation.
+Every promotion must retain an inspectable witness; no proximity shortcut can
+manufacture one.
