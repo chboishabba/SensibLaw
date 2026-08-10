@@ -9,6 +9,7 @@ on:
       - "database/postgres_migrations/080_identity_evidence_witness_provenance.sql"
       - "database/postgres_migrations/081_document_scoped_identity_evidence_anchor.sql"
       - "scripts/report_identity_evidence_yield.py"
+      - "scripts/benchmark_identity_evidence_refresh.py"
       - "tests/storage/test_identity_evidence_production_v1.py"
       - "tests/storage/test_document_scoped_identity_evidence_anchor.py"
       - ".github/workflows/identity-evidence-production.yml"
@@ -22,6 +23,7 @@ on:
       - "database/postgres_migrations/080_identity_evidence_witness_provenance.sql"
       - "database/postgres_migrations/081_document_scoped_identity_evidence_anchor.sql"
       - "scripts/report_identity_evidence_yield.py"
+      - "scripts/benchmark_identity_evidence_refresh.py"
       - "tests/storage/test_identity_evidence_production_v1.py"
       - "tests/storage/test_document_scoped_identity_evidence_anchor.py"
       - ".github/workflows/identity-evidence-production.yml"
@@ -61,10 +63,12 @@ jobs:
         run: |
           uv run python -m py_compile \
             scripts/report_identity_evidence_yield.py \
+            scripts/benchmark_identity_evidence_refresh.py \
             tests/storage/test_identity_evidence_production_v1.py \
             tests/storage/test_document_scoped_identity_evidence_anchor.py
           uv run ruff check \
             scripts/report_identity_evidence_yield.py \
+            scripts/benchmark_identity_evidence_refresh.py \
             tests/storage/test_identity_evidence_production_v1.py \
             tests/storage/test_document_scoped_identity_evidence_anchor.py
           uv run pytest -q \
@@ -77,5 +81,7 @@ jobs:
           uv run pytest -q \
             tests/storage/test_proof_relevant_identity_postgres.py \
             tests/storage/test_proof_relevant_identity_acceptance.py
-      - name: Yield reporter import
-        run: uv run python scripts/report_identity_evidence_yield.py --help
+      - name: Reporter imports
+        run: |
+          uv run python scripts/report_identity_evidence_yield.py --help
+          uv run python scripts/benchmark_identity_evidence_refresh.py --help
