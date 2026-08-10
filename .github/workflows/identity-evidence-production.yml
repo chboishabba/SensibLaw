@@ -1,0 +1,73 @@
+name: Identity evidence production
+
+on:
+  pull_request:
+    paths:
+      - "database/postgres_migrations/077_identity_evidence_production_v1.sql"
+      - "database/postgres_migrations/078_identity_evidence_parser_sentence_alignment.sql"
+      - "database/postgres_migrations/079_identity_evidence_admission_policy.sql"
+      - "database/postgres_migrations/080_identity_evidence_witness_provenance.sql"
+      - "scripts/report_identity_evidence_yield.py"
+      - "tests/storage/test_identity_evidence_production_v1.py"
+      - ".github/workflows/identity-evidence-production.yml"
+  push:
+    branches:
+      - "agent/repair-corpus-progress-stage-lifecycle"
+    paths:
+      - "database/postgres_migrations/077_identity_evidence_production_v1.sql"
+      - "database/postgres_migrations/078_identity_evidence_parser_sentence_alignment.sql"
+      - "database/postgres_migrations/079_identity_evidence_admission_policy.sql"
+      - "database/postgres_migrations/080_identity_evidence_witness_provenance.sql"
+      - "scripts/report_identity_evidence_yield.py"
+      - "tests/storage/test_identity_evidence_production_v1.py"
+      - ".github/workflows/identity-evidence-production.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  identity-evidence:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sensiblaw_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sensiblaw_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/sensiblaw_test
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install
+        run: uv sync --frozen
+      - name: Static identity evidence contracts
+        run: |
+          uv run python -m py_compile \
+            scripts/report_identity_evidence_yield.py \
+            tests/storage/test_identity_evidence_production_v1.py
+          uv run ruff check \
+            scripts/report_identity_evidence_yield.py \
+            tests/storage/test_identity_evidence_production_v1.py
+          uv run pytest -q tests/storage/test_identity_evidence_production_v1.py
+      - name: Apply full migration chain
+        run: bash scripts/apply_pg_migrations.sh
+      - name: Proof kernel regression
+        run: |
+          uv run pytest -q \
+            tests/storage/test_proof_relevant_identity_postgres.py \
+            tests/storage/test_proof_relevant_identity_acceptance.py
+      - name: Yield reporter import
+        run: uv run python scripts/report_identity_evidence_yield.py --help
