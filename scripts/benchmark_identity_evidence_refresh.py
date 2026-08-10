@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Time proof-relevant semantic refresh per numeric PNF document.
+"""Time proof-relevant semantic refresh by document and semantic phase.
 
-This is a diagnostic harness, not semantic authority.  It exists so a slow
-identity-evidence producer is visible at the document boundary instead of
-appearing as an opaque tranche-wide hang.
+This is diagnostic execution, not semantic authority.  Each production refresh
+function is timed independently so a slow parser-evidence, admission,
+substitution, or composition operator is visible instead of appearing as an
+opaque tranche-wide hang.
 """
 
 from __future__ import annotations
@@ -13,6 +14,19 @@ from time import perf_counter
 from typing import Any
 
 from src.storage.postgres.spacy_parser_model import connect
+
+
+_PHASES = (
+    ("typed_identity", "execution.refresh_numeric_pnf_identity_witnesses", 2),
+    ("parser_evidence", "execution.refresh_numeric_pnf_parser_identity_evidence", 2),
+    ("parser_admission", "execution.admit_numeric_pnf_parser_identity_evidence", 2),
+    (
+        "identity_substitution",
+        "execution.refresh_numeric_pnf_identity_substitution_derivations",
+        2,
+    ),
+    ("factor_composition", "execution.refresh_numeric_pnf_factor_composition_candidates", 3),
+)
 
 
 def _resolve_run(cursor: Any, requested_run_id: int | None) -> int:
@@ -46,6 +60,37 @@ def _documents(cursor: Any, run_id: int, requested: tuple[int, ...]) -> tuple[in
     return tuple(int(row[0]) for row in cursor.fetchall())
 
 
+def _time_phase(
+    cursor: Any,
+    *,
+    phase: str,
+    function_name: str,
+    arity: int,
+    run_id: int,
+    document_id: int,
+    composition_limit: int,
+) -> tuple[float, object]:
+    started = perf_counter()
+    if arity == 2:
+        cursor.execute(
+            f"SELECT {function_name}(%s, %s)",
+            (run_id, document_id),
+        )
+    else:
+        cursor.execute(
+            f"SELECT {function_name}(%s, %s, %s)",
+            (run_id, document_id, composition_limit),
+        )
+    row = cursor.fetchone()
+    elapsed_ms = (perf_counter() - started) * 1000.0
+    result = None if row is None else row[0]
+    print(
+        f"    phase={phase} elapsed_ms={elapsed_ms:.3f} result={result!r}",
+        flush=True,
+    )
+    return elapsed_ms, result
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--database-url", required=True)
@@ -55,11 +100,19 @@ def main() -> None:
         "--statement-timeout-ms",
         type=int,
         default=30_000,
-        help="Fail one refresh instead of waiting indefinitely (default: 30000).",
+        help="Fail one semantic phase instead of waiting indefinitely (default: 30000).",
+    )
+    parser.add_argument(
+        "--composition-limit",
+        type=int,
+        default=16,
+        help="Maximum retained composition candidates per bridge (default: 16).",
     )
     args = parser.parse_args()
     if args.statement_timeout_ms < 1:
         raise SystemExit("--statement-timeout-ms must be positive")
+    if not 1 <= args.composition_limit <= 256:
+        raise SystemExit("--composition-limit must be between 1 and 256")
 
     connection = connect(args.database_url)
     total_started = perf_counter()
@@ -70,24 +123,39 @@ def main() -> None:
                 document_ids = _documents(cursor, run_id, tuple(args.document_id))
                 print(f"run_id={run_id} documents={len(document_ids)}")
                 for ordinal, document_id in enumerate(document_ids, start=1):
-                    cursor.execute(
-                        "SELECT set_config('statement_timeout', %s, true)",
-                        (f"{args.statement_timeout_ms}ms",),
+                    print(
+                        f"[{ordinal}/{len(document_ids)}] document_id={document_id}",
+                        flush=True,
                     )
-                    cursor.fetchone()
-                    started = perf_counter()
+                    document_started = perf_counter()
+                    for phase, function_name, arity in _PHASES:
+                        cursor.execute(
+                            "SELECT set_config('statement_timeout', %s, true)",
+                            (f"{args.statement_timeout_ms}ms",),
+                        )
+                        cursor.fetchone()
+                        _time_phase(
+                            cursor,
+                            phase=phase,
+                            function_name=function_name,
+                            arity=arity,
+                            run_id=run_id,
+                            document_id=document_id,
+                            composition_limit=args.composition_limit,
+                        )
+                    document_ms = (perf_counter() - document_started) * 1000.0
                     cursor.execute(
                         """
-                        SELECT *
-                          FROM execution.refresh_numeric_pnf_semantic_derivations(%s, %s)
+                        SELECT count(*)
+                          FROM execution.semantic_pnf_factor_composition_overflow
+                         WHERE run_id = %s AND document_id = %s
                         """,
                         (run_id, document_id),
                     )
-                    result = cursor.fetchone()
-                    elapsed_ms = (perf_counter() - started) * 1000.0
+                    overflow_count = int(cursor.fetchone()[0])
                     print(
-                        f"[{ordinal}/{len(document_ids)}] document_id={document_id} "
-                        f"elapsed_ms={elapsed_ms:.3f} result={result!r}",
+                        f"    document_total_ms={document_ms:.3f} "
+                        f"composition_overflow_bridges={overflow_count}",
                         flush=True,
                     )
         total_ms = (perf_counter() - total_started) * 1000.0
