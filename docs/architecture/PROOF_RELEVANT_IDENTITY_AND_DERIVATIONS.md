@@ -8,6 +8,7 @@ Implemented by PostgreSQL migrations:
 - `070_proof_relevant_factor_derivations.sql`
 - `071_sparse_root_derivation_publication.sql`
 - `072_retractable_identity_and_external_alignment.sql`
+- `073_external_identity_ref_and_retraction.sql`
 
 and the generic reporting surface:
 
@@ -26,7 +27,7 @@ Level 0  source observation / local surface identity
 Level 1  immutable role-labelled factor hyperedge
 Level 2  admitted identity derivation witness
 Level 3  proposition obtained by witnessed identity substitution
-Level 4  interpretation, which is outside structural authority unless separately derived
+Level 4  interpretation, outside structural authority unless separately derived
 ```
 
 The central entity-neighbourhood query is proof-relevant:
@@ -97,7 +98,7 @@ external authority alignment
 ```
 
 Admission is separate in `semantic_pnf_identity_witness_admission`. Rejecting or
-superseding a witness therefore does not delete the immutable witness evidence.
+superseding a witness therefore does not delete immutable witness evidence.
 
 ### Typed proof constraints
 
@@ -134,7 +135,7 @@ selected target is an object
 exactly one object in the demand's own source region matches the recorded surface
 or canonical lexical symbol. It never searches a paragraph for a nearby person.
 
-This converts the former methodological rule into a database invariant:
+This converts the methodological rule into a database invariant:
 
 ```text
 same paragraph as Reagan != identity with Reagan
@@ -144,24 +145,34 @@ same paragraph as Reagan != identity with Reagan
 
 Migration 072 makes current document-derived identity admission recomputable.
 Before a document's identity frontier is refreshed, its previously accepted
-`document_derived` witnesses are marked `superseded`. The current set of uniquely
-justified witnesses is then re-admitted.
+`document_derived` witnesses are marked `superseded`; exactly the currently
+uniquely justified witnesses are then re-admitted.
 
-The immutable witness rows remain available as proof provenance; only the current
-admission state changes.
+The immutable witness rows remain available as proof provenance; only current
+admission changes.
 
-Level-3 `identity-substitution:v1` derivations are also rebuilt from the current
+Level-3 `identity-substitution:v1` derivations are rebuilt from the current
 identity projection. Therefore a pronoun resolution that ceases to have an
 accepted proof cannot leave a stale substituted proposition in the current
 semantic surface.
 
-This is current-state retractability rather than destructive rewriting:
+Migration 073 adds explicit witness retraction:
+
+```sql
+SELECT execution.retract_numeric_pnf_identity_witness(witness_id);
+```
+
+Retraction marks the witness rejected while retaining its evidence, then rebuilds
+the affected document's Level-3 substitutions and bounded factor-composition
+frontier in the same transaction. Current semantic views therefore cannot lag the
+current witness-admission state.
 
 ```text
 local object/factor evidence     retained
 identity witness evidence        retained
-current witness admission        recomputed
-current Level-3 substitutions    rebuilt
+current witness admission        recomputed/retractable
+current Level-3 substitutions    rebuilt immediately
+composition frontier             rebuilt immediately
 ```
 
 ## Explicit external-world alignment
@@ -185,9 +196,23 @@ identifier explicitly. The resulting canonical entity has authority class
 `external_authority` and the local-to-world projection is stored as witness kind
 `external_authority_alignment`.
 
+Migration 073 derives the external entity reference from the byte sequence:
+
+```text
+UTF8(namespace) || 0x00 || UTF8(identifier)
+```
+
+before SHA-256 hashing. Because PostgreSQL text cannot contain NUL, the boundary
+between namespace and identifier is unambiguous and does not depend on a textual
+delimiter convention.
+
+External admission also rebuilds the affected document's current Level-3
+substitutions and composition candidates immediately. Admission and retraction
+therefore have symmetric current-state semantics.
+
 Examples of authority namespaces may include Wikidata, a legal authority
 registry, or another explicitly governed identity namespace. The database does
-not equate those namespaces merely because labels happen to match.
+not equate namespaces merely because labels happen to match.
 
 ## Witnessed factor substitution
 
@@ -267,10 +292,10 @@ G_E^0 subset G_E^1 subset G_E^2 ...
 ```
 
 When evidence is withdrawn or becomes ambiguous, current witness admission can
-retract a fibre. The immutable local factors and witness evidence remain intact,
-while current Level-3 projections are rebuilt. Thus monotonicity is a property of
-pure evidence addition, not an excuse to preserve a claim after its proof is no
-longer admitted.
+retract a fibre. Immutable local factors and witness evidence remain intact,
+while current Level-3 projections are rebuilt. Monotonicity is therefore a
+property of pure evidence addition, not an excuse to preserve a claim after its
+proof is no longer admitted.
 
 ## Sparse publication boundary
 
@@ -318,8 +343,8 @@ uv run python scripts/generate_entity_factor_report.py \
   --output .tmp/reagan-proof-report.md
 ```
 
-The repeated `--surface` arguments choose entry-point lexical surfaces only;
-they are not an assertion that those surfaces share a world identity.
+Repeated `--surface` arguments choose lexical entry points only; they are not an
+assertion that those surfaces share a world identity.
 
 To materialise derivations for one already-known numeric run/document before
 reading:
@@ -335,7 +360,7 @@ uv run python scripts/generate_entity_factor_report.py \
 The report separately shows:
 
 - direct Level-1 factors;
-- admitted identity entities and their authority class;
+- admitted identity entities and authority class;
 - proof objects and typed constraint counts;
 - Level-3 witnessed substitutions;
 - structural factor-composition candidates; and
@@ -353,8 +378,9 @@ Correctness:
 - a demand-derived identity witness requires a uniquely selected target;
 - competing accepted entity targets produce no identity projection;
 - world-canonical identity requires explicit external authority evidence;
+- external entity refs have an unambiguous namespace/identifier byte boundary;
 - document-derived witness admission is recomputed and retractable;
-- current identity substitutions are rebuilt after witness retraction;
+- explicit admission/retraction immediately rebuild current derived surfaces;
 - identity substitution never mutates its premise factor;
 - every substituted argument retains non-empty identity witness ids;
 - shared-argument composition produces candidates only;
