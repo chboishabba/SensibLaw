@@ -92,7 +92,8 @@ BEGIN
     SELECT demand.source_object_id,
            entity.entity_id,
            CASE
-               WHEN residual.symbol_text = 'anaphor_unresolved' THEN 5
+               WHEN residual.symbol_text = 'anaphor_unresolved'
+                 OR residual.symbol_text LIKE 'anaphor_unresolved:%' THEN 5
                ELSE 8
            END,
            2,
