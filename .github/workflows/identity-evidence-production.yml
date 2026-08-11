@@ -11,6 +11,7 @@ on:
       - "database/postgres_migrations/082_bounded_factor_composition_generation.sql"
       - "database/postgres_migrations/083_exact_object_token_anchor_fast_path.sql"
       - "database/postgres_migrations/084_limit_composition_pairs_before_ranking.sql"
+      - "database/postgres_migrations/085_bounded_proper_name_evidence.sql"
       - "scripts/report_identity_evidence_yield.py"
       - "scripts/benchmark_identity_evidence_refresh.py"
       - "tests/storage/test_identity_evidence_production_v1.py"
@@ -18,6 +19,8 @@ on:
       - "tests/storage/test_bounded_factor_composition_generation.py"
       - "tests/storage/test_exact_object_token_anchor_fast_path.py"
       - "tests/storage/test_composition_limit_before_ranking.py"
+      - "tests/storage/test_bounded_proper_name_evidence.py"
+      - "tests/storage/test_identity_yield_stratification.py"
       - ".github/workflows/identity-evidence-production.yml"
   push:
     branches:
@@ -31,6 +34,7 @@ on:
       - "database/postgres_migrations/082_bounded_factor_composition_generation.sql"
       - "database/postgres_migrations/083_exact_object_token_anchor_fast_path.sql"
       - "database/postgres_migrations/084_limit_composition_pairs_before_ranking.sql"
+      - "database/postgres_migrations/085_bounded_proper_name_evidence.sql"
       - "scripts/report_identity_evidence_yield.py"
       - "scripts/benchmark_identity_evidence_refresh.py"
       - "tests/storage/test_identity_evidence_production_v1.py"
@@ -38,6 +42,8 @@ on:
       - "tests/storage/test_bounded_factor_composition_generation.py"
       - "tests/storage/test_exact_object_token_anchor_fast_path.py"
       - "tests/storage/test_composition_limit_before_ranking.py"
+      - "tests/storage/test_bounded_proper_name_evidence.py"
+      - "tests/storage/test_identity_yield_stratification.py"
       - ".github/workflows/identity-evidence-production.yml"
 
 permissions:
@@ -80,7 +86,9 @@ jobs:
             tests/storage/test_document_scoped_identity_evidence_anchor.py \
             tests/storage/test_bounded_factor_composition_generation.py \
             tests/storage/test_exact_object_token_anchor_fast_path.py \
-            tests/storage/test_composition_limit_before_ranking.py
+            tests/storage/test_composition_limit_before_ranking.py \
+            tests/storage/test_bounded_proper_name_evidence.py \
+            tests/storage/test_identity_yield_stratification.py
           uv run ruff check \
             scripts/report_identity_evidence_yield.py \
             scripts/benchmark_identity_evidence_refresh.py \
@@ -88,13 +96,17 @@ jobs:
             tests/storage/test_document_scoped_identity_evidence_anchor.py \
             tests/storage/test_bounded_factor_composition_generation.py \
             tests/storage/test_exact_object_token_anchor_fast_path.py \
-            tests/storage/test_composition_limit_before_ranking.py
+            tests/storage/test_composition_limit_before_ranking.py \
+            tests/storage/test_bounded_proper_name_evidence.py \
+            tests/storage/test_identity_yield_stratification.py
           uv run pytest -q \
             tests/storage/test_identity_evidence_production_v1.py \
             tests/storage/test_document_scoped_identity_evidence_anchor.py \
             tests/storage/test_bounded_factor_composition_generation.py \
             tests/storage/test_exact_object_token_anchor_fast_path.py \
-            tests/storage/test_composition_limit_before_ranking.py
+            tests/storage/test_composition_limit_before_ranking.py \
+            tests/storage/test_bounded_proper_name_evidence.py \
+            tests/storage/test_identity_yield_stratification.py
       - name: Apply full migration chain
         run: bash scripts/apply_pg_migrations.sh
       - name: Proof kernel regression
