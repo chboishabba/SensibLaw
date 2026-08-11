@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Measure proof-relevant identity evidence yield over a numeric PNF run.
 
-The report never treats lexical co-occurrence as identity. Local objects/factor
-participants, parser-grounded identity candidates, currently accepted witnesses,
-Level-3 substitutions, and world-authority alignments are counted separately.
-Refresh, when requested, commits one document at a time so locks and failures do
-not accumulate across the tranche.
+The report never treats lexical co-occurrence as identity.  It separates parser
+candidates, source->entity proofs, anchor/base witnesses, current projections,
+factor-bearing projections, Level-3 substitutions, overflow receipts and world
+authority.  Refresh, when requested, commits one document at a time.
 """
 
 from __future__ import annotations
@@ -22,7 +21,7 @@ from src.storage.postgres.spacy_parser_model import connect
 def _scalar(cursor: Any, query: str, params: tuple[object, ...]) -> int:
     cursor.execute(query, params)
     row = cursor.fetchone()
-    return int(row[0]) if row is not None else 0
+    return int(row[0]) if row is not None and row[0] is not None else 0
 
 
 def _rows(cursor: Any, query: str, params: tuple[object, ...]) -> tuple[tuple[Any, ...], ...]:
@@ -33,33 +32,48 @@ def _rows(cursor: Any, query: str, params: tuple[object, ...]) -> tuple[tuple[An
 def _resolve_run(cursor: Any, run_id: int | None) -> int:
     if run_id is not None:
         cursor.execute(
-            "SELECT 1 FROM execution.semantic_pnf_run_identity WHERE run_id = %s",
+            """
+            SELECT 1
+              FROM execution.semantic_pnf_run_identity
+             WHERE run_id = %s
+            """,
             (run_id,),
         )
         if cursor.fetchone() is None:
             raise SystemExit(f"unknown run_id {run_id}")
         return run_id
-    cursor.execute("SELECT max(run_id) FROM execution.semantic_pnf_region")
+    cursor.execute(
+        """
+        SELECT max(region.run_id)
+          FROM execution.semantic_pnf_region AS region
+          JOIN execution.semantic_pnf_run_identity AS identity
+            ON identity.run_id = region.run_id
+        """
+    )
     row = cursor.fetchone()
     if row is None or row[0] is None:
-        raise SystemExit("no numeric PNF run is available")
+        raise SystemExit("no numeric PNF run with a registered run identity is available")
     return int(row[0])
 
 
 def _document_ids(cursor: Any, run_id: int, requested: tuple[int, ...]) -> tuple[int, ...]:
     if requested:
         return tuple(sorted(set(requested)))
-    rows = _rows(
-        cursor,
-        """
-        SELECT DISTINCT document_id
-          FROM execution.semantic_pnf_region
-         WHERE run_id = %s
-         ORDER BY document_id
-        """,
-        (run_id,),
+    return tuple(
+        int(row[0])
+        for row in _rows(
+            cursor,
+            """
+            SELECT DISTINCT region.document_id
+              FROM execution.semantic_pnf_region AS region
+              JOIN execution.semantic_pnf_document_identity AS identity
+                ON identity.document_id = region.document_id
+             WHERE region.run_id = %s
+             ORDER BY region.document_id
+            """,
+            (run_id,),
+        )
     )
-    return tuple(int(row[0]) for row in rows)
 
 
 def _refresh_documents(
@@ -111,8 +125,7 @@ def _surface_rows(
               JOIN execution.semantic_symbol AS symbol
                 ON lower(symbol.symbol_text) = lower(requested.surface)
         ), objects AS (
-            SELECT symbols.surface,
-                   object.object_id
+            SELECT symbols.surface, object.object_id
               FROM symbols
               JOIN execution.semantic_pnf_object AS object
                 ON object.head_symbol_id = symbols.symbol_id
@@ -125,18 +138,15 @@ def _surface_rows(
                count(DISTINCT objects.object_id) AS local_objects,
                count(DISTINCT edge.factor_id) AS direct_factors,
                count(DISTINCT projection.target_entity_id) AS admitted_entities,
-               count(DISTINCT witness.witness_id) FILTER (
-                   WHERE admission.admission_state = 2
-               ) AS admitted_witnesses
+               count(DISTINCT projection.source_object_id) AS projected_objects,
+               count(DISTINCT projection.source_object_id) FILTER (
+                   WHERE edge.factor_id IS NOT NULL
+               ) AS factor_bearing_projected_objects
           FROM objects
           LEFT JOIN execution.semantic_pnf_hyperedge AS edge
             ON edge.object_id = objects.object_id
           LEFT JOIN execution.semantic_pnf_identity_projection AS projection
             ON projection.source_object_id = objects.object_id
-          LEFT JOIN execution.semantic_pnf_identity_witness AS witness
-            ON witness.source_object_id = objects.object_id
-          LEFT JOIN execution.semantic_pnf_identity_witness_admission AS admission
-            ON admission.witness_id = witness.witness_id
          GROUP BY objects.surface
          ORDER BY objects.surface
         """,
@@ -170,30 +180,34 @@ def build_report(
 
         with connection.transaction():
             with connection.cursor() as cursor:
-                doc_filter = "AND region.document_id = ANY(%s)" if selected_documents else ""
-                params: tuple[object, ...] = (selected_run_id, list(selected_documents))
+                params: tuple[object, ...] = (
+                    selected_run_id,
+                    list(selected_documents),
+                )
 
                 local_objects = _scalar(
                     cursor,
-                    f"""
+                    """
                     SELECT count(*)
                       FROM execution.semantic_pnf_object AS object
                       JOIN execution.semantic_pnf_region AS region
                         ON region.region_id = object.region_id
-                     WHERE region.run_id = %s {doc_filter}
+                     WHERE region.run_id = %s
+                       AND region.document_id = ANY(%s)
                     """,
                     params,
                 )
                 factor_participants = _scalar(
                     cursor,
-                    f"""
+                    """
                     SELECT count(DISTINCT edge.object_id)
                       FROM execution.semantic_pnf_hyperedge AS edge
                       JOIN execution.semantic_pnf_object AS object
                         ON object.object_id = edge.object_id
                       JOIN execution.semantic_pnf_region AS region
                         ON region.region_id = object.region_id
-                     WHERE region.run_id = %s {doc_filter}
+                     WHERE region.run_id = %s
+                       AND region.document_id = ANY(%s)
                     """,
                     params,
                 )
@@ -202,7 +216,8 @@ def build_report(
                     """
                     SELECT count(*)
                       FROM execution.semantic_pnf_identity_evidence_candidate
-                     WHERE run_id = %s AND document_id = ANY(%s)
+                     WHERE run_id = %s
+                       AND document_id = ANY(%s)
                        AND evidence_state IN (1, 2, 3)
                     """,
                     params,
@@ -212,15 +227,48 @@ def build_report(
                     """
                     SELECT count(*)
                       FROM execution.semantic_pnf_identity_evidence_candidate
-                     WHERE run_id = %s AND document_id = ANY(%s)
+                     WHERE run_id = %s
+                       AND document_id = ANY(%s)
                        AND evidence_state = 2
                     """,
                     params,
                 )
-                admitted_witnesses = _scalar(
+                parser_source_witnesses = _scalar(
                     cursor,
-                    f"""
-                    SELECT count(*)
+                    """
+                    SELECT count(DISTINCT provenance.witness_id)
+                      FROM execution.semantic_pnf_identity_evidence_witness AS provenance
+                      JOIN execution.semantic_pnf_identity_evidence_candidate AS candidate
+                        ON candidate.candidate_id = provenance.candidate_id
+                      JOIN execution.semantic_pnf_identity_witness_admission AS admission
+                        ON admission.witness_id = provenance.witness_id
+                       AND admission.admission_state = 2
+                     WHERE candidate.run_id = %s
+                       AND candidate.document_id = ANY(%s)
+                       AND provenance.witness_role = 2
+                    """,
+                    params,
+                )
+                parser_anchor_witnesses = _scalar(
+                    cursor,
+                    """
+                    SELECT count(DISTINCT provenance.witness_id)
+                      FROM execution.semantic_pnf_identity_evidence_witness AS provenance
+                      JOIN execution.semantic_pnf_identity_evidence_candidate AS candidate
+                        ON candidate.candidate_id = provenance.candidate_id
+                      JOIN execution.semantic_pnf_identity_witness_admission AS admission
+                        ON admission.witness_id = provenance.witness_id
+                       AND admission.admission_state = 2
+                     WHERE candidate.run_id = %s
+                       AND candidate.document_id = ANY(%s)
+                       AND provenance.witness_role = 1
+                    """,
+                    params,
+                )
+                demand_source_witnesses = _scalar(
+                    cursor,
+                    """
+                    SELECT count(DISTINCT witness.witness_id)
                       FROM execution.semantic_pnf_identity_witness AS witness
                       JOIN execution.semantic_pnf_identity_witness_admission AS admission
                         ON admission.witness_id = witness.witness_id
@@ -229,13 +277,45 @@ def build_report(
                         ON source.object_id = witness.source_object_id
                       JOIN execution.semantic_pnf_region AS region
                         ON region.region_id = source.region_id
-                     WHERE region.run_id = %s {doc_filter}
+                     WHERE region.run_id = %s
+                       AND region.document_id = ANY(%s)
+                       AND witness.demand_id IS NOT NULL
+                    """,
+                    params,
+                )
+                projections = _scalar(
+                    cursor,
+                    """
+                    SELECT count(*)
+                      FROM execution.semantic_pnf_identity_projection AS projection
+                      JOIN execution.semantic_pnf_object AS source
+                        ON source.object_id = projection.source_object_id
+                      JOIN execution.semantic_pnf_region AS region
+                        ON region.region_id = source.region_id
+                     WHERE region.run_id = %s
+                       AND region.document_id = ANY(%s)
+                    """,
+                    params,
+                )
+                factor_bearing_projections = _scalar(
+                    cursor,
+                    """
+                    SELECT count(DISTINCT projection.source_object_id)
+                      FROM execution.semantic_pnf_identity_projection AS projection
+                      JOIN execution.semantic_pnf_hyperedge AS edge
+                        ON edge.object_id = projection.source_object_id
+                      JOIN execution.semantic_pnf_object AS source
+                        ON source.object_id = projection.source_object_id
+                      JOIN execution.semantic_pnf_region AS region
+                        ON region.region_id = source.region_id
+                     WHERE region.run_id = %s
+                       AND region.document_id = ANY(%s)
                     """,
                     params,
                 )
                 derived = _scalar(
                     cursor,
-                    f"""
+                    """
                     SELECT count(*)
                       FROM execution.semantic_pnf_factor_derivation AS derivation
                       JOIN execution.semantic_pnf_interface AS interface
@@ -244,7 +324,8 @@ def build_report(
                         ON region.region_id = interface.region_id
                      WHERE derivation.rule_ref = 'identity-substitution:v1'
                        AND derivation.derivation_state = 2
-                       AND region.run_id = %s {doc_filter}
+                       AND region.run_id = %s
+                       AND region.document_id = ANY(%s)
                     """,
                     params,
                 )
@@ -265,11 +346,31 @@ def build_report(
                     """,
                     params,
                 )
-                overflow_bridges = _scalar(
+                composition_overflow = _scalar(
                     cursor,
                     """
                     SELECT count(*)
                       FROM execution.semantic_pnf_factor_composition_overflow
+                     WHERE run_id = %s AND document_id = ANY(%s)
+                    """,
+                    params,
+                )
+                proper_name_overflow = _scalar(
+                    cursor,
+                    """
+                    SELECT count(*)
+                      FROM execution.semantic_pnf_proper_name_evidence_overflow
+                     WHERE run_id = %s AND document_id = ANY(%s)
+                    """,
+                    params,
+                )
+                unretained_name_targets = _scalar(
+                    cursor,
+                    """
+                    SELECT COALESCE(sum(
+                               GREATEST(possible_target_count - retained_target_limit, 0)
+                           ), 0)
+                      FROM execution.semantic_pnf_proper_name_evidence_overflow
                      WHERE run_id = %s AND document_id = ANY(%s)
                     """,
                     params,
@@ -309,9 +410,15 @@ def build_report(
                     f"- Factor participants: **{factor_participants}**",
                     f"- Parser-grounded identity candidates: **{candidates}**",
                     f"- Admitted parser candidates: **{accepted_candidates}**",
-                    f"- Currently admitted identity witnesses: **{admitted_witnesses}**",
+                    f"- Admitted parser source proofs: **{parser_source_witnesses}**",
+                    f"- Parser anchor/base witnesses: **{parser_anchor_witnesses}**",
+                    f"- Admitted typed-demand source proofs: **{demand_source_witnesses}**",
+                    f"- Current identity projections: **{projections}**",
+                    f"- Factor-bearing identity projections: **{factor_bearing_projections}**",
                     f"- Level-3 identity substitutions: **{derived}**",
-                    f"- Composition overflow bridges: **{overflow_bridges}**",
+                    f"- Proper-name overflow mentions: **{proper_name_overflow}**",
+                    f"- Unretained ambiguous name targets: **{unretained_name_targets}**",
+                    f"- Composition overflow bridges: **{composition_overflow}**",
                     f"- World-authority entities: **{world_entities}**",
                     "",
                     "## Evidence kinds",
@@ -329,20 +436,20 @@ def build_report(
                             "",
                             "## Requested surfaces",
                             "",
-                            "| surface | local objects | direct factors | admitted entities | admitted witnesses |",
-                            "|---|---:|---:|---:|---:|",
+                            "| surface | local objects | direct factors | admitted entities | projected objects | factor-bearing projected objects |",
+                            "|---|---:|---:|---:|---:|---:|",
                         ]
                     )
                     lines.extend(
-                        f"| {surface} | {int(objects)} | {int(factors)} | {int(entities)} | {int(witnesses)} |"
-                        for surface, objects, factors, entities, witnesses in surface_rows
+                        f"| {surface} | {int(objects)} | {int(factors)} | {int(entities)} | {int(projected)} | {int(factor_projected)} |"
+                        for surface, objects, factors, entities, projected, factor_projected in surface_rows
                     )
                 lines.extend(
                     [
                         "",
                         "## Epistemic boundary",
                         "",
-                        "Candidate evidence is not identity authority. Only admitted witnesses enter the identity projection; composition overflow is execution evidence only; world identity still requires external-authority evidence.",
+                        "A parser source proof is not automatically a factor derivation. Only factor-bearing projections can contribute to Level-3 substitutions. Proper-name and composition overflow are execution receipts only; candidate evidence is not identity authority; world identity still requires external-authority evidence.",
                     ]
                 )
                 return "\n".join(lines) + "\n"
