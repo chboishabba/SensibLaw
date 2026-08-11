@@ -68,6 +68,9 @@ BEGIN
      WHERE run_id = selected_run_id
        AND document_id = selected_document_id;
 
+    -- All three parser-evidence lanes share this one document carrier.  PERSON
+    -- membership, family cardinality and bounded target ranking are therefore
+    -- computed once per refresh, including the overflow receipt.
     WITH
     doc_token AS MATERIALIZED (
         SELECT token.token_id,
@@ -186,8 +189,8 @@ BEGIN
           FROM appos
     ),
 
-    -- Join PERSON spans to their member tokens once.  This replaces the former
-    -- pair of correlated scans (LATERAL head lookup + member count) per entity.
+    -- Join PERSON spans to member tokens once.  This replaces the former pair of
+    -- correlated scans (head lookup plus member count) for every entity.
     person_entity_member AS MATERIALIZED (
         SELECT entity.entity_id AS parser_entity_id,
                entity.sentence_ref,
@@ -239,8 +242,7 @@ BEGIN
     ),
 
     -- Proper-name expansion is only for standalone proper-name tokens.  A token
-    -- inside any PERSON span is already part of explicit full-name structure and
-    -- cannot become a separate surname-expansion source.
+    -- inside any PERSON span is already part of explicit full-name structure.
     proper_name_mention AS MATERIALIZED (
         SELECT token.token_id,
                token.sentence_id,
@@ -281,7 +283,7 @@ BEGIN
           FROM proper_name_mention AS mention
           JOIN family_target AS target
             ON target.family_lemma_symbol_id = mention.lemma_symbol_id
-           AND target.family_rank <= max_name_targets + 1
+           AND target.family_rank <= max_name_targets
          WHERE mention.source_object_id <> target.anchor_object_id
     ),
     proper_name_evidence AS (
@@ -296,6 +298,18 @@ BEGIN
                LEAST(256, family_candidate_count)::SMALLINT AS candidate_count
           FROM proper_name_raw
          WHERE mention_target_rank <= max_name_targets
+    ),
+    proper_name_overflow AS (
+        SELECT DISTINCT
+               mention.source_object_id,
+               mention.token_id AS source_token_id,
+               mention.lemma_symbol_id AS family_lemma_symbol_id,
+               target.family_candidate_count AS possible_target_count
+          FROM proper_name_mention AS mention
+          JOIN family_target AS target
+            ON target.family_lemma_symbol_id = mention.lemma_symbol_id
+           AND target.family_rank = 1
+         WHERE target.family_candidate_count > max_name_targets
     ),
 
     -- Explicit alias cues retain the existing conservative sentence-local rule.
@@ -382,137 +396,58 @@ BEGIN
         SELECT * FROM proper_name_evidence
         UNION ALL
         SELECT * FROM alias_evidence
+    ),
+    evidence_write AS (
+        INSERT INTO execution.semantic_pnf_identity_evidence_candidate
+            (run_id, document_id, source_object_id, target_object_id,
+             witness_kind, source_token_id, target_token_id, sentence_id,
+             evidence_ref, candidate_count, evidence_state)
+        SELECT selected_run_id,
+               selected_document_id,
+               evidence.source_object_id,
+               evidence.target_object_id,
+               evidence.witness_kind,
+               evidence.source_token_id,
+               evidence.target_token_id,
+               evidence.sentence_id,
+               evidence.evidence_ref,
+               evidence.candidate_count,
+               1
+          FROM evidence
+        ON CONFLICT (run_id, document_id, source_object_id, target_object_id,
+                     witness_kind, evidence_ref)
+        DO UPDATE SET
+            evidence_state = 1,
+            candidate_count = EXCLUDED.candidate_count,
+            source_token_id = EXCLUDED.source_token_id,
+            target_token_id = EXCLUDED.target_token_id,
+            sentence_id = EXCLUDED.sentence_id
+        RETURNING candidate_id
+    ),
+    overflow_write AS (
+        INSERT INTO execution.semantic_pnf_proper_name_evidence_overflow
+            (run_id, document_id, source_object_id, source_token_id,
+             family_lemma_symbol_id, possible_target_count,
+             retained_target_limit)
+        SELECT selected_run_id,
+               selected_document_id,
+               overflow.source_object_id,
+               overflow.source_token_id,
+               overflow.family_lemma_symbol_id,
+               overflow.possible_target_count,
+               max_name_targets::SMALLINT
+          FROM proper_name_overflow AS overflow
+        ON CONFLICT (run_id, document_id, source_object_id, source_token_id,
+                     family_lemma_symbol_id)
+        DO UPDATE SET
+            possible_target_count = EXCLUDED.possible_target_count,
+            retained_target_limit = EXCLUDED.retained_target_limit,
+            observed_at = CURRENT_TIMESTAMP
+        RETURNING source_token_id
     )
-    INSERT INTO execution.semantic_pnf_identity_evidence_candidate
-        (run_id, document_id, source_object_id, target_object_id,
-         witness_kind, source_token_id, target_token_id, sentence_id,
-         evidence_ref, candidate_count, evidence_state)
-    SELECT selected_run_id,
-           selected_document_id,
-           evidence.source_object_id,
-           evidence.target_object_id,
-           evidence.witness_kind,
-           evidence.source_token_id,
-           evidence.target_token_id,
-           evidence.sentence_id,
-           evidence.evidence_ref,
-           evidence.candidate_count,
-           1
-      FROM evidence
-    ON CONFLICT (run_id, document_id, source_object_id, target_object_id,
-                 witness_kind, evidence_ref)
-    DO UPDATE SET
-        evidence_state = 1,
-        candidate_count = EXCLUDED.candidate_count,
-        source_token_id = EXCLUDED.source_token_id,
-        target_token_id = EXCLUDED.target_token_id,
-        sentence_id = EXCLUDED.sentence_id;
-
-    -- Record the exact family cardinality for standalone mentions whose full
-    -- candidate set was not retained.  The bounded candidate rows still carry
-    -- candidate_count > 1 and therefore remain non-admissible.
-    WITH doc_token AS MATERIALIZED (
-        SELECT token.token_id,
-               token.sentence_id,
-               token.sentence_ref,
-               token.start_char,
-               token.end_char,
-               token.lemma_symbol_id,
-               token.pos_symbol_id
-          FROM execution.semantic_parser_token AS token
-         WHERE token.run_ref = selected_run_ref
-           AND token.document_ref = selected_document_ref
-           AND token.representation_version = 2
-    ),
-    doc_person_entity AS MATERIALIZED (
-        SELECT entity.entity_id,
-               entity.sentence_ref,
-               entity.start_char,
-               entity.end_char
-          FROM execution.semantic_parser_entity_span AS entity
-          JOIN execution.semantic_symbol AS entity_type
-            ON entity_type.symbol_id = entity.entity_type_symbol_id
-           AND entity_type.symbol_text = 'PERSON'
-         WHERE entity.run_ref = selected_run_ref
-           AND entity.document_ref = selected_document_ref
-    ),
-    person_family AS MATERIALIZED (
-        SELECT entity.entity_id,
-               head.lemma_symbol_id AS family_lemma_symbol_id
-          FROM doc_person_entity AS entity
-          JOIN LATERAL (
-              SELECT token.lemma_symbol_id
-                FROM doc_token AS token
-                JOIN execution.semantic_symbol AS pos
-                  ON pos.symbol_id = token.pos_symbol_id
-                 AND pos.symbol_text = 'PROPN'
-               WHERE token.sentence_ref = entity.sentence_ref
-                 AND token.start_char >= entity.start_char
-                 AND token.end_char <= entity.end_char
-               ORDER BY token.end_char DESC, token.token_id DESC
-               LIMIT 1
-          ) AS head ON TRUE
-         WHERE (
-               SELECT count(*)
-                 FROM doc_token AS member
-                WHERE member.sentence_ref = entity.sentence_ref
-                  AND member.start_char >= entity.start_char
-                  AND member.end_char <= entity.end_char
-         ) >= 2
-    ),
-    family_cardinality AS (
-        SELECT family_lemma_symbol_id,
-               count(*)::BIGINT AS possible_target_count
-          FROM person_family
-         GROUP BY family_lemma_symbol_id
-        HAVING count(*) > max_name_targets
-    ),
-    standalone_mention AS (
-        SELECT token.token_id,
-               token.lemma_symbol_id,
-               anchor.object_id AS source_object_id
-          FROM doc_token AS token
-          JOIN execution.semantic_symbol AS pos
-            ON pos.symbol_id = token.pos_symbol_id
-           AND pos.symbol_text = 'PROPN'
-          JOIN execution.numeric_pnf_document_parser_object_anchor(
-              selected_run_id, selected_document_id
-          ) AS anchor
-            ON anchor.token_id = token.token_id
-         WHERE NOT EXISTS (
-               SELECT 1
-                 FROM doc_person_entity AS entity
-                WHERE entity.sentence_ref = token.sentence_ref
-                  AND token.start_char >= entity.start_char
-                  AND token.end_char <= entity.end_char
-         )
-    )
-    INSERT INTO execution.semantic_pnf_proper_name_evidence_overflow
-        (run_id, document_id, source_object_id, source_token_id,
-         family_lemma_symbol_id, possible_target_count,
-         retained_target_limit)
-    SELECT selected_run_id,
-           selected_document_id,
-           mention.source_object_id,
-           mention.token_id,
-           mention.lemma_symbol_id,
-           cardinality.possible_target_count,
-           max_name_targets::SMALLINT
-      FROM standalone_mention AS mention
-      JOIN family_cardinality AS cardinality
-        ON cardinality.family_lemma_symbol_id = mention.lemma_symbol_id
-    ON CONFLICT (run_id, document_id, source_object_id, source_token_id,
-                 family_lemma_symbol_id)
-    DO UPDATE SET
-        possible_target_count = EXCLUDED.possible_target_count,
-        retained_target_limit = EXCLUDED.retained_target_limit,
-        observed_at = CURRENT_TIMESTAMP;
-
-    SELECT count(*) INTO affected_count
-      FROM execution.semantic_pnf_identity_evidence_candidate
-     WHERE run_id = selected_run_id
-       AND document_id = selected_document_id
-       AND evidence_state = 1;
+    SELECT (SELECT count(*) FROM evidence_write)
+         + (SELECT 0 * count(*) FROM overflow_write)
+      INTO affected_count;
 
     RETURN affected_count;
 END;
