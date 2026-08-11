@@ -38,10 +38,17 @@ def _resolve_run(cursor: Any, requested_run_id: int | None) -> int:
         if cursor.fetchone() is None:
             raise SystemExit(f"unknown run_id {requested_run_id}")
         return requested_run_id
-    cursor.execute("SELECT max(run_id) FROM execution.semantic_pnf_region")
+    cursor.execute(
+        """
+        SELECT max(region.run_id)
+          FROM execution.semantic_pnf_region AS region
+          JOIN execution.semantic_pnf_run_identity AS identity
+            ON identity.run_id = region.run_id
+        """
+    )
     row = cursor.fetchone()
     if row is None or row[0] is None:
-        raise SystemExit("no numeric PNF run is available")
+        raise SystemExit("no numeric PNF run with a registered run identity is available")
     return int(row[0])
 
 
@@ -50,10 +57,12 @@ def _documents(cursor: Any, run_id: int, requested: tuple[int, ...]) -> tuple[in
         return tuple(sorted(set(requested)))
     cursor.execute(
         """
-        SELECT DISTINCT document_id
-          FROM execution.semantic_pnf_region
-         WHERE run_id = %s
-         ORDER BY document_id
+        SELECT DISTINCT region.document_id
+          FROM execution.semantic_pnf_region AS region
+          JOIN execution.semantic_pnf_document_identity AS identity
+            ON identity.document_id = region.document_id
+         WHERE region.run_id = %s
+         ORDER BY region.document_id
         """,
         (run_id,),
     )
@@ -89,6 +98,12 @@ def _time_phase(
         flush=True,
     )
     return elapsed_ms, result
+
+
+def _count(cursor: Any, query: str, params: tuple[object, ...]) -> int:
+    cursor.execute(query, params)
+    row = cursor.fetchone()
+    return int(row[0]) if row is not None else 0
 
 
 def main() -> None:
@@ -146,7 +161,8 @@ def main() -> None:
                             document_id=document_id,
                             composition_limit=args.composition_limit,
                         )
-                    cursor.execute(
+                    composition_overflow = _count(
+                        cursor,
                         """
                         SELECT count(*)
                           FROM execution.semantic_pnf_factor_composition_overflow
@@ -154,11 +170,37 @@ def main() -> None:
                         """,
                         (run_id, document_id),
                     )
-                    overflow_count = int(cursor.fetchone()[0])
+                    name_overflow = _count(
+                        cursor,
+                        """
+                        SELECT count(*)
+                          FROM execution.semantic_pnf_proper_name_evidence_overflow
+                         WHERE run_id = %s AND document_id = %s
+                        """,
+                        (run_id, document_id),
+                    )
+                    factor_bearing_projections = _count(
+                        cursor,
+                        """
+                        SELECT count(DISTINCT projection.source_object_id)
+                          FROM execution.semantic_pnf_identity_projection AS projection
+                          JOIN execution.semantic_pnf_hyperedge AS edge
+                            ON edge.object_id = projection.source_object_id
+                          JOIN execution.semantic_pnf_object AS source
+                            ON source.object_id = projection.source_object_id
+                          JOIN execution.semantic_pnf_region AS region
+                            ON region.region_id = source.region_id
+                         WHERE region.run_id = %s
+                           AND region.document_id = %s
+                        """,
+                        (run_id, document_id),
+                    )
             document_ms = (perf_counter() - document_started) * 1000.0
             print(
                 f"    document_total_ms={document_ms:.3f} "
-                f"composition_overflow_bridges={overflow_count}",
+                f"proper_name_overflow_mentions={name_overflow} "
+                f"factor_bearing_projections={factor_bearing_projections} "
+                f"composition_overflow_bridges={composition_overflow}",
                 flush=True,
             )
 
