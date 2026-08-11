@@ -33,9 +33,9 @@ def test_person_membership_and_family_cardinality_are_shared_once() -> None:
 def test_embedded_person_name_tokens_are_not_standalone_expansion_sources() -> None:
     sql = _sql()
     assert "proper_name_mention AS MATERIALIZED" in sql
-    assert "WHERE NOT EXISTS (\n               SELECT 1\n                 FROM doc_person_entity AS entity" in sql
-    assert "token.start_char >= entity.start_char" in sql
-    assert "token.end_char <= entity.end_char" in sql
+    assert "person_member_token AS MATERIALIZED" in sql
+    assert "LEFT JOIN person_member_token AS member" in sql
+    assert "WHERE member.token_id IS NULL" in sql
 
 
 def test_bounded_ambiguity_remains_non_admissible_and_auditable() -> None:

@@ -81,10 +81,8 @@ WITH identity AS (
      GROUP BY support.token_id
     HAVING count(DISTINCT support.object_id) = 1
 ), token_with_any_support AS MATERIALIZED (
-    SELECT DISTINCT token.token_id
-      FROM needed_token AS token
-      JOIN execution.semantic_pnf_object_token_support AS support
-        ON support.token_id = token.token_id
+    SELECT DISTINCT token_id
+      FROM exact_support
 ), fallback_candidate AS (
     SELECT token.token_id,
            token.sentence_id,

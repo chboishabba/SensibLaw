@@ -123,6 +123,59 @@ BEGIN
               selected_run_id, selected_document_id
           ) AS anchor
     ),
+    person_entity_member AS MATERIALIZED (
+        SELECT entity.entity_id AS parser_entity_id,
+               entity.sentence_ref,
+               entity.start_char,
+               entity.end_char,
+               token.token_id,
+               token.lemma_symbol_id,
+               token.pos_symbol_id,
+               token.end_char AS token_end_char,
+               count(*) OVER (PARTITION BY entity.entity_id) AS member_count
+          FROM doc_person_entity AS entity
+          JOIN doc_token AS token
+            ON token.sentence_ref = entity.sentence_ref
+           AND token.start_char >= entity.start_char
+           AND token.end_char <= entity.end_char
+    ),
+    person_member_token AS MATERIALIZED (
+        SELECT DISTINCT token_id
+          FROM person_entity_member
+    ),
+    person_entity_head AS MATERIALIZED (
+        SELECT DISTINCT ON (member.parser_entity_id)
+               member.parser_entity_id,
+               member.sentence_ref,
+               member.start_char,
+               member.end_char,
+               member.token_id AS head_token_id,
+               member.lemma_symbol_id AS family_lemma_symbol_id,
+               anchor.object_id AS anchor_object_id
+          FROM person_entity_member AS member
+          JOIN execution.semantic_symbol AS pos
+            ON pos.symbol_id = member.pos_symbol_id
+           AND pos.symbol_text = 'PROPN'
+          JOIN doc_anchor AS anchor
+            ON anchor.token_id = member.token_id
+          WHERE member.member_count >= 2
+          ORDER BY member.parser_entity_id,
+                   member.token_end_char DESC,
+                   member.token_id DESC
+    ),
+    family_target AS MATERIALIZED (
+        SELECT person.*,
+               count(*) OVER (
+                   PARTITION BY person.family_lemma_symbol_id
+               )::BIGINT AS family_candidate_count,
+               row_number() OVER (
+                   PARTITION BY person.family_lemma_symbol_id
+                   ORDER BY person.parser_entity_id,
+                            person.anchor_object_id,
+                            person.head_token_id
+               ) AS family_rank
+          FROM person_entity_head AS person
+    ),
 
     -- Direct dependency apposition remains proof-producing local structure.
     appos AS (
@@ -133,17 +186,13 @@ BEGIN
                sentence.sentence_id,
                EXISTS (
                    SELECT 1
-                     FROM doc_person_entity AS entity
-                    WHERE entity.sentence_ref = source_token.sentence_ref
-                      AND source_token.start_char >= entity.start_char
-                      AND source_token.end_char <= entity.end_char
+                     FROM person_member_token AS member
+                    WHERE member.token_id = source_token.token_id
                ) AS source_is_person,
                EXISTS (
                    SELECT 1
-                     FROM doc_person_entity AS entity
-                    WHERE entity.sentence_ref = target_token.sentence_ref
-                      AND target_token.start_char >= entity.start_char
-                      AND target_token.end_char <= entity.end_char
+                     FROM person_member_token AS member
+                    WHERE member.token_id = target_token.token_id
                ) AS target_is_person
           FROM appos_token AS dependency
           JOIN doc_token AS source_token
@@ -189,58 +238,6 @@ BEGIN
           FROM appos
     ),
 
-    -- Join PERSON spans to member tokens once.  This replaces the former pair of
-    -- correlated scans (head lookup plus member count) for every entity.
-    person_entity_member AS MATERIALIZED (
-        SELECT entity.entity_id AS parser_entity_id,
-               entity.sentence_ref,
-               entity.start_char,
-               entity.end_char,
-               token.token_id,
-               token.lemma_symbol_id,
-               token.pos_symbol_id,
-               token.end_char AS token_end_char,
-               count(*) OVER (PARTITION BY entity.entity_id) AS member_count
-          FROM doc_person_entity AS entity
-          JOIN doc_token AS token
-            ON token.sentence_ref = entity.sentence_ref
-           AND token.start_char >= entity.start_char
-           AND token.end_char <= entity.end_char
-    ),
-    person_entity_head AS MATERIALIZED (
-        SELECT DISTINCT ON (member.parser_entity_id)
-               member.parser_entity_id,
-               member.sentence_ref,
-               member.start_char,
-               member.end_char,
-               member.token_id AS head_token_id,
-               member.lemma_symbol_id AS family_lemma_symbol_id,
-               anchor.object_id AS anchor_object_id
-          FROM person_entity_member AS member
-          JOIN execution.semantic_symbol AS pos
-            ON pos.symbol_id = member.pos_symbol_id
-           AND pos.symbol_text = 'PROPN'
-          JOIN doc_anchor AS anchor
-            ON anchor.token_id = member.token_id
-         WHERE member.member_count >= 2
-         ORDER BY member.parser_entity_id,
-                  member.token_end_char DESC,
-                  member.token_id DESC
-    ),
-    family_target AS MATERIALIZED (
-        SELECT person.*,
-               count(*) OVER (
-                   PARTITION BY person.family_lemma_symbol_id
-               )::BIGINT AS family_candidate_count,
-               row_number() OVER (
-                   PARTITION BY person.family_lemma_symbol_id
-                   ORDER BY person.parser_entity_id,
-                            person.anchor_object_id,
-                            person.head_token_id
-               ) AS family_rank
-          FROM person_entity_head AS person
-    ),
-
     -- Proper-name expansion is only for standalone proper-name tokens.  A token
     -- inside any PERSON span is already part of explicit full-name structure.
     proper_name_mention AS MATERIALIZED (
@@ -257,13 +254,9 @@ BEGIN
            AND pos.symbol_text = 'PROPN'
           JOIN doc_anchor AS anchor
             ON anchor.token_id = token.token_id
-         WHERE NOT EXISTS (
-               SELECT 1
-                 FROM doc_person_entity AS entity
-                WHERE entity.sentence_ref = token.sentence_ref
-                  AND token.start_char >= entity.start_char
-                  AND token.end_char <= entity.end_char
-         )
+          LEFT JOIN person_member_token AS member
+            ON member.token_id = token.token_id
+         WHERE member.token_id IS NULL
     ),
     proper_name_raw AS (
         SELECT mention.source_object_id,
@@ -312,6 +305,18 @@ BEGIN
          WHERE target.family_candidate_count > max_name_targets
     ),
 
+    doc_alias_cue AS MATERIALIZED (
+        SELECT cue.token_id AS cue_token_id,
+               cue.sentence_ref,
+               cue.start_char AS cue_start,
+               cue.end_char AS cue_end,
+               lower(cue_text.symbol_text) AS cue_text
+          FROM doc_token AS cue
+          JOIN execution.semantic_symbol AS cue_text
+            ON cue_text.symbol_id = cue.orth_symbol_id
+         WHERE lower(cue_text.symbol_text) IN ('aka', 'a.k.a.', 'alias', 'known')
+    ),
+
     -- Explicit alias cues retain the existing conservative sentence-local rule.
     alias_pair AS (
         SELECT left_entity.entity_id AS left_entity_id,
@@ -321,13 +326,16 @@ BEGIN
                right_head.token_id AS right_token_id,
                left_anchor.object_id AS left_object_id,
                right_anchor.object_id AS right_object_id,
-               min(cue.token_id) AS cue_token_id
-          FROM doc_person_entity AS left_entity
+               min(cue.cue_token_id) AS cue_token_id
+          FROM doc_alias_cue AS cue
+          JOIN doc_person_entity AS left_entity
+            ON left_entity.sentence_ref = cue.sentence_ref
+           AND left_entity.end_char <= cue.cue_start
           JOIN doc_person_entity AS right_entity
-            ON right_entity.sentence_ref = left_entity.sentence_ref
-           AND right_entity.start_char > left_entity.end_char
+            ON right_entity.sentence_ref = cue.sentence_ref
+           AND right_entity.start_char >= cue.cue_end
           JOIN doc_sentence AS sentence
-            ON sentence.sentence_ref = left_entity.sentence_ref
+            ON sentence.sentence_ref = cue.sentence_ref
           JOIN LATERAL (
               SELECT member.token_id
                 FROM person_entity_member AS member
@@ -346,17 +354,11 @@ BEGIN
             ON left_anchor.token_id = left_head.token_id
           JOIN doc_anchor AS right_anchor
             ON right_anchor.token_id = right_head.token_id
-          JOIN doc_token AS cue
-            ON cue.sentence_ref = left_entity.sentence_ref
-           AND cue.start_char >= left_entity.end_char
-           AND cue.end_char <= right_entity.start_char
-          JOIN execution.semantic_symbol AS cue_text
-            ON cue_text.symbol_id = cue.orth_symbol_id
          WHERE left_anchor.object_id <> right_anchor.object_id
            AND (
-               lower(cue_text.symbol_text) IN ('aka', 'a.k.a.', 'alias')
+               cue.cue_text IN ('aka', 'a.k.a.', 'alias')
                OR (
-                   lower(cue_text.symbol_text) = 'known'
+                   cue.cue_text = 'known'
                    AND EXISTS (
                        SELECT 1
                          FROM doc_token AS as_token
@@ -364,7 +366,7 @@ BEGIN
                            ON as_text.symbol_id = as_token.orth_symbol_id
                           AND lower(as_text.symbol_text) = 'as'
                         WHERE as_token.sentence_ref = cue.sentence_ref
-                          AND as_token.start_char >= cue.end_char
+                          AND as_token.start_char >= cue.cue_end
                           AND as_token.end_char <= right_entity.start_char
                    )
                )
