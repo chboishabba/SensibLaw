@@ -4,6 +4,11 @@ Network mechanics are injected through ``WikidataTransport`` so this layer can
 optimize semantic request fan-in independently of HTTP/SPARQL details. The
 adapter deduplicates labels and (Q,P) facts before transport and reports actual
 network-call count.
+
+Transport/acquisition provenance is intentionally distinct from the Wikidata
+entity namespace.  A Zelph/HF snapshot and a live endpoint may both return Q408;
+that remains one Wikidata coordinate while ``source_ref`` records where the fact
+was acquired.
 """
 from __future__ import annotations
 
@@ -47,6 +52,7 @@ class WikidataPropertyFact:
     value_symbol_kind: int | None = None
     value_numeric: int | None = None
     entity_revision: int | None = None
+    source_ref: str = "wikidata:property-batch"
 
 
 @dataclass(frozen=True, slots=True)
@@ -173,8 +179,10 @@ class WikidataLateProvider:
 
     @staticmethod
     def _external_evidence(fact: WikidataPropertyFact) -> ExternalEvidence:
+        if not fact.source_ref.strip():
+            raise ValueError("Wikidata property fact requires non-empty acquisition source_ref")
         canonical = [
-            b"wikidata-fact-v1",
+            b"wikidata-fact-v2",
             str(fact.subject_qid).encode("ascii"),
             str(fact.property_pid).encode("ascii"),
             str(int(fact.value_kind)).encode("ascii"),
@@ -182,6 +190,7 @@ class WikidataLateProvider:
             str(fact.value_text if fact.value_text is not None else "").encode("utf-8"),
             str(fact.value_numeric if fact.value_numeric is not None else "").encode("utf-8"),
             str(fact.entity_revision if fact.entity_revision is not None else "").encode("ascii"),
+            fact.source_ref.encode("utf-8"),
         ]
         digest = sha256(b"\x00".join(canonical)).digest()
         common = {
@@ -190,7 +199,7 @@ class WikidataLateProvider:
             "provider_property_numeric_id": fact.property_pid,
             "value_kind": fact.value_kind,
             "provider_revision": fact.entity_revision,
-            "source_ref": "wikidata:property-batch",
+            "source_ref": fact.source_ref,
         }
         if fact.value_kind is ExternalValueKind.WORLD_ENTITY:
             return ExternalEvidence(
