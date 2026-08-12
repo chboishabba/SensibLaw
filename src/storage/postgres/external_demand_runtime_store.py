@@ -51,13 +51,16 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
         priority: int = 100,
         revision: int = 1,
         active: bool = True,
+        minimum_source_epoch: int | None = None,
     ) -> int:
         if need_kind is ExternalNeedKind.PROPERTY_ENRICHMENT:
             if axis_kind is None or provider_property_numeric_id is None:
                 raise ValueError("property enrichment requires axis and provider property ids")
         elif axis_kind is not None or provider_property_numeric_id is not None:
             raise ValueError("discovery/identity needs do not accept property-axis coordinates")
-        return self._scalar_function(
+        if minimum_source_epoch is not None and minimum_source_epoch <= 0:
+            raise ValueError("minimum source epoch must be positive")
+        need_id = self._scalar_function(
             "execution.record_numeric_pnf_consumer_external_need",
             (
                 demand_id,
@@ -73,6 +76,13 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                 active,
             ),
         )
+        if minimum_source_epoch is not None:
+            if not self._scalar_function(
+                "execution.set_numeric_pnf_external_need_minimum_source_epoch",
+                (need_id, minimum_source_epoch),
+            ):
+                raise RuntimeError("failed to persist external freshness requirement")
+        return need_id
 
     def plan_external_demands(
         self,
@@ -115,6 +125,7 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                             provider_property_numeric_id=None if row[4] is None else int(row[4]),
                             axis_kind=None if row[5] is None else int(row[5]),
                             request_revision=int(row[6]),
+                            minimum_source_epoch=None if row[7] is None else int(row[7]),
                         )
                         for row in cursor.fetchall()
                     )
@@ -180,17 +191,34 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                         cursor.execute(
                             """
                             INSERT INTO execution.semantic_pnf_label_world_candidate
-                                (label_symbol_id,world_entity_id,candidate_ordinal,cache_revision)
-                            VALUES (%s,%s,%s,%s)
+                                (label_symbol_id,world_entity_id,candidate_ordinal,cache_revision,
+                                 source_epoch,source_ref)
+                            VALUES (%s,%s,%s,%s,%s,%s)
                             ON CONFLICT(label_symbol_id,world_entity_id) DO UPDATE SET
                                 candidate_ordinal=EXCLUDED.candidate_ordinal,
-                                cache_revision=EXCLUDED.cache_revision
+                                cache_revision=EXCLUDED.cache_revision,
+                                source_epoch=CASE
+                                    WHEN execution.semantic_pnf_label_world_candidate.source_epoch IS NULL
+                                      OR EXCLUDED.source_epoch IS NULL
+                                      OR EXCLUDED.source_epoch>=execution.semantic_pnf_label_world_candidate.source_epoch
+                                    THEN EXCLUDED.source_epoch
+                                    ELSE execution.semantic_pnf_label_world_candidate.source_epoch
+                                END,
+                                source_ref=CASE
+                                    WHEN execution.semantic_pnf_label_world_candidate.source_epoch IS NULL
+                                      OR EXCLUDED.source_epoch IS NULL
+                                      OR EXCLUDED.source_epoch>=execution.semantic_pnf_label_world_candidate.source_epoch
+                                    THEN EXCLUDED.source_ref
+                                    ELSE execution.semantic_pnf_label_world_candidate.source_ref
+                                END
                             """,
                             (
                                 label_symbol_id,
                                 world_entity_id,
                                 candidate.candidate_ordinal,
                                 request.request_revision,
+                                candidate.source_epoch,
+                                candidate.source_ref,
                             ),
                         )
         finally:
@@ -274,7 +302,15 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                             evidence.source_ref,
                         ),
                     )
-                    return int(cursor.fetchone()[0])
+                    external_evidence_id = int(cursor.fetchone()[0])
+                    if evidence.source_epoch is not None:
+                        cursor.execute(
+                            "SELECT execution.set_numeric_pnf_external_evidence_source_epoch(%s,%s)",
+                            (external_evidence_id, evidence.source_epoch),
+                        )
+                        if not bool(cursor.fetchone()[0]):
+                            raise RuntimeError("external evidence source epoch conflicts with immutable receipt")
+                    return external_evidence_id
         finally:
             connection.close()
 
@@ -282,14 +318,10 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
         return bool(self._scalar_function("execution.complete_numeric_pnf_external_request", (request_id,)))
 
     def fail_external_request(self, request_id: int, error_ref: str) -> bool:
-        return bool(
-            self._scalar_function("execution.fail_numeric_pnf_external_request", (request_id, error_ref))
-        )
+        return bool(self._scalar_function("execution.fail_numeric_pnf_external_request", (request_id, error_ref)))
 
     def block_external_request(self, request_id: int, error_ref: str) -> bool:
-        return bool(
-            self._scalar_function("execution.block_numeric_pnf_external_request", (request_id, error_ref))
-        )
+        return bool(self._scalar_function("execution.block_numeric_pnf_external_request", (request_id, error_ref)))
 
     def record_external_batch_receipt(
         self,
