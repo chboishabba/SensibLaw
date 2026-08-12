@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static source audit for the reopenable numeric runtime migrations 086-089.
+"""Static source audit for the reopenable numeric runtime migrations 086-091.
 
 This script itself is source-analysis tooling, so regex is an explicit boundary
 exception: it parses SQL *source text* and never participates in semantic
@@ -12,16 +12,19 @@ import argparse
 import re
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATIONS = ROOT / "database" / "postgres_migrations"
-TARGETS = (
-    "086_consumer_indexed_reopenable_runtime.sql",
-    "087_reopenable_runtime_hardening.sql",
-    "088_progressive_reopenable_resolution.sql",
-    "089_numeric_incremental_runtime_economy.sql",
+TARGETS = tuple(
+    f"{number:03d}_{name}.sql"
+    for number, name in (
+        (86, "consumer_indexed_reopenable_runtime"),
+        (87, "reopenable_runtime_hardening"),
+        (88, "progressive_reopenable_resolution"),
+        (89, "numeric_incremental_runtime_economy"),
+        (90, "numeric_parser_evidence_and_learning"),
+        (91, "numeric_incremental_wiring"),
+    )
 )
-
 IDENTIFIER = re.compile(r"\bexecution\.([a-zA-Z_][a-zA-Z0-9_]*)\b")
 DEFINITION = re.compile(
     r"\bCREATE\s+(?:OR\s+REPLACE\s+)?"
@@ -32,10 +35,7 @@ DEFINITION = re.compile(
 
 
 def migration_sources() -> dict[str, str]:
-    return {
-        path.name: path.read_text(encoding="utf-8")
-        for path in sorted(MIGRATIONS.glob("*.sql"))
-    }
+    return {path.name: path.read_text(encoding="utf-8") for path in sorted(MIGRATIONS.glob("*.sql"))}
 
 
 def audit() -> tuple[set[str], dict[str, tuple[str, ...]]]:
@@ -44,18 +44,12 @@ def audit() -> tuple[set[str], dict[str, tuple[str, ...]]]:
     for filename, text in sources.items():
         for name in DEFINITION.findall(text):
             defined_by.setdefault(name.lower(), []).append(filename)
-
     referenced: set[str] = set()
     for filename in TARGETS:
         text = sources[filename]
         referenced.update(name.lower() for name in IDENTIFIER.findall(text))
-
     missing = referenced.difference(defined_by)
-    provenance = {
-        name: tuple(defined_by[name])
-        for name in sorted(referenced)
-        if name in defined_by
-    }
+    provenance = {name: tuple(defined_by[name]) for name in sorted(referenced) if name in defined_by}
     return missing, provenance
 
 
