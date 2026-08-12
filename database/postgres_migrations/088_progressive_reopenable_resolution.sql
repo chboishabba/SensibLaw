@@ -24,8 +24,9 @@ CREATE INDEX IF NOT EXISTS semantic_pnf_progressive_resolution_run_doc_idx
        (run_id, document_id, horizon, progressive_run_id DESC);
 
 -- A preference winner exists only when one admissible represented candidate has
--- a strictly greater cumulative signed residual than every other admissible
--- represented candidate at the requested horizon.  Ties remain unresolved.
+-- a non-neutral cumulative residual strictly greater than every other admissible
+-- represented candidate at the requested horizon.  Ties and all-neutral fibres
+-- remain unresolved.
 CREATE OR REPLACE VIEW execution.semantic_pnf_progressive_preference_candidate_v1 AS
 WITH ranked AS (
     SELECT state.demand_id,
@@ -57,8 +58,11 @@ WITH ranked AS (
        AND NOT state.refuted
 ), winner AS (
     SELECT ranked.*,
-           ranked.next_residual IS NULL
-               OR ranked.signed_residual > ranked.next_residual AS strict_winner
+           ranked.signed_residual <> 0
+           AND (
+               ranked.next_residual IS NULL
+               OR ranked.signed_residual > ranked.next_residual
+           ) AS strict_winner
       FROM ranked
      WHERE ranked.rank_ordinal = 1
 )
@@ -194,7 +198,12 @@ BEGIN
      WHERE region.run_id = selected_run_id
        AND region.document_id = selected_document_id;
 
-    SELECT count(*) INTO deductive_count
+    SELECT count(*) FILTER (WHERE resolution.deductive_unique),
+           count(*) FILTER (
+               WHERE NOT resolution.deductive_unique
+                 AND NOT resolution.strict_winner
+           )
+      INTO deductive_count, unresolved_count
       FROM execution.semantic_pnf_progressive_resolution_v1 AS resolution
       JOIN execution.semantic_pnf_demand AS demand
         ON demand.demand_id = resolution.demand_id
@@ -202,10 +211,24 @@ BEGIN
         ON region.region_id = demand.source_region_id
      WHERE region.run_id = selected_run_id
        AND region.document_id = selected_document_id
-       AND resolution.horizon = selected_horizon
-       AND resolution.deductive_unique;
+       AND resolution.horizon = selected_horizon;
 
-    unresolved_count := GREATEST(selected_count - deductive_count, 0);
+    -- Demands with no represented candidate never appear in the progressive
+    -- candidate view and therefore remain unresolved rather than disappearing.
+    unresolved_count := unresolved_count + GREATEST(
+        selected_count - (
+            SELECT count(DISTINCT resolution.demand_id)
+              FROM execution.semantic_pnf_progressive_resolution_v1 AS resolution
+              JOIN execution.semantic_pnf_demand AS demand
+                ON demand.demand_id = resolution.demand_id
+              JOIN execution.semantic_pnf_region AS region
+                ON region.region_id = demand.source_region_id
+             WHERE region.run_id = selected_run_id
+               AND region.document_id = selected_document_id
+               AND resolution.horizon = selected_horizon
+        ),
+        0
+    );
 
     INSERT INTO execution.semantic_pnf_progressive_resolution_run
         (run_id, document_id, horizon, demand_count, preference_count,
