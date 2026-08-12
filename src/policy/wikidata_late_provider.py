@@ -158,9 +158,6 @@ class WikidataLateProvider:
                 evidence=tuple(self._external_evidence(fact) for fact in facts),
             )
 
-        # A normal entity/property lookup is not an identity proof. This is a
-        # zero-network local rejection until a proof-producing alignment adapter
-        # is supplied; provider_call_count therefore remains literal.
         for request in identity:
             results[request.request_id] = ExternalRequestResult(
                 request.request_id,
@@ -183,30 +180,26 @@ class WikidataLateProvider:
             str(fact.entity_revision if fact.entity_revision is not None else "").encode("ascii"),
         ]
         digest = sha256(b"\x00".join(canonical)).digest()
+        common = {
+            "evidence_digest": digest,
+            "provider_subject_numeric_id": fact.subject_qid,
+            "provider_property_numeric_id": fact.property_pid,
+            "value_kind": fact.value_kind,
+            "provider_revision": fact.entity_revision,
+            "source_ref": "wikidata:property-batch",
+        }
         if fact.value_kind is ExternalValueKind.WORLD_ENTITY:
             return ExternalEvidence(
-                evidence_digest=digest,
-                provider_property_numeric_id=fact.property_pid,
-                value_kind=fact.value_kind,
+                **common,
                 value_provider_numeric_id=fact.value_qid,
-                provider_revision=fact.entity_revision,
-                source_ref="wikidata:property-batch",
             )
         if fact.value_kind is ExternalValueKind.SYMBOL:
             return ExternalEvidence(
-                evidence_digest=digest,
-                provider_property_numeric_id=fact.property_pid,
-                value_kind=fact.value_kind,
+                **common,
                 value_text=fact.value_text,
                 value_symbol_kind=fact.value_symbol_kind,
-                provider_revision=fact.entity_revision,
-                source_ref="wikidata:property-batch",
             )
         return ExternalEvidence(
-            evidence_digest=digest,
-            provider_property_numeric_id=fact.property_pid,
-            value_kind=fact.value_kind,
+            **common,
             value_numeric=fact.value_numeric,
-            provider_revision=fact.entity_revision,
-            source_ref="wikidata:property-batch",
         )
