@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""Static source audit for migrations 086/087 (and progressive 088 consumers).
+"""Static source audit for the reopenable numeric runtime migrations 086-089.
 
-Every schema-qualified ``execution.<identifier>`` referenced by the target
-migrations must be defined by a CREATE statement somewhere in the PostgreSQL
-migration source, or be one of PostgreSQL's schema-qualified built-ins (none are
-currently needed).  This catches drift such as renamed runtime views/functions
-before a database migration is attempted.
+This script itself is source-analysis tooling, so regex is an explicit boundary
+exception: it parses SQL *source text* and never participates in semantic
+execution over corpus content.
 """
 
 from __future__ import annotations
@@ -21,6 +19,7 @@ TARGETS = (
     "086_consumer_indexed_reopenable_runtime.sql",
     "087_reopenable_runtime_hardening.sql",
     "088_progressive_reopenable_resolution.sql",
+    "089_numeric_incremental_runtime_economy.sql",
 )
 
 IDENTIFIER = re.compile(r"\bexecution\.([a-zA-Z_][a-zA-Z0-9_]*)\b")
