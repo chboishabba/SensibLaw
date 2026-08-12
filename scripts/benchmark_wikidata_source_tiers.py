@@ -1,26 +1,13 @@
 #!/usr/bin/env python3
 """Benchmark Zelph/HF snapshot-first Wikidata acquisition against live lookup.
 
-The harness intentionally benchmarks acquisition transports, not semantic
-correctness.  Feed the same labels and (Q,P) keys to snapshot-only, tiered and
-live-only transports and compare:
+The harness benchmarks acquisition transports, not semantic authority. Feed the
+same labels and (Q,P) keys to snapshot-only, tiered and live-only transports and
+compare latency, coverage, literal acquisition-call count, and freshness cost.
 
-- wall-clock latency;
-- candidate/property coverage;
-- acquisition-call count;
-- fallback fraction.
-
-Factories are supplied as ``module:callable`` and must return objects satisfying
-``WikidataTransport``.  This keeps the benchmark independent of whether the
-Zelph backend is an already-loaded local process, an ITIR HF shard connector, or
-a later native binding.
-
-Workload JSON shape:
-
-    {
-      "labels": ["Springfield", "Ronald Reagan"],
-      "properties": [[180672, 17], [9960, 31]]
-    }
+Factories are ``module:callable`` and return ``WikidataTransport`` objects. The
+snapshot factory is expected to carry its real manifest/artifact epoch; this
+script never hard-codes a Wikidata dump date.
 """
 from __future__ import annotations
 
@@ -50,15 +37,11 @@ def _factory(spec: str) -> Callable[[], WikidataTransport]:
 def _workload(path: Path) -> tuple[tuple[str, ...], tuple[tuple[int, int], ...]]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     labels = tuple(dict.fromkeys(str(value) for value in payload.get("labels", []) if str(value)))
-    properties = tuple(
-        sorted(
-            set(
-                (int(row[0]), int(row[1]))
-                for row in payload.get("properties", [])
-                if isinstance(row, list) and len(row) == 2
-            )
-        )
-    )
+    properties = tuple(sorted(set(
+        (int(row[0]), int(row[1]))
+        for row in payload.get("properties", [])
+        if isinstance(row, list) and len(row) == 2
+    )))
     return labels, properties
 
 
@@ -68,10 +51,18 @@ def _one(
     labels: Sequence[str],
     properties: Sequence[tuple[int, int]],
     candidate_limit: int,
+    minimum_source_epoch: int | None,
 ) -> dict[str, object]:
     started = perf_counter()
-    search = transport.search_entities(labels, limit_per_label=candidate_limit)
-    property_batch = transport.fetch_properties(properties)
+    search = transport.search_entities(
+        labels,
+        limit_per_label=candidate_limit,
+        minimum_source_epoch=minimum_source_epoch,
+    )
+    property_batch = transport.fetch_properties(
+        properties,
+        minimum_source_epoch=minimum_source_epoch,
+    )
     elapsed = perf_counter() - started
     candidate_hits = sum(bool(search.candidates_by_label.get(label)) for label in labels)
     property_hits = sum(bool(property_batch.facts_by_key.get(key)) for key in properties)
@@ -84,6 +75,7 @@ def _one(
         "property_total": len(properties),
         "property_hit_fraction": (property_hits / len(properties) if properties else 1.0),
         "acquisition_call_count": search.provider_call_count + property_batch.provider_call_count,
+        "minimum_source_epoch": minimum_source_epoch,
     }
 
 
@@ -95,6 +87,7 @@ def _measure(
     candidate_limit: int,
     repeats: int,
     warmups: int,
+    minimum_source_epoch: int | None,
 ) -> dict[str, object]:
     transport = factory()
     for _ in range(warmups):
@@ -103,6 +96,7 @@ def _measure(
             labels=labels,
             properties=properties,
             candidate_limit=candidate_limit,
+            minimum_source_epoch=minimum_source_epoch,
         )
     rows = [
         _one(
@@ -110,6 +104,7 @@ def _measure(
             labels=labels,
             properties=properties,
             candidate_limit=candidate_limit,
+            minimum_source_epoch=minimum_source_epoch,
         )
         for _ in range(repeats)
     ]
@@ -135,40 +130,38 @@ def main() -> int:
     parser.add_argument("--candidate-limit", type=int, default=8)
     parser.add_argument("--repeats", type=int, default=5)
     parser.add_argument("--warmups", type=int, default=1)
+    parser.add_argument("--minimum-source-epoch", type=int)
     parser.add_argument("--require-live", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     if args.repeats < 1 or args.warmups < 0:
         raise ValueError("repeats must be positive and warmups non-negative")
+    if args.minimum_source_epoch is not None and args.minimum_source_epoch <= 0:
+        raise ValueError("minimum-source-epoch must be positive")
 
     labels, properties = _workload(args.workload)
     snapshot_factory = _factory(args.snapshot_factory)
     live_factory = _factory(args.live_factory) if args.live_factory else None
 
+    common = {
+        "labels": labels,
+        "properties": properties,
+        "candidate_limit": args.candidate_limit,
+        "repeats": args.repeats,
+        "warmups": args.warmups,
+        "minimum_source_epoch": args.minimum_source_epoch,
+    }
     report: dict[str, object] = {
         "workload": {
             "label_count": len(labels),
             "property_key_count": len(properties),
+            "minimum_source_epoch": args.minimum_source_epoch,
         },
-        "snapshot_only": _measure(
-            snapshot_factory,
-            labels=labels,
-            properties=properties,
-            candidate_limit=args.candidate_limit,
-            repeats=args.repeats,
-            warmups=args.warmups,
-        ),
+        "snapshot_only": _measure(snapshot_factory, **common),
     }
 
     if live_factory is not None:
-        report["live_only"] = _measure(
-            live_factory,
-            labels=labels,
-            properties=properties,
-            candidate_limit=args.candidate_limit,
-            repeats=args.repeats,
-            warmups=args.warmups,
-        )
+        report["live_only"] = _measure(live_factory, **common)
 
         def tiered_factory() -> WikidataTransport:
             return TieredWikidataTransport(
@@ -181,14 +174,7 @@ def main() -> int:
                 ),
             )
 
-        report["snapshot_then_live"] = _measure(
-            tiered_factory,
-            labels=labels,
-            properties=properties,
-            candidate_limit=args.candidate_limit,
-            repeats=args.repeats,
-            warmups=args.warmups,
-        )
+        report["snapshot_then_live"] = _measure(tiered_factory, **common)
         snapshot = report["snapshot_only"]
         tiered = report["snapshot_then_live"]
         assert isinstance(snapshot, dict) and isinstance(tiered, dict)
@@ -197,7 +183,8 @@ def main() -> int:
             "snapshot_property_coverage": snapshot["property_hit_fraction"],
             "tiered_extra_calls_over_snapshot": float(tiered["median_acquisition_call_count"])
             - float(snapshot["median_acquisition_call_count"]),
-            "freshness_forced": bool(args.require_live),
+            "freshness_floor_applied": args.minimum_source_epoch is not None,
+            "live_forced_independent_of_floor": bool(args.require_live),
         }
 
     encoded = json.dumps(report, indent=2, sort_keys=True) + "\n"
