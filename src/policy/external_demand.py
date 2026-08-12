@@ -31,8 +31,6 @@ class ExternalValueKind(IntEnum):
 
 @dataclass(frozen=True, slots=True)
 class ExternalRequest:
-    """Provider-facing request; PostgreSQL-local surrogate ids are absent."""
-
     request_id: int
     request_kind: ExternalRequestKind
     label_text: str | None
@@ -56,8 +54,6 @@ class DiscoveredWorldCandidate:
 
 @dataclass(frozen=True, slots=True)
 class ExternalEvidence:
-    """Provider-native fact payload with explicit subject identity."""
-
     evidence_digest: bytes
     provider_subject_numeric_id: int
     provider_property_numeric_id: int
@@ -103,10 +99,13 @@ class ExternalRequestResult:
     discovered_candidates: tuple[DiscoveredWorldCandidate, ...] = ()
     evidence: tuple[ExternalEvidence, ...] = ()
     error_ref: str | None = None
+    retryable: bool = True
 
     def __post_init__(self) -> None:
         if self.error_ref is not None and (self.discovered_candidates or self.evidence):
             raise ValueError("failed external result cannot also carry successful payload")
+        if self.error_ref is None and not self.retryable:
+            raise ValueError("retryable flag is meaningful only for failed results")
 
 
 @dataclass(frozen=True, slots=True)
@@ -157,6 +156,8 @@ class ExternalDemandStore(Protocol):
 
     def fail_external_request(self, request_id: int, error_ref: str) -> bool: ...
 
+    def block_external_request(self, request_id: int, error_ref: str) -> bool: ...
+
     def record_external_batch_receipt(
         self, *, provider_id: int, worker_ref: str, receipt: ExternalBatchReceipt
     ) -> int: ...
@@ -191,7 +192,10 @@ def execute_external_provider_batch(
     completed = failed = 0
     for result in batch.results:
         if result.error_ref is not None:
-            store.fail_external_request(result.request_id, result.error_ref)
+            if result.retryable:
+                store.fail_external_request(result.request_id, result.error_ref)
+            else:
+                store.block_external_request(result.request_id, result.error_ref)
             failed += 1
             continue
 
