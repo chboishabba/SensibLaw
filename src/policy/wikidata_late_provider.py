@@ -158,10 +158,14 @@ class WikidataLateProvider:
                 evidence=tuple(self._external_evidence(fact) for fact in facts),
             )
 
+        # Ordinary Wikidata lookup is not proof-producing identity alignment.
+        # Mark the request non-retryable so SQL state 7 preserves the unresolved
+        # need without repeatedly leasing a zero-call request.
         for request in identity:
             results[request.request_id] = ExternalRequestResult(
                 request.request_id,
                 error_ref="wikidata:identity-proof-adapter-required",
+                retryable=False,
             )
 
         ordered = tuple(results[request.request_id] for request in request_tuple)
