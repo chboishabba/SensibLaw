@@ -56,14 +56,10 @@ class DiscoveredWorldCandidate:
 
 @dataclass(frozen=True, slots=True)
 class ExternalEvidence:
-    """Provider-native fact payload.
-
-    WORLD_ENTITY values use provider-local numeric ids. SYMBOL values cross the
-    explicit external text boundary and name the internal SymbolKind that should
-    be used when the store interns them. No database surrogate id is accepted.
-    """
+    """Provider-native fact payload with explicit subject identity."""
 
     evidence_digest: bytes
+    provider_subject_numeric_id: int
     provider_property_numeric_id: int
     value_kind: ExternalValueKind
     value_provider_numeric_id: int | None = None
@@ -76,6 +72,8 @@ class ExternalEvidence:
     def __post_init__(self) -> None:
         if len(self.evidence_digest) != 32:
             raise ValueError("external evidence digest must be SHA-256 width")
+        if self.provider_subject_numeric_id <= 0:
+            raise ValueError("provider subject id must be positive")
         if self.provider_property_numeric_id <= 0:
             raise ValueError("provider property id must be positive")
         populated = sum(
@@ -136,14 +134,6 @@ class ExternalBatchReceipt:
 
 
 class ExternalProvider(Protocol):
-    """Cold provider boundary.
-
-    Implementations should combine requests as aggressively as their API permits
-    and report actual network call count. Every request reaching this boundary was
-    a local-cache miss at claim time. A local validation/proof-adapter failure may
-    legitimately return a result with zero network calls.
-    """
-
     provider_id: int
 
     def fetch_batch(self, requests: Sequence[ExternalRequest]) -> ExternalBatchResult: ...
@@ -180,12 +170,6 @@ def execute_external_provider_batch(
     limit: int = 32,
     lease_seconds: int = 300,
 ) -> ExternalBatchReceipt:
-    """Execute one deduplicated provider microbatch.
-
-    No request is generated here. If the planner/cache probe produced no true
-    misses, this performs zero provider calls and writes no batch receipt.
-    """
-
     requests = store.claim_external_provider_batch(
         provider_id=provider.provider_id,
         worker_ref=worker_ref,
@@ -221,6 +205,8 @@ def execute_external_provider_batch(
             )
         else:
             for evidence in result.evidence:
+                if request.provider_subject_numeric_id != evidence.provider_subject_numeric_id:
+                    raise ValueError("provider returned evidence for an unrequested subject")
                 if (
                     request.provider_property_numeric_id is not None
                     and evidence.provider_property_numeric_id
