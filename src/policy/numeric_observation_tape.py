@@ -1,8 +1,8 @@
 """Lossless packed codec for the committed numeric spaCy observation tape.
 
-The codec is deliberately a physical projection only.  PostgreSQL parser rows remain
-authority.  A packed tape becomes usable only after decode(encode(rows)) == rows and
-its canonical authority digest matches the row carrier.
+The codec is deliberately a physical projection only. PostgreSQL parser rows remain
+authority. Annotation-origin ids are part of the tape because parser observations and
+fallback observations are intentionally distinct authority states.
 """
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 from typing import Iterable
 
-_CODEC_MAGIC = b"PNFTAPE1"
+_CODEC_MAGIC = b"PNFTAPE2"
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,6 +27,10 @@ class NumericObservationRow:
     dependency_symbol_id: int | None
     morph_set_id: int | None
     head_token_id: int
+    lemma_origin_id: int
+    pos_origin_id: int
+    tag_origin_id: int
+    dependency_origin_id: int
 
     def __post_init__(self) -> None:
         required = (
@@ -38,6 +42,10 @@ class NumericObservationRow:
             self.orth_symbol_id,
             self.lemma_symbol_id,
             self.head_token_id,
+            self.lemma_origin_id,
+            self.pos_origin_id,
+            self.tag_origin_id,
+            self.dependency_origin_id,
         )
         if any(value < 0 for value in required):
             raise ValueError("numeric observation ids/offsets must be non-negative")
@@ -59,11 +67,10 @@ class NumericObservationTapeReceipt:
     encoded_bytes: int
     authority_digest: bytes
     packed_digest: bytes
-    codec_version: int = 1
+    codec_version: int = 2
 
 
 def canonical_tape_bytes(rows: Iterable[NumericObservationRow]) -> bytes:
-    """Canonical fixed-field byte representation used only for authority hashing."""
     result = bytearray()
     row_tuple = tuple(rows)
     result.extend(_encode_uvarint(len(row_tuple)))
@@ -84,8 +91,6 @@ def pack_numeric_observation_tape(
     previous_sentence = 0
     previous_start = 0
     for row in row_tuple:
-        # Monotone-ish coordinates are delta encoded with ZigZag so the codec is
-        # exact even if imported historical ids are not strictly increasing.
         payload.extend(_encode_svarint(row.token_id - previous_token))
         payload.extend(_encode_svarint(row.sentence_id - previous_sentence))
         payload.extend(_encode_uvarint(row.local_ordinal))
@@ -98,6 +103,10 @@ def pack_numeric_observation_tape(
         payload.extend(_encode_optional_uvarint(row.dependency_symbol_id))
         payload.extend(_encode_optional_uvarint(row.morph_set_id))
         payload.extend(_encode_svarint(row.head_token_id - row.token_id))
+        payload.extend(_encode_uvarint(row.lemma_origin_id))
+        payload.extend(_encode_uvarint(row.pos_origin_id))
+        payload.extend(_encode_uvarint(row.tag_origin_id))
+        payload.extend(_encode_uvarint(row.dependency_origin_id))
         previous_token = row.token_id
         previous_sentence = row.sentence_id
         previous_start = row.start_char
@@ -135,6 +144,10 @@ def unpack_numeric_observation_tape(payload: bytes) -> tuple[NumericObservationR
         dependency, offset = _decode_optional_uvarint(payload, offset)
         morph, offset = _decode_optional_uvarint(payload, offset)
         head_delta, offset = _decode_svarint(payload, offset)
+        lemma_origin, offset = _decode_uvarint(payload, offset)
+        pos_origin, offset = _decode_uvarint(payload, offset)
+        tag_origin, offset = _decode_uvarint(payload, offset)
+        dependency_origin, offset = _decode_uvarint(payload, offset)
 
         token = previous_token + token_delta
         sentence = previous_sentence + sentence_delta
@@ -152,6 +165,10 @@ def unpack_numeric_observation_tape(payload: bytes) -> tuple[NumericObservationR
             dependency_symbol_id=dependency,
             morph_set_id=morph,
             head_token_id=token + head_delta,
+            lemma_origin_id=lemma_origin,
+            pos_origin_id=pos_origin,
+            tag_origin_id=tag_origin,
+            dependency_origin_id=dependency_origin,
         )
         rows.append(row)
         previous_token = token
@@ -191,6 +208,10 @@ def _row_values(row: NumericObservationRow) -> tuple[int | None, ...]:
         row.dependency_symbol_id,
         row.morph_set_id,
         row.head_token_id,
+        row.lemma_origin_id,
+        row.pos_origin_id,
+        row.tag_origin_id,
+        row.dependency_origin_id,
     )
 
 
