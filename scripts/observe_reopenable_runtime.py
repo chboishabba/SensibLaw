@@ -38,13 +38,14 @@ def _scalar(cursor: Any, sql: str, params: tuple[Any, ...]) -> int:
 
 
 def collect(cursor: Any, *, run_id: int, document_id: int) -> RuntimeObservatory:
+    params = (run_id, document_id)
     cursor.execute(
         """
         SELECT alignment_class, projection_count
           FROM execution.semantic_pnf_identity_factor_alignment_summary_v1
          WHERE run_id = %s AND document_id = %s
         """,
-        (run_id, document_id),
+        params,
     )
     alignment = {str(name): int(count) for name, count in cursor.fetchall()}
     total_projection = sum(alignment.values())
@@ -57,33 +58,27 @@ def collect(cursor: Any, *, run_id: int, document_id: int) -> RuntimeObservatory
 
     cursor.execute(
         """
-        SELECT
-            count(*) AS demand_count,
-            count(*) FILTER (WHERE represented_candidate_count > 0),
-            count(*) FILTER (WHERE active_candidate_count > 0),
-            count(*) FILTER (WHERE residual_candidate_count > 0),
-            count(*) FILTER (WHERE refuted_candidate_count > 0),
-            count(*) FILTER (WHERE evidence_count > 0),
-            count(*) FILTER (WHERE admitted_identity_witness_count > 0),
-            count(*) FILTER (WHERE outside_model_possible),
-            count(*) FILTER (WHERE resource_limited)
+        SELECT count(*),
+               count(*) FILTER (WHERE represented_candidate_count > 0),
+               count(*) FILTER (WHERE active_candidate_count > 0),
+               count(*) FILTER (WHERE residual_candidate_count > 0),
+               count(*) FILTER (WHERE refuted_candidate_count > 0),
+               count(*) FILTER (WHERE evidence_count > 0),
+               count(*) FILTER (WHERE admitted_identity_witness_count > 0),
+               count(*) FILTER (WHERE outside_model_possible),
+               count(*) FILTER (WHERE resource_limited)
           FROM execution.semantic_pnf_demand_funnel_v1
          WHERE run_id = %s AND document_id = %s
         """,
-        (run_id, document_id),
+        params,
     )
     row = cursor.fetchone()
     funnel = dict(
         zip(
             (
-                "demands",
-                "with_represented_candidates",
-                "with_active_candidates",
-                "with_residual_candidates",
-                "with_refuted_candidates",
-                "with_evidence",
-                "with_admitted_identity_witness",
-                "outside_model_possible",
+                "demands", "with_represented_candidates", "with_active_candidates",
+                "with_residual_candidates", "with_refuted_candidates", "with_evidence",
+                "with_admitted_identity_witness", "outside_model_possible",
                 "resource_limited",
             ),
             (int(value or 0) for value in row),
@@ -107,9 +102,8 @@ def collect(cursor: Any, *, run_id: int, document_id: int) -> RuntimeObservatory
             ON region.region_id = demand.source_region_id
          WHERE region.run_id = %s AND region.document_id = %s
          GROUP BY escalation.fibre_cardinality_invariant
-         ORDER BY escalation.fibre_cardinality_invariant DESC
         """,
-        (run_id, document_id),
+        params,
     )
     horizon_rows = cursor.fetchall()
     horizon = {
@@ -124,14 +118,14 @@ def collect(cursor: Any, *, run_id: int, document_id: int) -> RuntimeObservatory
 
     cursor.execute(
         """
-        SELECT
-            count(*) FILTER (WHERE state.active AND state.admissible) AS p,
-            count(*) FILTER (
-                WHERE state.represented_possible AND NOT state.active
-                  AND state.admissible
-            ) AS q,
-            COALESCE(sum(open_world.represented_residual_count), 0) AS r,
-            count(*) FILTER (WHERE open_world.outside_model_possible) AS o
+        SELECT count(*) FILTER (WHERE state.active AND state.admissible),
+               count(*) FILTER (
+                   WHERE state.represented_possible AND NOT state.active
+                     AND state.admissible
+               ),
+               COALESCE(sum(open_world.represented_residual_count), 0),
+               count(DISTINCT demand.demand_id)
+                   FILTER (WHERE open_world.outside_model_possible)
           FROM execution.semantic_pnf_candidate_state_v1 AS state
           JOIN execution.semantic_pnf_demand AS demand
             ON demand.demand_id = state.demand_id
@@ -141,10 +135,24 @@ def collect(cursor: Any, *, run_id: int, document_id: int) -> RuntimeObservatory
             ON open_world.demand_id = demand.demand_id
          WHERE region.run_id = %s AND region.document_id = %s
         """,
-        (run_id, document_id),
+        params,
     )
     p, q, r, o = cursor.fetchone()
     pqro = {"P": int(p or 0), "Q": int(q or 0), "R": int(r or 0), "O": int(o or 0)}
+
+    represented_candidates = _scalar(
+        cursor,
+        """
+        SELECT count(*)
+          FROM execution.semantic_pnf_candidate_state_v1 AS state
+          JOIN execution.semantic_pnf_demand AS demand
+            ON demand.demand_id = state.demand_id
+          JOIN execution.semantic_pnf_region AS region
+            ON region.region_id = demand.source_region_id
+         WHERE region.run_id = %s AND region.document_id = %s
+        """,
+        params,
+    )
 
     cursor.execute(
         """
@@ -169,16 +177,16 @@ def collect(cursor: Any, *, run_id: int, document_id: int) -> RuntimeObservatory
                COALESCE(sum(total_mass), 0)
           FROM latest
         """,
-        (run_id, document_id),
+        params,
     )
     active_mass, q_mass, r_mass, o_mass, total_mass = (
         int(value or 0) for value in cursor.fetchone()
     )
     compression = {
-        "represented_candidates": total_projection,
+        "represented_candidates": represented_candidates,
         "active_candidates": pqro["P"],
         "active_candidate_ratio": (
-            pqro["P"] / total_projection if total_projection else None
+            pqro["P"] / represented_candidates if represented_candidates else None
         ),
         "active_mass": active_mass,
         "residual_candidate_mass": q_mass,
@@ -204,7 +212,7 @@ def collect(cursor: Any, *, run_id: int, document_id: int) -> RuntimeObservatory
          WHERE region.run_id = %s AND region.document_id = %s
            AND derivation.epistemic_level = 3
         """,
-        (run_id, document_id),
+        params,
     )
     admitted_witnesses = _scalar(
         cursor,
@@ -220,7 +228,7 @@ def collect(cursor: Any, *, run_id: int, document_id: int) -> RuntimeObservatory
             ON region.region_id = object.region_id
          WHERE region.run_id = %s AND region.document_id = %s
         """,
-        (run_id, document_id),
+        params,
     )
     supported_l3 = {
         "admitted_identity_witnesses": admitted_witnesses,
@@ -232,14 +240,9 @@ def collect(cursor: Any, *, run_id: int, document_id: int) -> RuntimeObservatory
 
     cursor.execute(
         """
-        SELECT parser_post_parser_ratio
-          FROM execution.semantic_pnf_parser_dominance_v1
-         WHERE workload_ref IN (
-             SELECT workload_ref
-               FROM execution.semantic_pnf_runtime_stage_measurement
-              ORDER BY measurement_id DESC
-         )
-           AND parser_post_parser_ratio IS NOT NULL
+        SELECT elapsed_dominance_ratio
+          FROM execution.semantic_pnf_runtime_parser_dominance_v1
+         WHERE elapsed_dominance_ratio IS NOT NULL
          ORDER BY workload_ref DESC
          LIMIT 1
         """
