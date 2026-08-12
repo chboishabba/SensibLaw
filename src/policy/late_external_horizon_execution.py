@@ -1,7 +1,7 @@
 """Consumer-triggered H9 external planning after local numeric compilation.
 
 The strict numeric document compiler intentionally ends with world resolution
-deferred.  This coordinator is invoked only when an actual consumer/query/policy
+deferred. This coordinator is invoked only when an actual consumer/query/policy
 needs external facts after H3/H6 have left an observable residual.
 """
 from __future__ import annotations
@@ -27,7 +27,7 @@ class ExternalNeedSpec:
 @dataclass(frozen=True, slots=True)
 class LateExternalPlanReceipt:
     registered_need_count: int
-    planned_request_members: int
+    planner_work_units: int
     consumer_ref: str
     query_ref: str
     policy_ref: str
@@ -51,9 +51,10 @@ class LateExternalHorizonExecutor:
     ) -> LateExternalPlanReceipt:
         """Register needs then plan only consumer-H9 residual cache misses.
 
-        This method performs no provider/network I/O.  If H3/H6 already supplied
-        a valid consumer sufficiency certificate, the SQL planner sees no eligible
-        H9 residual and therefore emits no external request.
+        This performs no provider/network I/O. ``planner_work_units`` is the SQL
+        planner's demand/request work count and is deliberately not labelled as a
+        count of newly-created requests: idempotent re-planning may revisit an
+        already-deduplicated request/member.
         """
 
         need_tuple = tuple(needs)
@@ -79,7 +80,7 @@ class LateExternalHorizonExecutor:
         )
         return LateExternalPlanReceipt(
             registered_need_count=len(need_tuple),
-            planned_request_members=planned,
+            planner_work_units=planned,
             consumer_ref=consumer_ref,
             query_ref=query_ref,
             policy_ref=policy_ref,
