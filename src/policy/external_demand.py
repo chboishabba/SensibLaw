@@ -168,7 +168,9 @@ class ExternalDemandStore(Protocol):
 
     def record_external_evidence(self, *, request_id: int, evidence: ExternalEvidence) -> int: ...
 
-    def complete_external_request(self, request_id: int) -> bool: ...
+    def complete_external_request(
+        self, request_id: int, leased_minimum_source_epoch: int | None
+    ) -> bool: ...
 
     def fail_external_request(self, request_id: int, error_ref: str) -> bool: ...
 
@@ -245,8 +247,18 @@ def execute_external_provider_batch(
                 ):
                     raise ValueError("provider returned property evidence older than request freshness floor")
                 store.record_external_evidence(request_id=result.request_id, evidence=evidence)
-        store.complete_external_request(result.request_id)
-        completed += 1
+
+        # Completion is the lease/freshness commit point.  If another consumer
+        # strengthened or relaxed the shared contract while this batch was in
+        # flight, PostgreSQL reopens the request and this attempt is counted as
+        # operationally incomplete rather than falsely satisfying the new floor.
+        if store.complete_external_request(
+            result.request_id,
+            request.minimum_source_epoch,
+        ):
+            completed += 1
+        else:
+            failed += 1
 
     receipt = ExternalBatchReceipt(
         leased_request_count=len(requests),
