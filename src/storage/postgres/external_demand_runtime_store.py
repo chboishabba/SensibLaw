@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Sequence
 
+from src.pnf.numeric_hyperfabric import SymbolKind
 from src.policy.external_demand import (
     DiscoveredWorldCandidate,
     ExternalBatchReceipt,
@@ -11,8 +12,10 @@ from src.policy.external_demand import (
     ExternalNeedKind,
     ExternalRequest,
     ExternalRequestKind,
+    ExternalValueKind,
 )
 from src.storage.postgres.consumer_sufficient_runtime_store import ConsumerSufficientRuntimeStore
+from src.storage.postgres.numeric_symbol_store import intern_symbols, symbol_id
 from src.storage.postgres.spacy_parser_model import connect
 
 
@@ -31,12 +34,7 @@ class ExternalCallEconomyRow:
 
 
 class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
-    """H9 external-demand planning and cold provider-evidence cache.
-
-    Ordinary parser/PNF code should not call provider APIs through this class. It
-    registers consumer-observable external needs, plans only H9 residual misses,
-    and exposes bounded provider-ready microbatches.
-    """
+    """H9 external-demand planning and cold provider-evidence cache."""
 
     def register_external_need(
         self,
@@ -88,8 +86,6 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
             "execution.plan_numeric_pnf_external_demands_for_consumer",
             (run_id, document_id, consumer_ref, query_ref, policy_ref),
         )
-        # Cache-satisfied requests perform zero network calls. Re-open only their
-        # member H9 fibres so local evidence is consumed immediately.
         self._scalar_function("execution.wake_numeric_pnf_external_cache_hits", ())
         return planned
 
@@ -113,8 +109,8 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                         ExternalRequest(
                             request_id=int(row[0]),
                             request_kind=ExternalRequestKind(int(row[1])),
-                            label_symbol_id=None if row[2] is None else int(row[2]),
-                            world_entity_id=None if row[3] is None else int(row[3]),
+                            label_text=None if row[2] is None else str(row[2]),
+                            provider_subject_numeric_id=None if row[3] is None else int(row[3]),
                             provider_property_numeric_id=None if row[4] is None else int(row[4]),
                             axis_kind=None if row[5] is None else int(row[5]),
                             request_revision=int(row[6]),
@@ -132,27 +128,35 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
     ) -> None:
         if request.request_kind is not ExternalRequestKind.CANDIDATE_DISCOVERY:
             raise ValueError("discovery candidates require a discovery request")
-        if request.label_symbol_id is None:
-            raise ValueError("discovery request is missing label_symbol_id")
+        if not request.label_text:
+            raise ValueError("discovery request is missing boundary label text")
 
         connection = connect(self.database_url)
         try:
             with connection.transaction():
                 with connection.cursor() as cursor:
                     cursor.execute(
-                        "SELECT provider_id FROM execution.semantic_pnf_external_request WHERE request_id=%s",
+                        """
+                        SELECT request.provider_id,request.label_symbol_id,symbol.symbol_text
+                          FROM execution.semantic_pnf_external_request AS request
+                          JOIN execution.semantic_symbol AS symbol
+                            ON symbol.symbol_id=request.label_symbol_id
+                         WHERE request.request_id=%s
+                        """,
                         (request.request_id,),
                     )
                     row = cursor.fetchone()
                     if row is None:
-                        raise ValueError("unknown external request")
+                        raise ValueError("unknown external discovery request")
                     provider_id = int(row[0])
+                    label_symbol_id = int(row[1])
+                    if str(row[2]) != request.label_text:
+                        raise ValueError("provider label boundary no longer matches planned symbol")
 
-                    # This table is a rebuildable candidate cache, not proof
-                    # authority. Replace this revision's ranking atomically.
+                    # Rebuildable candidate cache, never identity proof authority.
                     cursor.execute(
                         "DELETE FROM execution.semantic_pnf_label_world_candidate WHERE label_symbol_id=%s AND cache_revision=%s",
-                        (request.label_symbol_id, request.request_revision),
+                        (label_symbol_id, request.request_revision),
                     )
                     for candidate in candidates:
                         cursor.execute(
@@ -183,7 +187,7 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                                 cache_revision=EXCLUDED.cache_revision
                             """,
                             (
-                                request.label_symbol_id,
+                                label_symbol_id,
                                 world_entity_id,
                                 candidate.candidate_ordinal,
                                 request.request_revision,
@@ -193,22 +197,79 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
             connection.close()
 
     def record_external_evidence(self, *, request_id: int, evidence: ExternalEvidence) -> int:
-        return self._scalar_function(
-            "execution.record_numeric_pnf_external_evidence",
-            (
-                request_id,
-                evidence.evidence_digest,
-                evidence.subject_world_entity_id,
-                evidence.provider_property_numeric_id,
-                evidence.axis_kind,
-                int(evidence.value_kind),
-                evidence.value_world_entity_id,
-                evidence.value_symbol_id,
-                evidence.value_numeric,
-                evidence.provider_revision,
-                evidence.source_ref,
-            ),
-        )
+        """Intern provider-native values, then persist immutable external evidence."""
+        connection = connect(self.database_url)
+        try:
+            with connection.transaction():
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT provider_id,world_entity_id,provider_property_numeric_id,axis_kind
+                          FROM execution.semantic_pnf_external_request
+                         WHERE request_id=%s
+                        """,
+                        (request_id,),
+                    )
+                    row = cursor.fetchone()
+                    if row is None or row[1] is None:
+                        raise ValueError("external evidence request has no local subject entity")
+                    provider_id = int(row[0])
+                    subject_world_entity_id = int(row[1])
+                    request_property = None if row[2] is None else int(row[2])
+                    request_axis = None if row[3] is None else int(row[3])
+                    if request_property != evidence.provider_property_numeric_id:
+                        raise ValueError("external evidence property differs from planned request")
+
+                    value_world_entity_id = value_symbol_id = value_numeric = None
+                    if evidence.value_kind is ExternalValueKind.WORLD_ENTITY:
+                        cursor.execute(
+                            """
+                            INSERT INTO execution.semantic_pnf_world_entity_numeric
+                                (provider_id,provider_numeric_id)
+                            VALUES (%s,%s)
+                            ON CONFLICT(provider_id,provider_numeric_id) DO NOTHING
+                            """,
+                            (provider_id, evidence.value_provider_numeric_id),
+                        )
+                        cursor.execute(
+                            """
+                            SELECT world_entity_id
+                              FROM execution.semantic_pnf_world_entity_numeric
+                             WHERE provider_id=%s AND provider_numeric_id=%s
+                            """,
+                            (provider_id, evidence.value_provider_numeric_id),
+                        )
+                        value_world_entity_id = int(cursor.fetchone()[0])
+                    elif evidence.value_kind is ExternalValueKind.SYMBOL:
+                        kind = SymbolKind(int(evidence.value_symbol_kind))
+                        mapping = intern_symbols(cursor, ((kind, str(evidence.value_text)),))
+                        value_symbol_id = symbol_id(mapping, kind, str(evidence.value_text))
+                    else:
+                        value_numeric = int(evidence.value_numeric)
+
+                    cursor.execute(
+                        """
+                        SELECT execution.record_numeric_pnf_external_evidence(
+                            %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s
+                        )
+                        """,
+                        (
+                            request_id,
+                            evidence.evidence_digest,
+                            subject_world_entity_id,
+                            evidence.provider_property_numeric_id,
+                            request_axis,
+                            int(evidence.value_kind),
+                            value_world_entity_id,
+                            value_symbol_id,
+                            value_numeric,
+                            evidence.provider_revision,
+                            evidence.source_ref,
+                        ),
+                    )
+                    return int(cursor.fetchone()[0])
+        finally:
+            connection.close()
 
     def complete_external_request(self, request_id: int) -> bool:
         return bool(
