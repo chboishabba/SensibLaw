@@ -119,8 +119,6 @@ class ExternalBatchResult:
     def __post_init__(self) -> None:
         if self.provider_call_count < 0:
             raise ValueError("provider_call_count must be non-negative")
-        if self.results and self.provider_call_count == 0:
-            raise ValueError("non-empty provider result must account for a provider call")
 
 
 @dataclass(frozen=True, slots=True)
@@ -142,7 +140,8 @@ class ExternalProvider(Protocol):
 
     Implementations should combine requests as aggressively as their API permits
     and report actual network call count. Every request reaching this boundary was
-    a local-cache miss at claim time.
+    a local-cache miss at claim time. A local validation/proof-adapter failure may
+    legitimately return a result with zero network calls.
     """
 
     provider_id: int
