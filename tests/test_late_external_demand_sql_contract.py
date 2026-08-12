@@ -12,6 +12,11 @@ M100 = ROOT / "database/postgres_migrations/100_external_provider_boundary_proje
 M101 = ROOT / "database/postgres_migrations/101_literal_provider_call_receipts.sql"
 M103 = ROOT / "database/postgres_migrations/103_external_source_freshness_and_snapshot_provenance.sql"
 M104 = ROOT / "database/postgres_migrations/104_external_freshness_lease_projection.sql"
+M105 = ROOT / "database/postgres_migrations/105_monotone_external_candidate_fibres.sql"
+M106 = ROOT / "database/postgres_migrations/106_exact_external_freshness_recompute.sql"
+M107 = ROOT / "database/postgres_migrations/107_lease_aware_external_completion.sql"
+M108 = ROOT / "database/postgres_migrations/108_freshness_filtered_external_projection.sql"
+M109 = ROOT / "database/postgres_migrations/109_current_external_context_projection.sql"
 
 
 def _sql(path: Path) -> str:
@@ -53,24 +58,11 @@ def test_property_enrichment_is_axis_and_property_specific() -> None:
 
 
 def test_contextual_external_evidence_has_no_identity_promotion_path() -> None:
-    sql = _sql(M097) + _sql(M099)
+    sql = _sql(M097) + _sql(M099) + _sql(M109)
     assert "semantic_pnf_world_candidate_requirement" in sql
     assert "materialize_numeric_pnf_external_context_for_request" in sql
     assert "admit_numeric_pnf_external_identity_alignment" not in sql
     assert "semantic_pnf_identity_witness" not in sql
-
-
-def test_cached_provider_fact_can_be_reprojected_to_later_consumer_axis() -> None:
-    sql = _sql(M099)
-    body = sql.split(
-        "CREATE OR REPLACE FUNCTION execution.materialize_numeric_pnf_external_context_for_request", 1
-    )[1].split("$$;", 1)[0]
-    assert "request.axis_kind" in body
-    assert "evidence.provider_property_numeric_id=request.provider_property_numeric_id" in body
-    wake = sql.split(
-        "CREATE OR REPLACE FUNCTION execution.wake_numeric_pnf_external_cache_hits", 1
-    )[1].split("$$;", 1)[0]
-    assert "materialize_numeric_pnf_external_context_for_request" in wake
 
 
 def test_expired_provider_lease_is_cache_probed_before_retry() -> None:
@@ -84,7 +76,7 @@ def test_expired_provider_lease_is_cache_probed_before_retry() -> None:
 
 
 def test_provider_evidence_is_immutable_and_call_counts_are_empirical() -> None:
-    sql = _sql(M098) + _sql(M099) + _sql(M101)
+    sql = _sql(M098) + _sql(M099) + _sql(M101) + _sql(M108)
     recorder = sql.split(
         "CREATE OR REPLACE FUNCTION execution.record_numeric_pnf_external_evidence", 1
     )[-1].split("$$;", 1)[0]
@@ -107,20 +99,9 @@ def test_provider_claim_projects_only_external_boundary_identifiers() -> None:
     assert "world_entity_id BIGINT" not in sql.split("RETURNS TABLE", 1)[1].split(") LANGUAGE", 1)[0]
 
 
-def test_freshness_floor_is_strongest_member_requirement_and_cache_sensitive() -> None:
+def test_freshness_cache_probe_is_source_epoch_sensitive() -> None:
     sql = _sql(M103)
     assert "minimum_source_epoch BIGINT" in sql
-    trigger = sql.split(
-        "CREATE OR REPLACE FUNCTION execution.strengthen_numeric_pnf_external_request_freshness", 1
-    )[1].split("$$;", 1)[0]
-    assert "max(need.minimum_source_epoch)" in trigger
-    assert "floor_value>minimum_source_epoch" in trigger
-    assert "request_state IN (2,5)" in trigger
-    setter = sql.split(
-        "CREATE OR REPLACE FUNCTION execution.set_numeric_pnf_external_need_minimum_source_epoch", 1
-    )[1].split("$$;", 1)[0]
-    assert "semantic_pnf_external_request_member" in setter
-    assert "selected_minimum_source_epoch>request.minimum_source_epoch" in setter
     refresh = sql.split(
         "CREATE OR REPLACE FUNCTION execution.refresh_numeric_pnf_external_request_cache_state", 1
     )[1].split("$$;", 1)[0]
@@ -143,3 +124,63 @@ def test_freshness_lease_preserves_provider_native_boundary() -> None:
     assert "label.symbol_text" in body
     assert "subject.provider_numeric_id" in body
     assert "leased.minimum_source_epoch" in body
+
+
+def test_candidate_discovery_is_monotone_and_unknown_age_cannot_replace_known_age() -> None:
+    sql = _sql(M105)
+    assert "upsert_numeric_pnf_label_world_candidate" in sql
+    assert "DELETE FROM execution.semantic_pnf_label_world_candidate" not in sql
+    assert "DROP CONSTRAINT" in sql
+    upsert = sql.split(
+        "CREATE OR REPLACE FUNCTION execution.upsert_numeric_pnf_label_world_candidate", 1
+    )[1].split("$$;", 1)[0]
+    assert "EXCLUDED.source_epoch IS NOT NULL" in upsert
+    assert "EXCLUDED.source_epoch>=execution.semantic_pnf_label_world_candidate.source_epoch" in upsert
+    assert "OR EXCLUDED.source_epoch IS NULL" not in upsert
+
+
+def test_freshness_recomputes_exact_active_member_max_and_handles_property_to_discovery_fan_in() -> None:
+    sql = _sql(M106)
+    recompute = sql.split(
+        "CREATE OR REPLACE FUNCTION execution.recompute_numeric_pnf_external_request_freshness", 1
+    )[1].split("$$;", 1)[0]
+    assert "max(need.minimum_source_epoch)" in recompute
+    assert "request.request_kind=1 AND need.need_kind IN (1,2)" in recompute
+    assert "request.request_kind=2 AND need.need_kind=2" in recompute
+    assert "new_floor IS DISTINCT FROM old_floor" in recompute
+    assert "old_state=4" in recompute
+    assert "AFTER UPDATE OF minimum_source_epoch,active" in sql
+
+
+def test_external_evidence_persistence_does_not_complete_or_wake_request() -> None:
+    sql = _sql(M108)
+    recorder = sql.split(
+        "CREATE OR REPLACE FUNCTION execution.record_numeric_pnf_external_evidence", 1
+    )[1].split("$$;", 1)[0]
+    assert "request_state=5" not in recorder
+    assert "wake_numeric_pnf_external_request_members" not in recorder
+    assert "materialize_numeric_pnf_external_context_for_request" not in recorder
+
+
+def test_completion_is_lease_freshness_aware_and_only_then_wakes_h9() -> None:
+    sql = _sql(M108)
+    complete = sql.split(
+        "CREATE OR REPLACE FUNCTION execution.complete_numeric_pnf_external_request", 1
+    )[1].split("$$;", 1)[0]
+    assert "current_floor IS DISTINCT FROM leased_minimum_source_epoch" in complete
+    assert "freshness-contract-changed-during-lease" in complete
+    assert "materialize_numeric_pnf_external_context_for_request" in complete
+    assert "wake_numeric_pnf_external_request_members" in complete
+
+
+def test_active_external_context_projection_uses_newest_admissible_epoch_only() -> None:
+    sql = _sql(M109)
+    materialize = sql.split(
+        "CREATE OR REPLACE FUNCTION execution.materialize_numeric_pnf_external_context_for_request", 1
+    )[1].split("$$;", 1)[0]
+    assert "max(evidence.source_epoch)" in materialize
+    assert "evidence.source_epoch>=request.minimum_source_epoch" in materialize
+    assert "evidence.source_epoch=selected_epoch" in materialize
+    assert "DELETE FROM execution.semantic_pnf_world_candidate_requirement" in materialize
+    assert "provider_property_numeric_id=request.provider_property_numeric_id" in materialize
+    assert "Manual/static candidate requirements and cold" in sql
