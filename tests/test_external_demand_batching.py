@@ -81,6 +81,7 @@ def test_one_provider_call_can_serve_multiple_deduplicated_requests() -> None:
     )
     evidence = ExternalEvidence(
         evidence_digest=b"e" * 32,
+        provider_subject_numeric_id=1001,
         provider_property_numeric_id=17,
         value_kind=ExternalValueKind.WORLD_ENTITY,
         value_provider_numeric_id=408,
@@ -143,10 +144,37 @@ def test_provider_must_return_exactly_one_result_per_lease() -> None:
         execute_external_provider_batch(store, provider, worker_ref="worker")
 
 
+def test_wrong_provider_subject_is_rejected_before_persistence() -> None:
+    request = ExternalRequest(
+        1,
+        ExternalRequestKind.PROPERTY_ENRICHMENT,
+        None,
+        1001,
+        17,
+        1,
+        1,
+    )
+    evidence = ExternalEvidence(
+        evidence_digest=b"q" * 32,
+        provider_subject_numeric_id=9999,
+        provider_property_numeric_id=17,
+        value_kind=ExternalValueKind.WORLD_ENTITY,
+        value_provider_numeric_id=408,
+    )
+    store = FakeStore((request,))
+    provider = FakeProvider(
+        ExternalBatchResult((ExternalRequestResult(1, evidence=(evidence,)),), 1)
+    )
+    with pytest.raises(ValueError, match="unrequested subject"):
+        execute_external_provider_batch(store, provider, worker_ref="worker")
+    assert store.evidence == []
+
+
 def test_external_evidence_requires_exactly_one_provider_native_value() -> None:
     with pytest.raises(ValueError, match="exactly one typed value"):
         ExternalEvidence(
             evidence_digest=b"x" * 32,
+            provider_subject_numeric_id=1,
             provider_property_numeric_id=17,
             value_kind=ExternalValueKind.SYMBOL,
             value_text="Australia",
@@ -158,6 +186,7 @@ def test_external_evidence_requires_exactly_one_provider_native_value() -> None:
 def test_symbol_evidence_crosses_explicit_text_boundary() -> None:
     evidence = ExternalEvidence(
         evidence_digest=b"s" * 32,
+        provider_subject_numeric_id=1,
         provider_property_numeric_id=17,
         value_kind=ExternalValueKind.SYMBOL,
         value_text="Australia",
