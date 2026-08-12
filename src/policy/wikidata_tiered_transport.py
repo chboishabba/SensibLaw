@@ -1,17 +1,17 @@
 """Snapshot-first Wikidata acquisition for late H9 residuals.
 
 Zelph/Hugging Face is an acquisition source for the Wikidata namespace, not a
-second world-entity namespace.  Q/P identifiers therefore remain provider-native
+second world-entity namespace. Q/P identifiers therefore remain provider-native
 Wikidata integers while this module records whether evidence came from a bounded
 Zelph snapshot or a live Wikidata transport.
 
-The transport is deliberately downstream of the PostgreSQL cache probe.  Normal
+The transport is deliberately downstream of the PostgreSQL cache probe. Normal
 execution is therefore:
 
     local DB cache -> Zelph/HF snapshot -> live Wikidata (only if required)
 
 A stale snapshot is useful evidence but never gains truth/identity authority by
-being cheap or local.  Consumers that can observe freshness must request a live
+being cheap or local. Consumers that can observe freshness must request a live
 read explicitly through ``WikidataTierPolicy``.
 """
 from __future__ import annotations
@@ -32,7 +32,7 @@ class ZelphSnapshotQueryBackend(Protocol):
     """Minimal query surface expected from the existing Zelph/HF connector.
 
     The ITIR parent already owns manifest/shard routing and Zelph partial-load
-    mechanics.  SensibLaw consumes only typed Wikidata coordinates/results here
+    mechanics. SensibLaw consumes only typed Wikidata coordinates/results here
     rather than duplicating that transport implementation.
     """
 
@@ -49,9 +49,9 @@ class ZelphSnapshotQueryBackend(Protocol):
 class WikidataTierPolicy:
     """Consumer-visible acquisition policy.
 
-    ``fallback_on_snapshot_miss`` gives the normal cheap path.  The two
+    ``fallback_on_snapshot_miss`` gives the normal cheap path. The two
     ``require_live_*`` flags are stronger freshness contracts: they force a live
-    read even when the snapshot supplied a value.  They are deliberately
+    read even when the snapshot supplied a value. They are deliberately
     separate for name discovery and property evidence.
     """
 
@@ -98,10 +98,6 @@ class ZelphHFWikidataTransport:
                 if len(rows) >= limit_per_label:
                     break
             candidates[label] = tuple(rows)
-        # One backend batch is one logical snapshot query.  The backend may
-        # implement it through already-loaded memory or bounded HF shard reads;
-        # this count deliberately means acquisition calls at this boundary, not
-        # necessarily TCP requests.
         return WikidataSearchBatch(candidates, 1)
 
     def fetch_properties(
@@ -179,10 +175,6 @@ class TieredWikidataTransport:
 
         merged: dict[str, tuple[WikidataSearchCandidate, ...]] = {}
         for label in unique_labels:
-            # Prefer live ordering when freshness was explicitly required;
-            # otherwise retain the cheap snapshot ordering and use live only as
-            # a miss fill.  QIDs are deduplicated because both tiers represent
-            # the same Wikidata namespace.
             sources = (
                 (live.candidates_by_label.get(label, ()), snapshot.candidates_by_label.get(label, ()))
                 if self.policy.require_live_discovery
@@ -239,12 +231,16 @@ class TieredWikidataTransport:
             rows: list[WikidataPropertyFact] = []
             for facts in source_rows:
                 for fact in facts:
+                    # Semantic interpretation may later collapse agreeing values,
+                    # but immutable evidence retains source/revision witnesses.
                     signature = (
                         int(fact.value_kind),
                         fact.value_qid,
                         fact.value_text,
                         fact.value_symbol_kind,
                         fact.value_numeric,
+                        fact.entity_revision,
+                        fact.source_ref,
                     )
                     if signature in seen:
                         continue
