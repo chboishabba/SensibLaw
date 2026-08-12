@@ -1,10 +1,10 @@
 BEGIN;
 
 -- 109: external context requirements are a rebuildable hot projection of cold
--- provider evidence.  Historical observations remain immutable in
+-- provider evidence. Historical observations remain immutable in
 -- semantic_pnf_external_evidence, but the candidate requirement surface keeps
 -- only the newest admissible observation epoch for each (candidate, axis,
--- provider property).  Removing stale hot pressure is not negative evidence.
+-- provider property). Removing stale hot pressure is not negative evidence.
 
 ALTER TABLE execution.semantic_pnf_world_candidate_requirement
     ADD COLUMN IF NOT EXISTS external_evidence_id BIGINT
@@ -14,25 +14,17 @@ ALTER TABLE execution.semantic_pnf_world_candidate_requirement
     ADD COLUMN IF NOT EXISTS source_epoch BIGINT
         CHECK (source_epoch IS NULL OR source_epoch>0);
 
--- Backfill older external projections without regex.  The established evidence
--- refs are `external-evidence:<id>` or
--- `external-evidence:<id>:request:<id>`.
+-- Backfill older external projections without regex. Established evidence refs
+-- are `external-evidence:<id>` or `external-evidence:<id>:request:<id>`.
 UPDATE execution.semantic_pnf_world_candidate_requirement AS requirement
-   SET external_evidence_id=parsed.external_evidence_id,
+   SET external_evidence_id=evidence.external_evidence_id,
        provider_property_numeric_id=evidence.provider_property_numeric_id,
        source_epoch=evidence.source_epoch
-  FROM LATERAL (
-       SELECT CASE
-           WHEN split_part(requirement.evidence_ref,':',1)='external-evidence'
-            AND split_part(requirement.evidence_ref,':',2)<>''
-           THEN split_part(requirement.evidence_ref,':',2)::BIGINT
-           ELSE NULL
-       END AS external_evidence_id
-  ) AS parsed
-  JOIN execution.semantic_pnf_external_evidence AS evidence
-    ON evidence.external_evidence_id=parsed.external_evidence_id
+  FROM execution.semantic_pnf_external_evidence AS evidence
  WHERE requirement.external_evidence_id IS NULL
-   AND split_part(requirement.evidence_ref,':',1)='external-evidence';
+   AND split_part(requirement.evidence_ref,':',1)='external-evidence'
+   AND split_part(requirement.evidence_ref,':',2)<>''
+   AND evidence.external_evidence_id=split_part(requirement.evidence_ref,':',2)::BIGINT;
 
 CREATE INDEX IF NOT EXISTS semantic_pnf_world_candidate_requirement_external_idx
     ON execution.semantic_pnf_world_candidate_requirement
@@ -62,7 +54,7 @@ BEGIN
     END IF;
 
     -- Prefer the newest known acquisition epoch that satisfies the current
-    -- floor.  Multiple values at that exact epoch are retained.  Unknown-age
+    -- floor. Multiple values at that exact epoch are retained. Unknown-age
     -- evidence is used only when no positive floor exists and no known-age
     -- observation is available.
     SELECT max(evidence.source_epoch)
@@ -79,7 +71,7 @@ BEGIN
        );
 
     -- Retract only the rebuildable external projection for this exact
-    -- candidate/axis/property.  Manual/static candidate requirements and cold
+    -- candidate/axis/property. Manual/static candidate requirements and cold
     -- evidence are untouched.
     DELETE FROM execution.semantic_pnf_world_candidate_requirement AS requirement
      WHERE requirement.world_entity_id=request.world_entity_id
