@@ -1,14 +1,14 @@
 BEGIN;
 
 -- 104: carry the strongest consumer freshness floor through the provider lease
--- so the snapshot/live transport can honor it rather than reusing a stale
--- snapshot after PostgreSQL correctly rejected the stale cache row.
+-- while preserving migration 100's provider-native boundary. Provider workers
+-- see label text and provider-local Q/P ids, never PostgreSQL surrogate ids.
 
 DROP FUNCTION IF EXISTS execution.claim_numeric_pnf_external_provider_batch(
     SMALLINT,TEXT,INTEGER,INTEGER
 );
 
-CREATE OR REPLACE FUNCTION execution.claim_numeric_pnf_external_provider_batch(
+CREATE FUNCTION execution.claim_numeric_pnf_external_provider_batch(
     selected_provider_id SMALLINT,
     selected_worker_ref TEXT,
     selected_limit INTEGER DEFAULT 32,
@@ -16,8 +16,8 @@ CREATE OR REPLACE FUNCTION execution.claim_numeric_pnf_external_provider_batch(
 ) RETURNS TABLE(
     request_id BIGINT,
     request_kind SMALLINT,
-    label_symbol_id BIGINT,
-    world_entity_id BIGINT,
+    label_text TEXT,
+    provider_subject_numeric_id BIGINT,
     provider_property_numeric_id BIGINT,
     axis_kind SMALLINT,
     request_revision BIGINT,
@@ -57,10 +57,20 @@ BEGIN
          WHERE request.request_id=picked.request_id
         RETURNING request.*
     )
-    SELECT leased.request_id,leased.request_kind,leased.label_symbol_id,
-           leased.world_entity_id,leased.provider_property_numeric_id,
-           leased.axis_kind,leased.request_revision,leased.minimum_source_epoch
+    SELECT leased.request_id,
+           leased.request_kind,
+           label.symbol_text,
+           subject.provider_numeric_id,
+           leased.provider_property_numeric_id,
+           leased.axis_kind,
+           leased.request_revision,
+           leased.minimum_source_epoch
       FROM leased
+      LEFT JOIN execution.semantic_symbol AS label
+        ON label.symbol_id=leased.label_symbol_id
+      LEFT JOIN execution.semantic_pnf_world_entity_numeric AS subject
+        ON subject.world_entity_id=leased.world_entity_id
+       AND subject.provider_id=leased.provider_id
      ORDER BY leased.priority,leased.request_id;
 END;
 $$;
