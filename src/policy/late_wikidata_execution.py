@@ -50,21 +50,26 @@ class LateWikidataExecutor:
         *,
         snapshot_backend: ZelphSnapshotQueryBackend,
         snapshot_ref: str,
-        snapshot_revision: int | None,
+        snapshot_epoch: int | None,
+        snapshot_revision: int | None = None,
         live_transport: WikidataTransport | None = None,
         tier_policy: WikidataTierPolicy | None = None,
         candidate_limit: int = 8,
     ) -> "LateWikidataExecutor":
+        """Build the normal DB-cache -> Zelph/HF -> live H9 execution path.
+
+        ``snapshot_epoch`` should come from the actual HF artifact/manifest
+        metadata, not from a code constant.  A missing epoch is usable for
+        freshness-insensitive consumers but cannot satisfy a positive freshness
+        floor.
+        """
         snapshot = ZelphHFWikidataTransport(
             snapshot_backend,
             snapshot_ref=snapshot_ref,
+            snapshot_epoch=snapshot_epoch,
             snapshot_revision=snapshot_revision,
         )
-        transport = TieredWikidataTransport(
-            snapshot,
-            live_transport,
-            policy=tier_policy,
-        )
+        transport = TieredWikidataTransport(snapshot, live_transport, policy=tier_policy)
         return cls(database_url, transport, candidate_limit=candidate_limit)
 
     def drain_once(self, config: LateWikidataExecutionConfig) -> ExternalBatchReceipt:
