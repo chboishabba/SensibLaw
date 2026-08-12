@@ -89,6 +89,10 @@
   explicit processed/sufficient/resolved consumer horizon outcomes,
   residual-driven H3/H6 advancement, evidence-polarity classification, and a
   zero-work success path for H9 consumers with no explicit external needs.
+- `111_identity_witness_demand_support_projection.sql` leaves immutable identity
+  witnesses untouched while deriving demand attribution only from explicit
+  witness provenance, exact source-object equality, or exact shared parser-token
+  representation support; accepted-use attribution still requires admission.
 - See `docs/reopenable_runtime_architecture.md`,
   `docs/consumer_sufficient_numeric_runtime.md`,
   `docs/late_external_provider_runtime.md`, and
