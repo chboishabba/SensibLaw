@@ -165,7 +165,7 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                     if str(row[2]) != request.label_text:
                         raise ValueError("provider label boundary no longer matches planned symbol")
 
-                    # Discovery is monotone candidate evidence.  A partial or
+                    # Discovery is monotone candidate evidence. A partial or
                     # empty source response cannot erase older alternatives.
                     for candidate in candidates:
                         cursor.execute(
@@ -296,8 +296,17 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
         finally:
             connection.close()
 
-    def complete_external_request(self, request_id: int) -> bool:
-        return bool(self._scalar_function("execution.complete_numeric_pnf_external_request", (request_id,)))
+    def complete_external_request(
+        self,
+        request_id: int,
+        leased_minimum_source_epoch: int | None,
+    ) -> bool:
+        return bool(
+            self._scalar_function(
+                "execution.complete_numeric_pnf_external_request",
+                (request_id, leased_minimum_source_epoch),
+            )
+        )
 
     def fail_external_request(self, request_id: int, error_ref: str) -> bool:
         return bool(self._scalar_function("execution.fail_numeric_pnf_external_request", (request_id, error_ref)))
