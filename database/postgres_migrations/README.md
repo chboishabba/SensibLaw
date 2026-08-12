@@ -63,6 +63,14 @@
   literal network/provider I/O; local validation failures may consume zero calls.
 - `102_external_identity_blocked_state.sql` makes unsupported proof-producing
   identity alignment a durable blocked state rather than a retry loop.
+- `103_external_source_freshness_and_snapshot_provenance.sql` makes source age
+  consumer-relative: candidate/property cache rows carry source epochs and a
+  shared external request adopts the strongest freshness floor among its member
+  fibres. Tightening an existing need reopens only the affected physical request.
+- `104_external_freshness_lease_projection.sql` carries that freshness floor to
+  provider workers while preserving the migration-100 boundary: labels leave as
+  text and entities/properties leave as provider-native numeric identifiers,
+  never database-local surrogates.
 - See `docs/reopenable_runtime_architecture.md`,
   `docs/consumer_sufficient_numeric_runtime.md`,
   `docs/late_external_provider_runtime.md`, and
