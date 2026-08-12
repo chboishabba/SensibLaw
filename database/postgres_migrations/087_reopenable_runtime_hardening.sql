@@ -44,7 +44,10 @@ FOR EACH ROW EXECUTE FUNCTION execution.reject_numeric_pnf_runtime_history_updat
 
 -- Reopening Q -> P is independent of whether the latest planner pass still has
 -- a row in its ephemeral frontier.  The durable execution event is the active
--- carrier authority; current_planner_member remains visible for diagnostics.
+-- carrier authority.  PostgreSQL CREATE OR REPLACE VIEW requires all pre-existing
+-- view columns to retain their names and order, so the diagnostic
+-- current_planner_member column is appended after the v1 columns from migration
+-- 086 rather than inserted into their middle.
 CREATE OR REPLACE VIEW execution.semantic_pnf_candidate_state_v1 AS
 SELECT universe.demand_id,
        universe.target_kind,
@@ -53,11 +56,11 @@ SELECT universe.demand_id,
        COALESCE(execution_state.event_kind IN (1, 3), FALSE) AS active,
        COALESCE(execution_state.event_kind IN (2, 4, 5), FALSE)
            AS execution_residual,
-       current_candidate.demand_id IS NOT NULL AS current_planner_member,
        COALESCE(admissibility.event_kind = 1, FALSE) AS refuted,
        NOT COALESCE(admissibility.event_kind = 1, FALSE) AS admissible,
        execution_state.reason_ref AS execution_reason_ref,
-       admissibility.evidence_id AS admissibility_evidence_id
+       admissibility.evidence_id AS admissibility_evidence_id,
+       current_candidate.demand_id IS NOT NULL AS current_planner_member
   FROM execution.semantic_pnf_candidate_universe AS universe
   LEFT JOIN execution.semantic_pnf_demand_candidate AS current_candidate
     ON current_candidate.demand_id = universe.demand_id
