@@ -56,19 +56,19 @@ class DiscoveredWorldCandidate:
 
 @dataclass(frozen=True, slots=True)
 class ExternalEvidence:
-    """Provider-facing fact payload.
+    """Provider-native fact payload.
 
-    For entity-valued facts the provider returns its own numeric id (for Wikidata,
-    the integer portion of Q<n>). The PostgreSQL gateway interns that id into the
-    local world-entity table before persistence.
+    WORLD_ENTITY values use provider-local numeric ids. SYMBOL values cross the
+    explicit external text boundary and name the internal SymbolKind that should
+    be used when the store interns them. No database surrogate id is accepted.
     """
 
     evidence_digest: bytes
     provider_property_numeric_id: int
-    axis_kind: int | None
     value_kind: ExternalValueKind
     value_provider_numeric_id: int | None = None
-    value_symbol_id: int | None = None
+    value_text: str | None = None
+    value_symbol_kind: int | None = None
     value_numeric: int | None = None
     provider_revision: int | None = None
     source_ref: str = "external-provider"
@@ -80,17 +80,23 @@ class ExternalEvidence:
             raise ValueError("provider property id must be positive")
         populated = sum(
             value is not None
-            for value in (self.value_provider_numeric_id, self.value_symbol_id, self.value_numeric)
+            for value in (self.value_provider_numeric_id, self.value_text, self.value_numeric)
         )
         if populated != 1:
             raise ValueError("external evidence must contain exactly one typed value")
         if self.value_kind is ExternalValueKind.WORLD_ENTITY:
             if self.value_provider_numeric_id is None or self.value_provider_numeric_id <= 0:
                 raise ValueError("world-entity evidence requires positive provider entity id")
-        if self.value_kind is ExternalValueKind.SYMBOL and self.value_symbol_id is None:
-            raise ValueError("symbol evidence requires value_symbol_id")
-        if self.value_kind is ExternalValueKind.NUMERIC and self.value_numeric is None:
-            raise ValueError("numeric evidence requires value_numeric")
+            if self.value_symbol_kind is not None:
+                raise ValueError("world-entity evidence cannot carry symbol kind")
+        elif self.value_kind is ExternalValueKind.SYMBOL:
+            if not self.value_text or self.value_symbol_kind is None:
+                raise ValueError("symbol evidence requires text and SymbolKind id")
+        elif self.value_kind is ExternalValueKind.NUMERIC:
+            if self.value_numeric is None:
+                raise ValueError("numeric evidence requires value_numeric")
+            if self.value_symbol_kind is not None:
+                raise ValueError("numeric evidence cannot carry symbol kind")
 
 
 @dataclass(frozen=True, slots=True)
@@ -216,6 +222,12 @@ def execute_external_provider_batch(
             )
         else:
             for evidence in result.evidence:
+                if (
+                    request.provider_property_numeric_id is not None
+                    and evidence.provider_property_numeric_id
+                    != request.provider_property_numeric_id
+                ):
+                    raise ValueError("provider returned evidence for an unrequested property")
                 store.record_external_evidence(request_id=result.request_id, evidence=evidence)
         store.complete_external_request(result.request_id)
         completed += 1
