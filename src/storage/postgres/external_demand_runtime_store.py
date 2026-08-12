@@ -153,7 +153,6 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                     if str(row[2]) != request.label_text:
                         raise ValueError("provider label boundary no longer matches planned symbol")
 
-                    # Rebuildable candidate cache, never identity proof authority.
                     cursor.execute(
                         "DELETE FROM execution.semantic_pnf_label_world_candidate WHERE label_symbol_id=%s AND cache_revision=%s",
                         (label_symbol_id, request.request_revision),
@@ -197,16 +196,20 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
             connection.close()
 
     def record_external_evidence(self, *, request_id: int, evidence: ExternalEvidence) -> int:
-        """Intern provider-native values, then persist immutable external evidence."""
         connection = connect(self.database_url)
         try:
             with connection.transaction():
                 with connection.cursor() as cursor:
                     cursor.execute(
                         """
-                        SELECT provider_id,world_entity_id,provider_property_numeric_id,axis_kind
-                          FROM execution.semantic_pnf_external_request
-                         WHERE request_id=%s
+                        SELECT request.provider_id,request.world_entity_id,
+                               request.provider_property_numeric_id,request.axis_kind,
+                               subject.provider_numeric_id
+                          FROM execution.semantic_pnf_external_request AS request
+                          JOIN execution.semantic_pnf_world_entity_numeric AS subject
+                            ON subject.world_entity_id=request.world_entity_id
+                           AND subject.provider_id=request.provider_id
+                         WHERE request.request_id=%s
                         """,
                         (request_id,),
                     )
@@ -217,6 +220,9 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                     subject_world_entity_id = int(row[1])
                     request_property = None if row[2] is None else int(row[2])
                     request_axis = None if row[3] is None else int(row[3])
+                    provider_subject_numeric_id = int(row[4])
+                    if provider_subject_numeric_id != evidence.provider_subject_numeric_id:
+                        raise ValueError("external evidence subject differs from planned request")
                     if request_property != evidence.provider_property_numeric_id:
                         raise ValueError("external evidence property differs from planned request")
 
@@ -272,9 +278,7 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
             connection.close()
 
     def complete_external_request(self, request_id: int) -> bool:
-        return bool(
-            self._scalar_function("execution.complete_numeric_pnf_external_request", (request_id,))
-        )
+        return bool(self._scalar_function("execution.complete_numeric_pnf_external_request", (request_id,)))
 
     def fail_external_request(self, request_id: int, error_ref: str) -> bool:
         return bool(
