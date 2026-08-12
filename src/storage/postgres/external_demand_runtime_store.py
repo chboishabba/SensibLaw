@@ -27,6 +27,7 @@ class ExternalCallEconomyRow:
     provider_ready_requests: int
     leased_requests: int
     acquired_requests: int
+    blocked_requests: int
     semantic_request_members: int
     fresh_provider_calls: int
     semantic_members_per_unique_request: float | None
@@ -285,6 +286,11 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
             self._scalar_function("execution.fail_numeric_pnf_external_request", (request_id, error_ref))
         )
 
+    def block_external_request(self, request_id: int, error_ref: str) -> bool:
+        return bool(
+            self._scalar_function("execution.block_numeric_pnf_external_request", (request_id, error_ref))
+        )
+
     def record_external_batch_receipt(
         self,
         *,
@@ -312,7 +318,7 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                     """
                     SELECT provider_id,unique_external_requests,cache_satisfied_requests,
                            provider_ready_requests,leased_requests,acquired_requests,
-                           semantic_request_members,fresh_provider_calls,
+                           blocked_requests,semantic_request_members,fresh_provider_calls,
                            semantic_members_per_unique_request,requests_per_provider_call
                       FROM execution.semantic_pnf_external_call_economy_v1
                      ORDER BY provider_id
@@ -326,10 +332,11 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                         provider_ready_requests=int(row[3]),
                         leased_requests=int(row[4]),
                         acquired_requests=int(row[5]),
-                        semantic_request_members=int(row[6]),
-                        fresh_provider_calls=int(row[7]),
-                        semantic_members_per_unique_request=(None if row[8] is None else float(row[8])),
-                        requests_per_provider_call=(None if row[9] is None else float(row[9])),
+                        blocked_requests=int(row[6]),
+                        semantic_request_members=int(row[7]),
+                        fresh_provider_calls=int(row[8]),
+                        semantic_members_per_unique_request=(None if row[9] is None else float(row[9])),
+                        requests_per_provider_call=(None if row[10] is None else float(row[10])),
                     )
                     for row in cursor.fetchall()
                 )
