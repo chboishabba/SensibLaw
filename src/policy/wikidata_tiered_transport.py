@@ -28,21 +28,45 @@ from src.policy.wikidata_late_provider import (
 )
 
 
+@dataclass(frozen=True, slots=True)
+class ZelphSnapshotSearchResult:
+    candidates_by_label: Mapping[str, Sequence[int]]
+    acquisition_call_count: int
+
+    def __post_init__(self) -> None:
+        if self.acquisition_call_count < 0:
+            raise ValueError("acquisition_call_count must be non-negative")
+
+
+@dataclass(frozen=True, slots=True)
+class ZelphSnapshotPropertyResult:
+    facts_by_key: Mapping[tuple[int, int], Sequence[WikidataPropertyFact]]
+    acquisition_call_count: int
+
+    def __post_init__(self) -> None:
+        if self.acquisition_call_count < 0:
+            raise ValueError("acquisition_call_count must be non-negative")
+
+
 class ZelphSnapshotQueryBackend(Protocol):
     """Minimal query surface expected from the existing Zelph/HF connector.
 
     The ITIR parent already owns manifest/shard routing and Zelph partial-load
     mechanics. SensibLaw consumes only typed Wikidata coordinates/results here
     rather than duplicating that transport implementation.
+
+    The backend reports literal acquisition I/O.  A resident in-memory Zelph
+    query may therefore report zero, while an HF partial load may report however
+    many object reads it actually performed.
     """
 
     def search_wikidata_entities(
         self, labels: Sequence[str], *, limit_per_label: int
-    ) -> Mapping[str, Sequence[int]]: ...
+    ) -> ZelphSnapshotSearchResult: ...
 
     def fetch_wikidata_properties(
         self, keys: Sequence[tuple[int, int]]
-    ) -> Mapping[tuple[int, int], Sequence[WikidataPropertyFact]]: ...
+    ) -> ZelphSnapshotPropertyResult: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,9 +106,10 @@ class ZelphHFWikidataTransport:
         unique_labels = tuple(dict.fromkeys(label for label in labels if label))
         if not unique_labels:
             return WikidataSearchBatch({}, 0)
-        raw = self.backend.search_wikidata_entities(
+        result = self.backend.search_wikidata_entities(
             unique_labels, limit_per_label=limit_per_label
         )
+        raw = result.candidates_by_label
         candidates: dict[str, tuple[WikidataSearchCandidate, ...]] = {}
         for label in unique_labels:
             seen: set[int] = set()
@@ -98,7 +123,7 @@ class ZelphHFWikidataTransport:
                 if len(rows) >= limit_per_label:
                     break
             candidates[label] = tuple(rows)
-        return WikidataSearchBatch(candidates, 1)
+        return WikidataSearchBatch(candidates, result.acquisition_call_count)
 
     def fetch_properties(
         self, keys: Sequence[tuple[int, int]]
@@ -106,7 +131,8 @@ class ZelphHFWikidataTransport:
         unique_keys = tuple(sorted(set((int(q), int(p)) for q, p in keys)))
         if not unique_keys:
             return WikidataPropertyBatch({}, 0)
-        raw = self.backend.fetch_wikidata_properties(unique_keys)
+        result = self.backend.fetch_wikidata_properties(unique_keys)
+        raw = result.facts_by_key
         facts: dict[tuple[int, int], tuple[WikidataPropertyFact, ...]] = {}
         for key in unique_keys:
             rows: list[WikidataPropertyFact] = []
@@ -131,7 +157,7 @@ class ZelphHFWikidataTransport:
                     )
                 )
             facts[key] = tuple(rows)
-        return WikidataPropertyBatch(facts, 1)
+        return WikidataPropertyBatch(facts, result.acquisition_call_count)
 
 
 class TieredWikidataTransport:
@@ -257,5 +283,7 @@ __all__ = [
     "TieredWikidataTransport",
     "WikidataTierPolicy",
     "ZelphHFWikidataTransport",
+    "ZelphSnapshotPropertyResult",
     "ZelphSnapshotQueryBackend",
+    "ZelphSnapshotSearchResult",
 ]
