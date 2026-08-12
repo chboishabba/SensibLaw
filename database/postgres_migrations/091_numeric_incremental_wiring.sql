@@ -65,29 +65,37 @@ FOR EACH ROW EXECUTE FUNCTION execution.index_numeric_pnf_evidence_reverse_depen
 CREATE OR REPLACE FUNCTION execution.verify_numeric_pnf_candidate_current_state()
 RETURNS BOOLEAN LANGUAGE sql STABLE AS $$
 SELECT NOT EXISTS (
-    (SELECT demand_id,target_kind,target_id,event_id,event_kind,active_budget,reason_ref,created_at
-       FROM execution.semantic_pnf_candidate_latest_execution
-     EXCEPT
-     SELECT demand_id,target_kind,target_id,event_id,event_kind,active_budget,reason_ref,created_at
-       FROM execution.semantic_pnf_candidate_current_execution)
+    SELECT 1 FROM (
+        SELECT demand_id,target_kind,target_id,event_id,event_kind,active_budget,reason_ref,created_at
+        FROM execution.semantic_pnf_candidate_latest_execution
+        EXCEPT
+        SELECT demand_id,target_kind,target_id,event_id,event_kind,active_budget,reason_ref,created_at
+        FROM execution.semantic_pnf_candidate_current_execution
+    ) AS diff1
     UNION ALL
-    (SELECT demand_id,target_kind,target_id,event_id,event_kind,active_budget,reason_ref,created_at
-       FROM execution.semantic_pnf_candidate_current_execution
-     EXCEPT
-     SELECT demand_id,target_kind,target_id,event_id,event_kind,active_budget,reason_ref,created_at
-       FROM execution.semantic_pnf_candidate_latest_execution)
+    SELECT 1 FROM (
+        SELECT demand_id,target_kind,target_id,event_id,event_kind,active_budget,reason_ref,created_at
+        FROM execution.semantic_pnf_candidate_current_execution
+        EXCEPT
+        SELECT demand_id,target_kind,target_id,event_id,event_kind,active_budget,reason_ref,created_at
+        FROM execution.semantic_pnf_candidate_latest_execution
+    ) AS diff2
     UNION ALL
-    (SELECT demand_id,target_kind,target_id,event_id,event_kind,evidence_id,created_at
-       FROM execution.semantic_pnf_candidate_latest_admissibility
-     EXCEPT
-     SELECT demand_id,target_kind,target_id,event_id,event_kind,evidence_id,created_at
-       FROM execution.semantic_pnf_candidate_current_admissibility)
+    SELECT 1 FROM (
+        SELECT demand_id,target_kind,target_id,event_id,event_kind,evidence_id,created_at
+        FROM execution.semantic_pnf_candidate_latest_admissibility
+        EXCEPT
+        SELECT demand_id,target_kind,target_id,event_id,event_kind,evidence_id,created_at
+        FROM execution.semantic_pnf_candidate_current_admissibility
+    ) AS diff3
     UNION ALL
-    (SELECT demand_id,target_kind,target_id,horizon,revision,preferred,margin,evidence_count,preference_id
-       FROM execution.semantic_pnf_candidate_latest_preference
-     EXCEPT
-     SELECT demand_id,target_kind,target_id,horizon,revision,preferred,margin,evidence_count,preference_id
-       FROM execution.semantic_pnf_candidate_current_preference)
+    SELECT 1 FROM (
+        SELECT demand_id,target_kind,target_id,horizon,revision,preferred,margin,evidence_count,preference_id
+        FROM execution.semantic_pnf_candidate_latest_preference
+        EXCEPT
+        SELECT demand_id,target_kind,target_id,horizon,revision,preferred,margin,evidence_count,preference_id
+        FROM execution.semantic_pnf_candidate_current_preference
+    ) AS diff4
 );
 $$;
 

@@ -30,6 +30,7 @@ $$;
 -- Cache refresh deliberately excludes state 7.  A blocked request is re-enabled
 -- only by an explicit adapter/runtime revision, not by ordinary retry polling.
 
+DROP VIEW IF EXISTS execution.semantic_pnf_external_call_economy_v1;
 CREATE OR REPLACE VIEW execution.semantic_pnf_external_call_economy_v1 AS
 WITH member AS (
     SELECT request_id,count(*)::BIGINT AS member_count

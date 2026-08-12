@@ -232,6 +232,7 @@ VALUES (selected_provider_id,selected_worker_ref,selected_leased_request_count,
 RETURNING batch_receipt_id;
 $$;
 
+DROP VIEW IF EXISTS execution.semantic_pnf_external_call_economy_v1;
 CREATE OR REPLACE VIEW execution.semantic_pnf_external_call_economy_v1 AS
 WITH member AS (
     SELECT request_id,count(*)::BIGINT AS member_count

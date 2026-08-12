@@ -10,12 +10,12 @@ BEGIN;
 DO $$
 DECLARE constraint_name TEXT;
 BEGIN
-    SELECT constraint.conname INTO constraint_name
-      FROM pg_constraint AS constraint
-     WHERE constraint.conrelid=
+    SELECT cons.conname INTO constraint_name
+      FROM pg_constraint AS cons
+     WHERE cons.conrelid=
            'execution.semantic_pnf_external_provider_batch_receipt'::regclass
-       AND constraint.contype='c'
-       AND pg_get_constraintdef(constraint.oid)
+       AND cons.contype='c'
+       AND pg_get_constraintdef(cons.oid)
            LIKE '%provider_call_count <= leased_request_count%'
      LIMIT 1;
     IF constraint_name IS NOT NULL THEN
