@@ -8,6 +8,8 @@ M096 = ROOT / "database/postgres_migrations/096_late_external_demand_planner.sql
 M097 = ROOT / "database/postgres_migrations/097_external_evidence_projection_and_wakeup.sql"
 M098 = ROOT / "database/postgres_migrations/098_external_demand_hardening_and_receipts.sql"
 M099 = ROOT / "database/postgres_migrations/099_external_fact_axis_reuse.sql"
+M100 = ROOT / "database/postgres_migrations/100_external_provider_boundary_projection.sql"
+M101 = ROOT / "database/postgres_migrations/101_literal_provider_call_receipts.sql"
 
 
 def _sql(path: Path) -> str:
@@ -80,7 +82,7 @@ def test_expired_provider_lease_is_cache_probed_before_retry() -> None:
 
 
 def test_provider_evidence_is_immutable_and_call_counts_are_empirical() -> None:
-    sql = _sql(M098) + _sql(M099)
+    sql = _sql(M098) + _sql(M099) + _sql(M101)
     recorder = sql.split(
         "CREATE OR REPLACE FUNCTION execution.record_numeric_pnf_external_evidence", 1
     )[-1].split("$$;", 1)[0]
@@ -89,3 +91,15 @@ def test_provider_evidence_is_immutable_and_call_counts_are_empirical() -> None:
     assert "semantic_pnf_external_provider_batch_receipt" in sql
     assert "fresh_provider_calls" in sql
     assert "requests_per_provider_call" in sql
+    assert "logical provider-boundary evaluations" in _sql(M101)
+
+
+def test_provider_claim_projects_only_external_boundary_identifiers() -> None:
+    sql = _sql(M100)
+    claim = sql.split(
+        "CREATE FUNCTION execution.claim_numeric_pnf_external_provider_batch", 1
+    )[1].split("$$;", 1)[0]
+    assert "label.symbol_text" in claim
+    assert "subject.provider_numeric_id" in claim
+    assert "label_symbol_id BIGINT" not in sql.split("RETURNS TABLE", 1)[1].split(") LANGUAGE", 1)[0]
+    assert "world_entity_id BIGINT" not in sql.split("RETURNS TABLE", 1)[1].split(") LANGUAGE", 1)[0]
