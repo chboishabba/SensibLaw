@@ -31,10 +31,12 @@ class ExternalValueKind(IntEnum):
 
 @dataclass(frozen=True, slots=True)
 class ExternalRequest:
+    """Provider-facing request; PostgreSQL-local surrogate ids are absent."""
+
     request_id: int
     request_kind: ExternalRequestKind
-    label_symbol_id: int | None
-    world_entity_id: int | None
+    label_text: str | None
+    provider_subject_numeric_id: int | None
     provider_property_numeric_id: int | None
     axis_kind: int | None
     request_revision: int
@@ -54,12 +56,18 @@ class DiscoveredWorldCandidate:
 
 @dataclass(frozen=True, slots=True)
 class ExternalEvidence:
+    """Provider-facing fact payload.
+
+    For entity-valued facts the provider returns its own numeric id (for Wikidata,
+    the integer portion of Q<n>). The PostgreSQL gateway interns that id into the
+    local world-entity table before persistence.
+    """
+
     evidence_digest: bytes
-    subject_world_entity_id: int
     provider_property_numeric_id: int
     axis_kind: int | None
     value_kind: ExternalValueKind
-    value_world_entity_id: int | None = None
+    value_provider_numeric_id: int | None = None
     value_symbol_id: int | None = None
     value_numeric: int | None = None
     provider_revision: int | None = None
@@ -68,18 +76,17 @@ class ExternalEvidence:
     def __post_init__(self) -> None:
         if len(self.evidence_digest) != 32:
             raise ValueError("external evidence digest must be SHA-256 width")
-        if self.subject_world_entity_id <= 0:
-            raise ValueError("subject world entity id must be positive")
         if self.provider_property_numeric_id <= 0:
             raise ValueError("provider property id must be positive")
         populated = sum(
             value is not None
-            for value in (self.value_world_entity_id, self.value_symbol_id, self.value_numeric)
+            for value in (self.value_provider_numeric_id, self.value_symbol_id, self.value_numeric)
         )
         if populated != 1:
             raise ValueError("external evidence must contain exactly one typed value")
-        if self.value_kind is ExternalValueKind.WORLD_ENTITY and self.value_world_entity_id is None:
-            raise ValueError("world-entity evidence requires value_world_entity_id")
+        if self.value_kind is ExternalValueKind.WORLD_ENTITY:
+            if self.value_provider_numeric_id is None or self.value_provider_numeric_id <= 0:
+                raise ValueError("world-entity evidence requires positive provider entity id")
         if self.value_kind is ExternalValueKind.SYMBOL and self.value_symbol_id is None:
             raise ValueError("symbol evidence requires value_symbol_id")
         if self.value_kind is ExternalValueKind.NUMERIC and self.value_numeric is None:
@@ -201,8 +208,8 @@ def execute_external_provider_batch(
 
         request = request_by_id[result.request_id]
         if request.request_kind is ExternalRequestKind.CANDIDATE_DISCOVERY:
-            if request.label_symbol_id is None:
-                raise ValueError("candidate-discovery request is missing label_symbol_id")
+            if not request.label_text:
+                raise ValueError("candidate-discovery request is missing boundary label text")
             store.record_external_discovery_candidates(
                 request=request,
                 candidates=result.discovered_candidates,
