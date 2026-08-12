@@ -1,8 +1,8 @@
 """Late external-provider execution over deduplicated H9 cache misses.
 
-This module deliberately knows nothing about parsing or candidate generation.  The
-PostgreSQL planner has already reduced consumer-specific H9 residuals to unique
-provider requests and probed local caches before requests reach this boundary.
+The PostgreSQL planner has already reduced consumer-specific H9 residuals to
+unique provider requests and probed local caches before requests reach this
+boundary. Parsing and ordinary PNF construction never call providers here.
 """
 from __future__ import annotations
 
@@ -125,11 +125,11 @@ class ExternalBatchReceipt:
 
 
 class ExternalProvider(Protocol):
-    """Provider boundary.
+    """Cold provider boundary.
 
     Implementations should combine requests as aggressively as their API permits
-    and report actual network call count.  The planner guarantees that every
-    request here was a local-cache miss at claim time.
+    and report actual network call count. Every request reaching this boundary was
+    a local-cache miss at claim time.
     """
 
     provider_id: int
@@ -155,6 +155,10 @@ class ExternalDemandStore(Protocol):
 
     def fail_external_request(self, request_id: int, error_ref: str) -> bool: ...
 
+    def record_external_batch_receipt(
+        self, *, provider_id: int, worker_ref: str, receipt: ExternalBatchReceipt
+    ) -> int: ...
+
 
 def execute_external_provider_batch(
     store: ExternalDemandStore,
@@ -166,8 +170,8 @@ def execute_external_provider_batch(
 ) -> ExternalBatchReceipt:
     """Execute one deduplicated provider microbatch.
 
-    No request is generated here.  If the planner/cache probe produced no true
-    misses, this function performs zero provider calls.
+    No request is generated here. If the planner/cache probe produced no true
+    misses, this performs zero provider calls and writes no batch receipt.
     """
 
     requests = store.claim_external_provider_batch(
@@ -209,9 +213,15 @@ def execute_external_provider_batch(
         store.complete_external_request(result.request_id)
         completed += 1
 
-    return ExternalBatchReceipt(
+    receipt = ExternalBatchReceipt(
         leased_request_count=len(requests),
         completed_request_count=completed,
         failed_request_count=failed,
         provider_call_count=batch.provider_call_count,
     )
+    store.record_external_batch_receipt(
+        provider_id=provider.provider_id,
+        worker_ref=worker_ref,
+        receipt=receipt,
+    )
+    return receipt
