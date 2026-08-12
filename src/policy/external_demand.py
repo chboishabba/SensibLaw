@@ -1,0 +1,217 @@
+"""Late external-provider execution over deduplicated H9 cache misses.
+
+This module deliberately knows nothing about parsing or candidate generation.  The
+PostgreSQL planner has already reduced consumer-specific H9 residuals to unique
+provider requests and probed local caches before requests reach this boundary.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import IntEnum
+from typing import Protocol, Sequence
+
+
+class ExternalNeedKind(IntEnum):
+    CANDIDATE_DISCOVERY = 1
+    PROPERTY_ENRICHMENT = 2
+    IDENTITY_ALIGNMENT = 3
+
+
+class ExternalRequestKind(IntEnum):
+    CANDIDATE_DISCOVERY = 1
+    PROPERTY_ENRICHMENT = 2
+    IDENTITY_ALIGNMENT = 3
+
+
+class ExternalValueKind(IntEnum):
+    WORLD_ENTITY = 1
+    SYMBOL = 2
+    NUMERIC = 3
+
+
+@dataclass(frozen=True, slots=True)
+class ExternalRequest:
+    request_id: int
+    request_kind: ExternalRequestKind
+    label_symbol_id: int | None
+    world_entity_id: int | None
+    provider_property_numeric_id: int | None
+    axis_kind: int | None
+    request_revision: int
+
+
+@dataclass(frozen=True, slots=True)
+class DiscoveredWorldCandidate:
+    provider_numeric_id: int
+    candidate_ordinal: int
+
+    def __post_init__(self) -> None:
+        if self.provider_numeric_id <= 0:
+            raise ValueError("provider entity id must be positive")
+        if self.candidate_ordinal < 0:
+            raise ValueError("candidate ordinal must be non-negative")
+
+
+@dataclass(frozen=True, slots=True)
+class ExternalEvidence:
+    evidence_digest: bytes
+    subject_world_entity_id: int
+    provider_property_numeric_id: int
+    axis_kind: int | None
+    value_kind: ExternalValueKind
+    value_world_entity_id: int | None = None
+    value_symbol_id: int | None = None
+    value_numeric: int | None = None
+    provider_revision: int | None = None
+    source_ref: str = "external-provider"
+
+    def __post_init__(self) -> None:
+        if len(self.evidence_digest) != 32:
+            raise ValueError("external evidence digest must be SHA-256 width")
+        if self.subject_world_entity_id <= 0:
+            raise ValueError("subject world entity id must be positive")
+        if self.provider_property_numeric_id <= 0:
+            raise ValueError("provider property id must be positive")
+        populated = sum(
+            value is not None
+            for value in (self.value_world_entity_id, self.value_symbol_id, self.value_numeric)
+        )
+        if populated != 1:
+            raise ValueError("external evidence must contain exactly one typed value")
+        if self.value_kind is ExternalValueKind.WORLD_ENTITY and self.value_world_entity_id is None:
+            raise ValueError("world-entity evidence requires value_world_entity_id")
+        if self.value_kind is ExternalValueKind.SYMBOL and self.value_symbol_id is None:
+            raise ValueError("symbol evidence requires value_symbol_id")
+        if self.value_kind is ExternalValueKind.NUMERIC and self.value_numeric is None:
+            raise ValueError("numeric evidence requires value_numeric")
+
+
+@dataclass(frozen=True, slots=True)
+class ExternalRequestResult:
+    request_id: int
+    discovered_candidates: tuple[DiscoveredWorldCandidate, ...] = ()
+    evidence: tuple[ExternalEvidence, ...] = ()
+    error_ref: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.error_ref is not None and (self.discovered_candidates or self.evidence):
+            raise ValueError("failed external result cannot also carry successful payload")
+
+
+@dataclass(frozen=True, slots=True)
+class ExternalBatchResult:
+    results: tuple[ExternalRequestResult, ...]
+    provider_call_count: int
+
+    def __post_init__(self) -> None:
+        if self.provider_call_count < 0:
+            raise ValueError("provider_call_count must be non-negative")
+        if self.results and self.provider_call_count == 0:
+            raise ValueError("non-empty provider result must account for a provider call")
+
+
+@dataclass(frozen=True, slots=True)
+class ExternalBatchReceipt:
+    leased_request_count: int
+    completed_request_count: int
+    failed_request_count: int
+    provider_call_count: int
+
+    @property
+    def requests_per_provider_call(self) -> float | None:
+        if self.provider_call_count == 0:
+            return None
+        return self.leased_request_count / self.provider_call_count
+
+
+class ExternalProvider(Protocol):
+    """Provider boundary.
+
+    Implementations should combine requests as aggressively as their API permits
+    and report actual network call count.  The planner guarantees that every
+    request here was a local-cache miss at claim time.
+    """
+
+    provider_id: int
+
+    def fetch_batch(self, requests: Sequence[ExternalRequest]) -> ExternalBatchResult: ...
+
+
+class ExternalDemandStore(Protocol):
+    def claim_external_provider_batch(
+        self, *, provider_id: int, worker_ref: str, limit: int, lease_seconds: int
+    ) -> tuple[ExternalRequest, ...]: ...
+
+    def record_external_discovery_candidates(
+        self,
+        *,
+        request: ExternalRequest,
+        candidates: Sequence[DiscoveredWorldCandidate],
+    ) -> None: ...
+
+    def record_external_evidence(self, *, request_id: int, evidence: ExternalEvidence) -> int: ...
+
+    def complete_external_request(self, request_id: int) -> bool: ...
+
+    def fail_external_request(self, request_id: int, error_ref: str) -> bool: ...
+
+
+def execute_external_provider_batch(
+    store: ExternalDemandStore,
+    provider: ExternalProvider,
+    *,
+    worker_ref: str,
+    limit: int = 32,
+    lease_seconds: int = 300,
+) -> ExternalBatchReceipt:
+    """Execute one deduplicated provider microbatch.
+
+    No request is generated here.  If the planner/cache probe produced no true
+    misses, this function performs zero provider calls.
+    """
+
+    requests = store.claim_external_provider_batch(
+        provider_id=provider.provider_id,
+        worker_ref=worker_ref,
+        limit=limit,
+        lease_seconds=lease_seconds,
+    )
+    if not requests:
+        return ExternalBatchReceipt(0, 0, 0, 0)
+
+    batch = provider.fetch_batch(requests)
+    expected = {request.request_id for request in requests}
+    returned = [result.request_id for result in batch.results]
+    if len(returned) != len(set(returned)):
+        raise ValueError("provider returned duplicate request results")
+    if set(returned) != expected:
+        raise ValueError("provider batch must return exactly one result for every leased request")
+
+    request_by_id = {request.request_id: request for request in requests}
+    completed = failed = 0
+    for result in batch.results:
+        if result.error_ref is not None:
+            store.fail_external_request(result.request_id, result.error_ref)
+            failed += 1
+            continue
+
+        request = request_by_id[result.request_id]
+        if request.request_kind is ExternalRequestKind.CANDIDATE_DISCOVERY:
+            if request.label_symbol_id is None:
+                raise ValueError("candidate-discovery request is missing label_symbol_id")
+            store.record_external_discovery_candidates(
+                request=request,
+                candidates=result.discovered_candidates,
+            )
+        else:
+            for evidence in result.evidence:
+                store.record_external_evidence(request_id=result.request_id, evidence=evidence)
+        store.complete_external_request(result.request_id)
+        completed += 1
+
+    return ExternalBatchReceipt(
+        leased_request_count=len(requests),
+        completed_request_count=completed,
+        failed_request_count=failed,
+        provider_call_count=batch.provider_call_count,
+    )
