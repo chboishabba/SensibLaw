@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from typing import Any, Iterable
 
 from src.policy.reopenable_runtime import (
-    EvidenceFamily,
     EvidenceHorizon,
     RelevanceAccounting,
     SignedEvidence,
@@ -47,24 +46,38 @@ class ReopenableRuntimeStore:
         self.database_url = database_url
 
     def record_evidence(self, evidence: SignedEvidence) -> int:
+        """Insert one immutable evidence atom, or return its existing id.
+
+        Reusing an ``evidence_ref`` is idempotent.  It never mutates an earlier
+        signed residual; corrected evidence must receive a new provenance ref.
+        """
+
         connection = connect(self.database_url)
         try:
             with connection.transaction():
                 with connection.cursor() as cursor:
                     cursor.execute(
                         """
-                        INSERT INTO execution.semantic_pnf_candidate_evidence
-                            (demand_id, target_kind, target_id, evidence_ref,
-                             evidence_family, horizon, signed_residual,
-                             evidence_kind, provenance_ref)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        ON CONFLICT (
-                            demand_id, target_kind, target_id, evidence_ref
-                        ) DO UPDATE SET
-                            signed_residual = EXCLUDED.signed_residual,
-                            evidence_kind = EXCLUDED.evidence_kind,
-                            provenance_ref = EXCLUDED.provenance_ref
-                        RETURNING evidence_id
+                        WITH inserted AS (
+                            INSERT INTO execution.semantic_pnf_candidate_evidence
+                                (demand_id, target_kind, target_id, evidence_ref,
+                                 evidence_family, horizon, signed_residual,
+                                 evidence_kind, provenance_ref)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            ON CONFLICT (
+                                demand_id, target_kind, target_id, evidence_ref
+                            ) DO NOTHING
+                            RETURNING evidence_id
+                        )
+                        SELECT evidence_id FROM inserted
+                        UNION ALL
+                        SELECT evidence_id
+                          FROM execution.semantic_pnf_candidate_evidence
+                         WHERE demand_id = %s
+                           AND target_kind = %s
+                           AND target_id = %s
+                           AND evidence_ref = %s
+                        LIMIT 1
                         """,
                         (
                             evidence.candidate.demand_id,
@@ -76,9 +89,16 @@ class ReopenableRuntimeStore:
                             evidence.signed_residual,
                             "runtime_evidence",
                             evidence.provenance_ref,
+                            evidence.candidate.demand_id,
+                            evidence.candidate.target_kind,
+                            evidence.candidate.target_id,
+                            evidence.evidence_ref,
                         ),
                     )
-                    return int(cursor.fetchone()[0])
+                    row = cursor.fetchone()
+                    if row is None:
+                        raise RuntimeError("candidate evidence insert did not return an id")
+                    return int(row[0])
         finally:
             connection.close()
 
