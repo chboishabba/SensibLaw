@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Benchmark post-parser PNF query shape and retrieval reduction.
+"""Benchmark post-parser numeric PNF query shape and retrieval reduction.
 
-The driver records empirical tuples
-(N_input, N_generated, N_retained, N_output, W, M, T)
-without making an asymptotic claim from one run.  PostgreSQL EXPLAIN ANALYZE is
-used only for read-only observatory queries; no GitHub/CI activity is involved.
+Records empirical (N_input, N_generated, N_retained, N_output, W, M, T) tuples,
+token-normalised throughput, support fanout and PostgreSQL retrieval reduction.
+EXPLAIN is consumed in JSON form; no regex/string scraping is used.
 """
 
 from __future__ import annotations
@@ -12,7 +11,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 from dataclasses import asdict, dataclass
 from time import monotonic_ns
 from typing import Any
@@ -24,6 +22,7 @@ import psycopg
 class BenchmarkTuple:
     workload_ref: str
     stage_name: str
+    token_count: int
     n_input: int
     n_generated: int
     n_retained: int
@@ -31,6 +30,16 @@ class BenchmarkTuple:
     work_units: int
     peak_memory_bytes: int | None
     elapsed_microseconds: int
+
+    @property
+    def tokens_per_second(self) -> float | None:
+        if self.elapsed_microseconds <= 0:
+            return None
+        return self.token_count * 1_000_000 / self.elapsed_microseconds
+
+    @property
+    def work_per_token(self) -> float | None:
+        return self.work_units / self.token_count if self.token_count else None
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,7 +53,12 @@ class RetrievalReduction:
     downstream_work_units: int
 
 
-_EXECUTION_TIME_RE = re.compile(r"Execution Time: ([0-9.]+) ms")
+@dataclass(frozen=True, slots=True)
+class SupportFanout:
+    argument_objects: int
+    support_edges: int
+    maximum_fanout: float | None
+    average_fanout: float | None
 
 
 def _count(cursor: Any, sql: str, params: tuple[Any, ...]) -> int:
@@ -59,19 +73,40 @@ def _timed_count(cursor: Any, sql: str, params: tuple[Any, ...]) -> tuple[int, i
 
 
 def _explain_microseconds(cursor: Any, sql: str, params: tuple[Any, ...]) -> int:
-    cursor.execute("EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) " + sql, params)
-    lines = [str(row[0]) for row in cursor.fetchall()]
-    for line in reversed(lines):
-        match = _EXECUTION_TIME_RE.search(line)
-        if match:
-            return int(float(match.group(1)) * 1_000)
-    return 0
+    cursor.execute("EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) " + sql, params)
+    payload = cursor.fetchone()[0]
+    document = payload[0] if isinstance(payload, list) else payload
+    elapsed_ms = float(document.get("Execution Time", 0.0))
+    return int(elapsed_ms * 1_000)
+
+
+def _document_token_count(cursor: Any, run_id: int, document_id: int) -> int:
+    return _count(
+        cursor,
+        """
+        WITH identity AS (
+            SELECT run_identity.run_ref, document_identity.document_ref
+              FROM execution.semantic_pnf_run_identity AS run_identity
+              CROSS JOIN execution.semantic_pnf_document_identity AS document_identity
+             WHERE run_identity.run_id = %s
+               AND document_identity.document_id = %s
+        )
+        SELECT count(*)
+          FROM execution.semantic_parser_token AS token
+          JOIN identity ON TRUE
+         WHERE token.run_ref = identity.run_ref
+           AND token.document_ref = identity.document_ref
+           AND token.representation_version = 2
+        """,
+        (run_id, document_id),
+    )
 
 
 def collect(
     cursor: Any, *, run_id: int, document_id: int, workload_ref: str
-) -> tuple[tuple[BenchmarkTuple, ...], tuple[RetrievalReduction, ...]]:
+) -> tuple[tuple[BenchmarkTuple, ...], tuple[RetrievalReduction, ...], SupportFanout]:
     params = (run_id, document_id)
+    token_count = _document_token_count(cursor, run_id, document_id)
     document_filter = """
         JOIN execution.semantic_pnf_demand AS demand
           ON demand.demand_id = candidate.demand_id
@@ -99,12 +134,9 @@ def collect(
     )
     n_retained = _count(
         cursor,
-        """
-        SELECT count(*)
-          FROM execution.semantic_pnf_candidate_state_v1 AS candidate
-        """ + document_filter.replace(
-            "candidate.demand_id", "candidate.demand_id"
-        ) + " AND candidate.active AND candidate.admissible",
+        "SELECT count(*) FROM execution.semantic_pnf_candidate_state_v1 AS candidate "
+        + document_filter
+        + " AND candidate.active AND candidate.admissible",
         params,
     )
     n_output = _count(
@@ -141,6 +173,7 @@ def collect(
     stage = BenchmarkTuple(
         workload_ref=workload_ref,
         stage_name="reopenable_progressive_resolution_h9",
+        token_count=token_count,
         n_input=n_input,
         n_generated=n_generated,
         n_retained=n_retained,
@@ -178,7 +211,30 @@ def collect(
         probe_microseconds=probe_us,
         downstream_work_units=work_units,
     )
-    return (stage,), (retrieval,)
+
+    cursor.execute(
+        """
+        SELECT count(*),
+               COALESCE(sum(fanout.support_edges), 0),
+               max(fanout.support_fanout),
+               avg(fanout.support_fanout)
+          FROM execution.semantic_pnf_structural_support_fanout_v1 AS fanout
+          JOIN execution.semantic_pnf_object AS object
+            ON object.object_id = fanout.object_id
+          JOIN execution.semantic_pnf_region AS region
+            ON region.region_id = object.region_id
+         WHERE region.run_id = %s AND region.document_id = %s
+        """,
+        params,
+    )
+    argument_objects, support_edges, maximum_fanout, average_fanout = cursor.fetchone()
+    support = SupportFanout(
+        argument_objects=int(argument_objects or 0),
+        support_edges=int(support_edges or 0),
+        maximum_fanout=float(maximum_fanout) if maximum_fanout is not None else None,
+        average_fanout=float(average_fanout) if average_fanout is not None else None,
+    )
+    return (stage,), (retrieval,), support
 
 
 def persist(
@@ -196,25 +252,18 @@ def persist(
                  work_units, elapsed_microseconds, peak_memory_bytes)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (measurement_ref) DO UPDATE SET
-                input_units = EXCLUDED.input_units,
-                generated_units = EXCLUDED.generated_units,
-                retained_units = EXCLUDED.retained_units,
-                output_units = EXCLUDED.output_units,
-                work_units = EXCLUDED.work_units,
-                elapsed_microseconds = EXCLUDED.elapsed_microseconds,
-                peak_memory_bytes = EXCLUDED.peak_memory_bytes
+                input_units=EXCLUDED.input_units,
+                generated_units=EXCLUDED.generated_units,
+                retained_units=EXCLUDED.retained_units,
+                output_units=EXCLUDED.output_units,
+                work_units=EXCLUDED.work_units,
+                elapsed_microseconds=EXCLUDED.elapsed_microseconds,
+                peak_memory_bytes=EXCLUDED.peak_memory_bytes
             """,
             (
-                measurement_ref,
-                stage.workload_ref,
-                stage.stage_name,
-                stage.n_input,
-                stage.n_generated,
-                stage.n_retained,
-                stage.n_output,
-                stage.work_units,
-                stage.elapsed_microseconds,
-                stage.peak_memory_bytes,
+                measurement_ref, stage.workload_ref, stage.stage_name,
+                stage.n_input, stage.n_generated, stage.n_retained, stage.n_output,
+                stage.work_units, stage.elapsed_microseconds, stage.peak_memory_bytes,
             ),
         )
     for retrieval in retrievals:
@@ -227,18 +276,15 @@ def persist(
                  downstream_work_units, exact_downstream_required)
             VALUES (%s, %s, 1, %s, %s, %s, %s, TRUE)
             ON CONFLICT (measurement_ref) DO UPDATE SET
-                universe_units = EXCLUDED.universe_units,
-                frontier_units = EXCLUDED.frontier_units,
-                probe_microseconds = EXCLUDED.probe_microseconds,
-                downstream_work_units = EXCLUDED.downstream_work_units
+                universe_units=EXCLUDED.universe_units,
+                frontier_units=EXCLUDED.frontier_units,
+                probe_microseconds=EXCLUDED.probe_microseconds,
+                downstream_work_units=EXCLUDED.downstream_work_units
             """,
             (
-                measurement_ref,
-                retrieval.workload_ref,
-                retrieval.universe_units,
-                retrieval.frontier_units,
-                retrieval.probe_microseconds,
-                retrieval.downstream_work_units,
+                measurement_ref, retrieval.workload_ref,
+                retrieval.universe_units, retrieval.frontier_units,
+                retrieval.probe_microseconds, retrieval.downstream_work_units,
             ),
         )
 
@@ -256,7 +302,7 @@ def main() -> int:
 
     with psycopg.connect(args.database_url) as connection:
         with connection.cursor() as cursor:
-            stages, retrievals = collect(
+            stages, retrievals, support = collect(
                 cursor,
                 run_id=args.run_id,
                 document_id=args.document_id,
@@ -269,16 +315,15 @@ def main() -> int:
         else:
             connection.rollback()
 
-    print(
-        json.dumps(
-            {
-                "stage_measurements": [asdict(stage) for stage in stages],
-                "retrieval_reduction": [asdict(item) for item in retrievals],
-            },
-            indent=2,
-            sort_keys=True,
-        )
-    )
+    print(json.dumps({
+        "stage_measurements": [
+            {**asdict(stage), "tokens_per_second": stage.tokens_per_second,
+             "work_per_token": stage.work_per_token}
+            for stage in stages
+        ],
+        "retrieval_reduction": [asdict(item) for item in retrievals],
+        "structural_support_fanout": asdict(support),
+    }, indent=2, sort_keys=True))
     return 0
 
 
