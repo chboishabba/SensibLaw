@@ -26,7 +26,7 @@ def test_h6_is_numeric_typed_factor_evidence_not_proximity_or_text_matching() ->
     assert "predicate_symbol_id" in body
     assert "role_symbol_id" in body
     assert "candidate_factor.temporal_state" in body
-    assert "candidate_factor.temporal_state=matched.source_temporal_state" in body
+    assert "matched.candidate_temporal_state=matched.source_temporal_state" in body
     assert "semantic_symbol" not in body
     assert "symbol_text" not in body
     assert "regexp" not in body.lower()
