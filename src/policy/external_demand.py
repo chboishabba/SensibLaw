@@ -38,18 +38,29 @@ class ExternalRequest:
     provider_property_numeric_id: int | None
     axis_kind: int | None
     request_revision: int
+    minimum_source_epoch: int | None = None
+
+    def __post_init__(self) -> None:
+        if self.minimum_source_epoch is not None and self.minimum_source_epoch <= 0:
+            raise ValueError("minimum source epoch must be positive")
 
 
 @dataclass(frozen=True, slots=True)
 class DiscoveredWorldCandidate:
     provider_numeric_id: int
     candidate_ordinal: int
+    source_ref: str | None = None
+    source_epoch: int | None = None
 
     def __post_init__(self) -> None:
         if self.provider_numeric_id <= 0:
             raise ValueError("provider entity id must be positive")
         if self.candidate_ordinal < 0:
             raise ValueError("candidate ordinal must be non-negative")
+        if self.source_epoch is not None and self.source_epoch <= 0:
+            raise ValueError("candidate source epoch must be positive")
+        if self.source_ref is not None and not self.source_ref.strip():
+            raise ValueError("candidate source ref cannot be blank")
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,6 +75,7 @@ class ExternalEvidence:
     value_numeric: int | None = None
     provider_revision: int | None = None
     source_ref: str = "external-provider"
+    source_epoch: int | None = None
 
     def __post_init__(self) -> None:
         if len(self.evidence_digest) != 32:
@@ -72,6 +84,10 @@ class ExternalEvidence:
             raise ValueError("provider subject id must be positive")
         if self.provider_property_numeric_id <= 0:
             raise ValueError("provider property id must be positive")
+        if not self.source_ref.strip():
+            raise ValueError("external evidence source ref cannot be blank")
+        if self.source_epoch is not None and self.source_epoch <= 0:
+            raise ValueError("external evidence source epoch must be positive")
         populated = sum(
             value is not None
             for value in (self.value_provider_numeric_id, self.value_text, self.value_numeric)
@@ -203,6 +219,12 @@ def execute_external_provider_batch(
         if request.request_kind is ExternalRequestKind.CANDIDATE_DISCOVERY:
             if not request.label_text:
                 raise ValueError("candidate-discovery request is missing boundary label text")
+            for candidate in result.discovered_candidates:
+                if (
+                    request.minimum_source_epoch is not None
+                    and (candidate.source_epoch is None or candidate.source_epoch < request.minimum_source_epoch)
+                ):
+                    raise ValueError("provider returned candidate evidence older than request freshness floor")
             store.record_external_discovery_candidates(
                 request=request,
                 candidates=result.discovered_candidates,
@@ -217,6 +239,11 @@ def execute_external_provider_batch(
                     != request.provider_property_numeric_id
                 ):
                     raise ValueError("provider returned evidence for an unrequested property")
+                if (
+                    request.minimum_source_epoch is not None
+                    and (evidence.source_epoch is None or evidence.source_epoch < request.minimum_source_epoch)
+                ):
+                    raise ValueError("provider returned property evidence older than request freshness floor")
                 store.record_external_evidence(request_id=result.request_id, evidence=evidence)
         store.complete_external_request(result.request_id)
         completed += 1
