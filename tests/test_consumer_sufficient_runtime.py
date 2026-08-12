@@ -85,6 +85,10 @@ def _observation_rows() -> tuple[NumericObservationRow, ...]:
             dependency_symbol_id=50,
             morph_set_id=None,
             head_token_id=1001,
+            lemma_origin_id=1,
+            pos_origin_id=1,
+            tag_origin_id=1,
+            dependency_origin_id=1,
         ),
         NumericObservationRow(
             token_id=1001,
@@ -99,6 +103,10 @@ def _observation_rows() -> tuple[NumericObservationRow, ...]:
             dependency_symbol_id=51,
             morph_set_id=99,
             head_token_id=1001,
+            lemma_origin_id=2,
+            pos_origin_id=1,
+            tag_origin_id=3,
+            dependency_origin_id=1,
         ),
         # Deliberately non-monotone imported ids exercise signed delta coding.
         NumericObservationRow(
@@ -114,11 +122,15 @@ def _observation_rows() -> tuple[NumericObservationRow, ...]:
             dependency_symbol_id=None,
             morph_set_id=None,
             head_token_id=999,
+            lemma_origin_id=1,
+            pos_origin_id=1,
+            tag_origin_id=1,
+            dependency_origin_id=1,
         ),
     )
 
 
-def test_numeric_observation_tape_roundtrips_exactly() -> None:
+def test_numeric_observation_tape_roundtrips_exactly_with_annotation_origins() -> None:
     rows = _observation_rows()
     payload, receipt = pack_numeric_observation_tape(rows)
     assert unpack_numeric_observation_tape(payload) == rows
@@ -127,6 +139,7 @@ def test_numeric_observation_tape_roundtrips_exactly() -> None:
     assert verified.packed_digest == receipt.packed_digest
     assert receipt.token_count == len(rows)
     assert receipt.encoded_bytes == len(payload)
+    assert receipt.codec_version == 2
 
 
 def test_numeric_observation_tape_rejects_trailing_or_wrong_bytes() -> None:
