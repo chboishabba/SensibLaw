@@ -5,14 +5,13 @@ second world-entity namespace. Q/P identifiers therefore remain provider-native
 Wikidata integers while this module records whether evidence came from a bounded
 Zelph snapshot or a live Wikidata transport.
 
-The transport is deliberately downstream of the PostgreSQL cache probe. Normal
-execution is therefore:
+Normal execution is:
 
     local DB cache -> Zelph/HF snapshot -> live Wikidata (only if required)
 
-A stale snapshot is useful evidence but never gains truth/identity authority by
-being cheap or local. Consumers that can observe freshness must request a live
-read explicitly through ``WikidataTierPolicy``.
+Freshness is consumer/request relative.  A snapshot with ``snapshot_epoch`` less
+than a request's ``minimum_source_epoch`` is skipped without I/O rather than
+queried and then rejected downstream.
 """
 from __future__ import annotations
 
@@ -49,15 +48,10 @@ class ZelphSnapshotPropertyResult:
 
 
 class ZelphSnapshotQueryBackend(Protocol):
-    """Minimal query surface expected from the existing Zelph/HF connector.
+    """Thin typed seam over the existing ITIR Zelph/HF transport/runtime.
 
-    The ITIR parent already owns manifest/shard routing and Zelph partial-load
-    mechanics. SensibLaw consumes only typed Wikidata coordinates/results here
-    rather than duplicating that transport implementation.
-
-    The backend reports literal acquisition I/O.  A resident in-memory Zelph
-    query may therefore report zero, while an HF partial load may report however
-    many object reads it actually performed.
+    The backend reports literal acquisition I/O. A resident Zelph query may
+    report zero; an HF partial load reports the object/shard reads it performed.
     """
 
     def search_wikidata_entities(
@@ -71,13 +65,7 @@ class ZelphSnapshotQueryBackend(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class WikidataTierPolicy:
-    """Consumer-visible acquisition policy.
-
-    ``fallback_on_snapshot_miss`` gives the normal cheap path. The two
-    ``require_live_*`` flags are stronger freshness contracts: they force a live
-    read even when the snapshot supplied a value. They are deliberately
-    separate for name discovery and property evidence.
-    """
+    """Optional stronger acquisition policy layered over request freshness."""
 
     fallback_on_snapshot_miss: bool = True
     require_live_discovery: bool = False
@@ -85,58 +73,80 @@ class WikidataTierPolicy:
 
 
 class ZelphHFWikidataTransport:
-    """Adapt an existing Zelph/HF Wikidata query backend to WikidataTransport."""
+    """Adapt the existing Zelph/HF Wikidata query backend to WikidataTransport."""
 
     def __init__(
         self,
         backend: ZelphSnapshotQueryBackend,
         *,
         snapshot_ref: str,
+        snapshot_epoch: int | None,
         snapshot_revision: int | None = None,
     ) -> None:
         if not snapshot_ref.strip():
             raise ValueError("snapshot_ref must be non-empty")
+        if snapshot_epoch is not None and snapshot_epoch <= 0:
+            raise ValueError("snapshot_epoch must be positive")
         self.backend = backend
         self.snapshot_ref = snapshot_ref.strip()
+        self.snapshot_epoch = snapshot_epoch
         self.snapshot_revision = snapshot_revision
 
+    def _satisfies_floor(self, minimum_source_epoch: int | None) -> bool:
+        if minimum_source_epoch is None:
+            return True
+        return self.snapshot_epoch is not None and self.snapshot_epoch >= minimum_source_epoch
+
     def search_entities(
-        self, labels: Sequence[str], *, limit_per_label: int
+        self,
+        labels: Sequence[str],
+        *,
+        limit_per_label: int,
+        minimum_source_epoch: int | None = None,
     ) -> WikidataSearchBatch:
         unique_labels = tuple(dict.fromkeys(label for label in labels if label))
-        if not unique_labels:
+        if not unique_labels or not self._satisfies_floor(minimum_source_epoch):
             return WikidataSearchBatch({}, 0)
         result = self.backend.search_wikidata_entities(
             unique_labels, limit_per_label=limit_per_label
         )
-        raw = result.candidates_by_label
         candidates: dict[str, tuple[WikidataSearchCandidate, ...]] = {}
+        source_ref = f"zelph-hf:{self.snapshot_ref}"
         for label in unique_labels:
             seen: set[int] = set()
             rows: list[WikidataSearchCandidate] = []
-            for raw_qid in raw.get(label, ()):
+            for raw_qid in result.candidates_by_label.get(label, ()):
                 qid = int(raw_qid)
                 if qid <= 0 or qid in seen:
                     continue
                 seen.add(qid)
-                rows.append(WikidataSearchCandidate(qid=qid, rank=len(rows)))
+                rows.append(
+                    WikidataSearchCandidate(
+                        qid=qid,
+                        rank=len(rows),
+                        source_ref=source_ref,
+                        source_epoch=self.snapshot_epoch,
+                    )
+                )
                 if len(rows) >= limit_per_label:
                     break
             candidates[label] = tuple(rows)
         return WikidataSearchBatch(candidates, result.acquisition_call_count)
 
     def fetch_properties(
-        self, keys: Sequence[tuple[int, int]]
+        self,
+        keys: Sequence[tuple[int, int]],
+        *,
+        minimum_source_epoch: int | None = None,
     ) -> WikidataPropertyBatch:
         unique_keys = tuple(sorted(set((int(q), int(p)) for q, p in keys)))
-        if not unique_keys:
+        if not unique_keys or not self._satisfies_floor(minimum_source_epoch):
             return WikidataPropertyBatch({}, 0)
         result = self.backend.fetch_wikidata_properties(unique_keys)
-        raw = result.facts_by_key
         facts: dict[tuple[int, int], tuple[WikidataPropertyFact, ...]] = {}
         for key in unique_keys:
             rows: list[WikidataPropertyFact] = []
-            for fact in raw.get(key, ()):
+            for fact in result.facts_by_key.get(key, ()):
                 if (int(fact.subject_qid), int(fact.property_pid)) != key:
                     raise ValueError("Zelph backend returned an unrequested Wikidata fact")
                 rows.append(
@@ -148,12 +158,9 @@ class ZelphHFWikidataTransport:
                         value_text=fact.value_text,
                         value_symbol_kind=fact.value_symbol_kind,
                         value_numeric=fact.value_numeric,
-                        entity_revision=(
-                            fact.entity_revision
-                            if fact.entity_revision is not None
-                            else self.snapshot_revision
-                        ),
+                        entity_revision=(fact.entity_revision if fact.entity_revision is not None else self.snapshot_revision),
                         source_ref=f"zelph-hf:{self.snapshot_ref}",
+                        source_epoch=self.snapshot_epoch,
                     )
                 )
             facts[key] = tuple(rows)
@@ -161,7 +168,7 @@ class ZelphHFWikidataTransport:
 
 
 class TieredWikidataTransport:
-    """Use Zelph/HF first and live Wikidata only for required residual work."""
+    """Use Zelph/HF first and live Wikidata only for remaining required work."""
 
     def __init__(
         self,
@@ -175,26 +182,32 @@ class TieredWikidataTransport:
         self.policy = policy or WikidataTierPolicy()
 
     def search_entities(
-        self, labels: Sequence[str], *, limit_per_label: int
+        self,
+        labels: Sequence[str],
+        *,
+        limit_per_label: int,
+        minimum_source_epoch: int | None = None,
     ) -> WikidataSearchBatch:
         unique_labels = tuple(dict.fromkeys(label for label in labels if label))
         if not unique_labels:
             return WikidataSearchBatch({}, 0)
         snapshot = self.snapshot.search_entities(
-            unique_labels, limit_per_label=limit_per_label
+            unique_labels,
+            limit_per_label=limit_per_label,
+            minimum_source_epoch=minimum_source_epoch,
         )
         live_labels: tuple[str, ...] = ()
         if self.live is not None:
             if self.policy.require_live_discovery:
                 live_labels = unique_labels
             elif self.policy.fallback_on_snapshot_miss:
-                live_labels = tuple(
-                    label
-                    for label in unique_labels
-                    if not snapshot.candidates_by_label.get(label)
-                )
+                live_labels = tuple(label for label in unique_labels if not snapshot.candidates_by_label.get(label))
         live = (
-            self.live.search_entities(live_labels, limit_per_label=limit_per_label)
+            self.live.search_entities(
+                live_labels,
+                limit_per_label=limit_per_label,
+                minimum_source_epoch=minimum_source_epoch,
+            )
             if self.live is not None and live_labels
             else WikidataSearchBatch({}, 0)
         )
@@ -214,34 +227,42 @@ class TieredWikidataTransport:
                     if qid in seen:
                         continue
                     seen.add(qid)
-                    rows.append(WikidataSearchCandidate(qid=qid, rank=len(rows)))
+                    rows.append(
+                        WikidataSearchCandidate(
+                            qid=qid,
+                            rank=len(rows),
+                            source_ref=candidate.source_ref,
+                            source_epoch=candidate.source_epoch,
+                        )
+                    )
                     if len(rows) >= limit_per_label:
                         break
                 if len(rows) >= limit_per_label:
                     break
             merged[label] = tuple(rows)
-        return WikidataSearchBatch(
-            merged,
-            snapshot.provider_call_count + live.provider_call_count,
-        )
+        return WikidataSearchBatch(merged, snapshot.provider_call_count + live.provider_call_count)
 
     def fetch_properties(
-        self, keys: Sequence[tuple[int, int]]
+        self,
+        keys: Sequence[tuple[int, int]],
+        *,
+        minimum_source_epoch: int | None = None,
     ) -> WikidataPropertyBatch:
         unique_keys = tuple(sorted(set((int(q), int(p)) for q, p in keys)))
         if not unique_keys:
             return WikidataPropertyBatch({}, 0)
-        snapshot = self.snapshot.fetch_properties(unique_keys)
+        snapshot = self.snapshot.fetch_properties(
+            unique_keys,
+            minimum_source_epoch=minimum_source_epoch,
+        )
         live_keys: tuple[tuple[int, int], ...] = ()
         if self.live is not None:
             if self.policy.require_live_properties:
                 live_keys = unique_keys
             elif self.policy.fallback_on_snapshot_miss:
-                live_keys = tuple(
-                    key for key in unique_keys if not snapshot.facts_by_key.get(key)
-                )
+                live_keys = tuple(key for key in unique_keys if not snapshot.facts_by_key.get(key))
         live = (
-            self.live.fetch_properties(live_keys)
+            self.live.fetch_properties(live_keys, minimum_source_epoch=minimum_source_epoch)
             if self.live is not None and live_keys
             else WikidataPropertyBatch({}, 0)
         )
@@ -257,26 +278,17 @@ class TieredWikidataTransport:
             rows: list[WikidataPropertyFact] = []
             for facts in source_rows:
                 for fact in facts:
-                    # Semantic interpretation may later collapse agreeing values,
-                    # but immutable evidence retains source/revision witnesses.
                     signature = (
-                        int(fact.value_kind),
-                        fact.value_qid,
-                        fact.value_text,
-                        fact.value_symbol_kind,
-                        fact.value_numeric,
-                        fact.entity_revision,
-                        fact.source_ref,
+                        int(fact.value_kind), fact.value_qid, fact.value_text,
+                        fact.value_symbol_kind, fact.value_numeric,
+                        fact.entity_revision, fact.source_ref, fact.source_epoch,
                     )
                     if signature in seen:
                         continue
                     seen.add(signature)
                     rows.append(fact)
             merged[key] = tuple(rows)
-        return WikidataPropertyBatch(
-            merged,
-            snapshot.provider_call_count + live.provider_call_count,
-        )
+        return WikidataPropertyBatch(merged, snapshot.provider_call_count + live.provider_call_count)
 
 
 __all__ = [
