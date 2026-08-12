@@ -10,6 +10,8 @@ M098 = ROOT / "database/postgres_migrations/098_external_demand_hardening_and_re
 M099 = ROOT / "database/postgres_migrations/099_external_fact_axis_reuse.sql"
 M100 = ROOT / "database/postgres_migrations/100_external_provider_boundary_projection.sql"
 M101 = ROOT / "database/postgres_migrations/101_literal_provider_call_receipts.sql"
+M103 = ROOT / "database/postgres_migrations/103_external_source_freshness_and_snapshot_provenance.sql"
+M104 = ROOT / "database/postgres_migrations/104_external_freshness_lease_projection.sql"
 
 
 def _sql(path: Path) -> str:
@@ -103,3 +105,36 @@ def test_provider_claim_projects_only_external_boundary_identifiers() -> None:
     assert "subject.provider_numeric_id" in claim
     assert "label_symbol_id BIGINT" not in sql.split("RETURNS TABLE", 1)[1].split(") LANGUAGE", 1)[0]
     assert "world_entity_id BIGINT" not in sql.split("RETURNS TABLE", 1)[1].split(") LANGUAGE", 1)[0]
+
+
+def test_freshness_floor_is_strongest_member_requirement_and_cache_sensitive() -> None:
+    sql = _sql(M103)
+    assert "minimum_source_epoch BIGINT" in sql
+    trigger = sql.split(
+        "CREATE OR REPLACE FUNCTION execution.strengthen_numeric_pnf_external_request_freshness", 1
+    )[1].split("$$;", 1)[0]
+    assert "max(need.minimum_source_epoch)" in trigger
+    assert "GREATEST(minimum_source_epoch,floor_value)" in trigger
+    assert "request_state IN (2,5)" in trigger
+    refresh = sql.split(
+        "CREATE OR REPLACE FUNCTION execution.refresh_numeric_pnf_external_request_cache_state", 1
+    )[1].split("$$;", 1)[0]
+    assert "candidate.source_epoch>=request.minimum_source_epoch" in refresh
+    assert "evidence.source_epoch>=request.minimum_source_epoch" in refresh
+
+
+def test_freshness_lease_preserves_provider_native_boundary() -> None:
+    sql = _sql(M104)
+    return_table = sql.split("RETURNS TABLE", 1)[1].split(") LANGUAGE", 1)[0]
+    assert "label_text TEXT" in return_table
+    assert "provider_subject_numeric_id BIGINT" in return_table
+    assert "provider_property_numeric_id BIGINT" in return_table
+    assert "minimum_source_epoch BIGINT" in return_table
+    assert "label_symbol_id BIGINT" not in return_table
+    assert "world_entity_id BIGINT" not in return_table
+    body = sql.split(
+        "CREATE FUNCTION execution.claim_numeric_pnf_external_provider_batch", 1
+    )[1].split("$$;", 1)[0]
+    assert "label.symbol_text" in body
+    assert "subject.provider_numeric_id" in body
+    assert "leased.minimum_source_epoch" in body
