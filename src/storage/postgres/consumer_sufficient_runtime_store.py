@@ -6,9 +6,25 @@ safe early stop cannot suppress deeper work required by another consumer.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from src.policy.numeric_observation_tape import NumericObservationRow
 from src.storage.postgres.numeric_incremental_runtime_store import NumericIncrementalRuntimeStore
 from src.storage.postgres.spacy_parser_model import connect
+
+
+@dataclass(frozen=True, slots=True)
+class ConsumerHorizonOutcomeRow:
+    demand_id: int
+    horizon: int
+    outcome_state: int
+    evidence_count: int
+    nonneutral_evidence_count: int
+    represented_candidate_count: int
+    preferred_candidate_count: int
+    proof_unique: bool
+    consumer_sufficient: bool
+    residual_required: bool
 
 
 class ConsumerSufficientRuntimeStore(NumericIncrementalRuntimeStore):
@@ -25,6 +41,133 @@ class ConsumerSufficientRuntimeStore(NumericIncrementalRuntimeStore):
             "execution.seed_numeric_pnf_h3_work_for_consumer",
             (run_id, document_id, consumer_ref, query_ref, policy_ref),
         )
+
+    def process_h6_for_consumer(
+        self,
+        *,
+        run_id: int,
+        document_id: int,
+        consumer_ref: str,
+        query_ref: str,
+        policy_ref: str = "",
+        reprocess_completed: bool = False,
+    ) -> tuple[int, int]:
+        """Produce typed H6 evidence and leave only the semantic residual H9-ready.
+
+        The SQL producer uses exact numeric factor/role/predicate signatures plus
+        explicit temporal-state equality.  Missing matches create no evidence.
+        The returned pair is ``(new_h6_evidence_rows, h9_residual_work_rows)``.
+        """
+        connection = connect(self.database_url)
+        try:
+            with connection.transaction():
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT inserted_h6_evidence,h9_residual_work
+                          FROM execution.process_numeric_pnf_h6_for_consumer(
+                              %s,%s,%s,%s,%s,%s
+                          )
+                        """,
+                        (
+                            run_id,
+                            document_id,
+                            consumer_ref,
+                            query_ref,
+                            policy_ref,
+                            reprocess_completed,
+                        ),
+                    )
+                    row = cursor.fetchone()
+                    if row is None:
+                        raise RuntimeError("H6 execution returned no result row")
+                    return int(row[0]), int(row[1])
+        finally:
+            connection.close()
+
+    def advance_horizon_for_consumer(
+        self,
+        *,
+        run_id: int,
+        document_id: int,
+        completed_horizon: int,
+        consumer_ref: str,
+        query_ref: str,
+        policy_ref: str = "",
+    ) -> int:
+        """Advance only demands whose rebuilt horizon outcome retains a residual."""
+        if completed_horizon not in (3, 6):
+            raise ValueError("completed_horizon must be 3 or 6")
+        return self._scalar_function(
+            "execution.advance_numeric_pnf_horizon_work_for_consumer",
+            (
+                run_id,
+                document_id,
+                completed_horizon,
+                consumer_ref,
+                query_ref,
+                policy_ref,
+            ),
+        )
+
+    def refresh_consumer_horizon_outcomes(
+        self,
+        *,
+        run_id: int,
+        document_id: int,
+        horizon: int,
+        consumer_ref: str,
+        query_ref: str,
+        policy_ref: str = "",
+    ) -> int:
+        if horizon not in (3, 6, 9):
+            raise ValueError("horizon must be 3, 6, or 9")
+        return self._scalar_function(
+            "execution.refresh_numeric_pnf_consumer_horizon_outcome",
+            (run_id, document_id, horizon, consumer_ref, query_ref, policy_ref),
+        )
+
+    def consumer_horizon_outcomes(
+        self,
+        *,
+        horizon: int,
+        consumer_ref: str,
+        query_ref: str,
+        policy_ref: str = "",
+    ) -> tuple[ConsumerHorizonOutcomeRow, ...]:
+        connection = connect(self.database_url)
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT demand_id,horizon,outcome_state,evidence_count,
+                           nonneutral_evidence_count,represented_candidate_count,
+                           preferred_candidate_count,proof_unique,
+                           consumer_sufficient,residual_required
+                      FROM execution.semantic_pnf_consumer_horizon_outcome
+                     WHERE consumer_ref=%s AND query_ref=%s AND policy_ref=%s
+                       AND horizon=%s
+                     ORDER BY demand_id
+                    """,
+                    (consumer_ref, query_ref, policy_ref, horizon),
+                )
+                return tuple(
+                    ConsumerHorizonOutcomeRow(
+                        demand_id=int(row[0]),
+                        horizon=int(row[1]),
+                        outcome_state=int(row[2]),
+                        evidence_count=int(row[3]),
+                        nonneutral_evidence_count=int(row[4]),
+                        represented_candidate_count=int(row[5]),
+                        preferred_candidate_count=int(row[6]),
+                        proof_unique=bool(row[7]),
+                        consumer_sufficient=bool(row[8]),
+                        residual_required=bool(row[9]),
+                    )
+                    for row in cursor.fetchall()
+                )
+        finally:
+            connection.close()
 
     def consumer_horizon_ready(
         self,
