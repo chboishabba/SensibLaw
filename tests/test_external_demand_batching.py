@@ -21,29 +21,42 @@ class FakeStore:
     requests: tuple[ExternalRequest, ...]
     discoveries: list[int] = field(default_factory=list)
     evidence: list[int] = field(default_factory=list)
-    completed: list[int] = field(default_factory=list)
+    completed: list[tuple[int, int | None]] = field(default_factory=list)
     failed: list[int] = field(default_factory=list)
+    blocked: list[int] = field(default_factory=list)
     receipts: list[object] = field(default_factory=list)
+    completion_allowed: bool = True
 
     def claim_external_provider_batch(self, **_: object) -> tuple[ExternalRequest, ...]:
         return self.requests
 
     def record_external_discovery_candidates(self, *, request, candidates) -> None:
         self.discoveries.append(request.request_id)
-        assert candidates
+        # Empty discovery is permitted: absence is not refutation and must not
+        # require a fabricated candidate merely to record an exhausted lookup.
+        assert candidates is not None
 
     def record_external_evidence(self, *, request_id, evidence) -> int:
         self.evidence.append(request_id)
         assert evidence.evidence_digest
         return len(self.evidence)
 
-    def complete_external_request(self, request_id: int) -> bool:
-        self.completed.append(request_id)
-        return True
+    def complete_external_request(
+        self,
+        request_id: int,
+        leased_minimum_source_epoch: int | None,
+    ) -> bool:
+        self.completed.append((request_id, leased_minimum_source_epoch))
+        return self.completion_allowed
 
     def fail_external_request(self, request_id: int, error_ref: str) -> bool:
         assert error_ref
         self.failed.append(request_id)
+        return True
+
+    def block_external_request(self, request_id: int, error_ref: str) -> bool:
+        assert error_ref
+        self.blocked.append(request_id)
         return True
 
     def record_external_batch_receipt(self, **kwargs: object) -> int:
@@ -108,9 +121,64 @@ def test_one_provider_call_can_serve_multiple_deduplicated_requests() -> None:
     assert receipt.requests_per_provider_call == 3.0
     assert store.discoveries == [1]
     assert store.evidence == [2]
-    assert store.completed == [1, 2]
+    assert store.completed == [(1, None), (2, None)]
     assert store.failed == [3]
     assert len(store.receipts) == 1
+
+
+def test_changed_freshness_contract_reopens_instead_of_false_completion() -> None:
+    request = ExternalRequest(
+        7,
+        ExternalRequestKind.CANDIDATE_DISCOVERY,
+        "Springfield",
+        None,
+        None,
+        None,
+        1,
+        1000,
+    )
+    provider = FakeProvider(
+        ExternalBatchResult(
+            (
+                ExternalRequestResult(
+                    7,
+                    discovered_candidates=(
+                        DiscoveredWorldCandidate(
+                            42,
+                            0,
+                            source_ref="snapshot",
+                            source_epoch=1000,
+                        ),
+                    ),
+                ),
+            ),
+            1,
+        )
+    )
+    store = FakeStore((request,), completion_allowed=False)
+    receipt = execute_external_provider_batch(store, provider, worker_ref="worker")
+    assert store.completed == [(7, 1000)]
+    assert receipt.completed_request_count == 0
+    assert receipt.failed_request_count == 1
+
+
+def test_empty_discovery_completes_operationally_without_negative_evidence() -> None:
+    request = ExternalRequest(
+        9,
+        ExternalRequestKind.CANDIDATE_DISCOVERY,
+        "Unknown Name",
+        None,
+        None,
+        None,
+        1,
+    )
+    store = FakeStore((request,))
+    provider = FakeProvider(ExternalBatchResult((ExternalRequestResult(9),), 1))
+    receipt = execute_external_provider_batch(store, provider, worker_ref="worker")
+    assert receipt.completed_request_count == 1
+    assert store.discoveries == [9]
+    assert store.evidence == []
+    assert store.failed == []
 
 
 def test_provider_request_contains_no_database_local_surrogate_ids() -> None:
