@@ -1,7 +1,7 @@
 BEGIN;
 
 -- 105: external candidate discovery is monotone evidence accumulation, not a
--- closed-world replacement operation.  An empty/newer provider response cannot
+-- closed-world replacement operation. An empty/newer provider response cannot
 -- delete older alternatives merely because they were absent from this read.
 -- Candidate identity is (label, world entity); ranking is acquisition-relative.
 
@@ -30,9 +30,9 @@ CREATE INDEX IF NOT EXISTS semantic_pnf_label_world_candidate_rank_idx
        (label_symbol_id,cache_revision,source_epoch DESC NULLS LAST,
         candidate_ordinal,world_entity_id);
 
--- Explicit helper used by the Python gateway.  Newer evidence may refresh the
--- cached rank/source for the same candidate, but no operation here removes
--- candidates absent from a partial result set.
+-- Explicit helper used by the Python gateway. Newer known-age evidence may
+-- refresh rank/source for the same candidate. Unknown-age evidence may fill an
+-- unknown-age row, but can never erase a known source epoch/reference.
 CREATE OR REPLACE FUNCTION execution.upsert_numeric_pnf_label_world_candidate(
     selected_label_symbol_id BIGINT,
     selected_world_entity_id BIGINT,
@@ -63,8 +63,13 @@ BEGIN
     ON CONFLICT(label_symbol_id,world_entity_id) DO UPDATE SET
         candidate_ordinal=CASE
             WHEN execution.semantic_pnf_label_world_candidate.source_epoch IS NULL
-              OR EXCLUDED.source_epoch IS NULL
-              OR EXCLUDED.source_epoch>=execution.semantic_pnf_label_world_candidate.source_epoch
+                 AND EXCLUDED.source_epoch IS NULL
+            THEN EXCLUDED.candidate_ordinal
+            WHEN EXCLUDED.source_epoch IS NOT NULL
+                 AND (
+                     execution.semantic_pnf_label_world_candidate.source_epoch IS NULL
+                     OR EXCLUDED.source_epoch>=execution.semantic_pnf_label_world_candidate.source_epoch
+                 )
             THEN EXCLUDED.candidate_ordinal
             ELSE execution.semantic_pnf_label_world_candidate.candidate_ordinal
         END,
@@ -73,16 +78,24 @@ BEGIN
             EXCLUDED.cache_revision
         ),
         source_epoch=CASE
-            WHEN execution.semantic_pnf_label_world_candidate.source_epoch IS NULL
-              OR EXCLUDED.source_epoch IS NULL
-              OR EXCLUDED.source_epoch>=execution.semantic_pnf_label_world_candidate.source_epoch
+            WHEN EXCLUDED.source_epoch IS NOT NULL
+                 AND (
+                     execution.semantic_pnf_label_world_candidate.source_epoch IS NULL
+                     OR EXCLUDED.source_epoch>=execution.semantic_pnf_label_world_candidate.source_epoch
+                 )
             THEN EXCLUDED.source_epoch
             ELSE execution.semantic_pnf_label_world_candidate.source_epoch
         END,
         source_ref=CASE
             WHEN execution.semantic_pnf_label_world_candidate.source_epoch IS NULL
-              OR EXCLUDED.source_epoch IS NULL
-              OR EXCLUDED.source_epoch>=execution.semantic_pnf_label_world_candidate.source_epoch
+                 AND EXCLUDED.source_epoch IS NULL
+                 AND EXCLUDED.source_ref IS NOT NULL
+            THEN EXCLUDED.source_ref
+            WHEN EXCLUDED.source_epoch IS NOT NULL
+                 AND (
+                     execution.semantic_pnf_label_world_candidate.source_epoch IS NULL
+                     OR EXCLUDED.source_epoch>=execution.semantic_pnf_label_world_candidate.source_epoch
+                 )
             THEN EXCLUDED.source_ref
             ELSE execution.semantic_pnf_label_world_candidate.source_ref
         END;
