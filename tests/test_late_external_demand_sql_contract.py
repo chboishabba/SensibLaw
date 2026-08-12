@@ -114,8 +114,13 @@ def test_freshness_floor_is_strongest_member_requirement_and_cache_sensitive() -
         "CREATE OR REPLACE FUNCTION execution.strengthen_numeric_pnf_external_request_freshness", 1
     )[1].split("$$;", 1)[0]
     assert "max(need.minimum_source_epoch)" in trigger
-    assert "GREATEST(minimum_source_epoch,floor_value)" in trigger
+    assert "floor_value>minimum_source_epoch" in trigger
     assert "request_state IN (2,5)" in trigger
+    setter = sql.split(
+        "CREATE OR REPLACE FUNCTION execution.set_numeric_pnf_external_need_minimum_source_epoch", 1
+    )[1].split("$$;", 1)[0]
+    assert "semantic_pnf_external_request_member" in setter
+    assert "selected_minimum_source_epoch>request.minimum_source_epoch" in setter
     refresh = sql.split(
         "CREATE OR REPLACE FUNCTION execution.refresh_numeric_pnf_external_request_cache_state", 1
     )[1].split("$$;", 1)[0]
