@@ -75,17 +75,15 @@ def test_zero_provider_calls_when_cache_probe_leases_no_requests() -> None:
 
 def test_one_provider_call_can_serve_multiple_deduplicated_requests() -> None:
     requests = (
-        ExternalRequest(1, ExternalRequestKind.CANDIDATE_DISCOVERY, 100, None, None, None, 1),
-        ExternalRequest(2, ExternalRequestKind.PROPERTY_ENRICHMENT, 100, 200, 17, 1, 1),
-        ExternalRequest(3, ExternalRequestKind.PROPERTY_ENRICHMENT, 100, 201, 17, 1, 1),
+        ExternalRequest(1, ExternalRequestKind.CANDIDATE_DISCOVERY, "Springfield", None, None, None, 1),
+        ExternalRequest(2, ExternalRequestKind.PROPERTY_ENRICHMENT, None, 1001, 17, 1, 1),
+        ExternalRequest(3, ExternalRequestKind.PROPERTY_ENRICHMENT, None, 1002, 17, 1, 1),
     )
     evidence = ExternalEvidence(
         evidence_digest=b"e" * 32,
-        subject_world_entity_id=200,
         provider_property_numeric_id=17,
-        axis_kind=1,
-        value_kind=ExternalValueKind.SYMBOL,
-        value_symbol_id=300,
+        value_kind=ExternalValueKind.WORLD_ENTITY,
+        value_provider_numeric_id=408,
     )
     provider = FakeProvider(
         ExternalBatchResult(
@@ -114,11 +112,26 @@ def test_one_provider_call_can_serve_multiple_deduplicated_requests() -> None:
     assert len(store.receipts) == 1
 
 
+def test_provider_request_contains_no_database_local_surrogate_ids() -> None:
+    request = ExternalRequest(
+        1,
+        ExternalRequestKind.PROPERTY_ENRICHMENT,
+        None,
+        408,
+        17,
+        1,
+        1,
+    )
+    assert request.provider_subject_numeric_id == 408
+    assert not hasattr(request, "world_entity_id")
+    assert not hasattr(request, "label_symbol_id")
+
+
 def test_provider_must_return_exactly_one_result_per_lease() -> None:
     request = ExternalRequest(
         1,
         ExternalRequestKind.CANDIDATE_DISCOVERY,
-        100,
+        "Springfield",
         None,
         None,
         None,
@@ -130,14 +143,25 @@ def test_provider_must_return_exactly_one_result_per_lease() -> None:
         execute_external_provider_batch(store, provider, worker_ref="worker")
 
 
-def test_external_evidence_requires_exactly_one_typed_value() -> None:
+def test_external_evidence_requires_exactly_one_provider_native_value() -> None:
     with pytest.raises(ValueError, match="exactly one typed value"):
         ExternalEvidence(
             evidence_digest=b"x" * 32,
-            subject_world_entity_id=1,
             provider_property_numeric_id=17,
-            axis_kind=1,
             value_kind=ExternalValueKind.SYMBOL,
-            value_symbol_id=2,
+            value_text="Australia",
+            value_symbol_kind=2,
             value_numeric=3,
         )
+
+
+def test_symbol_evidence_crosses_explicit_text_boundary() -> None:
+    evidence = ExternalEvidence(
+        evidence_digest=b"s" * 32,
+        provider_property_numeric_id=17,
+        value_kind=ExternalValueKind.SYMBOL,
+        value_text="Australia",
+        value_symbol_kind=2,
+    )
+    assert evidence.value_text == "Australia"
+    assert not hasattr(evidence, "value_symbol_id")
