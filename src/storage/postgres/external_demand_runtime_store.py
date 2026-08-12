@@ -165,10 +165,8 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                     if str(row[2]) != request.label_text:
                         raise ValueError("provider label boundary no longer matches planned symbol")
 
-                    cursor.execute(
-                        "DELETE FROM execution.semantic_pnf_label_world_candidate WHERE label_symbol_id=%s AND cache_revision=%s",
-                        (label_symbol_id, request.request_revision),
-                    )
+                    # Discovery is monotone candidate evidence.  A partial or
+                    # empty source response cannot erase older alternatives.
                     for candidate in candidates:
                         cursor.execute(
                             """
@@ -190,27 +188,9 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                         world_entity_id = int(cursor.fetchone()[0])
                         cursor.execute(
                             """
-                            INSERT INTO execution.semantic_pnf_label_world_candidate
-                                (label_symbol_id,world_entity_id,candidate_ordinal,cache_revision,
-                                 source_epoch,source_ref)
-                            VALUES (%s,%s,%s,%s,%s,%s)
-                            ON CONFLICT(label_symbol_id,world_entity_id) DO UPDATE SET
-                                candidate_ordinal=EXCLUDED.candidate_ordinal,
-                                cache_revision=EXCLUDED.cache_revision,
-                                source_epoch=CASE
-                                    WHEN execution.semantic_pnf_label_world_candidate.source_epoch IS NULL
-                                      OR EXCLUDED.source_epoch IS NULL
-                                      OR EXCLUDED.source_epoch>=execution.semantic_pnf_label_world_candidate.source_epoch
-                                    THEN EXCLUDED.source_epoch
-                                    ELSE execution.semantic_pnf_label_world_candidate.source_epoch
-                                END,
-                                source_ref=CASE
-                                    WHEN execution.semantic_pnf_label_world_candidate.source_epoch IS NULL
-                                      OR EXCLUDED.source_epoch IS NULL
-                                      OR EXCLUDED.source_epoch>=execution.semantic_pnf_label_world_candidate.source_epoch
-                                    THEN EXCLUDED.source_ref
-                                    ELSE execution.semantic_pnf_label_world_candidate.source_ref
-                                END
+                            SELECT execution.upsert_numeric_pnf_label_world_candidate(
+                                %s,%s,%s,%s,%s,%s
+                            )
                             """,
                             (
                                 label_symbol_id,
@@ -221,6 +201,8 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                                 candidate.source_ref,
                             ),
                         )
+                        if not bool(cursor.fetchone()[0]):
+                            raise RuntimeError("failed to persist external discovery candidate")
         finally:
             connection.close()
 
