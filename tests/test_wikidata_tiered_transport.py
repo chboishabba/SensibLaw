@@ -13,6 +13,8 @@ from src.policy.wikidata_tiered_transport import (
     TieredWikidataTransport,
     WikidataTierPolicy,
     ZelphHFWikidataTransport,
+    ZelphSnapshotPropertyResult,
+    ZelphSnapshotSearchResult,
 )
 
 
@@ -20,16 +22,24 @@ from src.policy.wikidata_tiered_transport import (
 class FakeZelphBackend:
     labels: dict[str, tuple[int, ...]] = field(default_factory=dict)
     facts: dict[tuple[int, int], tuple[WikidataPropertyFact, ...]] = field(default_factory=dict)
+    search_acquisition_calls: int = 1
+    property_acquisition_calls: int = 1
     search_calls: list[tuple[str, ...]] = field(default_factory=list)
     property_calls: list[tuple[tuple[int, int], ...]] = field(default_factory=list)
 
     def search_wikidata_entities(self, labels, *, limit_per_label):
         self.search_calls.append(tuple(labels))
-        return {label: self.labels.get(label, ())[:limit_per_label] for label in labels}
+        return ZelphSnapshotSearchResult(
+            {label: self.labels.get(label, ())[:limit_per_label] for label in labels},
+            self.search_acquisition_calls,
+        )
 
     def fetch_wikidata_properties(self, keys):
         self.property_calls.append(tuple(keys))
-        return {key: self.facts.get(key, ()) for key in keys}
+        return ZelphSnapshotPropertyResult(
+            {key: self.facts.get(key, ()) for key in keys},
+            self.property_acquisition_calls,
+        )
 
 
 @dataclass
@@ -70,6 +80,35 @@ def test_snapshot_candidate_hit_does_not_touch_live_transport() -> None:
     assert backend.search_calls == [("Springfield",)]
     assert live.search_calls == []
     assert result.provider_call_count == 1
+
+
+def test_resident_snapshot_can_report_zero_external_acquisition_calls() -> None:
+    backend = FakeZelphBackend(
+        labels={"Springfield": (180672,)},
+        search_acquisition_calls=0,
+    )
+    result = _snapshot(backend).search_entities(("Springfield",), limit_per_label=8)
+    assert result.provider_call_count == 0
+    assert [row.qid for row in result.candidates_by_label["Springfield"]] == [180672]
+
+
+def test_hf_snapshot_can_report_multiple_object_reads() -> None:
+    key = (180672, 17)
+    backend = FakeZelphBackend(
+        facts={
+            key: (
+                WikidataPropertyFact(
+                    subject_qid=180672,
+                    property_pid=17,
+                    value_kind=ExternalValueKind.WORLD_ENTITY,
+                    value_qid=408,
+                ),
+            )
+        },
+        property_acquisition_calls=3,
+    )
+    result = _snapshot(backend).fetch_properties((key,))
+    assert result.provider_call_count == 3
 
 
 def test_only_snapshot_property_misses_fall_through_to_live() -> None:
@@ -132,8 +171,7 @@ def test_freshness_sensitive_property_forces_live_recheck_on_snapshot_hit() -> N
 
     assert live.property_calls == [(key,)]
     # Live evidence leads because the consumer explicitly required freshness;
-    # the older snapshot remains available as separate provenance if its
-    # revision/source differs.
+    # the older snapshot remains available as a separate provenance witness.
     assert result.facts_by_key[key][0].source_ref == "wikidata-live:2026-08-12"
     assert len(result.facts_by_key[key]) == 2
 
@@ -182,3 +220,12 @@ def test_snapshot_backend_rejects_wrong_subject_property_fact() -> None:
         assert "unrequested Wikidata fact" in str(exc)
     else:
         raise AssertionError("wrong-subject Zelph fact must be rejected")
+
+
+def test_negative_acquisition_count_is_rejected() -> None:
+    try:
+        ZelphSnapshotSearchResult({}, -1)
+    except ValueError as exc:
+        assert "non-negative" in str(exc)
+    else:
+        raise AssertionError("negative acquisition count must be rejected")
