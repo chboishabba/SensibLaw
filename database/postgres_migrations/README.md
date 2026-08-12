@@ -26,41 +26,47 @@
 - `088_progressive_reopenable_resolution.sql` adds cumulative H3/H6/H9
   preference/escalation surfaces. Preference is explicitly non-proof and never
   writes `semantic_pnf_frontier_resolution` or identity witnesses.
-- `089_numeric_incremental_runtime_economy.sql` makes the ordinary post-parser
-  path numeric and sparse: hot symbol ids, bounded parser ancestry, rebuildable
-  current-state projections, lazy horizon work, reverse dependencies, frequency
-  codebooks, contextual world candidate fibres, and corpus reuse measurements.
-- `090_numeric_parser_evidence_and_learning.sql` compiles parser identity cues to
-  numeric evidence and adds controlled ancestry/cache helpers without granting
-  lexical or parser evidence identity authority.
-- `091_numeric_incremental_wiring.sql` wires H3 seeding, evidence wakeups,
-  entity-label maintenance, numeric Wikidata candidate caching, and empirical
-  reuse recording onto the existing carrier.
-- `092_consumer_sufficient_context_and_tape.sql` adds typed candidate context
-  requirements, signed mention-local context observations, exact hot/cold
-  extensional verification, consumer sufficiency receipts, controlled-workload
-  identity fields, and a rebuildable packed numeric parser-tape cache.
-- `093_controlled_learning_and_tape_wiring.sql` provides the controlled reuse
-  recorder and two-phase tape registration. Supplying packed bytes never
-  self-certifies exactness; Python must independently decode and compare them
-  against canonical parser observations before marking the cache verified.
-- `094_context_scope_and_consumer_horizon_queue.sql` is the effective
-  consumer-execution implementation: it scopes world-context comparison by the
-  mention's numeric label, replaces the first 092 consumer advance function
-  with an independent `(consumer, query, policy)` horizon queue, and adds sparse
-  consumer-indexed reverse dependencies. A consumer's safe early stop therefore
-  cannot suppress global proof-required work or another consumer's deeper work.
-- `095_context_ties_and_sufficiency_revision.sql` preserves ambiguity and
-  revision: only a unique top positively witnessed context candidate may be
-  automatically attached; ties remain unresolved. Sufficiency receipts are
-  append-only/revisioned and may be withdrawn, with query factorisation accepted
-  only for query-only consumers and policy/full-future certificates required
-  once a policy may act. It also adds demand FKs to hot current projections for
-  new/changed rows.
+- `089_numeric_incremental_runtime_economy.sql` adds the numeric hot path,
+  bounded dependency ancestry, sparse structural-support observatory, rebuildable
+  hot current-state projections, lazy H3/H6/H9 queues, reverse dependencies,
+  frequency-adaptive codebooks and the contextual world-candidate cache.
+- `090_numeric_parser_evidence_and_learning.sql` adds numeric parser-derived
+  evidence and initial corpus-learning surfaces.
+- `090a_demand_structural_source_anchor.sql` supplies the proof-neutral demand
+  `source_object_id` consumed by 091 only when existing source-region + lexical
+  coordinates identify exactly one object; ambiguous demands remain unanchored.
+- `091_numeric_incremental_wiring.sql` wires demand/evidence wakeups, incremental
+  entity-label caching, numeric Wikidata candidate boundaries and corpus-reuse
+  measurements.
+- `092_consumer_sufficient_context_and_tape.sql` through
+  `095_context_ties_and_sufficiency_revision.sql` add exact hot-state equality,
+  typed contextual requirements, isolated consumer/query/policy horizon queues,
+  controlled workload identity, provenance-complete packed parser tape,
+  tie-preserving contextual choice, and revisioned/withdrawable sufficiency.
+- `096_late_external_demand_planner.sql` adds explicit consumer H9 external
+  needs, deduplicated physical requests with many semantic members, local cache
+  probes and bounded provider leases. Proper nouns do not implicitly cause
+  provider requests.
+- `097_external_evidence_projection_and_wakeup.sql` persists provider evidence
+  and wakes only affected consumer H9 fibres; eligible symbol-valued facts may
+  become contextual requirements but never identity proofs.
+- `098_external_demand_hardening_and_receipts.sql` makes property-axis need
+  identity exact, re-probes expired leases before retry, preserves external
+  evidence immutably, and records literal provider batching receipts.
+- `099_external_fact_axis_reuse.sql` separates provider facts from the first
+  consumer's axis interpretation so cached facts can be re-projected for later
+  consumers without another provider call.
+- `100_external_provider_boundary_projection.sql` keeps PostgreSQL-local
+  surrogates inside the database: provider workers receive label text and
+  provider-native entity/property numeric ids only.
+- `101_literal_provider_call_receipts.sql` ensures provider call counts remain
+  literal network/provider I/O; local validation failures may consume zero calls.
+- `102_external_identity_blocked_state.sql` makes unsupported proof-producing
+  identity alignment a durable blocked state rather than a retry loop.
 - See `docs/reopenable_runtime_architecture.md`,
-  `docs/numeric_incremental_runtime_economy.md`, and
-  `scripts/audit_reopenable_runtime_migrations.py` for architecture and
-  source-dependency audit context.
+  `docs/consumer_sufficient_numeric_runtime.md`,
+  `docs/late_external_provider_runtime.md`, and
+  `scripts/audit_reopenable_runtime_migrations.py` for architecture and audits.
 
 ## Migration identifier guardrail
 
