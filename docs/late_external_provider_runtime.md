@@ -51,8 +51,11 @@ semantic_request_members / unique_external_requests
 leased_request_attempts / fresh_provider_calls
 ```
 
-`provider_call_count` is literal network/provider I/O. A request may fail locally
-with zero calls (for example, identity alignment when no proof adapter exists).
+`provider_call_count` is provider/acquisition I/O at the adapter boundary. A
+request may fail locally with zero calls (for example, identity alignment when no
+proof adapter exists). Transport-specific benchmarks must additionally measure
+wall time because one warm local Zelph query, one HF shard acquisition, and one
+live HTTP/SPARQL request do not have equal cost.
 
 ## Discovery before enrichment
 
@@ -96,6 +99,62 @@ Ordinary Wikidata lookup is not identity proof. `IDENTITY_ALIGNMENT` is currentl
 rejected with `wikidata:identity-proof-adapter-required` and zero network calls.
 Only a future proof-producing adapter may enter the existing external identity
 admission lane.
+
+## Zelph/Hugging Face snapshot tier
+
+The repository already has Zelph/Wikidata integration and the ITIR parent owns
+Zelph-HF manifest/shard routing and partial-load tooling. The late runtime reuses
+that architecture through `ZelphSnapshotQueryBackend`; it does not introduce a
+second graph store or duplicate the ITIR shard transport.
+
+A Zelph/HF Wikidata rip is an **acquisition source**, not another entity
+namespace. Therefore:
+
+```text
+Q408 from Zelph/HF == Q408 from live Wikidata
+```
+
+at the world-coordinate layer, while the immutable evidence receipt retains its
+acquisition source and revision.
+
+The normal source ladder is:
+
+```text
+PostgreSQL evidence/candidate cache
+  -> Zelph/HF Wikidata snapshot
+  -> live Wikidata only for snapshot misses or explicit freshness requirements
+```
+
+`WikidataTierPolicy` makes freshness visible rather than implicit:
+
+- `fallback_on_snapshot_miss=True`: normal cheap path;
+- `require_live_discovery=True`: live candidate discovery even after a snapshot hit;
+- `require_live_properties=True`: live property recheck even after a snapshot hit.
+
+When a freshness-required live fact agrees with a snapshot fact, the value may be
+semantically equivalent but the two provenance witnesses remain distinct. This
+prevents a newer observation from silently rewriting the older snapshot receipt.
+
+The first benchmark target should be the pruned Zelph Wikidata snapshot because
+it is intended to be materially cheaper to keep resident than the full graph.
+This is an empirical optimization, not a semantic preference. A consumer whose
+answer depends on current world state must request the live tier regardless of
+snapshot speed.
+
+`LateWikidataExecutor.zelph_snapshot_first()` wires the tiered transport into the
+existing deduplicated H9 worker. Strict document compilation remains network-free.
+
+`scripts/benchmark_wikidata_source_tiers.py` runs the same label and `(Q,P)`
+workload through:
+
+1. snapshot-only;
+2. snapshot-then-live; and
+3. live-only.
+
+It reports median/min/max wall time, candidate/property hit fractions and
+acquisition-call counts. The decision to prefer the snapshot tier should be made
+from those measurements on the actual GWB/archive workload, especially warm
+resident performance and snapshot miss rate.
 
 ## External evidence
 
