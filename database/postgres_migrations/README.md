@@ -71,6 +71,24 @@
   provider workers while preserving the migration-100 boundary: labels leave as
   text and entities/properties leave as provider-native numeric identifiers,
   never database-local surrogates.
+- `105_monotone_external_candidate_fibres.sql` makes label->world candidate
+  discovery monotone. Partial or empty provider reads cannot erase older
+  candidates; newer known-age observations may refresh rank/provenance.
+- `106_external_freshness_exact_member_floor.sql` recomputes a shared physical
+  request's freshness floor from its currently active semantic members, allowing
+  the floor to relax again when stronger consumers withdraw.
+- `107_external_freshness_lease_race_guard.sql` prevents a worker leased under an
+  older freshness floor from completing a request after that floor tightens.
+- `108_external_evidence_completion_separation.sql` separates immutable cold
+  evidence persistence from lease-aware request completion and H9 wakeup.
+- `109_current_external_context_projection.sql` makes external contextual
+  requirements a rebuildable hot projection of immutable evidence, selecting
+  only the newest admissible source epoch while retaining all cold history.
+- `110_residual_driven_h6_and_zero_need_h9.sql` adds the first real H6
+  discourse/temporal evidence producer over numeric factor-role signatures,
+  explicit processed/sufficient/resolved consumer horizon outcomes,
+  residual-driven H3/H6 advancement, evidence-polarity classification, and a
+  zero-work success path for H9 consumers with no explicit external needs.
 - See `docs/reopenable_runtime_architecture.md`,
   `docs/consumer_sufficient_numeric_runtime.md`,
   `docs/late_external_provider_runtime.md`, and
