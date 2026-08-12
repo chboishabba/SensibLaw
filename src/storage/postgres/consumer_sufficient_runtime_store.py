@@ -57,6 +57,64 @@ class ConsumerSufficientRuntimeStore(NumericIncrementalRuntimeStore):
         finally:
             connection.close()
 
+    def record_consumer_sufficiency(
+        self,
+        *,
+        demand_id: int,
+        consumer_ref: str,
+        query_ref: str,
+        horizon: int,
+        certificate_kind: int,
+        residual_required: bool,
+        certificate_ref: str,
+        policy_ref: str = "",
+        revision: int = 1,
+        certificate_state: int = 1,
+    ) -> int:
+        """Append a query/policy/future-safety receipt without rewriting history."""
+        return self._scalar_function(
+            "execution.record_numeric_pnf_consumer_sufficiency",
+            (
+                demand_id,
+                consumer_ref,
+                query_ref,
+                policy_ref,
+                horizon,
+                certificate_kind,
+                residual_required,
+                certificate_ref,
+                revision,
+                certificate_state,
+            ),
+        )
+
+    def withdraw_consumer_sufficiency(
+        self,
+        *,
+        demand_id: int,
+        consumer_ref: str,
+        query_ref: str,
+        horizon: int,
+        certificate_kind: int,
+        certificate_ref: str,
+        policy_ref: str = "",
+        revision: int,
+        residual_required: bool = True,
+    ) -> int:
+        """Append a withdrawn/superseded revision; the earlier receipt remains."""
+        return self.record_consumer_sufficiency(
+            demand_id=demand_id,
+            consumer_ref=consumer_ref,
+            query_ref=query_ref,
+            policy_ref=policy_ref,
+            horizon=horizon,
+            certificate_kind=certificate_kind,
+            residual_required=residual_required,
+            certificate_ref=certificate_ref,
+            revision=revision,
+            certificate_state=2,
+        )
+
     def register_consumer_dependency(
         self,
         *,
