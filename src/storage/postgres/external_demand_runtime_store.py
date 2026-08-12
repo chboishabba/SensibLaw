@@ -6,6 +6,7 @@ from typing import Sequence
 
 from src.policy.external_demand import (
     DiscoveredWorldCandidate,
+    ExternalBatchReceipt,
     ExternalEvidence,
     ExternalNeedKind,
     ExternalRequest,
@@ -24,13 +25,15 @@ class ExternalCallEconomyRow:
     leased_requests: int
     acquired_requests: int
     semantic_request_members: int
+    fresh_provider_calls: int
     semantic_members_per_unique_request: float | None
+    requests_per_provider_call: float | None
 
 
 class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
     """H9 external-demand planning and cold provider-evidence cache.
 
-    Ordinary parser/PNF code should not call provider APIs through this class.  It
+    Ordinary parser/PNF code should not call provider APIs through this class. It
     registers consumer-observable external needs, plans only H9 residual misses,
     and exposes bounded provider-ready microbatches.
     """
@@ -49,48 +52,28 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
         priority: int = 100,
         revision: int = 1,
         active: bool = True,
-    ) -> None:
+    ) -> int:
         if need_kind is ExternalNeedKind.PROPERTY_ENRICHMENT:
             if axis_kind is None or provider_property_numeric_id is None:
                 raise ValueError("property enrichment requires axis and provider property ids")
         elif axis_kind is not None or provider_property_numeric_id is not None:
             raise ValueError("discovery/identity needs do not accept property-axis coordinates")
-
-        connection = connect(self.database_url)
-        try:
-            with connection.transaction():
-                with connection.cursor() as cursor:
-                    cursor.execute(
-                        """
-                        INSERT INTO execution.semantic_pnf_consumer_external_need
-                            (demand_id,consumer_ref,query_ref,policy_ref,need_kind,
-                             provider_id,axis_kind,provider_property_numeric_id,
-                             priority,need_revision,active)
-                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                        ON CONFLICT(demand_id,consumer_ref,query_ref,policy_ref,
-                                    need_kind,provider_id,need_revision)
-                        DO UPDATE SET
-                            axis_kind=EXCLUDED.axis_kind,
-                            provider_property_numeric_id=EXCLUDED.provider_property_numeric_id,
-                            priority=EXCLUDED.priority,
-                            active=EXCLUDED.active
-                        """,
-                        (
-                            demand_id,
-                            consumer_ref,
-                            query_ref,
-                            policy_ref,
-                            int(need_kind),
-                            provider_id,
-                            axis_kind,
-                            provider_property_numeric_id,
-                            priority,
-                            revision,
-                            active,
-                        ),
-                    )
-        finally:
-            connection.close()
+        return self._scalar_function(
+            "execution.record_numeric_pnf_consumer_external_need",
+            (
+                demand_id,
+                consumer_ref,
+                query_ref,
+                policy_ref,
+                int(need_kind),
+                provider_id,
+                axis_kind,
+                provider_property_numeric_id,
+                priority,
+                revision,
+                active,
+            ),
+        )
 
     def plan_external_demands(
         self,
@@ -105,8 +88,8 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
             "execution.plan_numeric_pnf_external_demands_for_consumer",
             (run_id, document_id, consumer_ref, query_ref, policy_ref),
         )
-        # Cache-satisfied external requests need no network call; wake their H9
-        # members so local evidence can be consumed immediately.
+        # Cache-satisfied requests perform zero network calls. Re-open only their
+        # member H9 fibres so local evidence is consumed immediately.
         self._scalar_function("execution.wake_numeric_pnf_external_cache_hits", ())
         return planned
 
@@ -123,11 +106,7 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
             with connection.transaction():
                 with connection.cursor() as cursor:
                     cursor.execute(
-                        """
-                        SELECT * FROM execution.claim_numeric_pnf_external_provider_batch(
-                            %s,%s,%s,%s
-                        )
-                        """,
+                        "SELECT * FROM execution.claim_numeric_pnf_external_provider_batch(%s,%s,%s,%s)",
                         (provider_id, worker_ref, limit, lease_seconds),
                     )
                     return tuple(
@@ -169,14 +148,10 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                         raise ValueError("unknown external request")
                     provider_id = int(row[0])
 
-                    # The label/world table is explicitly a rebuildable candidate
-                    # cache, not proof authority. Replace this request revision's
-                    # ranking atomically before inserting the new bounded fibre.
+                    # This table is a rebuildable candidate cache, not proof
+                    # authority. Replace this revision's ranking atomically.
                     cursor.execute(
-                        """
-                        DELETE FROM execution.semantic_pnf_label_world_candidate
-                         WHERE label_symbol_id=%s AND cache_revision=%s
-                        """,
+                        "DELETE FROM execution.semantic_pnf_label_world_candidate WHERE label_symbol_id=%s AND cache_revision=%s",
                         (request.label_symbol_id, request.request_revision),
                     )
                     for candidate in candidates:
@@ -242,10 +217,26 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
 
     def fail_external_request(self, request_id: int, error_ref: str) -> bool:
         return bool(
-            self._scalar_function(
-                "execution.fail_numeric_pnf_external_request",
-                (request_id, error_ref),
-            )
+            self._scalar_function("execution.fail_numeric_pnf_external_request", (request_id, error_ref))
+        )
+
+    def record_external_batch_receipt(
+        self,
+        *,
+        provider_id: int,
+        worker_ref: str,
+        receipt: ExternalBatchReceipt,
+    ) -> int:
+        return self._scalar_function(
+            "execution.record_numeric_pnf_external_provider_batch_receipt",
+            (
+                provider_id,
+                worker_ref,
+                receipt.leased_request_count,
+                receipt.completed_request_count,
+                receipt.failed_request_count,
+                receipt.provider_call_count,
+            ),
         )
 
     def external_call_economy(self) -> tuple[ExternalCallEconomyRow, ...]:
@@ -256,7 +247,8 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                     """
                     SELECT provider_id,unique_external_requests,cache_satisfied_requests,
                            provider_ready_requests,leased_requests,acquired_requests,
-                           semantic_request_members,semantic_members_per_unique_request
+                           semantic_request_members,fresh_provider_calls,
+                           semantic_members_per_unique_request,requests_per_provider_call
                       FROM execution.semantic_pnf_external_call_economy_v1
                      ORDER BY provider_id
                     """
@@ -270,9 +262,9 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                         leased_requests=int(row[4]),
                         acquired_requests=int(row[5]),
                         semantic_request_members=int(row[6]),
-                        semantic_members_per_unique_request=(
-                            None if row[7] is None else float(row[7])
-                        ),
+                        fresh_provider_calls=int(row[7]),
+                        semantic_members_per_unique_request=(None if row[8] is None else float(row[8])),
+                        requests_per_provider_call=(None if row[9] is None else float(row[9])),
                     )
                     for row in cursor.fetchall()
                 )
