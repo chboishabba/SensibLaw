@@ -1,0 +1,107 @@
+name: Exact-0008 post-closure probe
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/self-hosted-post-closure-probe.yml"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag, or commit to validate"
+        required: false
+        default: "agent/repair-corpus-progress-stage-lifecycle"
+      checkpoint_root:
+        description: "Optional semantic checkpoint root on the self-hosted runner"
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: self-hosted
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || 'agent/repair-corpus-progress-stage-lifecycle' }}
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install environment
+        run: |
+          python -m pip install --upgrade pip uv
+          uv sync --frozen --extra test --extra dev
+
+      - name: Locate completed exact-0008 finalisation
+        id: locate
+        shell: bash
+        env:
+          REQUESTED_ROOT: ${{ inputs.checkpoint_root }}
+        run: |
+          set -euo pipefail
+          if [[ -n "${REQUESTED_ROOT:-}" ]]; then
+            checkpoint_root="$REQUESTED_ROOT"
+          else
+            manifest="$({
+              find /tmp "$HOME" \
+                -path '*/closure-finalization/*/materialized-reduction.manifest.json' \
+                -type f -printf '%T@ %h\n' 2>/dev/null || true
+            } | sort -n | tail -n 1 | cut -d' ' -f2-)"
+            if [[ -z "$manifest" ]]; then
+              echo "No completed exact-0008 finalisation checkpoint found" >&2
+              exit 1
+            fi
+            checkpoint_root="$(dirname "$(dirname "$manifest")")"
+          fi
+          test -d "$checkpoint_root"
+          output_root="/tmp/sensiblaw-post-closure-probe-${GITHUB_RUN_ID}"
+          echo "checkpoint_root=$checkpoint_root" >> "$GITHUB_OUTPUT"
+          echo "output_root=$output_root" >> "$GITHUB_OUTPUT"
+          printf 'checkpoint_root=%s\noutput_root=%s\n' \
+            "$checkpoint_root" "$output_root"
+
+      - name: Probe isolated serializer and retention boundary
+        run: |
+          uv run python scripts/run_post_closure_probe.py \
+            --checkpoint-root '${{ steps.locate.outputs.checkpoint_root }}' \
+            --output-root '${{ steps.locate.outputs.output_root }}' \
+            --serializer-hard-mib 3072 \
+            --disk-budget-mib 8192
+
+      - name: Require bounded reference-only serialization
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('${{ steps.locate.outputs.output_root }}')
+          report = json.loads(
+              (root / 'post-closure-probe-report.json').read_text()
+          )
+          assert report['state'] == 'completed'
+          assert report['promotion_ready'] is True
+          assert report['owner_object_transferred'] is False
+          assert report['full_factor_payload_loaded'] is False
+          assert report['full_residual_payload_loaded'] is False
+          serializer = report['serializer']
+          assert serializer['reference_only'] is True
+          assert serializer['received_owner_object'] is False
+          assert max(
+              int(serializer['before']['pss_bytes']),
+              int(serializer['after']['pss_bytes']),
+          ) < 3072 * 1024 * 1024
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: exact-0008-post-closure-probe-${{ github.run_id }}
+          path: ${{ steps.locate.outputs.output_root }}
+          if-no-files-found: warn
+          retention-days: 14

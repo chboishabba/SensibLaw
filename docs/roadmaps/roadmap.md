@@ -1351,3 +1351,1287 @@ So yes: formalising it is worthwhile because it converts “maybe use worker aff
 That should become a small architecture/algebra module in SensibLaw—not necessarily an elaborate generic scheduler initially, but explicit types and receipts for jobs, ownership keys, deltas, dependencies, memory estimates, queue pressure and fixed-point state.
 
 3. **Legal-BERT workflow introduction** — Bring the planned Legal-BERT semantic layer online to enrich actor classes, interest detection, and wrong-type inference ahead of graph persistence, reusing the spaCy spans and dependency candidates already defined in `docs/nlp_pipelines.md`.
+
+
+# updated
+
+Yes. The reconciled model is:
+
+> **A dynamically scheduled persistent graph hierarchy whose leaves are worker-resident text fibres, whose internal nodes are immutable graph overlays over child graph references, and whose nonlocal semantic dependencies generate demand-cone jobs at the lowest hierarchy node containing the required evidence.**
+
+The tree is the bounded physical execution carrier. The semantic object remains the document graph.
+
+And one immediate complexity correction:
+
+> We cannot make the complete compilation (o(n)) in the strict asymptotic sense, because reading (n) source units already costs (\Omega(n)).
+
+The realistic target is:
+
+[
+T(n)=\Theta(n)+T_{\mathrm{nonlocal}},
+]
+
+with local phases approximately linear and reconciliation proportional to the actual semantic boundary/cross-dependency volume rather than repeated prefixes.
+
+# 1. Carrier and hierarchy
+
+Let the document contain (n) primitive work units. Depending on the operator, a unit may be a token, parser observation, atom, proposal, or factor.
+
+Choose:
+
+* leaf capacity (b), initially (b=4096);
+* hierarchy arity (a), initially (a=4);
+* worker budget (W=4).
+
+The number of leaves is:
+
+[
+L=\left\lceil \frac{n}{b}\right\rceil.
+]
+
+The hierarchy depth is:
+
+[
+h=\left\lceil \log_a L\right\rceil.
+]
+
+The total number of hierarchy nodes in a full (a)-ary tree is approximately:
+
+[
+N_{\mathrm{tree}}
+=================
+
+L+\frac{L}{a}+\frac{L}{a^2}+\cdots+1
+<
+\frac{a}{a-1}L.
+]
+
+For (a=4):
+
+[
+N_{\mathrm{tree}}<\frac43L.
+]
+
+So the hierarchy itself introduces only (O(n/b)) scheduler nodes.
+
+# 2. Hierarchical graph state
+
+Each hierarchy node (v) owns a persistent graph object:
+
+[
+H_v=
+\left(
+\mathcal C_v,
+G_v^{+},
+\partial H_v,
+D_v,
+I_v,
+\Gamma_v
+\right),
+]
+
+where:
+
+* (\mathcal C_v): child graph references;
+* (G_v^{+}): graph structure introduced specifically at (v);
+* (\partial H_v): externally visible graph interface;
+* (D_v): unresolved demands;
+* (I_v): subtree indexes;
+* (\Gamma_v): coverage/fixed-point certificate.
+
+Write:
+
+[
+G_v^{+}=(S_v^{+},F_v^{+},C_v^{+},R_v^{+}).
+]
+
+The logical graph denoted by (v) is:
+
+[
+\llbracket H_v\rrbracket
+========================
+
+G_v^{+}
+\sqcup
+\bigcup_{c\in\mathcal C_v}
+\llbracket H_c\rrbracket.
+]
+
+This is a logical union. It must not imply flattening all descendant objects into a newly allocated tuple.
+
+The root denotes the document graph:
+
+[
+G_{\mathrm{document}}
+=====================
+
+\llbracket H_{\mathrm{root}}\rrbracket.
+]
+
+# 3. Leaf computation
+
+Let (X_i) be the input carrier of leaf (i), with:
+
+[
+|X_i|\le b.
+]
+
+A worker runs a fused local operator chain:
+
+[
+H_i
+===
+
+\mathcal L(X_i),
+]
+
+where (\mathcal L) can include:
+
+[
+\text{parse}
+\to
+\text{project}
+\to
+\text{local relations}
+\to
+\text{local proposals}
+\to
+\text{local reduction}.
+]
+
+A leaf result is therefore a real mini-graph:
+
+[
+H_i=
+\left(
+G_i,
+\partial H_i,
+D_i,
+I_i,
+\Gamma_i
+\right).
+]
+
+It is not merely a summary. The boundary projection is an efficient interface to the graph.
+
+If local processing is linear or bounded-neighbourhood:
+
+[
+T_{\mathrm{leaf}}(X_i)
+======================
+
+O(|X_i|+e_i),
+]
+
+where (e_i) is the number of locally generated edges or relations.
+
+Across all leaves:
+
+[
+\sum_i T_{\mathrm{leaf}}(X_i)
+=============================
+
+O(n+m_{\mathrm{local}}).
+]
+
+Since every source item must be visited:
+
+[
+T_{\mathrm{leaf,total}}
+=======================
+
+\Omega(n).
+]
+
+Thus the desired local-phase bound is:
+
+[
+T_{\mathrm{leaf,total}}
+=======================
+
+\Theta(n+m_{\mathrm{local}}).
+]
+
+# 4. Parent reduction
+
+For parent (p) with children (c_1,\dots,c_a):
+
+[
+H_p
+===
+
+\mathcal R_p
+\left(
+H_{c_1},\dots,H_{c_a}
+\right).
+]
+
+Physically, the parent stores:
+
+[
+H_p=
+\left(
+(H_{c_1},\dots,H_{c_a}),
+G_p^{+},
+\partial H_p,
+D_p,
+I_p,
+\Gamma_p
+\right).
+]
+
+The newly materialised graph is:
+
+[
+G_p^{+}
+=======
+
+G_{\mathrm{cross},p}
+\sqcup
+G_{\mathrm{promoted},p}
+\sqcup
+G_{\mathrm{revision},p}.
+]
+
+Its work should depend primarily on interfaces and newly discovered interactions:
+
+[
+T_p
+===
+
+O\left(
+\sum_{c\in\mathcal C_p}|\partial H_c|
++
+|E_p^{\mathrm{cross}}|
++
+|D_p^{\mathrm{examined}}|
+\right).
+]
+
+It should not be:
+
+[
+O\left(
+\sum_{c\in\mathcal C_p}
+|\llbracket H_c\rrbracket|
+\right)
+]
+
+at every level, because that would revisit all settled descendants.
+
+# 5. Reconciled job algebra
+
+The original job definition remains useful:
+
+[
+j=
+(O_j,I_j,K_j,\widehat c_j,\widehat m_j).
+]
+
+Extend it with hierarchy placement:
+
+[
+j=
+\left(
+O_j,
+I_j,
+K_j,
+v_j,
+\ell_j,
+\widehat c_j,
+\widehat m_j,
+\widehat o_j
+\right),
+]
+
+where:
+
+* (v_j): hierarchy node owning the execution;
+* (\ell_j): hierarchy level;
+* (\widehat o_j): estimated output/interface size.
+
+The worker returns:
+
+[
+\Delta_j=
+\left(
+\Delta G_j^{+},
+\Delta\partial_j,
+\Delta D_j,
+\Delta I_j,
+\Delta\Gamma_j
+\right).
+]
+
+The node advances by persistent overlay:
+
+[
+H_{v_j}^{(r+1)}
+===============
+
+H_{v_j}^{(r)}
+\oplus
+\Delta_j.
+]
+
+The document graph advances logically as:
+
+[
+G_{t+1}
+=======
+
+G_t\sqcup\Delta_j,
+]
+
+but physically this is a revision pointer or overlay insertion, not a reconstruction of (G_t).
+
+# 6. Lowest sufficient carrier
+
+Let (\operatorname{support}(j)) be the set of source or graph regions required by job (j).
+
+Assign the job to the lowest hierarchy node containing all required evidence:
+
+[
+v_j
+===
+
+\min_{\preceq}
+\left{
+v:
+\operatorname{support}(j)
+\subseteq
+\operatorname{carrier}(v)
+\right}.
+]
+
+For two leaves (x,y), this is their least common ancestor:
+
+[
+v_j=\operatorname{LCA}(x,y).
+]
+
+For a general evidence set:
+
+[
+v_j
+===
+
+\operatorname{LCA}
+\left(
+\operatorname{leaves}(\operatorname{support}(j))
+\right).
+]
+
+This reconciles the two earlier ideas:
+
+* text-fibre ownership for local extraction;
+* dynamic demand-cone scheduling for nonlocal closure.
+
+Local work remains at leaves. Cross-leaf work rises only as far as necessary.
+
+# 7. Semantic tree plus dependency graph
+
+The physical hierarchy is a tree:
+
+[
+T=(V_T,E_T).
+]
+
+The semantic dependency structure is a graph:
+
+[
+Q=(V_Q,E_Q).
+]
+
+A nonlocal dependency:
+
+[
+x\rightarrow y
+]
+
+generates a demand:
+
+[
+d=
+\left(
+x,
+y,
+\operatorname{kind}(d),
+\operatorname{revision}(d)
+\right).
+]
+
+Its reconciliation job is placed at:
+
+[
+v_d
+===
+
+\operatorname{LCA}(x,y).
+]
+
+So the complete execution structure is not merely a tree. It is:
+
+[
+\mathcal E=(T,Q,\rho),
+]
+
+where:
+
+[
+\rho:E_Q\to V_T
+]
+
+maps each semantic dependency to its lowest sufficient hierarchy node.
+
+# 8. Complexity of the hierarchy
+
+Let:
+
+* (n): primitive inputs;
+* (m_{\mathrm{local}}): local edges/relations;
+* (m_{\mathrm{cross}}): cross-leaf semantic dependencies;
+* (B_v=|\partial H_v|): interface size at node (v);
+* (d): total unresolved demand events processed;
+* (r): total actual revision transitions.
+
+Then a useful global work bound is:
+
+[
+T_{\mathrm{work}}
+=================
+
+O\left(
+n
++
+m_{\mathrm{local}}
++
+\sum_{v\in V_T^{\mathrm{internal}}}B_v
++
+m_{\mathrm{cross}}
++
+d
++
+r
+\right).
+]
+
+The crucial term is:
+
+[
+\sum_v B_v.
+]
+
+## Ideal bounded-interface case
+
+Suppose every node interface is bounded by a constant or by leaf capacity:
+
+[
+B_v\le B.
+]
+
+Because there are (O(n/b)) hierarchy nodes:
+
+[
+\sum_v B_v
+==========
+
+O\left(\frac nb B\right).
+]
+
+If (B=O(b)), then:
+
+[
+\sum_v B_v=O(n).
+]
+
+Therefore:
+
+[
+T_{\mathrm{work}}
+=================
+
+O(n+m_{\mathrm{local}}+m_{\mathrm{cross}}+d+r).
+]
+
+If semantic edge/demand density is also linear:
+
+[
+m_{\mathrm{local}}
++
+m_{\mathrm{cross}}
++
+d+r
+===
+
+O(n),
+]
+
+then:
+
+[
+T_{\mathrm{work}}=O(n).
+]
+
+Because reading the input is (\Omega(n)):
+
+[
+T_{\mathrm{work}}=\Theta(n).
+]
+
+That is the best asymptotic target.
+
+## Interface promoted through every level
+
+Suppose each item may remain visible through all (h) levels. Then:
+
+[
+\sum_v B_v=O(nh)=O(n\log_a(n/b)).
+]
+
+Thus:
+
+[
+T_{\mathrm{work}}
+=================
+
+O(n\log n+m+d+r).
+]
+
+This is still much better than repeated prefix reconstruction, but it is not linear.
+
+## Dense cross-dependency case
+
+If every region interacts with every other region:
+
+[
+m_{\mathrm{cross}}=\Theta(n^2),
+]
+
+then no scheduler can make exact full reconciliation linear:
+
+[
+T_{\mathrm{work}}=\Omega(n^2)
+]
+
+unless the relation can be represented or computed symbolically without enumeration.
+
+So the architecture prevents accidental quadratic behaviour. It cannot remove genuine quadratic semantic output.
+
+# 9. Why repeated prefixes are worse
+
+The observed problematic pattern resembles:
+
+[
+b+2b+3b+\cdots+Lb.
+]
+
+Since (Lb\approx n):
+
+[
+b\sum_{i=1}^{L}i
+================
+
+# b\frac{L(L+1)}2
+
+\Theta\left(\frac{n^2}{b}\right).
+]
+
+For fixed (b=4096):
+
+[
+T_{\mathrm{prefix}}
+===================
+
+\Theta(n^2).
+]
+
+In the hierarchical model, each leaf is solved once:
+
+[
+Lb=n.
+]
+
+At level one there are approximately (L/a) reductions; at level two (L/a^2), and so forth.
+
+If each internal reduction has bounded cost (c_B):
+
+[
+T_{\mathrm{tree}}
+=================
+
+n
++
+c_B
+\left(
+\frac La+\frac L{a^2}+\cdots
+\right).
+]
+
+Using:
+
+[
+\sum_{k=1}^{\infty}\frac1{a^k}
+==============================
+
+\frac1{a-1},
+]
+
+we get:
+
+[
+T_{\mathrm{tree}}
+<
+n+
+\frac{c_BL}{a-1}.
+]
+
+Since (L\approx n/b):
+
+[
+T_{\mathrm{tree}}
+=================
+
+O\left(
+n+\frac{c_Bn}{b(a-1)}
+\right).
+]
+
+If (c_B=O(b)):
+
+[
+T_{\mathrm{tree}}=O(n).
+]
+
+This formalises your intuition: four (4096)-unit reduced children become the input carrier of one higher-level graph without replaying the earlier prefixes.
+
+# 10. Per-stage complexity targets
+
+## Structural parsing
+
+Every character/token must be read:
+
+[
+T_{\mathrm{parse}}
+==================
+
+\Theta(n_{\mathrm{chars}}+n_{\mathrm{tokens}}).
+]
+
+With bounded overlap (o) across (L) leaves:
+
+[
+T_{\mathrm{parse}}
+==================
+
+O(n+Lo).
+]
+
+If (o) is constant:
+
+[
+T_{\mathrm{parse}}=\Theta(n).
+]
+
+## Parser-observation projection
+
+Assuming bounded work per token/atom:
+
+[
+T_{\mathrm{projection}}
+=======================
+
+\Theta(n_{\mathrm{tokens}}+n_{\mathrm{atoms}}).
+]
+
+The current slowdown suggests the actual implementation may instead be:
+
+[
+T_{\mathrm{projection,current}}
+\approx
+\sum_{i=1}^{n_{\mathrm{atoms}}}f(i),
+]
+
+where (f(i)) grows with retained state.
+
+The tree target is:
+
+[
+T_{\mathrm{projection,tree}}
+============================
+
+\sum_{\ell=1}^{L}
+O(|X_\ell|+|E_\ell|)
++
+T_{\mathrm{cross}}.
+]
+
+## Local factor reduction
+
+If factors are hashed/indexed by stable ownership key:
+
+[
+T_{\mathrm{factor,local}}
+=========================
+
+O(p)
+]
+
+expected, where (p) is proposal count.
+
+If each dirty owner scans all proposals:
+
+[
+T_{\mathrm{factor,current}}
+===========================
+
+O(kp),
+]
+
+where (k) is the number of dirty groups.
+
+With proposal buckets:
+
+[
+T_{\mathrm{factor,indexed}}
+===========================
+
+O\left(
+p+\sum_g p_g
+\right)
+=======
+
+O(p)
+]
+
+for one reduction pass, since:
+
+[
+\sum_g p_g=p.
+]
+
+## Hierarchical graph reduction
+
+[
+T_{\mathrm{hierarchy}}
+======================
+
+O\left(
+\sum_v B_v+m_{\mathrm{cross}}
+\right).
+]
+
+Target:
+
+[
+T_{\mathrm{hierarchy}}=O(n+m_{\mathrm{cross}}).
+]
+
+## Constraint assessment
+
+Let (c) be constraints and (\deg(C_i)) the number of factor revisions relevant to constraint (i).
+
+Full rescanning:
+
+[
+T_{\mathrm{constraint,current}}
+===============================
+
+O(rc),
+]
+
+for (r) rounds or revision batches.
+
+Differential indexing:
+
+[
+T_{\mathrm{constraint,diff}}
+============================
+
+O\left(
+c+
+\sum_{\Delta F}
+|\operatorname{dependents}(\Delta F)|
+\right).
+]
+
+If dependency fan-out is bounded:
+
+[
+T_{\mathrm{constraint,diff}}
+============================
+
+O(c+r).
+]
+
+## Refinement
+
+Current full prior/result factor retention may not directly alter asymptotic compute, but it greatly increases memory.
+
+With reference overlays:
+
+[
+T_{\mathrm{refinement}}
+=======================
+
+O(r+a_r),
+]
+
+where (a_r) is the number of alternative-level transitions actually examined.
+
+Memory becomes:
+
+[
+M_{\mathrm{refinement}}
+=======================
+
+O(r)
+]
+
+in compact transition records rather than proportional to full duplicated factor payloads.
+
+## Demand derivation and resolution
+
+Initial derivation:
+
+[
+T_{\mathrm{demand,derive}}
+==========================
+
+O(f+c)
+]
+
+if factors and constraints are each scanned once.
+
+Differential resolution:
+
+[
+T_{\mathrm{demand,resolve}}
+===========================
+
+O\left(
+d+
+\sum_{\Delta}
+|\operatorname{affectedDemands}(\Delta)|
+\right).
+]
+
+With bounded fan-out:
+
+[
+T_{\mathrm{demand,resolve}}=O(d+r).
+]
+
+## Persistence
+
+Every durable row must be written at least once:
+
+[
+T_{\mathrm{persist}}=\Omega(z),
+]
+
+where (z) is output-row count.
+
+With streaming immutable batches:
+
+[
+T_{\mathrm{persist}}=O(z).
+]
+
+Repeated serialisation of full graph generations can instead approach:
+
+[
+O(rz)
+]
+
+or worse in practice.
+
+The target is therefore:
+
+[
+T_{\mathrm{persist}}=\Theta(z).
+]
+
+# 11. Parallel wall-time bound
+
+Let total work be:
+
+[
+\mathcal W
+==========
+
+\sum_j c_j.
+]
+
+Let the critical path through the hierarchy and semantic dependency graph be:
+
+[
+\mathcal P
+==========
+
+\max_{\pi}
+\sum_{j\in\pi}c_j.
+]
+
+With (W) workers:
+
+[
+T_W
+\ge
+\max\left(
+\frac{\mathcal W}{W},
+\mathcal P
+\right).
+]
+
+A work-conserving dynamic scheduler should aim for:
+
+[
+T_W
+\le
+\frac{\mathcal W}{W}
++
+O(\mathcal P)
++
+T_{\mathrm{scheduler}}
++
+T_{\mathrm{backpressure}}.
+]
+
+For a balanced (a)-ary hierarchy with constant-cost internal nodes:
+
+[
+\mathcal P
+==========
+
+O\left(
+c_{\mathrm{leaf}}
++
+c_{\mathrm{merge}}\log_a(n/b)
+\right).
+]
+
+If a leaf holds (b) work units:
+
+[
+c_{\mathrm{leaf}}=O(b).
+]
+
+Thus:
+
+[
+\mathcal P
+==========
+
+O\left(
+b+c_{\mathrm{merge}}\log_a(n/b)
+\right).
+]
+
+With fixed (b=4096), this is effectively logarithmic in document size after the leaf solve, unless semantic demands create a longer dependency chain.
+
+# 12. Memory formalism
+
+The earlier memory equation becomes hierarchical:
+
+[
+M(t)
+====
+
+M_{\mathrm{active}}(t)
++
+M_{\mathrm{interfaces}}(t)
++
+M_{\mathrm{indexes}}(t)
++
+M_{\mathrm{queues}}(t)
++
+M_{\mathrm{overlays}}(t)
++
+M_{\mathrm{durable\ cache}}(t).
+]
+
+With (W) workers and bounded leaf/node size:
+
+[
+M_{\mathrm{active}}(t)
+\le
+W M_{\mathrm{node,max}}.
+]
+
+Queue memory:
+
+[
+M_{\mathrm{queues}}(t)
+======================
+
+\sum_q n_q(t)\bar m_q
+\le
+\sum_q B_q.
+]
+
+The key physical-graph rule is:
+
+[
+M(H_v)
+\neq
+\sum_{c\in\mathcal C_v}M(H_c)+M(G_v^{+})
+]
+
+when child graphs are durable and referenced.
+
+Instead, in active RAM:
+
+[
+M(H_v)
+\approx
+M(\text{child refs})
++
+M(G_v^{+})
++
+M(\partial H_v)
++
+M(I_v^{\mathrm{hot}}).
+]
+
+Therefore the production target is:
+
+[
+M(t)
+====
+
+O\left(
+Wb
++
+\sum_{\text{ready }v}|\partial H_v|
++
+|K_t|
++
+|D_t|
++
+M_{\mathrm{hot\ indexes}}
+\right).
+]
+
+It should not be:
+
+[
+M(t)=O(nh)
+]
+
+through nested in-memory copies.
+
+# 13. Fixed point over hierarchical revisions
+
+Let:
+
+* (J_t): ready jobs;
+* (K_t): dirty semantic keys;
+* (U_t): unresolved demands;
+* (P_t): parents waiting for child coverage;
+* (A_t): active jobs.
+
+After delta (\Delta):
+
+[
+K_{t+1}
+=======
+
+\left(
+K_t\setminus\operatorname{resolvedKeys}(\Delta)
+\right)
+\cup
+\operatorname{dependents}(\Delta),
+]
+
+[
+U_{t+1}
+=======
+
+\left(
+U_t\setminus\operatorname{discharged}(\Delta)
+\right)
+\cup
+\operatorname{newDemands}(\Delta),
+]
+
+[
+P_{t+1}
+=======
+
+\operatorname{updateParentReadiness}(P_t,\Delta\Gamma),
+]
+
+[
+J_{t+1}
+=======
+
+\operatorname{ready}
+\left(
+K_{t+1},
+U_{t+1},
+P_{t+1}
+\right).
+]
+
+The document fixed point is reached when:
+
+[
+J_t=\varnothing,
+]
+
+[
+A_t=\varnothing,
+]
+
+[
+K_t=\varnothing,
+]
+
+[
+P_t=\varnothing,
+]
+
+and:
+
+[
+\operatorname{locallyResolvable}(U_t)=\varnothing,
+]
+
+with root coverage complete.
+
+# 14. Reconciled optimisation objective
+
+The partition and hierarchy policy is:
+
+[
+\Pi=
+(b,a,{\Phi_O},\rho,\sigma),
+]
+
+where:
+
+* (b): leaf capacity;
+* (a): hierarchy arity;
+* (\Phi_O): operator-specific partitions;
+* (\rho): semantic dependency placement;
+* (\sigma): dynamic scheduling policy.
+
+Optimise:
+
+[
+\min_\Pi
+J(\Pi),
+]
+
+where:
+
+[
+J(\Pi)
+======
+
+T_{\mathrm{commit}}
++
+\lambda_M
+\max_t(M(t)-M_{\mathrm{soft}})*+
++
+\lambda_C C*{\mathrm{communication}}
++
+\lambda_R C_{\mathrm{recomputation}}
++
+\lambda_F C_{\mathrm{flattening}}.
+]
+
+The final term is important:
+
+[
+C_{\mathrm{flattening}}
+=======================
+
+\sum_v
+\operatorname{bytesOfDescendantsReconstructedAt}(v).
+]
+
+For the desired persistent hierarchy:
+
+[
+C_{\mathrm{flattening}}\approx 0
+]
+
+during normal execution, except at explicitly requested export/materialisation boundaries.
+
+# Reconciled conclusion
+
+The architecture is now more precisely:
+
+1. Build a document-level structural carrier with global coordinates.
+2. Partition local monotone work into bounded leaves.
+3. Let workers construct immutable mini-graphs.
+4. Store each mini-graph durably and expose a boundary/interface projection.
+5. Construct midi-graphs as persistent parent overlays over child graph references.
+6. Construct mega/root graphs similarly, without flattening descendants.
+7. Place cross-tree semantic work at the lowest sufficient hierarchy node.
+8. Schedule leaves, branches, trunks and demand cones dynamically in one worker pool.
+9. Maintain differential dirty-key, constraint and demand indexes.
+10. Publish one canonical root revision after fixed-point and coverage certification.
+
+The asymptotic target is not strictly (o(n)). It is:
+
+[
+\boxed{
+T_{\mathrm{local}}=\Theta(n)
+}
+]
+
+and, under bounded semantic interfaces and sparse nonlocal dependencies:
+
+[
+\boxed{
+T_{\mathrm{total}}
+==================
+
+\Theta(n+m+d+r)
+}
+]
+
+where (m) is actual semantic edge volume, (d) actual demand work, and (r) actual revision work.
+
+With bounded-density semantics:
+
+[
+m+d+r=O(n),
+]
+
+so:
+
+[
+\boxed{
+T_{\mathrm{total}}=\Theta(n)
+}
+]
+
+while parallel wall time approaches:
+
+[
+\boxed{
+T_W
+\approx
+\max
+\left(
+\frac{\Theta(n)}{W},
+\mathcal P
+\right)
+}
+]
+
+rather than the observed accidental repeated-prefix pattern:
+
+[
+\boxed{
+\Theta(n^2/b).
+}
+]
+
+That gives us a concrete criterion for every phase:
+
+> Each primitive object should be constructed once at its lowest sufficient carrier; each genuine cross-carrier relation should be handled once at its lowest common hierarchy node; and no parent should physically reconstruct settled descendant interiors.

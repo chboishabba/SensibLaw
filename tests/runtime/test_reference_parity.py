@@ -1,9 +1,31 @@
 from __future__ import annotations
 
+from pathlib import Path
+import subprocess
+import sys
+
 from src.runtime.reference_parity import (
     compare_reference_surfaces,
     reference_semantic_surface,
 )
+
+
+def test_reference_parity_import_is_safe_from_a_fresh_interpreter() -> None:
+    """Reference-parity must not re-enter policy installation during import."""
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from src.runtime.reference_parity import reference_semantic_surface",
+        ],
+        cwd=Path(__file__).parents[2],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 0, completed.stderr
 
 
 def _build(*, factor_digest: str = "factor-digest") -> dict[str, object]:
