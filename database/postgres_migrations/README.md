@@ -93,6 +93,18 @@
   witnesses untouched while deriving demand attribution only from explicit
   witness provenance, exact source-object equality, or exact shared parser-token
   representation support; accepted-use attribution still requires admission.
+- `112_consumer_observed_world_axis_contract.sql` adds sparse consumer/query/policy
+  contracts that declare which world coordinate can actually be observed and
+  which numeric demand coordinates it applies to. Only the intersection with the
+  live H9 residual becomes an external need; a contract cannot implicitly select
+  every H9 demand. Manual and contract-derived need origins remain independent.
+- `113_external_request_observer_lifecycle.sql` makes provider request liveness
+  depend on active semantic observers. Requests with no active observer become a
+  distinct dormant state, and completion/cache wakeup cannot resurrect withdrawn
+  consumer fibres.
+- `114_dormant_external_request_reprobe.sql` immediately re-probes a dormant
+  request against local cache when an observer becomes active again, avoiding a
+  second planner pass before cache-hit wakeup or provider leasing.
 - See `docs/reopenable_runtime_architecture.md`,
   `docs/consumer_sufficient_numeric_runtime.md`,
   `docs/late_external_provider_runtime.md`, and
