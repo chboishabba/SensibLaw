@@ -42,6 +42,77 @@ calls. A warm resident Zelph query may consume zero external object reads, an HF
 partial load may consume several shard reads, and a live HTTP/SPARQL request may
 consume a different amount again. Wall time therefore remains a separate metric.
 
+## Consumer-observed world-axis contracts
+
+H9 readiness is not external work. It is only permission for a consumer to ask
+whether its unresolved fibre observes a world coordinate.
+
+Migration 112 adds a cold control-plane contract keyed by
+`(consumer_ref, query_ref, policy_ref, contract_ref, revision)`. A contract names
+one external need kind/provider coordinate and at least one numeric demand
+selector drawn from the existing PNF demand carrier:
+
+- expected target kind;
+- expected factor type SymbolId;
+- expected object kind SymbolId;
+- lexical SymbolId;
+- role SymbolId; or
+- residual type SymbolId.
+
+At least one selector is mandatory. There is deliberately no contract meaning
+"all H9-ready demands" by omission.
+
+Compilation is therefore the intersection
+
+```text
+current H9 residual
+  ∩ current active consumer world-axis contracts
+  ∩ exact numeric demand selectors
+  -> explicit external needs
+```
+
+and an empty contract set compiles to zero external needs. The hot matching path
+never resolves selector text or performs regex/semantic string matching.
+
+Manual exact-demand needs remain supported. Manual and contract-derived origins
+are tracked separately, so withdrawing one contract cannot disable an
+independently registered need. Active need state, priority and freshness are the
+exact projection over current active origins: any active origin keeps the need
+live, the minimum priority wins, and the strongest freshness floor wins.
+
+Contract revisions are semantic control history. Migration 115 makes a revision
+immutable: changing selectors, provider/property coordinates, priority or
+freshness requires a new revision. Re-registering the same revision may only
+change whether it is active.
+
+## External request observer lifecycle
+
+Physical provider work is downstream of active semantic observation. Migration
+113 adds request state `8 = dormant` for a request that has historical members
+but no currently active semantic need.
+
+This matters when a consumer narrows or withdraws a contract after work has
+already been planned or leased:
+
+```text
+active need -> provider-ready/leased request
+contract withdrawn
+  -> semantic need inactive
+  -> request dormant
+  -> no hot materialisation
+  -> no H9 wakeup
+```
+
+If a provider result arrives after withdrawal, its immutable cold evidence may
+still be retained, but completion fails closed with respect to the withdrawn
+consumer. Historical request-member rows remain provenance, not execution
+authority.
+
+When an observer later becomes active again, migration 114 reopens the dormant
+request and immediately re-probes local cache in the same planning pass. Cached
+evidence can therefore satisfy the reactivated need without another acquisition;
+otherwise the request becomes provider-ready again.
+
 ## Discovery before enrichment
 
 If a label has no candidate fibre, the planner emits only one deduplicated
@@ -177,9 +248,14 @@ semantic refutation.
 
 ## Execution boundary
 
-`LateExternalHorizonExecutor.plan_h9_external_residual()` registers concrete
-external needs and invokes planning only after a consumer has an H9 residual. It
-performs no provider calls itself.
+`LateExternalHorizonExecutor.plan_h9_observed_world_axes()` is the preferred
+consumer-contract entrypoint. It compiles the current active world-axis contracts
+against one document's live H9 residual, then invokes the existing cache/request
+planner. It performs no provider calls itself.
+
+`LateExternalHorizonExecutor.plan_h9_external_residual()` remains available for a
+caller that already possesses exact demand IDs and explicitly registers those
+needs directly.
 
 Actual calls happen only through `execute_external_provider_batch()` after the
 PostgreSQL cache probe has leased provider-ready misses.
@@ -187,8 +263,8 @@ PostgreSQL cache probe has leased provider-ready misses.
 The intended empirical asymmetry remains:
 
 ```text
-N_fresh_provider_calls << N_external_needs << N_mentions << N_tokens
+N_fresh_provider_calls << N_external_needs << N_H9_residual << N_mentions << N_tokens
 ```
 
-for recurring-domain corpora when the cache is effective. This is an empirical
-target, not an unconditional theorem.
+for recurring-domain corpora when the consumer contracts and cache are effective.
+This is an empirical target, not an unconditional theorem.
