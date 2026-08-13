@@ -171,8 +171,8 @@ BEGIN
         PERFORM execution.materialize_numeric_pnf_external_context_for_request(
             request_row.request_id,1
         );
-        PERFORM execution.wake_numeric_pnf_external_request_members(request_row.request_id);
-        GET DIAGNOSTICS n=ROW_COUNT;
+        SELECT execution.wake_numeric_pnf_external_request_members(request_row.request_id)
+          INTO n;
         affected:=affected+n;
     END LOOP;
     RETURN affected;
