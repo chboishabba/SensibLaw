@@ -16,8 +16,11 @@ queried and then rejected downstream.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
+import subprocess
 from typing import Mapping, Protocol, Sequence
 
+from src.policy.external_demand import ExternalValueKind
 from src.policy.wikidata_late_provider import (
     WikidataPropertyBatch,
     WikidataPropertyFact,
@@ -61,6 +64,193 @@ class ZelphSnapshotQueryBackend(Protocol):
     def fetch_wikidata_properties(
         self, keys: Sequence[tuple[int, int]]
     ) -> ZelphSnapshotPropertyResult: ...
+
+
+class ZelphCliSnapshotQueryBackend:
+    """Query a local or HF-routed Zelph artifact through its CLI.
+
+    A manifest source uses Zelph's routed ``.load-partial`` path and therefore
+    fetches only the route-selected HF shards.  A local ``.bin`` source uses a
+    normal full load; callers should reserve that mode for a machine with
+    enough memory.  This adapter deliberately exposes acquisition subprocess
+    count as its literal I/O metric; the Zelph process also emits transfer
+    diagnostics when ``ZELPH_HF_TRANSFER_LOG`` is configured.
+    """
+
+    _QID_RE = re.compile(r"https://www\.wikidata\.org/wiki/(Q([1-9][0-9]*))")
+    _QID_VALUE_RE = re.compile(r"^Q([1-9][0-9]*)(?:\s+\(.*\))?$")
+
+    def __init__(
+        self,
+        executable: str,
+        source: str,
+        *,
+        source_ref: str | None = None,
+        language: str = "en",
+        timeout_seconds: float = 300.0,
+    ) -> None:
+        if not executable.strip():
+            raise ValueError("Zelph executable must be non-empty")
+        if not source.strip():
+            raise ValueError("Zelph source must be non-empty")
+        if not language.strip():
+            raise ValueError("Zelph language must be non-empty")
+        if timeout_seconds <= 0:
+            raise ValueError("Zelph timeout must be positive")
+        self.executable = executable
+        self.source = source
+        self.source_ref = source_ref or f"zelph:{source}"
+        self.language = language
+        self.timeout_seconds = timeout_seconds
+
+    @property
+    def _is_manifest(self) -> bool:
+        return self.source.endswith(".json") or self.source.startswith("hf://")
+
+    @staticmethod
+    def _quote_command_text(value: str) -> str:
+        return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+    def _load_command(self, *, route_name: str | None = None) -> str:
+        source = self._quote_command_text(self.source)
+        if self._is_manifest and route_name is not None:
+            return (
+                f".load-partial {source} "
+                f"route-name={self._quote_command_text(route_name)} "
+                f"route-lang={self.language}"
+            )
+        if self._is_manifest:
+            return f".load-partial {source}"
+        return f".load {source}"
+
+    def _run(self, commands: Sequence[str], *, allow_missing_node: bool = False) -> str:
+        script = "\n".join((*commands, ".quit", ""))
+        try:
+            completed = subprocess.run(
+                [self.executable],
+                input=script,
+                text=True,
+                capture_output=True,
+                timeout=self.timeout_seconds,
+                check=False,
+            )
+        except FileNotFoundError as exc:
+            raise RuntimeError(f"Zelph executable unavailable: {self.executable}") from exc
+        except subprocess.TimeoutExpired as exc:
+            raise TimeoutError(f"Zelph query timed out after {self.timeout_seconds}s") from exc
+        output = "\n".join(part for part in (completed.stdout, completed.stderr) if part)
+        missing_node_only = allow_missing_node and "No node found with name" in output
+        if completed.returncode != 0 or ("Error in line" in output and not missing_node_only):
+            raise RuntimeError(f"Zelph query failed ({completed.returncode}): {output[-4000:]}")
+        return output
+
+    @classmethod
+    def _candidate_from_node_output(
+        cls, output: str, *, source_ref: str
+    ) -> WikidataSearchCandidate | None:
+        match = cls._QID_RE.search(output)
+        if match is None:
+            return None
+        return WikidataSearchCandidate(
+            qid=int(match.group(2)), rank=0, source_ref=source_ref
+        )
+
+    def search_wikidata_entities(
+        self, labels: Sequence[str], *, limit_per_label: int
+    ) -> ZelphSnapshotSearchResult:
+        if limit_per_label < 1:
+            raise ValueError("limit_per_label must be positive")
+        candidates: dict[str, tuple[int, ...]] = {}
+        acquisitions = 0
+        for label in dict.fromkeys(label for label in labels if label.strip()):
+            output = self._run(
+                (
+                    f".lang {self.language}",
+                    self._load_command(route_name=label if self._is_manifest else None),
+                    f".node {self._quote_command_text(label)}",
+                ),
+                allow_missing_node=True,
+            )
+            acquisitions += 1
+            candidate = self._candidate_from_node_output(output, source_ref=self.source_ref)
+            candidates[label] = (candidate.qid,) if candidate is not None else ()
+        return ZelphSnapshotSearchResult(candidates, acquisitions)
+
+    @staticmethod
+    def _property_query(subject_qid: int, property_pid: int) -> str:
+        return (
+            "sparql\n"
+            "SELECT ?value WHERE { "
+            f"wd:Q{subject_qid} wdt:P{property_pid} ?value . "
+            "}"
+        )
+
+    @staticmethod
+    def _result_values(output: str) -> tuple[str, ...]:
+        values: list[str] = []
+        in_results = False
+        for raw_line in output.splitlines():
+            line = raw_line.strip()
+            if line == "?value":
+                in_results = True
+                continue
+            if not in_results or line.startswith("--") or not line:
+                continue
+            values.append(line.split("\t", 1)[0].strip())
+        return tuple(dict.fromkeys(values))
+
+    @classmethod
+    def _fact_for_value(
+        cls,
+        subject_qid: int,
+        property_pid: int,
+        value: str,
+        *,
+        source_ref: str,
+    ) -> WikidataPropertyFact | None:
+        qid_match = cls._QID_VALUE_RE.fullmatch(value)
+        if qid_match is not None:
+            return WikidataPropertyFact(
+                subject_qid=subject_qid,
+                property_pid=property_pid,
+                value_kind=ExternalValueKind.WORLD_ENTITY,
+                value_qid=int(qid_match.group(1)),
+                source_ref=source_ref,
+            )
+        if value.isdigit():
+            return WikidataPropertyFact(
+                subject_qid=subject_qid,
+                property_pid=property_pid,
+                value_kind=ExternalValueKind.NUMERIC,
+                value_numeric=int(value),
+                source_ref=source_ref,
+            )
+        return None
+
+    def fetch_wikidata_properties(
+        self, keys: Sequence[tuple[int, int]]
+    ) -> ZelphSnapshotPropertyResult:
+        unique_keys = tuple(sorted(set((int(q), int(p)) for q, p in keys)))
+        if not unique_keys:
+            return ZelphSnapshotPropertyResult({}, 0)
+        commands = [self._load_command(), ".import sparql"]
+        facts: dict[tuple[int, int], tuple[WikidataPropertyFact, ...]] = {}
+        for subject_qid, property_pid in unique_keys:
+            commands.extend((self._property_query(subject_qid, property_pid), ""))
+        output = self._run(commands)
+        # Each repeated query has its own ?value header; preserve query order
+        # while parsing the corresponding result section.
+        sections = output.split("?value\n")[1:]
+        for key, section in zip(unique_keys, sections, strict=False):
+            section = section.split("--", 1)[0]
+            rows = tuple(
+                fact
+                for value in self._result_values("?value\n" + section)
+                if (fact := self._fact_for_value(*key, value, source_ref=self.source_ref))
+                is not None
+            )
+            facts[key] = rows
+        return ZelphSnapshotPropertyResult(facts, 1)
 
 
 @dataclass(frozen=True, slots=True)
@@ -295,6 +485,7 @@ __all__ = [
     "TieredWikidataTransport",
     "WikidataTierPolicy",
     "ZelphHFWikidataTransport",
+    "ZelphCliSnapshotQueryBackend",
     "ZelphSnapshotPropertyResult",
     "ZelphSnapshotQueryBackend",
     "ZelphSnapshotSearchResult",

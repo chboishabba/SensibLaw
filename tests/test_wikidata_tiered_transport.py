@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import subprocess
 
 from src.policy.external_demand import ExternalValueKind
 from src.policy.wikidata_late_provider import (
@@ -13,6 +14,7 @@ from src.policy.wikidata_tiered_transport import (
     TieredWikidataTransport,
     WikidataTierPolicy,
     ZelphHFWikidataTransport,
+    ZelphCliSnapshotQueryBackend,
     ZelphSnapshotPropertyResult,
     ZelphSnapshotSearchResult,
 )
@@ -262,3 +264,31 @@ def test_negative_acquisition_count_is_rejected() -> None:
         assert "non-negative" in str(exc)
     else:
         raise AssertionError("negative acquisition count must be rejected")
+
+
+def test_zelph_cli_backend_parses_discovery_and_property_rows(monkeypatch) -> None:
+    outputs = iter(
+        (
+            "Node ID: 11\n"
+            "Wikidata URL: https://www.wikidata.org/wiki/Q408\n",
+            "?value\nQ408 (Australia)\n-- 1 result(s) --\n",
+        )
+    )
+    calls: list[str] = []
+
+    def fake_run(command, *, input, **kwargs):
+        calls.append(input)
+        return subprocess.CompletedProcess(command, 0, next(outputs), "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    backend = ZelphCliSnapshotQueryBackend("zelph", "hf://example/manifest.json")
+
+    candidates = backend.search_wikidata_entities(("Australia",), limit_per_label=8)
+    facts = backend.fetch_wikidata_properties(((1, 17),))
+
+    assert candidates.candidates_by_label == {"Australia": (408,)}
+    assert candidates.acquisition_call_count == 1
+    assert facts.facts_by_key[(1, 17)][0].value_qid == 408
+    assert facts.acquisition_call_count == 1
+    assert 'route-name="Australia"' in calls[0]
+    assert "SELECT ?value" in calls[1]
