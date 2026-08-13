@@ -55,9 +55,17 @@ def test_h6_compares_distinct_signatures_before_persistence() -> None:
     assert "source_signature AS MATERIALIZED" in body
     assert "SELECT DISTINCT" in body
     assert "matched AS MATERIALIZED" in body
-    assert "candidate.target_id<>ready.source_object_id" in body
+    assert "state.target_id<>ready.source_object_id" in body
     assert "expected_factor_type_symbol_id" in body
     assert "ready.role_symbol_id" in body
+
+
+def test_h6_uses_smallint_horizon_argument_for_existing_stop_function() -> None:
+    body = _function(
+        _sql(),
+        "refresh_numeric_pnf_h6_discourse_temporal_evidence_for_consumer",
+    )
+    assert "selected_policy_ref,3::smallint" in body
 
 
 def test_zero_signed_h3_coordinate_is_classified_neutral_not_resolved() -> None:

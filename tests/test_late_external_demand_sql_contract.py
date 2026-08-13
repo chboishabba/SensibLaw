@@ -17,6 +17,7 @@ M106 = ROOT / "database/postgres_migrations/106_exact_external_freshness_recompu
 M107 = ROOT / "database/postgres_migrations/107_lease_aware_external_completion.sql"
 M108 = ROOT / "database/postgres_migrations/108_freshness_filtered_external_projection.sql"
 M109 = ROOT / "database/postgres_migrations/109_current_external_context_projection.sql"
+M110 = ROOT / "database/postgres_migrations/110_late_external_demand_planner_fix.sql"
 
 
 def _sql(path: Path) -> str:
@@ -184,3 +185,19 @@ def test_active_external_context_projection_uses_newest_admissible_epoch_only() 
     assert "DELETE FROM execution.semantic_pnf_world_candidate_requirement" in materialize
     assert "provider_property_numeric_id=request.provider_property_numeric_id" in materialize
     assert "Manual/static candidate requirements and cold" in sql
+
+
+def test_external_planner_fix_avoids_record_shadowing_and_short_circuits_empty_need_sets() -> None:
+    sql = _sql(M110)
+    body = sql.split(
+        "CREATE OR REPLACE FUNCTION execution.plan_numeric_pnf_external_demands_for_consumer", 1
+    )[1].split("$$;", 1)[0]
+    assert "DECLARE external_need RECORD" in body
+    assert "FOR external_need IN" in body
+    assert "SELECT need_row.*,demand.lexical_symbol_id,demand.source_object_id" in body
+    assert "SELECT need.*,demand.lexical_symbol_id,demand.source_object_id" not in body
+    assert "IF NOT EXISTS (" in body
+    assert "RETURN 0;" in body
+    assert "6::smallint" in body
+    assert "external_need.need_kind" in body
+    assert "external_need.lexical_symbol_id" in body

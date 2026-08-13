@@ -234,7 +234,7 @@ BEGIN
            AND demand.source_object_id IS NOT NULL
            AND NOT execution.numeric_pnf_consumer_stop_at_horizon(
                demand.demand_id,selected_consumer_ref,selected_query_ref,
-               selected_policy_ref,3
+               selected_policy_ref,3::smallint
            )
            AND NOT EXISTS (
                SELECT 1 FROM execution.semantic_pnf_frontier_resolution AS proof
@@ -420,11 +420,11 @@ BEGIN
 
     -- Preference is inductive only.  This call does not write proof authority.
     PERFORM execution.refresh_numeric_pnf_progressive_preferences(
-        selected_run_id,selected_document_id,6
+        selected_run_id,selected_document_id,6::smallint
     );
 
     h9_residual_work := execution.advance_numeric_pnf_horizon_work_for_consumer(
-        selected_run_id,selected_document_id,6,selected_consumer_ref,
+        selected_run_id,selected_document_id,6::smallint,selected_consumer_ref,
         selected_query_ref,selected_policy_ref
     );
     RETURN NEXT;
@@ -466,7 +466,7 @@ BEGIN
            AND region.document_id=selected_document_id
            AND NOT execution.numeric_pnf_consumer_stop_at_horizon(
                external_need.demand_id,external_need.consumer_ref,
-               external_need.query_ref,external_need.policy_ref,6
+               external_need.query_ref,external_need.policy_ref,6::smallint
            )
     ) THEN
         PERFORM execution.refresh_numeric_pnf_external_request_cache_state();
@@ -494,7 +494,7 @@ BEGIN
            AND region.document_id=selected_document_id
            AND NOT execution.numeric_pnf_consumer_stop_at_horizon(
                external_need.demand_id,external_need.consumer_ref,
-               external_need.query_ref,external_need.policy_ref,6
+               external_need.query_ref,external_need.policy_ref,6::smallint
            )
          ORDER BY external_need.priority,external_need.demand_id
     LOOP

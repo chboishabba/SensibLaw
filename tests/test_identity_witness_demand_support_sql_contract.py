@@ -21,7 +21,9 @@ def test_demand_attribution_uses_only_explicit_object_or_exact_token_support() -
     assert "semantic_pnf_object_token_support" in sql
     assert "symbol_text" not in sql
     assert "semantic_symbol" not in sql
-    assert "paragraph" not in sql.lower().split("CREATE OR REPLACE VIEW", 1)[1]
+    assert "paragraph" not in sql.lower().split(
+        "create or replace view execution.semantic_pnf_identity_witness_demand_support_v1", 1
+    )[1]
     assert "LIKE" not in sql
     assert "regexp" not in sql.lower()
 
