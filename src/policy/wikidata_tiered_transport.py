@@ -111,7 +111,9 @@ class ZelphCliSnapshotQueryBackend:
     def _quote_command_text(value: str) -> str:
         return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
-    def _load_command(self, *, route_name: str | None = None) -> str:
+    def _load_command(
+        self, *, route_name: str | None = None, name_only: bool = False
+    ) -> str:
         source = self._quote_command_text(self.source)
         if self._is_manifest and route_name is not None:
             return (
@@ -120,7 +122,12 @@ class ZelphCliSnapshotQueryBackend:
                 f"route-lang={self.language}"
             )
         if self._is_manifest:
-            return f".load-partial {source}"
+            if name_only:
+                return (
+                    f".load-partial {source} left=none right=none "
+                    "nameOfNode=none"
+                )
+            return f".load-partial {source} nameOfNode=none nodeOfName=none"
         return f".load {source}"
 
     def _run(self, commands: Sequence[str], *, allow_missing_node: bool = False) -> str:
@@ -161,19 +168,29 @@ class ZelphCliSnapshotQueryBackend:
         if limit_per_label < 1:
             raise ValueError("limit_per_label must be positive")
         candidates: dict[str, tuple[int, ...]] = {}
-        acquisitions = 0
-        for label in dict.fromkeys(label for label in labels if label.strip()):
-            output = self._run(
+        unique_labels = tuple(dict.fromkeys(label for label in labels if label.strip()))
+        if not unique_labels:
+            return ZelphSnapshotSearchResult({}, 0)
+        commands = [
+            f".lang {self.language}",
+            self._load_command(name_only=self._is_manifest),
+        ]
+        for index, label in enumerate(unique_labels):
+            commands.extend(
                 (
-                    f".lang {self.language}",
-                    self._load_command(route_name=label if self._is_manifest else None),
+                    f'%(print "__SL_LOOKUP_{index}__")',
                     f".node {self._quote_command_text(label)}",
-                ),
-                allow_missing_node=True,
+                )
             )
-            acquisitions += 1
-            candidate = self._candidate_from_node_output(output, source_ref=self.source_ref)
+        output = self._run(commands, allow_missing_node=True)
+        sections = output.split("__SL_LOOKUP_")[1:]
+        for index, label in enumerate(unique_labels):
+            section = next(
+                (part for part in sections if part.startswith(f"{index}__")), ""
+            )
+            candidate = self._candidate_from_node_output(section, source_ref=self.source_ref)
             candidates[label] = (candidate.qid,) if candidate is not None else ()
+        acquisitions = 1
         return ZelphSnapshotSearchResult(candidates, acquisitions)
 
     @staticmethod

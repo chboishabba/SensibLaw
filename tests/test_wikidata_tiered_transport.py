@@ -269,7 +269,7 @@ def test_negative_acquisition_count_is_rejected() -> None:
 def test_zelph_cli_backend_parses_discovery_and_property_rows(monkeypatch) -> None:
     outputs = iter(
         (
-            "Node ID: 11\n"
+            "__SL_LOOKUP_0__\nNode ID: 11\n"
             "Wikidata URL: https://www.wikidata.org/wiki/Q408\n",
             "?value\nQ408 (Australia)\n-- 1 result(s) --\n",
         )
@@ -290,5 +290,5 @@ def test_zelph_cli_backend_parses_discovery_and_property_rows(monkeypatch) -> No
     assert candidates.acquisition_call_count == 1
     assert facts.facts_by_key[(1, 17)][0].value_qid == 408
     assert facts.acquisition_call_count == 1
-    assert 'route-name="Australia"' in calls[0]
+    assert "left=none right=none nameOfNode=none" in calls[0]
     assert "SELECT ?value" in calls[1]
