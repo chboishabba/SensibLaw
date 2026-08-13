@@ -87,7 +87,7 @@ BEGIN
                 WHERE cached.label_symbol_id=external_need.lexical_symbol_id
            ) THEN
             request_id_value := execution.ensure_numeric_pnf_external_request(
-                external_need.provider_id,1,external_need.lexical_symbol_id,NULL,
+                external_need.provider_id,1::smallint,external_need.lexical_symbol_id,NULL,
                 NULL,NULL,external_need.need_revision,external_need.priority
             );
             INSERT INTO execution.semantic_pnf_external_request_member
@@ -113,7 +113,7 @@ BEGIN
                  ORDER BY candidate.candidate_ordinal,candidate.world_entity_id
             LOOP
                 request_id_value := execution.ensure_numeric_pnf_external_request(
-                    external_need.provider_id,2,external_need.lexical_symbol_id,
+                    external_need.provider_id,2::smallint,external_need.lexical_symbol_id,
                     candidate.world_entity_id,
                     external_need.provider_property_numeric_id,
                     external_need.axis_kind,external_need.need_revision,
@@ -140,7 +140,7 @@ BEGIN
                    AND attachment.attachment_state=1
             LOOP
                 request_id_value := execution.ensure_numeric_pnf_external_request(
-                    external_need.provider_id,3,attachment.label_symbol_id,
+                    external_need.provider_id,3::smallint,attachment.label_symbol_id,
                     attachment.world_entity_id,NULL,NULL,external_need.need_revision,
                     external_need.priority
                 );

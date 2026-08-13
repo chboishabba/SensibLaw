@@ -48,6 +48,13 @@ def test_external_requests_deduplicate_before_provider_leasing() -> None:
     assert "request_state=3" in claim
 
 
+def test_late_planner_passes_typed_request_kinds() -> None:
+    sql = _sql(M110)
+    assert "provider_id,1::smallint" in sql
+    assert "provider_id,2::smallint" in sql
+    assert "provider_id,3::smallint" in sql
+
+
 def test_property_enrichment_is_axis_and_property_specific() -> None:
     sql = _sql(M096) + _sql(M098)
     assert "provider_property_numeric_id" in sql
