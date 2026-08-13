@@ -105,6 +105,10 @@
 - `114_dormant_external_request_reprobe.sql` immediately re-probes a dormant
   request against local cache when an observer becomes active again, avoiding a
   second planner pass before cache-hit wakeup or provider leasing.
+- `115_immutable_world_axis_contract_revisions.sql` makes each world-axis contract
+  revision semantically immutable: changing selectors, provider coordinates,
+  priority or freshness requires a new revision; same-revision re-registration
+  may only toggle whether that revision is currently active.
 - See `docs/reopenable_runtime_architecture.md`,
   `docs/consumer_sufficient_numeric_runtime.md`,
   `docs/late_external_provider_runtime.md`, and
