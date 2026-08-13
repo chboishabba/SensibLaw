@@ -112,6 +112,11 @@
   revision semantically immutable: changing selectors, provider coordinates,
   priority or freshness requires a new revision; same-revision re-registration
   may only toggle whether that revision is currently active.
+- `117_external_context_polarity_smallint_fix.sql` preserves the SMALLINT type
+  at external completion/cache-wakeup call sites so real provider results can
+  complete without an integer-literal function-resolution failure.
+- `118_external_context_request_alias_fix.sql` removes the PL/pgSQL request
+  variable/table-alias collision reached during external request completion.
 - See `docs/reopenable_runtime_architecture.md`,
   `docs/consumer_sufficient_numeric_runtime.md`,
   `docs/late_external_provider_runtime.md`, and

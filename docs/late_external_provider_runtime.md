@@ -232,6 +232,23 @@ The preferred first target is the pruned Zelph snapshot, but that is an empirica
 optimization, not a semantic preference. Compare it against the full snapshot and
 live transport on actual H9 residuals rather than raw graph-wide queries.
 
+### Zelph shard planning boundary
+
+The primary deployment target is a revision-pinned HF Zelph manifest, with a
+local `.bin` artifact retained as an offline/reproducibility source. The current
+public March 2026 pruned v2 manifest has no `nodeRouteIndex`; its legacy chunks
+are therefore too coarse for one-process-per-label discovery. The CLI backend
+loads only the name index for v2 discovery and batches all labels through one
+Zelph process. It does not silently load adjacency sections for label lookup.
+
+The ITIR shard studies measured approximately 21.70 MiB median and 41.57 MiB
+p95 for v2 route-name loads, and approximately 51.95 MiB median and 60.63 MiB
+p95 for two-sided route-node loads. Those values are a transport-cost
+observation, not a semantic result. The planned v3 query-shaped bucket layout
+and route sidecar remain the optimization path for a newer full HF rip. Until a
+route-aware manifest is selected, the runtime records the coarse-v2 fallback
+explicitly rather than presenting it as an optimal shard plan.
+
 ## External evidence
 
 Provider facts are immutable cache rows. An evidence digest is idempotent and a
