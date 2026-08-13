@@ -117,6 +117,16 @@
   complete without an integer-literal function-resolution failure.
 - `118_external_context_request_alias_fix.sql` removes the PL/pgSQL request
   variable/table-alias collision reached during external request completion.
+- `119_h9_entity_bearing_structural_admission.sql` inserts the missing typed
+  admission gate before external needs: provider labels come from entity-bearing
+  occurrence structure rather than bare demand lexical symbols, and property
+  enrichment requires an already represented world-candidate fibre.
+- `120_h9_entity_admission_runtime_hardening.sql` requires identity work to have
+  an occurrence-attached world candidate and hardens explicit need registration
+  against the unassigned-record failure mode.
+- `121_h9_entity_admission_invariant_guard.sql` exposes a machine-checkable active
+  need invariant and immediately makes stale pre-gate provider requests dormant
+  through the existing observer-lifecycle projection.
 - See `docs/reopenable_runtime_architecture.md`,
   `docs/consumer_sufficient_numeric_runtime.md`,
   `docs/late_external_provider_runtime.md`, and
