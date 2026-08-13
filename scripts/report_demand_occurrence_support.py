@@ -38,6 +38,8 @@ def main() -> int:
                 SELECT
                     count(*)::BIGINT AS contract_matched,
                     count(*) FILTER (WHERE audit.strong_support_count>0)::BIGINT,
+                    count(*) FILTER (WHERE audit.exact_interface_object_count>0)::BIGINT,
+                    count(*) FILTER (WHERE audit.exact_factor_slot_count>0)::BIGINT,
                     count(*) FILTER (WHERE audit.parser_entity_reachable)::BIGINT,
                     count(*) FILTER (WHERE projection.projection_state=2)::BIGINT,
                     count(*) FILTER (WHERE projection.projection_state=3)::BIGINT,
@@ -61,12 +63,50 @@ def main() -> int:
             summary = {
                 "contract_matched_demands": int(row[0]),
                 "strong_occurrence_support_demands": int(row[1]),
-                "parser_entity_reachable_demands": int(row[2]),
-                "unique_strong_object_projection_demands": int(row[3]),
-                "ambiguous_strong_object_demands": int(row[4]),
-                "legacy_only_support_demands": int(row[5]),
-                "no_occurrence_support_demands": int(row[6]),
+                "lexical_origin_support_demands": int(row[2]),
+                "role_factor_origin_support_demands": int(row[3]),
+                "parser_entity_reachable_demands": int(row[4]),
+                "unique_strong_object_projection_demands": int(row[5]),
+                "ambiguous_strong_object_demands": int(row[6]),
+                "legacy_only_support_demands": int(row[7]),
+                "no_occurrence_support_demands": int(row[8]),
             }
+
+            cursor.execute(
+                """
+                WITH scoped AS (
+                    SELECT DISTINCT work.demand_id
+                      FROM execution.semantic_pnf_consumer_horizon_work_queue work
+                      JOIN execution.semantic_pnf_h9_external_admission_v1 admission
+                        ON admission.demand_id=work.demand_id
+                       AND admission.consumer_ref=work.consumer_ref
+                       AND admission.query_ref=work.query_ref
+                       AND admission.policy_ref=work.policy_ref
+                     WHERE work.horizon=9 AND work.work_state=1
+                       AND work.consumer_ref=%s AND work.query_ref=%s
+                       AND work.policy_ref=%s
+                       AND admission.contract_id IS NOT NULL
+                )
+                SELECT shape.coordinate_shape,count(*)::BIGINT,
+                       count(*) FILTER (WHERE audit.strong_support_count>0)::BIGINT,
+                       count(*) FILTER (WHERE audit.parser_entity_reachable)::BIGINT
+                  FROM scoped
+                  JOIN execution.semantic_pnf_demand_coordinate_shape_v1 shape USING(demand_id)
+                  JOIN execution.semantic_pnf_demand_occurrence_support_audit_v1 audit USING(demand_id)
+                 GROUP BY shape.coordinate_shape
+                 ORDER BY shape.coordinate_shape
+                """,
+                (args.consumer_ref, args.query_ref, args.policy_ref),
+            )
+            summary["coordinate_shapes"] = [
+                {
+                    "shape": int(shape),
+                    "demands": int(demands),
+                    "strong_support": int(strong),
+                    "parser_entity_reachable": int(entity),
+                }
+                for shape, demands, strong, entity in cursor.fetchall()
+            ]
 
             cursor.execute(
                 """
