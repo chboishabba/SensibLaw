@@ -34,6 +34,59 @@ class ExternalCallEconomyRow:
     requests_per_provider_call: float | None
 
 
+@dataclass(frozen=True, slots=True)
+class ConsumerWorldAxisContract:
+    """Cold consumer contract selecting the H9 residual it can observe.
+
+    All selectors are numeric PNF coordinates. At least one selector is required,
+    so registering a contract can never silently mean "all H9-ready demands".
+    """
+
+    contract_ref: str
+    need_kind: ExternalNeedKind
+    provider_id: int = 1
+    axis_kind: int | None = None
+    provider_property_numeric_id: int | None = None
+    contract_revision: int = 1
+    need_revision: int = 1
+    priority: int = 100
+    minimum_source_epoch: int | None = None
+    expected_target_kind: int | None = None
+    expected_factor_type_symbol_id: int | None = None
+    expected_object_kind_symbol_id: int | None = None
+    lexical_symbol_id: int | None = None
+    role_symbol_id: int | None = None
+    residual_type_symbol_id: int | None = None
+    active: bool = True
+
+    def validate(self) -> None:
+        if not self.contract_ref:
+            raise ValueError("contract_ref must be non-empty")
+        if self.contract_revision <= 0 or self.need_revision <= 0:
+            raise ValueError("contract and need revisions must be positive")
+        if self.priority <= 0:
+            raise ValueError("priority must be positive")
+        if self.minimum_source_epoch is not None and self.minimum_source_epoch <= 0:
+            raise ValueError("minimum source epoch must be positive")
+        if self.need_kind is ExternalNeedKind.PROPERTY_ENRICHMENT:
+            if self.axis_kind is None or self.provider_property_numeric_id is None:
+                raise ValueError("property contract requires axis and provider property ids")
+            if self.provider_property_numeric_id <= 0:
+                raise ValueError("provider property id must be positive")
+        elif self.axis_kind is not None or self.provider_property_numeric_id is not None:
+            raise ValueError("discovery/identity contracts do not accept property-axis coordinates")
+        selectors = (
+            self.expected_target_kind,
+            self.expected_factor_type_symbol_id,
+            self.expected_object_kind_symbol_id,
+            self.lexical_symbol_id,
+            self.role_symbol_id,
+            self.residual_type_symbol_id,
+        )
+        if all(selector is None for selector in selectors):
+            raise ValueError("consumer world-axis contract requires a numeric demand selector")
+
+
 class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
     """H9 external-demand planning and cold provider-evidence cache."""
 
@@ -84,6 +137,55 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                 raise RuntimeError("failed to persist external freshness requirement")
         return need_id
 
+    def register_world_axis_contract(
+        self,
+        *,
+        consumer_ref: str,
+        query_ref: str,
+        contract: ConsumerWorldAxisContract,
+        policy_ref: str = "",
+    ) -> int:
+        contract.validate()
+        return self._scalar_function(
+            "execution.record_numeric_pnf_consumer_world_axis_contract",
+            (
+                consumer_ref,
+                query_ref,
+                policy_ref,
+                contract.contract_ref,
+                contract.contract_revision,
+                contract.active,
+                int(contract.need_kind),
+                contract.provider_id,
+                contract.axis_kind,
+                contract.provider_property_numeric_id,
+                contract.need_revision,
+                contract.priority,
+                contract.minimum_source_epoch,
+                contract.expected_target_kind,
+                contract.expected_factor_type_symbol_id,
+                contract.expected_object_kind_symbol_id,
+                contract.lexical_symbol_id,
+                contract.role_symbol_id,
+                contract.residual_type_symbol_id,
+            ),
+        )
+
+    def compile_world_axis_contracts(
+        self,
+        *,
+        run_id: int,
+        document_id: int,
+        consumer_ref: str,
+        query_ref: str,
+        policy_ref: str = "",
+    ) -> int:
+        """Rebuild contract-derived needs for one document's current H9 residual."""
+        return self._scalar_function(
+            "execution.compile_numeric_pnf_h9_external_needs_for_consumer",
+            (run_id, document_id, consumer_ref, query_ref, policy_ref),
+        )
+
     def plan_external_demands(
         self,
         *,
@@ -99,6 +201,32 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
         )
         self._scalar_function("execution.wake_numeric_pnf_external_cache_hits", ())
         return planned
+
+    def compile_and_plan_world_axis_contracts(
+        self,
+        *,
+        run_id: int,
+        document_id: int,
+        consumer_ref: str,
+        query_ref: str,
+        policy_ref: str = "",
+    ) -> tuple[int, int]:
+        """Compile only observable H9 residuals, then plan cache/provider work."""
+        compiled_need_count = self.compile_world_axis_contracts(
+            run_id=run_id,
+            document_id=document_id,
+            consumer_ref=consumer_ref,
+            query_ref=query_ref,
+            policy_ref=policy_ref,
+        )
+        planner_work_units = self.plan_external_demands(
+            run_id=run_id,
+            document_id=document_id,
+            consumer_ref=consumer_ref,
+            query_ref=query_ref,
+            policy_ref=policy_ref,
+        )
+        return compiled_need_count, planner_work_units
 
     def claim_external_provider_batch(
         self,
