@@ -1,0 +1,143 @@
+from __future__ import annotations
+
+from dataclasses import asdict
+from typing import Any
+
+from src.pnf.numeric_hyperfabric import SymbolKind, TargetKind
+from src.pnf.numeric_operator_composition import (
+    NumericToken,
+    OperatorLexicon,
+    build_operator_lexicon,
+    compose_numeric_sentence,
+    operator_symbol_values,
+)
+
+
+def _lexicon() -> tuple[OperatorLexicon, dict[tuple[SymbolKind, str], int]]:
+    symbols = {
+        value: index for index, value in enumerate(operator_symbol_values(), start=1)
+    }
+    return build_operator_lexicon(symbols), symbols
+
+
+def _contains_text(value: object) -> bool:
+    if isinstance(value, str):
+        return True
+    if isinstance(value, dict):
+        return any(_contains_text(item) for item in value.values())
+    if isinstance(value, (tuple, list, set)):
+        return any(_contains_text(item) for item in value)
+    return False
+
+
+def _token(*values: Any) -> NumericToken:
+    return NumericToken(*values)
+
+
+def test_modal_composition_operates_only_on_numeric_observations() -> None:
+    lexicon, symbols = _lexicon()
+
+    def dependency(name: str) -> int:
+        return symbols[(SymbolKind.DEPENDENCY, name)]
+
+    def lemma(name: str) -> int:
+        return symbols[(SymbolKind.LEMMA, name)]
+
+    arbitrary = 50_000
+    tokens = (
+        _token(
+            1,
+            arbitrary + 1,
+            arbitrary + 2,
+            arbitrary + 3,
+            arbitrary + 4,
+            arbitrary + 5,
+            2,
+            None,
+            0,
+            3,
+        ),
+        _token(
+            2,
+            arbitrary + 6,
+            arbitrary + 7,
+            arbitrary + 8,
+            arbitrary + 9,
+            dependency("nsubj"),
+            4,
+            None,
+            4,
+            11,
+        ),
+        _token(
+            3,
+            arbitrary + 10,
+            lemma("must"),
+            arbitrary + 11,
+            arbitrary + 12,
+            dependency("aux"),
+            4,
+            None,
+            12,
+            16,
+        ),
+        _token(
+            4,
+            arbitrary + 13,
+            arbitrary + 14,
+            arbitrary + 15,
+            arbitrary + 16,
+            arbitrary + 17,
+            4,
+            None,
+            17,
+            23,
+        ),
+        _token(
+            5,
+            arbitrary + 18,
+            arbitrary + 19,
+            arbitrary + 20,
+            arbitrary + 21,
+            arbitrary + 22,
+            6,
+            None,
+            24,
+            27,
+        ),
+        _token(
+            6,
+            arbitrary + 23,
+            arbitrary + 24,
+            arbitrary + 25,
+            arbitrary + 26,
+            dependency("obj"),
+            4,
+            None,
+            28,
+            34,
+        ),
+    )
+
+    closure = compose_numeric_sentence(
+        region_id=91,
+        tokens=tokens,
+        lexicon=lexicon,
+    )
+
+    assert len(closure.factors) == 1
+    factor = closure.factors[0]
+    assert (
+        factor.factor_type_symbol_id
+        == symbols[(SymbolKind.FACTOR_TYPE, "semantic.normative_relation")]
+    )
+    assert (
+        factor.predicate_symbol_id
+        == symbols[(SymbolKind.PREDICATE, "normative.obligation")]
+    )
+    assert {slot.source_token_id for slot in factor.slots} == {2, 4, 6}
+    assert closure.demands
+    assert all(
+        demand.expected_target_kind is TargetKind.FACTOR for demand in closure.demands
+    )
+    assert not _contains_text(asdict(closure))

@@ -1,0 +1,47 @@
+name: JSON sin-bin delta guard
+
+on:
+  pull_request:
+    paths:
+      - "**/*.py"
+      - "**/*.sql"
+      - "**/*.sh"
+      - "**/*.bash"
+      - "**/*.yml"
+      - "**/*.yaml"
+      - "**/*.toml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  no-new-json:
+    runs-on: self-hosted
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Record exact head and base
+        run: |
+          git rev-parse HEAD
+          git rev-parse 'origin/${{ github.base_ref }}'
+      - name: Reject new JSON findings
+        run: |
+          uv run python scripts/check_new_json_findings.py \
+            --base-ref 'origin/${{ github.base_ref }}'
+      - name: Enforce zero authority findings
+        run: |
+          mkdir -p .tmp/json-sin-bin
+          uv run python scripts/audit_json_sin_bin.py \
+            --write .tmp/json-sin-bin/JSON_SIN_BIN.md \
+            --check-authority
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: JSON-SIN-BIN-DELTA
+          path: .tmp/json-sin-bin/JSON_SIN_BIN.md
+          if-no-files-found: error

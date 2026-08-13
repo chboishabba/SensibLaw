@@ -1,89 +1,98 @@
-"""Reference-backed receipt serialization without document-sized copies."""
+"""Reference-backed receipt persistence without text serialization.
+
+Specs, compact receipts, reports, and family rows use framed protocol-5 binary
+artifacts. Semantic identity is computed from typed canonical bytes, while raw
+artifact bytes receive an independent SHA-256 so readers can verify them before
+decode. The artifact codec is only a bounded local handoff between processes.
+"""
 
 from __future__ import annotations
 
 from hashlib import sha256
-import json
 import os
 from pathlib import Path
+import pickle
 import subprocess
 import sys
 from typing import Any, Iterable, Mapping
 
-from src.pnf.streaming_build_reader import family_descriptor
+from src.pnf.streaming_build_reader import (
+    BINARY_FAMILY_ENCODING,
+    family_descriptor,
+)
+from src.policy.carriers.canonical import canonical_bytes
 from src.runtime.execution_resource_ledger import sample_process_resources
 
 
-REFERENCE_RECEIPT_SCHEMA_VERSION = "sensiblaw.reference-receipt.v1"
-SERIALIZER_REPORT_SCHEMA_VERSION = "sensiblaw.reference-serializer-report.v1"
+REFERENCE_RECEIPT_SCHEMA_VERSION = "sensiblaw.reference-receipt.v3"
+SERIALIZER_REPORT_SCHEMA_VERSION = "sensiblaw.reference-serializer-report.v3"
+BINARY_RECEIPT_ENCODING = "python-pickle:5+sha256+itir-typed-digest:v1"
 
 
-def atomic_stream_json(path: str | Path, payload: Mapping[str, Any]) -> int:
-    """Write one JSON mapping without first creating its complete encoded string."""
-
+def atomic_write_binary(path: str | Path, payload: Mapping[str, Any]) -> int:
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary = target.with_suffix(target.suffix + ".tmp")
-    encoder = json.JSONEncoder(
-        ensure_ascii=False,
-        indent=2,
-        sort_keys=True,
-    )
-    written = 0
-    with temporary.open("w", encoding="utf-8") as handle:
-        for chunk in encoder.iterencode(dict(payload)):
-            handle.write(chunk)
-            written += len(chunk.encode("utf-8"))
-        handle.write("\n")
-        written += 1
+    encoded = pickle.dumps(dict(payload), protocol=5)
+    with temporary.open("wb") as handle:
+        handle.write(encoded)
         handle.flush()
         os.fsync(handle.fileno())
     temporary.replace(target)
-    return written
+    return len(encoded)
 
 
-def stream_jsonl_family(
+def stream_binary_family(
     path: str | Path,
     *,
     family: str,
     rows: Iterable[Mapping[str, Any]],
     manifest_ref: str | None = None,
 ) -> dict[str, Any]:
-    """Write canonical rows incrementally and return a verified descriptor."""
-
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary = target.with_suffix(target.suffix + ".tmp")
-    digest = sha256()
+    semantic_digest = sha256()
+    artifact_digest = sha256()
     count = 0
-    byte_count = 0
+    semantic_byte_count = 0
+    artifact_byte_count = 0
     with temporary.open("wb") as handle:
         for row in rows:
-            encoded = (
-                json.dumps(
-                    dict(row),
-                    ensure_ascii=False,
-                    sort_keys=True,
-                    separators=(",", ":"),
-                ).encode("utf-8")
-                + b"\n"
-            )
-            handle.write(encoded)
-            digest.update(encoded)
-            byte_count += len(encoded)
+            value = dict(row)
+            encoded = pickle.dumps(value, protocol=5)
+            frame = len(encoded).to_bytes(8, "big") + encoded
+            handle.write(frame)
+            artifact_digest.update(frame)
+            artifact_byte_count += len(frame)
+
+            semantic = canonical_bytes(value)
+            semantic_frame = len(semantic).to_bytes(8, "big") + semantic
+            semantic_digest.update(semantic_frame)
+            semantic_byte_count += len(semantic_frame)
             count += 1
         handle.flush()
         os.fsync(handle.fileno())
     temporary.replace(target)
     return family_descriptor(
         family=family,
-        storage_kind="jsonl",
+        storage_kind="binary",
         record_count=count,
-        byte_count=byte_count,
-        ordered_digest=digest.hexdigest(),
+        byte_count=semantic_byte_count,
+        artifact_byte_count=artifact_byte_count,
+        artifact_digest=artifact_digest.hexdigest(),
+        ordered_digest=semantic_digest.hexdigest(),
         path=str(target),
         manifest_ref=manifest_ref,
+        encoding_ref=BINARY_FAMILY_ENCODING,
     )
+
+
+def _load_binary_mapping(path: str | Path) -> dict[str, Any]:
+    value = pickle.loads(Path(path).read_bytes())
+    if not isinstance(value, Mapping):
+        raise ValueError(f"binary receipt artifact is not a mapping: {path}")
+    return dict(value)
 
 
 def serialize_reference_receipt(
@@ -92,21 +101,19 @@ def serialize_reference_receipt(
     output_path: str | Path,
     report_path: str | Path,
 ) -> dict[str, Any]:
-    """Serialize a compact spec in a fresh process and report its own peak view."""
-
     before = sample_process_resources()
-    spec = json.loads(Path(spec_path).read_text(encoding="utf-8"))
-    if not isinstance(spec, Mapping):
-        raise ValueError("reference receipt spec must be a mapping")
+    spec = _load_binary_mapping(spec_path)
     payload = {
         "schema_version": REFERENCE_RECEIPT_SCHEMA_VERSION,
-        **dict(spec),
+        "encoding_ref": BINARY_RECEIPT_ENCODING,
+        **spec,
     }
-    bytes_written = atomic_stream_json(output_path, payload)
+    bytes_written = atomic_write_binary(output_path, payload)
     after = sample_process_resources()
     report = {
         "schema_version": SERIALIZER_REPORT_SCHEMA_VERSION,
         "state": "completed",
+        "encoding_ref": BINARY_RECEIPT_ENCODING,
         "spec_path": str(Path(spec_path)),
         "output_path": str(Path(output_path)),
         "bytes_written": bytes_written,
@@ -117,8 +124,9 @@ def serialize_reference_receipt(
         ),
         "received_owner_object": False,
         "reference_only": True,
+        "text_serialization": False,
     }
-    atomic_stream_json(report_path, report)
+    atomic_write_binary(report_path, report)
     return report
 
 
@@ -130,8 +138,6 @@ def run_isolated_reference_serializer(
     hard_pss_bytes: int,
     python_executable: str | None = None,
 ) -> dict[str, Any]:
-    """Launch a clean serializer process receiving paths and refs only."""
-
     command = [
         python_executable or sys.executable,
         "-m",
@@ -148,9 +154,7 @@ def run_isolated_reference_serializer(
         raise RuntimeError(
             f"reference receipt serializer failed with {completed.returncode}"
         )
-    report = json.loads(Path(report_path).read_text(encoding="utf-8"))
-    if not isinstance(report, Mapping):
-        raise ValueError("serializer report must be a mapping")
+    report = _load_binary_mapping(report_path)
     observed = max(
         int((report.get("before") or {}).get("pss_bytes") or 0),
         int((report.get("after") or {}).get("pss_bytes") or 0),
@@ -159,7 +163,7 @@ def run_isolated_reference_serializer(
         raise MemoryError(
             f"isolated serializer PSS {observed} exceeded {hard_pss_bytes}"
         )
-    return dict(report)
+    return report
 
 
 def _main() -> int:
@@ -183,10 +187,11 @@ if __name__ == "__main__":
 
 
 __all__ = [
+    "BINARY_RECEIPT_ENCODING",
     "REFERENCE_RECEIPT_SCHEMA_VERSION",
     "SERIALIZER_REPORT_SCHEMA_VERSION",
-    "atomic_stream_json",
+    "atomic_write_binary",
     "run_isolated_reference_serializer",
     "serialize_reference_receipt",
-    "stream_jsonl_family",
+    "stream_binary_family",
 ]

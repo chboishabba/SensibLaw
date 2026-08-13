@@ -168,6 +168,11 @@ def _parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--strict-exact",
+        action="store_true",
+        help="Record the PostgreSQL leased strict execution strategy for this run.",
+    )
+    parser.add_argument(
         "--ledger-root",
         type=Path,
         help="Persist exact-0008 execution ledgers and reports below this directory.",
@@ -653,6 +658,11 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
             "worker_budget": args.worker_budget,
             "database_url": args.database_url,
             "resource_ledger": resource_ledger,
+            "execution_strategy_ref": (
+                "postgresql-leased-exact-execution:v1"
+                if args.strict_exact
+                else "local-compatibility-replay"
+            ),
         }
         if args.calibration:
             # ``PostgresCompilerStore.transaction`` nests as savepoints under

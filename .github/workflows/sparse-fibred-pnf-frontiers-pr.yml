@@ -1,0 +1,176 @@
+name: Sparse fibred PNF frontiers
+
+on:
+  pull_request:
+    paths:
+      - "database/postgres_migrations/062_sparse_fibred_pnf_frontiers.sql"
+      - "database/postgres_migrations/062_demand_planner_performance.sql"
+      - "database/postgres_migrations/063_sparse_actor_profile_null_normalisation.sql"
+      - "database/postgres_migrations/064_anaphor_surface_lexical_evidence.sql"
+      - "database/postgres_migrations/065_actor_profile_dimension_integrity.sql"
+      - "database/postgres_migrations/066_standalone_actor_profiles.sql"
+      - "database/postgres_migrations/067_typed_frontier_candidate_constraints.sql"
+      - "database/postgres_migrations/068_complete_frontier_reduction_and_batch_indexes.sql"
+      - "database/postgres_migrations/069_proof_relevant_identity_fibres.sql"
+      - "database/postgres_migrations/070_proof_relevant_factor_derivations.sql"
+      - "database/postgres_migrations/071_sparse_root_derivation_publication.sql"
+      - "database/postgres_migrations/072_retractable_identity_and_external_alignment.sql"
+      - "database/postgres_migrations/073_external_identity_ref_and_retraction.sql"
+      - "database/postgres_migrations/074_identity_admission_integrity.sql"
+      - "database/postgres_migrations/075_reference_mode_outcomes.sql"
+      - "src/storage/postgres/epistemic_factor_report.py"
+      - "scripts/report_numeric_pnf_frontier.py"
+      - "scripts/generate_entity_factor_report.py"
+      - "scripts/generate_reagan_factor_report.py"
+      - "tests/storage/test_sparse_fibred_frontier_migration.py"
+      - "tests/storage/test_sparse_actor_profile_integrity_migration.py"
+      - "tests/storage/test_sparse_frontier_constraint_migrations.py"
+      - "tests/storage/test_sparse_frontier_batch_migration.py"
+      - "tests/storage/test_sparse_fibred_frontier_postgres.py"
+      - "tests/storage/test_sparse_fibred_frontier_resolution.py"
+      - "tests/storage/test_typed_frontier_candidate_constraints.py"
+      - "tests/storage/test_proof_relevant_identity_derivations.py"
+      - "tests/storage/test_proof_relevant_identity_postgres.py"
+      - "tests/storage/test_proof_relevant_identity_acceptance.py"
+      - "tests/storage/test_reference_mode_outcomes.py"
+      - "tests/storage/test_epistemic_factor_report.py"
+      - "docs/architecture/SPARSE_FIBRED_PNF_FRONTIERS.md"
+      - "docs/architecture/SPARSE_FRONTIER_BATCH_OPTIMISATIONS.md"
+      - "docs/architecture/PROOF_RELEVANT_IDENTITY_AND_DERIVATIONS.md"
+      - ".github/workflows/sparse-fibred-pnf-frontiers-pr.yml"
+  push:
+    branches:
+      - "agent/repair-corpus-progress-stage-lifecycle"
+    paths:
+      - "database/postgres_migrations/062_sparse_fibred_pnf_frontiers.sql"
+      - "database/postgres_migrations/062_demand_planner_performance.sql"
+      - "database/postgres_migrations/063_sparse_actor_profile_null_normalisation.sql"
+      - "database/postgres_migrations/064_anaphor_surface_lexical_evidence.sql"
+      - "database/postgres_migrations/065_actor_profile_dimension_integrity.sql"
+      - "database/postgres_migrations/066_standalone_actor_profiles.sql"
+      - "database/postgres_migrations/067_typed_frontier_candidate_constraints.sql"
+      - "database/postgres_migrations/068_complete_frontier_reduction_and_batch_indexes.sql"
+      - "database/postgres_migrations/069_proof_relevant_identity_fibres.sql"
+      - "database/postgres_migrations/070_proof_relevant_factor_derivations.sql"
+      - "database/postgres_migrations/071_sparse_root_derivation_publication.sql"
+      - "database/postgres_migrations/072_retractable_identity_and_external_alignment.sql"
+      - "database/postgres_migrations/073_external_identity_ref_and_retraction.sql"
+      - "database/postgres_migrations/074_identity_admission_integrity.sql"
+      - "database/postgres_migrations/075_reference_mode_outcomes.sql"
+      - "src/storage/postgres/epistemic_factor_report.py"
+      - "scripts/report_numeric_pnf_frontier.py"
+      - "scripts/generate_entity_factor_report.py"
+      - "scripts/generate_reagan_factor_report.py"
+      - "tests/storage/test_sparse_fibred_frontier_migration.py"
+      - "tests/storage/test_sparse_actor_profile_integrity_migration.py"
+      - "tests/storage/test_sparse_frontier_constraint_migrations.py"
+      - "tests/storage/test_sparse_frontier_batch_migration.py"
+      - "tests/storage/test_sparse_fibred_frontier_postgres.py"
+      - "tests/storage/test_sparse_fibred_frontier_resolution.py"
+      - "tests/storage/test_typed_frontier_candidate_constraints.py"
+      - "tests/storage/test_proof_relevant_identity_derivations.py"
+      - "tests/storage/test_proof_relevant_identity_postgres.py"
+      - "tests/storage/test_proof_relevant_identity_acceptance.py"
+      - "tests/storage/test_reference_mode_outcomes.py"
+      - "tests/storage/test_epistemic_factor_report.py"
+      - "docs/architecture/SPARSE_FIBRED_PNF_FRONTIERS.md"
+      - "docs/architecture/SPARSE_FRONTIER_BATCH_OPTIMISATIONS.md"
+      - "docs/architecture/PROOF_RELEVANT_IDENTITY_AND_DERIVATIONS.md"
+      - ".github/workflows/sparse-fibred-pnf-frontiers-pr.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sensiblaw_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sensiblaw_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/sensiblaw_test
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install
+        run: uv sync --frozen
+
+      - name: Compile
+        run: |
+          uv run python -m py_compile \
+            src/storage/postgres/epistemic_factor_report.py \
+            scripts/report_numeric_pnf_frontier.py \
+            scripts/generate_entity_factor_report.py \
+            scripts/generate_reagan_factor_report.py \
+            tests/storage/test_sparse_fibred_frontier_migration.py \
+            tests/storage/test_sparse_actor_profile_integrity_migration.py \
+            tests/storage/test_sparse_frontier_constraint_migrations.py \
+            tests/storage/test_sparse_frontier_batch_migration.py \
+            tests/storage/test_sparse_fibred_frontier_postgres.py \
+            tests/storage/test_sparse_fibred_frontier_resolution.py \
+            tests/storage/test_typed_frontier_candidate_constraints.py \
+            tests/storage/test_proof_relevant_identity_derivations.py \
+            tests/storage/test_proof_relevant_identity_postgres.py \
+            tests/storage/test_proof_relevant_identity_acceptance.py \
+            tests/storage/test_reference_mode_outcomes.py \
+            tests/storage/test_epistemic_factor_report.py
+
+      - name: Ruff
+        run: |
+          uv run ruff check \
+            src/storage/postgres/epistemic_factor_report.py \
+            scripts/report_numeric_pnf_frontier.py \
+            scripts/generate_entity_factor_report.py \
+            scripts/generate_reagan_factor_report.py \
+            tests/storage/test_sparse_fibred_frontier_migration.py \
+            tests/storage/test_sparse_actor_profile_integrity_migration.py \
+            tests/storage/test_sparse_frontier_constraint_migrations.py \
+            tests/storage/test_sparse_frontier_batch_migration.py \
+            tests/storage/test_sparse_fibred_frontier_postgres.py \
+            tests/storage/test_sparse_fibred_frontier_resolution.py \
+            tests/storage/test_typed_frontier_candidate_constraints.py \
+            tests/storage/test_proof_relevant_identity_derivations.py \
+            tests/storage/test_proof_relevant_identity_postgres.py \
+            tests/storage/test_proof_relevant_identity_acceptance.py \
+            tests/storage/test_reference_mode_outcomes.py \
+            tests/storage/test_epistemic_factor_report.py
+
+      - name: Static frontier tests
+        run: |
+          uv run pytest -q \
+            tests/storage/test_sparse_fibred_frontier_migration.py \
+            tests/storage/test_sparse_actor_profile_integrity_migration.py \
+            tests/storage/test_sparse_frontier_constraint_migrations.py \
+            tests/storage/test_sparse_frontier_batch_migration.py \
+            tests/storage/test_proof_relevant_identity_derivations.py \
+            tests/storage/test_reference_mode_outcomes.py \
+            tests/storage/test_epistemic_factor_report.py
+
+      - name: Apply migrations
+        run: bash scripts/apply_pg_migrations.sh
+
+      - name: PostgreSQL frontier tests
+        run: |
+          uv run pytest -q \
+            tests/storage/test_sparse_fibred_frontier_postgres.py \
+            tests/storage/test_sparse_fibred_frontier_resolution.py \
+            tests/storage/test_typed_frontier_candidate_constraints.py \
+            tests/storage/test_proof_relevant_identity_postgres.py \
+            tests/storage/test_proof_relevant_identity_acceptance.py

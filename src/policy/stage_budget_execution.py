@@ -1,4 +1,4 @@
-"""Install proactive stage budgets on the existing semantic telemetry seam."""
+"""Install proactive stage budgets on the semantic telemetry seam."""
 
 from __future__ import annotations
 
@@ -11,18 +11,43 @@ _INSTALL_MARKER = "_stage_budget_execution_installed"
 
 
 def install_stage_budget_execution() -> bool:
-    """Turn every semantic kernel sample into a durable budget observation.
-
-    Semantic samples are required to resolve to an explicit stage family. A new
-    kernel label therefore cannot silently degrade to ``unbudgeted`` telemetry
-    during an exact-document run.  Executable kernel contracts are installed
-    immediately afterwards so they consume this authoritative budget receipt.
-    """
+    """Install typed durability and require explicit semantic budget families."""
 
     from src.policy import parallel_semantic_execution as semantic
+    from src.policy.binary_family_integrity_execution import (
+        install_binary_family_integrity_execution,
+    )
+    from src.policy.durable_work_item_execution import (
+        install_durable_work_item_execution,
+    )
+    from src.policy.no_json_checkpoint_execution import (
+        install_no_json_checkpoint_execution,
+    )
+    from src.policy.streaming_spacy_parser_execution import (
+        install_streaming_spacy_parser_execution,
+    )
+    from src.policy.typed_execution_callback_views import (
+        install_typed_execution_callback_views,
+    )
+    from src.storage.postgres.deterministic_admission_execution import (
+        install_deterministic_admission_execution,
+    )
+    from src.storage.postgres.typed_execution_pool import (
+        install_typed_execution_pool,
+    )
 
     if getattr(semantic, _INSTALL_MARKER, False):
         return False
+    # These policies wrap physical execution only. Binary format enforcement,
+    # streamed parser authority, pre-decode integrity, concurrent typed staging,
+    # canonical admission, and callback views precede the first replay.
+    install_no_json_checkpoint_execution()
+    install_streaming_spacy_parser_execution()
+    install_binary_family_integrity_execution()
+    install_typed_execution_pool()
+    install_deterministic_admission_execution()
+    install_typed_execution_callback_views()
+    install_durable_work_item_execution()
     original = semantic.SemanticExecutionContext.sample
 
     def sample_wrapper(
@@ -67,12 +92,6 @@ def install_stage_budget_execution() -> bool:
     semantic.SemanticExecutionContext.sample = sample_wrapper
     semantic._unbudgeted_semantic_sample = original
     setattr(semantic, _INSTALL_MARKER, True)
-
-    from src.policy.execution_kernel_contracts_execution import (
-        install_execution_kernel_contracts,
-    )
-
-    install_execution_kernel_contracts()
     return True
 
 

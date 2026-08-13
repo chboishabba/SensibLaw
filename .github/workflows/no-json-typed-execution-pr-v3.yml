@@ -1,0 +1,258 @@
+name: No-JSON typed execution PR validation v3
+
+on:
+  pull_request:
+    paths:
+      - "database/postgres_migrations/03[2-9]_*.sql"
+      - "scripts/audit_json_sin_bin.py"
+      - "scripts/check_new_json_findings.py"
+      - "scripts/run_durable_coordinator_kill_probe.py"
+      - "scripts/run_post_closure_probe.py"
+      - "scripts/run_typed_staging_kill_probe_v2.py"
+      - "scripts/run_typed_worker_parent_death_probe.py"
+      - "src/pnf/streaming_build_reader.py"
+      - "src/policy/binary_family_integrity_execution.py"
+      - "src/policy/carriers/canonical.py"
+      - "src/policy/no_json_checkpoint_execution.py"
+      - "src/policy/reference_backed_finalization.py"
+      - "src/policy/stage_budget_execution.py"
+      - "src/policy/typed_execution_callback_views.py"
+      - "src/runtime/durable_*.py"
+      - "src/runtime/reference_receipt.py"
+      - "src/runtime/strict_postgres_execution.py"
+      - "src/storage/postgres/deterministic_admission_execution.py"
+      - "src/storage/postgres/distributed_semantic_execution.py"
+      - "src/storage/postgres/typed_execution_pool.py"
+      - "src/storage/postgres/typed_process_supervision.py"
+      - "src/storage/postgres/typed_value_store.py"
+      - "tests/architecture/test_no_json_execution_authority.py"
+      - "tests/pnf/test_streaming_build_reader.py"
+      - "tests/policy/test_typed_*.py"
+      - "tests/runtime/test_durable_*.py"
+      - "tests/runtime/test_reference_receipt.py"
+      - "tests/runtime/test_strict_postgres_two_round_probe.py"
+      - "tests/storage/test_durable_work_item_migration.py"
+      - "tests/storage/test_strict_replay_identity.py"
+      - "tests/storage/test_typed_*.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: no-json-typed-execution-v3-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static:
+    runs-on: self-hosted
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Record exact head and base
+        run: |
+          git rev-parse HEAD
+          git rev-parse 'origin/${{ github.base_ref }}'
+      - name: Compile typed execution surfaces
+        run: |
+          uv run python -m compileall -q \
+            src/pnf/streaming_build_reader.py \
+            src/policy/binary_family_integrity_execution.py \
+            src/policy/carriers/canonical.py \
+            src/policy/no_json_checkpoint_execution.py \
+            src/policy/reference_backed_finalization.py \
+            src/policy/stage_budget_execution.py \
+            src/policy/typed_execution_callback_views.py \
+            src/runtime/durable_stage_state.py \
+            src/runtime/durable_work_item_hardening.py \
+            src/runtime/durable_work_items.py \
+            src/runtime/reference_receipt.py \
+            src/runtime/strict_postgres_execution.py \
+            src/storage/postgres/deterministic_admission_execution.py \
+            src/storage/postgres/distributed_semantic_execution.py \
+            src/storage/postgres/typed_execution_pool.py \
+            src/storage/postgres/typed_process_supervision.py \
+            src/storage/postgres/typed_value_store.py \
+            scripts/audit_json_sin_bin.py \
+            scripts/check_new_json_findings.py \
+            scripts/run_durable_coordinator_kill_probe.py \
+            scripts/run_post_closure_probe.py \
+            scripts/run_typed_staging_kill_probe_v2.py \
+            scripts/run_typed_worker_parent_death_probe.py
+      - name: Ruff lint and format
+        run: |
+          files=(
+            src/pnf/streaming_build_reader.py
+            src/policy/binary_family_integrity_execution.py
+            src/policy/carriers/canonical.py
+            src/policy/no_json_checkpoint_execution.py
+            src/policy/reference_backed_finalization.py
+            src/policy/stage_budget_execution.py
+            src/policy/typed_execution_callback_views.py
+            src/runtime/durable_stage_state.py
+            src/runtime/durable_work_item_hardening.py
+            src/runtime/durable_work_items.py
+            src/runtime/reference_receipt.py
+            src/runtime/strict_postgres_execution.py
+            src/storage/postgres/deterministic_admission_execution.py
+            src/storage/postgres/distributed_semantic_execution.py
+            src/storage/postgres/typed_execution_pool.py
+            src/storage/postgres/typed_process_supervision.py
+            src/storage/postgres/typed_value_store.py
+            scripts/audit_json_sin_bin.py
+            scripts/check_new_json_findings.py
+            scripts/run_durable_coordinator_kill_probe.py
+            scripts/run_post_closure_probe.py
+            scripts/run_typed_staging_kill_probe_v2.py
+            scripts/run_typed_worker_parent_death_probe.py
+            tests/architecture/test_no_json_execution_authority.py
+            tests/pnf/test_streaming_build_reader.py
+            tests/policy/test_typed_canonical_identity.py
+            tests/policy/test_typed_execution_callback_views.py
+            tests/runtime/test_durable_stage_cursor.py
+            tests/runtime/test_durable_work_item_hardening.py
+            tests/runtime/test_durable_work_items.py
+            tests/runtime/test_reference_receipt.py
+            tests/runtime/test_strict_postgres_two_round_probe.py
+            tests/storage/test_durable_work_item_migration.py
+            tests/storage/test_strict_replay_identity.py
+            tests/storage/test_typed_deterministic_admission.py
+            tests/storage/test_typed_value_store.py
+          )
+          uv run ruff check "${files[@]}"
+          uv run ruff format --check "${files[@]}"
+      - name: Reject new JSON and enforce authority
+        run: |
+          mkdir -p .tmp/no-json-audit
+          uv run python scripts/check_new_json_findings.py \
+            --base-ref 'origin/${{ github.base_ref }}'
+          uv run python scripts/audit_json_sin_bin.py \
+            --write .tmp/no-json-audit/JSON_SIN_BIN.md \
+            --check-authority
+          sed -n '1,140p' .tmp/no-json-audit/JSON_SIN_BIN.md
+      - name: Focused unit tests
+        run: |
+          uv run pytest -q \
+            tests/architecture/test_no_json_execution_authority.py \
+            tests/pnf/test_streaming_build_reader.py \
+            tests/policy/test_typed_canonical_identity.py \
+            tests/policy/test_typed_execution_callback_views.py \
+            tests/runtime/test_durable_stage_cursor.py \
+            tests/runtime/test_durable_work_item_hardening.py \
+            tests/runtime/test_durable_work_items.py \
+            tests/runtime/test_reference_receipt.py \
+            tests/storage/test_durable_work_item_migration.py \
+            tests/storage/test_strict_replay_identity.py \
+            tests/storage/test_typed_deterministic_admission.py \
+            tests/storage/test_typed_value_store.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: JSON-SIN-BIN-v3
+          path: .tmp/no-json-audit/JSON_SIN_BIN.md
+          if-no-files-found: error
+
+  postgres:
+    needs: static
+    runs-on: self-hosted
+    timeout-minutes: 40
+    env:
+      SENSIBLAW_LOCAL_POSTGRES_URL: postgresql://postgres@127.0.0.1:5433/postgres
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Provision isolated database
+        id: database
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(uv run python - <<'PY'
+          import os
+          from pathlib import Path
+          from src.runtime.postgres_provisioning import provision_local_postgres
+          ref = 'nojson-v3-{}-{}'.format(os.environ['GITHUB_RUN_ID'], os.environ['GITHUB_RUN_ATTEMPT'])
+          url, name = provision_local_postgres(
+              admin_url=os.environ['SENSIBLAW_LOCAL_POSTGRES_URL'],
+              migration_root=Path('database/postgres_migrations'),
+              run_ref=ref,
+          )
+          print(url)
+          print(name)
+          PY
+          )"
+          printf 'database_url=%s\n' "$(printf '%s\n' "$output" | sed -n '1p')" >> "$GITHUB_OUTPUT"
+          printf 'database_name=%s\n' "$(printf '%s\n' "$output" | sed -n '2p')" >> "$GITHUB_OUTPUT"
+      - name: Typed closure and canonical admission probes
+        env:
+          DATABASE_URL: ${{ steps.database.outputs.database_url }}
+        run: uv run pytest -q tests/runtime/test_strict_postgres_two_round_probe.py
+      - name: Durable work-item coordinator kill and resume
+        run: |
+          rm -rf .tmp/no-json-work-kill
+          uv run python scripts/run_durable_coordinator_kill_probe.py \
+            --database-url '${{ steps.database.outputs.database_url }}' \
+            --artifact-root .tmp/no-json-work-kill \
+            --run-ref 'nojson-v3-work-kill:${{ github.run_id }}:${{ github.run_attempt }}' \
+            --workers 4 --work-items 12 --fast-items 4 --lease-seconds 2
+      - name: Active typed worker parent-death probe
+        run: |
+          rm -rf .tmp/no-json-worker-death
+          uv run python scripts/run_typed_worker_parent_death_probe.py \
+            --database-url '${{ steps.database.outputs.database_url }}' \
+            --artifact-root .tmp/no-json-worker-death \
+            --run-ref 'nojson-v3-worker-death:${{ github.run_id }}:${{ github.run_attempt }}' \
+            --workers 4 --work-items 8
+      - name: Staged-result coordinator kill probe
+        run: |
+          rm -rf .tmp/no-json-stage-kill
+          uv run python scripts/run_typed_staging_kill_probe_v2.py \
+            --database-url '${{ steps.database.outputs.database_url }}' \
+            --artifact-root .tmp/no-json-stage-kill \
+            --run-ref 'nojson-v3-stage-kill:${{ github.run_id }}:${{ github.run_attempt }}' \
+            --workers 4 --work-items 8
+      - name: Verify binary probe reports
+        run: |
+          uv run python - <<'PY'
+          import pickle
+          from pathlib import Path
+          checks = (
+              (Path('.tmp/no-json-work-kill/coordinator-kill-probe-report.pkl'), 'recomputed_completed_work'),
+              (Path('.tmp/no-json-worker-death/typed-worker-parent-death-report.pkl'), 'recomputed_completed_work'),
+              (Path('.tmp/no-json-stage-kill/typed-staging-kill-report.pkl'), 'recomputed_staged_work'),
+          )
+          for path, recompute_key in checks:
+              row = pickle.loads(path.read_bytes())
+              assert row['state'] == 'passed', (path, row)
+              assert row[recompute_key] == 0, (path, row)
+              assert row['orphan_worker_count'] == 0, (path, row)
+              assert row['text_serialization'] is False, (path, row)
+          PY
+      - name: Assert typed authority and events
+        run: |
+          psql '${{ steps.database.outputs.database_url }}' -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          BEGIN
+            IF EXISTS (SELECT 1 FROM execution.semantic_closure_job WHERE input_manifest IS NOT NULL) THEN RAISE EXCEPTION 'closure JSON authority'; END IF;
+            IF EXISTS (SELECT 1 FROM execution.semantic_immutable_delta WHERE payload IS NOT NULL) THEN RAISE EXCEPTION 'delta JSON authority'; END IF;
+            IF EXISTS (SELECT 1 FROM execution.semantic_round_manifest WHERE manifest IS NOT NULL) THEN RAISE EXCEPTION 'round JSON authority'; END IF;
+            IF EXISTS (SELECT 1 FROM execution.semantic_work_item WHERE input_manifest IS NOT NULL) THEN RAISE EXCEPTION 'work JSON authority'; END IF;
+            IF EXISTS (SELECT 1 FROM execution.semantic_work_receipt WHERE payload IS NOT NULL) THEN RAISE EXCEPTION 'receipt JSON authority'; END IF;
+            IF EXISTS (SELECT 1 FROM execution.semantic_stage_cursor WHERE cursor_manifest IS NOT NULL) THEN RAISE EXCEPTION 'cursor JSON authority'; END IF;
+            IF EXISTS (SELECT 1 FROM execution.semantic_outbox WHERE payload IS NOT NULL) THEN RAISE EXCEPTION 'outbox JSON authority'; END IF;
+          END;
+          $$;
+          SELECT event_type_ref, count(*)
+          FROM execution.semantic_outbox
+          GROUP BY event_type_ref
+          ORDER BY event_type_ref;
+          SQL
+      - name: Drop isolated database
+        if: always() && steps.database.outputs.database_name != ''
+        run: |
+          dropdb --if-exists --host=127.0.0.1 --port=5433 --username=postgres '${{ steps.database.outputs.database_name }}'

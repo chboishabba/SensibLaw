@@ -30,12 +30,12 @@ from src.policy.corpus_compilation import CompilerContext, build_corpus_manifest
 from src.policy.operational_corpus_compilation import (
     OPERATIONAL_COMPILER_CONTRACT,
     DOCUMENT_COMPILE_STAGE_COUNT,
-    compile_document_operational,
 )
 from src.runtime.document_stage_metrics import stage_measure_declaration
 from src.runtime.active_document_resources import ActiveDocumentResourceGuard
 from src.runtime.execution_resource_ledger import ExecutionResourceLedger
 from src.runtime.progress import PhaseRecorder
+from src.runtime.strict_postgres_execution import StrictExecutionError
 from src.sensiblaw.interfaces.shared_reducer import tokenize_canonical_with_spans
 from src.storage.postgres import PersistedCompilation, PostgresCompilerStore
 from src.storage.postgres.binding_candidate_store import persist_binding_candidate_sets
@@ -274,6 +274,9 @@ def _compile_document_postgres_worker(
                     parser_overlap_chars=int(store_kwargs["parser_overlap_chars"]),
                     parser_checkpoint_dir=store_kwargs["parser_checkpoint_dir"],
                     progress=document_progress,
+                    execution_strategy_ref=str(store_kwargs.get("execution_strategy_ref") or "local-compatibility-replay"),
+                    database_url=database_url,
+                    strict_run_ref=str(store_kwargs.get("strict_run_ref") or f"strict:{document_ref}"),
                 )
             return {
                 "document_ref": document_ref,
@@ -285,6 +288,8 @@ def _compile_document_postgres_worker(
                 "elapsed_ms": max(0, (monotonic_ns() - started_ns) // 1_000_000),
             }
         except (OSError, UnicodeDecodeError, ValueError, RuntimeError) as error:
+            if str(store_kwargs.get("execution_strategy_ref") or "") == "postgresql-leased-exact-execution:v1" and isinstance(error, StrictExecutionError):
+                raise
             with store.transaction() as cursor:
                 failure_ref = store.persist_failure(
                     cursor,
@@ -734,6 +739,9 @@ def persist_document_compilation(
     parser_checkpoint_dir: str | None = None,
     progress: Any | None = None,
     resource_ledger: ExecutionResourceLedger | None = None,
+    execution_strategy_ref: str = "local-compatibility-replay",
+    database_url: str | None = None,
+    strict_run_ref: str | None = None,
 ) -> tuple[str, ...]:
     """Compile and persist one document transactionally.
 
@@ -844,6 +852,10 @@ def persist_document_compilation(
         with store.transaction() as cursor:
             store.persist_projection_partitions(cursor, partitions=partitions)
 
+    from src.policy.operational_corpus_compilation import (
+        compile_document_operational,
+    )
+
     compilation = compile_document_operational(
         {
             "document_ref": document_ref,
@@ -863,6 +875,9 @@ def persist_document_compilation(
         progress=progress,
         projection_partition_persistence=persist_partitions,
         resource_ledger=resource_ledger,
+        execution_strategy_ref=execution_strategy_ref,
+        database_url=database_url,
+        strict_run_ref=strict_run_ref or f"strict:{document_ref}",
     )
     descriptor_artifacts = dict(compilation.artifacts)
     artifacts = dict(descriptor_artifacts)
@@ -1407,6 +1422,7 @@ def compile_directory_postgres(
     state_path: str | Path | None = None,
     resume: bool = True,
     resource_ledger: ExecutionResourceLedger | None = None,
+    execution_strategy_ref: str = "local-compatibility-replay",
 ) -> PersistedCompilation:
     """Compile a bounded directory directly into PostgreSQL."""
 
@@ -1421,6 +1437,8 @@ def compile_directory_postgres(
         "legal_adjunct_demand_planning",
     }:
         raise ValueError("unsupported corpus compilation phase")
+    if not execution_strategy_ref:
+        raise ValueError("execution_strategy_ref is required")
     if closure_workers < 1:
         raise ValueError("closure_workers must be positive")
     if document_workers < 1:
@@ -1699,6 +1717,8 @@ def compile_directory_postgres(
                         "parser_target_chars": parser_target_chars,
                         "parser_overlap_chars": parser_overlap_chars,
                         "parser_checkpoint_dir": parser_checkpoint_dir,
+                        "execution_strategy_ref": execution_strategy_ref,
+                        "strict_run_ref": f"strict:{document_ref}",
                     }
                     future = executor.submit(
                         _compile_document_postgres_worker,
@@ -1939,6 +1959,9 @@ def compile_directory_postgres(
                             else None
                         ),
                         "progress": document_progress,
+                        "execution_strategy_ref": execution_strategy_ref,
+                        "database_url": database_url,
+                        "strict_run_ref": f"strict:{document_ref}",
                     }
                     if resource_ledger is not None and (
                         "resource_ledger"
@@ -1953,6 +1976,8 @@ def compile_directory_postgres(
                         executor_kwargs["resource_ledger"] = resource_ledger
                     refs = document_executor(**executor_kwargs)
             except (OSError, UnicodeDecodeError, ValueError, RuntimeError) as error:
+                if execution_strategy_ref == "postgresql-leased-exact-execution:v1" and isinstance(error, StrictExecutionError):
+                    raise
                 with store.transaction() as cursor:
                     failure_ref = store.persist_failure(
                         cursor,
@@ -2040,3 +2065,13 @@ def compile_directory_postgres(
 
 
 __all__ = ["compile_directory_postgres", "persist_document_compilation"]
+
+
+def __getattr__(name: str) -> Any:
+    if name == "compile_document_operational":
+        from src.policy.operational_corpus_compilation import (
+            compile_document_operational,
+        )
+
+        return compile_document_operational
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -24,6 +24,11 @@ from pathlib import Path
 from typing import Any, Mapping
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.runtime.strict_postgres_execution import strict_execution_metadata  # noqa: E402
+
 MIB = 1024 * 1024
 
 
@@ -34,6 +39,10 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--database-url", default=os.environ.get("DATABASE_URL"), required=False
+    )
+    parser.add_argument(
+        "--postgres-mode", choices=("local", "existing"), default="local",
+        help="Use a retained operator database (existing) or the configured local PostgreSQL endpoint (local).",
     )
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--acceptance-root", type=Path, required=True)
@@ -63,8 +72,15 @@ def _parse_args() -> argparse.Namespace:
             "transaction and emit a non-publishing calibration receipt."
         ),
     )
+    parser.add_argument(
+        "--strict-exact",
+        action="store_true",
+        help="Use the committed PostgreSQL leased execution contract; never local replay.",
+    )
     args = parser.parse_args()
-    if not args.database_url:
+    if args.postgres_mode == "existing" and not args.database_url:
+        parser.error("--database-url or DATABASE_URL is required")
+    if not args.strict_exact and not args.database_url:
         parser.error("--database-url or DATABASE_URL is required")
     if args.soft_memory_mib < 1:
         parser.error("--soft-memory-mib must be positive")
@@ -110,6 +126,36 @@ def _migration_hashes() -> dict[str, str]:
     for path in sorted(migration_root.glob("*.sql")):
         result[path.name] = hashlib.sha256(path.read_bytes()).hexdigest()
     return result
+
+
+def _authority_summary(database_url: str | None) -> dict[str, Any]:
+    """Read only the run-scoped control-plane evidence for the receipt."""
+
+    if not database_url:
+        return {"state": "missing", "failure_reason": "postgresql_authority_missing"}
+    try:
+        import psycopg
+
+        with psycopg.connect(database_url) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT current_database(), current_user")
+                identity = cursor.fetchone()
+                cursor.execute(
+                    "SELECT run_ref, document_ref, authority_backend, owner_revision, lifecycle, sealed FROM execution.semantic_run ORDER BY run_ref"
+                )
+                runs = [
+                    {
+                        "run_ref": str(row[0]), "document_ref": str(row[1]),
+                        "authority_backend": str(row[2]), "owner_revision": int(row[3]),
+                        "lifecycle": str(row[4]), "sealed": bool(row[5]),
+                    }
+                    for row in cursor.fetchall()
+                ]
+                cursor.execute("SELECT migration_name, content_sha256 FROM public.sensiblaw_schema_migration ORDER BY migration_name")
+                migrations = [{"name": str(row[0]), "sha256": str(row[1])} for row in cursor.fetchall()]
+        return {"state": "verified", "database": identity[0], "user": identity[1], "runs": runs, "migrations": migrations}
+    except Exception as error:
+        return {"state": "missing", "failure_reason": "postgresql_authority_missing", "diagnostic_path": str(error)}
 
 
 def _process_memory(pid: int) -> dict[str, int | None]:
@@ -263,6 +309,8 @@ def _command(args: argparse.Namespace) -> list[str]:
         command.append("--skip-legal-follow")
     if args.calibration:
         command.append("--calibration")
+    if args.strict_exact:
+        command.append("--strict-exact")
     return command
 
 
@@ -388,6 +436,19 @@ def _verify_explicit_publication(args: argparse.Namespace) -> dict[str, Any]:
 
 def main() -> int:
     args = _parse_args()
+    provisioning_error: str | None = None
+    if args.strict_exact and args.postgres_mode == "local" and args.database_url:
+        from src.runtime.postgres_provisioning import provision_local_postgres
+
+        try:
+            args.database_url, _database_name = provision_local_postgres(
+                admin_url=args.database_url,
+                migration_root=ROOT / "database" / "postgres_migrations",
+                run_ref=f"{args.tranche.lower()}-{args.acceptance_root.name}",
+            )
+        except Exception as error:
+            provisioning_error = str(error)
+            args.database_url = None
     acceptance_root = args.acceptance_root.resolve()
     acceptance_root.mkdir(parents=True, exist_ok=True)
     checkpoints = acceptance_root / "resource-checkpoints"
@@ -397,6 +458,22 @@ def main() -> int:
     rss_path = acceptance_root / "rss.jsonl"
     receipt_path = acceptance_root / "acceptance-receipt.json"
 
+    if args.strict_exact and not args.database_url:
+        receipt = {
+            "schema_version": "sl.strict_tranche_acceptance.v0_3",
+            "state": "failed",
+            "accepted": False,
+            "failure_reason": "postgresql_authority_missing",
+            "database_provisioning_mode": args.postgres_mode,
+            "diagnostic_path": "strict.connection",
+            "kernel_key": "strict.connection",
+            "diagnostic_detail": provisioning_error,
+            "execution": strict_execution_metadata(),
+        }
+        _atomic_json(receipt_path, receipt)
+        print(json.dumps(receipt, indent=2, sort_keys=True))
+        return 1
+
     environment = os.environ.copy()
     environment.update(
         {
@@ -405,6 +482,7 @@ def main() -> int:
             "SENSIBLAW_RESOURCE_CHECKPOINT_DIR": str(checkpoints),
             "SENSIBLAW_RESOURCE_CHECKPOINT_ALL": "1",
             "PYTHONUNBUFFERED": "1",
+            "SENSIBLAW_STRICT_EXACT": "1" if args.strict_exact else "0",
         }
     )
     if args.calibration:
@@ -436,11 +514,17 @@ def main() -> int:
     _atomic_json(
         receipt_path,
         {
-            "schema_version": "sl.strict_tranche_acceptance.v0_2",
+            "schema_version": "sl.strict_tranche_acceptance.v0_3",
             "state": "started",
             "accepted": False,
             "started_at": started_at,
             "command": command,
+            "execution": strict_execution_metadata() if args.strict_exact else {
+                "execution_strategy": "local-compatibility-replay",
+                "authority_backend": "postgresql",
+                "local_replay": "compatibility-only",
+            },
+            "database_provisioning_mode": args.postgres_mode,
         },
     )
     process: subprocess.Popen[bytes] | None = None
@@ -530,6 +614,14 @@ def main() -> int:
         failure_reason = f"acceptance harness received signal {terminal_signal}"
     elif returncode != 0:
         failure_reason = f"tranche runner exited with status {returncode}"
+        log_text = ""
+        for path in (stdout_path, stderr_path):
+            try:
+                log_text += path.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                pass
+        if "postgresql_authority_missing" in log_text:
+            failure_reason = "postgresql_authority_missing"
     elif observed_hard_breach:
         failure_reason = "observed process-tree RSS exceeded the hard limit"
     if observed_hard_breach and not checkpoint_files:
@@ -547,9 +639,13 @@ def main() -> int:
     if not args.calibration and publication["state"] == "not_verified":
         accepted = False
         failure_reason = "explicit input publication verification failed"
+    authority = _authority_summary(args.database_url) if args.strict_exact else {"state": "compatibility-only"}
+    if args.strict_exact and authority.get("state") != "verified" and failure_reason is None:
+        accepted = False
+        failure_reason = "postgresql_authority_missing"
 
     receipt = {
-        "schema_version": "sl.strict_tranche_acceptance.v0_2",
+        "schema_version": "sl.strict_tranche_acceptance.v0_3",
         "state": (
             "calibrated"
             if args.calibration and run_succeeded
@@ -561,6 +657,13 @@ def main() -> int:
         ),
         "accepted": accepted,
         "failure_reason": failure_reason,
+        "diagnostic_path": (
+            "strict.connection" if failure_reason == "postgresql_authority_missing" else None
+        ),
+        "kernel_key": (
+            "strict.connection" if failure_reason == "postgresql_authority_missing" else None
+        ),
+        "authority": authority,
         "started_at": started_at,
         "completed_at": datetime.now(UTC).isoformat(),
         "command": command,
@@ -582,6 +685,12 @@ def main() -> int:
             )
         },
         "database_url_redacted": args.database_url.split("@")[-1],
+        "database_provisioning_mode": args.postgres_mode,
+        "execution": strict_execution_metadata() if args.strict_exact else {
+            "execution_strategy": "local-compatibility-replay",
+            "authority_backend": "postgresql",
+            "local_replay": "compatibility-only",
+        },
         "explicit_input_paths": [
             {
                 "path": str(path.resolve()),
