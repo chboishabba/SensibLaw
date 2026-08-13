@@ -93,6 +93,9 @@
   witnesses untouched while deriving demand attribution only from explicit
   witness provenance, exact source-object equality, or exact shared parser-token
   representation support; accepted-use attribution still requires admission.
+- `116_external_request_digest_smallint_fix.sql` preserves the provider-request
+  digest layout while keeping nullable SMALLINT axis coordinates typed through
+  `COALESCE`.
 - `112_consumer_observed_world_axis_contract.sql` adds sparse consumer/query/policy
   contracts that declare which world coordinate can actually be observed and
   which numeric demand coordinates it applies to. Only the intersection with the

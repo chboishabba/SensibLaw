@@ -34,7 +34,7 @@ def test_compiler_intersects_only_current_h9_residual() -> None:
     assert "semantic_pnf_consumer_world_axis_contract_current_v1" in body
     assert "current_contract.active" in body
     assert "numeric_pnf_consumer_stop_at_horizon" in body
-    assert "selected_policy_ref,6" in body
+    assert "selected_policy_ref,6::smallint" in body
 
 
 def test_compiler_matches_numeric_demand_coordinates_not_text() -> None:

@@ -375,7 +375,7 @@ BEGIN
            AND region.document_id=selected_document_id
            AND NOT execution.numeric_pnf_consumer_stop_at_horizon(
                demand.demand_id,selected_consumer_ref,selected_query_ref,
-               selected_policy_ref,6
+               selected_policy_ref,6::smallint
            )
            AND (current_contract.expected_target_kind IS NULL
                 OR current_contract.expected_target_kind=demand.expected_target_kind)
@@ -427,7 +427,7 @@ BEGIN
            AND region.document_id=selected_document_id
            AND NOT execution.numeric_pnf_consumer_stop_at_horizon(
                demand.demand_id,selected_consumer_ref,selected_query_ref,
-               selected_policy_ref,6
+               selected_policy_ref,6::smallint
            )
            AND (current_contract.expected_target_kind IS NULL
                 OR current_contract.expected_target_kind=demand.expected_target_kind)
