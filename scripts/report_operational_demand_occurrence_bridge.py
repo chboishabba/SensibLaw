@@ -6,9 +6,15 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from pathlib import Path
+import sys
 from typing import Any
 
-from src.storage.postgres.spacy_parser_model import connect
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.storage.postgres.spacy_parser_model import connect  # noqa: E402
 
 
 def _parse_args() -> argparse.Namespace:
@@ -34,26 +40,15 @@ def main() -> int:
             summary = {
                 "operational_demands_with_occurrence_provenance": _scalar(
                     cursor,
-                    """
-                    SELECT count(DISTINCT demand_ref)
-                      FROM resolution.demand_occurrence_provenance
-                    """,
+                    "SELECT count(DISTINCT demand_ref) FROM resolution.demand_occurrence_provenance",
                 ),
                 "operational_trigger_demands": _scalar(
                     cursor,
-                    """
-                    SELECT count(DISTINCT demand_ref)
-                      FROM resolution.demand_occurrence_provenance
-                     WHERE occurrence_role=1
-                    """,
+                    "SELECT count(DISTINCT demand_ref) FROM resolution.demand_occurrence_provenance WHERE occurrence_role=1",
                 ),
                 "operational_target_demands": _scalar(
                     cursor,
-                    """
-                    SELECT count(DISTINCT demand_ref)
-                      FROM resolution.demand_occurrence_provenance
-                     WHERE occurrence_role=2
-                    """,
+                    "SELECT count(DISTINCT demand_ref) FROM resolution.demand_occurrence_provenance WHERE occurrence_role=2",
                 ),
                 "projected_numeric_trigger_demands": _scalar(
                     cursor,
