@@ -162,7 +162,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     env:
-      SENSIBLAW_LOCAL_POSTGRES_URL: postgresql://postgres@127.0.0.1:5433/postgres
+      SENSIBLAW_LOCAL_POSTGRES_URL: ${{ secrets.SENSIBLAW_CI_ADMIN_DATABASE_URL }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -239,4 +239,4 @@ jobs:
       - name: Drop isolated database
         if: always() && steps.database.outputs.database_name != ''
         run: |
-          dropdb --if-exists --host=127.0.0.1 --port=5433 --username=postgres '${{ steps.database.outputs.database_name }}'
+          dropdb --if-exists --dbname="$SENSIBLAW_LOCAL_POSTGRES_URL" '${{ steps.database.outputs.database_name }}'

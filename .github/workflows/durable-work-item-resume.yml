@@ -85,7 +85,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 20
     env:
-      SENSIBLAW_LOCAL_POSTGRES_URL: postgresql://postgres@127.0.0.1:5433/postgres
+      SENSIBLAW_LOCAL_POSTGRES_URL: ${{ secrets.SENSIBLAW_CI_ADMIN_DATABASE_URL }}
     steps:
       - uses: actions/checkout@v4
         with:

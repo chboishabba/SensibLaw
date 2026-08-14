@@ -138,6 +138,26 @@
   geometry, one owned sentence, no VERB/AUX clausal content, bounded size, a
   nominal anchor, and a provider-world-bearing NER class. Rejected spans remain
   unresolved parser evidence and cannot create HF/Wikidata work.
+- `134_provider_entity_terminal_boundary.sql` rejects otherwise well-formed raw
+  NER spans whose final token is structurally incomplete (for example an ADP,
+  conjunction, determiner or punctuation token) while retaining the raw parser
+  observation for audit.
+- `135_demand_trigger_target_occurrence.sql` separates producer trigger, semantic
+  target and supporting-evidence occurrences. Factor-derived targets exist only
+  through an explicit residual->typed-role rule and a unique slot/object/token
+  witness; historical lexical-only demands are not backfilled and remain
+  unresolved until genuine compiler replay.
+- `136_demand_occurrence_registration_hardening.sql` makes producer occurrence
+  registration run/document/span exact, validates claimed object-token support,
+  and exposes a machine invariant over the new provenance carrier. H9 entity
+  admission consumes only producer-authored target occurrences.
+- `137_operational_demand_occurrence_projection.sql` bridges the actual
+  `compile_corpus.py` demand carrier (`resolution.demand`) to numeric H3/H6/H9.
+  Producer-authored parser-token references survive even before a numeric parser
+  coordinate is available; exact document coordinates may be filled later.
+  Projection into `semantic_pnf_demand_occurrence_provenance` requires one exact
+  numeric trigger demand and, for targets, one exact object/token witness.
+  Ambiguous or unavailable crosswalks remain unresolved and cannot authorize H9.
 - See `docs/reopenable_runtime_architecture.md`,
   `docs/consumer_sufficient_numeric_runtime.md`,
   `docs/late_external_provider_runtime.md`, and

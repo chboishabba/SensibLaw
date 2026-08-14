@@ -21,14 +21,37 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     env:
-      PGHOST: 127.0.0.1
-      PGPORT: 5433
-      PGUSER: postgres
+      SENSIBLAW_CI_ADMIN_DATABASE_URL: ${{ secrets.SENSIBLAW_CI_ADMIN_DATABASE_URL }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref || 'agent/repair-corpus-progress-stage-lifecycle' }}
           persist-credentials: false
+
+      - name: Configure TrueNAS PostgreSQL client
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' >> "$GITHUB_ENV"
+          import os
+          import shlex
+          from urllib.parse import unquote, urlsplit
+
+          parsed = urlsplit(os.environ["SENSIBLAW_CI_ADMIN_DATABASE_URL"])
+          if parsed.scheme not in {"postgresql", "postgres"}:
+              raise SystemExit("SENSIBLAW_CI_ADMIN_DATABASE_URL must be a PostgreSQL URL")
+          values = {
+              "PGHOST": parsed.hostname or "",
+              "PGPORT": str(parsed.port or 5432),
+              "PGUSER": unquote(parsed.username or ""),
+              "PGPASSWORD": unquote(parsed.password or ""),
+              "PGDATABASE": (parsed.path or "/postgres").lstrip("/") or "postgres",
+          }
+          if not values["PGHOST"] or not values["PGUSER"] or not values["PGPASSWORD"]:
+              raise SystemExit("TrueNAS PostgreSQL URL must include host, user, and password")
+          for key, value in values.items():
+              print(f"{key}={shlex.quote(value)}")
+          PY
 
       - name: Require local PostgreSQL
         run: |
@@ -68,21 +91,16 @@ jobs:
               relation_name text;
           BEGIN
               FOREACH relation_name IN ARRAY ARRAY[
+                  'semantic_run',
                   'semantic_owner_stream',
-                  'semantic_job',
-                  'semantic_job_dependency',
+                  'semantic_closure_job',
                   'semantic_job_attempt',
-                  'semantic_delta',
+                  'semantic_immutable_delta',
                   'semantic_delta_admission',
-                  'semantic_graph_manifest',
-                  'semantic_graph_family_segment',
-                  'semantic_factor_revision',
-                  'semantic_residual_revision',
                   'semantic_finalization_checkpoint',
-                  'semantic_fixed_point_receipt',
                   'semantic_execution_receipt',
-                  'semantic_outbox',
-                  'publication_build'
+                  'semantic_publication',
+                  'semantic_outbox'
               ] LOOP
                   IF to_regclass('execution.' || relation_name) IS NULL THEN
                       RAISE EXCEPTION 'missing execution relation %', relation_name;
@@ -90,17 +108,10 @@ jobs:
               END LOOP;
               IF NOT EXISTS (
                   SELECT 1 FROM pg_trigger
-                  WHERE tgname = 'semantic_delta_admission_outbox'
+                  WHERE tgname = 'semantic_typed_publication_outbox'
                     AND NOT tgisinternal
               ) THEN
-                  RAISE EXCEPTION 'missing delta-admission outbox trigger';
-              END IF;
-              IF NOT EXISTS (
-                  SELECT 1 FROM pg_trigger
-                  WHERE tgname = 'semantic_publication_outbox'
-                    AND NOT tgisinternal
-              ) THEN
-                  RAISE EXCEPTION 'missing publication outbox trigger';
+                  RAISE EXCEPTION 'missing typed publication outbox trigger';
               END IF;
           END
           $$;

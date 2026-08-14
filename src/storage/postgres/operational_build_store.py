@@ -8,11 +8,32 @@ from src.policy.carriers.canonical import canonical_sha256
 
 
 _OPERATION_REF = "compiler.document.local-binding"
-_OPERATION_VERSION = "v0_8"
+# v0_9 adds producer-authored demand occurrence provenance. Completed v0_8
+# receipts cannot satisfy this operation even when all earlier stage inputs are
+# byte-identical.
+_OPERATION_VERSION = "v0_9"
 
 
 def _digest(value: str) -> bytes:
     return bytes.fromhex(value)
+
+
+def _receipt_build_key(build_key_sha256: str) -> str:
+    """Namespace the execution receipt key by operation semantics.
+
+    ``execution.build.build_key_sha256`` is globally unique.  Reusing the raw
+    stage key under a new operation version would collide with the historical
+    v0_8 receipt, so the durable receipt gets an operation-versioned key while
+    the caller's semantic stage key remains unchanged.
+    """
+
+    return canonical_sha256(
+        {
+            "operation_ref": _OPERATION_REF,
+            "operation_version": _OPERATION_VERSION,
+            "stage_build_key_sha256": build_key_sha256,
+        }
+    )
 
 
 def operational_build_ref(
@@ -27,7 +48,7 @@ def operational_build_ref(
             "operation_version": _OPERATION_VERSION,
             "document_ref": document_ref,
             "compiler_contract_ref": compiler_contract_ref,
-            "build_key_sha256": build_key_sha256,
+            "build_key_sha256": _receipt_build_key(build_key_sha256),
         }
     )
 
@@ -39,6 +60,7 @@ def load_completed_operational_build(
     compiler_contract_ref: str,
     build_key_sha256: str,
 ) -> tuple[str, ...] | None:
+    receipt_key = _receipt_build_key(build_key_sha256)
     cursor.execute(
         """
         SELECT document_build.build_ref
@@ -50,9 +72,17 @@ def load_completed_operational_build(
         WHERE document_build.document_ref = %s
           AND document_build.compiler_contract_ref = %s
           AND document_build.build_key_sha256 = %s
+          AND build.operation_ref = %s
+          AND build.operation_version = %s
           AND build.build_state_ref = 'completed'
         """,
-        (document_ref, compiler_contract_ref, _digest(build_key_sha256)),
+        (
+            document_ref,
+            compiler_contract_ref,
+            _digest(receipt_key),
+            _OPERATION_REF,
+            _OPERATION_VERSION,
+        ),
     )
     row = cursor.fetchone()
     if row is None:
@@ -79,6 +109,7 @@ def persist_completed_operational_build(
     graph_ref: str,
     demand_refs: Sequence[str],
 ) -> str:
+    receipt_key = _receipt_build_key(build_key_sha256)
     build_ref = operational_build_ref(
         document_ref=document_ref,
         compiler_contract_ref=compiler_contract_ref,
@@ -104,7 +135,7 @@ def persist_completed_operational_build(
             build_ref,
             _OPERATION_REF,
             _OPERATION_VERSION,
-            _digest(build_key_sha256),
+            _digest(receipt_key),
             graph_ref,
         ),
     )
@@ -130,7 +161,7 @@ def persist_completed_operational_build(
             build_ref,
             document_ref,
             compiler_contract_ref,
-            _digest(build_key_sha256),
+            _digest(receipt_key),
             graph_ref,
         ),
     )
