@@ -8,6 +8,7 @@ M125 = (ROOT / "database/postgres_migrations/125_source_object_from_occurrence_s
 M126 = (ROOT / "database/postgres_migrations/126_producer_specific_occurrence_support.sql").read_text()
 M127 = (ROOT / "database/postgres_migrations/127_occurrence_projection_and_shape_audit.sql").read_text()
 M129 = (ROOT / "database/postgres_migrations/129_object_entity_occurrence_audit.sql").read_text()
+M130 = (ROOT / "database/postgres_migrations/130_parser_entity_occurrence_bridge.sql").read_text()
 
 
 def test_occurrence_carrier_distinguishes_strong_and_legacy_support() -> None:
@@ -96,3 +97,43 @@ def test_object_entity_audit_preserves_occurrence_relations_without_object_ident
     assert "semantic_pnf_identity_projection" not in M129
     assert "symbol_text" not in M129
     assert "regexp" not in M129.lower()
+
+
+def test_parser_entity_bridge_uses_exact_parser_occurrence_not_region_sibling() -> None:
+    assert "semantic_pnf_demand_parser_entity_occurrence_v1" in M130
+    assert "object_token.object_id=strong.object_id" in M130
+    assert "entity.run_ref=token.run_ref" in M130
+    assert "entity.document_ref=token.document_ref" in M130
+    assert "entity.sentence_ref=token.sentence_ref" in M130
+    assert "entity.start_char<=token.start_char" in M130
+    assert "entity.end_char>=token.end_char" in M130
+    assert "entity_on_sibling_object" not in M130
+
+
+def test_provider_label_is_full_entity_surface() -> None:
+    assert "semantic_pnf_parser_entity_surface_label" in M130
+    assert "lag(token.end_char)" in M130
+    assert "token.orth_symbol_id" in M130
+    assert "ensure_semantic_symbol(1::SMALLINT,surface.surface_text)" in M130
+    assert "semantic_pnf_h9_unique_parser_entity_anchor_v1" in M130
+
+
+def test_local_identity_projection_cannot_authorize_provider_work() -> None:
+    bearing = M130.split("CREATE OR REPLACE VIEW execution.semantic_pnf_h9_entity_bearing_v1", 1)[1]
+    bearing = bearing.split("CREATE OR REPLACE VIEW execution.semantic_pnf_h9_entity_label_anchor_v1", 1)[0]
+    assert "semantic_pnf_identity_projection" not in bearing
+    assert "unique_parser_entity_anchor" in bearing
+    assert "attached_world_candidate" in bearing
+
+
+def test_h9_requires_strong_occurrence_and_named_entity_anchor() -> None:
+    assert "has_strong_occurrence" in M130
+    assert "NOT entity_bearing" in M130
+    assert "anchor_object_id IS NULL" in M130
+    assert "need_kind=3 AND NOT has_attached_world_candidate" in M130
+
+
+def test_stale_identity_only_origins_are_withdrawn_not_deleted() -> None:
+    assert "UPDATE execution.semantic_pnf_consumer_external_need_origin" in M130
+    assert "SET active=FALSE" in M130
+    assert "DELETE FROM execution.semantic_pnf_consumer_external_need_origin" not in M130
