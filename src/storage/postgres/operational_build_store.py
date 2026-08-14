@@ -8,7 +8,9 @@ from src.policy.carriers.canonical import canonical_sha256
 
 
 _OPERATION_REF = "compiler.document.local-binding"
-_OPERATION_VERSION = "v0_8"
+# v0_9 adds producer-authored demand occurrence provenance.  Completed v0_8
+# builds must not be reused because their persisted demands predate that carrier.
+_OPERATION_VERSION = "v0_9"
 
 
 def _digest(value: str) -> bytes:
@@ -50,9 +52,17 @@ def load_completed_operational_build(
         WHERE document_build.document_ref = %s
           AND document_build.compiler_contract_ref = %s
           AND document_build.build_key_sha256 = %s
+          AND build.operation_ref = %s
+          AND build.operation_version = %s
           AND build.build_state_ref = 'completed'
         """,
-        (document_ref, compiler_contract_ref, _digest(build_key_sha256)),
+        (
+            document_ref,
+            compiler_contract_ref,
+            _digest(build_key_sha256),
+            _OPERATION_REF,
+            _OPERATION_VERSION,
+        ),
     )
     row = cursor.fetchone()
     if row is None:
