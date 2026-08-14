@@ -108,10 +108,10 @@ jobs:
               END LOOP;
               IF NOT EXISTS (
                   SELECT 1 FROM pg_trigger
-                  WHERE tgname = 'semantic_publication_outbox'
+                  WHERE tgname = 'semantic_typed_publication_outbox'
                     AND NOT tgisinternal
               ) THEN
-                  RAISE EXCEPTION 'missing publication outbox trigger';
+                  RAISE EXCEPTION 'missing typed publication outbox trigger';
               END IF;
           END
           $$;
