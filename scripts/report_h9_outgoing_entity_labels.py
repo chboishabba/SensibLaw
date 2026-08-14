@@ -18,6 +18,7 @@ QUALITY_REASON = {
     15: "oversized_provider_label",
     16: "non_world_bearing_entity_type",
     17: "no_nominal_anchor",
+    18: "incomplete_terminal_boundary",
 }
 
 
@@ -38,6 +39,8 @@ def main() -> int:
             refreshed = int(cursor.fetchone()[0])
             cursor.execute("SELECT execution.refresh_semantic_parser_entity_quality_constants()")
             cursor.fetchone()
+            cursor.execute("SELECT execution.refresh_semantic_parser_provider_entity_candidates()")
+            candidate_refresh_rows = int(cursor.fetchone()[0])
 
             cursor.execute(
                 """
@@ -59,10 +62,22 @@ def main() -> int:
                        label_symbol.symbol_text AS label,
                        entity_type.symbol_text AS entity_type,
                        anchor.entity_id,
-                       anchor.source_object_id
+                       anchor.source_object_id,
+                       candidate.primary_support_count,
+                       candidate.secondary_support_count,
+                       COALESCE((
+                           SELECT string_agg(DISTINCT support.producer_ref || '@' ||
+                                             support.producer_version, ', ' ORDER BY
+                                             support.producer_ref || '@' || support.producer_version)
+                             FROM execution.semantic_parser_provider_entity_candidate_support support
+                            WHERE support.provider_entity_candidate_id=anchor.entity_id
+                              AND support.active
+                       ), '') AS producers
                   FROM execution.semantic_pnf_h9_external_admission_v1 admission
                   JOIN execution.semantic_pnf_h9_unique_parser_entity_anchor_v1 anchor
                     ON anchor.demand_id=admission.demand_id
+                  JOIN execution.semantic_parser_provider_entity_candidate_current_v1 candidate
+                    ON candidate.provider_entity_candidate_id=anchor.entity_id
                   JOIN execution.semantic_symbol label_symbol
                     ON label_symbol.symbol_id=anchor.label_symbol_id
                   JOIN execution.semantic_symbol entity_type
@@ -82,11 +97,22 @@ def main() -> int:
                     "demand_id": int(demand_id),
                     "label": str(label),
                     "entity_type": str(entity_type),
-                    "entity_id": int(entity_id),
+                    "provider_entity_candidate_id": int(entity_id),
                     "source_object_id": int(source_object_id),
+                    "primary_support_count": int(primary_support_count),
+                    "secondary_support_count": int(secondary_support_count),
+                    "producers": str(producers),
                 }
-                for demand_id, label, entity_type, entity_id, source_object_id
-                in cursor.fetchall()
+                for (
+                    demand_id,
+                    label,
+                    entity_type,
+                    entity_id,
+                    source_object_id,
+                    primary_support_count,
+                    secondary_support_count,
+                    producers,
+                ) in cursor.fetchall()
             ]
 
             cursor.execute(
@@ -118,11 +144,28 @@ def main() -> int:
                 """,
                 (args.consumer_ref, args.query_ref, args.policy_ref),
             )
-            rejection_summary = [
+            primary_quality_summary = [
                 {
                     "quality_state": int(state),
                     "reason": QUALITY_REASON.get(int(state), "unknown"),
                     "demands": int(count),
+                }
+                for state, count in cursor.fetchall()
+            ]
+
+            cursor.execute(
+                """
+                SELECT quality.quality_state,count(*)::BIGINT
+                  FROM execution.semantic_parser_secondary_entity_span_quality_v1 quality
+                 GROUP BY quality.quality_state
+                 ORDER BY quality.quality_state
+                """
+            )
+            secondary_quality_summary = [
+                {
+                    "quality_state": int(state),
+                    "reason": QUALITY_REASON.get(int(state), "unknown"),
+                    "spans": int(count),
                 }
                 for state, count in cursor.fetchall()
             ]
@@ -166,17 +209,40 @@ def main() -> int:
                 }
                 for demand_id, label, entity_type, state, entity_id in cursor.fetchall()
             ]
+
+            cursor.execute(
+                """
+                SELECT count(*)::BIGINT,
+                       count(*) FILTER (WHERE primary_support_count>0)::BIGINT,
+                       count(*) FILTER (WHERE secondary_support_count>0)::BIGINT,
+                       count(*) FILTER (
+                           WHERE primary_support_count>0 AND secondary_support_count>0
+                       )::BIGINT
+                  FROM execution.semantic_parser_provider_entity_candidate_current_v1
+                """
+            )
+            candidate_total, primary_supported, secondary_supported, jointly_supported = (
+                int(value) for value in cursor.fetchone()
+            )
     finally:
         connection.close()
 
     print(json.dumps({
         "surface_labels_refreshed": refreshed,
+        "candidate_refresh_rows": candidate_refresh_rows,
         "raw_parser_entity_occurrence_demands": int(raw_occurrence_demands),
-        "quality_gated_parser_entity_occurrence_demands": int(safe_occurrence_demands),
-        "unique_parser_entity_anchor_demands": int(unique_demands),
+        "quality_gated_provider_candidate_occurrence_demands": int(safe_occurrence_demands),
+        "unique_provider_entity_anchor_demands": int(unique_demands),
         "admitted_external_demands": admitted,
-        "quality_summary": rejection_summary,
-        "rejected_sample": rejected_sample,
+        "primary_quality_summary": primary_quality_summary,
+        "secondary_quality_summary": secondary_quality_summary,
+        "provider_candidate_counts": {
+            "current": candidate_total,
+            "primary_supported": primary_supported,
+            "secondary_supported": secondary_supported,
+            "jointly_supported": jointly_supported,
+        },
+        "rejected_primary_sample": rejected_sample,
         "sample": labels,
         "provider_io_performed": False,
     }, indent=2, sort_keys=True))
