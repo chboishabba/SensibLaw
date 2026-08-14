@@ -152,8 +152,11 @@ CREATE TABLE IF NOT EXISTS execution.semantic_parser_provider_entity_candidate_s
         REFERENCES execution.semantic_parser_provider_entity_candidate(provider_entity_candidate_id)
         ON DELETE CASCADE,
     support_kind SMALLINT NOT NULL CHECK (support_kind IN (1,2)),
-    parser_entity_id BIGINT,
-    secondary_entity_id BIGINT,
+    parser_entity_id BIGINT
+        REFERENCES execution.semantic_parser_entity_span(entity_id) ON DELETE CASCADE,
+    secondary_entity_id BIGINT
+        REFERENCES execution.semantic_parser_secondary_entity_span(secondary_entity_id)
+        ON DELETE CASCADE,
     producer_ref TEXT NOT NULL,
     producer_version TEXT NOT NULL,
     active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -162,11 +165,21 @@ CREATE TABLE IF NOT EXISTS execution.semantic_parser_provider_entity_candidate_s
         (support_kind=1 AND parser_entity_id IS NOT NULL AND secondary_entity_id IS NULL)
         OR
         (support_kind=2 AND parser_entity_id IS NULL AND secondary_entity_id IS NOT NULL)
-    ),
-    UNIQUE(provider_entity_candidate_id,support_kind,producer_ref,producer_version,
-           parser_entity_id,secondary_entity_id)
+    )
 );
 
+-- Separate partial indexes avoid PostgreSQL NULL-distinctness making duplicate
+-- support receipts possible when the unused provenance column is NULL.
+CREATE UNIQUE INDEX IF NOT EXISTS semantic_parser_provider_candidate_primary_support_uq
+    ON execution.semantic_parser_provider_entity_candidate_support
+       (provider_entity_candidate_id,support_kind,producer_ref,producer_version,
+        parser_entity_id)
+    WHERE support_kind=1;
+CREATE UNIQUE INDEX IF NOT EXISTS semantic_parser_provider_candidate_secondary_support_uq
+    ON execution.semantic_parser_provider_entity_candidate_support
+       (provider_entity_candidate_id,support_kind,producer_ref,producer_version,
+        secondary_entity_id)
+    WHERE support_kind=2;
 CREATE INDEX IF NOT EXISTS semantic_parser_provider_candidate_support_active_idx
     ON execution.semantic_parser_provider_entity_candidate_support
        (provider_entity_candidate_id,active,support_kind);
@@ -215,8 +228,9 @@ BEGIN
        AND candidate.label_symbol_id=label.label_symbol_id
       LEFT JOIN execution.semantic_parser_partition_receipt receipt
         ON receipt.partition_ref=entity.partition_ref
-    ON CONFLICT(provider_entity_candidate_id,support_kind,producer_ref,producer_version,
-                parser_entity_id,secondary_entity_id)
+    ON CONFLICT (provider_entity_candidate_id,support_kind,producer_ref,
+                 producer_version,parser_entity_id)
+        WHERE support_kind=1
     DO UPDATE SET active=TRUE;
 
     -- Active secondary-model observations that pass the same gate.
@@ -254,8 +268,9 @@ BEGIN
        AND candidate.entity_type_symbol_id=quality.entity_type_symbol_id
        AND candidate.label_symbol_id=quality.label_symbol_id
      WHERE quality.provider_admissible
-    ON CONFLICT(provider_entity_candidate_id,support_kind,producer_ref,producer_version,
-                parser_entity_id,secondary_entity_id)
+    ON CONFLICT (provider_entity_candidate_id,support_kind,producer_ref,
+                 producer_version,secondary_entity_id)
+        WHERE support_kind=2
     DO UPDATE SET active=TRUE;
 
     RETURN affected;
