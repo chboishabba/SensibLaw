@@ -21,14 +21,37 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     env:
-      PGHOST: 127.0.0.1
-      PGPORT: 5433
-      PGUSER: postgres
+      SENSIBLAW_CI_ADMIN_DATABASE_URL: ${{ secrets.SENSIBLAW_CI_ADMIN_DATABASE_URL }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref || 'agent/repair-corpus-progress-stage-lifecycle' }}
           persist-credentials: false
+
+      - name: Configure TrueNAS PostgreSQL client
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' >> "$GITHUB_ENV"
+          import os
+          import shlex
+          from urllib.parse import unquote, urlsplit
+
+          parsed = urlsplit(os.environ["SENSIBLAW_CI_ADMIN_DATABASE_URL"])
+          if parsed.scheme not in {"postgresql", "postgres"}:
+              raise SystemExit("SENSIBLAW_CI_ADMIN_DATABASE_URL must be a PostgreSQL URL")
+          values = {
+              "PGHOST": parsed.hostname or "",
+              "PGPORT": str(parsed.port or 5432),
+              "PGUSER": unquote(parsed.username or ""),
+              "PGPASSWORD": unquote(parsed.password or ""),
+              "PGDATABASE": (parsed.path or "/postgres").lstrip("/") or "postgres",
+          }
+          if not values["PGHOST"] or not values["PGUSER"] or not values["PGPASSWORD"]:
+              raise SystemExit("TrueNAS PostgreSQL URL must include host, user, and password")
+          for key, value in values.items():
+              print(f"{key}={shlex.quote(value)}")
+          PY
 
       - name: Require local PostgreSQL
         run: |
