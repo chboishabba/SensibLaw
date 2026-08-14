@@ -13,56 +13,65 @@ CREATE TABLE IF NOT EXISTS execution.semantic_pnf_parser_entity_surface_label (
 
 CREATE OR REPLACE FUNCTION execution.refresh_numeric_pnf_parser_entity_surface_labels()
 RETURNS BIGINT LANGUAGE plpgsql AS $$
-DECLARE affected BIGINT := 0;
+DECLARE
+    affected BIGINT := 0;
+    entity RECORD;
+    surface_text TEXT;
 BEGIN
-    WITH ordered AS MATERIALIZED (
-        SELECT entity.entity_id,entity.entity_type_symbol_id,
-               token.token_id,token.start_char,token.end_char,
-               symbol.symbol_text,
-               lag(token.end_char) OVER (
-                   PARTITION BY entity.entity_id
-                   ORDER BY token.start_char,token.token_id
-               ) AS previous_end
-          FROM execution.semantic_parser_entity_span AS entity
-          JOIN execution.semantic_parser_token AS token
-            ON token.run_ref=entity.run_ref
-           AND token.document_ref=entity.document_ref
-           AND token.sentence_ref=entity.sentence_ref
-           AND token.start_char>=entity.start_char
-           AND token.end_char<=entity.end_char
-           AND token.representation_version=2
-          JOIN execution.semantic_symbol AS symbol
-            ON symbol.symbol_id=token.orth_symbol_id
-         WHERE entity.representation_version=2
-           AND entity.entity_id IS NOT NULL
-           AND entity.entity_type_symbol_id IS NOT NULL
-    ), surfaces AS MATERIALIZED (
-        SELECT entity_id,min(entity_type_symbol_id) AS entity_type_symbol_id,
-               string_agg(
+    -- Process one span at a time.  The corpus has enough parser rows that a
+    -- single materialized window over every span can exhaust PostgreSQL's
+    -- temporary-disk quota during migration application.
+    FOR entity IN
+        SELECT entity_id,run_ref,document_ref,sentence_ref,
+               start_char,end_char,entity_type_symbol_id
+          FROM execution.semantic_parser_entity_span
+         WHERE representation_version=2
+           AND entity_id IS NOT NULL
+           AND entity_type_symbol_id IS NOT NULL
+         ORDER BY entity_id
+    LOOP
+        SELECT string_agg(
                    CASE
-                     WHEN previous_end IS NULL THEN symbol_text
-                     ELSE repeat(' ',greatest((start_char-previous_end)::INTEGER,0))
-                          || symbol_text
+                     WHEN ordered.previous_end IS NULL THEN ordered.symbol_text
+                     ELSE repeat(' ',greatest((ordered.start_char-ordered.previous_end)::INTEGER,0))
+                          || ordered.symbol_text
                    END,
-                   '' ORDER BY start_char,token_id
-               ) AS surface_text
-          FROM ordered
-         GROUP BY entity_id
-    ), upserted AS (
-        INSERT INTO execution.semantic_pnf_parser_entity_surface_label
-            (entity_id,label_symbol_id,entity_type_symbol_id,updated_at)
-        SELECT surface.entity_id,
-               execution.ensure_semantic_symbol(1::SMALLINT,surface.surface_text),
-               surface.entity_type_symbol_id,CURRENT_TIMESTAMP
-          FROM surfaces AS surface
-         WHERE surface.surface_text<>''
-        ON CONFLICT(entity_id) DO UPDATE SET
-            label_symbol_id=EXCLUDED.label_symbol_id,
-            entity_type_symbol_id=EXCLUDED.entity_type_symbol_id,
-            updated_at=CURRENT_TIMESTAMP
-        RETURNING 1
-    )
-    SELECT count(*) INTO affected FROM upserted;
+                   '' ORDER BY ordered.start_char,ordered.token_id
+               )
+          INTO surface_text
+          FROM (
+              SELECT token.token_id,token.start_char,token.end_char,
+                     symbol.symbol_text,
+                     lag(token.end_char) OVER (
+                         ORDER BY token.start_char,token.token_id
+                     ) AS previous_end
+                FROM execution.semantic_parser_token AS token
+                JOIN execution.semantic_symbol AS symbol
+                  ON symbol.symbol_id=token.orth_symbol_id
+               WHERE token.run_ref=entity.run_ref
+                 AND token.document_ref=entity.document_ref
+                 AND token.sentence_ref=entity.sentence_ref
+                 AND token.start_char>=entity.start_char
+                 AND token.end_char<=entity.end_char
+                 AND token.representation_version=2
+          ) AS ordered;
+
+        IF surface_text IS NOT NULL AND surface_text<>'' THEN
+            INSERT INTO execution.semantic_pnf_parser_entity_surface_label
+                (entity_id,label_symbol_id,entity_type_symbol_id,updated_at)
+            VALUES (
+                entity.entity_id,
+                execution.ensure_semantic_symbol(1::SMALLINT,surface_text),
+                entity.entity_type_symbol_id,
+                CURRENT_TIMESTAMP
+            )
+            ON CONFLICT(entity_id) DO UPDATE SET
+                label_symbol_id=EXCLUDED.label_symbol_id,
+                entity_type_symbol_id=EXCLUDED.entity_type_symbol_id,
+                updated_at=CURRENT_TIMESTAMP;
+            affected := affected + 1;
+        END IF;
+    END LOOP;
     RETURN affected;
 END;
 $$;

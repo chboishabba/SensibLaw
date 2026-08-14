@@ -111,7 +111,7 @@ def test_provider_label_is_full_entity_surface() -> None:
     assert "semantic_pnf_parser_entity_surface_label" in M130
     assert "lag(token.end_char)" in M130
     assert "token.orth_symbol_id" in M130
-    assert "ensure_semantic_symbol(1::SMALLINT,surface.surface_text)" in M130
+    assert "ensure_semantic_symbol(1::SMALLINT,surface_text)" in M130
     assert "semantic_pnf_h9_unique_parser_entity_anchor_v1" in M130
 
 
