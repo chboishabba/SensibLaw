@@ -1,12 +1,12 @@
 """Incremental hot-path execution for closure owner replay.
 
-This module changes physical execution only.  Semantic authority, proposal
+This module changes physical execution only. Semantic authority, proposal
 identity, canonical admission order and deterministic owner reconstruction remain
 unchanged.
 
 The v2 handoff representation repeatedly copied and serialized the complete
-replay-event history on every new admission.  On long documents that makes the
-handoff path quadratic in the number of replay events.  v3 keeps the immutable
+replay-event history on every new admission. On long documents that makes the
+handoff path quadratic in the number of replay events. v3 keeps the immutable
 replay artifacts, appends one compact event row to a journal, and rewrites only
 the small current-frontier checkpoint.
 """
@@ -17,7 +17,7 @@ import json
 import os
 from pathlib import Path
 from time import monotonic_ns
-from typing import Any, Mapping
+from typing import Any
 
 from src.policy.carriers.canonical import canonical_sha256
 
@@ -47,9 +47,8 @@ def _install_identity_caches() -> None:
         SolverReceipt,
     )
 
-    # These carriers are frozen.  Their identity payload cannot change after
-    # construction, so recomputing the same canonical SHA on every dictionary
-    # probe/sort/replay serialization is pure waste.
+    # These carriers are frozen and non-slotted. Their identity payload cannot
+    # change after construction, so repeated canonical hashing is pure overhead.
     FactorProposal.proposal_digest = property(  # type: ignore[assignment]
         lambda self: _cached_ref(
             self,
@@ -119,6 +118,19 @@ def _journal_event_digest(
     )
 
 
+def _prepare_fresh_journal(context: Any) -> None:
+    activation = context.closure_activation
+    if activation.get("journal_initialized"):
+        return
+    path = _journal_path(context)
+    if path is not None and path.exists():
+        # No accepted v3 checkpoint owns this tail. It may be from an interrupted
+        # attempt or an incompatible v2 run, so retaining it would make the next
+        # sequence non-canonical. Replay artifacts themselves remain immutable.
+        path.unlink()
+    activation["journal_initialized"] = True
+
+
 def _append_journal_event(
     context: Any,
     *,
@@ -128,6 +140,7 @@ def _append_journal_event(
     if context.reconstructing_owner:
         return
     activation = context.closure_activation
+    _prepare_fresh_journal(context)
     sequence_no = int(activation.get("journal_event_count") or 0)
     prior_digest = str(activation.get("journal_digest") or "")
     event_digest = _journal_event_digest(
@@ -148,15 +161,19 @@ def _append_journal_event(
     started = monotonic_ns()
     if path is not None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        # One append is the durable replay boundary.  We deliberately avoid
-        # rewriting the complete history.  flush() gives the same process-crash
-        # durability class as the existing atomic JSON writer; callers may opt
-        # into fsync when machine/power-loss durability is required.
+        # One small append replaces O(history) tuple copies plus O(history)
+        # checkpoint serialization. flush() matches the previous process-crash
+        # durability class; optional fsync is available for stronger durability.
         with path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(row, separators=(",", ":"), sort_keys=True) + "\n")
             handle.flush()
             fsync_interval = max(
-                0, int(os.environ.get("SENSIBLAW_CLOSURE_JOURNAL_FSYNC_INTERVAL", "0"))
+                0,
+                int(
+                    os.environ.get(
+                        "SENSIBLAW_CLOSURE_JOURNAL_FSYNC_INTERVAL", "0"
+                    )
+                ),
             )
             if fsync_interval and (sequence_no + 1) % fsync_interval == 0:
                 os.fsync(handle.fileno())
@@ -171,23 +188,31 @@ def _append_journal_event(
         )
 
 
-def _read_journal(context: Any, *, event_count: int, final_digest: str) -> list[dict[str, str]]:
+def _read_journal(
+    context: Any,
+    *,
+    event_count: int,
+    final_digest: str,
+) -> tuple[list[dict[str, str]], int]:
     if event_count == 0:
         if final_digest:
             raise ValueError("empty closure journal has a non-empty digest")
-        return []
+        return [], 0
     path = _journal_path(context)
     if path is None or not path.exists():
         raise ValueError("closure handoff journal is missing")
     events: list[dict[str, str]] = []
     prior_digest = ""
-    with path.open("r", encoding="utf-8") as handle:
-        for raw in handle:
-            if len(events) >= event_count:
+    committed_bytes = 0
+    with path.open("rb") as handle:
+        while len(events) < event_count:
+            raw = handle.readline()
+            if not raw:
                 break
+            committed_bytes = handle.tell()
             try:
-                row = json.loads(raw)
-            except (TypeError, ValueError) as error:
+                row = json.loads(raw.decode("utf-8"))
+            except (UnicodeDecodeError, TypeError, ValueError) as error:
                 raise ValueError("closure handoff journal contains invalid JSON") from error
             sequence_no = len(events)
             artifact_kind = str(row.get("artifact_kind") or "")
@@ -221,7 +246,29 @@ def _read_journal(context: Any, *, event_count: int, final_digest: str) -> list[
             )
     if len(events) != event_count or prior_digest != final_digest:
         raise ValueError("closure handoff journal is incomplete")
-    return events
+    return events, committed_bytes
+
+
+def _discard_uncheckpointed_journal_tail(context: Any, committed_bytes: int) -> None:
+    """Drop events written after the last atomic frontier checkpoint.
+
+    Such events have replay artifacts but no matching owner revision/frontier
+    snapshot. Recomputing that bounded tail is safer than guessing its state.
+    """
+
+    path = _journal_path(context)
+    if path is None or not path.exists():
+        return
+    size = path.stat().st_size
+    if size <= committed_bytes:
+        return
+    with path.open("r+b") as handle:
+        handle.truncate(committed_bytes)
+        handle.flush()
+    with context.lock:
+        context.closure_counters["handoff_uncheckpointed_tail_bytes"] += (
+            size - committed_bytes
+        )
 
 
 def _compact_checkpoint_payload(context: Any) -> dict[str, Any]:
@@ -233,15 +280,15 @@ def _compact_checkpoint_payload(context: Any) -> dict[str, Any]:
         "contract_ref": HANDOFF_CONTRACT,
         **parallel._handoff_identity(context),
         "next_leaf_ordinal": int(activation.get("next_leaf_ordinal") or 0),
-        # Activation leaves are bounded and independently checkpointed; retaining
-        # these refs avoids changing activation resume semantics.
+        # Activation leaves are separately bounded/checkpointed. These lists are
+        # small relative to proposal/receipt replay history and retain existing
+        # activation resume semantics.
         "completed_leaf_refs": list(activation.get("completed_leaf_refs") or ()),
         "buffered_leaf_refs": list(activation.get("buffered_leaf_refs") or ()),
         "admitted_leaf_refs": list(activation.get("admitted_leaf_refs") or ()),
         "admitted_batch_refs": list(activation.get("admitted_batch_refs") or ()),
         "recorded_delta_refs": list(activation.get("recorded_delta_refs") or ()),
-        # Large cumulative replay-event/artifact lists live in the append-only
-        # journal instead of being copied into every checkpoint.
+        # The large cumulative replay history lives in the append-only journal.
         "journal_event_count": int(activation.get("journal_event_count") or 0),
         "journal_digest": str(activation.get("journal_digest") or ""),
         "current_owner_revision": int(activation.get("current_owner_revision") or 0),
@@ -295,11 +342,12 @@ def _load_compact_checkpoint(self: Any) -> dict[str, Any] | None:
     ):
         return None
 
-    events = _read_journal(
+    events, committed_bytes = _read_journal(
         self.context,
         event_count=int(payload.get("journal_event_count") or 0),
         final_digest=str(payload.get("journal_digest") or ""),
     )
+    _discard_uncheckpointed_journal_tail(self.context, committed_bytes)
     payload["replay_events"] = events
     payload["delta_artifact_refs"] = [
         event["artifact_ref"]
@@ -328,6 +376,7 @@ def _load_compact_checkpoint(self: Any) -> dict[str, Any] | None:
             if key not in parallel._handoff_identity(self.context)
         }
     )
+    self.context.closure_activation["journal_initialized"] = True
     return payload
 
 
@@ -338,7 +387,7 @@ def _install_reconstruction_cleanup(parallel: Any) -> None:
         original_reconstruct(self, owner)
         if not self.available:
             return
-        # Replay lists are a one-time reconstruction view.  Keeping them after
+        # Replay lists are a one-time reconstruction view. Keeping them after
         # owner reconstruction would recreate the old cumulative-memory cost.
         activation = self.context.closure_activation
         for key in (
@@ -356,20 +405,23 @@ def _install_reconstruction_cleanup(parallel: Any) -> None:
 def install_owner_handoff_performance() -> bool:
     """Install O(new-event) replay bookkeeping without changing semantics."""
 
+    from src.policy import operational_corpus_compilation as operational
     from src.policy import parallel_semantic_execution as parallel
 
     if getattr(parallel, _INSTALL_MARKER, False):
         return False
-    if not getattr(parallel, "_parallel_semantic_execution_installed", False):
+    if not getattr(
+        operational, parallel._INSTALL_MARKER, False
+    ):
         raise RuntimeError(
             "owner handoff performance must install after parallel semantic execution"
         )
 
     _install_identity_caches()
 
-    # New handoff artifacts intentionally use a new compatibility identity.  A
-    # v2 checkpoint is ignored and recomputed rather than being interpreted under
-    # different physical replay semantics.
+    # A v2 checkpoint is intentionally ignored rather than interpreted under a
+    # different physical replay contract. Semantic content is recomputed from
+    # the immutable source/proposal inputs.
     parallel.CLOSURE_HANDOFF_SCHEMA_VERSION = HANDOFF_SCHEMA_VERSION
     parallel.CLOSURE_HANDOFF_CONTRACT = HANDOFF_CONTRACT
     parallel._append_replay_event = _append_journal_event
