@@ -91,33 +91,21 @@ jobs:
               relation_name text;
           BEGIN
               FOREACH relation_name IN ARRAY ARRAY[
+                  'semantic_run',
                   'semantic_owner_stream',
-                  'semantic_job',
-                  'semantic_job_dependency',
+                  'semantic_closure_job',
                   'semantic_job_attempt',
-                  'semantic_delta',
+                  'semantic_immutable_delta',
                   'semantic_delta_admission',
-                  'semantic_graph_manifest',
-                  'semantic_graph_family_segment',
-                  'semantic_factor_revision',
-                  'semantic_residual_revision',
                   'semantic_finalization_checkpoint',
-                  'semantic_fixed_point_receipt',
                   'semantic_execution_receipt',
-                  'semantic_outbox',
-                  'publication_build'
+                  'semantic_publication',
+                  'semantic_outbox'
               ] LOOP
                   IF to_regclass('execution.' || relation_name) IS NULL THEN
                       RAISE EXCEPTION 'missing execution relation %', relation_name;
                   END IF;
               END LOOP;
-              IF NOT EXISTS (
-                  SELECT 1 FROM pg_trigger
-                  WHERE tgname = 'semantic_delta_admission_outbox'
-                    AND NOT tgisinternal
-              ) THEN
-                  RAISE EXCEPTION 'missing delta-admission outbox trigger';
-              END IF;
               IF NOT EXISTS (
                   SELECT 1 FROM pg_trigger
                   WHERE tgname = 'semantic_publication_outbox'
