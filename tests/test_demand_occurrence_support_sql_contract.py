@@ -11,6 +11,7 @@ M129 = (ROOT / "database/postgres_migrations/129_object_entity_occurrence_audit.
 M130 = (ROOT / "database/postgres_migrations/130_parser_entity_occurrence_bridge.sql").read_text()
 M131 = (ROOT / "database/postgres_migrations/131_incremental_parser_entity_surface_labels.sql").read_text()
 M132 = (ROOT / "database/postgres_migrations/132_exact_object_entity_occurrence_audit.sql").read_text()
+M133 = (ROOT / "database/postgres_migrations/133_provider_entity_span_quality_gate.sql").read_text()
 
 
 def test_occurrence_carrier_distinguishes_strong_and_legacy_support() -> None:
@@ -150,3 +151,54 @@ def test_exact_audit_supersedes_region_sibling_diagnostic() -> None:
     assert "entity.document_ref=token.document_ref" in M132
     assert "entity.sentence_ref=token.sentence_ref" in M132
     assert "entity_on_sibling_object" not in M132
+
+
+def test_raw_parser_entities_are_preserved_but_provider_spans_are_separate() -> None:
+    assert "semantic_parser_entity_span_quality_v1" in M133
+    assert "semantic_parser_provider_entity_span_v1" in M133
+    assert "FROM execution.semantic_parser_entity_span AS entity" in M133
+    assert "DELETE FROM execution.semantic_parser_entity_span" not in M133
+
+
+def test_provider_span_requires_exact_contiguous_token_geometry() -> None:
+    assert "geometry.token_start<>geometry.start_char" in M133
+    assert "geometry.token_end<>geometry.end_char" in M133
+    assert "geometry.token_count<>(geometry.last_ordinal-geometry.first_ordinal+1)" in M133
+    assert "WHEN geometry.sentence_ref IS NULL THEN 10" in M133
+
+
+def test_provider_span_rejects_clausal_and_oversized_ner_fragments() -> None:
+    assert "'VERB'::TEXT" in M133
+    assert "'AUX'::TEXT" in M133
+    assert "WHEN geometry.verbal_token_count>0 THEN 14" in M133
+    assert "geometry.token_count>16" in M133
+    assert "geometry.end_char-geometry.start_char>256" in M133
+
+
+def test_provider_span_requires_world_bearing_type_and_nominal_anchor() -> None:
+    for entity_type in ("PERSON", "ORG", "GPE", "LOC", "FAC", "LAW", "EVENT", "WORK_OF_ART"):
+        assert f"'{entity_type}'" in M133
+    for excluded in ("DATE", "TIME", "MONEY", "CARDINAL", "ORDINAL", "PERCENT", "QUANTITY"):
+        assert f"'{excluded}'" not in M133
+    assert "WHEN geometry.nominal_token_count=0 THEN 17" in M133
+
+
+def test_h9_parser_occurrence_consumes_only_provider_admissible_span() -> None:
+    bridge = M133.split(
+        "CREATE OR REPLACE VIEW execution.semantic_pnf_demand_parser_entity_occurrence_v1",
+        1,
+    )[1]
+    bridge = bridge.split(
+        "CREATE OR REPLACE VIEW execution.semantic_pnf_demand_raw_parser_entity_occurrence_v1",
+        1,
+    )[0]
+    assert "semantic_parser_provider_entity_span_v1" in bridge
+    assert "semantic_parser_entity_span AS entity" not in bridge
+    assert "semantic_pnf_demand_raw_parser_entity_occurrence_v1" in M133
+
+
+def test_quality_gate_withdraws_stale_provider_origins_without_deleting_receipts() -> None:
+    assert "UPDATE execution.semantic_pnf_consumer_external_need_origin AS origin" in M133
+    assert "SET active=FALSE" in M133
+    assert "DELETE FROM execution.semantic_pnf_consumer_external_need_origin" not in M133
+    assert "refresh_numeric_pnf_external_request_observer_state" in M133
