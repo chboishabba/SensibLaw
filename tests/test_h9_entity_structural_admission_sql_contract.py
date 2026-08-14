@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 M119 = ROOT / "database/postgres_migrations/119_h9_entity_bearing_structural_admission.sql"
 M120 = ROOT / "database/postgres_migrations/120_h9_entity_admission_runtime_hardening.sql"
 M121 = ROOT / "database/postgres_migrations/121_h9_entity_admission_invariant_guard.sql"
+M122 = ROOT / "database/postgres_migrations/122_h9_provider_entity_occurrence_gate.sql"
 
 
 def _sql(path: Path) -> str:
@@ -100,3 +101,12 @@ def test_reconciled_stale_requests_are_made_dormant_by_observer_refresh() -> Non
     sql = _sql(M121)
     assert "refresh_numeric_pnf_external_request_observer_state" in sql
     assert "refresh_numeric_pnf_external_request_cache_state" in sql
+
+
+def test_local_identity_projection_cannot_authorize_provider_discovery() -> None:
+    sql = _sql(M122)
+    view = sql.split("CREATE OR REPLACE VIEW execution.semantic_pnf_h9_entity_bearing_v1", 1)[1].split(";", 1)[0]
+    assert "mention.mention_kind=1" in view
+    assert "semantic_pnf_mention_world_attachment" in view
+    assert "semantic_pnf_identity_projection" not in view
+    assert "semantic_pnf_consumer_external_need_origin" in sql
