@@ -110,6 +110,9 @@ def install_execution_strategies() -> None:
             indexed_projection_enabled,
             install_indexed_projection_execution,
         )
+        from .owner_handoff_performance import (
+            install_owner_handoff_performance,
+        )
         from .parallel_semantic_execution import (
             install_parallel_semantic_execution,
         )
@@ -142,6 +145,10 @@ def install_execution_strategies() -> None:
         # output-sensitive local-typing overlap leaves and closure receipt
         # replay, and leaves the canonical compiler as the sole authority.
         install_parallel_semantic_execution()
+        # Replace cumulative tuple copies/full-history handoff snapshots with an
+        # append-only replay journal plus compact frontier checkpoint, and cache
+        # immutable content-addressed identities used by the hot admission path.
+        install_owner_handoff_performance()
         # The remaining hypothesis/type/diagnostic tails and pure closure
         # handlers are CPU-bound. Install process-backed bounded leaves after
         # telemetry so their outputs retain the same resource receipts.
