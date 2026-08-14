@@ -2,9 +2,9 @@
 
 The bounded streaming loop already filters every activation batch against the
 canonical owner's ``_observation_deltas`` before invoking
-``record_observation_batch``.  The replay contract previously rebuilt a second
+``record_observation_batch``. The replay contract previously rebuilt a second
 ``recorded_delta_refs`` set before and after every batch, then serialized it into
-handoff checkpoints.  That index is redundant: exact owner reconstruction
+handoff checkpoints. That index is redundant: exact owner reconstruction
 recreates ``_observation_deltas`` before new activation continues.
 """
 
@@ -36,7 +36,7 @@ def install_owner_handoff_batch_performance() -> bool:
     ) -> None:
         started = monotonic_ns()
         # The caller has already selected deltas absent from the canonical
-        # owner's observation map.  Materialize this bounded leaf exactly once;
+        # owner's observation map. Materialize this bounded leaf exactly once;
         # do not rebuild a cumulative duplicate-membership set.
         new_deltas = tuple(deltas)
         if not new_deltas:
@@ -87,6 +87,31 @@ def install_owner_handoff_batch_performance() -> bool:
         return payload
 
     performance._compact_checkpoint_payload = compact_checkpoint_payload
+
+    # Old-contract checkpoints are an execution-cache miss and are recomputed.
+    # A malformed checkpoint that *claims the current v3 contract*, however,
+    # remains a hard error; silently ignoring corruption would weaken the
+    # existing replay contract and its tests.
+    permissive_load = performance._load_compact_checkpoint
+
+    def strict_current_checkpoint(self: Any) -> dict[str, Any] | None:
+        path = self.context.closure_handoff_checkpoint_path
+        if path is None or not path.exists():
+            return None
+        payload = parallel._read_json(path)
+        if payload is None:
+            raise ValueError("current closure handoff checkpoint is unreadable")
+        if (
+            payload.get("schema_version") != performance.HANDOFF_SCHEMA_VERSION
+            or payload.get("contract_ref") != performance.HANDOFF_CONTRACT
+        ):
+            return None
+        loaded = permissive_load(self)
+        if loaded is None:
+            raise ValueError("current closure handoff checkpoint identity mismatch")
+        return loaded
+
+    parallel.ClosureOwnerReplayContract._load_checkpoint = strict_current_checkpoint
     setattr(parallel, _INSTALL_MARKER, True)
     return True
 
