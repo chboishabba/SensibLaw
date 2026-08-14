@@ -50,6 +50,22 @@ def main() -> int:
                     cursor,
                     "SELECT count(DISTINCT demand_ref) FROM resolution.demand_occurrence_provenance WHERE occurrence_role=2",
                 ),
+                "operational_occurrences_without_numeric_coordinates": _scalar(
+                    cursor,
+                    """
+                    SELECT count(*)
+                      FROM resolution.demand_occurrence_provenance
+                     WHERE start_char IS NULL OR end_char IS NULL
+                    """,
+                ),
+                "operational_demands_without_numeric_coordinates": _scalar(
+                    cursor,
+                    """
+                    SELECT count(DISTINCT demand_ref)
+                      FROM resolution.demand_occurrence_provenance
+                     WHERE start_char IS NULL OR end_char IS NULL
+                    """,
+                ),
                 "projected_numeric_trigger_demands": _scalar(
                     cursor,
                     """
@@ -125,7 +141,11 @@ def main() -> int:
                     "demand_ref": str(row[0]),
                     "residual_type": str(row[1]),
                     "trigger_ref": str(row[2]),
-                    "trigger_span": [int(row[3]), int(row[4])],
+                    "trigger_span": (
+                        [int(row[3]), int(row[4])]
+                        if row[3] is not None and row[4] is not None
+                        else None
+                    ),
                     "target_ref": str(row[5]) if row[5] is not None else None,
                     "target_span": (
                         [int(row[6]), int(row[7])]
