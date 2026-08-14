@@ -1,9 +1,9 @@
 BEGIN;
 
 -- 137: compile_corpus.py persists resolution.demand while H3/H6/H9 execute on
--- execution.semantic_pnf_demand.  Persist the producer's parser-token reference
--- plus its exact document character coordinates, then project only when those
--- coordinates identify exactly one numeric demand in a concrete parser run.
+-- execution.semantic_pnf_demand. Persist the producer's immutable parser-token
+-- reference immediately. Exact numeric document coordinates may be filled on a
+-- later replay if the numeric parser tape is not present yet.
 -- No text, nearest-noun, NER trimming or cross-region recovery is permitted.
 CREATE TABLE IF NOT EXISTS resolution.demand_occurrence_provenance (
     demand_ref TEXT NOT NULL
@@ -12,20 +12,30 @@ CREATE TABLE IF NOT EXISTS resolution.demand_occurrence_provenance (
     occurrence_role SMALLINT NOT NULL CHECK (occurrence_role IN (1,2,3)),
     parser_token_ref TEXT NOT NULL,
     document_ref TEXT NOT NULL,
-    start_char BIGINT NOT NULL CHECK (start_char >= 0),
-    end_char BIGINT NOT NULL CHECK (end_char > start_char),
+    start_char BIGINT,
+    end_char BIGINT,
     semantic_role_ref TEXT,
     ordinal SMALLINT NOT NULL DEFAULT 0 CHECK (ordinal >= 0),
     producer_ref TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (
         demand_ref,residual_type_ref,occurrence_role,parser_token_ref,ordinal
+    ),
+    CHECK (
+        (start_char IS NULL AND end_char IS NULL)
+        OR (
+            start_char IS NOT NULL
+            AND end_char IS NOT NULL
+            AND start_char >= 0
+            AND end_char > start_char
+        )
     )
 );
 
 CREATE INDEX IF NOT EXISTS resolution_demand_occurrence_coordinate_idx
     ON resolution.demand_occurrence_provenance
-       (document_ref,start_char,end_char,demand_ref,residual_type_ref);
+       (document_ref,start_char,end_char,demand_ref,residual_type_ref)
+    WHERE start_char IS NOT NULL AND end_char IS NOT NULL;
 
 CREATE OR REPLACE VIEW resolution.demand_occurrence_provenance_audit_v1 AS
 SELECT demand.demand_ref,
@@ -37,7 +47,13 @@ SELECT demand.demand_ref,
        count(*) FILTER (WHERE provenance.occurrence_role=3)::BIGINT
            AS evidence_count,
        count(*) FILTER (
+           WHERE provenance.start_char IS NULL
+              OR provenance.end_char IS NULL
+       )::BIGINT AS unresolved_coordinate_count,
+       count(*) FILTER (
            WHERE provenance.occurrence_role=1
+             AND provenance.start_char IS NOT NULL
+             AND provenance.end_char IS NOT NULL
              AND EXISTS (
                  SELECT 1
                    FROM execution.semantic_parser_token AS token
@@ -49,6 +65,8 @@ SELECT demand.demand_ref,
        )::BIGINT AS numeric_trigger_coordinate_count,
        count(*) FILTER (
            WHERE provenance.occurrence_role=2
+             AND provenance.start_char IS NOT NULL
+             AND provenance.end_char IS NOT NULL
              AND EXISTS (
                  SELECT 1
                    FROM execution.semantic_parser_token AS token
@@ -96,11 +114,13 @@ BEGIN
            AND trigger.residual_type_ref=provenance.residual_type_ref
            AND trigger.occurrence_role=1
          WHERE provenance.demand_ref=selected_demand_ref
+           AND trigger.start_char IS NOT NULL
+           AND trigger.end_char IS NOT NULL
     LOOP
         -- The exact trigger coordinate identifies the corresponding numeric
         -- demand only if one parser run + sentence region + factor/residual key
-        -- survives. Multiple historical runs therefore fail closed rather than
-        -- being silently ranked.
+        -- survives. Multiple historical runs fail closed rather than being
+        -- silently ranked.
         SELECT count(*),min(candidate.demand_id),min(candidate.source_region_id),
                min(candidate.run_ref)
           INTO candidate_count,selected_numeric_demand_id,
@@ -142,6 +162,11 @@ BEGIN
              ORDER BY provenance.occurrence_role,provenance.ordinal,
                       provenance.parser_token_ref
         LOOP
+            IF provenance_row.start_char IS NULL
+               OR provenance_row.end_char IS NULL THEN
+                CONTINUE;
+            END IF;
+
             selected_numeric_token_id := NULL;
             token_count := 0;
             SELECT count(*),min(token.token_id)
@@ -203,6 +228,11 @@ AS $$
       JOIN resolution.demand AS demand
         ON demand.demand_ref=provenance.demand_ref
      WHERE provenance.document_ref<>demand.scope_ref
+    UNION ALL
+    SELECT 'operational_half_coordinate'::TEXT,
+           count(*)::BIGINT
+      FROM resolution.demand_occurrence_provenance AS provenance
+     WHERE (provenance.start_char IS NULL)<>(provenance.end_char IS NULL)
     UNION ALL
     SELECT 'projected_target_without_exact_object_support'::TEXT,
            count(*)::BIGINT
