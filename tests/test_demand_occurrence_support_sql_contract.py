@@ -7,6 +7,7 @@ M124 = (ROOT / "database/postgres_migrations/124_h9_entity_label_from_occurrence
 M125 = (ROOT / "database/postgres_migrations/125_source_object_from_occurrence_support.sql").read_text()
 M126 = (ROOT / "database/postgres_migrations/126_producer_specific_occurrence_support.sql").read_text()
 M127 = (ROOT / "database/postgres_migrations/127_occurrence_projection_and_shape_audit.sql").read_text()
+M129 = (ROOT / "database/postgres_migrations/129_object_entity_occurrence_audit.sql").read_text()
 
 
 def test_occurrence_carrier_distinguishes_strong_and_legacy_support() -> None:
@@ -51,7 +52,9 @@ def test_strong_support_has_no_text_or_regex_semantics() -> None:
 
 def test_h9_entity_views_start_from_strong_occurrence_support() -> None:
     assert "semantic_pnf_demand_strong_occurrence_support_v1" in M123
-    assert "demand.source_object_id" not in M123
+    assert "demand.source_object_id" not in "\n".join(
+        line for line in M123.splitlines() if not line.lstrip().startswith("--")
+    )
     assert "semantic_pnf_demand_strong_occurrence_support_v1" in M124
     assert "demand.source_object_id" not in M124
 
@@ -83,3 +86,13 @@ def test_legacy_source_object_is_not_h9_authority() -> None:
     assert "support_kind=9" in M122
     assert "semantic_pnf_demand_strong_occurrence_support_v1" in M123
     assert "semantic_pnf_demand_strong_occurrence_support_v1" in M124
+
+
+def test_object_entity_audit_preserves_occurrence_relations_without_object_identity() -> None:
+    assert "semantic_pnf_object_mention_support" in M129
+    assert "semantic_pnf_mention_token" in M129
+    assert "entity_span_contains_all_object_tokens" in M129
+    assert "entity_on_sibling_object" in M129
+    assert "semantic_pnf_identity_projection" not in M129
+    assert "symbol_text" not in M129
+    assert "regexp" not in M129.lower()

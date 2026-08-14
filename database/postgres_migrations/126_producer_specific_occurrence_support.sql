@@ -78,7 +78,11 @@ BEGIN
     INSERT INTO execution.semantic_pnf_demand_occurrence_support
         (demand_id,support_kind,source_interface_id,object_id,
          role_symbol_id,lexical_symbol_id)
-    SELECT demand.demand_id,9::SMALLINT,demand.source_interface_id,
+    SELECT demand.demand_id,9::SMALLINT,
+           CASE WHEN EXISTS (
+               SELECT 1 FROM execution.semantic_pnf_interface interface_row
+                WHERE interface_row.interface_id=demand.source_interface_id
+           ) THEN demand.source_interface_id ELSE NULL END,
            demand.source_object_id,demand.role_symbol_id,demand.lexical_symbol_id
       FROM execution.semantic_pnf_demand AS demand
      WHERE demand.demand_id=selected_demand_id

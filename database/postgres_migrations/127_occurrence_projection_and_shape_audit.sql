@@ -35,7 +35,8 @@ $$;
 SELECT execution.resolve_numeric_pnf_demand_occurrence_source_object(demand_id)
   FROM execution.semantic_pnf_demand;
 
-CREATE OR REPLACE VIEW execution.semantic_pnf_demand_occurrence_projection_audit_v1 AS
+DROP VIEW IF EXISTS execution.semantic_pnf_demand_occurrence_projection_audit_v1;
+CREATE VIEW execution.semantic_pnf_demand_occurrence_projection_audit_v1 AS
 SELECT audit.*,
        demand.source_object_id AS legacy_source_object_id,
        demand.occurrence_source_object_id,
