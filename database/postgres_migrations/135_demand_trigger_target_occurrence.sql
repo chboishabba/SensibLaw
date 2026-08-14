@@ -9,9 +9,9 @@ BEGIN;
 -- authorize H9 provider work.
 --
 -- New/recompiled demands are different: the demand producer has the exact
--- factor, its typed slots and parser-token support available in the same
--- transaction. An AFTER INSERT/UPDATE producer hook records provenance only
--- when those existing coordinates uniquely license it.
+-- factor, typed slots and parser-token support available in the same
+-- transaction. Producer provenance is recorded only when those existing
+-- coordinates uniquely license it.
 CREATE TABLE IF NOT EXISTS execution.semantic_pnf_demand_occurrence_provenance (
     demand_id BIGINT NOT NULL
         REFERENCES execution.semantic_pnf_demand(demand_id) ON DELETE CASCADE,
@@ -38,10 +38,92 @@ CREATE INDEX IF NOT EXISTS semantic_pnf_demand_target_object_idx
        (object_id,demand_id)
     WHERE occurrence_role=2 AND object_id IS NOT NULL;
 
--- Explicit producer semantics: only residuals whose meaning identifies a typed
--- factor slot receive an entity/object target. This is deliberately finite and
--- numeric at runtime. Absence of a rule means factor-level/unlocated residual,
--- not permission to select a nearby noun.
+-- Generic producer API. Producers must state the occurrence role explicitly.
+-- The database validates that the token is actually inside the demand's source
+-- region and that any claimed object is an exact support object for that token
+-- in the same region. This API never searches for a nearby object.
+CREATE OR REPLACE FUNCTION execution.register_numeric_pnf_demand_occurrence(
+    selected_demand_id BIGINT,
+    selected_occurrence_role SMALLINT,
+    selected_token_id BIGINT,
+    selected_object_id BIGINT,
+    selected_ordinal SMALLINT,
+    selected_producer_ref TEXT
+)
+RETURNS BIGINT
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    selected_source_region_id BIGINT;
+    selected_token_start BIGINT;
+    selected_token_end BIGINT;
+    selected_region_start BIGINT;
+    selected_region_end BIGINT;
+    existing_object_count BIGINT := 0;
+BEGIN
+    IF selected_occurrence_role NOT IN (1,2,3) THEN
+        RAISE EXCEPTION 'invalid demand occurrence role %',selected_occurrence_role;
+    END IF;
+    IF selected_ordinal<0 THEN
+        RAISE EXCEPTION 'negative demand occurrence ordinal %',selected_ordinal;
+    END IF;
+    IF selected_producer_ref IS NULL OR selected_producer_ref='' THEN
+        RAISE EXCEPTION 'demand occurrence producer_ref must be non-empty';
+    END IF;
+
+    SELECT demand.source_region_id,region.start_char,region.end_char,
+           token.start_char,token.end_char
+      INTO selected_source_region_id,selected_region_start,selected_region_end,
+           selected_token_start,selected_token_end
+      FROM execution.semantic_pnf_demand AS demand
+      JOIN execution.semantic_pnf_region AS region
+        ON region.region_id=demand.source_region_id
+      JOIN execution.semantic_parser_token AS token
+        ON token.token_id=selected_token_id
+       AND token.representation_version=2
+     WHERE demand.demand_id=selected_demand_id;
+
+    IF selected_source_region_id IS NULL THEN
+        RAISE EXCEPTION 'unknown demand/token pair %, %',
+            selected_demand_id,selected_token_id;
+    END IF;
+    IF selected_token_start<selected_region_start
+       OR selected_token_end>selected_region_end THEN
+        RAISE EXCEPTION 'demand occurrence token % is outside source region %',
+            selected_token_id,selected_source_region_id;
+    END IF;
+
+    IF selected_object_id IS NOT NULL THEN
+        SELECT count(*) INTO existing_object_count
+          FROM execution.semantic_pnf_object_token_support AS support
+          JOIN execution.semantic_pnf_object AS object
+            ON object.object_id=support.object_id
+         WHERE support.object_id=selected_object_id
+           AND support.token_id=selected_token_id
+           AND object.region_id=selected_source_region_id;
+        IF existing_object_count<>1 THEN
+            RAISE EXCEPTION
+                'object % does not exactly support demand occurrence token % in region %',
+                selected_object_id,selected_token_id,selected_source_region_id;
+        END IF;
+    END IF;
+
+    INSERT INTO execution.semantic_pnf_demand_occurrence_provenance
+        (demand_id,occurrence_role,token_id,object_id,ordinal,producer_ref)
+    VALUES (
+        selected_demand_id,selected_occurrence_role,selected_token_id,
+        selected_object_id,selected_ordinal,selected_producer_ref
+    )
+    ON CONFLICT(demand_id,occurrence_role,token_id,ordinal) DO UPDATE SET
+        object_id=EXCLUDED.object_id,
+        producer_ref=EXCLUDED.producer_ref;
+    RETURN 1;
+END;
+$$;
+
+-- Explicit factor-producer semantics: only residuals whose meaning identifies
+-- a typed factor slot receive an entity/object target. Absence of a rule means
+-- factor-level/unlocated residual, not permission to select a nearby noun.
 CREATE TABLE IF NOT EXISTS execution.semantic_pnf_demand_target_role_rule (
     residual_type_symbol_id BIGINT PRIMARY KEY
         REFERENCES execution.semantic_symbol(symbol_id) ON DELETE CASCADE,
@@ -53,21 +135,19 @@ CREATE TABLE IF NOT EXISTS execution.semantic_pnf_demand_target_role_rule (
 
 INSERT INTO execution.semantic_pnf_demand_target_role_rule
     (residual_type_symbol_id,target_role_symbol_id,rule_ref)
-SELECT residual.symbol_id,role.symbol_id,definition.rule_ref
-  FROM (VALUES
-      ('legal_object_identity_unresolved'::TEXT,'legal_object'::TEXT,
-       'producer-target:legal-object-identity:v1'::TEXT),
-      ('condition_attachment_unresolved'::TEXT,'host'::TEXT,
-       'producer-target:condition-host:v1'::TEXT),
-      ('exception_attachment_unresolved'::TEXT,'host'::TEXT,
-       'producer-target:exception-host:v1'::TEXT),
-      ('norm_bearer_unresolved'::TEXT,'bearer'::TEXT,
-       'producer-target:norm-bearer:v1'::TEXT)
-  ) AS definition(residual_name,role_name,rule_ref)
-  JOIN execution.semantic_symbol AS residual
-    ON residual.kind_id=13 AND residual.symbol_text=definition.residual_name
-  JOIN execution.semantic_symbol AS role
-    ON role.kind_id=19 AND role.symbol_text=definition.role_name
+VALUES
+    (execution.ensure_semantic_symbol(13::SMALLINT,'legal_object_identity_unresolved'),
+     execution.ensure_semantic_symbol(19::SMALLINT,'legal_object'),
+     'producer-target:legal-object-identity:v1'),
+    (execution.ensure_semantic_symbol(13::SMALLINT,'condition_attachment_unresolved'),
+     execution.ensure_semantic_symbol(19::SMALLINT,'host'),
+     'producer-target:condition-host:v1'),
+    (execution.ensure_semantic_symbol(13::SMALLINT,'exception_attachment_unresolved'),
+     execution.ensure_semantic_symbol(19::SMALLINT,'host'),
+     'producer-target:exception-host:v1'),
+    (execution.ensure_semantic_symbol(13::SMALLINT,'norm_bearer_unresolved'),
+     execution.ensure_semantic_symbol(19::SMALLINT,'bearer'),
+     'producer-target:norm-bearer:v1')
 ON CONFLICT(residual_type_symbol_id) DO UPDATE SET
     target_role_symbol_id=EXCLUDED.target_role_symbol_id,
     rule_ref=EXCLUDED.rule_ref;
@@ -85,8 +165,10 @@ DECLARE
     selected_target_object_id BIGINT;
     producer_match_count BIGINT := 0;
     target_match_count BIGINT := 0;
+    evidence_row RECORD;
+    evidence_ordinal SMALLINT := 0;
 BEGIN
-    -- A lexical key remains a candidate-planning coordinate. It may identify
+    -- lexical_symbol_id remains a candidate-planning coordinate. It may locate
     -- the producer trigger, but never the semantic target by itself.
     IF NEW.expected_factor_type_symbol_id IS NULL
        OR NEW.lexical_symbol_id IS NULL THEN
@@ -116,8 +198,9 @@ BEGIN
         RETURN NEW;
     END IF;
 
-    -- Object attachment on the trigger is audit context only. Multiple object
-    -- representations do not prevent recording the trigger token itself.
+    -- Object attachment on a trigger is audit context only. If representation
+    -- is ambiguous, record the exact trigger token with no object rather than
+    -- choosing one.
     SELECT min(support.object_id)
       INTO selected_trigger_object_id
       FROM execution.semantic_pnf_object_token_support AS support
@@ -127,34 +210,36 @@ BEGIN
        AND object.region_id=NEW.source_region_id
     HAVING count(DISTINCT support.object_id)=1;
 
-    INSERT INTO execution.semantic_pnf_demand_occurrence_provenance
-        (demand_id,occurrence_role,token_id,object_id,ordinal,producer_ref)
-    VALUES (
-        NEW.demand_id,1,selected_trigger_token_id,selected_trigger_object_id,0,
+    PERFORM execution.register_numeric_pnf_demand_occurrence(
+        NEW.demand_id,1::SMALLINT,selected_trigger_token_id,
+        selected_trigger_object_id,0::SMALLINT,
         'numeric-factor:'||selected_factor_id::TEXT
-    )
-    ON CONFLICT(demand_id,occurrence_role,token_id,ordinal) DO NOTHING;
+    );
 
-    -- Preserve the other exact factor-support tokens as evidence. They are not
-    -- target candidates and can never authorize provider lookup.
-    INSERT INTO execution.semantic_pnf_demand_occurrence_provenance
-        (demand_id,occurrence_role,token_id,object_id,ordinal,producer_ref)
-    SELECT NEW.demand_id,3,support.token_id,unique_object.object_id,
-           row_number() OVER (ORDER BY support.ordinal,support.token_id)::SMALLINT-1,
-           'numeric-factor:'||selected_factor_id::TEXT
-      FROM execution.semantic_pnf_factor_token_support AS support
-      LEFT JOIN LATERAL (
-          SELECT min(object_support.object_id) AS object_id
-            FROM execution.semantic_pnf_object_token_support AS object_support
-            JOIN execution.semantic_pnf_object AS object
-              ON object.object_id=object_support.object_id
-           WHERE object_support.token_id=support.token_id
-             AND object.region_id=NEW.source_region_id
-          HAVING count(DISTINCT object_support.object_id)=1
-      ) AS unique_object ON TRUE
-     WHERE support.factor_id=selected_factor_id
-       AND support.token_id<>selected_trigger_token_id
-    ON CONFLICT(demand_id,occurrence_role,token_id,ordinal) DO NOTHING;
+    -- Preserve all other exact factor-support tokens as evidence. They never
+    -- become target candidates merely because they support the factor.
+    FOR evidence_row IN
+        SELECT support.token_id,
+               (
+                   SELECT min(object_support.object_id)
+                     FROM execution.semantic_pnf_object_token_support AS object_support
+                     JOIN execution.semantic_pnf_object AS object
+                       ON object.object_id=object_support.object_id
+                    WHERE object_support.token_id=support.token_id
+                      AND object.region_id=NEW.source_region_id
+                   HAVING count(DISTINCT object_support.object_id)=1
+               ) AS object_id
+          FROM execution.semantic_pnf_factor_token_support AS support
+         WHERE support.factor_id=selected_factor_id
+           AND support.token_id<>selected_trigger_token_id
+         ORDER BY support.ordinal,support.token_id
+    LOOP
+        PERFORM execution.register_numeric_pnf_demand_occurrence(
+            NEW.demand_id,3::SMALLINT,evidence_row.token_id,evidence_row.object_id,
+            evidence_ordinal,'numeric-factor:'||selected_factor_id::TEXT
+        );
+        evidence_ordinal:=evidence_ordinal+1;
+    END LOOP;
 
     SELECT rule.target_role_symbol_id
       INTO selected_target_role_id
@@ -168,7 +253,7 @@ BEGIN
     END IF;
 
     -- A semantic target exists only when the typed factor role selects exactly
-    -- one object and that object carries exactly one parser token occurrence.
+    -- one object and that object carries exactly one parser-token occurrence.
     SELECT count(*),min(match.token_id),min(match.object_id)
       INTO target_match_count,selected_target_token_id,selected_target_object_id
       FROM (
@@ -186,21 +271,18 @@ BEGIN
         RETURN NEW;
     END IF;
 
-    INSERT INTO execution.semantic_pnf_demand_occurrence_provenance
-        (demand_id,occurrence_role,token_id,object_id,ordinal,producer_ref)
-    VALUES (
-        NEW.demand_id,2,selected_target_token_id,selected_target_object_id,0,
+    PERFORM execution.register_numeric_pnf_demand_occurrence(
+        NEW.demand_id,2::SMALLINT,selected_target_token_id,
+        selected_target_object_id,0::SMALLINT,
         'numeric-factor:'||selected_factor_id::TEXT
-    )
-    ON CONFLICT(demand_id,occurrence_role,token_id,ordinal) DO NOTHING;
-
+    );
     RETURN NEW;
 END;
 $$;
 
 -- Existing rows are not touched by migration installation. A genuine compiler
--- replay hits INSERT or ON CONFLICT UPDATE and can then derive provenance from
--- the newly/currently materialized factor graph.
+-- replay hits INSERT or ON CONFLICT UPDATE and derives provenance against the
+-- newly/currently materialized factor graph.
 DROP TRIGGER IF EXISTS semantic_pnf_demand_occurrence_producer
     ON execution.semantic_pnf_demand;
 CREATE TRIGGER semantic_pnf_demand_occurrence_producer
