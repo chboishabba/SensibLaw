@@ -12,6 +12,7 @@ M130 = (ROOT / "database/postgres_migrations/130_parser_entity_occurrence_bridge
 M131 = (ROOT / "database/postgres_migrations/131_incremental_parser_entity_surface_labels.sql").read_text()
 M132 = (ROOT / "database/postgres_migrations/132_exact_object_entity_occurrence_audit.sql").read_text()
 M133 = (ROOT / "database/postgres_migrations/133_provider_entity_span_quality_gate.sql").read_text()
+M134 = (ROOT / "database/postgres_migrations/134_provider_entity_terminal_boundary.sql").read_text()
 
 
 def test_occurrence_carrier_distinguishes_strong_and_legacy_support() -> None:
@@ -202,3 +203,12 @@ def test_quality_gate_withdraws_stale_provider_origins_without_deleting_receipts
     assert "SET active=FALSE" in M133
     assert "DELETE FROM execution.semantic_pnf_consumer_external_need_origin" not in M133
     assert "refresh_numeric_pnf_external_request_observer_state" in M133
+
+
+def test_provider_span_rejects_incomplete_terminal_boundaries() -> None:
+    assert "semantic_parser_entity_quality_terminal_pos" in M134
+    for pos in ("DET", "PRON", "ADP", "CCONJ", "SCONJ", "PART", "PUNCT"):
+        assert f"'{pos}'" in M134
+    assert "terminal_token.local_token_ordinal=geometry.last_ordinal" in M134
+    assert "THEN 18" in M134
+    assert "semantic_pnf_h9_entity_bearing_v1" in M134
