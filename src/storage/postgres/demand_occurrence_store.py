@@ -2,9 +2,9 @@
 
 The operational factor carrier uses immutable ``parser-token:...`` references.
 The numeric parser authority uses a different database-local token identity, so
-this boundary recovers only the token's canonical document coordinates.  The
-later SQL projection selects a concrete numeric parser run and demand, failing
-closed if more than one survives.
+this boundary optionally recovers the token's canonical document coordinates.
+The immutable operational occurrence is persisted even when that numeric tape
+is not available yet; later replay may fill the coordinates and project it.
 """
 
 from __future__ import annotations
@@ -22,10 +22,10 @@ def numeric_parser_token_coordinate_map(
 ) -> dict[str, tuple[int, int]]:
     """Reconstruct operational parser-token refs from exact numeric coordinates.
 
-    ``parser_index`` is the authored token order over the document.  Multiple
+    ``parser_index`` is the authored token order over the document. Multiple
     numeric parser runs may contain the same coordinates; they intentionally
     collapse here because run selection happens later against the exact numeric
-    demand.  No token text participates in the mapping.
+    demand. No token text participates in the mapping.
     """
 
     cursor.execute(
@@ -61,9 +61,10 @@ def persist_resolution_demand_occurrences(
 ) -> int:
     """Persist producer-authored occurrences and project them to numeric PNF.
 
-    Unknown/non-token provenance is ignored rather than guessed.  A demand can
-    therefore persist successfully with zero occurrence rows; that state remains
-    unresolved and cannot authorize H9.
+    A missing numeric coordinate does not erase the producer observation. It is
+    persisted with NULL coordinates and remains non-projectable until a later
+    replay can recover the exact parser coordinate. Unknown semantic roles are
+    ignored rather than guessed.
     """
 
     demand_ref = str(demand["demand_ref"])
@@ -81,10 +82,11 @@ def persist_resolution_demand_occurrences(
         role_id = _OCCURRENCE_ROLE_ID.get(role_name)
         token_ref = str(occurrence.get("parser_token_ref") or "")
         residual_type = str(occurrence.get("residual_type") or "")
-        coordinate = coordinate_map.get(token_ref)
-        if role_id is None or not residual_type or coordinate is None or not document_ref:
+        if role_id is None or not token_ref or not residual_type or not document_ref:
             continue
-        start_char, end_char = coordinate
+        coordinate = coordinate_map.get(token_ref)
+        start_char = coordinate[0] if coordinate is not None else None
+        end_char = coordinate[1] if coordinate is not None else None
         cursor.execute(
             """
             INSERT INTO resolution.demand_occurrence_provenance
@@ -95,7 +97,15 @@ def persist_resolution_demand_occurrences(
             ON CONFLICT (
                 demand_ref,residual_type_ref,occurrence_role,
                 parser_token_ref,ordinal
-            ) DO NOTHING
+            ) DO UPDATE SET
+                start_char=COALESCE(
+                    resolution.demand_occurrence_provenance.start_char,
+                    EXCLUDED.start_char
+                ),
+                end_char=COALESCE(
+                    resolution.demand_occurrence_provenance.end_char,
+                    EXCLUDED.end_char
+                )
             """,
             (
                 demand_ref,
@@ -112,7 +122,7 @@ def persist_resolution_demand_occurrences(
         )
         inserted += int(cursor.rowcount or 0)
 
-    # Projection is idempotent and fail-closed.  It may return zero when the
+    # Projection is idempotent and fail-closed. It may return zero when the
     # numeric demand carrier has not yet been built or when historical runs are
     # ambiguous; neither case is negative semantic evidence.
     cursor.execute(
