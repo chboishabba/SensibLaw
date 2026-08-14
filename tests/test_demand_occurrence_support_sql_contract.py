@@ -9,6 +9,8 @@ M126 = (ROOT / "database/postgres_migrations/126_producer_specific_occurrence_su
 M127 = (ROOT / "database/postgres_migrations/127_occurrence_projection_and_shape_audit.sql").read_text()
 M129 = (ROOT / "database/postgres_migrations/129_object_entity_occurrence_audit.sql").read_text()
 M130 = (ROOT / "database/postgres_migrations/130_parser_entity_occurrence_bridge.sql").read_text()
+M131 = (ROOT / "database/postgres_migrations/131_incremental_parser_entity_surface_labels.sql").read_text()
+M132 = (ROOT / "database/postgres_migrations/132_exact_object_entity_occurrence_audit.sql").read_text()
 
 
 def test_occurrence_carrier_distinguishes_strong_and_legacy_support() -> None:
@@ -89,14 +91,9 @@ def test_legacy_source_object_is_not_h9_authority() -> None:
     assert "semantic_pnf_demand_strong_occurrence_support_v1" in M124
 
 
-def test_object_entity_audit_preserves_occurrence_relations_without_object_identity() -> None:
-    assert "semantic_pnf_object_mention_support" in M129
-    assert "semantic_pnf_mention_token" in M129
-    assert "entity_span_contains_all_object_tokens" in M129
+def test_object_entity_audit_records_why_region_sibling_was_only_diagnostic() -> None:
     assert "entity_on_sibling_object" in M129
     assert "semantic_pnf_identity_projection" not in M129
-    assert "symbol_text" not in M129
-    assert "regexp" not in M129.lower()
 
 
 def test_parser_entity_bridge_uses_exact_parser_occurrence_not_region_sibling() -> None:
@@ -137,3 +134,19 @@ def test_stale_identity_only_origins_are_withdrawn_not_deleted() -> None:
     assert "UPDATE execution.semantic_pnf_consumer_external_need_origin" in M130
     assert "SET active=FALSE" in M130
     assert "DELETE FROM execution.semantic_pnf_consumer_external_need_origin" not in M130
+
+
+def test_new_parser_entity_spans_refresh_surface_labels_incrementally() -> None:
+    assert "semantic_parser_entity_surface_label_refresh" in M131
+    assert "AFTER INSERT OR UPDATE" in M131
+    assert "semantic_pnf_parser_entity_surface_label" in M131
+    assert "ensure_semantic_symbol(1::SMALLINT,surface.surface_text)" in M131
+
+
+def test_exact_audit_supersedes_region_sibling_diagnostic() -> None:
+    assert "DROP VIEW IF EXISTS execution.semantic_pnf_object_entity_occurrence_audit_v1" in M132
+    assert "semantic_parser_entity_span" in M132
+    assert "entity.run_ref=token.run_ref" in M132
+    assert "entity.document_ref=token.document_ref" in M132
+    assert "entity.sentence_ref=token.sentence_ref" in M132
+    assert "entity_on_sibling_object" not in M132
