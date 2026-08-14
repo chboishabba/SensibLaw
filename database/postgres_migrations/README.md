@@ -127,6 +127,17 @@
 - `121_h9_entity_admission_invariant_guard.sql` exposes a machine-checkable active
   need invariant and immediately makes stale pre-gate provider requests dormant
   through the existing observer-lifecycle projection.
+- `122_demand_occurrence_support.sql` through
+  `132_exact_object_entity_occurrence_audit.sql` add an explicit many-valued
+  demand->structural-occurrence carrier, producer-specific reconstruction,
+  ambiguity-safe fast projections, exact token->spaCy-entity occurrence bridging,
+  whole-span provider labels, and replacement of an earlier over-broad
+  region-sibling entity diagnostic.
+- `133_provider_entity_span_quality_gate.sql` preserves raw spaCy NER while
+  admitting only canonical provider-facing entity spans: exact contiguous token
+  geometry, one owned sentence, no VERB/AUX clausal content, bounded size, a
+  nominal anchor, and a provider-world-bearing NER class. Rejected spans remain
+  unresolved parser evidence and cannot create HF/Wikidata work.
 - See `docs/reopenable_runtime_architecture.md`,
   `docs/consumer_sufficient_numeric_runtime.md`,
   `docs/late_external_provider_runtime.md`, and
