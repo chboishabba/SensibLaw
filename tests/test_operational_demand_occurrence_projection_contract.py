@@ -146,7 +146,8 @@ def test_persistence_projects_only_exact_coordinate_provenance() -> None:
 
     assert "numeric_parser_token_coordinate_map" in semantic_source
     assert "persist_resolution_demand_occurrences" in semantic_source
-    assert "token text" not in store_source.lower()
+    assert ".casefold(" not in store_source
+    assert "symbol_text" not in store_source
     assert "start_char" in migration and "end_char" in migration
     assert "candidate_count<>1" in migration
     assert "object_count<>1" in migration
