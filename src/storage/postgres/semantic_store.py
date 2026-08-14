@@ -5,6 +5,10 @@ from __future__ import annotations
 from typing import Any, Mapping, Sequence
 
 from src.policy.carriers.canonical import canonical_sha256
+from src.storage.postgres.demand_occurrence_store import (
+    numeric_parser_token_coordinate_map,
+    persist_resolution_demand_occurrences,
+)
 from src.storage.postgres.factor_revision_store import (
     factor_revision_payload,
     factor_revision_ref,
@@ -141,6 +145,7 @@ def persist_resolution_artifacts(
     refinements: Sequence[Mapping[str, Any]],
 ) -> tuple[str, ...]:
     demand_refs: list[str] = []
+    token_coordinates_by_document: dict[str, dict[str, tuple[int, int]]] = {}
     for row in evidence:
         cursor.execute(
             """
@@ -208,6 +213,22 @@ def persist_resolution_artifacts(
                 VALUES (%s, %s) ON CONFLICT DO NOTHING
                 """,
                 (demand_ref, str(facet)),
+            )
+
+        # The operational compiler is the producer that still has the typed
+        # role bindings. Preserve those exact occurrences here, before the
+        # demand is flattened into downstream runtime indexes.
+        if row.get("occurrence_provenance"):
+            coordinate_map = token_coordinates_by_document.get(scope_ref)
+            if coordinate_map is None:
+                coordinate_map = numeric_parser_token_coordinate_map(
+                    cursor, document_ref=scope_ref
+                )
+                token_coordinates_by_document[scope_ref] = coordinate_map
+            persist_resolution_demand_occurrences(
+                cursor,
+                demand=row,
+                coordinate_map=coordinate_map,
             )
     for row in meets:
         cursor.execute(
