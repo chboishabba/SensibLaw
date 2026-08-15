@@ -1,10 +1,11 @@
 """Small reusable psycopg pools for document-persistence execution lanes.
 
-These pools are physical execution state only.  Each COPY lease still owns an
-independent PostgreSQL transaction; returning a connection to the pool happens
-only after commit/rollback.  Telemetry uses a separate single autocommit
-connection so publishing a live lane-start receipt can never deadlock behind all
-COPY workers holding the transactional pool.
+These connections carry execution-only, rebuildable staging and telemetry rows;
+they never publish semantic authority. Each COPY lease still owns an independent
+PostgreSQL transaction. By default those execution transactions use
+``synchronous_commit=off`` so the coordinator does not wait for WAL flush on
+rows whose only crash contract is recomputation. The ordered document authority
+connection is separate and retains its normal durability.
 """
 
 from __future__ import annotations
@@ -15,6 +16,11 @@ import os
 from queue import Empty, LifoQueue
 from threading import Lock
 from typing import Any, Iterator
+
+
+def _async_stage_commit_enabled() -> bool:
+    raw = os.environ.get("SENSIBLAW_PERSISTENCE_ASYNC_STAGE_COMMIT", "1")
+    return raw.strip().lower() not in {"0", "false", "no", "off"}
 
 
 class _ReusablePool:
@@ -62,10 +68,13 @@ class _ReusablePool:
         reusable = True
         try:
             with connection.transaction():
+                if _async_stage_commit_enabled():
+                    # This connection never carries authority tables. A host/DB
+                    # crash can lose a recently acknowledged staging transaction;
+                    # the deterministic stage is simply recomputed on restart.
+                    connection.execute("SET LOCAL synchronous_commit TO off")
                 yield connection
         except BaseException:
-            # A normal SQL exception is rolled back by transaction(); keep the
-            # connection only if psycopg still considers it usable.
             if getattr(connection, "closed", False) or getattr(
                 connection, "broken", False
             ):
@@ -99,7 +108,10 @@ class _TelemetryConnection:
     def _connect(self) -> Any:
         import psycopg  # type: ignore[import-not-found]
 
-        return psycopg.connect(self.dsn, autocommit=True)
+        connection = psycopg.connect(self.dsn, autocommit=True)
+        if _async_stage_commit_enabled():
+            connection.execute("SET synchronous_commit TO off")
+        return connection
 
     @contextmanager
     def cursor(self) -> Iterator[Any]:
