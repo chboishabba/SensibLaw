@@ -9,7 +9,7 @@ the caller's existing document savepoint. Staged rows never publish a document.
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import Iterator
+from typing import Any, Iterator
 
 from src.storage.postgres import (
     work_conserving_binding_persistence as binding_persistence,
@@ -34,11 +34,7 @@ from src.storage.postgres.work_conserving_copy_observability import (
 )
 from src.storage.postgres.work_conserving_graph_batching import (
     flush_graph_batch,
-    persist_binding_after_graph_flush,
     persist_pnf_graph_batched,
-    persist_resolution_after_graph_flush,
-    persist_streamed_builds_after_graph_flush,
-    persist_streamed_links_after_graph_flush,
 )
 from src.storage.postgres.work_conserving_graph_persistence import (
     _factor_payloads,
@@ -51,6 +47,10 @@ from src.storage.postgres.work_conserving_language_persistence import (
     persist_annotation_layer_batches_work_conserving,
     persist_annotation_layer_work_conserving,
     persist_token_batches_work_conserving,
+)
+from src.storage.postgres.work_conserving_resolution_batching import (
+    flush_resolution_batch,
+    persist_resolution_batched,
 )
 from src.storage.postgres.work_conserving_resolution_persistence import (
     _resolution_payloads,
@@ -70,6 +70,23 @@ from src.storage.postgres.work_conserving_stage_hot_path import (
 )
 
 
+def _binding_after_pending_resolution(cursor: Any, **kwargs: Any) -> None:
+    flush_resolution_batch(cursor)
+    persist_binding_candidate_sets_work_conserving(cursor, **kwargs)
+
+
+def _streamed_builds_after_pending_resolution(cursor: Any, rows: Any) -> None:
+    flush_resolution_batch(cursor)
+    persist_streamed_candidate_builds_work_conserving(cursor, rows)
+
+
+def _streamed_links_after_pending_resolution(
+    cursor: Any, *, kind: str, rows: Any
+) -> None:
+    flush_resolution_batch(cursor)
+    persist_streamed_candidate_links_work_conserving(cursor, kind=kind, rows=rows)
+
+
 @contextmanager
 def activate_work_conserving_postgres_bindings() -> Iterator[None]:
     """Temporarily replace only physical persistence helpers in the compiler."""
@@ -77,24 +94,21 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
     import src.policy.postgres_corpus_compilation as compiler
     from src.storage.postgres import work_conserving_stage as stage
 
-    # Install the execution-only stage proof before helper modules capture the
-    # observable staging wrapper. This replaces full provisional-row recounts
-    # with the atomic lane-ledger proof and verifies connection settings once.
     install_work_conserving_stage_hot_path()
 
-    # Manifest factor streams are often physically much smaller than the cost of
-    # opening a PostgreSQL stage for each verified chunk. Return immutable
-    # factor/revision identities immediately but aggregate the execution rows into
-    # bounded graph super-stages. Downstream resolution/binding wrappers flush the
-    # pending graph rows first, retaining the original FK/publication order.
+    # Manifest factor and resolution streams are verified in small chunks. Their
+    # immutable identities are available immediately, but physical PostgreSQL
+    # publication need only precede the first downstream consumer. Bounded
+    # super-batches therefore retain the exact authority order while collapsing
+    # dozens of stage/setup/merge cycles.
     replacements = {
         "persist_licensed_spans": persist_licensed_spans_work_conserving,
         "persist_pnf_graph": persist_pnf_graph_batched,
         "persist_factor_revision": deferred_factor_revision,
-        "persist_resolution_artifacts": persist_resolution_after_graph_flush,
-        "persist_binding_candidate_sets": persist_binding_after_graph_flush,
-        "_persist_streamed_candidate_builds": persist_streamed_builds_after_graph_flush,
-        "_persist_streamed_candidate_links": persist_streamed_links_after_graph_flush,
+        "persist_resolution_artifacts": persist_resolution_batched,
+        "persist_binding_candidate_sets": _binding_after_pending_resolution,
+        "_persist_streamed_candidate_builds": _streamed_builds_after_pending_resolution,
+        "_persist_streamed_candidate_links": _streamed_links_after_pending_resolution,
     }
     helper_modules = (
         graph_persistence,
@@ -116,8 +130,9 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
         module._complete_stage = observable_complete_stage
     try:
         yield
-        # A graph-only document may never enter resolution/binding. Flush the
-        # retained cursor while the ordered authority savepoint is still active.
+        # Graph-only or resolution-only documents may never enter binding.
+        # Flush while the ordered authority savepoint is still active.
+        flush_resolution_batch()
         flush_graph_batch()
     finally:
         for module, originals in helper_originals.items():
