@@ -16,6 +16,8 @@ an explicitly disabled seal take the full verifier.
 from __future__ import annotations
 
 from contextlib import contextmanager
+import hashlib
+import json
 import os
 from pathlib import Path
 import platform
@@ -23,6 +25,35 @@ from typing import Any, Iterator, Mapping
 
 from src.policy import artifact_projection
 from src.runtime import execution_resource_ledger
+
+_CANONICAL_RECORD_ENCODER = json.JSONEncoder(
+    ensure_ascii=False,
+    sort_keys=True,
+    separators=(",", ":"),
+).encode
+
+
+def _canonical_record_bytes(record: Mapping[str, Any]) -> bytes:
+    """Return byte-identical canonical manifest JSON without encoder setup."""
+
+    return _CANONICAL_RECORD_ENCODER(record).encode("utf-8")
+
+
+def _reused_encoder_record_stream_digest(
+    records: Iterator[Mapping[str, Any]],
+) -> tuple[int, str]:
+    """Match the established JSON-list digest with one reusable encoder."""
+
+    digest = hashlib.sha256()
+    digest.update(b"[")
+    count = 0
+    for record in records:
+        if count:
+            digest.update(b",")
+        digest.update(_canonical_record_bytes(record))
+        count += 1
+    digest.update(b"]")
+    return count, digest.hexdigest()
 
 
 def _single_read_process_resources() -> dict[str, int | str]:
@@ -206,8 +237,6 @@ def _memoized_factor_revision_ref(original_factor_revision_ref: Any) -> Any:
         if cached is not None and cached[0] is factor:
             return cached[1]
         revision_ref = str(original_factor_revision_ref(factor))
-        # Retain the object beside its id so CPython id reuse cannot alias a
-        # later mapping to an earlier revision while this document is active.
         cache[identity] = (factor, revision_ref)
         return revision_ref
 
@@ -229,6 +258,7 @@ def activate_carrier_orchestration_hot_path() -> Iterator[None]:
     reader_type = artifact_projection.InMemoryArtifactManifestReader
     original_iter_records = _install_manifest_replay_hot_path()
     original_resource_sampler = execution_resource_ledger.sample_process_resources
+    original_record_stream_digest = artifact_projection._record_stream_digest
     original_project_artifacts = artifact_projection.project_artifacts
     original_operational_project = operational_corpus_compilation.project_artifacts
     original_verified = artifact_projection.iter_verified_records
@@ -245,6 +275,7 @@ def activate_carrier_orchestration_hot_path() -> Iterator[None]:
     sealed_verified = _sealed_iter_verified_records(original_verified)
     memo_revision_ref = _memoized_factor_revision_ref(original_revision_ref)
     execution_resource_ledger.sample_process_resources = _single_read_process_resources
+    artifact_projection._record_stream_digest = _reused_encoder_record_stream_digest
     artifact_projection.project_artifacts = sealed_project
     operational_corpus_compilation.project_artifacts = sealed_project
     artifact_projection.iter_verified_records = sealed_verified
@@ -263,6 +294,7 @@ def activate_carrier_orchestration_hot_path() -> Iterator[None]:
     finally:
         reader_type.iter_records = original_iter_records
         execution_resource_ledger.sample_process_resources = original_resource_sampler
+        artifact_projection._record_stream_digest = original_record_stream_digest
         artifact_projection.project_artifacts = original_project_artifacts
         operational_corpus_compilation.project_artifacts = original_operational_project
         artifact_projection.iter_verified_records = original_verified
