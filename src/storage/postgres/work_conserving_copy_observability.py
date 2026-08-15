@@ -25,9 +25,6 @@ def _record_lane_started(
     row_count: int,
     byte_count: int,
 ) -> None:
-    # Separate autocommit telemetry is intentional: the lane must be externally
-    # visible while its COPY transaction is still running. Reuse one connection
-    # per DSN instead of opening a fresh backend for every partition.
     with persistence_telemetry_cursor(dsn) as cursor:
         cursor.execute(
             """
@@ -98,8 +95,6 @@ def observable_stage_partition(
     backend_pid: int | None = None
     byte_count = sum(stage._estimate_row_bytes(row) for row in rows)
     try:
-        # The reusable lease still provides a fresh transaction per partition.
-        # COPY rows and the final staged lane state therefore remain atomic.
         with transactional_persistence_connection(dsn) as connection:
             with connection.cursor() as cursor:
                 cursor.execute("SELECT pg_backend_pid()")
@@ -228,13 +223,19 @@ def observable_complete_stage(
     stage_ref: str,
     statement_count: int,
 ) -> None:
-    """Complete authority merge and close its externally visible lane."""
+    """Synchronize one authority family before closing its visible lane."""
 
     stage._complete_stage(
         cursor,
         stage_ref=stage_ref,
         statement_count=statement_count,
     )
+    # In pipeline mode all merge statements for this family may still be queued.
+    # The external telemetry connection must not report completion before those
+    # statements (and the published run marker) have actually executed.
+    sync = getattr(cursor, "sync", None)
+    if callable(sync):
+        sync()
     dsn = str(cursor.connection.info.dsn)
     with persistence_telemetry_cursor(dsn) as telemetry:
         telemetry.execute(
