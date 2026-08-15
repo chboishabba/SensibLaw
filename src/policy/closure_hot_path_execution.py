@@ -54,13 +54,10 @@ def auto_semantic_process_workers() -> int:
 
 
 def _dirty_proposals_are_dependency_free(owner: Any) -> bool:
-    """Certify the narrow execution condition used for reduction coalescing."""
+    """Check the incrementally maintained dependency-bearing owner index."""
 
-    for key in tuple(owner._dirty_groups):
-        proposals = owner._proposals_by_owner.get(key, {})
-        if any(proposal.dependency_factor_refs for proposal in proposals.values()):
-            return False
-    return True
+    dependency_bearing = getattr(owner, "_dependency_bearing_owner_keys", ())
+    return not owner._dirty_groups.intersection(dependency_bearing)
 
 
 def install_closure_hot_path_execution() -> bool:
@@ -90,7 +87,26 @@ def install_closure_hot_path_execution() -> bool:
     bounded.solve_operator_job = operational.solve_operator_job
 
     owner_class = bounded.BoundedStreamingSemanticOwner
+    original_index_proposal = owner_class._index_proposal
     original_reduce_dirty_groups = owner_class.reduce_dirty_groups
+
+    def index_proposal(self: Any, proposal: Any, *, stage: str):
+        indexed = original_index_proposal(self, proposal, stage=stage)
+        if indexed is not None and proposal.dependency_factor_refs:
+            _proposal_ref, key = indexed
+            dependency_bearing = getattr(
+                self,
+                "_dependency_bearing_owner_keys",
+                None,
+            )
+            if dependency_bearing is None:
+                dependency_bearing = set()
+                self._dependency_bearing_owner_keys = dependency_bearing
+            dependency_bearing.add(key)
+            counts = getattr(self, "_kernel_counts", None)
+            if counts is not None:
+                counts["dependency_bearing_owner_keys_indexed"] += 1
+        return indexed
 
     def reduce_dirty_groups(self: Any):
         # Solver jobs are immutable and execute without access to owner state.
@@ -113,6 +129,7 @@ def install_closure_hot_path_execution() -> bool:
             return self._advance(prior_revision=self.revision)
         return original_reduce_dirty_groups(self)
 
+    owner_class._index_proposal = index_proposal
     owner_class.reduce_dirty_groups = reduce_dirty_groups
     # The bounded scheduler no longer needs a thread whose only job is to submit
     # the same immutable work to the semantic process pool and block on it.
