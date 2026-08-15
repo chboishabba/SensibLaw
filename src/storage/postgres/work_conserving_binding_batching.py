@@ -47,10 +47,36 @@ def _buffer(runtime: Any) -> tuple[list[StagePayload], set[StagePayload]]:
     return payloads, payload_set
 
 
+def _upsert_key(row: StagePayload) -> tuple[object, ...] | None:
+    """Return PostgreSQL DO UPDATE conflict key for last-writer rows."""
+
+    if row.row_kind_ref in {"factor_anchor", "candidate_build"}:
+        return (row.row_kind_ref, row.texts[0])
+    if row.row_kind_ref == "exclusion_summary":
+        return (row.row_kind_ref, row.texts[0], row.texts[1])
+    return None
+
+
 def _append_unique(runtime: Any, rows: Sequence[StagePayload]) -> None:
     payloads, payload_set = _buffer(runtime)
+    upsert_positions = getattr(runtime, "_binding_batch_upsert_positions", None)
+    if upsert_positions is None:
+        upsert_positions = {}
+        setattr(runtime, "_binding_batch_upsert_positions", upsert_positions)
     for row in rows:
-        if row in payload_set:
+        key = _upsert_key(row)
+        if key is not None:
+            previous = upsert_positions.get(key)
+            if previous is not None:
+                old = payloads[previous]
+                if old == row:
+                    continue
+                payload_set.discard(old)
+                payloads[previous] = row
+                payload_set.add(row)
+                continue
+            upsert_positions[key] = len(payloads)
+        elif row in payload_set:
             continue
         payload_set.add(row)
         payloads.append(row)
@@ -187,6 +213,7 @@ def flush_binding_batch(cursor: Any | None = None) -> None:
     )
     payloads.clear()
     payload_set.clear()
+    getattr(runtime, "_binding_batch_upsert_positions", {}).clear()
     setattr(runtime, "_binding_batch_needs_validation", False)
 
 
