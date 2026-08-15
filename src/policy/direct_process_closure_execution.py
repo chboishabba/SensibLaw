@@ -81,10 +81,17 @@ def install_direct_process_closure_execution() -> bool:
     """Route the bounded closure scheduler straight to process workers."""
 
     from src.policy import bounded_operational_execution as bounded
+    from src.policy.activation_hot_path_execution import (
+        install_activation_hot_path_execution,
+    )
 
     if getattr(bounded, _INSTALL_MARKER, False):
         return False
     bounded.ThreadPoolExecutor = DirectProcessClosurePool
+    # Activation descriptors are checkpoint metadata over immutable deltas, not
+    # semantic computation. Keep those in the coordinator so this process pool
+    # is reserved for work whose CPU cost actually benefits from multiprocessing.
+    install_activation_hot_path_execution()
     setattr(bounded, _INSTALL_MARKER, True)
     return True
 
