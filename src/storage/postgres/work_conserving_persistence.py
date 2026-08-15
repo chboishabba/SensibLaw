@@ -36,8 +36,6 @@ from src.storage.postgres.work_conserving_binding_batching import (
 from src.storage.postgres.work_conserving_binding_persistence import (
     _binding_payloads,
     persist_binding_candidate_sets_work_conserving,
-    persist_streamed_candidate_builds_work_conserving,
-    persist_streamed_candidate_links_work_conserving,
 )
 from src.storage.postgres.work_conserving_copy_observability import (
     observable_complete_stage,
@@ -96,11 +94,6 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
     original_descriptor_metadata = compiler._descriptor_metadata
 
     def persist_completed_build_after_flush(cursor: Any, **kwargs: Any) -> None:
-        # A completed-build receipt is semantic publication evidence, not merely
-        # another row in the transaction. Make its statement order truthful:
-        # every buffered graph/resolution/binding authority row is already
-        # present before the build is declared complete. The surrounding
-        # savepoint still provides the original all-or-nothing document commit.
         flush_binding_batch(cursor)
         flush_resolution_batch(cursor)
         flush_graph_batch(cursor)
@@ -130,9 +123,6 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
     original_stage_partition = stage._stage_partition
     for name, replacement in replacements.items():
         setattr(compiler, name, replacement)
-    # First-pass descriptor verification remains canonical. Reuse only narrow
-    # candidate-link coordinates on later link replay, and obtain primitive PNF
-    # scalar metadata directly from the immutable in-process source when present.
     install_verified_candidate_link_cache(compiler)
     install_descriptor_metadata_hot_path(compiler)
     stage._stage_partition = observable_stage_partition
