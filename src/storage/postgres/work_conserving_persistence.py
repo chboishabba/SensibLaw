@@ -57,6 +57,9 @@ from src.storage.postgres.work_conserving_stage import (
     configure_work_conserving_persistence,
     document_persistence_runtime,
 )
+from src.storage.postgres.work_conserving_stage_hot_path import (
+    install_work_conserving_stage_hot_path,
+)
 
 
 @contextmanager
@@ -65,6 +68,11 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
 
     import src.policy.postgres_corpus_compilation as compiler
     from src.storage.postgres import work_conserving_stage as stage
+
+    # Install the execution-only stage proof before helper modules capture the
+    # observable staging wrapper.  This replaces full provisional-row recounts
+    # with the atomic lane-ledger proof and verifies connection settings once.
+    install_work_conserving_stage_hot_path()
 
     replacements = {
         "persist_licensed_spans": persist_licensed_spans_work_conserving,
