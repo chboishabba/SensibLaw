@@ -5,9 +5,7 @@ from __future__ import annotations
 from typing import Any, Mapping, Sequence
 
 from src.policy.algebra.revision_identity import factor_revision_ref
-from src.storage.postgres.work_conserving_graph_persistence import (
-    _factor_payloads,
-)
+from src.storage.postgres.work_conserving_graph_persistence import _factor_payloads
 from src.storage.postgres.work_conserving_stage import (
     StagePayload,
     _complete_stage,
@@ -15,6 +13,19 @@ from src.storage.postgres.work_conserving_stage import (
     _sha,
     _stage_payloads,
 )
+
+
+def _demand_semantic_key_digest(demand_ref: str) -> bytes:
+    prefix = "demand:"
+    if not demand_ref.startswith(prefix):
+        raise ValueError("demand ref lacks canonical digest prefix")
+    digest = demand_ref[len(prefix) :]
+    if len(digest) != 64:
+        raise ValueError("demand ref contains invalid SHA-256 width")
+    try:
+        return bytes.fromhex(digest)
+    except ValueError as error:
+        raise ValueError("demand ref contains invalid SHA-256") from error
 
 
 def _resolution_payloads(
@@ -81,7 +92,10 @@ def _resolution_payloads(
                     str(row.get("budget_class") or row.get("budget") or "default"),
                     "open",
                 ),
-                byteas=(_sha(row.get("semantic_key") or row),),
+                # Canonical operational demand construction defines demand_ref
+                # as SHA-256(semantic_key). Reuse those exact bytes rather than
+                # canonicalising and hashing the same semantic key again here.
+                byteas=(_demand_semantic_key_digest(demand_ref),),
             )
         )
         payloads.extend(
