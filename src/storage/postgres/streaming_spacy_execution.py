@@ -23,6 +23,7 @@ from src.storage.postgres.numeric_hyperfabric_store import (
     hyperfabric_counts,
     register_authored_hierarchy,
 )
+from src.storage.postgres.numeric_parser_summary import numeric_execution_summary
 from src.storage.postgres.spacy_numeric_projection import commit_numeric_doc
 from src.storage.postgres.spacy_parser_carrier import PostgresSentenceCarrier
 from src.storage.postgres.spacy_parser_model import (
@@ -39,7 +40,6 @@ from src.storage.postgres.spacy_parser_registration import (
 )
 from src.storage.postgres.spacy_parser_store import (
     execution_state,
-    execution_summary,
     fail_partition,
     lease_partitions,
     recover_expired,
@@ -88,10 +88,10 @@ def _worker_drain(
 ) -> tuple[int, int, int, int]:
     """Load spaCy once and return explicit parser/post-parser active work.
 
-    ``parser_work_ns`` times only advancement of the spaCy iterator.  It is an
+    ``parser_work_ns`` times only advancement of the spaCy iterator. It is an
     aggregate process-active work measure, not an exclusive wall-stage timer.
     ``post_parser_work_ns`` times numeric projection plus sentence closure in
-    this worker.  Keeping the names explicit prevents parallel overlap from
+    this worker. Keeping the names explicit prevents parallel overlap from
     being mistaken for additive wall time.
     """
 
@@ -418,7 +418,7 @@ def run_streaming_spacy_execution(
         run_ref=run_ref,
         document_ref=document_ref,
     )
-    summary = execution_summary(
+    summary = numeric_execution_summary(
         database_url,
         run_ref=run_ref,
         document_ref=document_ref,
