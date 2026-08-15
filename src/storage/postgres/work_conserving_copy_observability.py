@@ -8,6 +8,10 @@ from time import monotonic_ns
 from typing import Any, Sequence
 
 from src.storage.postgres import work_conserving_stage as stage
+from src.storage.postgres.reusable_persistence_connections import (
+    persistence_telemetry_cursor,
+    transactional_persistence_connection,
+)
 
 
 def _record_lane_started(
@@ -20,41 +24,42 @@ def _record_lane_started(
     row_count: int,
     byte_count: int,
 ) -> None:
-    psycopg = stage._require_psycopg()
-    with psycopg.connect(dsn) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                INSERT INTO execution.document_persistence_lane
-                    (stage_ref, lane_ref, partition_no, state_ref,
-                     backend_pid, worker_pid, row_count, byte_count,
-                     started_at)
-                VALUES (%s, %s, %s, 'staging', %s, %s, %s, %s,
-                        CURRENT_TIMESTAMP)
-                ON CONFLICT (stage_ref, lane_ref, partition_no) DO UPDATE SET
-                    state_ref = 'staging',
-                    backend_pid = EXCLUDED.backend_pid,
-                    worker_pid = EXCLUDED.worker_pid,
-                    row_count = EXCLUDED.row_count,
-                    byte_count = EXCLUDED.byte_count,
-                    elapsed_ms = 0,
-                    client_user_cpu_ms = 0,
-                    client_system_cpu_ms = 0,
-                    wait_event_type_ref = NULL,
-                    wait_event_ref = NULL,
-                    started_at = CURRENT_TIMESTAMP,
-                    completed_at = NULL
-                """,
-                (
-                    stage_ref,
-                    lane_ref,
-                    partition_no,
-                    backend_pid,
-                    os.getpid(),
-                    row_count,
-                    byte_count,
-                ),
-            )
+    # Separate autocommit telemetry is intentional: the lane must be externally
+    # visible while its COPY transaction is still running. Reuse one connection
+    # per DSN instead of opening a fresh backend for every partition.
+    with persistence_telemetry_cursor(dsn) as cursor:
+        cursor.execute(
+            """
+            INSERT INTO execution.document_persistence_lane
+                (stage_ref, lane_ref, partition_no, state_ref,
+                 backend_pid, worker_pid, row_count, byte_count,
+                 started_at)
+            VALUES (%s, %s, %s, 'staging', %s, %s, %s, %s,
+                    CURRENT_TIMESTAMP)
+            ON CONFLICT (stage_ref, lane_ref, partition_no) DO UPDATE SET
+                state_ref = 'staging',
+                backend_pid = EXCLUDED.backend_pid,
+                worker_pid = EXCLUDED.worker_pid,
+                row_count = EXCLUDED.row_count,
+                byte_count = EXCLUDED.byte_count,
+                elapsed_ms = 0,
+                client_user_cpu_ms = 0,
+                client_system_cpu_ms = 0,
+                wait_event_type_ref = NULL,
+                wait_event_ref = NULL,
+                started_at = CURRENT_TIMESTAMP,
+                completed_at = NULL
+            """,
+            (
+                stage_ref,
+                lane_ref,
+                partition_no,
+                backend_pid,
+                os.getpid(),
+                row_count,
+                byte_count,
+            ),
+        )
 
 
 def _record_lane_failed(
@@ -65,18 +70,16 @@ def _record_lane_failed(
     partition_no: int,
     elapsed_ms: int,
 ) -> None:
-    psycopg = stage._require_psycopg()
-    with psycopg.connect(dsn) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                UPDATE execution.document_persistence_lane
-                SET state_ref = 'failed', elapsed_ms = %s,
-                    completed_at = CURRENT_TIMESTAMP
-                WHERE stage_ref = %s AND lane_ref = %s AND partition_no = %s
-                """,
-                (elapsed_ms, stage_ref, lane_ref, partition_no),
-            )
+    with persistence_telemetry_cursor(dsn) as cursor:
+        cursor.execute(
+            """
+            UPDATE execution.document_persistence_lane
+            SET state_ref = 'failed', elapsed_ms = %s,
+                completed_at = CURRENT_TIMESTAMP
+            WHERE stage_ref = %s AND lane_ref = %s AND partition_no = %s
+            """,
+            (elapsed_ms, stage_ref, lane_ref, partition_no),
+        )
 
 
 def observable_stage_partition(
@@ -89,13 +92,14 @@ def observable_stage_partition(
 ) -> dict[str, Any]:
     """COPY one partition while exposing its backend PID before work begins."""
 
-    psycopg = stage._require_psycopg()
     started_ns = monotonic_ns()
     before = resource.getrusage(resource.RUSAGE_THREAD)
     backend_pid: int | None = None
     byte_count = sum(stage._estimate_row_bytes(row) for row in rows)
     try:
-        with psycopg.connect(dsn) as connection:
+        # The reusable lease still provides a fresh transaction per partition.
+        # COPY rows and the final staged lane state therefore remain atomic.
+        with transactional_persistence_connection(dsn) as connection:
             with connection.cursor() as cursor:
                 cursor.execute("SELECT pg_backend_pid()")
                 backend_pid = int(cursor.fetchone()[0])
@@ -191,33 +195,31 @@ def observable_stage_payloads(
     dsn = str(cursor.connection.info.dsn)
     cursor.execute("SELECT pg_backend_pid()")
     backend_pid = int(cursor.fetchone()[0])
-    psycopg = stage._require_psycopg()
-    with psycopg.connect(dsn) as connection:
-        with connection.cursor() as telemetry:
-            telemetry.execute(
-                """
-                INSERT INTO execution.document_persistence_lane
-                    (stage_ref, lane_ref, partition_no, state_ref,
-                     backend_pid, worker_pid, row_count, byte_count,
-                     started_at)
-                VALUES (%s, 'authority', 0, 'staging', %s, %s, %s, 0,
-                        CURRENT_TIMESTAMP)
-                ON CONFLICT (stage_ref, lane_ref, partition_no) DO UPDATE SET
-                    state_ref = 'staging',
-                    backend_pid = EXCLUDED.backend_pid,
-                    worker_pid = EXCLUDED.worker_pid,
-                    row_count = EXCLUDED.row_count,
-                    byte_count = 0,
-                    elapsed_ms = 0,
-                    client_user_cpu_ms = 0,
-                    client_system_cpu_ms = 0,
-                    wait_event_type_ref = NULL,
-                    wait_event_ref = NULL,
-                    started_at = CURRENT_TIMESTAMP,
-                    completed_at = NULL
-                """,
-                (stage_ref, backend_pid, os.getpid(), len(payloads)),
-            )
+    with persistence_telemetry_cursor(dsn) as telemetry:
+        telemetry.execute(
+            """
+            INSERT INTO execution.document_persistence_lane
+                (stage_ref, lane_ref, partition_no, state_ref,
+                 backend_pid, worker_pid, row_count, byte_count,
+                 started_at)
+            VALUES (%s, 'authority', 0, 'staging', %s, %s, %s, 0,
+                    CURRENT_TIMESTAMP)
+            ON CONFLICT (stage_ref, lane_ref, partition_no) DO UPDATE SET
+                state_ref = 'staging',
+                backend_pid = EXCLUDED.backend_pid,
+                worker_pid = EXCLUDED.worker_pid,
+                row_count = EXCLUDED.row_count,
+                byte_count = 0,
+                elapsed_ms = 0,
+                client_user_cpu_ms = 0,
+                client_system_cpu_ms = 0,
+                wait_event_type_ref = NULL,
+                wait_event_ref = NULL,
+                started_at = CURRENT_TIMESTAMP,
+                completed_at = NULL
+            """,
+            (stage_ref, backend_pid, os.getpid(), len(payloads)),
+        )
     return stage_ref
 
 
@@ -235,24 +237,22 @@ def observable_complete_stage(
         statement_count=statement_count,
     )
     dsn = str(cursor.connection.info.dsn)
-    psycopg = stage._require_psycopg()
-    with psycopg.connect(dsn) as connection:
-        with connection.cursor() as telemetry:
-            telemetry.execute(
-                """
-                UPDATE execution.document_persistence_lane
-                SET state_ref = 'staged',
-                    elapsed_ms = GREATEST(
-                        0,
-                        FLOOR(EXTRACT(EPOCH FROM
-                            (CURRENT_TIMESTAMP - started_at)) * 1000)::bigint
-                    ),
-                    completed_at = CURRENT_TIMESTAMP
-                WHERE stage_ref = %s AND lane_ref = 'authority'
-                  AND partition_no = 0
-                """,
-                (stage_ref,),
-            )
+    with persistence_telemetry_cursor(dsn) as telemetry:
+        telemetry.execute(
+            """
+            UPDATE execution.document_persistence_lane
+            SET state_ref = 'staged',
+                elapsed_ms = GREATEST(
+                    0,
+                    FLOOR(EXTRACT(EPOCH FROM
+                        (CURRENT_TIMESTAMP - started_at)) * 1000)::bigint
+                ),
+                completed_at = CURRENT_TIMESTAMP
+            WHERE stage_ref = %s AND lane_ref = 'authority'
+              AND partition_no = 0
+            """,
+            (stage_ref,),
+        )
 
 
 __all__ = [
