@@ -115,6 +115,10 @@ jobs:
                   """
                   def extract_text(path):
                       return ""
+
+
+                  def extract_pages(path):
+                      return []
                   """
               ).lstrip()
           )
