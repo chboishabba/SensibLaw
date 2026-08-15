@@ -1,14 +1,14 @@
 """Direct process-backed execution for the bounded closure scheduler.
 
 The bounded scheduler already owns leasing, backpressure and serial owner
-admission.  The earlier multicore bridge ran each leased job through a thread,
+admission. The earlier multicore bridge ran each leased job through a thread,
 which submitted the same immutable job to the shared semantic process pool and
-blocked on ``Future.result()``.  That added a second scheduler and one extra
+blocked on ``Future.result()``. That added a second scheduler and one extra
 cross-thread handoff per sentence.
 
 This execution-only adapter lets the bounded scheduler submit directly to the
-already-managed process pool.  Child processes still execute the canonical
-``PythonClosureExecutor`` and return the same ``SolverReceipt``.  If process
+already-managed process pool. Child processes still execute the canonical
+``PythonClosureExecutor`` and return the same ``SolverReceipt``. If process
 execution is disabled (worker width 1), or receipt-stop fault injection is
 active, the original thread executor is used unchanged.
 """
@@ -31,6 +31,24 @@ def _receipt_stop_injection_active() -> bool:
         return int(raw or "0") > 0
     except ValueError:
         return False
+
+
+def _process_pids(executor: Any) -> tuple[int, ...]:
+    """Return live managed worker PIDs without changing the worker contract."""
+
+    processes = getattr(executor, "_processes", None)
+    if not isinstance(processes, dict):
+        return ()
+    pids: set[int] = set()
+    for key, process in processes.items():
+        raw_pid = getattr(process, "pid", None) or key
+        try:
+            pid = int(raw_pid)
+        except (TypeError, ValueError):
+            continue
+        if pid > 0 and getattr(process, "is_alive", lambda: True)():
+            pids.add(pid)
+    return tuple(sorted(pids))
 
 
 class DirectProcessClosurePool:
@@ -94,6 +112,13 @@ class DirectProcessClosurePool:
                 str(receipt_path) if receipt_path is not None else None,
             )
             if context is not None:
+                # ProcessPoolExecutor starts workers lazily at submit time. Keep
+                # physical PID evidence in the coordinator-side audit counters;
+                # never add execution topology to the semantic SolverReceipt.
+                worker_pids = _process_pids(self._process_pool)
+                with context.lock:
+                    for pid in worker_pids:
+                        context.closure_counters[f"process_worker_pid:{pid}"] = 1
 
                 def record_completion(done: Future[Any]) -> None:
                     try:
@@ -109,6 +134,12 @@ class DirectProcessClosurePool:
                             len(proposal.dependency_factor_refs)
                             for proposal in receipt.proposals
                         )
+                        # Refresh once more on completion in case the pool grew
+                        # after the first lazy submission.
+                        for pid in _process_pids(self._process_pool):
+                            context.closure_counters[
+                                f"process_worker_pid:{pid}"
+                            ] = 1
 
                 future.add_done_callback(record_completion)
             return future
