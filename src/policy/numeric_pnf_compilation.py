@@ -46,6 +46,20 @@ def _artifact_root(
     return Path(".tmp") / "numeric-pnf" / run_ref.replace(":", "_")
 
 
+def _controlled_reuse_measurement_enabled() -> bool:
+    """Keep scan-heavy corpus observability out of ordinary production.
+
+    The controlled learning recorder intentionally scans several numeric
+    relations to measure reuse.  That is valuable in calibration/benchmarking,
+    but paying for those scans on every document would make the observatory part
+    of the compiler cost it is meant to measure.
+    """
+
+    import os
+
+    return os.environ.get("SENSIBLAW_RECORD_CONTROLLED_REUSE", "0") == "1"
+
+
 def _parser_policy(
     *,
     target_chars: int,
@@ -316,8 +330,8 @@ def persist_numeric_pnf_document(
                 state="reused_numeric_pnf",
             )
             # A cached build is an execution-reuse receipt, not a new semantic
-            # work observation.  It may be reused under a fresh requested run_ref
-            # that has no numeric run identity.  Replay timing/work is measured
+            # work observation. It may be reused under a fresh requested run_ref
+            # that has no numeric run identity. Replay timing/work is measured
             # by the replay benchmark rather than forged as a fresh compile row.
             return cached
         store.persist_source_document(
@@ -379,24 +393,25 @@ def persist_numeric_pnf_document(
             state="compiled_numeric_pnf",
         )
 
-    measurement_id = _record_controlled_reuse(
-        database_url=database_url,
-        run_ref=run_ref,
-        document_ref=document_ref,
-        canonical_text_sha256=canonical_text_sha256,
-        build_key_sha256=build_key_sha256,
-    )
-    if progress is not None and hasattr(progress, "finish"):
-        progress.finish(
-            state="completed",
-            details={
-                "state": "compiled_numeric_pnf",
-                "build_key_sha256": build_key_sha256,
-                "graph_ref": graph_ref,
-                "demand_ref_count": len(demand_refs),
-                "controlled_reuse_measurement_id": measurement_id,
-            },
+    measurement_id: int | None = None
+    if _controlled_reuse_measurement_enabled():
+        measurement_id = _record_controlled_reuse(
+            database_url=database_url,
+            run_ref=run_ref,
+            document_ref=document_ref,
+            canonical_text_sha256=canonical_text_sha256,
+            build_key_sha256=build_key_sha256,
         )
+    if progress is not None and hasattr(progress, "finish"):
+        details: dict[str, Any] = {
+            "state": "compiled_numeric_pnf",
+            "build_key_sha256": build_key_sha256,
+            "graph_ref": graph_ref,
+            "demand_ref_count": len(demand_refs),
+        }
+        if measurement_id is not None:
+            details["controlled_reuse_measurement_id"] = measurement_id
+        progress.finish(state="completed", details=details)
     return demand_refs
 
 
