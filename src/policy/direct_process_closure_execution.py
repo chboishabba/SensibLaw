@@ -143,6 +143,9 @@ def install_direct_process_closure_execution() -> bool:
     from src.policy.resource_sampling_hot_path_execution import (
         install_resource_sampling_hot_path_execution,
     )
+    from src.policy.typing_leaf_hot_path_execution import (
+        install_typing_leaf_hot_path_execution,
+    )
 
     if getattr(bounded, _INSTALL_MARKER, False):
         return False
@@ -151,6 +154,10 @@ def install_direct_process_closure_execution() -> bool:
     # semantic computation. Keep those in the coordinator so this process pool
     # is reserved for work whose CPU cost actually benefits from multiprocessing.
     install_activation_hot_path_execution()
+    # Typing leaves share the process pool. Keep their physical submission
+    # frontier bounded and compute content-addressed leaf identities once before
+    # the later durability wrapper captures this execution seam.
+    install_typing_leaf_hot_path_execution()
     # Scheduler pressure and receipt progress sample the same process tree in
     # immediate succession. Reuse only those millisecond-scale duplicate reads;
     # the underlying pressure signal remains process-tree RSS.
