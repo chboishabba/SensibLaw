@@ -9,6 +9,7 @@ from src.policy.postgres_corpus_compilation import (
     _operational_build_key,
     persist_document_compilation,
 )
+from src.storage.postgres.pipelined_document_cursor import PipelinedDocumentCursor
 from src.storage.postgres.work_conserving_persistence import (
     WORK_CONSERVING_PERSISTENCE_CONTRACT,
     activate_work_conserving_postgres_bindings,
@@ -24,7 +25,7 @@ WORK_CONSERVING_DOCUMENT_EXECUTOR_REF = (
 
 @contextmanager
 def _claim_budget_at_document_savepoint(store: Any, runtime: Any) -> Iterator[None]:
-    """Transfer the full budget at the exact persistence boundary."""
+    """Transfer the budget and pipeline the ordered publication transaction."""
 
     original_savepoint = store.savepoint
 
@@ -32,7 +33,12 @@ def _claim_budget_at_document_savepoint(store: Any, runtime: Any) -> Iterator[No
     def budgeted_savepoint() -> Iterator[Any]:
         runtime.ensure_budget()
         with original_savepoint() as cursor:
-            yield cursor
+            # Publication order and transaction boundaries remain unchanged.
+            # The facade merely lets psycopg queue consecutive statements until
+            # their result is actually observed, cutting one network wait per
+            # INSERT/UPDATE on high-fanout persistence families.
+            with PipelinedDocumentCursor(cursor) as pipelined:
+                yield pipelined
 
     store.savepoint = budgeted_savepoint
     try:
