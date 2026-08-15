@@ -139,20 +139,29 @@ def _durable_pool() -> ProcessPoolExecutor | None:
     workers = tail._process_workers()
     if workers <= 1:
         return None
+    stale_pool: ProcessPoolExecutor | None = None
     with tail._POOL_LOCK:
-        if tail._POOL is None:
+        if tail._POOL is not None and tail._POOL_WORKERS != workers:
+            # Detach the old pool while holding the lock, but shut it down
+            # after releasing it.  shutdown_semantic_process_pool() takes the
+            # same lock and must not be called while it is held.
+            stale_pool = tail._POOL
+            tail._POOL = None
+            tail._POOL_WORKERS = 0
+        if tail._POOL is None and stale_pool is None:
             tail._POOL = ProcessPoolExecutor(
                 max_workers=workers,
                 mp_context=multiprocessing.get_context("spawn"),
                 initializer=linux_parent_death_initializer,
             )
             tail._POOL_WORKERS = workers
-        elif tail._POOL_WORKERS != workers:
-            # A prior focused test or completed document may have left the
-            # shared pool idle under a different explicit width.  Recycle it
-            # at the next activation boundary; once this pool is returned, its
-            # width remains fixed for the current document.
-            tail.shutdown_semantic_process_pool()
+            return tail._POOL
+
+    if stale_pool is not None:
+        stale_pool.shutdown(wait=True, cancel_futures=True)
+
+    with tail._POOL_LOCK:
+        if tail._POOL is None:
             tail._POOL = ProcessPoolExecutor(
                 max_workers=workers,
                 mp_context=multiprocessing.get_context("spawn"),
