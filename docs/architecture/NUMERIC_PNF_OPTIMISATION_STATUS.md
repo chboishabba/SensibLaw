@@ -1,13 +1,13 @@
 # Numeric PNF optimisation status
 
 This note separates implemented execution changes from proof and measurement
-obligations. It is intentionally narrower than the architecture overview.  The
+obligations. It is intentionally narrower than the architecture overview. The
 priority ordering is defined by
 `docs/architecture/PRODUCTION_PERFORMANCE_CONSTITUTION.md`.
 
 ## Production priority
 
-The optimization target is not "make every existing path faster".  It is:
+The optimization target is not "make every existing path faster". It is:
 
 ```text
 parse once
@@ -17,44 +17,96 @@ parse once
 → reuse forever
 ```
 
-Therefore the current priority order is:
+The current order is therefore:
 
-1. complete all semantically required outputs directly on the numeric compiler;
-2. make numeric strict execution the normal production route;
-3. remove/bypass nonnumeric compatibility carriers from that route;
-4. make H3→H6→H9 physically lazy and reverse-dependency incremental;
-5. demonstrate controlled corpus-learning work non-increase;
-6. establish token-normalised cold/replay/edit/same-domain scaling;
-7. only then parallelise/vectorise the remaining measured numeric kernels.
+1. keep numeric strict execution as the normal PostgreSQL production route;
+2. remove/bypass remaining nonnumeric compatibility carriers;
+3. make reverse-dependency reopening the ordinary update path;
+4. demonstrate controlled corpus-learning work non-increase;
+5. establish token-normalised cold/replay/edit/same-domain scaling;
+6. only then parallelise/vectorise the remaining measured numeric kernels.
 
 The rich operational graph remains valuable as an audit/reference/parity oracle.
 It is not the desired steady-state production carrier.
 
-## Numeric strict path already exists
+## Numeric strict production path
 
-`src/policy/numeric_pnf_compilation.py` already has the crucial architectural
-property: strict compilation does not reconstruct the legacy document-sized
-parser mapping, mention carrier, factor graph, or artifact bundle.  spaCy commits
-numeric observations once and PNF closure proceeds over those rows.
+`src/policy/numeric_pnf_compilation.py` has the crucial architectural property:
+strict compilation does not reconstruct the legacy document-sized parser
+mapping, mention carrier, factor graph, or artifact bundle. spaCy commits numeric
+observations once and PNF closure proceeds over those rows.
 
-`src/policy/streaming_spacy_parser_execution.py` routes strict PostgreSQL
-strategies to this numeric compiler.  The remaining integration question is not
-whether the numeric compiler exists, but which producer outputs still force
-normal workloads through operational compatibility before downstream consumers
-are satisfied.
+`src/policy/streaming_spacy_parser_execution.py` now treats PostgreSQL authority
+plus an omitted execution strategy as an explicit production choice:
 
-In particular, occurrence provenance such as trigger/target/evidence coordinates
-must be produced natively on the numeric carrier wherever downstream H3/H6/H9
-or external admission requires it.  A compatibility bridge is a migration seam,
-not the final architecture.
+```text
+postgresql-typed-exact-execution:v2
+```
+
+Explicit `local-compatibility-replay` remains authoritative for audit/parity and
+no-database callers retain compatibility behavior. The default can also be
+rolled back deliberately with `SENSIBLAW_NUMERIC_PRODUCTION_DEFAULT=0`; there is
+no silent fallback from a requested strict run.
+
+## Native demand occurrence provenance is already numeric
+
+Migration `135_demand_trigger_target_occurrence.sql` closes the previously
+suspected operational-provenance blocker directly on the numeric carrier.
+
+An `AFTER INSERT OR UPDATE` producer on `execution.semantic_pnf_demand` records:
+
+- occurrence role 1: the exact factor/token trigger;
+- occurrence role 2: the exact typed target token/object when uniquely licensed;
+- occurrence role 3: other exact factor-support evidence tokens.
+
+The producer uses numeric factor-token support, object-token support and typed
+hyperedges. It fails closed when the producer factor or target is ambiguous and
+never searches for a nearby noun/object. Missing target provenance therefore
+remains unresolved and cannot authorize H9 work.
+
+The older operational→numeric occurrence bridge remains useful for replay and
+migration of historical operational demands; it is not a dependency of
+`numeric_pnf_compilation.py`.
+
+## H3 → H6 → H9 is physically residual-driven
+
+Migration `110_residual_driven_h6_and_zero_need_h9.sql` and the existing consumer
+runtime already distinguish queue processing from semantic stopping:
+
+```text
+H3 completed
+→ rebuild consumer outcome
+→ enqueue H6 only when residual_required
+
+H6 ready residual
+→ produce numeric typed discourse/temporal evidence
+→ rebuild outcome
+→ expose H9 only when residual_required
+
+H9 residual
+→ explicit consumer world-axis need
+→ cache/provider request planning
+```
+
+Missing H6 relations create no negative evidence. Zero explicit H9 needs is a
+successful zero-work plan.
+
+`src/storage/postgres/progressive_horizon_runtime_store.py` now exposes this as a
+single production-facing orchestration contract. H6 is not called when the H3
+residual is empty; H9 planning is not called when the H6 residual is empty; H9
+planning requires explicit opt-in and never performs provider I/O.
+
+The remaining horizon work is therefore not "make the logical labels lazy" but
+validate this residual-only route at corpus scale and make consumer
+reverse-dependency wakeup the normal incremental entrypoint.
 
 ## JSON / rich carrier status
 
-JSON is not a numeric execution optimization target.  It is sin-binned from
+JSON is not a numeric execution optimization target. It is sin-binned from
 semantic authority and ordinary hot execution.
 
 A canonical JSON pass is tolerated only where an existing versioned identity
-contract is explicitly defined over those bytes.  The current work-conserving
+contract is explicitly defined over those bytes. The current work-conserving
 manifest optimization makes this a named legacy boundary capability, reuses the
 producer digest/seal, and bypasses repeated envelope reconstruction for
 same-process immutable consumers.
@@ -70,8 +122,8 @@ See `docs/architecture/JSON_SIN_BIN.md` and
 
 ## Performance constitution
 
-`src/runtime/performance_constitution.py` now encodes two important restrictions
-on performance claims:
+`src/runtime/performance_constitution.py` encodes two important restrictions on
+performance claims:
 
 - `T_post-parser <= 0.10 * T_spaCy` may be certified only when both parser and
   post-parser kernels are explicitly measured; wall subtraction is not accepted;
@@ -81,7 +133,7 @@ on performance claims:
 A single cold run cannot establish incremental economy, delta-locality,
 same-domain reuse, or corpus-scale linearity.
 
-## Recent physical execution result
+## Recent compatibility-path physical result
 
 The work-conserving compatibility path remains useful for migration/parity and
 has materially improved:
@@ -92,8 +144,8 @@ has materially improved:
 - transaction commit/fsync tail was only milliseconds;
 - COPY tuple expansion/stage setup were ruled out as dominant costs.
 
-Those wins are important, but they do not change the priority above: once a cost
-belongs only to a compatibility carrier that numeric production can bypass,
+Those wins are important, but they do not change the production priority: once a
+cost belongs only to a compatibility carrier that numeric production bypasses,
 removing the carrier outranks further micro-optimizing it.
 
 ## Dependency-head authority
@@ -155,17 +207,20 @@ comparison; its trigger is removed.
 
 ## Still open
 
-### Production blockers
+### Highest-priority production work
 
-- identify and port every still-operational-only producer output required by
-  numeric downstream consumers, especially exact occurrence provenance;
-- make the numeric strict route the preferred/default production entrypoint
-  while retaining an explicit compatibility escape hatch;
+- prove in live PostgreSQL that the new numeric-default entrypoint exercises the
+  expected migration 135 occurrence producer and residual-only horizon route;
+- make consumer reverse-dependency wakeup the ordinary update/reopen entrypoint,
+  not an optional store method;
 - remove remaining semantic JSON/string/regex paths rather than merely bypassing
   them at runtime;
-- make H3/H6/H9 evidence production physically residual-driven;
-- make reverse-dependency reopening the ordinary update path;
-- produce controlled cold/replay/edit/same-domain reuse measurements.
+- produce controlled cold/exact-replay/small-edit/same-domain-new-document
+  measurements with explicit parser and post-parser timings;
+- demonstrate `W_after <= W_before` on exact controlled recurring workloads;
+- identify any consumer output that still genuinely requires operational
+  compatibility and either port that producer to numeric authority or document
+  why it is an explicit boundary/audit concern.
 
 ### Numeric planner/runtime work
 
@@ -176,7 +231,8 @@ comparison; its trigger is removed.
   approximate-proposal/exact-verification planner;
 - make parent interfaces discharge sibling demands rather than mainly copying
   child exports;
-- implement adjacent-sentence and adjacent-paragraph reconciliation;
+- implement adjacent-sentence and adjacent-paragraph reconciliation where H6
+  evidence requires it;
 - validate migrations, real spaCy/PostgreSQL execution, query plans, restart
   identity, document 0008, and synthetic scaling on the self-hosted runner.
 
