@@ -38,6 +38,15 @@ class DocumentCase:
     path: Path
 
 
+def _acceptance_ref(*, case: DocumentCase, mode: str, run_root: Path) -> str:
+    """Return a provisioning-unique acceptance reference for one replay."""
+
+    run_token = hashlib.sha256(
+        str(run_root.parents[1].resolve()).encode("utf-8")
+    ).hexdigest()[:16]
+    return f"replay-{run_token}-{case.label}-{mode}"
+
+
 def _mapping(path: Path) -> dict[str, Any]:
     return read_report(path)
 
@@ -121,7 +130,15 @@ def _command(
     strict_exact: bool,
     owner_partitions: int,
 ) -> list[str]:
-    acceptance_root = run_root / "acceptance" / f"{case.label}-{mode}"
+    acceptance_root = (
+        run_root
+        / "acceptance"
+        / _acceptance_ref(
+            case=case,
+            mode=mode,
+            run_root=run_root,
+        )
+    )
     command = [
         sys.executable,
         str(ROOT / "scripts" / "run_exact_0008_parallel_acceptance.py"),
@@ -223,7 +240,7 @@ def _run_case(
     strict_path = (
         run_root
         / "acceptance"
-        / f"{case.label}-{mode}"
+        / _acceptance_ref(case=case, mode=mode, run_root=run_root)
         / "strict"
         / "acceptance-receipt.json"
     )

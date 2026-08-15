@@ -10,7 +10,6 @@ from typing import Any, Iterator
 
 from src.policy.postgres_corpus_compilation import (
     _operational_build_key,
-    persist_document_compilation,
 )
 from src.storage.postgres.pipelined_document_cursor import PipelinedDocumentCursor
 from src.storage.postgres.work_conserving_persistence import (
@@ -60,6 +59,18 @@ def _write_persistence_metrics(metrics: dict[str, Any]) -> None:
     temporary.replace(path)
 
 
+def _canonical_document_persistence() -> Any:
+    """Return the operational persistence authority beneath strict parser wrapping."""
+
+    from src.policy import postgres_corpus_compilation as postgres
+
+    return getattr(
+        postgres,
+        "_persist_document_compilation_without_streaming_spacy",
+        postgres.persist_document_compilation,
+    )
+
+
 def persist_document_compilation_work_conserving(**kwargs: Any) -> tuple[str, ...]:
     """Run the existing compiler with a parallel staged persistence substrate.
 
@@ -92,7 +103,7 @@ def persist_document_compilation_work_conserving(**kwargs: Any) -> tuple[str, ..
         with _claim_budget_at_document_savepoint(store, runtime):
             with activate_work_conserving_store_bindings(store):
                 with activate_work_conserving_postgres_bindings():
-                    result = persist_document_compilation(**kwargs)
+                    result = _canonical_document_persistence()(**kwargs)
     metrics = {
         "contract_ref": WORK_CONSERVING_PERSISTENCE_CONTRACT,
         "document_ref": document_ref,

@@ -436,7 +436,12 @@ def _verify_explicit_publication(args: argparse.Namespace) -> dict[str, Any]:
     expected_refs = sorted(document_refs)
     verified = (
         sorted(row[0] for row in occurrences) == expected_refs
-        and all(state == "compiled" for _ref, state in occurrences)
+        # A content-addressed build may be reused after its immutable
+        # publication already completed.  It carries the same final
+        # authority boundary as a newly compiled occurrence.
+        and all(
+            state in {"compiled", "reused_compilation"} for _ref, state in occurrences
+        )
         and builds == [(ref, 1) for ref in expected_refs]
         and len(manifests) == len(expected_refs)
         and all(count > 0 and digest_valid for _ref, count, digest_valid in manifests)

@@ -16,6 +16,7 @@ from src.policy.work_conserving_ordered_compilation import (
 )
 from src.policy.work_conserving_postgres_corpus_compilation import (
     WORK_CONSERVING_DOCUMENT_EXECUTOR_REF,
+    _canonical_document_persistence,
     persist_document_compilation_work_conserving,
 )
 from src.storage.postgres.work_conserving_persistence import (
@@ -173,3 +174,21 @@ def test_ordered_wrapper_injects_work_conserving_executor(
         WORK_CONSERVING_PERSISTENCE_CONTRACT
     )
     assert observed["worker_budget"] == 4
+
+
+def test_work_conserving_persistence_bypasses_strict_numeric_wrapper(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import src.policy.postgres_corpus_compilation as compiler
+
+    def canonical(**_kwargs: object) -> tuple[str, ...]:
+        return ()
+
+    monkeypatch.setattr(
+        compiler,
+        "_persist_document_compilation_without_streaming_spacy",
+        canonical,
+        raising=False,
+    )
+
+    assert _canonical_document_persistence() is canonical

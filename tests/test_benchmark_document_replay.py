@@ -5,7 +5,11 @@ from pathlib import Path
 
 import pytest
 
-from scripts.benchmark_document_replay import load_manifest
+from scripts.benchmark_document_replay import (
+    DocumentCase,
+    _acceptance_ref,
+    load_manifest,
+)
 
 
 def test_load_manifest_resolves_and_validates_documents(tmp_path: Path) -> None:
@@ -39,3 +43,21 @@ def test_load_manifest_rejects_duplicate_labels(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="duplicate document label"):
         load_manifest(manifest)
+
+
+def test_acceptance_reference_starts_with_unique_run_token(tmp_path: Path) -> None:
+    run_root = tmp_path / "replay-unique" / "medium" / "batched"
+
+    reference = _acceptance_ref(
+        case=DocumentCase(label="medium", path=tmp_path / "source.txt"),
+        mode="batched",
+        run_root=run_root,
+    )
+
+    assert reference.startswith("replay-")
+    assert reference.endswith("-medium-batched")
+    assert reference != _acceptance_ref(
+        case=DocumentCase(label="medium", path=tmp_path / "source.txt"),
+        mode="batched",
+        run_root=tmp_path / "replay-other" / "medium" / "batched",
+    )
