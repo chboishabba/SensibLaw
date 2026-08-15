@@ -123,6 +123,36 @@ jobs:
               ).lstrip()
           )
 
+          (ROOT / "pdfminer" / "layout.py").write_text(
+              dedent(
+                  """
+                  class LTAnno:
+                      pass
+
+
+                  class LTChar:
+                      pass
+
+
+                  class LTTextContainer:
+                      pass
+                  """
+              ).lstrip()
+          )
+
+          (ROOT / "pdfminer" / "pdfdocument.py").write_text(
+              "class PDFDocument:\n    def __init__(self, parser):\n        self.parser = parser\n"
+          )
+          (ROOT / "pdfminer" / "pdfpage.py").write_text(
+              "class PDFPage:\n    @staticmethod\n    def create_pages(document):\n        return iter(())\n"
+          )
+          (ROOT / "pdfminer" / "pdfparser.py").write_text(
+              "class PDFParser:\n    def __init__(self, handle):\n        self.handle = handle\n"
+          )
+          (ROOT / "pdfminer" / "pdftypes.py").write_text(
+              "def resolve1(value):\n    return value\n"
+          )
+
           (ROOT / "pdfminer" / "__init__.py").touch()
           PY
           export PYTHONPATH="stubs:."
