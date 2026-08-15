@@ -47,17 +47,19 @@ def _artifact_root(
 
 
 def _controlled_reuse_measurement_enabled() -> bool:
-    """Keep scan-heavy corpus observability out of ordinary production.
-
-    The controlled learning recorder intentionally scans several numeric
-    relations to measure reuse.  That is valuable in calibration/benchmarking,
-    but paying for those scans on every document would make the observatory part
-    of the compiler cost it is meant to measure.
-    """
+    """Keep scan-heavy corpus observability out of ordinary production."""
 
     import os
 
     return os.environ.get("SENSIBLAW_RECORD_CONTROLLED_REUSE", "0") == "1"
+
+
+def _numeric_authority_counts_enabled() -> bool:
+    """Opt in to document-wide cardinality scans used only for diagnostics."""
+
+    import os
+
+    return os.environ.get("SENSIBLAW_NUMERIC_AUTHORITY_COUNTS", "0") == "1"
 
 
 def _parser_policy(
@@ -81,7 +83,9 @@ def _authority_refs(
     *,
     run_ref: str,
     document_ref: str,
-) -> tuple[str, tuple[str, ...], Mapping[str, int]]:
+) -> tuple[str, tuple[str, ...], Mapping[str, int | bool]]:
+    """Load semantic authority refs; cardinality scans are diagnostics only."""
+
     connection = connect(database_url)
     try:
         with connection.cursor() as cursor:
@@ -120,65 +124,72 @@ def _authority_refs(
                 (run_ref, document_ref),
             )
             demand_refs = tuple(str(item[0]) for item in cursor.fetchall())
-            cursor.execute(
-                """
-                SELECT
-                    (SELECT count(*)
-                       FROM execution.semantic_parser_token
-                      WHERE run_ref = %s AND document_ref = %s
-                        AND representation_version = 2),
-                    (SELECT count(*)
-                       FROM execution.semantic_pnf_region
-                      WHERE run_ref = %s AND document_ref = %s),
-                    (SELECT count(*)
-                       FROM execution.semantic_pnf_factor AS factor
-                       JOIN execution.semantic_pnf_region AS region
-                         ON region.region_id = factor.region_id
-                      WHERE region.run_ref = %s
-                        AND region.document_ref = %s),
-                    (SELECT count(*)
-                       FROM execution.semantic_pnf_object AS object
-                       JOIN execution.semantic_pnf_region AS region
-                         ON region.region_id = object.region_id
-                      WHERE region.run_ref = %s
-                        AND region.document_ref = %s),
-                    (SELECT count(*)
-                       FROM execution.semantic_pnf_visible_lookup AS visible
-                       JOIN execution.semantic_pnf_interface AS interface
-                         ON interface.interface_id = visible.interface_id
-                       JOIN execution.semantic_pnf_region AS region
-                         ON region.region_id = interface.region_id
-                      WHERE region.run_ref = %s
-                        AND region.document_ref = %s)
-                """,
-                (
-                    run_ref,
-                    document_ref,
-                    run_ref,
-                    document_ref,
-                    run_ref,
-                    document_ref,
-                    run_ref,
-                    document_ref,
-                    run_ref,
-                    document_ref,
-                ),
-            )
-            counts = tuple(int(value) for value in cursor.fetchone())
-            return (
-                graph_ref,
-                demand_refs,
-                {
-                    "document_interface_id": document_interface_id,
-                    "interface_cardinality": interface_cardinality,
-                    "token_count": counts[0],
-                    "region_count": counts[1],
-                    "factor_count": counts[2],
-                    "object_count": counts[3],
-                    "visible_lookup_count": counts[4],
-                    "demand_count": len(demand_refs),
-                },
-            )
+            metadata: dict[str, int | bool] = {
+                "document_interface_id": document_interface_id,
+                "interface_cardinality": interface_cardinality,
+                "demand_count": len(demand_refs),
+                "diagnostic_counts_measured": False,
+            }
+            if _numeric_authority_counts_enabled():
+                # These aggregate scans are deliberately not semantic authority.
+                # They exist for calibration/observability and therefore do not
+                # belong on the ordinary post-parser production path.
+                cursor.execute(
+                    """
+                    SELECT
+                        (SELECT count(*)
+                           FROM execution.semantic_parser_token
+                          WHERE run_ref = %s AND document_ref = %s
+                            AND representation_version = 2),
+                        (SELECT count(*)
+                           FROM execution.semantic_pnf_region
+                          WHERE run_ref = %s AND document_ref = %s),
+                        (SELECT count(*)
+                           FROM execution.semantic_pnf_factor AS factor
+                           JOIN execution.semantic_pnf_region AS region
+                             ON region.region_id = factor.region_id
+                          WHERE region.run_ref = %s
+                            AND region.document_ref = %s),
+                        (SELECT count(*)
+                           FROM execution.semantic_pnf_object AS object
+                           JOIN execution.semantic_pnf_region AS region
+                             ON region.region_id = object.region_id
+                          WHERE region.run_ref = %s
+                            AND region.document_ref = %s),
+                        (SELECT count(*)
+                           FROM execution.semantic_pnf_visible_lookup AS visible
+                           JOIN execution.semantic_pnf_interface AS interface
+                             ON interface.interface_id = visible.interface_id
+                           JOIN execution.semantic_pnf_region AS region
+                             ON region.region_id = interface.region_id
+                          WHERE region.run_ref = %s
+                            AND region.document_ref = %s)
+                    """,
+                    (
+                        run_ref,
+                        document_ref,
+                        run_ref,
+                        document_ref,
+                        run_ref,
+                        document_ref,
+                        run_ref,
+                        document_ref,
+                        run_ref,
+                        document_ref,
+                    ),
+                )
+                counts = tuple(int(value) for value in cursor.fetchone())
+                metadata.update(
+                    {
+                        "token_count": counts[0],
+                        "region_count": counts[1],
+                        "factor_count": counts[2],
+                        "object_count": counts[3],
+                        "visible_lookup_count": counts[4],
+                        "diagnostic_counts_measured": True,
+                    }
+                )
+            return graph_ref, demand_refs, metadata
     finally:
         connection.close()
 
@@ -217,7 +228,7 @@ def compile_numeric_pnf_document(
             overlap_chars=parser_overlap_chars,
         ),
     )
-    graph_ref, demand_refs, counts = _authority_refs(
+    graph_ref, demand_refs, authority_metadata = _authority_refs(
         database_url,
         run_ref=run_ref,
         document_ref=document_ref,
@@ -229,7 +240,7 @@ def compile_numeric_pnf_document(
             details={
                 "graph_ref": graph_ref,
                 "demand_count": len(demand_refs),
-                **counts,
+                **authority_metadata,
             },
         )
     artifacts: dict[str, Any] = {
@@ -248,7 +259,7 @@ def compile_numeric_pnf_document(
             "document_ref": document_ref,
             "graph_ref": graph_ref,
             "demand_refs": demand_refs,
-            **counts,
+            **authority_metadata,
             "representation": "numeric_postgresql_hyperfabric",
             "legacy_document_materialisation": False,
             "world_resolution_deferred": True,
