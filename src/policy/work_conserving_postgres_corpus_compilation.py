@@ -7,9 +7,13 @@ import os
 from pathlib import Path
 import pickle
 from time import monotonic_ns
+from types import MethodType
 from typing import Any, Iterator
 
 from src.policy.postgres_corpus_compilation import _operational_build_key
+from src.storage.postgres.annotation_metadata_hot_path import (
+    persist_annotation_layer_batches_single_pass,
+)
 from src.storage.postgres.pipelined_document_cursor import PipelinedDocumentCursor
 from src.storage.postgres.work_conserving_persistence import (
     WORK_CONSERVING_PERSISTENCE_CONTRACT,
@@ -158,13 +162,7 @@ def _superbatch_summary(runtime: Any) -> dict[str, int]:
 
 
 def persist_document_compilation_work_conserving(**kwargs: Any) -> tuple[str, ...]:
-    """Run the existing compiler with a parallel staged persistence substrate.
-
-    Semantic compilation, closure, parent validation, completed-build
-    publication, and occurrence publication remain owned by the canonical
-    compiler. Only physical persistence helpers and high-volume store methods
-    are rebound for this one ordered document.
-    """
+    """Run the existing compiler with a parallel staged persistence substrate."""
 
     entry = kwargs["entry"]
     context = kwargs["context"]
@@ -189,8 +187,16 @@ def persist_document_compilation_work_conserving(**kwargs: Any) -> tuple[str, ..
     ) as runtime:
         with _claim_budget_at_document_savepoint(store, runtime):
             with activate_work_conserving_store_bindings(store):
-                with activate_work_conserving_postgres_bindings():
-                    result = _canonical_document_persistence()(**kwargs)
+                original_annotation_batches = store.persist_annotation_layer_batches
+                store.persist_annotation_layer_batches = MethodType(
+                    persist_annotation_layer_batches_single_pass,
+                    store,
+                )
+                try:
+                    with activate_work_conserving_postgres_bindings():
+                        result = _canonical_document_persistence()(**kwargs)
+                finally:
+                    store.persist_annotation_layer_batches = original_annotation_batches
     executor_wall_ns = monotonic_ns() - executor_started
     metrics = {
         "contract_ref": WORK_CONSERVING_PERSISTENCE_CONTRACT,
