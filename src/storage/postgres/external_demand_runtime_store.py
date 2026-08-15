@@ -38,23 +38,6 @@ class ExternalCallEconomyRow:
 
 
 @dataclass(frozen=True, slots=True)
-class ProgressiveHorizonReceipt:
-    """Physical work receipt for one residual-only H3→H6→H9 pass.
-
-    The receipt is execution evidence, not a semantic proof.  H9 planning is
-    optional and never performs provider I/O here.
-    """
-
-    seeded_h3: int
-    h6_residual_work: int
-    inserted_h6_evidence: int
-    h9_residual_work: int
-    compiled_external_needs: int
-    planned_external_work: int
-    provider_io_performed: bool = False
-
-
-@dataclass(frozen=True, slots=True)
 class ConsumerWorldAxisContract:
     """Cold consumer contract selecting the H9 residual it can observe.
 
@@ -117,78 +100,6 @@ class ConsumerWorldAxisContract:
 
 class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
     """H9 external-demand planning and cold provider-evidence cache."""
-
-    def process_progressive_horizons(
-        self,
-        *,
-        run_id: int,
-        document_id: int,
-        consumer_ref: str,
-        query_ref: str,
-        policy_ref: str = "",
-        plan_h9: bool = False,
-        reprocess_completed_h6: bool = False,
-    ) -> ProgressiveHorizonReceipt:
-        """Execute only the semantic residual at each horizon.
-
-        H3 evidence/proofs are already represented on the shared numeric fibre.
-        This operation creates the consumer H3 work projection, marks/evaluates
-        that horizon, and lets the SQL transition enqueue only rows whose rebuilt
-        outcome retains a residual.  H6 then runs only over those ready rows and
-        its own transition similarly exposes only the H9 residual.
-
-        ``plan_h9`` compiles explicit consumer world-axis needs and cache/provider
-        request plans for that residual.  It never claims a provider lease and
-        therefore performs no external/network I/O.
-        """
-
-        seeded_h3 = self.seed_h3_for_consumer(
-            run_id=run_id,
-            document_id=document_id,
-            consumer_ref=consumer_ref,
-            query_ref=query_ref,
-            policy_ref=policy_ref,
-        )
-        h6_residual_work = self.advance_horizon_for_consumer(
-            run_id=run_id,
-            document_id=document_id,
-            completed_horizon=3,
-            consumer_ref=consumer_ref,
-            query_ref=query_ref,
-            policy_ref=policy_ref,
-        )
-        inserted_h6_evidence, h9_residual_work = self.process_h6_for_consumer(
-            run_id=run_id,
-            document_id=document_id,
-            consumer_ref=consumer_ref,
-            query_ref=query_ref,
-            policy_ref=policy_ref,
-            reprocess_completed=reprocess_completed_h6,
-        )
-
-        # process_numeric_pnf_h6_for_consumer owns the H6 completion/outcome and
-        # H9 residual transition atomically.  Do not advance H6 a second time.
-        compiled_external_needs = 0
-        planned_external_work = 0
-        if plan_h9 and h9_residual_work:
-            compiled_external_needs, planned_external_work = (
-                self.compile_and_plan_world_axis_contracts(
-                    run_id=run_id,
-                    document_id=document_id,
-                    consumer_ref=consumer_ref,
-                    query_ref=query_ref,
-                    policy_ref=policy_ref,
-                )
-            )
-
-        return ProgressiveHorizonReceipt(
-            seeded_h3=seeded_h3,
-            h6_residual_work=h6_residual_work,
-            inserted_h6_evidence=inserted_h6_evidence,
-            h9_residual_work=h9_residual_work,
-            compiled_external_needs=compiled_external_needs,
-            planned_external_work=planned_external_work,
-        )
 
     def register_external_need(
         self,
@@ -407,3 +318,232 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
 
                     # Discovery is monotone candidate evidence. A partial or
                     # empty source response cannot erase older alternatives.
+                    for candidate in candidates:
+                        cursor.execute(
+                            """
+                            INSERT INTO execution.semantic_pnf_world_entity_numeric
+                                (provider_id,provider_numeric_id)
+                            VALUES (%s,%s)
+                            ON CONFLICT(provider_id,provider_numeric_id) DO NOTHING
+                            """,
+                            (provider_id, candidate.provider_numeric_id),
+                        )
+                        cursor.execute(
+                            """
+                            SELECT world_entity_id
+                              FROM execution.semantic_pnf_world_entity_numeric
+                             WHERE provider_id=%s AND provider_numeric_id=%s
+                            """,
+                            (provider_id, candidate.provider_numeric_id),
+                        )
+                        world_entity_id = int(cursor.fetchone()[0])
+                        cursor.execute(
+                            """
+                            SELECT execution.upsert_numeric_pnf_label_world_candidate(
+                                %s,%s,%s,%s,%s,%s
+                            )
+                            """,
+                            (
+                                label_symbol_id,
+                                world_entity_id,
+                                candidate.candidate_ordinal,
+                                request.request_revision,
+                                candidate.source_epoch,
+                                candidate.source_ref,
+                            ),
+                        )
+                        if not bool(cursor.fetchone()[0]):
+                            raise RuntimeError(
+                                "failed to persist external discovery candidate"
+                            )
+        finally:
+            connection.close()
+
+    def record_external_evidence(
+        self, *, request_id: int, evidence: ExternalEvidence
+    ) -> int:
+        connection = connect(self.database_url)
+        try:
+            with connection.transaction():
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT request.provider_id,request.world_entity_id,
+                               request.provider_property_numeric_id,request.axis_kind,
+                               subject.provider_numeric_id
+                          FROM execution.semantic_pnf_external_request AS request
+                          JOIN execution.semantic_pnf_world_entity_numeric AS subject
+                            ON subject.world_entity_id=request.world_entity_id
+                           AND subject.provider_id=request.provider_id
+                         WHERE request.request_id=%s
+                        """,
+                        (request_id,),
+                    )
+                    row = cursor.fetchone()
+                    if row is None or row[1] is None:
+                        raise ValueError(
+                            "external evidence request has no local subject entity"
+                        )
+                    provider_id = int(row[0])
+                    subject_world_entity_id = int(row[1])
+                    request_property = None if row[2] is None else int(row[2])
+                    request_axis = None if row[3] is None else int(row[3])
+                    provider_subject_numeric_id = int(row[4])
+                    if (
+                        provider_subject_numeric_id
+                        != evidence.provider_subject_numeric_id
+                    ):
+                        raise ValueError(
+                            "external evidence subject differs from planned request"
+                        )
+                    if request_property != evidence.provider_property_numeric_id:
+                        raise ValueError(
+                            "external evidence property differs from planned request"
+                        )
+
+                    value_world_entity_id = value_symbol_id = value_numeric = None
+                    if evidence.value_kind is ExternalValueKind.WORLD_ENTITY:
+                        cursor.execute(
+                            """
+                            INSERT INTO execution.semantic_pnf_world_entity_numeric
+                                (provider_id,provider_numeric_id)
+                            VALUES (%s,%s)
+                            ON CONFLICT(provider_id,provider_numeric_id) DO NOTHING
+                            """,
+                            (provider_id, evidence.value_provider_numeric_id),
+                        )
+                        cursor.execute(
+                            """
+                            SELECT world_entity_id
+                              FROM execution.semantic_pnf_world_entity_numeric
+                             WHERE provider_id=%s AND provider_numeric_id=%s
+                            """,
+                            (provider_id, evidence.value_provider_numeric_id),
+                        )
+                        value_world_entity_id = int(cursor.fetchone()[0])
+                    elif evidence.value_kind is ExternalValueKind.SYMBOL:
+                        kind = SymbolKind(int(evidence.value_symbol_kind))
+                        mapping = intern_symbols(
+                            cursor, ((kind, str(evidence.value_text)),)
+                        )
+                        value_symbol_id = symbol_id(
+                            mapping, kind, str(evidence.value_text)
+                        )
+                    else:
+                        value_numeric = int(evidence.value_numeric)
+
+                    cursor.execute(
+                        """
+                        SELECT execution.record_numeric_pnf_external_evidence(
+                            %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s
+                        )
+                        """,
+                        (
+                            request_id,
+                            evidence.evidence_digest,
+                            subject_world_entity_id,
+                            evidence.provider_property_numeric_id,
+                            request_axis,
+                            int(evidence.value_kind),
+                            value_world_entity_id,
+                            value_symbol_id,
+                            value_numeric,
+                            evidence.provider_revision,
+                            evidence.source_ref,
+                        ),
+                    )
+                    external_evidence_id = int(cursor.fetchone()[0])
+                    if evidence.source_epoch is not None:
+                        cursor.execute(
+                            "SELECT execution.set_numeric_pnf_external_evidence_source_epoch(%s,%s)",
+                            (external_evidence_id, evidence.source_epoch),
+                        )
+                        if not bool(cursor.fetchone()[0]):
+                            raise RuntimeError(
+                                "external evidence source epoch conflicts with immutable receipt"
+                            )
+                    return external_evidence_id
+        finally:
+            connection.close()
+
+    def complete_external_request(
+        self,
+        request_id: int,
+        leased_minimum_source_epoch: int | None,
+    ) -> bool:
+        return bool(
+            self._scalar_function(
+                "execution.complete_numeric_pnf_external_request",
+                (request_id, leased_minimum_source_epoch),
+            )
+        )
+
+    def fail_external_request(self, request_id: int, error_ref: str) -> bool:
+        return bool(
+            self._scalar_function(
+                "execution.fail_numeric_pnf_external_request", (request_id, error_ref)
+            )
+        )
+
+    def block_external_request(self, request_id: int, error_ref: str) -> bool:
+        return bool(
+            self._scalar_function(
+                "execution.block_numeric_pnf_external_request", (request_id, error_ref)
+            )
+        )
+
+    def record_external_batch_receipt(
+        self,
+        *,
+        provider_id: int,
+        worker_ref: str,
+        receipt: ExternalBatchReceipt,
+    ) -> int:
+        return self._scalar_function(
+            "execution.record_numeric_pnf_external_provider_batch_receipt",
+            (
+                provider_id,
+                worker_ref,
+                receipt.leased_request_count,
+                receipt.completed_request_count,
+                receipt.failed_request_count,
+                receipt.provider_call_count,
+            ),
+        )
+
+    def external_call_economy(self) -> tuple[ExternalCallEconomyRow, ...]:
+        connection = connect(self.database_url)
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT provider_id,unique_external_requests,cache_satisfied_requests,
+                           provider_ready_requests,leased_requests,acquired_requests,
+                           blocked_requests,semantic_request_members,fresh_provider_calls,
+                           semantic_members_per_unique_request,requests_per_provider_call
+                      FROM execution.semantic_pnf_external_call_economy_v1
+                     ORDER BY provider_id
+                    """
+                )
+                return tuple(
+                    ExternalCallEconomyRow(
+                        provider_id=int(row[0]),
+                        unique_external_requests=int(row[1]),
+                        cache_satisfied_requests=int(row[2]),
+                        provider_ready_requests=int(row[3]),
+                        leased_requests=int(row[4]),
+                        acquired_requests=int(row[5]),
+                        blocked_requests=int(row[6]),
+                        semantic_request_members=int(row[7]),
+                        fresh_provider_calls=int(row[8]),
+                        semantic_members_per_unique_request=(
+                            None if row[9] is None else float(row[9])
+                        ),
+                        requests_per_provider_call=(
+                            None if row[10] is None else float(row[10])
+                        ),
+                    )
+                    for row in cursor.fetchall()
+                )
+        finally:
+            connection.close()
