@@ -7,9 +7,11 @@ is an exact publication precondition; rescanning every provisional row merely to
 COUNT them is redundant I/O.
 
 Physical stage execution reuses one bounded thread executor and reusable
-PostgreSQL transaction leases. Published provisional rows are execution-only,
-UNLOGGED, and keyed by deterministic stage refs, so their deletion is amortized
-across documents rather than doubling row/index churn in every authority commit.
+PostgreSQL transaction leases. StagePayload expansion into the fixed 27-column
+COPY carrier happens inside those workers, rather than serially materialising a
+second full-document row representation in the coordinator. Published
+provisional rows are execution-only and UNLOGGED, so their deletion is amortized
+across documents instead of doubling row/index churn in every authority commit.
 """
 
 from __future__ import annotations
@@ -17,6 +19,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 from threading import Lock
+from time import monotonic_ns
 from typing import Any, Sequence
 
 from src.storage.postgres.reusable_persistence_connections import (
@@ -67,13 +70,6 @@ def _cleanup_interval() -> int:
 
 
 def _maybe_cleanup_published_stages(runtime: Any) -> None:
-    """Amortize deletion of execution-only rows after successful publication.
-
-    A value of 0 disables opportunistic cleanup entirely. Deterministic stage
-    setup still deletes rows for its own stage_ref before replay, so disabling
-    the sweep changes only retained execution storage, never semantic results.
-    """
-
     global _COMPLETED_DOCUMENTS
     interval = _cleanup_interval()
     if interval == 0 or runtime.dsn is None:
@@ -83,9 +79,6 @@ def _maybe_cleanup_published_stages(runtime: Any) -> None:
         if _COMPLETED_DOCUMENTS % interval:
             return
         dsn = runtime.dsn
-    # Delete only rows whose authority publication committed. Staged/failed rows
-    # remain for recovery and diagnostics. One set operation amortizes cleanup
-    # over the preceding document epoch.
     with transactional_persistence_connection(dsn) as connection:
         with connection.cursor() as cursor:
             cursor.execute(
@@ -96,6 +89,45 @@ def _maybe_cleanup_published_stages(runtime: Any) -> None:
                   AND run.state_ref = 'published'
                 """
             )
+
+
+def _expand_and_stage_partition(
+    *,
+    stage_module: Any,
+    dsn: str,
+    stage_ref: str,
+    document_ref: str,
+    build_key_sha256: str,
+    lane_ref: str,
+    partition_no: int,
+    items: Sequence[tuple[int, Any]],
+) -> dict[str, Any]:
+    """Expand one bounded payload partition on the worker that will COPY it."""
+
+    started = monotonic_ns()
+    rows = tuple(
+        payload.copy_row(
+            stage_ref=stage_ref,
+            document_ref=document_ref,
+            build_key_sha256=build_key_sha256,
+            lane_ref=lane_ref,
+            partition_no=partition_no,
+            ordinal=ordinal,
+        )
+        for ordinal, payload in items
+    )
+    expanded_ns = monotonic_ns() - started
+    result = dict(
+        stage_module._stage_partition(
+            dsn=dsn,
+            stage_ref=stage_ref,
+            lane_ref=lane_ref,
+            partition_no=partition_no,
+            rows=rows,
+        )
+    )
+    result["row_expansion_ns"] = expanded_ns
+    return result
 
 
 def install_work_conserving_stage_hot_path() -> bool:
@@ -118,22 +150,14 @@ def install_work_conserving_stage_hot_path() -> bool:
         worker_budget: int,
     ) -> tuple[dict[str, Any], ...]:
         worker_count = min(max(1, worker_budget), max(1, len(payloads)))
-        partitions: list[list[tuple[Any, ...]]] = [[] for _ in range(worker_count)]
+        # Keep only lightweight payload references plus ordinals in coordinator
+        # memory. The fixed-width COPY tuple is created by its eventual worker.
+        partitions: list[list[tuple[int, Any]]] = [
+            [] for _ in range(worker_count)
+        ]
         for ordinal, payload in enumerate(payloads):
-            partition_no = ordinal % worker_count
-            partitions[partition_no].append(
-                payload.copy_row(
-                    stage_ref=stage_ref,
-                    document_ref=document_ref,
-                    build_key_sha256=build_key_sha256,
-                    lane_ref=lane_ref,
-                    partition_no=partition_no,
-                    ordinal=ordinal,
-                )
-            )
+            partitions[ordinal % worker_count].append((ordinal, payload))
 
-        # Setup is its own committed execution transaction, exactly as before,
-        # so COPY workers can observe the run row and clean any same-stage replay.
         with transactional_persistence_connection(dsn) as connection:
             with connection.cursor() as cursor:
                 cursor.execute(
@@ -175,19 +199,22 @@ def install_work_conserving_stage_hot_path() -> bool:
                 )
 
         results: list[dict[str, Any]] = []
-        nonempty = [(index, rows) for index, rows in enumerate(partitions) if rows]
+        nonempty = [(index, items) for index, items in enumerate(partitions) if items]
         try:
             executor = _executor(max(1, len(nonempty)))
             futures = {
                 executor.submit(
-                    stage._stage_partition,
+                    _expand_and_stage_partition,
+                    stage_module=stage,
                     dsn=dsn,
                     stage_ref=stage_ref,
+                    document_ref=document_ref,
+                    build_key_sha256=build_key_sha256,
                     lane_ref=lane_ref,
                     partition_no=index,
-                    rows=rows,
+                    items=items,
                 ): index
-                for index, rows in nonempty
+                for index, items in nonempty
             }
             for future in as_completed(futures):
                 results.append(future.result())
@@ -233,7 +260,7 @@ def install_work_conserving_stage_hot_path() -> bool:
                 "PostgreSQL cursor does not expose a reusable DSN"
             ) from error
         runtime.register_stage(stage_ref=stage_ref, dsn=dsn)
-        stage._prepare_stage(
+        results = stage._prepare_stage(
             dsn=dsn,
             stage_ref=stage_ref,
             document_ref=runtime.document_ref,
@@ -242,6 +269,17 @@ def install_work_conserving_stage_hot_path() -> bool:
             lane_ref=lane_ref,
             payloads=payloads,
             worker_budget=runtime.worker_budget,
+        )
+        expansion_ns = sum(int(row.get("row_expansion_ns") or 0) for row in results)
+        setattr(
+            runtime,
+            "row_expansion_ns",
+            int(getattr(runtime, "row_expansion_ns", 0)) + expansion_ns,
+        )
+        setattr(
+            runtime,
+            "staged_row_count",
+            int(getattr(runtime, "staged_row_count", 0)) + len(payloads),
         )
 
         cursor.execute(
@@ -305,9 +343,6 @@ def install_work_conserving_stage_hot_path() -> bool:
         return stage_ref
 
     def complete_stage(cursor: Any, *, stage_ref: str, statement_count: int) -> None:
-        # Do not delete provisional rows in the authority transaction. Marking
-        # the execution receipt published is enough; cleanup occurs only after
-        # the document savepoint has committed and is amortized across documents.
         cursor.execute(
             """
             UPDATE execution.document_persistence_run
@@ -319,9 +354,6 @@ def install_work_conserving_stage_hot_path() -> bool:
         )
 
     def runtime_finish(self: Any) -> None:
-        # `finish()` is reached after persist_document_compilation returns, hence
-        # after the ordered document savepoint commit. Querying only published
-        # runs makes this safe even when the savepoint raised and rolled back.
         try:
             _maybe_cleanup_published_stages(self)
         finally:
