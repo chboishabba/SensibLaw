@@ -8,10 +8,8 @@ COUNT them is redundant I/O.
 
 Physical stage execution reuses one bounded thread executor and reusable
 PostgreSQL transaction leases. StagePayload expansion into the fixed 27-column
-COPY carrier happens inside those workers, rather than serially materialising a
-second full-document row representation in the coordinator. Published
-provisional rows are execution-only and UNLOGGED, so their deletion is amortized
-across documents instead of doubling row/index churn in every authority commit.
+COPY carrier happens inside those workers. Published provisional rows are
+execution-only and UNLOGGED, so deletion is amortized across documents.
 """
 
 from __future__ import annotations
@@ -47,8 +45,6 @@ def _executor(worker_count: int) -> ThreadPoolExecutor:
             )
             _EXECUTOR_WORKERS = workers
         elif _EXECUTOR_WORKERS < workers:
-            # Persistence families for one ordered document are staged
-            # sequentially, so growing the pool at a family boundary is safe.
             prior = _EXECUTOR
             _EXECUTOR = ThreadPoolExecutor(
                 max_workers=workers,
@@ -102,8 +98,6 @@ def _expand_and_stage_partition(
     partition_no: int,
     items: Sequence[tuple[int, Any]],
 ) -> dict[str, Any]:
-    """Expand one bounded payload partition on the worker that will COPY it."""
-
     started = monotonic_ns()
     rows = tuple(
         payload.copy_row(
@@ -130,6 +124,75 @@ def _expand_and_stage_partition(
     return result
 
 
+def summarize_document_persistence(runtime: Any) -> dict[str, Any]:
+    """Return compact timing/volume attribution for one document runtime."""
+
+    stage_refs = tuple(runtime.stage_refs)
+    summary: dict[str, Any] = {
+        "staged_rows": int(getattr(runtime, "staged_row_count", 0)),
+        "row_expansion_ns": int(getattr(runtime, "row_expansion_ns", 0)),
+        "stage_count": len(stage_refs),
+        "cleanup_every_documents": _cleanup_interval(),
+        "families": {},
+    }
+    if not stage_refs or runtime.dsn is None:
+        return summary
+    with transactional_persistence_connection(runtime.dsn) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT run.family_ref,
+                       run.row_count,
+                       run.statement_count,
+                       run.state_ref,
+                       COALESCE(SUM(lane.byte_count)
+                           FILTER (WHERE lane.lane_ref <> 'authority'), 0),
+                       COALESCE(SUM(lane.elapsed_ms)
+                           FILTER (WHERE lane.lane_ref <> 'authority'), 0),
+                       COALESCE(MAX(lane.elapsed_ms)
+                           FILTER (WHERE lane.lane_ref = 'authority'), 0),
+                       COUNT(lane.partition_no)
+                           FILTER (WHERE lane.lane_ref <> 'authority')
+                FROM execution.document_persistence_run AS run
+                LEFT JOIN execution.document_persistence_lane AS lane
+                  ON lane.stage_ref = run.stage_ref
+                WHERE run.stage_ref = ANY(%s)
+                GROUP BY run.stage_ref, run.family_ref, run.row_count,
+                         run.statement_count, run.state_ref
+                ORDER BY run.family_ref, run.stage_ref
+                """,
+                (list(stage_refs),),
+            )
+            rows = cursor.fetchall()
+    families: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        family = str(row[0])
+        families.setdefault(family, []).append(
+            {
+                "row_count": int(row[1]),
+                "statement_count": int(row[2]),
+                "state": str(row[3]),
+                "copy_bytes": int(row[4]),
+                "copy_lane_elapsed_ms_sum": int(row[5]),
+                "authority_elapsed_ms": int(row[6]),
+                "copy_lane_count": int(row[7]),
+            }
+        )
+    summary["families"] = families
+    summary["copy_bytes"] = sum(
+        item["copy_bytes"] for values in families.values() for item in values
+    )
+    summary["copy_lane_elapsed_ms_sum"] = sum(
+        item["copy_lane_elapsed_ms_sum"]
+        for values in families.values()
+        for item in values
+    )
+    summary["authority_elapsed_ms"] = sum(
+        item["authority_elapsed_ms"] for values in families.values() for item in values
+    )
+    return summary
+
+
 def install_work_conserving_stage_hot_path() -> bool:
     from src.storage.postgres import work_conserving_stage as stage
 
@@ -150,8 +213,6 @@ def install_work_conserving_stage_hot_path() -> bool:
         worker_budget: int,
     ) -> tuple[dict[str, Any], ...]:
         worker_count = min(max(1, worker_budget), max(1, len(payloads)))
-        # Keep only lightweight payload references plus ordinals in coordinator
-        # memory. The fixed-width COPY tuple is created by its eventual worker.
         partitions: list[list[tuple[int, Any]]] = [
             [] for _ in range(worker_count)
         ]
@@ -270,11 +331,11 @@ def install_work_conserving_stage_hot_path() -> bool:
             payloads=payloads,
             worker_budget=runtime.worker_budget,
         )
-        expansion_ns = sum(int(row.get("row_expansion_ns") or 0) for row in results)
         setattr(
             runtime,
             "row_expansion_ns",
-            int(getattr(runtime, "row_expansion_ns", 0)) + expansion_ns,
+            int(getattr(runtime, "row_expansion_ns", 0))
+            + sum(int(row.get("row_expansion_ns") or 0) for row in results),
         )
         setattr(
             runtime,
@@ -367,4 +428,7 @@ def install_work_conserving_stage_hot_path() -> bool:
     return True
 
 
-__all__ = ["install_work_conserving_stage_hot_path"]
+__all__ = [
+    "install_work_conserving_stage_hot_path",
+    "summarize_document_persistence",
+]
