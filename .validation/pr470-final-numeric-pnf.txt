@@ -1,0 +1,14 @@
+contract=pr470-final-numeric-pnf-validation:v1
+source_head=88fb0c8698270b17b1466a1758f5beb816c1e675
+validated_tree=330d5c7b35d02328e211531999f2fdff3a105438
+overall=failed
+format=failure
+lint=failure
+authority=success
+unit=failure
+database=failure
+integration=skipped
+schema=skipped
+runner=cachy-lambo
+workflow_run=31868797050
+workflow_attempt=1

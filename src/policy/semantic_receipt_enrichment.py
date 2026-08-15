@@ -29,7 +29,7 @@ def _checkpoint_root(kwargs: Mapping[str, Any]) -> Path | None:
         return Path(explicit)
     parser_checkpoint = kwargs.get("parser_checkpoint_dir")
     if parser_checkpoint:
-        return Path(str(parser_checkpoint)).parent / "semantic_checkpoints"
+        return Path(str(parser_checkpoint)) / "semantic_checkpoints"
     return None
 
 

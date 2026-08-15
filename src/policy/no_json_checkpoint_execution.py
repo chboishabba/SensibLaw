@@ -95,7 +95,7 @@ def install_no_json_checkpoint_execution() -> bool:
 
     def closure_handoff_checkpoint_path(self: Any) -> Path | None:
         root = self.closure_activation_checkpoint_root
-        return None if root is None else root / "handoff-state.pkl"
+        return None if root is None else root / f"handoff-{self.build_key_sha256}.pkl"
 
     def closure_receipt_path(self: Any, job_ref: str) -> Path | None:
         root = self.closure_checkpoint_root

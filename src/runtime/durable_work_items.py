@@ -18,12 +18,6 @@ import signal
 from typing import Any, Iterable, Mapping
 from uuid import uuid4
 
-from src.policy.carriers.canonical import (
-    canonical_fields_sha256,
-    canonical_sha256,
-)
-
-
 DURABLE_WORK_CONTRACT = "postgres-durable-work-item:v2"
 PARENT_DEATH_CONTRACT = "linux-pdeathsig:v1"
 BINARY_ARTIFACT_CONTRACT = "python-pickle:5"
@@ -741,3 +735,14 @@ __all__ = [
     "recover_expired_work",
     "register_work_items",
 ]
+
+
+def __getattr__(name: str) -> Any:
+    if name in {"canonical_sha256", "canonical_fields_sha256"}:
+        from src.policy.carriers.canonical import (
+            canonical_fields_sha256,
+            canonical_sha256,
+        )
+
+        return locals()[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
