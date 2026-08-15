@@ -9,9 +9,7 @@ import pickle
 from time import monotonic_ns
 from typing import Any, Iterator
 
-from src.policy.postgres_corpus_compilation import (
-    _operational_build_key,
-)
+from src.policy.postgres_corpus_compilation import _operational_build_key
 from src.storage.postgres.pipelined_document_cursor import PipelinedDocumentCursor
 from src.storage.postgres.work_conserving_persistence import (
     WORK_CONSERVING_PERSISTENCE_CONTRACT,
@@ -24,9 +22,7 @@ from src.storage.postgres.work_conserving_stage_hot_path import (
 )
 
 
-WORK_CONSERVING_DOCUMENT_EXECUTOR_REF = (
-    "document-executor:postgres-work-conserving:v0_1"
-)
+WORK_CONSERVING_DOCUMENT_EXECUTOR_REF = "document-executor:postgres-work-conserving:v0_1"
 
 
 def _record_publication_transaction(runtime: Any, row: dict[str, int]) -> None:
@@ -79,13 +75,10 @@ def _claim_budget_at_document_savepoint(store: Any, runtime: Any) -> Iterator[No
                 {
                     "body_succeeded": int(body_succeeded),
                     "committed": int(committed),
-                    "transaction_total_ns": transaction_finished
-                    - transaction_started,
+                    "transaction_total_ns": transaction_finished - transaction_started,
                     "body_ns": max(0, body_finished - body_started),
                     "pipeline_close_ns": max(0, pipeline_finished - body_finished),
-                    "transaction_exit_ns": max(
-                        0, transaction_finished - pipeline_finished
-                    ),
+                    "transaction_exit_ns": max(0, transaction_finished - pipeline_finished),
                     **cursor_metrics,
                 },
             )
@@ -154,14 +147,13 @@ def _superbatch_summary(runtime: Any) -> dict[str, int]:
     return {
         "graph_flushes": int(getattr(runtime, "graph_superbatches_flushed", 0)),
         "graph_payloads": int(getattr(runtime, "graph_superbatch_payloads", 0)),
-        "resolution_flushes": int(
-            getattr(runtime, "resolution_superbatches_flushed", 0)
-        ),
-        "resolution_payloads": int(
-            getattr(runtime, "resolution_superbatch_payloads", 0)
-        ),
+        "resolution_flushes": int(getattr(runtime, "resolution_superbatches_flushed", 0)),
+        "resolution_payloads": int(getattr(runtime, "resolution_superbatch_payloads", 0)),
         "binding_flushes": int(getattr(runtime, "binding_superbatches_flushed", 0)),
         "binding_payloads": int(getattr(runtime, "binding_superbatch_payloads", 0)),
+        "verified_candidate_link_rows_cached": int(
+            getattr(runtime, "verified_candidate_link_rows_cached", 0)
+        ),
     }
 
 
