@@ -12,6 +12,7 @@ from src.storage.postgres.reusable_persistence_connections import (
     persistence_telemetry_cursor,
     transactional_persistence_connection,
 )
+from src.storage.postgres.stage_copy_codec import write_stage_rows
 
 
 def _record_lane_started(
@@ -112,9 +113,7 @@ def observable_stage_partition(
                     row_count=len(rows),
                     byte_count=byte_count,
                 )
-                with cursor.copy(stage._COPY_SQL) as copy:
-                    for row in rows:
-                        copy.write_row(row)
+                write_stage_rows(cursor, stage._COPY_SQL, rows)
                 cursor.execute(
                     """
                     SELECT wait_event_type, wait_event
