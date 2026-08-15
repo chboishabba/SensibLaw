@@ -11,6 +11,9 @@ computed their exact ordered digest. For the same in-process reader, persistence
 may therefore reuse that producer proof instead of canonical-JSON hashing the
 same immutable records a second time. Other readers, mismatched descriptors, or
 an explicitly disabled seal take the full verifier.
+
+Canonical JSON here is a defended legacy *identity boundary*, not an execution
+carrier. Ordinary post-spaCy semantic execution remains numeric.
 """
 
 from __future__ import annotations
@@ -25,6 +28,11 @@ from typing import Any, Iterator, Mapping
 
 from src.policy import artifact_projection
 from src.runtime import execution_resource_ledger
+from src.runtime.numeric_hot_path_constitution import (
+    BoundaryOperation,
+    LEGACY_MANIFEST_IDENTITY_BOUNDARY,
+    require_boundary_operation,
+)
 
 _CANONICAL_RECORD_ENCODER = json.JSONEncoder(
     ensure_ascii=False,
@@ -44,6 +52,10 @@ def _reused_encoder_record_stream_digest(
 ) -> tuple[int, str]:
     """Match the established JSON-list digest with one reusable encoder."""
 
+    require_boundary_operation(
+        LEGACY_MANIFEST_IDENTITY_BOUNDARY,
+        BoundaryOperation.JSON,
+    )
     digest = hashlib.sha256()
     digest.update(b"[")
     count = 0
@@ -162,12 +174,29 @@ def _install_manifest_replay_hot_path() -> Any:
 
 
 def _seal_projected_reader(original_project_artifacts: Any) -> Any:
-    """Attach descriptor-generation receipts to the same in-process reader."""
+    """Attach descriptor-generation receipts to the same in-process reader.
+
+    Descriptor generation is one sequential immutable pass.  Sampling process
+    resources before and after every artifact family adds observational work but
+    no semantic evidence, so the work-conserving path emits one aggregate sample
+    around the pass and then reattaches the ledger to the reader for subsequent
+    bounded replay observations.
+    """
 
     def project_artifacts(*args: Any, **kwargs: Any) -> Any:
-        projected, reader = original_project_artifacts(*args, **kwargs)
+        ledger = kwargs.get("resource_ledger")
+        call_kwargs = dict(kwargs)
+        if ledger is not None:
+            call_kwargs["resource_ledger"] = None
+            ledger.sample(
+                "descriptor_generation:aggregate:start",
+                phase="descriptor_generation",
+                details={"sampling": "aggregate"},
+            )
+
+        projected, reader = original_project_artifacts(*args, **call_kwargs)
+        seals: dict[str, tuple[int, str]] = {}
         if isinstance(reader, artifact_projection.InMemoryArtifactManifestReader):
-            seals: dict[str, tuple[int, str]] = {}
             for artifact_key, descriptor in projected.items():
                 if not isinstance(descriptor, Mapping):
                     continue
@@ -178,6 +207,19 @@ def _seal_projected_reader(original_project_artifacts: Any) -> Any:
                     str(descriptor["ordered_digest"]),
                 )
             setattr(reader, "_producer_descriptor_seals", seals)
+            if ledger is not None:
+                reader.attach_resource_ledger(ledger)
+
+        if ledger is not None:
+            ledger.sample(
+                "descriptor_generation:aggregate:complete",
+                phase="descriptor_generation",
+                semantic_counts={
+                    "manifest_families": len(seals),
+                    "manifest_records": sum(count for count, _digest in seals.values()),
+                },
+                details={"sampling": "aggregate"},
+            )
         return projected, reader
 
     return project_artifacts
