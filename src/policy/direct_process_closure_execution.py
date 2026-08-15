@@ -94,6 +94,7 @@ class DirectProcessClosurePool:
                 str(receipt_path) if receipt_path is not None else None,
             )
             if context is not None:
+
                 def record_completion(done: Future[Any]) -> None:
                     try:
                         receipt = done.result()
@@ -139,6 +140,9 @@ def install_direct_process_closure_execution() -> bool:
     from src.policy.activation_hot_path_execution import (
         install_activation_hot_path_execution,
     )
+    from src.policy.resource_sampling_hot_path_execution import (
+        install_resource_sampling_hot_path_execution,
+    )
 
     if getattr(bounded, _INSTALL_MARKER, False):
         return False
@@ -147,6 +151,10 @@ def install_direct_process_closure_execution() -> bool:
     # semantic computation. Keep those in the coordinator so this process pool
     # is reserved for work whose CPU cost actually benefits from multiprocessing.
     install_activation_hot_path_execution()
+    # Scheduler pressure and receipt progress sample the same process tree in
+    # immediate succession. Reuse only those millisecond-scale duplicate reads;
+    # the underlying pressure signal remains process-tree RSS.
+    install_resource_sampling_hot_path_execution()
     setattr(bounded, _INSTALL_MARKER, True)
     return True
 
