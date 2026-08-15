@@ -136,7 +136,7 @@ def _stable_parser_receipt_digest(
     """Hash semantic parser output, never physical execution coordinates.
 
     Lease/retry epoch, worker/backend PID, elapsed time and optional DocBin cache
-    state are deliberately absent.  The same parser output under the same
+    state are deliberately absent. The same parser output under the same
     partition/contract/model therefore has the same receipt identity whether it
     was fast or slow, retried or not, and cached or not.
     """
@@ -791,7 +791,6 @@ def commit_numeric_doc(
                         (
                             partition.resolves_obligation_ref,
                             partition.partition_ref,
-                            partition.resolves_obligation_ref,
                             partition.resolves_obligation_ref,
                             partition.resolves_obligation_ref,
                         ),
