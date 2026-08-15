@@ -32,6 +32,14 @@ from src.storage.postgres.work_conserving_copy_observability import (
     observable_stage_partition,
     observable_stage_payloads,
 )
+from src.storage.postgres.work_conserving_graph_batching import (
+    flush_graph_batch,
+    persist_binding_after_graph_flush,
+    persist_pnf_graph_batched,
+    persist_resolution_after_graph_flush,
+    persist_streamed_builds_after_graph_flush,
+    persist_streamed_links_after_graph_flush,
+)
 from src.storage.postgres.work_conserving_graph_persistence import (
     _factor_payloads,
     deferred_factor_revision,
@@ -70,24 +78,23 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
     from src.storage.postgres import work_conserving_stage as stage
 
     # Install the execution-only stage proof before helper modules capture the
-    # observable staging wrapper.  This replaces full provisional-row recounts
+    # observable staging wrapper. This replaces full provisional-row recounts
     # with the atomic lane-ledger proof and verifies connection settings once.
     install_work_conserving_stage_hot_path()
 
+    # Manifest factor streams are often physically much smaller than the cost of
+    # opening a PostgreSQL stage for each verified chunk. Return immutable
+    # factor/revision identities immediately but aggregate the execution rows into
+    # bounded graph super-stages. Downstream resolution/binding wrappers flush the
+    # pending graph rows first, retaining the original FK/publication order.
     replacements = {
         "persist_licensed_spans": persist_licensed_spans_work_conserving,
-        "persist_pnf_graph": persist_pnf_graph_work_conserving,
+        "persist_pnf_graph": persist_pnf_graph_batched,
         "persist_factor_revision": deferred_factor_revision,
-        "persist_resolution_artifacts": persist_resolution_artifacts_work_conserving,
-        "persist_binding_candidate_sets": (
-            persist_binding_candidate_sets_work_conserving
-        ),
-        "_persist_streamed_candidate_builds": (
-            persist_streamed_candidate_builds_work_conserving
-        ),
-        "_persist_streamed_candidate_links": (
-            persist_streamed_candidate_links_work_conserving
-        ),
+        "persist_resolution_artifacts": persist_resolution_after_graph_flush,
+        "persist_binding_candidate_sets": persist_binding_after_graph_flush,
+        "_persist_streamed_candidate_builds": persist_streamed_builds_after_graph_flush,
+        "_persist_streamed_candidate_links": persist_streamed_links_after_graph_flush,
     }
     helper_modules = (
         graph_persistence,
@@ -109,6 +116,9 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
         module._complete_stage = observable_complete_stage
     try:
         yield
+        # A graph-only document may never enter resolution/binding. Flush the
+        # retained cursor while the ordered authority savepoint is still active.
+        flush_graph_batch()
     finally:
         for module, originals in helper_originals.items():
             module._stage_payloads, module._complete_stage = originals
