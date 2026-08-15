@@ -68,7 +68,6 @@ def install_closure_hot_path_execution() -> bool:
 
     from src.policy import bounded_operational_execution as bounded
     from src.policy import operational_corpus_compilation as operational
-    from src.policy import parallel_typing_tail as process_tail
 
     if getattr(bounded, _INSTALL_MARKER, False):
         return False
