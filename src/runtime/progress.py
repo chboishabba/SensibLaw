@@ -22,7 +22,7 @@ from time import monotonic_ns
 from typing import Any, Iterator, Mapping, TextIO
 
 
-PROGRESS_SCHEMA_VERSION = "sl.progress_event.v0_4"
+PROGRESS_SCHEMA_VERSION = "sl.progress_event.v0_5"
 PHASE_LEDGER_SCHEMA_VERSION = "sl.phase_ledger.v0_1"
 
 
@@ -65,8 +65,7 @@ def _measure_snapshot(
                 remaining_ms = round((total - completed) / rate * 1_000)
                 row["estimated_remaining_ms"] = max(0, remaining_ms)
                 row["estimated_completion_at"] = (
-                    datetime.now(UTC)
-                    + timedelta(milliseconds=max(0, remaining_ms))
+                    datetime.now(UTC) + timedelta(milliseconds=max(0, remaining_ms))
                 ).isoformat()
         result[name] = row
     return result
@@ -88,6 +87,8 @@ class ProgressEvent:
     throughput_units_per_second: float | None = None
     estimated_remaining_ms: int | None = None
     estimated_completion_at: str | None = None
+    estimated_run_remaining_ms: int | None = None
+    estimated_run_completion_at: str | None = None
     processed_tokens: int | None = None
     total_tokens: int | None = None
     tokens_per_second: float | None = None
@@ -259,7 +260,9 @@ class PhaseHandle:
             if worker is not None:
                 self.worker = worker
         self.recorder.emit(
-            self._event(state="stage_started", elapsed_ms=self.elapsed_ms, message=stage)
+            self._event(
+                state="stage_started", elapsed_ms=self.elapsed_ms, message=stage
+            )
         )
 
     @contextmanager
@@ -318,9 +321,7 @@ class PhaseHandle:
 
         with self._state_lock:
             if self.active_stage is None:
-                raise RuntimeError(
-                    "cannot observe inner work without an active stage"
-                )
+                raise RuntimeError("cannot observe inner work without an active stage")
             for name, value in (measures or {}).items():
                 if isinstance(value, Mapping):
                     self.measures[name] = {**self.measures.get(name, {}), **dict(value)}
@@ -444,14 +445,62 @@ class PhaseHandle:
         )
 
     def _outer_estimate(self, elapsed_ms: int) -> dict[str, Any]:
-        if self.total is None or self.total <= 0 or self.completed <= 0 or elapsed_ms <= 0:
+        if (
+            self.total is None
+            or self.total <= 0
+            or self.completed <= 0
+            or elapsed_ms <= 0
+        ):
             return {}
         throughput = self.completed / (elapsed_ms / 1_000)
-        remaining_ms = round(elapsed_ms * (self.total - self.completed) / self.completed)
+        remaining_ms = round(
+            elapsed_ms * (self.total - self.completed) / self.completed
+        )
         return {
             "throughput_units_per_second": round(throughput, 3),
             "estimated_remaining_ms": max(0, remaining_ms),
             "estimated_completion_at": (
+                datetime.now(UTC) + timedelta(milliseconds=max(0, remaining_ms))
+            ).isoformat(),
+        }
+
+    def _run_estimate(self, elapsed_ms: int) -> dict[str, Any]:
+        """Estimate the whole phase, including the active stage.
+
+        Completed stages provide an observed average.  When the active stage
+        exposes a measurable total, its own remaining estimate replaces the
+        average for that stage; this avoids claiming the run is nearly done
+        merely because the current stage has not closed yet.
+        """
+
+        if self.total is None or self.total <= 0 or elapsed_ms <= 0:
+            return {}
+        completed = max(0, self.completed)
+        average_stage_ms = elapsed_ms / completed if completed else None
+        active_remaining_ms: float | None = None
+        if self.active_stage is not None and self._stage_started_ns is not None:
+            stage_elapsed_ms = self.stage_elapsed_ms
+            for row in _measure_snapshot(self.measures, stage_elapsed_ms).values():
+                remaining = row.get("estimated_remaining_ms")
+                if remaining is not None:
+                    active_remaining_ms = max(
+                        float(active_remaining_ms or 0), float(remaining)
+                    )
+            if active_remaining_ms is None and average_stage_ms is not None:
+                active_remaining_ms = max(0.0, average_stage_ms - stage_elapsed_ms)
+        if active_remaining_ms is None:
+            if completed <= 0:
+                return {}
+            active_remaining_ms = 0.0
+        remaining_stages = max(
+            0, self.total - completed - (self.active_stage is not None)
+        )
+        if average_stage_ms is None:
+            return {}
+        remaining_ms = round(active_remaining_ms + remaining_stages * average_stage_ms)
+        return {
+            "estimated_run_remaining_ms": max(0, remaining_ms),
+            "estimated_run_completion_at": (
                 datetime.now(UTC) + timedelta(milliseconds=max(0, remaining_ms))
             ).isoformat(),
         }
@@ -492,6 +541,7 @@ class PhaseHandle:
             stage_elapsed_ms=stage_elapsed,
             measures=measures,
             **self._outer_estimate(elapsed_ms),
+            **self._run_estimate(elapsed_ms),
         )
 
     @property
@@ -563,6 +613,11 @@ def emit_progress(
         if event.estimated_completion_at
         else ""
     )
+    run_eta_at = (
+        f" run_eta_at={event.estimated_run_completion_at}"
+        if event.estimated_run_completion_at
+        else ""
+    )
     stage = f" active_stage={event.active_stage}" if event.active_stage else ""
     measure_text = ""
     if event.measures:
@@ -584,7 +639,7 @@ def emit_progress(
             )
         measure_text = " measures=[" + "; ".join(chunks) + "]"
     print(
-        f"[{event.phase}] {event.state} {event.completed}{total}{subject}{elapsed}{worker}{reuse}{outer_rate}{eta_at}{stage}{measure_text}{message}",
+        f"[{event.phase}] {event.state} {event.completed}{total}{subject}{elapsed}{worker}{reuse}{outer_rate}{eta_at}{run_eta_at}{stage}{measure_text}{message}",
         file=target,
         flush=True,
     )
