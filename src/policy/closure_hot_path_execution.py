@@ -68,6 +68,9 @@ def install_closure_hot_path_execution() -> bool:
 
     from src.policy import bounded_operational_execution as bounded
     from src.policy import operational_corpus_compilation as operational
+    from src.policy.direct_process_closure_execution import (
+        install_direct_process_closure_execution,
+    )
 
     if getattr(bounded, _INSTALL_MARKER, False):
         return False
@@ -111,6 +114,9 @@ def install_closure_hot_path_execution() -> bool:
         return original_reduce_dirty_groups(self)
 
     owner_class.reduce_dirty_groups = reduce_dirty_groups
+    # The bounded scheduler no longer needs a thread whose only job is to submit
+    # the same immutable work to the semantic process pool and block on it.
+    install_direct_process_closure_execution()
     setattr(bounded, _INSTALL_MARKER, True)
     return True
 
