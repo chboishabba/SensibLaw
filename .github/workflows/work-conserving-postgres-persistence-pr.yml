@@ -5,12 +5,17 @@ on:
     paths:
       - "database/postgres_migrations/061_work_conserving_document_persistence.sql"
       - "src/storage/postgres/work_conserving_*.py"
+      - "src/storage/postgres/pipelined_document_cursor.py"
+      - "src/storage/postgres/reusable_persistence_connections.py"
+      - "src/storage/postgres/stage_copy_codec.py"
       - "src/policy/work_conserving_postgres_corpus_compilation.py"
       - "src/policy/work_conserving_ordered_compilation.py"
       - "scripts/run_complete_tranche_ordered.py"
       - "scripts/watch_work_conserving_persistence.py"
       - "tests/storage/test_work_conserving_persistence.py"
       - "tests/storage/test_work_conserving_token_identity.py"
+      - "tests/test_persistence_hot_path_execution.py"
+      - "tests/test_persistence_stage_cleanup_contract.py"
       - "tests/policy/test_work_conserving_ordered_compilation.py"
       - "docs/architecture/WORK_CONSERVING_POSTGRES_PERSISTENCE.md"
       - ".github/workflows/work-conserving-postgres-persistence-pr.yml"
@@ -20,12 +25,17 @@ on:
     paths:
       - "database/postgres_migrations/061_work_conserving_document_persistence.sql"
       - "src/storage/postgres/work_conserving_*.py"
+      - "src/storage/postgres/pipelined_document_cursor.py"
+      - "src/storage/postgres/reusable_persistence_connections.py"
+      - "src/storage/postgres/stage_copy_codec.py"
       - "src/policy/work_conserving_postgres_corpus_compilation.py"
       - "src/policy/work_conserving_ordered_compilation.py"
       - "scripts/run_complete_tranche_ordered.py"
       - "scripts/watch_work_conserving_persistence.py"
       - "tests/storage/test_work_conserving_persistence.py"
       - "tests/storage/test_work_conserving_token_identity.py"
+      - "tests/test_persistence_hot_path_execution.py"
+      - "tests/test_persistence_stage_cleanup_contract.py"
       - "tests/policy/test_work_conserving_ordered_compilation.py"
       - "docs/architecture/WORK_CONSERVING_POSTGRES_PERSISTENCE.md"
       - ".github/workflows/work-conserving-postgres-persistence-pr.yml"
@@ -62,13 +72,17 @@ jobs:
           enable-cache: true
 
       - name: Install
-        run: uv sync --frozen
+        run: uv sync --frozen --extra test --extra dev
 
       - name: Compile
         run: |
           uv run python -m py_compile \
             src/storage/postgres/work_conserving_stage.py \
+            src/storage/postgres/work_conserving_stage_hot_path.py \
             src/storage/postgres/work_conserving_copy_observability.py \
+            src/storage/postgres/pipelined_document_cursor.py \
+            src/storage/postgres/reusable_persistence_connections.py \
+            src/storage/postgres/stage_copy_codec.py \
             src/storage/postgres/work_conserving_graph_persistence.py \
             src/storage/postgres/work_conserving_language_persistence.py \
             src/storage/postgres/work_conserving_resolution_persistence.py \
@@ -80,13 +94,19 @@ jobs:
             scripts/watch_work_conserving_persistence.py \
             tests/storage/test_work_conserving_persistence.py \
             tests/storage/test_work_conserving_token_identity.py \
+            tests/test_persistence_hot_path_execution.py \
+            tests/test_persistence_stage_cleanup_contract.py \
             tests/policy/test_work_conserving_ordered_compilation.py
 
       - name: Ruff
         run: |
           uv run ruff check \
             src/storage/postgres/work_conserving_stage.py \
+            src/storage/postgres/work_conserving_stage_hot_path.py \
             src/storage/postgres/work_conserving_copy_observability.py \
+            src/storage/postgres/pipelined_document_cursor.py \
+            src/storage/postgres/reusable_persistence_connections.py \
+            src/storage/postgres/stage_copy_codec.py \
             src/storage/postgres/work_conserving_graph_persistence.py \
             src/storage/postgres/work_conserving_language_persistence.py \
             src/storage/postgres/work_conserving_resolution_persistence.py \
@@ -98,6 +118,8 @@ jobs:
             scripts/watch_work_conserving_persistence.py \
             tests/storage/test_work_conserving_persistence.py \
             tests/storage/test_work_conserving_token_identity.py \
+            tests/test_persistence_hot_path_execution.py \
+            tests/test_persistence_stage_cleanup_contract.py \
             tests/policy/test_work_conserving_ordered_compilation.py
 
       - name: Apply migrations
@@ -108,4 +130,6 @@ jobs:
           uv run pytest -q \
             tests/storage/test_work_conserving_persistence.py \
             tests/storage/test_work_conserving_token_identity.py \
+            tests/test_persistence_hot_path_execution.py \
+            tests/test_persistence_stage_cleanup_contract.py \
             tests/policy/test_work_conserving_ordered_compilation.py
