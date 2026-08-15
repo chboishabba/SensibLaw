@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from src.policy import numeric_pnf_compilation as numeric
+
 
 ROOT = Path(__file__).resolve().parents[2]
 NUMERIC = ROOT / "src/policy/numeric_pnf_compilation.py"
@@ -28,11 +30,22 @@ def test_cached_numeric_build_is_execution_reuse_not_fresh_semantic_measurement(
     assert "return cached" in branch
 
 
-def test_fresh_numeric_build_records_controlled_semantic_work_measurement() -> None:
+def test_fresh_numeric_measurement_is_explicitly_observability_gated() -> None:
     tail = _fresh_tail(_source())
+    assert "if _controlled_reuse_measurement_enabled():" in tail
     assert "measurement_id = _record_controlled_reuse(" in tail
     assert 'state="compiled_numeric_pnf"' in tail
-    assert '"controlled_reuse_measurement_id": measurement_id' in tail
+    assert 'details["controlled_reuse_measurement_id"] = measurement_id' in tail
+
+
+def test_controlled_learning_observability_is_off_by_default(monkeypatch) -> None:
+    monkeypatch.delenv("SENSIBLAW_RECORD_CONTROLLED_REUSE", raising=False)
+    assert not numeric._controlled_reuse_measurement_enabled()
+
+
+def test_controlled_learning_observability_can_be_enabled(monkeypatch) -> None:
+    monkeypatch.setenv("SENSIBLAW_RECORD_CONTROLLED_REUSE", "1")
+    assert numeric._controlled_reuse_measurement_enabled()
 
 
 def test_cached_reuse_comment_separates_replay_cost_from_semantic_work() -> None:
