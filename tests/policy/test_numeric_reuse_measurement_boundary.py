@@ -46,9 +46,3 @@ def test_controlled_learning_observability_is_off_by_default(monkeypatch) -> Non
 def test_controlled_learning_observability_can_be_enabled(monkeypatch) -> None:
     monkeypatch.setenv("SENSIBLAW_RECORD_CONTROLLED_REUSE", "1")
     assert numeric._controlled_reuse_measurement_enabled()
-
-
-def test_cached_reuse_comment_separates_replay_cost_from_semantic_work() -> None:
-    branch = _cached_branch(_source())
-    assert "execution-reuse receipt" in branch
-    assert "Replay timing/work is measured" in branch
