@@ -97,6 +97,28 @@ def test_pipelined_cursor_syncs_only_when_result_is_observed() -> None:
         assert cursor.rowcount == 3
         assert raw.connection.pipeline_value.sync_calls == 2
 
+    metrics = cursor.publication_metrics
+    assert metrics["statement_count"] == 3
+    assert metrics["pipeline_sync_count"] == 2
+    assert metrics["fetch_count"] == 1
+    assert metrics["execute_ns"] >= 0
+    assert metrics["pipeline_sync_ns"] >= 0
+
+
+def test_pipelined_cursor_records_copy_boundary_without_changing_rows() -> None:
+    raw = _RawCursor()
+    with PipelinedDocumentCursor(raw) as cursor:
+        cursor.execute("UPDATE before_copy")
+        with cursor.copy("COPY x FROM STDIN"):
+            pass
+        cursor.execute("UPDATE after_copy")
+
+    metrics = cursor.publication_metrics
+    assert raw.copy_calls == ["COPY x FROM STDIN"]
+    assert metrics["statement_count"] == 2
+    assert metrics["copy_boundary_count"] == 1
+    assert metrics["copy_boundary_ns"] >= 0
+
 
 def test_stage_binary_type_vector_matches_stage_row_width() -> None:
     assert len(STAGE_BINARY_TYPES) == 27
