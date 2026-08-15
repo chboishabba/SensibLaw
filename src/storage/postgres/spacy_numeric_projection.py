@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from src.pnf.numeric_hyperfabric import SymbolKind, numeric_digest
+from src.storage.postgres.numeric_copy_rows import copy_numeric_rows as _copy_rows
 from src.storage.postgres.numeric_symbol_store import (
     SymbolValue,
     intern_morph_sets,
@@ -30,7 +31,6 @@ from src.storage.postgres.spacy_parser_model import (
     connect,
 )
 from src.storage.postgres.spacy_parser_store import (
-    _copy_rows,
     _create_boundary_repair,
     refresh_coverage,
     seal_docbin,
