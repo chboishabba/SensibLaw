@@ -10,7 +10,6 @@ history may be compacted after admission.
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-import json
 from time import monotonic_ns
 from typing import Any, Iterable
 
@@ -23,7 +22,7 @@ from src.pnf.streaming_fixed_point import (
     StateDelta,
     StreamingSemanticOwner,
 )
-from src.policy.carriers.canonical import canonical_sha256
+from src.policy.carriers.canonical import canonical_bytes, canonical_sha256
 from src.runtime.document_execution_policy import DocumentRetentionPolicy
 
 
@@ -50,10 +49,44 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
         self._compaction_count = 0
         self._kernel_counts: Counter[str] = Counter()
         self._kernel_elapsed_ns: Counter[str] = Counter()
+        self._ordered_declarations: tuple[Any, ...] = ()
+        self._declarations_without_requirements: tuple[Any, ...] = ()
+        self._declarations_by_observation_type: dict[str, tuple[Any, ...]] = {}
+        self._job_signature_by_ref: dict[str, str] = {}
         # Execution strategies may reserve the canonical pre-activation
         # revision space while physically interleaving base admissions.  This
         # keeps job identity tied to canonical activation order, not timing.
         self._activation_input_revision: int | None = None
+
+    def register_declarations(self, declarations: Iterable[Any]) -> None:
+        """Register declarations and rebuild the exact activation index once."""
+
+        super().register_declarations(declarations)
+        started = monotonic_ns()
+        ordered = tuple(
+            sorted(
+                self._declarations.values(),
+                key=lambda row: (row.priority, row.declaration_ref),
+            )
+        )
+        unconditional: list[Any] = []
+        by_type: dict[str, list[Any]] = defaultdict(list)
+        for declaration in ordered:
+            required = tuple(sorted(set(declaration.requires)))
+            if not required:
+                unconditional.append(declaration)
+                continue
+            for observation_type in required:
+                by_type[str(observation_type)].append(declaration)
+        self._ordered_declarations = ordered
+        self._declarations_without_requirements = tuple(unconditional)
+        self._declarations_by_observation_type = {
+            key: tuple(value) for key, value in by_type.items()
+        }
+        self._kernel_counts["declaration_index_rebuilds"] += 1
+        self._kernel_elapsed_ns["declaration_index_rebuild_ns"] += (
+            monotonic_ns() - started
+        )
 
     def admit_observation_delta(self, delta: ObservationDelta) -> StateDelta:
         """Index sentence coverage before canonical job activation."""
@@ -141,6 +174,33 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
             "semantic_state_promoted": False,
         }
 
+    def _candidate_declarations(self, observation_types: set[str]) -> tuple[Any, ...]:
+        """Select only declarations whose requires-set intersects this delta."""
+
+        if len(self._ordered_declarations) != len(self._declarations):
+            # Compatibility guard for legacy code that mutates the declaration
+            # map directly instead of going through register_declarations().
+            self.register_declarations(())
+        candidates: dict[str, Any] = {
+            row.declaration_ref: row for row in self._declarations_without_requirements
+        }
+        for observation_type in observation_types:
+            for declaration in self._declarations_by_observation_type.get(
+                observation_type, ()
+            ):
+                candidates[declaration.declaration_ref] = declaration
+        ordered = tuple(
+            sorted(
+                candidates.values(),
+                key=lambda row: (row.priority, row.declaration_ref),
+            )
+        )
+        self._kernel_counts["declarations_examined"] += len(ordered)
+        self._kernel_counts["declarations_skipped_by_index"] += max(
+            0, len(self._ordered_declarations) - len(ordered)
+        )
+        return ordered
+
     def _activate_declarations_for_delta(
         self,
         delta: ObservationDelta,
@@ -149,19 +209,42 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
             str(row.get("observation_type") or row.get("type_ref") or "")
             for row in delta.observations
         }
-        emitted: list[SolverJob] = []
-        sort_started = monotonic_ns()
-        declarations = sorted(
-            self._declarations.values(),
-            key=lambda row: (row.priority, row.declaration_ref),
+        declarations = self._candidate_declarations(observation_types)
+        if not declarations:
+            return ()
+
+        # Every declaration activated by one delta receives the same immutable
+        # observation slice. Build and typed-encode it once instead of once per
+        # matching declaration/job.
+        payload_started = monotonic_ns()
+        input_refs = tuple(delta.observation_refs)
+        delta_ref = delta.delta_ref
+        observation_slice = tuple(
+            {
+                "observation_ref": str(row.get("observation_ref") or ""),
+                "observation_type": str(
+                    row.get("observation_type") or row.get("type_ref") or ""
+                ),
+                "token": dict(row.get("token") or {}),
+            }
+            for row in delta.observations
         )
-        self._kernel_elapsed_ns["declaration_sort_ns"] += monotonic_ns() - sort_started
-        self._kernel_counts["declarations_examined"] += len(declarations)
+        input_payload = {
+            "input_delta_ref": delta_ref,
+            "observation_delta": {
+                "delta_ref": delta_ref,
+                "scope_ref": delta.scope_ref,
+                "observations": observation_slice,
+            },
+        }
+        payload_bytes = len(canonical_bytes(input_payload))
+        self._kernel_counts["shared_job_payload_encodes"] += 1
+        self._kernel_elapsed_ns["job_payload_construction_ns"] += (
+            monotonic_ns() - payload_started
+        )
+
+        emitted: list[SolverJob] = []
         for declaration in declarations:
-            if declaration.requires and not set(declaration.requires).intersection(
-                observation_types
-            ):
-                continue
             if not self.coverage_complete(
                 scope_ref=delta.scope_ref,
                 barrier=declaration.coverage_barrier,
@@ -172,7 +255,6 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
                 delta.scope_ref,
                 declaration.affected_index,
             )
-            input_refs = tuple(delta.observation_refs)
             digest_started = monotonic_ns()
             signature = canonical_sha256(
                 {
@@ -188,40 +270,6 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
                 self._kernel_counts["jobs_deduplicated"] += 1
                 continue
 
-            # Keep only fields required by the current pure operator handler.
-            # This avoids delta.to_dict(), schema metadata, coordinate metadata,
-            # and repeated identity materialisation in every matching job.
-            payload_started = monotonic_ns()
-            observation_slice = tuple(
-                {
-                    "observation_ref": str(row.get("observation_ref") or ""),
-                    "observation_type": str(
-                        row.get("observation_type") or row.get("type_ref") or ""
-                    ),
-                    "token": dict(row.get("token") or {}),
-                }
-                for row in delta.observations
-            )
-            input_payload = {
-                "input_delta_ref": delta.delta_ref,
-                "observation_delta": {
-                    "delta_ref": delta.delta_ref,
-                    "scope_ref": delta.scope_ref,
-                    "observations": observation_slice,
-                },
-            }
-            self._kernel_elapsed_ns["job_payload_construction_ns"] += (
-                monotonic_ns() - payload_started
-            )
-            payload_bytes = len(
-                json.dumps(input_payload, separators=(",", ":"), sort_keys=True).encode(
-                    "utf-8"
-                )
-            )
-            self._kernel_counts["job_payload_bytes"] += payload_bytes
-            self._kernel_counts["max_job_payload_bytes"] = max(
-                self._kernel_counts["max_job_payload_bytes"], payload_bytes
-            )
             job = SolverJob(
                 owner_key=owner_key,
                 declaration_ref=declaration.declaration_ref,
@@ -241,9 +289,10 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
             self._kernel_elapsed_ns["job_identity_digest_ns"] += (
                 monotonic_ns() - job_digest_started
             )
+            self._job_signature_by_ref[job_ref] = signature
             self._compact_jobs.setdefault(job_ref, self._compact_job_row(job))
             if self.retention.completed_jobs:
-                self._jobs.setdefault(job.job_ref, job)
+                self._jobs.setdefault(job_ref, job)
             if (
                 job_ref not in self._pending_jobs
                 and job_ref not in self._in_flight_jobs
@@ -252,21 +301,34 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
                 self._pending_jobs[job_ref] = job
                 emitted.append(job)
                 self._kernel_counts["jobs_constructed"] += 1
+                # Preserve the old logical-byte telemetry while paying the
+                # typed-encoding cost once per delta rather than once per job.
+                self._kernel_counts["job_payload_bytes"] += payload_bytes
+                self._kernel_counts["max_job_payload_bytes"] = max(
+                    self._kernel_counts["max_job_payload_bytes"], payload_bytes
+                )
             else:
                 self._kernel_counts["jobs_deduplicated"] += 1
         return tuple(emitted)
 
-    def _index_proposal(self, proposal: FactorProposal, *, stage: str) -> bool:
+    def _index_proposal(
+        self,
+        proposal: FactorProposal,
+        *,
+        stage: str,
+    ) -> tuple[str, OwnerKey] | None:
         if proposal.document_ref != self.document_ref:
             raise ValueError("cross-document proposal supplied to owner")
-        if proposal.proposal_ref in self._proposals:
-            return False
+        proposal_ref = proposal.proposal_ref
+        if proposal_ref in self._proposals:
+            return None
         key = self.proposal_owner_key(proposal)
-        self._proposals[proposal.proposal_ref] = proposal
-        self._proposal_stage[proposal.proposal_ref] = stage
-        self._proposals_by_owner[key][proposal.proposal_ref] = proposal
+        self._kernel_counts["proposal_owner_key_computations"] += 1
+        self._proposals[proposal_ref] = proposal
+        self._proposal_stage[proposal_ref] = stage
+        self._proposals_by_owner[key][proposal_ref] = proposal
         self._dirty_groups.add(key)
-        return True
+        return proposal_ref, key
 
     def admit_proposals(
         self,
@@ -280,9 +342,11 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
         accepted: list[str] = []
         dirty: set[OwnerKey] = set()
         for proposal in proposals:
-            if self._index_proposal(proposal, stage=stage):
-                accepted.append(proposal.proposal_ref)
-                dirty.add(self.proposal_owner_key(proposal))
+            indexed = self._index_proposal(proposal, stage=stage)
+            if indexed is not None:
+                proposal_ref, key = indexed
+                accepted.append(proposal_ref)
+                dirty.add(key)
         return self._advance(
             prior_revision=prior,
             proposals=accepted,
@@ -312,13 +376,23 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
                 "solver receipt refers to unavailable or superseded inputs"
             )
 
-        signature = canonical_sha256(
-            {
-                "declaration_ref": job.declaration_ref,
-                "input_refs": job.input_refs,
-                "rule_set_revision": job.rule_set_revision,
-            }
-        )
+        signature = self._job_signature_by_ref.pop(receipt.job_ref, None)
+        if signature is None:
+            # Durable/replayed jobs can be rehydrated without the local
+            # constructor. Preserve the exact previous hash path there.
+            digest_started = monotonic_ns()
+            signature = canonical_sha256(
+                {
+                    "declaration_ref": job.declaration_ref,
+                    "input_refs": job.input_refs,
+                    "rule_set_revision": job.rule_set_revision,
+                }
+            )
+            self._kernel_elapsed_ns["receipt_signature_fallback_digest_ns"] += (
+                monotonic_ns() - digest_started
+            )
+        else:
+            self._kernel_counts["receipt_signature_cache_hits"] += 1
         self._completed_job_signatures.add(signature)
         self._compact_receipt_refs.add(receipt.receipt_ref)
         self._compact_receipts.setdefault(
@@ -333,9 +407,11 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
         accepted: list[str] = []
         dirty: set[OwnerKey] = set()
         for proposal in receipt.proposals:
-            if self._index_proposal(proposal, stage="composition"):
-                accepted.append(proposal.proposal_ref)
-                dirty.add(self.proposal_owner_key(proposal))
+            indexed = self._index_proposal(proposal, stage="composition")
+            if indexed is not None:
+                proposal_ref, key = indexed
+                accepted.append(proposal_ref)
+                dirty.add(key)
         return self._advance(
             prior_revision=prior,
             proposals=accepted,
@@ -351,17 +427,31 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
         introduced: set[str] = set()
         discharged: set[str] = set()
         dirty = tuple(sorted(self._dirty_groups))
+        self._kernel_counts["reduction_calls"] += 1
+        self._kernel_counts["dirty_owner_groups_reduced"] += len(dirty)
         for key in dirty:
+            owner_proposals = self._proposals_by_owner[key]
             group = tuple(
-                self._proposals_by_owner[key][proposal_ref]
-                for proposal_ref in sorted(self._proposals_by_owner[key])
+                owner_proposals[proposal_ref]
+                for proposal_ref in sorted(owner_proposals)
+            )
+            self._kernel_counts["reduction_proposals_scanned"] += len(group)
+            self._kernel_counts["max_reduction_fibre_size"] = max(
+                self._kernel_counts["max_reduction_fibre_size"], len(group)
             )
             before = self._reductions.get(key)
+            reduction_started = monotonic_ns()
             reduction = reduce_factor_proposals(
                 document_ref=self.document_ref,
                 proposals=group,
                 known_observation_refs=self._observation_refs,
                 known_dependency_refs=self._known_dependency_refs,
+            )
+            self._kernel_elapsed_ns["owner_reduction_ns"] += (
+                monotonic_ns() - reduction_started
+            )
+            self._kernel_counts["reduction_candidate_comparisons"] += int(
+                reduction.metrics.get("candidate_comparisons") or 0
             )
             self._reductions[key] = reduction
             before_factors = (
@@ -428,8 +518,13 @@ class BoundedStreamingSemanticOwner(StreamingSemanticOwner):
         }
 
     def kernel_telemetry(self) -> dict[str, Any]:
+        counts = dict(sorted(self._kernel_counts.items()))
+        unique = max(1, len(self._proposals))
+        counts["reduction_scan_amplification_milli"] = (
+            1_000 * int(self._kernel_counts["reduction_proposals_scanned"])
+        ) // unique
         return {
-            "counts": dict(sorted(self._kernel_counts.items())),
+            "counts": counts,
             "elapsed_ns": dict(sorted(self._kernel_elapsed_ns.items())),
         }
 
