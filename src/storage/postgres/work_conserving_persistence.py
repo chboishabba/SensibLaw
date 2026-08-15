@@ -121,6 +121,16 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
         for module in helper_modules
     }
     original_stage_partition = stage._stage_partition
+
+    def flush_pending_batches() -> None:
+        """Flush only when this binding scope owns a document runtime."""
+
+        if stage._DOCUMENT_RUNTIME.get() is None:
+            return
+        flush_binding_batch()
+        flush_resolution_batch()
+        flush_graph_batch()
+
     for name, replacement in replacements.items():
         setattr(compiler, name, replacement)
     install_verified_candidate_link_cache(compiler)
@@ -131,9 +141,7 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
         module._complete_stage = observable_complete_stage
     try:
         yield
-        flush_binding_batch()
-        flush_resolution_batch()
-        flush_graph_batch()
+        flush_pending_batches()
     finally:
         compiler._iter_descriptor_family = original_descriptor_family
         compiler._descriptor_metadata = original_descriptor_metadata

@@ -186,13 +186,14 @@ def test_store_bindings_restore_instance_surface() -> None:
 def test_compiler_bindings_restore_module_globals() -> None:
     import src.policy.postgres_corpus_compilation as compiler
     from src.storage.postgres import work_conserving_stage
+    from src.storage.postgres.work_conserving_graph_batching import (
+        persist_pnf_graph_batched,
+    )
 
     original_graph = compiler.persist_pnf_graph
     original_partition = work_conserving_stage._stage_partition
     with persistence.activate_work_conserving_postgres_bindings():
-        assert compiler.persist_pnf_graph is (
-            persistence.persist_pnf_graph_work_conserving
-        )
+        assert compiler.persist_pnf_graph is persist_pnf_graph_batched
         assert compiler.persist_licensed_spans is (
             persistence.persist_licensed_spans_work_conserving
         )

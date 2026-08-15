@@ -34,6 +34,18 @@ _CLEANUP_LOCK = Lock()
 _COMPLETED_DOCUMENTS = 0
 
 
+def _record_family_duration(
+    runtime: Any, *, metric: str, family_ref: str, elapsed_ns: int
+) -> None:
+    """Accumulate execution-only timing without affecting stage identity."""
+
+    values = getattr(runtime, metric, None)
+    if values is None:
+        values = {}
+        setattr(runtime, metric, values)
+    values[family_ref] = int(values.get(family_ref, 0)) + max(0, elapsed_ns)
+
+
 def _executor(worker_count: int) -> ThreadPoolExecutor:
     global _EXECUTOR, _EXECUTOR_WORKERS
     workers = max(1, worker_count)
@@ -135,6 +147,12 @@ def summarize_document_persistence(runtime: Any) -> dict[str, Any]:
         "cleanup_every_documents": _cleanup_interval(),
         "families": {},
         "stage_index_usage": {},
+        "stage_preparation_ns_by_family": dict(
+            getattr(runtime, "stage_preparation_ns_by_family", {})
+        ),
+        "stage_admission_ns_by_family": dict(
+            getattr(runtime, "stage_admission_ns_by_family", {})
+        ),
     }
     if not stage_refs or runtime.dsn is None:
         return summary
@@ -232,9 +250,7 @@ def install_work_conserving_stage_hot_path() -> bool:
         worker_budget: int,
     ) -> tuple[dict[str, Any], ...]:
         worker_count = min(max(1, worker_budget), max(1, len(payloads)))
-        partitions: list[list[tuple[int, Any]]] = [
-            [] for _ in range(worker_count)
-        ]
+        partitions: list[list[tuple[int, Any]]] = [[] for _ in range(worker_count)]
         for ordinal, payload in enumerate(payloads):
             partitions[ordinal % worker_count].append((ordinal, payload))
 
@@ -340,6 +356,7 @@ def install_work_conserving_stage_hot_path() -> bool:
                 "PostgreSQL cursor does not expose a reusable DSN"
             ) from error
         runtime.register_stage(stage_ref=stage_ref, dsn=dsn)
+        preparation_started = monotonic_ns()
         results = stage._prepare_stage(
             dsn=dsn,
             stage_ref=stage_ref,
@@ -349,6 +366,12 @@ def install_work_conserving_stage_hot_path() -> bool:
             lane_ref=lane_ref,
             payloads=payloads,
             worker_budget=runtime.worker_budget,
+        )
+        _record_family_duration(
+            runtime,
+            metric="stage_preparation_ns_by_family",
+            family_ref=family_ref,
+            elapsed_ns=monotonic_ns() - preparation_started,
         )
         setattr(
             runtime,
@@ -362,6 +385,7 @@ def install_work_conserving_stage_hot_path() -> bool:
             int(getattr(runtime, "staged_row_count", 0)) + len(payloads),
         )
 
+        admission_started = monotonic_ns()
         cursor.execute(
             """
             SELECT run.row_count,
@@ -419,6 +443,12 @@ def install_work_conserving_stage_hot_path() -> bool:
             WHERE stage_ref = %s AND state_ref = 'staged'
             """,
             (stage_ref,),
+        )
+        _record_family_duration(
+            runtime,
+            metric="stage_admission_ns_by_family",
+            family_ref=family_ref,
+            elapsed_ns=monotonic_ns() - admission_started,
         )
         return stage_ref
 
