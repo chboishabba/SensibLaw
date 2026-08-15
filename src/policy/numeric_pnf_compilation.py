@@ -315,16 +315,10 @@ def persist_numeric_pnf_document(
                 document_ref=document_ref,
                 state="reused_numeric_pnf",
             )
-            # The performance receipt is rebuildable observability. Record it
-            # after the source/PNF authority already exists, without changing
-            # the cached semantic build identity.
-            _record_controlled_reuse(
-                database_url=database_url,
-                run_ref=run_ref,
-                document_ref=document_ref,
-                canonical_text_sha256=canonical_text_sha256,
-                build_key_sha256=build_key_sha256,
-            )
+            # A cached build is an execution-reuse receipt, not a new semantic
+            # work observation.  It may be reused under a fresh requested run_ref
+            # that has no numeric run identity.  Replay timing/work is measured
+            # by the replay benchmark rather than forged as a fresh compile row.
             return cached
         store.persist_source_document(
             cursor,
