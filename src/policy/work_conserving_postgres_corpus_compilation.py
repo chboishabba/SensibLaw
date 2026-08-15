@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+import os
+from pathlib import Path
+import pickle
 from typing import Any, Iterator
 
 from src.policy.postgres_corpus_compilation import (
@@ -15,6 +18,9 @@ from src.storage.postgres.work_conserving_persistence import (
     activate_work_conserving_postgres_bindings,
     activate_work_conserving_store_bindings,
     document_persistence_runtime,
+)
+from src.storage.postgres.work_conserving_stage_hot_path import (
+    summarize_document_persistence,
 )
 
 
@@ -33,10 +39,6 @@ def _claim_budget_at_document_savepoint(store: Any, runtime: Any) -> Iterator[No
     def budgeted_savepoint() -> Iterator[Any]:
         runtime.ensure_budget()
         with original_savepoint() as cursor:
-            # Publication order and transaction boundaries remain unchanged.
-            # The facade merely lets psycopg queue consecutive statements until
-            # their result is actually observed, cutting one network wait per
-            # INSERT/UPDATE on high-fanout persistence families.
             with PipelinedDocumentCursor(cursor) as pipelined:
                 yield pipelined
 
@@ -45,6 +47,17 @@ def _claim_budget_at_document_savepoint(store: Any, runtime: Any) -> Iterator[No
         yield
     finally:
         store.savepoint = original_savepoint
+
+
+def _write_persistence_metrics(metrics: dict[str, Any]) -> None:
+    raw = os.environ.get("SENSIBLAW_PERSISTENCE_METRICS_PATH")
+    if not raw:
+        return
+    path = Path(raw)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_bytes(pickle.dumps(metrics, protocol=5))
+    temporary.replace(path)
 
 
 def persist_document_compilation_work_conserving(**kwargs: Any) -> tuple[str, ...]:
@@ -71,6 +84,7 @@ def persist_document_compilation_work_conserving(**kwargs: Any) -> tuple[str, ..
         parser_target_chars=int(kwargs.get("parser_target_chars", 400_000)),
         parser_overlap_chars=int(kwargs.get("parser_overlap_chars", 8_192)),
     )
+    runtime: Any
     with document_persistence_runtime(
         document_ref=document_ref,
         build_key_sha256=build_key_sha256,
@@ -78,7 +92,26 @@ def persist_document_compilation_work_conserving(**kwargs: Any) -> tuple[str, ..
         with _claim_budget_at_document_savepoint(store, runtime):
             with activate_work_conserving_store_bindings(store):
                 with activate_work_conserving_postgres_bindings():
-                    return persist_document_compilation(**kwargs)
+                    result = persist_document_compilation(**kwargs)
+    metrics = {
+        "contract_ref": WORK_CONSERVING_PERSISTENCE_CONTRACT,
+        "document_ref": document_ref,
+        "build_key_sha256": build_key_sha256,
+        **summarize_document_persistence(runtime),
+    }
+    _write_persistence_metrics(metrics)
+    resource_ledger = kwargs.get("resource_ledger")
+    if resource_ledger is not None:
+        resource_ledger.sample(
+            "postgres_persistence:work_conserving_summary",
+            phase="postgres_persistence",
+            semantic_counts={
+                "staged_rows": int(metrics.get("staged_rows") or 0),
+                "stage_count": int(metrics.get("stage_count") or 0),
+            },
+            details=metrics,
+        )
+    return result
 
 
 __all__ = [
