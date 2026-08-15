@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import pickle
 from pathlib import Path
 
@@ -8,6 +9,7 @@ import pytest
 from scripts.benchmark_document_replay import (
     DocumentCase,
     _acceptance_ref,
+    _process_execution,
     load_manifest,
 )
 
@@ -61,3 +63,22 @@ def test_acceptance_reference_starts_with_unique_run_token(tmp_path: Path) -> No
         mode="batched",
         run_root=tmp_path / "replay-other" / "medium" / "batched",
     )
+
+
+def test_process_execution_comes_from_exact_acceptance_comparison(
+    tmp_path: Path,
+) -> None:
+    strict_path = (
+        tmp_path / "acceptance" / "replay" / "strict" / "acceptance-receipt.json"
+    )
+    strict_path.parent.mkdir(parents=True)
+    strict_path.write_text("{}", encoding="utf-8")
+    comparison_path = strict_path.parent.parent / "parallel-acceptance-comparison.json"
+    comparison_path.write_text(
+        json.dumps({"process_execution": {"distinct_semantic_worker_count": 2}}),
+        encoding="utf-8",
+    )
+
+    assert _process_execution(strict_path=strict_path, strict_receipt={}) == {
+        "distinct_semantic_worker_count": 2
+    }

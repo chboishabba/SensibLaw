@@ -57,7 +57,7 @@ def _job() -> SolverJob:
         owner_key=OwnerKey(
             document_ref=delta.document_ref,
             scope_ref=delta.scope_ref,
-            affected_index="semantic.operator_composition",
+            factor_family="semantic.operator_composition",
         ),
         declaration_ref=STREAMING_OPERATOR_DECLARATION_REF,
         input_revision=1,

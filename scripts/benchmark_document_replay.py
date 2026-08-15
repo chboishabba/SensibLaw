@@ -4,15 +4,15 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
-from datetime import UTC, datetime
 import hashlib
 import os
-from pathlib import Path
 import pickle
-from pprint import pformat
 import subprocess
 import sys
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from pathlib import Path
+from pprint import pformat
 from time import monotonic_ns
 from typing import Any, Mapping
 
@@ -20,13 +20,14 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from scripts.run_exact_0008_parallel_acceptance import (
+    _json as read_report,  # noqa: E402
+)
 from src.runtime.semantic_parity import (  # noqa: E402
     canonical_stream_digest,
     compare_semantic_surfaces,
     semantic_surface_from_execution_receipt,
 )
-from scripts.run_exact_0008_parallel_acceptance import _json as read_report  # noqa: E402
-
 
 SCHEMA_VERSION = "sensiblaw.document-replay-benchmark.v1"
 MODES = ("full", "batched", "disabled")
@@ -98,6 +99,26 @@ def _find_semantic_receipt(root: Path) -> Path | None:
         if candidate.exists():
             return candidate
     return None
+
+
+def _process_execution(
+    *, strict_path: Path, strict_receipt: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Read parallel-worker evidence from the exact acceptance comparison.
+
+    The strict receipt owns resource and publication verification.  The exact
+    wrapper owns the semantic-receipt-derived PID evidence, so retain both
+    authorities in the benchmark projection rather than reporting an empty
+    field for every successful strict replay.
+    """
+
+    comparison_path = strict_path.parent.parent / "parallel-acceptance-comparison.json"
+    comparison = _mapping(comparison_path) if comparison_path.exists() else {}
+    return dict(
+        comparison.get("process_execution")
+        or strict_receipt.get("process_execution")
+        or {}
+    )
 
 
 def _kernel_seconds(receipt: Mapping[str, Any], prefix: str) -> float:
@@ -279,7 +300,9 @@ def _run_case(
             "closure": _kernel_seconds(receipt, "streaming_closure:"),
         },
         "resources": dict(strict.get("resources") or {}),
-        "process_execution": dict(strict.get("process_execution") or {}),
+        "process_execution": _process_execution(
+            strict_path=strict_path, strict_receipt=strict
+        ),
         "owner_reduction": owner_reduction,
         "persistence": {
             "progress": progress_metrics,
