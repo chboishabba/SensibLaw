@@ -195,13 +195,36 @@ def _sealed_receipt_verify(original_verify_descriptor: Any) -> Any:
     return verify_descriptor
 
 
+def _memoized_factor_revision_ref(original_factor_revision_ref: Any) -> Any:
+    """Hash each completed in-memory factor mapping once per document scope."""
+
+    cache: dict[int, tuple[Any, str]] = {}
+
+    def factor_revision_ref(factor: Mapping[str, Any]) -> str:
+        identity = id(factor)
+        cached = cache.get(identity)
+        if cached is not None and cached[0] is factor:
+            return cached[1]
+        revision_ref = str(original_factor_revision_ref(factor))
+        # Retain the object beside its id so CPython id reuse cannot alias a
+        # later mapping to an earlier revision while this document is active.
+        cache[identity] = (factor, revision_ref)
+        return revision_ref
+
+    return factor_revision_ref
+
+
 @contextmanager
 def activate_carrier_orchestration_hot_path() -> Iterator[None]:
     """Install physical-only carrier optimisations for one document runtime."""
 
+    from src.policy import manifest_stream_validation
     from src.policy import operational_corpus_compilation
     from src.policy import postgres_corpus_compilation
+    from src.policy.algebra import revision_identity
+    from src.storage.postgres import work_conserving_graph_persistence
     from src.storage.postgres import work_conserving_language_persistence
+    from src.storage.postgres import work_conserving_resolution_persistence
 
     reader_type = artifact_projection.InMemoryArtifactManifestReader
     original_iter_records = _install_manifest_replay_hot_path()
@@ -212,9 +235,15 @@ def activate_carrier_orchestration_hot_path() -> Iterator[None]:
     original_postgres_verified = postgres_corpus_compilation.iter_verified_records
     original_language_verified = work_conserving_language_persistence.iter_verified_records
     original_verify_descriptor = postgres_corpus_compilation._verify_descriptor
+    original_revision_ref = revision_identity.factor_revision_ref
+    original_manifest_revision_ref = manifest_stream_validation.factor_revision_ref
+    original_postgres_revision_ref = postgres_corpus_compilation.factor_revision_ref
+    original_graph_revision_ref = work_conserving_graph_persistence.factor_revision_ref
+    original_resolution_revision_ref = work_conserving_resolution_persistence.factor_revision_ref
 
     sealed_project = _seal_projected_reader(original_project_artifacts)
     sealed_verified = _sealed_iter_verified_records(original_verified)
+    memo_revision_ref = _memoized_factor_revision_ref(original_revision_ref)
     execution_resource_ledger.sample_process_resources = _single_read_process_resources
     artifact_projection.project_artifacts = sealed_project
     operational_corpus_compilation.project_artifacts = sealed_project
@@ -224,6 +253,11 @@ def activate_carrier_orchestration_hot_path() -> Iterator[None]:
     postgres_corpus_compilation._verify_descriptor = _sealed_receipt_verify(
         original_verify_descriptor
     )
+    revision_identity.factor_revision_ref = memo_revision_ref
+    manifest_stream_validation.factor_revision_ref = memo_revision_ref
+    postgres_corpus_compilation.factor_revision_ref = memo_revision_ref
+    work_conserving_graph_persistence.factor_revision_ref = memo_revision_ref
+    work_conserving_resolution_persistence.factor_revision_ref = memo_revision_ref
     try:
         yield
     finally:
@@ -235,6 +269,11 @@ def activate_carrier_orchestration_hot_path() -> Iterator[None]:
         postgres_corpus_compilation.iter_verified_records = original_postgres_verified
         work_conserving_language_persistence.iter_verified_records = original_language_verified
         postgres_corpus_compilation._verify_descriptor = original_verify_descriptor
+        revision_identity.factor_revision_ref = original_revision_ref
+        manifest_stream_validation.factor_revision_ref = original_manifest_revision_ref
+        postgres_corpus_compilation.factor_revision_ref = original_postgres_revision_ref
+        work_conserving_graph_persistence.factor_revision_ref = original_graph_revision_ref
+        work_conserving_resolution_persistence.factor_revision_ref = original_resolution_revision_ref
 
 
 __all__ = ["activate_carrier_orchestration_hot_path"]
