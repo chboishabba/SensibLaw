@@ -14,6 +14,10 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from src.policy.corpus_compilation import DocumentCompilation
+from src.runtime.numeric_observability import (
+    controlled_reuse_measurement_enabled as _controlled_reuse_measurement_enabled,
+    numeric_authority_counts_enabled as _numeric_authority_counts_enabled,
+)
 from src.storage.postgres.numeric_reuse_measurement import (
     record_numeric_compiler_reuse_measurement,
 )
@@ -44,22 +48,6 @@ def _artifact_root(
     if checkpoint_dir:
         return Path(checkpoint_dir) / "numeric-pnf"
     return Path(".tmp") / "numeric-pnf" / run_ref.replace(":", "_")
-
-
-def _controlled_reuse_measurement_enabled() -> bool:
-    """Keep scan-heavy corpus observability out of ordinary production."""
-
-    import os
-
-    return os.environ.get("SENSIBLAW_RECORD_CONTROLLED_REUSE", "0") == "1"
-
-
-def _numeric_authority_counts_enabled() -> bool:
-    """Opt in to document-wide cardinality scans used only for diagnostics."""
-
-    import os
-
-    return os.environ.get("SENSIBLAW_NUMERIC_AUTHORITY_COUNTS", "0") == "1"
 
 
 def _parser_policy(
@@ -131,9 +119,6 @@ def _authority_refs(
                 "diagnostic_counts_measured": False,
             }
             if _numeric_authority_counts_enabled():
-                # These aggregate scans are deliberately not semantic authority.
-                # They exist for calibration/observability and therefore do not
-                # belong on the ordinary post-parser production path.
                 cursor.execute(
                     """
                     SELECT
@@ -340,10 +325,6 @@ def persist_numeric_pnf_document(
                 document_ref=document_ref,
                 state="reused_numeric_pnf",
             )
-            # A cached build is an execution-reuse receipt, not a new semantic
-            # work observation. It may be reused under a fresh requested run_ref
-            # that has no numeric run identity. Replay timing/work is measured
-            # by the replay benchmark rather than forged as a fresh compile row.
             return cached
         store.persist_source_document(
             cursor,
