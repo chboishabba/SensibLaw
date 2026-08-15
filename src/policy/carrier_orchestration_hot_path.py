@@ -71,6 +71,26 @@ def _trust_inprocess_seals() -> bool:
     return os.environ.get("SENSIBLAW_TRUST_INPROCESS_ARTIFACT_SEALS", "1") != "0"
 
 
+def _descriptor_seal(reader: Any, descriptor: Mapping[str, Any]) -> tuple[int, str] | None:
+    artifact_key = str(descriptor.get("artifact_key") or "")
+    seals = getattr(reader, "_producer_descriptor_seals", None)
+    if not isinstance(seals, Mapping):
+        return None
+    seal = seals.get(artifact_key)
+    if not isinstance(seal, tuple) or len(seal) != 2:
+        return None
+    return int(seal[0]), str(seal[1])
+
+
+def _descriptor_matches_seal(reader: Any, descriptor: Mapping[str, Any]) -> bool:
+    if not _trust_inprocess_seals():
+        return False
+    return _descriptor_seal(reader, descriptor) == (
+        int(descriptor["record_count"]),
+        str(descriptor["ordered_digest"]),
+    )
+
+
 def _install_manifest_replay_hot_path() -> Any:
     """Remove telemetry-only JSON sizing and coalesce resource observations."""
 
@@ -145,10 +165,7 @@ def _sealed_iter_verified_records(original_iter_verified_records: Any) -> Any:
             raise ValueError("record batch size must be between 1 and 256")
         artifact_key = str(descriptor["artifact_key"])
         expected_count = int(descriptor["record_count"])
-        expected_digest = str(descriptor["ordered_digest"])
-        seals = getattr(reader, "_producer_descriptor_seals", None)
-        seal = seals.get(artifact_key) if isinstance(seals, Mapping) else None
-        if _trust_inprocess_seals() and seal == (expected_count, expected_digest):
+        if _descriptor_matches_seal(reader, descriptor):
             count = 0
             for batch in reader.iter_records(artifact_key, batch_size):
                 if len(batch) > batch_size:
@@ -167,6 +184,17 @@ def _sealed_iter_verified_records(original_iter_verified_records: Any) -> Any:
     return iter_verified_records
 
 
+def _sealed_receipt_verify(original_verify_descriptor: Any) -> Any:
+    """Skip row traversal when a descriptor is only being consumed as a receipt."""
+
+    def verify_descriptor(reader: Any, descriptor: Mapping[str, Any]) -> None:
+        if _descriptor_matches_seal(reader, descriptor):
+            return
+        original_verify_descriptor(reader, descriptor)
+
+    return verify_descriptor
+
+
 @contextmanager
 def activate_carrier_orchestration_hot_path() -> Iterator[None]:
     """Install physical-only carrier optimisations for one document runtime."""
@@ -183,6 +211,7 @@ def activate_carrier_orchestration_hot_path() -> Iterator[None]:
     original_verified = artifact_projection.iter_verified_records
     original_postgres_verified = postgres_corpus_compilation.iter_verified_records
     original_language_verified = work_conserving_language_persistence.iter_verified_records
+    original_verify_descriptor = postgres_corpus_compilation._verify_descriptor
 
     sealed_project = _seal_projected_reader(original_project_artifacts)
     sealed_verified = _sealed_iter_verified_records(original_verified)
@@ -192,6 +221,9 @@ def activate_carrier_orchestration_hot_path() -> Iterator[None]:
     artifact_projection.iter_verified_records = sealed_verified
     postgres_corpus_compilation.iter_verified_records = sealed_verified
     work_conserving_language_persistence.iter_verified_records = sealed_verified
+    postgres_corpus_compilation._verify_descriptor = _sealed_receipt_verify(
+        original_verify_descriptor
+    )
     try:
         yield
     finally:
@@ -202,6 +234,7 @@ def activate_carrier_orchestration_hot_path() -> Iterator[None]:
         artifact_projection.iter_verified_records = original_verified
         postgres_corpus_compilation.iter_verified_records = original_postgres_verified
         work_conserving_language_persistence.iter_verified_records = original_language_verified
+        postgres_corpus_compilation._verify_descriptor = original_verify_descriptor
 
 
 __all__ = ["activate_carrier_orchestration_hot_path"]
