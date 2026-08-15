@@ -7,6 +7,7 @@ import pytest
 from src.policy.algebra.revision_identity import factor_revision_ref
 from src.storage.postgres import work_conserving_persistence as persistence
 from src.storage.postgres import work_conserving_stage as stage
+from src.storage.postgres import work_conserving_stage_hot_path as stage_hot_path
 
 
 def _factor(*, factor_ref: str = "factor:1") -> dict[str, object]:
@@ -248,13 +249,14 @@ def test_stage_partition_count_is_bounded_by_worker_budget(
         def cursor(self) -> "FakeConnection":
             return self
 
+        def transaction(self) -> "FakeConnection":
+            return self
+
         def execute(self, *_args: object, **_kwargs: object) -> None:
             return None
 
-    class FakePsycopg:
-        @staticmethod
-        def connect(_dsn: str) -> FakeConnection:
-            return FakeConnection()
+    def fake_transactional_connection(_dsn: str) -> FakeConnection:
+        return FakeConnection()
 
     class ImmediateFuture:
         def __init__(self, value: dict[str, int]) -> None:
@@ -276,9 +278,21 @@ def test_stage_partition_count_is_bounded_by_worker_budget(
         def submit(self, _fn: object, **kwargs: object) -> ImmediateFuture:
             return ImmediateFuture({"partition_no": int(kwargs["partition_no"])})
 
-    monkeypatch.setattr(stage, "_require_psycopg", lambda: FakePsycopg)
-    monkeypatch.setattr(stage, "ThreadPoolExecutor", ImmediateExecutor)
-    monkeypatch.setattr(stage, "as_completed", lambda futures: tuple(futures))
+    monkeypatch.setattr(
+        stage_hot_path,
+        "transactional_persistence_connection",
+        fake_transactional_connection,
+    )
+    monkeypatch.setattr(
+        stage_hot_path,
+        "_executor",
+        lambda max_workers: ImmediateExecutor(max_workers=max_workers),
+    )
+    monkeypatch.setattr(
+        stage_hot_path,
+        "as_completed",
+        lambda futures: tuple(futures),
+    )
     stage._prepare_stage(
         dsn="postgresql://example",
         stage_ref="stage:1",
