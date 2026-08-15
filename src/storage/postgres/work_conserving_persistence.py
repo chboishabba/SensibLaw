@@ -9,7 +9,7 @@ the caller's existing document savepoint. Staged rows never publish a document.
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import Any, Iterator
+from typing import Iterator
 
 from src.storage.postgres import (
     work_conserving_binding_persistence as binding_persistence,
@@ -20,6 +20,12 @@ from src.storage.postgres import (
 )
 from src.storage.postgres import (
     work_conserving_resolution_persistence as resolution_persistence,
+)
+from src.storage.postgres.work_conserving_binding_batching import (
+    flush_binding_batch,
+    persist_binding_batched,
+    persist_streamed_candidate_builds_batched,
+    persist_streamed_candidate_links_batched,
 )
 from src.storage.postgres.work_conserving_binding_persistence import (
     _binding_payloads,
@@ -70,23 +76,6 @@ from src.storage.postgres.work_conserving_stage_hot_path import (
 )
 
 
-def _binding_after_pending_resolution(cursor: Any, **kwargs: Any) -> None:
-    flush_resolution_batch(cursor)
-    persist_binding_candidate_sets_work_conserving(cursor, **kwargs)
-
-
-def _streamed_builds_after_pending_resolution(cursor: Any, rows: Any) -> None:
-    flush_resolution_batch(cursor)
-    persist_streamed_candidate_builds_work_conserving(cursor, rows)
-
-
-def _streamed_links_after_pending_resolution(
-    cursor: Any, *, kind: str, rows: Any
-) -> None:
-    flush_resolution_batch(cursor)
-    persist_streamed_candidate_links_work_conserving(cursor, kind=kind, rows=rows)
-
-
 @contextmanager
 def activate_work_conserving_postgres_bindings() -> Iterator[None]:
     """Temporarily replace only physical persistence helpers in the compiler."""
@@ -96,19 +85,19 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
 
     install_work_conserving_stage_hot_path()
 
-    # Manifest factor and resolution streams are verified in small chunks. Their
-    # immutable identities are available immediately, but physical PostgreSQL
-    # publication need only precede the first downstream consumer. Bounded
-    # super-batches therefore retain the exact authority order while collapsing
-    # dozens of stage/setup/merge cycles.
+    # Manifest graph, resolution and binding streams arrive in small verified
+    # chunks. Their identities are available immediately, but physical authority
+    # need only precede the first SQL consumer. Bounded super-batches retain the
+    # exact graph -> resolution -> binding order while collapsing repeated stage
+    # setup/completeness/telemetry/merge cycles.
     replacements = {
         "persist_licensed_spans": persist_licensed_spans_work_conserving,
         "persist_pnf_graph": persist_pnf_graph_batched,
         "persist_factor_revision": deferred_factor_revision,
         "persist_resolution_artifacts": persist_resolution_batched,
-        "persist_binding_candidate_sets": _binding_after_pending_resolution,
-        "_persist_streamed_candidate_builds": _streamed_builds_after_pending_resolution,
-        "_persist_streamed_candidate_links": _streamed_links_after_pending_resolution,
+        "persist_binding_candidate_sets": persist_binding_batched,
+        "_persist_streamed_candidate_builds": persist_streamed_candidate_builds_batched,
+        "_persist_streamed_candidate_links": persist_streamed_candidate_links_batched,
     }
     helper_modules = (
         graph_persistence,
@@ -130,8 +119,10 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
         module._complete_stage = observable_complete_stage
     try:
         yield
-        # Graph-only or resolution-only documents may never enter binding.
-        # Flush while the ordered authority savepoint is still active.
+        # Some documents have no later consumer to force a flush. Complete the
+        # pending execution carriers while the ordered authority savepoint is
+        # still active. Each lower layer flushes its required parent first.
+        flush_binding_batch()
         flush_resolution_batch()
         flush_graph_batch()
     finally:
