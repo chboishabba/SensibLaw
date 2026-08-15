@@ -25,6 +25,59 @@ Never:
 object → dict → JSON → JSONB → dict → object
 ```
 
+The broader production priority is fixed in
+`docs/architecture/PRODUCTION_PERFORMANCE_CONSTITUTION.md`:
+
+```text
+parse once → compile numerically → retain proofs → reopen locally → reuse forever
+```
+
+JSON is therefore a symptom to remove from the normal path, not a format to make
+progressively more central.
+
+## Legacy identity boundary
+
+There is one important distinction between **using JSON as a working semantic
+carrier** and **preserving an already-versioned identity contract whose digest is
+defined over canonical JSON bytes**.
+
+The latter may temporarily require one explicit serialization pass at the
+identity/export boundary.  It does not grant JSON permission downstream.
+
+The defended current manifest case is named in code by
+`LEGACY_MANIFEST_IDENTITY_BOUNDARY` from
+`src/runtime/numeric_hot_path_constitution.py`.  The boundary permits JSON only;
+it does not permit regex or general text semantics.
+
+The intended shape is:
+
+```text
+producer
+→ canonical boundary identity once
+→ digest / immutable producer seal
+→ typed or numeric in-process consumers
+```
+
+not:
+
+```text
+producer
+→ canonical JSON + hash
+→ consumer envelope reconstruction
+→ canonical JSON + hash again
+→ semantic execution
+```
+
+A future binary manifest identity must be a deliberate versioned identity
+migration with an explicit bridge.  It must not silently change the bytes under
+an existing digest contract merely because another encoding benchmarks faster.
+
+The ordinary production target remains:
+
+```text
+JSON transformations in semantic execution ≈ 0
+```
+
 ## Cleared execution authority
 
 These paths are guarded by both the generated scanner and source-level tests:
@@ -92,6 +145,11 @@ The following source-level surfaces remain explicitly shamed:
   - still exposes compatibility projections that may collect parser token rows;
   - sentence-local PostgreSQL work is now ready immediately, but source-level
     removal of the compatibility population build remains a separate cleanup.
+- `src/policy/carrier_orchestration_hot_path.py`
+  - still imports JSON solely to preserve the legacy manifest digest;
+  - the call site requires the named legacy identity boundary permit;
+  - producer seals and direct-family reads remove repeated JSON verification and
+    envelope reconstruction from same-process semantic consumers.
 
 Runtime bypass is not permission to add more use. These names stay visible until
 the old definitions themselves are deleted or moved to an explicit boundary
