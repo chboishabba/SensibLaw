@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from src.storage.postgres import work_conserving_binding_batching as binding_batching
 from src.storage.postgres import work_conserving_graph_batching as graph_batching
 from src.storage.postgres import work_conserving_resolution_batching as resolution_batching
 from src.storage.postgres.work_conserving_stage import StagePayload
@@ -38,7 +39,7 @@ def test_graph_batch_returns_identities_before_physical_flush(monkeypatch) -> No
 
     assert revisions == {"factor:1": "revision:1"}
     assert cursor.executed == []
-    assert len(runtime._graph_batch_payloads) == 2  # header + factor
+    assert len(runtime._graph_batch_payloads) == 2
 
 
 def test_graph_batch_deduplicates_repeated_factor_payloads(monkeypatch) -> None:
@@ -127,3 +128,79 @@ def test_resolution_batch_returns_demand_refs_without_sql(monkeypatch) -> None:
 
     assert refs == ("demand:2",)
     assert cursor.executed == []
+
+
+def test_binding_batch_defers_sql_and_deduplicates_payloads(monkeypatch) -> None:
+    runtime = SimpleNamespace()
+    cursor = _Cursor()
+    payload = StagePayload("candidate_set", texts=("set:1",))
+    monkeypatch.setattr(binding_batching, "_runtime", lambda: runtime)
+    monkeypatch.setenv("SENSIBLAW_PERSISTENCE_BINDING_BATCH_PAYLOADS", "100")
+    monkeypatch.setattr(
+        binding_batching,
+        "_binding_payloads",
+        lambda **_kwargs: [payload],
+    )
+
+    kwargs = {
+        "candidate_sets": ({"candidate_set_ref": "set:1"},),
+        "refinements": (),
+        "factor_revisions": {},
+        "factor_anchors": (),
+        "builds": (),
+        "meets": (),
+        "demands": (),
+        "validate_indexed_query": True,
+    }
+    binding_batching.persist_binding_batched(cursor, **kwargs)
+    binding_batching.persist_binding_batched(cursor, **kwargs)
+
+    assert cursor.executed == []
+    assert runtime._binding_batch_payloads == [payload]
+    assert runtime._binding_batch_needs_validation is True
+
+
+def test_binding_batch_flushes_resolution_before_publish_and_validation(monkeypatch) -> None:
+    payload = StagePayload("candidate_set", texts=("set:1",))
+    runtime = SimpleNamespace(
+        _binding_batch_payloads=[payload],
+        _binding_batch_payload_set={payload},
+        _binding_batch_cursor=None,
+        _binding_batch_needs_validation=True,
+    )
+    cursor = _Cursor()
+    runtime._binding_batch_cursor = cursor
+    events: list[str] = []
+    monkeypatch.setattr(binding_batching, "_runtime", lambda: runtime)
+    monkeypatch.setattr(
+        binding_batching,
+        "flush_resolution_batch",
+        lambda _cursor: events.append("resolution"),
+    )
+    monkeypatch.setattr(
+        binding_batching,
+        "observable_stage_payloads",
+        lambda *_args, **_kwargs: events.append("stage") or "stage:binding",
+    )
+    monkeypatch.setattr(
+        binding_batching,
+        "_publish_binding_stage",
+        lambda *_args, **_kwargs: events.append("publish") or 10,
+    )
+    monkeypatch.setattr(
+        binding_batching,
+        "_validate_binding_stage",
+        lambda *_args, **_kwargs: events.append("validate"),
+    )
+    monkeypatch.setattr(
+        binding_batching,
+        "observable_complete_stage",
+        lambda *_args, **_kwargs: events.append("complete"),
+    )
+
+    binding_batching.flush_binding_batch(cursor)
+
+    assert events == ["resolution", "stage", "publish", "validate", "complete"]
+    assert runtime._binding_batch_payloads == []
+    assert runtime._binding_batch_needs_validation is False
+    assert runtime.binding_superbatches_flushed == 1
