@@ -20,9 +20,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.run_exact_0008_parallel_acceptance import (
-    _json as read_report,  # noqa: E402
+from scripts.run_exact_0008_parallel_acceptance import (  # noqa: E402
+    _json as read_report,
 )
+from src.runtime.performance_constitution import assess_replay_run  # noqa: E402
 from src.runtime.semantic_parity import (  # noqa: E402
     canonical_stream_digest,
     compare_semantic_surfaces,
@@ -104,13 +105,7 @@ def _find_semantic_receipt(root: Path) -> Path | None:
 def _process_execution(
     *, strict_path: Path, strict_receipt: Mapping[str, Any]
 ) -> dict[str, Any]:
-    """Read parallel-worker evidence from the exact acceptance comparison.
-
-    The strict receipt owns resource and publication verification.  The exact
-    wrapper owns the semantic-receipt-derived PID evidence, so retain both
-    authorities in the benchmark projection rather than reporting an empty
-    field for every successful strict replay.
-    """
+    """Read parallel-worker evidence from the exact acceptance comparison."""
 
     comparison_path = strict_path.parent.parent / "parallel-acceptance-comparison.json"
     comparison = _mapping(comparison_path) if comparison_path.exists() else {}
@@ -154,11 +149,7 @@ def _command(
     acceptance_root = (
         run_root
         / "acceptance"
-        / _acceptance_ref(
-            case=case,
-            mode=mode,
-            run_root=run_root,
-        )
+        / _acceptance_ref(case=case, mode=mode, run_root=run_root)
     )
     command = [
         sys.executable,
@@ -295,6 +286,8 @@ def _run_case(
         "returncode": completed.returncode,
         "completed": receipt.get("state") == "completed",
         "wall_seconds": wall_ns / 1_000_000_000,
+        # Only explicitly measured kernels belong here. Do not infer a parser
+        # time or a total post-parser time by subtracting from wall clock.
         "kernel_seconds": {
             "local_typing": _kernel_seconds(receipt, "local_typing_diagnostics:"),
             "closure": _kernel_seconds(receipt, "streaming_closure:"),
@@ -388,6 +381,7 @@ def main() -> int:
                 )
             else:
                 row["parity"] = {"semantic_parity": None}
+            row["performance_constitution"] = assess_replay_run(row)
             rows.append(row)
     report = {
         "schema_version": SCHEMA_VERSION,
