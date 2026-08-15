@@ -11,6 +11,7 @@ from src.pnf.streaming_operator_executor import (
     solve_operator_job,
 )
 from src.policy.activation_hot_path_execution import _descriptor_value
+from src.policy.direct_process_closure_execution import _process_pids
 from src.policy.parallel_typing_tail import prepare_closure_activation_leaf_worker
 from src.runtime.direct_closure_worker import execute_operator_solver_receipt
 
@@ -98,3 +99,22 @@ def test_bounded_execution_installs_direct_process_executor() -> None:
     from src.policy.direct_process_closure_execution import DirectProcessClosurePool
 
     assert bounded.ThreadPoolExecutor is DirectProcessClosurePool
+
+
+def test_process_pid_snapshot_is_physical_and_filters_dead_workers() -> None:
+    class Process:
+        def __init__(self, pid: int, alive: bool) -> None:
+            self.pid = pid
+            self._alive = alive
+
+        def is_alive(self) -> bool:
+            return self._alive
+
+    class Executor:
+        _processes = {
+            11: Process(1011, True),
+            12: Process(1012, False),
+            13: Process(1013, True),
+        }
+
+    assert _process_pids(Executor()) == (1011, 1013)
