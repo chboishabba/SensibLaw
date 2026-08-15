@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import pickle
 from pathlib import Path
 import shutil
 import subprocess
@@ -114,6 +115,34 @@ def _json(path: Path) -> dict[str, Any]:
     if not isinstance(value, Mapping):
         raise ValueError(f"expected JSON object: {path}")
     return dict(value)
+
+
+def _artifact(path: Path) -> dict[str, Any]:
+    """Read a typed binary artifact, retaining JSON compatibility for reports."""
+
+    if path.suffix == ".pkl" or path.exists() and path.read_bytes()[:1] == b"\x80":
+        try:
+            value = pickle.loads(path.read_bytes())
+        except (
+            OSError,
+            EOFError,
+            pickle.PickleError,
+            AttributeError,
+            ValueError,
+        ) as error:
+            raise ValueError(f"invalid typed artifact: {path}") from error
+        if not isinstance(value, Mapping):
+            raise ValueError(f"expected mapping artifact: {path}")
+        return dict(value)
+    return _json(path)
+
+
+def _semantic_receipt(root: Path) -> tuple[Path, dict[str, Any]]:
+    for name in ("semantic-execution-receipt.pkl", "semantic-execution-receipt.json"):
+        path = root / name
+        if path.exists():
+            return path, _artifact(path)
+    return root / "semantic-execution-receipt.pkl", {"state": "missing"}
 
 
 def _atomic_json(path: Path, payload: Mapping[str, Any]) -> None:
@@ -281,7 +310,7 @@ def main() -> int:
         injected = subprocess.run(
             command, cwd=ROOT, env=injected_environment, check=False
         )
-        injected_semantic_path = semantic_root / "semantic-execution-receipt.json"
+        injected_semantic_path, _ = _semantic_receipt(semantic_root)
         injected_snapshot_path = acceptance_root / "injected-stop-semantic-receipt.json"
         if injected_semantic_path.exists():
             shutil.copyfile(injected_semantic_path, injected_snapshot_path)
@@ -301,12 +330,7 @@ def main() -> int:
         if strict_receipt_path.exists()
         else {"state": "missing", "accepted": False}
     )
-    semantic_receipt_path = semantic_root / "semantic-execution-receipt.json"
-    semantic_receipt = (
-        _json(semantic_receipt_path)
-        if semantic_receipt_path.exists()
-        else {"state": "missing"}
-    )
+    semantic_receipt_path, semantic_receipt = _semantic_receipt(semantic_root)
 
     local_typing_seconds = _kernel_seconds(
         semantic_receipt, "local_typing_diagnostics:"
@@ -345,7 +369,7 @@ def main() -> int:
         else None
     )
     if args.reference_semantic_receipt is not None:
-        reference_receipt = _json(args.reference_semantic_receipt.resolve())
+        reference_receipt = _artifact(args.reference_semantic_receipt.resolve())
         parity = compare_semantic_surfaces(
             (
                 semantic_surface_from_execution_receipt(reference_receipt),

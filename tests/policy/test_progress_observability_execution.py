@@ -4,6 +4,7 @@ from pathlib import Path
 import pickle
 
 from src.policy import parallel_typing_tail as tail
+from src.policy import no_json_checkpoint_execution as binary_policy
 from src.policy.parallel_semantic_execution import SemanticExecutionContext
 from src.policy.progress_observability_execution import (
     PROGRESS_ENVELOPE_SCHEMA_VERSION,
@@ -124,3 +125,35 @@ def test_parent_rolls_up_leaf_completion_and_checkpoint_reuse(
     assert started["counts"]["leaves_completed"] == 3
     assert started["counts"]["leaves_total"] == 3
     assert started["counts"]["leaves_reused"] == 3
+
+
+def test_batched_progress_persistence_flushes_one_durable_frame_batch(
+    tmp_path: Path, monkeypatch: object
+) -> None:
+    monkeypatch.setenv("SENSIBLAW_PROGRESS_PERSISTENCE_MODE", "batched")  # type: ignore[attr-defined]
+    monkeypatch.setenv("SENSIBLAW_PROGRESS_BATCH_EVENTS", "64")  # type: ignore[attr-defined]
+    context = _context(tmp_path)
+
+    context.sample(
+        "local_typing_diagnostics:test", phase="running", counts={"completed": 1}
+    )
+
+    assert not (tmp_path / "progress" / "events.bin").exists()
+    binary_policy._flush_progress(tmp_path)
+    events = (tmp_path / "progress" / "events.bin").read_bytes()
+    frame_size = int.from_bytes(events[:8], "big")
+    assert frame_size == len(events) - 8
+    assert pickle.loads(events[8:])["stage"] == "local_typing_diagnostics:test"
+
+
+def test_disabled_progress_persistence_keeps_console_only_mode(
+    tmp_path: Path, monkeypatch: object
+) -> None:
+    monkeypatch.setenv("SENSIBLAW_PROGRESS_PERSISTENCE_MODE", "disabled")  # type: ignore[attr-defined]
+    context = _context(tmp_path)
+
+    context.sample(
+        "local_typing_diagnostics:test", phase="running", counts={"completed": 1}
+    )
+
+    assert not (tmp_path / "progress").exists()
