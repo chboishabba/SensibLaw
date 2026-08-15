@@ -1,20 +1,21 @@
 """Cheaper exact completion and execution for work-conserving COPY stages.
 
 Each partition writes its COPY rows and its `document_persistence_lane` staged
-receipt in the same committed PostgreSQL transaction.  Consequently a complete
+receipt in the same committed PostgreSQL transaction. Consequently a complete
 set of staged lane receipts whose row counts sum to the declared run row count
 is an exact publication precondition; rescanning every provisional row merely to
 COUNT them is redundant I/O.
 
-Physical stage execution also reuses one bounded thread executor and reusable
-PostgreSQL transaction leases instead of constructing a new executor and backend
-set for every persistence family.  Publication remains in the caller's ordered
-document savepoint.
+Physical stage execution reuses one bounded thread executor and reusable
+PostgreSQL transaction leases. Published provisional rows are execution-only,
+UNLOGGED, and keyed by deterministic stage refs, so their deletion is amortized
+across documents rather than doubling row/index churn in every authority commit.
 """
 
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import os
 from threading import Lock
 from typing import Any, Sequence
 
@@ -28,6 +29,8 @@ _INSTALL_MARKER = "_work_conserving_stage_hot_path_installed"
 _EXECUTOR: ThreadPoolExecutor | None = None
 _EXECUTOR_WORKERS = 0
 _EXECUTOR_LOCK = Lock()
+_CLEANUP_LOCK = Lock()
+_COMPLETED_DOCUMENTS = 0
 
 
 def _executor(worker_count: int) -> ThreadPoolExecutor:
@@ -53,11 +56,55 @@ def _executor(worker_count: int) -> ThreadPoolExecutor:
         return _EXECUTOR
 
 
+def _cleanup_interval() -> int:
+    raw = os.environ.get("SENSIBLAW_PERSISTENCE_CLEANUP_EVERY_DOCUMENTS", "16")
+    value = int(raw)
+    if value < 0:
+        raise ValueError(
+            "SENSIBLAW_PERSISTENCE_CLEANUP_EVERY_DOCUMENTS must be non-negative"
+        )
+    return value
+
+
+def _maybe_cleanup_published_stages(runtime: Any) -> None:
+    """Amortize deletion of execution-only rows after successful publication.
+
+    A value of 0 disables opportunistic cleanup entirely. Deterministic stage
+    setup still deletes rows for its own stage_ref before replay, so disabling
+    the sweep changes only retained execution storage, never semantic results.
+    """
+
+    global _COMPLETED_DOCUMENTS
+    interval = _cleanup_interval()
+    if interval == 0 or runtime.dsn is None:
+        return
+    with _CLEANUP_LOCK:
+        _COMPLETED_DOCUMENTS += 1
+        if _COMPLETED_DOCUMENTS % interval:
+            return
+        dsn = runtime.dsn
+    # Delete only rows whose authority publication committed. Staged/failed rows
+    # remain for recovery and diagnostics. One set operation amortizes cleanup
+    # over the preceding document epoch.
+    with transactional_persistence_connection(dsn) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                DELETE FROM execution.document_persistence_stage AS staged
+                USING execution.document_persistence_run AS run
+                WHERE run.stage_ref = staged.stage_ref
+                  AND run.state_ref = 'published'
+                """
+            )
+
+
 def install_work_conserving_stage_hot_path() -> bool:
     from src.storage.postgres import work_conserving_stage as stage
 
     if getattr(stage, _INSTALL_MARKER, False):
         return False
+
+    original_runtime_finish = stage.DocumentPersistenceRuntime.finish
 
     def prepare_stage(
         *,
@@ -86,7 +133,7 @@ def install_work_conserving_stage_hot_path() -> bool:
             )
 
         # Setup is its own committed execution transaction, exactly as before,
-        # so COPY workers can observe the run row and clean staging surface.
+        # so COPY workers can observe the run row and clean any same-stage replay.
         with transactional_persistence_connection(dsn) as connection:
             with connection.cursor() as cursor:
                 cursor.execute(
@@ -145,8 +192,6 @@ def install_work_conserving_stage_hot_path() -> bool:
             for future in as_completed(futures):
                 results.append(future.result())
         except BaseException as error:
-            # Failure telemetry is independent and immediately visible; it must
-            # not wait for or consume a transactional COPY pool lease.
             with persistence_telemetry_cursor(dsn) as cursor:
                 cursor.execute(
                     """
@@ -199,9 +244,6 @@ def install_work_conserving_stage_hot_path() -> bool:
             worker_budget=runtime.worker_budget,
         )
 
-        # COPY and the corresponding staged lane receipt commit atomically on
-        # each partition connection. Prove complete coverage from that compact
-        # ledger instead of scanning the provisional row table again.
         cursor.execute(
             """
             SELECT run.row_count,
@@ -262,8 +304,33 @@ def install_work_conserving_stage_hot_path() -> bool:
         )
         return stage_ref
 
+    def complete_stage(cursor: Any, *, stage_ref: str, statement_count: int) -> None:
+        # Do not delete provisional rows in the authority transaction. Marking
+        # the execution receipt published is enough; cleanup occurs only after
+        # the document savepoint has committed and is amortized across documents.
+        cursor.execute(
+            """
+            UPDATE execution.document_persistence_run
+            SET state_ref = 'published', statement_count = %s,
+                published_at = CURRENT_TIMESTAMP
+            WHERE stage_ref = %s
+            """,
+            (statement_count, stage_ref),
+        )
+
+    def runtime_finish(self: Any) -> None:
+        # `finish()` is reached after persist_document_compilation returns, hence
+        # after the ordered document savepoint commit. Querying only published
+        # runs makes this safe even when the savepoint raised and rolled back.
+        try:
+            _maybe_cleanup_published_stages(self)
+        finally:
+            original_runtime_finish(self)
+
     stage._prepare_stage = prepare_stage
     stage._stage_payloads = stage_payloads
+    stage._complete_stage = complete_stage
+    stage.DocumentPersistenceRuntime.finish = runtime_finish
     setattr(stage, _INSTALL_MARKER, True)
     return True
 
