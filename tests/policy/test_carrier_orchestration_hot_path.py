@@ -101,7 +101,14 @@ def test_manifest_telemetry_hot_path_does_not_json_size_rows(
         def __init__(self) -> None:
             self.rows: list[int] = []
 
-        def batch(self, _stage: str, *, rows: int, payload_bytes: int = 0, **_kwargs: Any) -> None:
+        def batch(
+            self,
+            _stage: str,
+            *,
+            rows: int,
+            payload_bytes: int = 0,
+            **_kwargs: Any,
+        ) -> None:
             assert payload_bytes == 0
             self.rows.append(rows)
 
@@ -141,3 +148,37 @@ def test_resource_sampler_reads_smaps_rollup_once(monkeypatch: pytest.MonkeyPatc
     assert reads == 1
     assert result["pss_bytes"] == 10 * 1024
     assert result["uss_bytes"] == 7 * 1024
+
+
+def test_factor_revision_memo_hashes_same_mapping_once() -> None:
+    calls = 0
+
+    def original(factor: Mapping[str, Any]) -> str:
+        nonlocal calls
+        calls += 1
+        return f"revision:{factor['factor_ref']}:{factor['closure_state']}"
+
+    memoized = hot._memoized_factor_revision_ref(original)
+    factor = {"factor_ref": "factor:1", "closure_state": "closed"}
+
+    first = memoized(factor)
+    second = memoized(factor)
+
+    assert first == second
+    assert calls == 1
+
+
+def test_factor_revision_memo_does_not_alias_equal_distinct_mappings() -> None:
+    calls = 0
+
+    def original(factor: Mapping[str, Any]) -> str:
+        nonlocal calls
+        calls += 1
+        return f"revision:{factor['factor_ref']}:{calls}"
+
+    memoized = hot._memoized_factor_revision_ref(original)
+    left = {"factor_ref": "factor:1"}
+    right = {"factor_ref": "factor:1"}
+
+    assert memoized(left) != memoized(right)
+    assert calls == 2
