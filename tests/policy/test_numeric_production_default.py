@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import inspect
+from pathlib import Path
 
 from src.policy import operational_corpus_compilation
 from src.policy import postgres_corpus_compilation
 from src.policy import streaming_spacy_parser_execution as execution
+
+
+ROOT = Path(__file__).resolve().parents[2]
+STREAMING = ROOT / "src/policy/streaming_spacy_parser_execution.py"
 
 
 def test_postgres_omitted_strategy_prefers_numeric_production(monkeypatch) -> None:
@@ -66,3 +71,29 @@ def test_wrapped_strategy_arguments_are_keyword_only() -> None:
 
     assert compile_parameter.kind is inspect.Parameter.KEYWORD_ONLY
     assert persist_parameter.kind is inspect.Parameter.KEYWORD_ONLY
+
+
+def test_strict_numeric_path_fails_closed_without_postgres_authority() -> None:
+    source = STREAMING.read_text(encoding="utf-8")
+    compile_branch = source.split("def compile_wrapper", 1)[1].split(
+        "def persist_wrapper", 1
+    )[0]
+    assert "if not _is_strict_strategy(strategy):" in compile_branch
+    assert "return original_compile" in compile_branch
+    strict_tail = compile_branch.split("if not _is_strict_strategy(strategy):", 1)[1]
+    assert 'StrictExecutionError(' in strict_tail
+    assert '"postgresql_authority_missing"' in strict_tail
+    assert "return original_compile" not in strict_tail.split("database_url =", 1)[1]
+
+
+def test_strict_numeric_persistence_fails_closed_without_postgres_authority() -> None:
+    source = STREAMING.read_text(encoding="utf-8")
+    persist_branch = source.split("def persist_wrapper", 1)[1].split(
+        "operational.DocumentFibrePolicy.to_dict", 1
+    )[0]
+    assert "if not _is_strict_strategy(strategy):" in persist_branch
+    assert "return original_persist" in persist_branch
+    strict_tail = persist_branch.split("if not _is_strict_strategy(strategy):", 1)[1]
+    assert 'StrictExecutionError(' in strict_tail
+    assert '"postgresql_authority_missing"' in strict_tail
+    assert "return original_persist" not in strict_tail.split("database_url =", 1)[1]
