@@ -3,7 +3,12 @@ from pathlib import Path
 from src.sources.austlii_paragraphs import parse_austlii_paragraphs
 from src.sources.paragraphs import select_paragraphs
 
-FIXTURE = Path(__file__).resolve().parent / "fixtures" / "austlii" / "judgment_paragraphs_sample.html"
+FIXTURE = (
+    Path(__file__).resolve().parent
+    / "fixtures"
+    / "austlii"
+    / "judgment_paragraphs_sample.html"
+)
 
 
 def test_parse_austlii_paragraphs_from_list_items():

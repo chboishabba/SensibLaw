@@ -52,7 +52,9 @@ def mock_undoc_bundle() -> list[Mapping[str, Any]]:
     ]
 
 
-def fetch_live_undoc(symbol: str, *, language: str = "en", timeout: int = 10) -> dict[str, Any] | None:
+def fetch_live_undoc(
+    symbol: str, *, language: str = "en", timeout: int = 10
+) -> dict[str, Any] | None:
     try:
         response = requests.get(f"{_UNDOCS_BASE_URL}/{symbol}", timeout=timeout)
         response.raise_for_status()
@@ -73,7 +75,9 @@ def fetch_live_undoc(symbol: str, *, language: str = "en", timeout: int = 10) ->
             except requests.RequestException:
                 pass
     final_url = response.url
-    iframe_match = re.search(r"<iframe[^>]+src=['\"]([^'\"\s]+api/symbol/access[^'\"]+)['\"]", response.text)
+    iframe_match = re.search(
+        r"<iframe[^>]+src=['\"]([^'\"\s]+api/symbol/access[^'\"]+)['\"]", response.text
+    )
     if iframe_match:
         try:
             final_url = iframe_match.group(1).replace("&amp;", "&")
@@ -96,7 +100,9 @@ def fetch_live_undoc(symbol: str, *, language: str = "en", timeout: int = 10) ->
     )
 
 
-def normalized_undoc_symbol(symbol: str = "INFCIRC/12/Rev.1", *, language: str = "en") -> dict[str, Any]:
+def normalized_undoc_symbol(
+    symbol: str = "INFCIRC/12/Rev.1", *, language: str = "en"
+) -> dict[str, Any]:
     payload = fetch_live_undoc(symbol, language=language)
     if payload:
         return payload

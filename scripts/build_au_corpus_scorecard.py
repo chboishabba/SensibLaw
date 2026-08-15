@@ -11,12 +11,36 @@ SENSIBLAW_ROOT = REPO_ROOT / "SensibLaw"
 ARTIFACT_VERSION = "au_corpus_scorecard_v1"
 DEFAULT_OUTPUT_DIR = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / ARTIFACT_VERSION
 DEFAULT_BUNDLE_PATHS = [
-    REPO_ROOT / "itir-svelte" / "tests" / "fixtures" / "fact_review_wave1_real_au_demo_bundle.json",
-    REPO_ROOT / "itir-svelte" / "tests" / "fixtures" / "fact_review_wave3_real_fragmented_support_demo_bundle.json",
-    REPO_ROOT / "itir-svelte" / "tests" / "fixtures" / "fact_review_wave5_real_professional_handoff_demo_bundle.json",
-    REPO_ROOT / "itir-svelte" / "tests" / "fixtures" / "fact_review_wave5_real_false_coherence_demo_bundle.json",
+    REPO_ROOT
+    / "itir-svelte"
+    / "tests"
+    / "fixtures"
+    / "fact_review_wave1_real_au_demo_bundle.json",
+    REPO_ROOT
+    / "itir-svelte"
+    / "tests"
+    / "fixtures"
+    / "fact_review_wave3_real_fragmented_support_demo_bundle.json",
+    REPO_ROOT
+    / "itir-svelte"
+    / "tests"
+    / "fixtures"
+    / "fact_review_wave5_real_professional_handoff_demo_bundle.json",
+    REPO_ROOT
+    / "itir-svelte"
+    / "tests"
+    / "fixtures"
+    / "fact_review_wave5_real_false_coherence_demo_bundle.json",
 ]
-DEFAULT_RAW_SOURCE_ROOT = REPO_ROOT / "SensibLaw" / "demo" / "ingest" / "hca_case_s942025" / "media" / "transcripts"
+DEFAULT_RAW_SOURCE_ROOT = (
+    REPO_ROOT
+    / "SensibLaw"
+    / "demo"
+    / "ingest"
+    / "hca_case_s942025"
+    / "media"
+    / "transcripts"
+)
 
 
 def _coerce_path(value: str) -> Path:
@@ -55,7 +79,11 @@ def _build_slice(bundle_paths: list[Path], *, raw_source_root: Path) -> dict[str
 
     for path in bundle_paths:
         selector, workbench = _load_workbench(path)
-        summary = workbench.get("summary", {}) if isinstance(workbench.get("summary"), dict) else {}
+        summary = (
+            workbench.get("summary", {})
+            if isinstance(workbench.get("summary"), dict)
+            else {}
+        )
         workflow_kind = str(selector.get("workflow_kind") or "")
         source_label = str(selector.get("source_label") or "")
         workflow_run_id = str(selector.get("workflow_run_id") or "")
@@ -78,11 +106,17 @@ def _build_slice(bundle_paths: list[Path], *, raw_source_root: Path) -> dict[str
                 "event_count": int(summary.get("event_count") or 0),
                 "review_queue_count": int(summary.get("review_queue_count") or 0),
                 "contested_item_count": int(summary.get("contested_item_count") or 0),
-                "approximate_event_count": int(summary.get("approximate_event_count") or 0),
+                "approximate_event_count": int(
+                    summary.get("approximate_event_count") or 0
+                ),
             }
         )
 
-    raw_files = sorted(path for path in raw_source_root.glob("*") if path.is_file()) if raw_source_root.exists() else []
+    raw_files = (
+        sorted(path for path in raw_source_root.glob("*") if path.is_file())
+        if raw_source_root.exists()
+        else []
+    )
     raw_files_by_suffix: dict[str, int] = {}
     for path in raw_files:
         suffix = path.suffix or "<none>"
@@ -102,15 +136,21 @@ def _build_slice(bundle_paths: list[Path], *, raw_source_root: Path) -> dict[str
             "fact_count_total": _sum_field(bundle_rows, "fact_count"),
             "event_count_total": _sum_field(bundle_rows, "event_count"),
             "review_queue_count_total": _sum_field(bundle_rows, "review_queue_count"),
-            "contested_item_count_total": _sum_field(bundle_rows, "contested_item_count"),
-            "approximate_event_count_total": _sum_field(bundle_rows, "approximate_event_count"),
+            "contested_item_count_total": _sum_field(
+                bundle_rows, "contested_item_count"
+            ),
+            "approximate_event_count_total": _sum_field(
+                bundle_rows, "approximate_event_count"
+            ),
             "known_raw_transcript_file_count": len(raw_files),
         },
         "included_workflow_kinds": sorted(workflow_kinds),
         "included_source_labels": sorted(source_labels),
         "bundle_inventory": bundle_rows,
         "known_raw_source_backlog": {
-            "root": str(raw_source_root.relative_to(REPO_ROOT)) if raw_source_root.exists() else str(raw_source_root),
+            "root": str(raw_source_root.relative_to(REPO_ROOT))
+            if raw_source_root.exists()
+            else str(raw_source_root),
             "file_count": len(raw_files),
             "files_by_suffix": raw_files_by_suffix,
             "files": [str(path.relative_to(REPO_ROOT)) for path in raw_files],
@@ -192,9 +232,18 @@ def _build_scorecard(slice_payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def build_corpus_scorecard(output_dir: Path, *, bundle_paths: list[Path] | None = None, raw_source_root: Path = DEFAULT_RAW_SOURCE_ROOT) -> dict[str, Any]:
-    selected_bundle_paths = [path.resolve() for path in (bundle_paths or DEFAULT_BUNDLE_PATHS)]
-    slice_payload = _build_slice(selected_bundle_paths, raw_source_root=raw_source_root.resolve())
+def build_corpus_scorecard(
+    output_dir: Path,
+    *,
+    bundle_paths: list[Path] | None = None,
+    raw_source_root: Path = DEFAULT_RAW_SOURCE_ROOT,
+) -> dict[str, Any]:
+    selected_bundle_paths = [
+        path.resolve() for path in (bundle_paths or DEFAULT_BUNDLE_PATHS)
+    ]
+    slice_payload = _build_slice(
+        selected_bundle_paths, raw_source_root=raw_source_root.resolve()
+    )
     summary_text = _build_summary_text(slice_payload)
     scorecard_payload = _build_scorecard(slice_payload)
 
@@ -203,7 +252,13 @@ def build_corpus_scorecard(output_dir: Path, *, bundle_paths: list[Path] | None 
         "slice_path": output_dir / f"{ARTIFACT_VERSION}.json",
         "summary_path": output_dir / f"{ARTIFACT_VERSION}.summary.md",
     }
-    paths["slice_path"].write_text(json.dumps(scorecard_payload | {"slice": slice_payload}, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    paths["slice_path"].write_text(
+        json.dumps(
+            scorecard_payload | {"slice": slice_payload}, indent=2, sort_keys=True
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     paths["summary_path"].write_text(summary_text + "\n", encoding="utf-8")
     return {
         "scorecard": scorecard_payload,
@@ -212,10 +267,25 @@ def build_corpus_scorecard(output_dir: Path, *, bundle_paths: list[Path] | None 
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build the broader AU corpus scorecard from persisted real workbench bundles.")
-    parser.add_argument("--bundle-path", action="append", default=[], help="Real workbench bundle path; repeat to override the default set.")
-    parser.add_argument("--raw-source-root", default=str(DEFAULT_RAW_SOURCE_ROOT), help="Directory containing known raw transcript source files.")
-    parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Directory to write the AU corpus scorecard into.")
+    parser = argparse.ArgumentParser(
+        description="Build the broader AU corpus scorecard from persisted real workbench bundles."
+    )
+    parser.add_argument(
+        "--bundle-path",
+        action="append",
+        default=[],
+        help="Real workbench bundle path; repeat to override the default set.",
+    )
+    parser.add_argument(
+        "--raw-source-root",
+        default=str(DEFAULT_RAW_SOURCE_ROOT),
+        help="Directory containing known raw transcript source files.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default=str(DEFAULT_OUTPUT_DIR),
+        help="Directory to write the AU corpus scorecard into.",
+    )
     args = parser.parse_args()
 
     bundle_paths = _collect_paths(args.bundle_path)

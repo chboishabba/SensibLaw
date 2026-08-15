@@ -7,9 +7,15 @@ from pathlib import Path
 import sqlite3
 
 from scripts import build_personal_handoff_from_openrecall
-from scripts.build_personal_handoff_from_openrecall import build_handoff_from_openrecall_artifact, main
+from scripts.build_personal_handoff_from_openrecall import (
+    build_handoff_from_openrecall_artifact,
+    main,
+)
 from src.reporting import openrecall_import
-from src.reporting.openrecall_import import ensure_openrecall_capture_schema, import_openrecall_db
+from src.reporting.openrecall_import import (
+    ensure_openrecall_capture_schema,
+    import_openrecall_db,
+)
 
 
 def _seed_openrecall_db(tmp_path: Path) -> tuple[Path, Path]:
@@ -78,14 +84,18 @@ def test_openrecall_import_builds_personal_handoff(tmp_path: Path) -> None:
         import_run_id="openrecall-handoff-v1",
     )
 
-    normalized = json.loads(Path(payload["normalized_input_path"]).read_text(encoding="utf-8"))
+    normalized = json.loads(
+        Path(payload["normalized_input_path"]).read_text(encoding="utf-8")
+    )
     report = json.loads(Path(payload["report_path"]).read_text(encoding="utf-8"))
     assert normalized["entries"][0]["source_type"] == "openrecall_capture"
     assert "[Firefox]" in normalized["entries"][0]["text"]
     assert report["recipient_export"]["exported_item_count"] == 1
 
 
-def test_openrecall_import_builds_protected_envelope_without_raw_text(tmp_path: Path) -> None:
+def test_openrecall_import_builds_protected_envelope_without_raw_text(
+    tmp_path: Path,
+) -> None:
     itir_db = _make_itir_with_openrecall(tmp_path)
 
     payload = build_handoff_from_openrecall_artifact(
@@ -97,7 +107,9 @@ def test_openrecall_import_builds_protected_envelope_without_raw_text(tmp_path: 
         import_run_id="openrecall-handoff-v1",
     )
 
-    normalized = json.loads(Path(payload["normalized_input_path"]).read_text(encoding="utf-8"))
+    normalized = json.loads(
+        Path(payload["normalized_input_path"]).read_text(encoding="utf-8")
+    )
     report = json.loads(Path(payload["report_path"]).read_text(encoding="utf-8"))
     serialized = json.dumps(report, sort_keys=True)
     assert normalized["entries"][0]["local_handle"].startswith("openrecall_capture://")

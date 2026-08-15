@@ -8,7 +8,9 @@ from pathlib import Path
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Report deterministic top-k parser/Wikidata relation neighborhoods across corpora.")
+    parser = argparse.ArgumentParser(
+        description="Report deterministic top-k parser/Wikidata relation neighborhoods across corpora."
+    )
     parser.add_argument("--chat-db")
     parser.add_argument("--messenger-db")
     parser.add_argument("--run-id")
@@ -27,8 +29,14 @@ def main() -> None:
     if str(sensiblaw_root) not in sys.path:
         sys.path.insert(0, str(sensiblaw_root))
 
-    from src.reporting.relation_neighborhood_report import build_relation_neighborhood_report  # noqa: PLC0415
-    from src.reporting.structure_report import load_chat_units, load_file_units, load_messenger_units  # noqa: PLC0415
+    from src.reporting.relation_neighborhood_report import (
+        build_relation_neighborhood_report,
+    )  # noqa: PLC0415
+    from src.reporting.structure_report import (
+        load_chat_units,
+        load_file_units,
+        load_messenger_units,
+    )  # noqa: PLC0415
 
     units = []
     if args.chat_db:
@@ -54,18 +62,26 @@ def main() -> None:
     if args.json:
         print(json.dumps(report, indent=2, sort_keys=True))
         return
-    print(f"units={report['unit_count']} terms={report['term_count']} dependency_mode={report['dependency_mode']}")
+    print(
+        f"units={report['unit_count']} terms={report['term_count']} dependency_mode={report['dependency_mode']}"
+    )
     print("top_topic_interconnects:")
     for row in report["top_topic_interconnects"]:
         print(f"  - {row['term']}: {row['count']}")
     print("top_terms:")
     for row in report["top_terms"]:
-        print(f"- {row['top_surface']} ({row['term']}): count={row['count']} units={row['unit_count']}")
+        print(
+            f"- {row['top_surface']} ({row['term']}): count={row['count']} units={row['unit_count']}"
+        )
         if row["bridge_matches"]:
             for link in row["bridge_matches"]:
-                print(f"    bridge: {link['curie']} via {link['matched_alias']} -> {link['canonical_ref']}")
+                print(
+                    f"    bridge: {link['curie']} via {link['matched_alias']} -> {link['canonical_ref']}"
+                )
         for neighbor in row["top_dependency_neighbors"][:3]:
-            print(f"    dep: {neighbor['relation']} {neighbor['term']} ({neighbor['count']})")
+            print(
+                f"    dep: {neighbor['relation']} {neighbor['term']} ({neighbor['count']})"
+            )
         for neighbor in row["top_cooccurring_terms"][:3]:
             print(f"    co: {neighbor['term']} ({neighbor['count']})")
 

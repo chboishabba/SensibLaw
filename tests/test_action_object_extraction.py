@@ -7,7 +7,9 @@ from src.obligation_identity import compute_obligation_identity
 
 
 def _doc(body: str, refs: list[RuleReference], source_id: str = "doc") -> Document:
-    metadata = DocumentMetadata(jurisdiction="NSW", citation="CIT", date=date(2023, 1, 1), provenance=source_id)
+    metadata = DocumentMetadata(
+        jurisdiction="NSW", citation="CIT", date=date(2023, 1, 1), provenance=source_id
+    )
     prov = Provision(text=body, rule_atoms=[RuleAtom(references=refs)])
     return Document(metadata=metadata, body=body, provisions=[prov])
 
@@ -16,7 +18,9 @@ def test_action_object_distinct_actions():
     body_keep = "The operator must keep records."
     body_maintain = "The operator must maintain records."
     obs_keep = extract_obligations_from_text(body_keep, references=[], source_id="doc")
-    obs_maintain = extract_obligations_from_text(body_maintain, references=[], source_id="doc")
+    obs_maintain = extract_obligations_from_text(
+        body_maintain, references=[], source_id="doc"
+    )
     assert obs_keep[0].action.normalized == "keep"
     assert obs_maintain[0].action.normalized == "maintain"
     id_keep = compute_obligation_identity(obs_keep[0], 0).identity_hash

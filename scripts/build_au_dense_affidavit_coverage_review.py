@@ -16,12 +16,28 @@ from build_affidavit_coverage_review import write_affidavit_coverage_review
 ARTIFACT_VERSION = "au_dense_affidavit_coverage_review_v1"
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SENSIBLAW_ROOT = REPO_ROOT / "SensibLaw"
-SOURCE_SLICE_PATH = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / "au_real_transcript_dense_substrate_v1" / "au_real_transcript_dense_substrate_v1.json"
-AFFIDAVIT_DRAFT_PATH = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / ARTIFACT_VERSION / "au_dense_affidavit_draft_v1.txt"
+SOURCE_SLICE_PATH = (
+    SENSIBLAW_ROOT
+    / "tests"
+    / "fixtures"
+    / "zelph"
+    / "au_real_transcript_dense_substrate_v1"
+    / "au_real_transcript_dense_substrate_v1.json"
+)
+AFFIDAVIT_DRAFT_PATH = (
+    SENSIBLAW_ROOT
+    / "tests"
+    / "fixtures"
+    / "zelph"
+    / ARTIFACT_VERSION
+    / "au_dense_affidavit_draft_v1.txt"
+)
 DEFAULT_OUTPUT_DIR = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / ARTIFACT_VERSION
 
 
-def build_au_dense_affidavit_coverage_review(output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[str, str]:
+def build_au_dense_affidavit_coverage_review(
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+) -> dict[str, str]:
     source_payload = json.loads(SOURCE_SLICE_PATH.read_text(encoding="utf-8"))
     affidavit_text = AFFIDAVIT_DRAFT_PATH.read_text(encoding="utf-8")
     return write_affidavit_coverage_review(
@@ -34,7 +50,9 @@ def build_au_dense_affidavit_coverage_review(output_dir: Path = DEFAULT_OUTPUT_D
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build the checked AU dense-substrate affidavit-coverage review artifact.")
+    parser = argparse.ArgumentParser(
+        description="Build the checked AU dense-substrate affidavit-coverage review artifact."
+    )
     parser.add_argument(
         "--output-dir",
         default=str(DEFAULT_OUTPUT_DIR),

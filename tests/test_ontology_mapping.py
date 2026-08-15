@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from src.nlp.ontology_mapping import canonical_action_morphology, unknown_action_morphology
+from src.nlp.ontology_mapping import (
+    canonical_action_morphology,
+    unknown_action_morphology,
+)
 
 
 class _DummyMorph:
@@ -39,7 +42,9 @@ def test_canonical_action_morphology_maps_spacy_style_values() -> None:
         },
         children=[child],
     )
-    meta = canonical_action_morphology(tok, surface="estimated", source="dep_lemma", modality_hint="estimated")
+    meta = canonical_action_morphology(
+        tok, surface="estimated", source="dep_lemma", modality_hint="estimated"
+    )
     assert meta["tense"] == "past"
     assert meta["aspect"] == "perfect_progressive"
     assert meta["verb_form"] == "finite"
@@ -50,7 +55,9 @@ def test_canonical_action_morphology_maps_spacy_style_values() -> None:
 
 def test_canonical_action_morphology_defaults_unknown_and_asserted() -> None:
     tok = _DummyToken(text="turning", dep="ROOT", morph={}, children=[])
-    meta = canonical_action_morphology(tok, surface="turning", source="dep_lemma", modality_hint="not_real")
+    meta = canonical_action_morphology(
+        tok, surface="turning", source="dep_lemma", modality_hint="not_real"
+    )
     assert meta["tense"] == "unknown"
     assert meta["aspect"] == "unknown"
     assert meta["verb_form"] == "unknown"
@@ -60,7 +67,9 @@ def test_canonical_action_morphology_defaults_unknown_and_asserted() -> None:
 
 
 def test_unknown_action_morphology_is_canonical_shape() -> None:
-    meta = unknown_action_morphology(surface="reported", source="fallback:action_lemmas")
+    meta = unknown_action_morphology(
+        surface="reported", source="fallback:action_lemmas"
+    )
     assert meta == {
         "surface": "reported",
         "tense": "unknown",

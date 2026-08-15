@@ -8,7 +8,9 @@ from src.policy.control_evidence import (
 from src.policy.control_evaluator import evaluate_control_profile
 
 
-def _compiled_state_artifact(*, unresolved_pressure_status: str = "none", follow_obligation=None) -> dict:
+def _compiled_state_artifact(
+    *, unresolved_pressure_status: str = "none", follow_obligation=None
+) -> dict:
     return {
         "schema_version": "itir.normalized.artifact.v1",
         "artifact_id": "statiBaker.compiled_state:2026-04-06",
@@ -30,7 +32,9 @@ def _compiled_state_artifact(*, unresolved_pressure_status: str = "none", follow
 def test_build_sb_to_sl_contract_payload_extracts_allowed_wrapper_fields() -> None:
     payload = build_sb_to_sl_contract_payload(
         suite_normalized_artifact=_compiled_state_artifact(),
-        observer_overlay_refs=[{"annotation_id": "obs:1", "observer_kind": "itir_mission_graph_v1"}],
+        observer_overlay_refs=[
+            {"annotation_id": "obs:1", "observer_kind": "itir_mission_graph_v1"}
+        ],
         casey_observer_refs=[{"operation_id": "op:123", "receipt_hash": "a" * 64}],
     )
     assert payload["compiled_state_id"] == "statiBaker.compiled_state:2026-04-06"
@@ -43,7 +47,9 @@ def test_build_sb_to_sl_contract_payload_extracts_allowed_wrapper_fields() -> No
     assert payload["casey_observer_refs"][0]["operation_id"] == "op:123"
 
 
-def test_build_sb_to_sl_contract_payload_preserves_legal_follow_pressure_additively() -> None:
+def test_build_sb_to_sl_contract_payload_preserves_legal_follow_pressure_additively() -> (
+    None
+):
     payload = build_sb_to_sl_contract_payload(
         suite_normalized_artifact={
             **_compiled_state_artifact(unresolved_pressure_status="none"),
@@ -62,7 +68,9 @@ def test_build_sb_to_sl_contract_payload_preserves_legal_follow_pressure_additiv
     }
 
 
-def test_validate_sb_to_sl_contract_payload_rejects_forbidden_semantic_or_state_fields() -> None:
+def test_validate_sb_to_sl_contract_payload_rejects_forbidden_semantic_or_state_fields() -> (
+    None
+):
     errors = validate_sb_to_sl_contract_payload(
         {
             "compiled_state_id": "statiBaker.compiled_state:2026-04-06",
@@ -94,7 +102,9 @@ def test_validate_sb_to_sl_contract_payload_rejects_casey_mutable_payloads() -> 
     assert any("unsupported field: workspace_payload" in error for error in errors)
 
 
-def test_validate_sb_to_sl_contract_payload_accepts_bounded_legal_follow_pressure() -> None:
+def test_validate_sb_to_sl_contract_payload_accepts_bounded_legal_follow_pressure() -> (
+    None
+):
     errors = validate_sb_to_sl_contract_payload(
         {
             "compiled_state_id": "statiBaker.compiled_state:2026-04-06",
@@ -110,7 +120,9 @@ def test_validate_sb_to_sl_contract_payload_accepts_bounded_legal_follow_pressur
     assert errors == []
 
 
-def test_profile_abstains_when_only_workflow_refs_exist_without_semantic_grounding() -> None:
+def test_profile_abstains_when_only_workflow_refs_exist_without_semantic_grounding() -> (
+    None
+):
     payload = build_sb_to_sl_contract_payload(
         suite_normalized_artifact=_compiled_state_artifact(
             unresolved_pressure_status="follow_needed",
@@ -127,10 +139,14 @@ def test_profile_abstains_when_only_workflow_refs_exist_without_semantic_groundi
         subject_kind="mixed_bundle",
         sb_contract_payload=payload,
     )
-    result = evaluate_control_profile(profile="iso_traceability_min", evidence_bundle=bundle)
+    result = evaluate_control_profile(
+        profile="iso_traceability_min", evidence_bundle=bundle
+    )
     assert result["status"] == "insufficient_evidence"
     semantic_group = next(
-        group for group in result["control_group_results"] if group["control_group_id"] == "semantic_grounding"
+        group
+        for group in result["control_group_results"]
+        if group["control_group_id"] == "semantic_grounding"
     )
     assert semantic_group["status"] == "insufficient_evidence"
     assert all("semantic_truth" not in row for row in result["control_group_results"])

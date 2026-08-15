@@ -43,14 +43,63 @@ _AU_SOURCE_TYPES = {
     "legal_record",
 }
 
-_UNCERTAINTY_TOKENS = {"maybe", "might", "unclear", "unsure", "approximately", "possibly"}
-_SEQUENCE_TOKENS = {"before", "after", "then", "later", "earlier", "next", "followup", "follow-up"}
-_EXECUTION_TOKENS = {"todo", "run", "execute", "check", "verify", "follow", "handoff", "next"}
-_CORRECTION_TOKENS = {"actually", "correction", "corrected", "update", "updated", "sorry", "revised"}
+_UNCERTAINTY_TOKENS = {
+    "maybe",
+    "might",
+    "unclear",
+    "unsure",
+    "approximately",
+    "possibly",
+}
+_SEQUENCE_TOKENS = {
+    "before",
+    "after",
+    "then",
+    "later",
+    "earlier",
+    "next",
+    "followup",
+    "follow-up",
+}
+_EXECUTION_TOKENS = {
+    "todo",
+    "run",
+    "execute",
+    "check",
+    "verify",
+    "follow",
+    "handoff",
+    "next",
+}
+_CORRECTION_TOKENS = {
+    "actually",
+    "correction",
+    "corrected",
+    "update",
+    "updated",
+    "sorry",
+    "revised",
+}
 _APPEAL_TOKENS = {"appeal", "appealed", "appellate", "appellant"}
-_PROCEDURAL_TOKENS = {"held", "ruled", "ordered", "judgment", "court", "tribunal", "hearing"}
+_PROCEDURAL_TOKENS = {
+    "held",
+    "ruled",
+    "ordered",
+    "judgment",
+    "court",
+    "tribunal",
+    "hearing",
+}
 _ASSERTION_TOKENS = {"alleged", "allegation", "claimed", "claim", "denied", "denial"}
-_HANDOFF_TOKENS = {"handoff", "escalate", "escalated", "support", "worker", "professional", "note"}
+_HANDOFF_TOKENS = {
+    "handoff",
+    "escalate",
+    "escalated",
+    "support",
+    "worker",
+    "professional",
+    "note",
+}
 _REASON_TOKENS = {"because", "due", "per", "citation", "source", "since", "as"}
 
 
@@ -74,7 +123,6 @@ def _classify_general_lexical_signals(text: str) -> list[str]:
     return tags
 
 
-
 def _dedupe(values: list[str]) -> tuple[str, ...]:
     return tuple(dict.fromkeys(value for value in values if str(value).strip()))
 
@@ -84,7 +132,9 @@ def _surface_node(kind: str, identifier: str) -> str:
     return f"{kind}_{safe}"
 
 
-def _build_surface_lexical_facts(*, parent_node: str, kind: str, identifier: str, text: str) -> list[str]:
+def _build_surface_lexical_facts(
+    *, parent_node: str, kind: str, identifier: str, text: str
+) -> list[str]:
     tokens = _token_texts(text)
     node = _surface_node(kind, identifier)
     facts = [
@@ -107,11 +157,17 @@ def _source_types(fact: Mapping[str, Any]) -> set[str]:
 
 
 def _statement_roles(fact: Mapping[str, Any]) -> set[str]:
-    return {str(value) for value in fact.get("statement_roles", []) if str(value).strip()}
+    return {
+        str(value) for value in fact.get("statement_roles", []) if str(value).strip()
+    }
 
 
 def _source_signal_classes(fact: Mapping[str, Any]) -> set[str]:
-    return {str(value) for value in fact.get("source_signal_classes", []) if str(value).strip()}
+    return {
+        str(value)
+        for value in fact.get("source_signal_classes", [])
+        if str(value).strip()
+    }
 
 
 def _wiki_projection(fact: Mapping[str, Any]) -> LexicalProjection:
@@ -260,13 +316,18 @@ def build_fact_lexical_projection(fact: Mapping[str, Any]) -> LexicalProjection:
         projections.append(_wiki_projection(fact))
     if mode == "chat_archive" or source_types & _CHAT_ARCHIVE_SOURCE_TYPES:
         projections.append(_chat_archive_projection(fact))
-    if mode == "au_legal" or "au_timeline_statement" in statement_roles or source_types & _AU_SOURCE_TYPES:
+    if (
+        mode == "au_legal"
+        or "au_timeline_statement" in statement_roles
+        or source_types & _AU_SOURCE_TYPES
+    ):
         projections.append(_au_legal_projection(fact))
     if (
         mode == "transcript_handoff"
         or "transcript_statement" in statement_roles
         or source_types & _TRANSCRIPT_SOURCE_TYPES
-        or source_signals & {"support_worker_note", "professional_note", "later_annotation"}
+        or source_signals
+        & {"support_worker_note", "professional_note", "later_annotation"}
     ):
         projections.append(_transcript_handoff_projection(fact))
 

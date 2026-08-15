@@ -47,7 +47,9 @@ def build_nat_cohort_b_operator_control_summary(
     if not isinstance(index_payloads, Sequence) or isinstance(
         index_payloads, (str, bytes, bytearray)
     ):
-        raise ValueError("index_payloads must be a sequence of Cohort B evidence-index objects")
+        raise ValueError(
+            "index_payloads must be a sequence of Cohort B evidence-index objects"
+        )
     if min_ready_indexes < 1:
         raise ValueError("min_ready_indexes must be at least 1")
 
@@ -56,7 +58,9 @@ def build_nat_cohort_b_operator_control_summary(
     lane_id = ""
     for idx, payload in enumerate(index_payloads):
         if not isinstance(payload, Mapping):
-            validation_errors.append({"index_position": str(idx), "error": "index_not_object"})
+            validation_errors.append(
+                {"index_position": str(idx), "error": "index_not_object"}
+            )
             continue
         lane_id = lane_id or _stringify(payload.get("lane_id"))
         cohort_id = _stringify(payload.get("cohort_id"))
@@ -64,10 +68,14 @@ def build_nat_cohort_b_operator_control_summary(
         summary = payload.get("summary", {})
         summary_map = summary if isinstance(summary, Mapping) else {}
         if cohort_id != "cohort_b_reconciled_non_business":
-            validation_errors.append({"index_position": str(idx), "error": "index_not_cohort_b"})
+            validation_errors.append(
+                {"index_position": str(idx), "error": "index_not_cohort_b"}
+            )
             continue
         if index_status not in {"review_index_ready", "hold"}:
-            validation_errors.append({"index_position": str(idx), "error": "invalid_index_status"})
+            validation_errors.append(
+                {"index_position": str(idx), "error": "invalid_index_status"}
+            )
             continue
         entries.append(
             {
@@ -83,13 +91,19 @@ def build_nat_cohort_b_operator_control_summary(
                 else [],
                 "ready_batch_count": int(summary_map.get("ready_batch_count", 0) or 0),
                 "hold_batch_count": int(summary_map.get("hold_batch_count", 0) or 0),
-                "validation_error_count": int(summary_map.get("validation_error_count", 0) or 0),
+                "validation_error_count": int(
+                    summary_map.get("validation_error_count", 0) or 0
+                ),
             }
         )
 
     entries.sort(key=lambda item: (item["index_position"], item["index_id"]))
-    status_counts = Counter(entry["index_status"] for entry in entries if entry["index_status"])
-    ready_entries = [entry for entry in entries if entry["index_status"] == "review_index_ready"]
+    status_counts = Counter(
+        entry["index_status"] for entry in entries if entry["index_status"]
+    )
+    ready_entries = [
+        entry for entry in entries if entry["index_status"] == "review_index_ready"
+    ]
     hold_entries = [entry for entry in entries if entry["index_status"] == "hold"]
 
     if validation_errors:
@@ -123,8 +137,12 @@ def build_nat_cohort_b_operator_control_summary(
             "hold_index_count": len(hold_entries),
             "validation_error_count": len(validation_errors),
             "status_counts": _counter_dict(status_counts),
-            "aggregate_ready_batch_count": sum(entry["ready_batch_count"] for entry in entries),
-            "aggregate_hold_batch_count": sum(entry["hold_batch_count"] for entry in entries),
+            "aggregate_ready_batch_count": sum(
+                entry["ready_batch_count"] for entry in entries
+            ),
+            "aggregate_hold_batch_count": sum(
+                entry["hold_batch_count"] for entry in entries
+            ),
             "review_first": True,
         },
         "governance": {

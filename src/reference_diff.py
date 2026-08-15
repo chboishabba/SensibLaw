@@ -14,7 +14,9 @@ class ReferenceDiff:
     unchanged: Set[str]
 
 
-def diff_references(lhs: Iterable[RuleReference], rhs: Iterable[RuleReference]) -> ReferenceDiff:
+def diff_references(
+    lhs: Iterable[RuleReference], rhs: Iterable[RuleReference]
+) -> ReferenceDiff:
     """Compute a diff of references based on identity hashes."""
 
     left_hashes = {normalize_for_identity(ref).identity_hash for ref in lhs}

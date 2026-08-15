@@ -36,7 +36,7 @@ def build_checked_qualifier_drift_cues(row: dict[str, Any]) -> list[dict[str, An
     for signature in cue_payload.get("qualifier_signatures_t2", []):
         cues.append(
             {
-                "cue_id": f"{row['source_row_id']}:signature:{len(cues)+1}",
+                "cue_id": f"{row['source_row_id']}:signature:{len(cues) + 1}",
                 "source_row_id": row["source_row_id"],
                 "review_item_id": row["review_item_id"],
                 "cue_kind": "qualifier_signature_delta",
@@ -51,8 +51,10 @@ def build_checked_qualifier_drift_cues(row: dict[str, Any]) -> list[dict[str, An
             "cue_kind": "qualifier_property_set",
             "cue_value": " -> ".join(
                 [
-                    ",".join(cue_payload.get("qualifier_property_set_t1", [])) or "none",
-                    ",".join(cue_payload.get("qualifier_property_set_t2", [])) or "none",
+                    ",".join(cue_payload.get("qualifier_property_set_t1", []))
+                    or "none",
+                    ",".join(cue_payload.get("qualifier_property_set_t2", []))
+                    or "none",
                 ]
             ),
         }
@@ -95,7 +97,7 @@ def build_dense_qualifier_drift_cues(row: dict[str, Any]) -> list[dict[str, Any]
     for signature in cue_payload.get("qualifier_signatures_t2", []):
         cues.append(
             {
-                "cue_id": f"{row['source_row_id']}:signature:{len(cues)+1}",
+                "cue_id": f"{row['source_row_id']}:signature:{len(cues) + 1}",
                 "source_row_id": row["source_row_id"],
                 "review_item_id": row["review_item_id"],
                 "cue_kind": "qualifier_signature_delta",
@@ -168,7 +170,7 @@ def build_checked_hotspot_cues(row: dict[str, Any]) -> list[dict[str, Any]]:
         for artifact in cue_payload.get("source_artifacts", []):
             cues.append(
                 {
-                    "cue_id": f"{row['source_row_id']}:source_artifact:{len(cues)+1}",
+                    "cue_id": f"{row['source_row_id']}:source_artifact:{len(cues) + 1}",
                     "source_row_id": row["source_row_id"],
                     "review_item_id": row["review_item_id"],
                     "cue_kind": "source_artifact",
@@ -212,7 +214,9 @@ def build_dense_hotspot_rows(
             "cue_payload": {
                 "hold_reason": pack.get("hold_reason") or pack.get("status"),
                 "focus_qids": pack.get("focus_qids", []),
-                "candidate_cluster_families": pack.get("candidate_cluster_families", []),
+                "candidate_cluster_families": pack.get(
+                    "candidate_cluster_families", []
+                ),
                 "source_artifacts": pack.get("source_artifacts", []),
             },
         }

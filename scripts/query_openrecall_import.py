@@ -28,24 +28,53 @@ def _connect(db_path: Path) -> sqlite3.Connection:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Query imported OpenRecall captures from itir.sqlite.")
-    parser.add_argument("--itir-db-path", type=Path, default=Path(".cache_local/itir.sqlite"), help="Path to target ITIR SQLite DB")
+    parser = argparse.ArgumentParser(
+        description="Query imported OpenRecall captures from itir.sqlite."
+    )
+    parser.add_argument(
+        "--itir-db-path",
+        type=Path,
+        default=Path(".cache_local/itir.sqlite"),
+        help="Path to target ITIR SQLite DB",
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    runs_parser = subparsers.add_parser("runs", help="List latest OpenRecall import runs")
+    runs_parser = subparsers.add_parser(
+        "runs", help="List latest OpenRecall import runs"
+    )
     runs_parser.add_argument("--limit", type=int, default=10, help="Max runs to return")
 
-    summary_parser = subparsers.add_parser("summary", help="Summarize imported captures")
-    summary_parser.add_argument("--import-run-id", default=None, help="Optional import-run filter")
-    summary_parser.add_argument("--date", default=None, help="Optional captured_date filter (YYYY-MM-DD)")
-    summary_parser.add_argument("--app-name", default=None, help="Optional app-name filter")
+    summary_parser = subparsers.add_parser(
+        "summary", help="Summarize imported captures"
+    )
+    summary_parser.add_argument(
+        "--import-run-id", default=None, help="Optional import-run filter"
+    )
+    summary_parser.add_argument(
+        "--date", default=None, help="Optional captured_date filter (YYYY-MM-DD)"
+    )
+    summary_parser.add_argument(
+        "--app-name", default=None, help="Optional app-name filter"
+    )
 
-    captures_parser = subparsers.add_parser("captures", help="List recent imported captures")
-    captures_parser.add_argument("--import-run-id", default=None, help="Optional import-run filter")
-    captures_parser.add_argument("--date", default=None, help="Optional captured_date filter (YYYY-MM-DD)")
-    captures_parser.add_argument("--app-name", default=None, help="Optional app-name filter")
-    captures_parser.add_argument("--text-query", default=None, help="Optional OCR/title/app substring filter")
-    captures_parser.add_argument("--limit", type=int, default=25, help="Max captures to return")
+    captures_parser = subparsers.add_parser(
+        "captures", help="List recent imported captures"
+    )
+    captures_parser.add_argument(
+        "--import-run-id", default=None, help="Optional import-run filter"
+    )
+    captures_parser.add_argument(
+        "--date", default=None, help="Optional captured_date filter (YYYY-MM-DD)"
+    )
+    captures_parser.add_argument(
+        "--app-name", default=None, help="Optional app-name filter"
+    )
+    captures_parser.add_argument(
+        "--text-query", default=None, help="Optional OCR/title/app substring filter"
+    )
+    captures_parser.add_argument(
+        "--limit", type=int, default=25, help="Max captures to return"
+    )
 
     args = parser.parse_args(argv)
     with _connect(args.itir_db_path) as conn:

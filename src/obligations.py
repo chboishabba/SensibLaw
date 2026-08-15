@@ -6,7 +6,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Optional, Sequence, Set, Tuple
 
-from src.logic_tree import LogicTree, Node, NodeType, build, CONDITION_TRIGGERS, EXCEPTION_TRIGGERS
+from src.logic_tree import (
+    LogicTree,
+    Node,
+    NodeType,
+    CONDITION_TRIGGERS,
+    EXCEPTION_TRIGGERS,
+)
 from src.models.document import Document
 from src.models.provision import RuleReference
 from src.pipeline import build_logic_tree, normalise, tokenise
@@ -243,7 +249,10 @@ _ACTOR_NOISE_PREFIX_TOKENS = {
 }
 
 _ACTOR_NOISE_TOKENS = {
-    *(_ACTOR_NOISE_PREFIX_TOKENS | {"is", "it", "may", "must", "not", "shall", "with", "without"}),
+    *(
+        _ACTOR_NOISE_PREFIX_TOKENS
+        | {"is", "it", "may", "must", "not", "shall", "with", "without"}
+    ),
     "according",
     "amending",
     "amended",
@@ -347,7 +356,9 @@ def _extract_actor(
     if not normalized:
         return None
     span = (clause_span[0], clause_span[0] + modality_start_idx)
-    return ActorAtom(text=actor_text, normalized=normalized, span=span, clause_id=clause_id)
+    return ActorAtom(
+        text=actor_text, normalized=normalized, span=span, clause_id=clause_id
+    )
 
 
 def _extract_action_object(
@@ -374,35 +385,67 @@ def _extract_action_object(
     action_text = remainder[0]
     action_span = (clause_span[0] + after_start, clause_span[0] + after_start + 1)
     obj_tokens = remainder[1:]
-    boundary_prepositions = {"on", "in", "within", "during", "while", "until", "upon", "when"}
+    boundary_prepositions = {
+        "on",
+        "in",
+        "within",
+        "during",
+        "while",
+        "until",
+        "upon",
+        "when",
+    }
     for idx, tok in enumerate(obj_tokens):
         if _normalise_token_text(tok) in boundary_prepositions:
             obj_tokens = obj_tokens[:idx]
             break
-    obj_norm_tokens = [_normalise_token_text(t) for t in obj_tokens if _normalise_token_text(t)]
+    obj_norm_tokens = [
+        _normalise_token_text(t) for t in obj_tokens if _normalise_token_text(t)
+    ]
     if obj_tokens and obj_norm_tokens:
         obj_text = " ".join(obj_tokens).strip()
         obj_norm = " ".join(obj_norm_tokens)
         obj_span = (action_span[1], action_span[1] + len(obj_tokens))
-        obj_atom = ObjectAtom(text=obj_text, normalized=obj_norm, span=obj_span, clause_id=clause_id)
+        obj_atom = ObjectAtom(
+            text=obj_text, normalized=obj_norm, span=obj_span, clause_id=clause_id
+        )
     else:
         obj_atom = None
-    action_atom = ActionAtom(text=action_text, normalized=action_norm, span=action_span, clause_id=clause_id)
+    action_atom = ActionAtom(
+        text=action_text, normalized=action_norm, span=action_span, clause_id=clause_id
+    )
     return action_atom, obj_atom
 
 
 def _phrase_category(phrase: str) -> Optional[str]:
-    if phrase.startswith("within ") and any(unit in phrase for unit in ("day", "days", "hour", "hours", "month", "months", "year", "years")):
+    if phrase.startswith("within ") and any(
+        unit in phrase
+        for unit in ("day", "days", "hour", "hours", "month", "months", "year", "years")
+    ):
         return "time"
     if phrase.startswith("no later than "):
         return "time"
     if phrase in {"immediately", "at all times"}:
         return "time"
-    if phrase in {"on the premises", "within the premises", "within the area", "in the area", "in the zone", "at the site", "on site"}:
+    if phrase in {
+        "on the premises",
+        "within the premises",
+        "within the area",
+        "in the area",
+        "in the zone",
+        "at the site",
+        "on site",
+    }:
         return "place"
     if phrase.startswith("during "):
         return "context"
-    if phrase in {"during operations", "during business hours", "when requested", "when directed", "in an emergency"}:
+    if phrase in {
+        "during operations",
+        "during business hours",
+        "when requested",
+        "when directed",
+        "in an emergency",
+    }:
         return "context"
     return None
 
@@ -486,12 +529,20 @@ def _env_flag(name: str, default: bool = True) -> bool:
     return str(val).lower() not in ("0", "false", "no", "off", "")
 
 
-ENABLE_ACTOR_BINDING_DEFAULT = _env_flag("OBLIGATIONS_ENABLE_ACTOR_BINDING", default=True)
-ENABLE_ACTION_BINDING_DEFAULT = _env_flag("OBLIGATIONS_ENABLE_ACTION_BINDING", default=True)
+ENABLE_ACTOR_BINDING_DEFAULT = _env_flag(
+    "OBLIGATIONS_ENABLE_ACTOR_BINDING", default=True
+)
+ENABLE_ACTION_BINDING_DEFAULT = _env_flag(
+    "OBLIGATIONS_ENABLE_ACTION_BINDING", default=True
+)
 
 
 def _clause_nodes(tree: LogicTree) -> List[Node]:
-    clauses = [node for node in tree.nodes if node.node_type is NodeType.CLAUSE and node.span is not None]
+    clauses = [
+        node
+        for node in tree.nodes
+        if node.node_type is NodeType.CLAUSE and node.span is not None
+    ]
     clauses.sort(key=lambda n: n.span[0] if n.span else 99_999_999)
     return clauses
 
@@ -504,7 +555,9 @@ def _source_id_for_document(doc: Document) -> str:
     return "document"
 
 
-def _references_by_clause(references: Iterable[RuleReference]) -> dict[str, List[RuleReference]]:
+def _references_by_clause(
+    references: Iterable[RuleReference],
+) -> dict[str, List[RuleReference]]:
     buckets: dict[str, List[RuleReference]] = {}
     for ref in references:
         clause_id = (ref.provenance or {}).get("clause_id")
@@ -536,12 +589,22 @@ def extract_obligations_from_text(
         if modality is None:
             continue
         kind, surface, modal_start, modal_len = modality
-        actor_enabled = ENABLE_ACTOR_BINDING_DEFAULT if enable_actor_binding is None else enable_actor_binding
-        action_enabled = ENABLE_ACTION_BINDING_DEFAULT if enable_action_binding is None else enable_action_binding
+        actor_enabled = (
+            ENABLE_ACTOR_BINDING_DEFAULT
+            if enable_actor_binding is None
+            else enable_actor_binding
+        )
+        action_enabled = (
+            ENABLE_ACTION_BINDING_DEFAULT
+            if enable_action_binding is None
+            else enable_action_binding
+        )
         clause_refs = refs_by_clause.get(clause_id, [])
         ref_ids = {normalize_for_identity(ref).identity_hash for ref in clause_refs}
         actor = (
-            _extract_actor(token_texts, clause.span, clause_id, modal_start) if actor_enabled else None
+            _extract_actor(token_texts, clause.span, clause_id, modal_start)
+            if actor_enabled
+            else None
         )
         action_atom: Optional[ActionAtom]
         object_atom: Optional[ObjectAtom]
@@ -575,7 +638,10 @@ def extract_obligations_from_text(
 
 
 def extract_obligations_from_document(
-    doc: Document, *, enable_actor_binding: bool | None = None, enable_action_binding: bool | None = None
+    doc: Document,
+    *,
+    enable_actor_binding: bool | None = None,
+    enable_action_binding: bool | None = None,
 ) -> List[ObligationAtom]:
     source_id = _source_id_for_document(doc)
     references = iter_references_from_document(doc)

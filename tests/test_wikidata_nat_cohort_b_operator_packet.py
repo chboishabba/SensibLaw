@@ -23,12 +23,7 @@ from src.ontology.wikidata_nat_cohort_b_review_bucket import (
 
 
 def _load_fixture(name: str) -> dict:
-    fixture_path = (
-        Path(__file__).resolve().parent
-        / "fixtures"
-        / "wikidata"
-        / name
-    )
+    fixture_path = Path(__file__).resolve().parent / "fixtures" / "wikidata" / name
     return json.loads(fixture_path.read_text(encoding="utf-8"))
 
 
@@ -36,21 +31,27 @@ def test_build_nat_cohort_b_operator_packet_from_review_bucket_fixture() -> None
     payload = _load_fixture("wikidata_nat_cohort_b_operator_packet_input_20260402.json")
     packet = build_nat_cohort_b_operator_packet(payload, max_rows=2)
 
-    assert packet["schema_version"] == WIKIDATA_NAT_COHORT_B_OPERATOR_PACKET_SCHEMA_VERSION
+    assert (
+        packet["schema_version"] == WIKIDATA_NAT_COHORT_B_OPERATOR_PACKET_SCHEMA_VERSION
+    )
     assert packet["cohort_id"] == "cohort_b_reconciled_non_business"
     assert packet["decision"] == "review"
     assert packet["source_bucket_decision"] == "review_only"
     assert packet["summary"]["selected_row_count"] == 2
     assert packet["summary"]["source_review_row_count"] == 2
     assert packet["summary"]["contract_violation_count"] == 0
-    assert "unexpected_qualifier_properties" in packet["summary"]["variance_flag_counts"]
+    assert (
+        "unexpected_qualifier_properties" in packet["summary"]["variance_flag_counts"]
+    )
     assert packet["governance"]["fail_closed"] is True
     assert packet["governance"]["automation_allowed"] is False
     assert packet["selected_rows"][0]["row_id"] == "Q8646|P5991|4"
 
 
 def test_build_nat_cohort_b_operator_packet_matches_pinned_fixture() -> None:
-    review_bucket = _load_fixture("wikidata_nat_cohort_b_operator_packet_input_20260402.json")
+    review_bucket = _load_fixture(
+        "wikidata_nat_cohort_b_operator_packet_input_20260402.json"
+    )
     expected = _load_fixture("wikidata_nat_cohort_b_operator_packet_20260402.json")
 
     packet = build_nat_cohort_b_operator_packet(review_bucket, max_rows=2)
@@ -79,12 +80,19 @@ def test_build_nat_cohort_b_operator_packet_holds_when_bucket_is_hold() -> None:
     assert packet["decision"] == "hold"
     assert packet["selected_rows"] == []
     assert packet["summary"]["contract_violation_count"] == 1
-    assert packet["contract_violations"][0]["violation"] == "business_family_instance_of_in_cohort_b_payload"
-    assert packet["triage_prompts"][0].startswith("Payload violated the Cohort B contract")
+    assert (
+        packet["contract_violations"][0]["violation"]
+        == "business_family_instance_of_in_cohort_b_payload"
+    )
+    assert packet["triage_prompts"][0].startswith(
+        "Payload violated the Cohort B contract"
+    )
 
 
 def test_build_nat_cohort_b_operator_packet_requires_valid_cohort_shape() -> None:
-    with pytest.raises(ValueError, match="requires cohort_b_reconciled_non_business payload"):
+    with pytest.raises(
+        ValueError, match="requires cohort_b_reconciled_non_business payload"
+    ):
         build_nat_cohort_b_operator_packet({"cohort_id": "wrong"})
 
     with pytest.raises(ValueError, match="decision must be review_only or hold"):
@@ -97,12 +105,19 @@ def test_build_nat_cohort_b_operator_packet_requires_valid_cohort_shape() -> Non
         )
 
 
-def test_build_nat_cohort_b_operator_packet_world_model_report_rebinds_packet_into_shared_substrate() -> None:
-    operator_packet = _load_fixture("wikidata_nat_cohort_b_operator_packet_20260402.json")
+def test_build_nat_cohort_b_operator_packet_world_model_report_rebinds_packet_into_shared_substrate() -> (
+    None
+):
+    operator_packet = _load_fixture(
+        "wikidata_nat_cohort_b_operator_packet_20260402.json"
+    )
 
     report = build_nat_cohort_b_operator_packet_world_model_report(operator_packet)
 
-    assert report["schema_version"] == WIKIDATA_NAT_COHORT_B_OPERATOR_PACKET_WORLD_MODEL_SCHEMA_VERSION
+    assert (
+        report["schema_version"]
+        == WIKIDATA_NAT_COHORT_B_OPERATOR_PACKET_WORLD_MODEL_SCHEMA_VERSION
+    )
     assert report["claim_schema_version"] == NAT_CLAIM_SCHEMA_VERSION
     assert report["convergence_schema_version"] == CONVERGENCE_SCHEMA_VERSION
     assert report["temporal_schema_version"] == TEMPORAL_SCHEMA_VERSION
@@ -117,7 +132,10 @@ def test_build_nat_cohort_b_operator_packet_world_model_report_rebinds_packet_in
     assert report["claim_table"]["projection_kind"] == "claim_table"
     assert report["review_surface"]["projection_kind"] == "review_surface"
     assert report["linkage_case"]["projection_kind"] == "linkage_case"
-    assert report["linkage_case"]["payload"]["contract_id"] == NAT_COHORT_B_OPERATOR_PACKET_LINKAGE_CONTRACT_ID
+    assert (
+        report["linkage_case"]["payload"]["contract_id"]
+        == NAT_COHORT_B_OPERATOR_PACKET_LINKAGE_CONTRACT_ID
+    )
     first_claim = report["claims"][0]
     assert first_claim["status"] == "REVIEW_ONLY"
     assert first_claim["nat_claim"]["state_basis"] == "review_packet"
@@ -126,19 +144,32 @@ def test_build_nat_cohort_b_operator_packet_world_model_report_rebinds_packet_in
     assert first_claim["action_policy"]["actionability"] == "must_review"
 
 
-def test_build_nat_cohort_b_operator_packet_world_model_uses_shared_adapter_stack() -> None:
-    operator_packet = _load_fixture("wikidata_nat_cohort_b_operator_packet_20260402.json")
+def test_build_nat_cohort_b_operator_packet_world_model_uses_shared_adapter_stack() -> (
+    None
+):
+    operator_packet = _load_fixture(
+        "wikidata_nat_cohort_b_operator_packet_20260402.json"
+    )
 
     world_model = build_nat_cohort_b_operator_packet_world_model(operator_packet)
 
     assert world_model["lane_family"] == "nat"
-    assert world_model["metadata"]["profile"]["profile_id"] == "nat_cohort_b_operator_packet"
+    assert (
+        world_model["metadata"]["profile"]["profile_id"]
+        == "nat_cohort_b_operator_packet"
+    )
     assert world_model["metadata"]["selected_rows"] == operator_packet["selected_rows"]
     assert world_model["summary"]["claim_count"] == 2
     assert len(world_model["claims"]) == 2
-    assert all(claim["nat_claim"]["state"] == "review_claim" for claim in world_model["claims"])
+    assert all(
+        claim["nat_claim"]["state"] == "review_claim" for claim in world_model["claims"]
+    )
 
 
-def test_build_nat_cohort_b_operator_packet_world_model_report_requires_operator_packet() -> None:
+def test_build_nat_cohort_b_operator_packet_world_model_report_requires_operator_packet() -> (
+    None
+):
     with pytest.raises(ValueError, match="requires Cohort B operator packet payload"):
-        build_nat_cohort_b_operator_packet_world_model_report({"schema_version": "wrong"})
+        build_nat_cohort_b_operator_packet_world_model_report(
+            {"schema_version": "wrong"}
+        )

@@ -22,7 +22,13 @@ _NUMERIC_UNITS = {
 }
 _NUMERIC_SCALE_UNITS = {"hundred", "thousand", "million", "billion", "trillion"}
 _NUMERIC_CURRENCY_UNITS = {"usd", "aud", "eur", "gbp"}
-_NUMERIC_SCALE_POW = {"hundred": 2, "thousand": 3, "million": 6, "billion": 9, "trillion": 12}
+_NUMERIC_SCALE_POW = {
+    "hundred": 2,
+    "thousand": 3,
+    "million": 6,
+    "billion": 9,
+    "trillion": 12,
+}
 
 
 def _collapse_whitespace(raw: Any) -> str:
@@ -99,7 +105,7 @@ def _parse_numeric_value_token(raw: Any) -> str:
 
 def _scientific_from_scaled(value: str, power: int) -> str:
     try:
-        scaled = float(value) * (10 ** power)
+        scaled = float(value) * (10**power)
     except (TypeError, ValueError):
         return ""
     if scaled == 0:
@@ -142,7 +148,13 @@ def normalize_numeric_mention(raw: Any) -> str:
         first = toks[0]
         low = first.lower()
         if low in {"$", "us$", "a$", "€", "£", "usd", "aud", "eur", "gbp"}:
-            currency = {"$": "usd", "us$": "usd", "a$": "aud", "€": "eur", "£": "gbp"}.get(low, low)
+            currency = {
+                "$": "usd",
+                "us$": "usd",
+                "a$": "aud",
+                "€": "eur",
+                "£": "gbp",
+            }.get(low, low)
             toks = toks[1:]
         else:
             strip = None
@@ -210,7 +222,9 @@ def numeric_key(raw: Any) -> str:
     value = _parse_numeric_value_token(toks[0])
     if not value:
         return ""
-    units = [_canonical_unit_token(unit) for unit in toks[1:] if _canonical_unit_token(unit)]
+    units = [
+        _canonical_unit_token(unit) for unit in toks[1:] if _canonical_unit_token(unit)
+    ]
     if not units:
         return f"{value}|"
     uniq = list(dict.fromkeys(units))
@@ -266,7 +280,9 @@ def _project_event(event: dict[str, Any]) -> None:
         for step in steps:
             if not isinstance(step, dict):
                 continue
-            step_nums, step_mentions = _project_numeric_values(step.get("numeric_objects") or [])
+            step_nums, step_mentions = _project_numeric_values(
+                step.get("numeric_objects") or []
+            )
             step["numeric_objects"] = step_nums
             if step_mentions:
                 step["numeric_mentions"] = step_mentions

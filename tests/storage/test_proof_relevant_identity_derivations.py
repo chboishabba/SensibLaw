@@ -181,9 +181,9 @@ def test_identity_substitutions_are_rebuilt_from_current_witnesses() -> None:
         "CREATE OR REPLACE FUNCTION execution.admit_numeric_pnf_external_identity_alignment",
         1,
     )[0]
-    assert function.index("DELETE FROM execution.semantic_pnf_factor_derivation") < function.index(
-        "INSERT INTO execution.semantic_pnf_factor_derivation"
-    )
+    assert function.index(
+        "DELETE FROM execution.semantic_pnf_factor_derivation"
+    ) < function.index("INSERT INTO execution.semantic_pnf_factor_derivation")
     assert "semantic_pnf_identity_projection" in function
     assert "identity_witness_ids" in function
 

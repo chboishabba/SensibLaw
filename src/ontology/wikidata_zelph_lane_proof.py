@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from src.policy.suite_normalized_artifact import build_zelph_hf_transport_normalized_artifact
+from src.policy.suite_normalized_artifact import (
+    build_zelph_hf_transport_normalized_artifact,
+)
 
 
 WIKIDATA_ZELPH_LANE_PROOF_SCHEMA_VERSION = "sl.wikidata_zelph_lane_proof.v0_1"
@@ -30,7 +32,12 @@ def _bounded_local_manifest() -> dict[str, Any]:
         "selectorModel": {
             "unit": "section-chunk",
             "supportedSections": ["left", "right", "nameOfNode", "nodeOfName"],
-            "supportedOperations": ["header-probe", "selected-chunk-read", "node-route", "sparql-subset"],
+            "supportedOperations": [
+                "header-probe",
+                "selected-chunk-read",
+                "node-route",
+                "sparql-subset",
+            ],
             "unsupportedOperations": ["fullReasoningSafe"],
         },
         "capabilities": {
@@ -142,18 +149,40 @@ def build_disjointness_zelph_lane_proof(
         "transport_artifact": transport_artifact,
         "semantic_receipt": {
             "source_window_id": _text(report.get("source_window_id")),
-            "disjoint_pair_count": int(report.get("review_summary", {}).get("disjoint_pair_count", 0) or 0),
-            "subclass_violation_count": int(report.get("subclass_violation_count", 0) or 0),
-            "instance_violation_count": int(report.get("instance_violation_count", 0) or 0),
-            "culprit_class_count": int(report.get("review_summary", {}).get("culprit_class_count", 0) or 0),
-            "culprit_item_count": int(report.get("review_summary", {}).get("culprit_item_count", 0) or 0),
+            "disjoint_pair_count": int(
+                report.get("review_summary", {}).get("disjoint_pair_count", 0) or 0
+            ),
+            "subclass_violation_count": int(
+                report.get("subclass_violation_count", 0) or 0
+            ),
+            "instance_violation_count": int(
+                report.get("instance_violation_count", 0) or 0
+            ),
+            "culprit_class_count": int(
+                report.get("review_summary", {}).get("culprit_class_count", 0) or 0
+            ),
+            "culprit_item_count": int(
+                report.get("review_summary", {}).get("culprit_item_count", 0) or 0
+            ),
         },
         "graph_receipt": {
             "flatness_posture": _text(
-                latent_slice_graph.get("flatness_indicators", {}).get("flatness_posture")
+                latent_slice_graph.get("flatness_indicators", {}).get(
+                    "flatness_posture"
+                )
             ),
-            "node_count": int(latent_slice_graph.get("diagnostics", {}).get("metrics", {}).get("node_count", 0) or 0),
-            "edge_count": int(latent_slice_graph.get("diagnostics", {}).get("metrics", {}).get("edge_count", 0) or 0),
+            "node_count": int(
+                latent_slice_graph.get("diagnostics", {})
+                .get("metrics", {})
+                .get("node_count", 0)
+                or 0
+            ),
+            "edge_count": int(
+                latent_slice_graph.get("diagnostics", {})
+                .get("metrics", {})
+                .get("edge_count", 0)
+                or 0
+            ),
         },
         "acceptance": {
             "bounded_semantics_status": "proven",

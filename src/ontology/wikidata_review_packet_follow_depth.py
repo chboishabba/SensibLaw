@@ -102,9 +102,13 @@ def enrich_review_packet_follow_depth(
             )
         )
 
-    enriched_count = sum(1 for receipt in enriched_receipts if receipt.get("status") == "enriched")
+    enriched_count = sum(
+        1 for receipt in enriched_receipts if receipt.get("status") == "enriched"
+    )
     no_excerpt_count = sum(
-        1 for receipt in enriched_receipts if receipt.get("status") == "no_excerpt_available"
+        1
+        for receipt in enriched_receipts
+        if receipt.get("status") == "no_excerpt_available"
     )
     return {
         "schema_version": FOLLOW_DEPTH_SCHEMA_VERSION,
@@ -114,4 +118,3 @@ def enrich_review_packet_follow_depth(
         "no_excerpt_count": no_excerpt_count,
         "receipts": enriched_receipts,
     }
-

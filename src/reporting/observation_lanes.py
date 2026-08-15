@@ -8,6 +8,9 @@ import importlib
 import os
 from typing import Any
 
+from src.reporting.structure_report import TextUnit
+
+
 @dataclass(frozen=True, slots=True)
 class ObservationLaneAdapter:
     """Bounded contract for source-to-observation ingestion lanes.
@@ -39,7 +42,9 @@ class ObservationLaneAdapter:
 _OBSERVATION_LANE_CACHE: dict[str, ObservationLaneAdapter] | None = None
 
 
-def register_observation_lane(adapter: ObservationLaneAdapter, *, replace: bool = False) -> None:
+def register_observation_lane(
+    adapter: ObservationLaneAdapter, *, replace: bool = False
+) -> None:
     """Register one bounded observation-lane adapter.
 
     Parameters
@@ -76,7 +81,10 @@ def _iter_discovery_modules() -> Iterable[str]:
             if module_name and module_name not in seen:
                 seen.add(module_name)
                 yield module_name
-    for module_name in ("src.reporting.openrecall_import", "src.reporting.worldmonitor_import"):
+    for module_name in (
+        "src.reporting.openrecall_import",
+        "src.reporting.worldmonitor_import",
+    ):
         if module_name not in seen:
             yield module_name
 
@@ -135,12 +143,13 @@ def load_observation_units(
     date: str | None = None,
     limit: int | None = None,
 ) -> list["TextUnit"]:
-    from src.reporting.structure_report import TextUnit
 
     adapter = get_observation_lane(lane)
     if adapter is None:
         raise ValueError(f"unknown observation lane: {lane}")
-    return adapter.load_units(db_path, import_run_id=import_run_id, date=date, limit=limit)
+    return adapter.load_units(
+        db_path, import_run_id=import_run_id, date=date, limit=limit
+    )
 
 
 def load_observation_activity_rows(

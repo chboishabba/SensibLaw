@@ -69,7 +69,9 @@ def _dict(value: Any) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
 
-def _grounding_rows(grounding_catalog: Mapping[str, Any]) -> dict[str, list[dict[str, Any]]]:
+def _grounding_rows(
+    grounding_catalog: Mapping[str, Any],
+) -> dict[str, list[dict[str, Any]]]:
     rows: dict[str, list[dict[str, Any]]] = {}
     raw_rows = grounding_catalog.get("groundings")
     if not isinstance(raw_rows, Mapping):
@@ -86,14 +88,24 @@ def _grounding_rows(grounding_catalog: Mapping[str, Any]) -> dict[str, list[dict
 
 def _topic_rows(candidate: Mapping[str, Any]) -> list[dict[str, Any]]:
     topics: list[dict[str, Any]] = []
-    grounded_node = candidate.get("grounded_node") or candidate.get("qid") or candidate.get("id")
+    grounded_node = (
+        candidate.get("grounded_node") or candidate.get("qid") or candidate.get("id")
+    )
     if grounded_node:
         topics.append(
             {
                 "topic_id": str(grounded_node),
-                "topic_label": _text(candidate.get("grounded_label") or candidate.get("label") or grounded_node),
+                "topic_label": _text(
+                    candidate.get("grounded_label")
+                    or candidate.get("label")
+                    or grounded_node
+                ),
                 "ontology_path": [
-                    _text(candidate.get("grounded_label") or candidate.get("label") or grounded_node)
+                    _text(
+                        candidate.get("grounded_label")
+                        or candidate.get("label")
+                        or grounded_node
+                    )
                 ],
                 "relation_path": [],
                 "topic_depth": 0,
@@ -101,18 +113,28 @@ def _topic_rows(candidate: Mapping[str, Any]) -> list[dict[str, Any]]:
         )
     for index, raw_topic in enumerate(_list(candidate.get("topic_closure"))):
         if isinstance(raw_topic, Mapping):
-            topic_id = raw_topic.get("topic_id") or raw_topic.get("id") or raw_topic.get("qid")
+            topic_id = (
+                raw_topic.get("topic_id") or raw_topic.get("id") or raw_topic.get("qid")
+            )
             if not topic_id:
                 continue
             topics.append(
                 {
                     "topic_id": str(topic_id),
-                    "topic_label": _text(raw_topic.get("topic_label") or raw_topic.get("label") or topic_id),
+                    "topic_label": _text(
+                        raw_topic.get("topic_label")
+                        or raw_topic.get("label")
+                        or topic_id
+                    ),
                     "ontology_path": [
-                        _text(item) for item in _list(raw_topic.get("ontology_path")) if _text(item)
+                        _text(item)
+                        for item in _list(raw_topic.get("ontology_path"))
+                        if _text(item)
                     ],
                     "relation_path": [
-                        _text(item) for item in _list(raw_topic.get("relation_path")) if _text(item)
+                        _text(item)
+                        for item in _list(raw_topic.get("relation_path"))
+                        if _text(item)
                     ],
                     "topic_depth": int(raw_topic.get("topic_depth", index + 1) or 0),
                 }
@@ -137,8 +159,12 @@ def _iter_segments(document: Mapping[str, Any]) -> Iterable[dict[str, Any]]:
         for index, raw_segment in enumerate(raw_segments):
             if isinstance(raw_segment, Mapping):
                 segment = dict(raw_segment)
-                segment.setdefault("segment_id", f"{document.get('doc_id', 'doc')}:s{index + 1}")
-                segment.setdefault("text", document.get("raw_text") or document.get("text") or "")
+                segment.setdefault(
+                    "segment_id", f"{document.get('doc_id', 'doc')}:s{index + 1}"
+                )
+                segment.setdefault(
+                    "text", document.get("raw_text") or document.get("text") or ""
+                )
                 yield segment
         return
     yield {
@@ -157,7 +183,11 @@ def _atom_mentions(atom: Mapping[str, Any]) -> set[str]:
     if isinstance(roles, Mapping):
         for raw_value in roles.values():
             if isinstance(raw_value, Mapping):
-                value = raw_value.get("text") or raw_value.get("value") or raw_value.get("span")
+                value = (
+                    raw_value.get("text")
+                    or raw_value.get("value")
+                    or raw_value.get("span")
+                )
                 if value:
                     mentions.add(_key(value))
             elif raw_value:
@@ -180,7 +210,11 @@ def _wrapper_state(
     document: Mapping[str, Any],
     atoms: list[dict[str, Any]],
 ) -> str:
-    raw = candidate.get("wrapper_state") or segment.get("wrapper_state") or document.get("wrapper_state")
+    raw = (
+        candidate.get("wrapper_state")
+        or segment.get("wrapper_state")
+        or document.get("wrapper_state")
+    )
     if raw:
         return _text(raw)
     for atom in atoms:
@@ -219,7 +253,11 @@ def build_semantic_memory_index(
         for segment in _iter_segments(document):
             segment_text = _text(segment.get("text"))
             mentions = _segment_mentions(segment)
-            atoms = [_dict(atom) for atom in _list(segment.get("atoms")) if isinstance(atom, Mapping)]
+            atoms = [
+                _dict(atom)
+                for atom in _list(segment.get("atoms"))
+                if isinstance(atom, Mapping)
+            ]
             for phrase, candidates in catalog.items():
                 if not _phrase_in_mentions(phrase, mentions):
                     continue
@@ -235,11 +273,19 @@ def build_semantic_memory_index(
                         "segment_id": _text(segment.get("segment_id")),
                         "snippet": segment_text,
                         "raw_span": phrase,
-                        "grounded_node": _text(candidate.get("grounded_node") or candidate.get("qid") or candidate.get("id")),
-                        "grounded_node_label": _text(
-                            candidate.get("grounded_label") or candidate.get("label") or candidate.get("grounded_node")
+                        "grounded_node": _text(
+                            candidate.get("grounded_node")
+                            or candidate.get("qid")
+                            or candidate.get("id")
                         ),
-                        "grounding_residual": _text(candidate.get("grounding_residual") or "partial_grounding"),
+                        "grounded_node_label": _text(
+                            candidate.get("grounded_label")
+                            or candidate.get("label")
+                            or candidate.get("grounded_node")
+                        ),
+                        "grounding_residual": _text(
+                            candidate.get("grounding_residual") or "partial_grounding"
+                        ),
                         "wrapper_state": _wrapper_state(
                             candidate=candidate,
                             segment=segment,
@@ -262,7 +308,10 @@ def build_semantic_memory_index(
         "record_count": len(records),
         "records": records,
         "indexes": {
-            "topic_index": {topic_id: sorted(record_ids) for topic_id, record_ids in sorted(by_topic.items())},
+            "topic_index": {
+                topic_id: sorted(record_ids)
+                for topic_id, record_ids in sorted(by_topic.items())
+            },
         },
         "authority_boundary": {
             "private_memory_index": True,
@@ -275,17 +324,19 @@ def build_semantic_memory_index(
 
 def _query_terms(query: str) -> set[str]:
     return {
-        term
-        for term in re_split_words(query)
-        if term and term not in _QUESTION_WORDS
+        term for term in re_split_words(query) if term and term not in _QUESTION_WORDS
     }
 
 
 def re_split_words(text: str) -> list[str]:
-    return [part for part in _key(text).replace("?", " ").replace(".", " ").split() if part]
+    return [
+        part for part in _key(text).replace("?", " ").replace(".", " ").split() if part
+    ]
 
 
-def _ground_query(query: str, grounding_catalog: Mapping[str, Any]) -> list[dict[str, Any]]:
+def _ground_query(
+    query: str, grounding_catalog: Mapping[str, Any]
+) -> list[dict[str, Any]]:
     catalog = _grounding_rows(grounding_catalog)
     terms = _query_terms(query)
     rows: list[dict[str, Any]] = []
@@ -317,7 +368,10 @@ def retrieve_semantic_memory(
         if not isinstance(raw_record, Mapping):
             continue
         record = dict(raw_record)
-        if require_wrapper_state and record.get("wrapper_state") != require_wrapper_state:
+        if (
+            require_wrapper_state
+            and record.get("wrapper_state") != require_wrapper_state
+        ):
             continue
         if query_topic_ids and not (query_topic_ids & set(record.get("topic_ids", []))):
             continue

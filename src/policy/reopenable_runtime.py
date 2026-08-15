@@ -88,12 +88,19 @@ class CandidateAssessment:
             raise ValueError("semantic refutation requires an evidence reference")
         if self.refuted and self.admissible:
             raise ValueError("a currently refuted candidate cannot be admissible")
-        if self.active and self.execution_disposition is not ExecutionDisposition.ACTIVE:
+        if (
+            self.active
+            and self.execution_disposition is not ExecutionDisposition.ACTIVE
+        ):
             raise ValueError("active candidates must have ACTIVE execution disposition")
         if self.refuted and self.active:
-            raise ValueError("a refuted candidate cannot remain on the active execution surface")
+            raise ValueError(
+                "a refuted candidate cannot remain on the active execution surface"
+            )
         if self.active and not self.represented_possible:
-            raise ValueError("active execution must be a subset of the represented candidate fibre")
+            raise ValueError(
+                "active execution must be a subset of the represented candidate fibre"
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,7 +121,9 @@ class RelevanceAccounting:
             self.outside_model_mass,
         )
         if self.total_mass <= 0 or any(value < 0 for value in values):
-            raise ValueError("relevance masses must be non-negative and total_mass positive")
+            raise ValueError(
+                "relevance masses must be non-negative and total_mass positive"
+            )
         if sum(values) != self.total_mass:
             raise ValueError("P + Q + R + O relevance mass must equal total mass")
 
@@ -216,7 +225,9 @@ def assert_same_candidate_fibre(
         if canonical is None:
             canonical = current
         elif current != canonical:
-            raise ValueError("relational horizon changed the represented candidate fibre")
+            raise ValueError(
+                "relational horizon changed the represented candidate fibre"
+            )
 
 
 def parser_dominance_ratio(
@@ -234,10 +245,15 @@ def parser_dominance_ratio(
     """
 
     workload = parser_before.workload_ref
-    if parser_after.workload_ref != workload or post_parser_after.workload_ref != workload:
+    if (
+        parser_after.workload_ref != workload
+        or post_parser_after.workload_ref != workload
+    ):
         raise ValueError("parser/post-parser comparisons require the same workload")
     if parser_after.elapsed_microseconds > parser_before.elapsed_microseconds:
-        raise ValueError("parser dominance cannot be earned by making the parser slower")
+        raise ValueError(
+            "parser dominance cannot be earned by making the parser slower"
+        )
     if parser_after.work_units > parser_before.work_units:
         raise ValueError("parser dominance cannot be earned by increasing parser work")
     if post_parser_after.elapsed_microseconds == 0:

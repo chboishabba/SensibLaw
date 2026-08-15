@@ -16,7 +16,11 @@ def test_build_sino_url_basic():
 def test_build_sino_url_mask_path_repeats():
     url = build_sino_url(
         "https://www.austlii.edu.au/cgi-bin/sinosrch.cgi",
-        SinoQuery(meta="/au", query="mabo", mask_path=["au/cases/cth/high_ct", "au/legis/cth/consol_act"]),
+        SinoQuery(
+            meta="/au",
+            query="mabo",
+            mask_path=["au/cases/cth/high_ct", "au/legis/cth/consol_act"],
+        ),
     )
     assert "mask_path=au%2Fcases%2Fcth%2Fhigh_ct" in url
     assert "mask_path=au%2Flegis%2Fcth%2Fconsol_act" in url

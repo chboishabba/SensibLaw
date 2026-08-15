@@ -25,10 +25,14 @@ class CourtListenerStatuteAdapter(LegalSourceAdapter):
     source_name: str = "courtlistener.statute_cases"
 
     DEFAULT_DATA_PATH = (
-        Path(__file__).resolve().parents[2] / "data" / "courtlistener_statute_cases.json"
+        Path(__file__).resolve().parents[2]
+        / "data"
+        / "courtlistener_statute_cases.json"
     )
 
-    def __init__(self, *, data_path: Path | None = None, data: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self, *, data_path: Path | None = None, data: dict[str, Any] | None = None
+    ) -> None:
         self._data_path = data_path or self.DEFAULT_DATA_PATH
         if data is not None:
             self._statute_cases = data
@@ -40,7 +44,9 @@ class CourtListenerStatuteAdapter(LegalSourceAdapter):
             with self._data_path.open("r", encoding="utf-8") as handle:
                 return json.load(handle)
         except FileNotFoundError as exc:
-            raise RuntimeError(f"CourtListener data file missing: {self._data_path}") from exc
+            raise RuntimeError(
+                f"CourtListener data file missing: {self._data_path}"
+            ) from exc
 
     def fetch(self, citation: str) -> FetchResult:
         statute_key = str(citation or "").strip()
@@ -51,7 +57,9 @@ class CourtListenerStatuteAdapter(LegalSourceAdapter):
         raw_cases = payload.get("cases") or []
         normalized_cases: list[dict[str, Any]] = []
         for row in raw_cases:
-            statutes = tuple(str(token or "").strip() for token in (row.get("statutes") or []))
+            statutes = tuple(
+                str(token or "").strip() for token in (row.get("statutes") or [])
+            )
             case = {
                 "case_id": str(row.get("case_id") or "").strip(),
                 "title": str(row.get("title") or "").strip(),
@@ -73,7 +81,9 @@ class CourtListenerStatuteAdapter(LegalSourceAdapter):
             "description": str(payload.get("description") or "").strip(),
             "cases": normalized_cases,
         }
-        content = json.dumps(case_payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        content = json.dumps(case_payload, ensure_ascii=False, sort_keys=True).encode(
+            "utf-8"
+        )
         return FetchResult(
             content=content,
             content_type="application/json",

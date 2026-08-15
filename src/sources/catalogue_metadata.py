@@ -17,13 +17,18 @@ def source_metadata_from_rules(
     ordered_rules = tuple(
         sorted(
             (dict(row) for row in rules),
-            key=lambda row: (str(row.get("glob") or ""), str(row.get("source_role") or "")),
+            key=lambda row: (
+                str(row.get("glob") or ""),
+                str(row.get("source_role") or ""),
+            ),
         )
     )
     result: dict[str, dict[str, Any]] = {}
     for raw_path in sorted({str(path) for path in relative_paths}):
         path = PurePosixPath(raw_path).as_posix()
-        matches = [row for row in ordered_rules if fnmatch(path, str(row.get("glob") or ""))]
+        matches = [
+            row for row in ordered_rules if fnmatch(path, str(row.get("glob") or ""))
+        ]
         if len(matches) > 1:
             distinct_roles = {str(row.get("source_role") or "") for row in matches}
             if len(distinct_roles) > 1:

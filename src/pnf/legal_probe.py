@@ -156,7 +156,9 @@ def _legal_role_references(
         for role, factor_ref in observation.role_bindings.items():
             if role.casefold() not in _ENTITY_ROLE_KEYS:
                 continue
-            references.setdefault(str(factor_ref), set()).add(observation.observation_ref)
+            references.setdefault(str(factor_ref), set()).add(
+                observation.observation_ref
+            )
     return {key: tuple(sorted(value)) for key, value in references.items()}
 
 
@@ -178,7 +180,11 @@ def plan_legal_entity_resolution(
         factor_ref = str(factor.get("factor_ref") or "")
         metadata = factor.get("metadata") or {}
         revision_ref = str(
-            (metadata.get("factor_revision_ref") if isinstance(metadata, Mapping) else "")
+            (
+                metadata.get("factor_revision_ref")
+                if isinstance(metadata, Mapping)
+                else ""
+            )
             or factor.get("factor_revision_ref")
             or factor_ref
         )
@@ -278,7 +284,9 @@ def _legacy_features(legacy_rows: Sequence[Mapping[str, Any]]) -> set[str]:
 def _pnf_features(factors: Sequence[Mapping[str, Any]]) -> set[str]:
     features: set[str] = set()
     for factor in factors:
-        factor_type = str(factor.get("factor_type") or factor.get("factor_type_ref") or "")
+        factor_type = str(
+            factor.get("factor_type") or factor.get("factor_type_ref") or ""
+        )
         metadata = factor.get("metadata") or {}
         role = str(metadata.get("role") or "") if isinstance(metadata, Mapping) else ""
         if role in {"subject", "actor", "agent", "bearer"}:
@@ -348,7 +356,11 @@ def build_legal_pnf_probe(
         residuals: list[str] = []
         if legacy_present and not pnf_present:
             residuals.append(f"legacy_{coordinate}_candidate_not_reconstructed_in_pnf")
-        if pnf_present and not ir_present and coordinate not in {"conduct", "actor", "object"}:
+        if (
+            pnf_present
+            and not ir_present
+            and coordinate not in {"conduct", "actor", "object"}
+        ):
             residuals.append(f"pnf_{coordinate}_not_projected_to_legal_ir")
         state = (
             "pnf_and_legal_ir"

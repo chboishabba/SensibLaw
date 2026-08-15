@@ -17,9 +17,7 @@ from src.storage.postgres.typed_value_store import persist_typed_value
 def _texts(values: object) -> tuple[str, ...]:
     if isinstance(values, (str, bytes)) or values is None:
         return ()
-    return tuple(
-        sorted({str(value) for value in values if str(value)})
-    )
+    return tuple(sorted({str(value) for value in values if str(value)}))
 
 
 def _mapping(value: object) -> Mapping[str, Any]:
@@ -68,19 +66,11 @@ def persist_factor_proposal_parents(
     for row in proposals:
         proposal_ref = str(row.get("proposal_ref") or "").strip()
         document_ref = str(row.get("document_ref") or "").strip()
-        source_revision_ref = str(
-            row.get("source_revision_ref") or ""
-        ).strip()
+        source_revision_ref = str(row.get("source_revision_ref") or "").strip()
         factor_type_ref = str(row.get("factor_type_ref") or "").strip()
-        structural_signature = str(
-            row.get("structural_signature") or ""
-        ).strip()
-        producer_contract = str(
-            row.get("producer_contract") or ""
-        ).strip()
-        declaration_revision = str(
-            row.get("declaration_revision") or ""
-        ).strip()
+        structural_signature = str(row.get("structural_signature") or "").strip()
+        producer_contract = str(row.get("producer_contract") or "").strip()
+        declaration_revision = str(row.get("declaration_revision") or "").strip()
         if not all(
             (
                 proposal_ref,
@@ -100,9 +90,7 @@ def persist_factor_proposal_parents(
         fibre_kind = str(row.get("fibre_kind") or "proposal")
         derivation_role = str(row.get("derivation_role") or "support")
         producer_scope = str(row.get("producer_scope") or "document")
-        operation_contract = str(
-            row.get("operation_contract") or producer_contract
-        )
+        operation_contract = str(row.get("operation_contract") or producer_contract)
         support_state = str(row.get("support_state") or "candidate")
         source_span_refs = _texts(row.get("source_span_refs"))
         observation_refs = _texts(row.get("input_observation_refs"))
@@ -144,7 +132,9 @@ def persist_factor_proposal_parents(
             source_span_refs,
             observation_refs,
             dependency_refs,
-            tuple(sorted((str(key), str(value)) for key, value in role_bindings.items())),
+            tuple(
+                sorted((str(key), str(value)) for key, value in role_bindings.items())
+            ),
             qualifier_state,
             candidate_payload,
             residual_refs,

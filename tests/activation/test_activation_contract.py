@@ -1,4 +1,10 @@
-from src.activation import FACT_ENVELOPE_VERSION, Fact, FactEnvelope, activation_to_payload, simulate_activation
+from src.activation import (
+    FACT_ENVELOPE_VERSION,
+    Fact,
+    FactEnvelope,
+    activation_to_payload,
+    simulate_activation,
+)
 from src.obligation_identity import compute_identities
 from src.obligations import extract_obligations_from_text
 
@@ -42,7 +48,9 @@ def test_identity_hashes_preserved():
     ids = {oid.identity_hash for oid in compute_identities(obs)}
     env = _envelope([Fact(key="upon commencement", value=True)])
     result = activation_to_payload(simulate_activation(obs, env))
-    payload_ids = set(result["active"]) | set(result["inactive"]) | set(result["terminated"])
+    payload_ids = (
+        set(result["active"]) | set(result["inactive"]) | set(result["terminated"])
+    )
     assert ids == payload_ids
 
 
@@ -52,6 +60,8 @@ def test_time_words_do_not_infer_activation():
     result = activation_to_payload(simulate_activation(obs, env))
     assert result["active"] == []
     assert result["terminated"] == []
+
+
 import pytest
 
 pytestmark = pytest.mark.redflag

@@ -41,15 +41,9 @@ def _canonical_token_tuple_bytes(token: tuple[str, int, int]) -> bytes:
         else:
             escaped.append(character)
     escaped.append('"')
-    return (
-        "["
-        + "".join(escaped)
-        + ","
-        + str(start)
-        + ","
-        + str(end)
-        + "]"
-    ).encode("utf-8")
+    return ("[" + "".join(escaped) + "," + str(start) + "," + str(end) + "]").encode(
+        "utf-8"
+    )
 
 
 def _token_stream_header(
@@ -78,9 +72,7 @@ def _token_stream_header(
             frequency_by_key[key] = frequency_by_key.get(key, 0) + 1
     digest.update(b"]")
     if seen != token_count:
-        raise ValueError(
-            "token source count changed between descriptor and first pass"
-        )
+        raise ValueError("token source count changed between descriptor and first pass")
     stream_digest = digest.hexdigest()
     run_ref = "tokenizer-run:" + canonical_sha256(
         {
@@ -181,12 +173,9 @@ def persist_token_batches_work_conserving(
         if len(batch) > 256:
             raise ValueError("token batches must contain at most 256 rows")
         lexeme_ids = [
-            lexeme_by_key[surface.casefold()]
-            for surface, _start, _end in batch
+            lexeme_by_key[surface.casefold()] for surface, _start, _end in batch
         ]
-        offsets = [
-            value for _surface, start, end in batch for value in (start, end)
-        ]
+        offsets = [value for _surface, start, end in batch for value in (start, end)]
         encoded_symbols = codec.encode(lexeme_ids)
         encoded_offsets = encode_delta_sequence(offsets)
         token_payloads.append(
@@ -195,9 +184,7 @@ def persist_token_batches_work_conserving(
                 texts=(
                     run_ref,
                     codec_ref,
-                    hashlib.sha256(
-                        encoded_symbols + encoded_offsets
-                    ).hexdigest(),
+                    hashlib.sha256(encoded_symbols + encoded_offsets).hexdigest(),
                 ),
                 ints=(chunk_index, offset, len(batch)),
                 byteas=(encoded_symbols, encoded_offsets),

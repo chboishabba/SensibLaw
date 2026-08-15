@@ -15,7 +15,10 @@ if str(_SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(_SENSIBLAW_ROOT))
 
 from src.fact_intake.handoff_artifacts import write_handoff_artifact  # noqa: E402
-from src.fact_intake.personal_chat_import import build_handoff_input_from_units, build_handoff_report_from_chat_json  # noqa: E402
+from src.fact_intake.personal_chat_import import (
+    build_handoff_input_from_units,
+    build_handoff_report_from_chat_json,
+)  # noqa: E402
 from src.reporting.openrecall_import import load_openrecall_units  # noqa: E402
 
 
@@ -31,7 +34,9 @@ def build_handoff_from_openrecall_artifact(
     limit: int | None = None,
     notes: str | None = None,
 ) -> dict[str, object]:
-    units = load_openrecall_units(itir_db_path, import_run_id=import_run_id, date=date, limit=limit)
+    units = load_openrecall_units(
+        itir_db_path, import_run_id=import_run_id, date=date, limit=limit
+    )
     normalized = build_handoff_input_from_units(
         units=units,
         source_label=source_label,
@@ -50,11 +55,17 @@ def build_handoff_from_openrecall_artifact(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Build a personal handoff or protected disclosure artifact from imported OpenRecall captures.")
+    parser = argparse.ArgumentParser(
+        description="Build a personal handoff or protected disclosure artifact from imported OpenRecall captures."
+    )
     parser.add_argument("--itir-db-path", required=True)
     parser.add_argument("--recipient-profile", required=True)
     parser.add_argument("--source-label", required=True)
-    parser.add_argument("--mode", choices=("personal_handoff", "protected_disclosure_envelope"), default="personal_handoff")
+    parser.add_argument(
+        "--mode",
+        choices=("personal_handoff", "protected_disclosure_envelope"),
+        default="personal_handoff",
+    )
     parser.add_argument("--import-run-id", default=None)
     parser.add_argument("--date", default=None)
     parser.add_argument("--limit", type=int, default=None)

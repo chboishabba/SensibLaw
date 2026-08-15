@@ -6,19 +6,53 @@ import json
 from pathlib import Path
 from typing import Any
 
-from src.storage.repo_roots import relative_repo_path, repo_root, sensiblaw_root
+from src.storage.repo_roots import repo_root, sensiblaw_root
 
 REPO_ROOT = repo_root()
 SENSIBLAW_ROOT = sensiblaw_root()
 ARTIFACT_VERSION = "gwb_corpus_scorecard_v1"
 DEFAULT_OUTPUT_DIR = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / ARTIFACT_VERSION
-DEFAULT_HANDOFF_SCORECARD_PATH = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / "gwb_public_handoff_v1" / "gwb_public_handoff_v1.scorecard.json"
-DEFAULT_PUBLIC_BIOS_PACK_PATH = SENSIBLAW_ROOT / "demo" / "ingest" / "gwb" / "gwb_public_bios_v1.json"
-DEFAULT_PUBLIC_BIOS_MANIFEST_PATH = SENSIBLAW_ROOT / "demo" / "ingest" / "gwb" / "public_bios_v1" / "manifest.json"
-DEFAULT_PUBLIC_BIOS_TIMELINE_PATH = SENSIBLAW_ROOT / "demo" / "ingest" / "gwb" / "public_bios_v1" / "timeline.json"
-DEFAULT_PUBLIC_BIOS_GRAPH_PATH = SENSIBLAW_ROOT / "demo" / "ingest" / "gwb" / "public_bios_v1" / "timeline_graph.json"
-DEFAULT_CORPUS_TIMELINE_PATH = SENSIBLAW_ROOT / "demo" / "ingest" / "gwb" / "corpus_v1" / "wiki_timeline_gwb_corpus_v1.json"
-DEFAULT_CORPUS_AAO_PATH = SENSIBLAW_ROOT / "demo" / "ingest" / "gwb" / "corpus_v1" / "wiki_timeline_gwb_corpus_v1_aoo.json"
+DEFAULT_HANDOFF_SCORECARD_PATH = (
+    SENSIBLAW_ROOT
+    / "tests"
+    / "fixtures"
+    / "zelph"
+    / "gwb_public_handoff_v1"
+    / "gwb_public_handoff_v1.scorecard.json"
+)
+DEFAULT_PUBLIC_BIOS_PACK_PATH = (
+    SENSIBLAW_ROOT / "demo" / "ingest" / "gwb" / "gwb_public_bios_v1.json"
+)
+DEFAULT_PUBLIC_BIOS_MANIFEST_PATH = (
+    SENSIBLAW_ROOT / "demo" / "ingest" / "gwb" / "public_bios_v1" / "manifest.json"
+)
+DEFAULT_PUBLIC_BIOS_TIMELINE_PATH = (
+    SENSIBLAW_ROOT / "demo" / "ingest" / "gwb" / "public_bios_v1" / "timeline.json"
+)
+DEFAULT_PUBLIC_BIOS_GRAPH_PATH = (
+    SENSIBLAW_ROOT
+    / "demo"
+    / "ingest"
+    / "gwb"
+    / "public_bios_v1"
+    / "timeline_graph.json"
+)
+DEFAULT_CORPUS_TIMELINE_PATH = (
+    SENSIBLAW_ROOT
+    / "demo"
+    / "ingest"
+    / "gwb"
+    / "corpus_v1"
+    / "wiki_timeline_gwb_corpus_v1.json"
+)
+DEFAULT_CORPUS_AAO_PATH = (
+    SENSIBLAW_ROOT
+    / "demo"
+    / "ingest"
+    / "gwb"
+    / "corpus_v1"
+    / "wiki_timeline_gwb_corpus_v1_aoo.json"
+)
 DEFAULT_BOOK_ROOT = SENSIBLAW_ROOT / "demo" / "ingest" / "gwb"
 
 
@@ -46,16 +80,24 @@ def _build_slice(
     corpus_aao = _read_json(corpus_aao_path)
 
     local_book_files = sorted(
-        path for path in book_root.iterdir() if path.is_file() and path.suffix.lower() in {".epub", ".pdf"}
+        path
+        for path in book_root.iterdir()
+        if path.is_file() and path.suffix.lower() in {".epub", ".pdf"}
     )
     public_bios_source = (public_bios_pack.get("sources") or [{}])[0]
     source_family_inventory = [
         {
             "family": "checked_handoff",
             "path": str(handoff_scorecard_path.relative_to(REPO_ROOT)),
-            "promoted_relation_count": int(handoff_scorecard.get("promoted_relation_count") or 0),
-            "matched_seed_lane_count": int(handoff_scorecard.get("matched_seed_lane_count") or 0),
-            "ambiguous_event_count": int(handoff_scorecard.get("ambiguous_event_count") or 0),
+            "promoted_relation_count": int(
+                handoff_scorecard.get("promoted_relation_count") or 0
+            ),
+            "matched_seed_lane_count": int(
+                handoff_scorecard.get("matched_seed_lane_count") or 0
+            ),
+            "ambiguous_event_count": int(
+                handoff_scorecard.get("ambiguous_event_count") or 0
+            ),
         },
         {
             "family": "public_bios_pack",
@@ -86,10 +128,18 @@ def _build_slice(
         "fixture_kind": "source_family_inventory_scorecard",
         "summary": {
             "source_family_count": len(source_family_inventory),
-            "checked_handoff_promoted_relation_count": int(handoff_scorecard.get("promoted_relation_count") or 0),
-            "checked_handoff_matched_seed_lane_count": int(handoff_scorecard.get("matched_seed_lane_count") or 0),
-            "public_bios_manifest_document_count": len(public_bios_manifest.get("documents", [])),
-            "public_bios_timeline_event_count": len(public_bios_timeline.get("events", [])),
+            "checked_handoff_promoted_relation_count": int(
+                handoff_scorecard.get("promoted_relation_count") or 0
+            ),
+            "checked_handoff_matched_seed_lane_count": int(
+                handoff_scorecard.get("matched_seed_lane_count") or 0
+            ),
+            "public_bios_manifest_document_count": len(
+                public_bios_manifest.get("documents", [])
+            ),
+            "public_bios_timeline_event_count": len(
+                public_bios_timeline.get("events", [])
+            ),
             "public_bios_graph_node_count": len(public_bios_graph.get("nodes", [])),
             "public_bios_graph_edge_count": len(public_bios_graph.get("edges", [])),
             "corpus_timeline_event_count": len(corpus_timeline.get("events", [])),
@@ -155,9 +205,15 @@ def _build_scorecard(slice_payload: dict[str, Any]) -> dict[str, Any]:
         "destination": "complete_gwb_topic_understanding",
         "current_stage": "source_family_inventory_checkpoint",
         "source_family_count": summary["source_family_count"],
-        "checked_handoff_promoted_relation_count": summary["checked_handoff_promoted_relation_count"],
-        "checked_handoff_matched_seed_lane_count": summary["checked_handoff_matched_seed_lane_count"],
-        "public_bios_manifest_document_count": summary["public_bios_manifest_document_count"],
+        "checked_handoff_promoted_relation_count": summary[
+            "checked_handoff_promoted_relation_count"
+        ],
+        "checked_handoff_matched_seed_lane_count": summary[
+            "checked_handoff_matched_seed_lane_count"
+        ],
+        "public_bios_manifest_document_count": summary[
+            "public_bios_manifest_document_count"
+        ],
         "public_bios_timeline_event_count": summary["public_bios_timeline_event_count"],
         "public_bios_graph_node_count": summary["public_bios_graph_node_count"],
         "public_bios_graph_edge_count": summary["public_bios_graph_edge_count"],
@@ -186,7 +242,13 @@ def build_corpus_scorecard(output_dir: Path) -> dict[str, Any]:
         "slice_path": output_dir / f"{ARTIFACT_VERSION}.json",
         "summary_path": output_dir / f"{ARTIFACT_VERSION}.summary.md",
     }
-    paths["slice_path"].write_text(json.dumps(scorecard_payload | {"slice": slice_payload}, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    paths["slice_path"].write_text(
+        json.dumps(
+            scorecard_payload | {"slice": slice_payload}, indent=2, sort_keys=True
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     paths["summary_path"].write_text(summary_text + "\n", encoding="utf-8")
     return {
         "scorecard": scorecard_payload,
@@ -195,8 +257,14 @@ def build_corpus_scorecard(output_dir: Path) -> dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build the broader GWB corpus scorecard from in-repo source-family artifacts.")
-    parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Directory to write the GWB corpus scorecard into.")
+    parser = argparse.ArgumentParser(
+        description="Build the broader GWB corpus scorecard from in-repo source-family artifacts."
+    )
+    parser.add_argument(
+        "--output-dir",
+        default=str(DEFAULT_OUTPUT_DIR),
+        help="Directory to write the GWB corpus scorecard into.",
+    )
     args = parser.parse_args()
     payload = build_corpus_scorecard(Path(args.output_dir).resolve())
     print(json.dumps(payload, indent=2, sort_keys=True))

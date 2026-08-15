@@ -17,7 +17,7 @@ import json
 import re
 from collections import Counter
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 
 NON_PERSON_KEYWORDS = re.compile(
@@ -34,11 +34,19 @@ def _guess_kind(title: str) -> str:
     t = title.strip()
     if not t:
         return "other"
-    if t.startswith("Category:") or t.startswith("Template") or t.startswith("Wikipedia:"):
+    if (
+        t.startswith("Category:")
+        or t.startswith("Template")
+        or t.startswith("Wikipedia:")
+    ):
         return "other"
     if re.match(r"^\d{3,4}\b", t):
         return "event"
-    if re.search(r"\b(election|convention|debates|State of the Union|invasion|war)\b", t, re.IGNORECASE):
+    if re.search(
+        r"\b(election|convention|debates|State of the Union|invasion|war)\b",
+        t,
+        re.IGNORECASE,
+    ):
         return "event"
     if t.startswith("Office of "):
         return "office"
@@ -48,7 +56,12 @@ def _guess_kind(title: str) -> str:
         return "law"
     if "Convention" in t or "Treaty" in t:
         return "treaty"
-    if "Court" in t or "Senate" in t or "House of Representatives" in t or "Congress" in t:
+    if (
+        "Court" in t
+        or "Senate" in t
+        or "House of Representatives" in t
+        or "Congress" in t
+    ):
         return "institution"
     if NON_PERSON_KEYWORDS.search(t):
         return "institution"
@@ -58,7 +71,9 @@ def _guess_kind(title: str) -> str:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    ap = argparse.ArgumentParser(description="Report coarse distribution for wiki candidates JSON.")
+    ap = argparse.ArgumentParser(
+        description="Report coarse distribution for wiki candidates JSON."
+    )
     ap.add_argument(
         "--in",
         dest="in_path",
@@ -73,7 +88,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         default=Path("SensibLaw/.cache_local/wiki_candidates_gwb_distribution.json"),
         help="Output report JSON (default: %(default)s)",
     )
-    ap.add_argument("--top-k-samples", type=int, default=12, help="Top samples per kind (default: 12)")
+    ap.add_argument(
+        "--top-k-samples",
+        type=int,
+        default=12,
+        help="Top samples per kind (default: 12)",
+    )
     args = ap.parse_args(argv)
 
     payload = json.loads(args.in_path.read_text(encoding="utf-8"))
@@ -115,11 +135,18 @@ def main(argv: Optional[List[str]] = None) -> int:
     }
 
     args.out_path.parent.mkdir(parents=True, exist_ok=True)
-    args.out_path.write_text(json.dumps(out, indent=2, sort_keys=True), encoding="utf-8")
-    print(json.dumps({"ok": True, "out": str(args.out_path), "total": out["total_candidates"]}, indent=2, sort_keys=True))
+    args.out_path.write_text(
+        json.dumps(out, indent=2, sort_keys=True), encoding="utf-8"
+    )
+    print(
+        json.dumps(
+            {"ok": True, "out": str(args.out_path), "total": out["total_candidates"]},
+            indent=2,
+            sort_keys=True,
+        )
+    )
     return 0
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

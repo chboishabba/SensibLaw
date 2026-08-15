@@ -19,15 +19,32 @@ SENSIBLAW_ROOT = REPO_ROOT / "SensibLaw"
 ARTIFACT_VERSION = "au_real_transcript_structural_checkpoint_v1"
 DEFAULT_OUTPUT_DIR = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / ARTIFACT_VERSION
 DEFAULT_TRANSCRIPT_PATHS = [
-    SENSIBLAW_ROOT / "demo" / "ingest" / "hca_case_s942025" / "media" / "transcripts" / "01_Hearing.txt",
-    SENSIBLAW_ROOT / "demo" / "ingest" / "hca_case_s942025" / "media" / "transcripts" / "vimeo_1109898693_en-x-autogen.md",
+    SENSIBLAW_ROOT
+    / "demo"
+    / "ingest"
+    / "hca_case_s942025"
+    / "media"
+    / "transcripts"
+    / "01_Hearing.txt",
+    SENSIBLAW_ROOT
+    / "demo"
+    / "ingest"
+    / "hca_case_s942025"
+    / "media"
+    / "transcripts"
+    / "vimeo_1109898693_en-x-autogen.md",
 ]
 
 if str(SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(SENSIBLAW_ROOT))
 
-from src.reporting.structure_report import build_source_comparison_report, load_file_units  # noqa: E402
-from src.sensiblaw.interfaces.shared_reducer import collect_canonical_structure_occurrences  # noqa: E402
+from src.reporting.structure_report import (
+    build_source_comparison_report,
+    load_file_units,
+)  # noqa: E402
+from src.sensiblaw.interfaces.shared_reducer import (
+    collect_canonical_structure_occurrences,
+)  # noqa: E402
 
 
 _KEYWORD_WEIGHTS = {
@@ -44,7 +61,9 @@ _KEYWORD_WEIGHTS = {
 ProgressCallback = Callable[[str, dict[str, Any]], None]
 
 
-def _emit_progress(progress_callback: ProgressCallback | None, stage: str, **details: Any) -> None:
+def _emit_progress(
+    progress_callback: ProgressCallback | None, stage: str, **details: Any
+) -> None:
     if progress_callback is None:
         return
     progress_callback(stage, details)
@@ -58,7 +77,9 @@ def _coerce_path(value: str) -> Path:
 
 
 def _excerpt_score(text: str) -> tuple[int, dict[str, Any]]:
-    occs = collect_canonical_structure_occurrences(text, canonical_mode="deterministic_legal")
+    occs = collect_canonical_structure_occurrences(
+        text, canonical_mode="deterministic_legal"
+    )
     structural = [occ for occ in occs if occ.kind.endswith("_ref")]
     kind_counts = Counter(occ.kind for occ in structural)
     lowered = text.casefold()
@@ -70,8 +91,7 @@ def _excerpt_score(text: str) -> tuple[int, dict[str, Any]]:
         "structural_kind_counts": dict(sorted(kind_counts.items())),
         "keyword_hits": keyword_hits,
         "top_structural_refs": [
-            {"norm_text": occ.norm_text, "kind": occ.kind}
-            for occ in structural[:8]
+            {"norm_text": occ.norm_text, "kind": occ.kind} for occ in structural[:8]
         ],
     }
 
@@ -115,8 +135,12 @@ def _top_excerpts(units: list[Any], *, limit: int = 12) -> list[dict[str, Any]]:
     return rows[:limit]
 
 
-def _build_payload(transcript_paths: list[Path], *, progress_callback: ProgressCallback | None = None) -> dict[str, Any]:
-    _emit_progress(progress_callback, "load_units_started", source_file_count=len(transcript_paths))
+def _build_payload(
+    transcript_paths: list[Path], *, progress_callback: ProgressCallback | None = None
+) -> dict[str, Any]:
+    _emit_progress(
+        progress_callback, "load_units_started", source_file_count=len(transcript_paths)
+    )
     units = []
     for path in transcript_paths:
         units.extend(load_file_units(path, "transcript_file"))
@@ -129,10 +153,20 @@ def _build_payload(transcript_paths: list[Path], *, progress_callback: ProgressC
     _emit_progress(progress_callback, "load_units_finished", unit_count=len(units))
     _emit_progress(progress_callback, "structure_report_started", unit_count=len(units))
     comparison = build_source_comparison_report(units, top_n=10)
-    _emit_progress(progress_callback, "structure_report_finished", per_source_count=len(comparison["per_source"]))
-    _emit_progress(progress_callback, "excerpt_selection_started", unit_count=len(units))
+    _emit_progress(
+        progress_callback,
+        "structure_report_finished",
+        per_source_count=len(comparison["per_source"]),
+    )
+    _emit_progress(
+        progress_callback, "excerpt_selection_started", unit_count=len(units)
+    )
     selected_excerpts = _top_excerpts(units)
-    _emit_progress(progress_callback, "excerpt_selection_finished", selected_excerpt_count=len(selected_excerpts))
+    _emit_progress(
+        progress_callback,
+        "excerpt_selection_finished",
+        selected_excerpt_count=len(selected_excerpts),
+    )
     overall = comparison["overall"]
     return {
         "version": ARTIFACT_VERSION,
@@ -188,7 +222,13 @@ def _build_summary_text(payload: dict[str, Any]) -> str:
         lines.append(f"- {path}")
     lines.extend(["", "## Selected high-signal excerpts", ""])
     for row in payload["selected_excerpts"][:8]:
-        kinds = ", ".join(f"{kind}={count}" for kind, count in row["structural_kind_counts"].items()) or "-"
+        kinds = (
+            ", ".join(
+                f"{kind}={count}"
+                for kind, count in row["structural_kind_counts"].items()
+            )
+            or "-"
+        )
         keywords = ", ".join(row["keyword_hits"]) or "-"
         lines.append(
             f"- score={row['score']} kinds={kinds} keywords={keywords}: {row['excerpt_text']}"
@@ -213,15 +253,26 @@ def build_checkpoint(
     transcript_paths: list[Path] | None = None,
     progress_callback: ProgressCallback | None = None,
 ) -> dict[str, Any]:
-    selected_paths = [path.resolve() for path in (transcript_paths or DEFAULT_TRANSCRIPT_PATHS)]
-    _emit_progress(progress_callback, "build_started", output_dir=str(output_dir), source_file_count=len(selected_paths))
+    selected_paths = [
+        path.resolve() for path in (transcript_paths or DEFAULT_TRANSCRIPT_PATHS)
+    ]
+    _emit_progress(
+        progress_callback,
+        "build_started",
+        output_dir=str(output_dir),
+        source_file_count=len(selected_paths),
+    )
     payload = _build_payload(selected_paths, progress_callback=progress_callback)
     summary_text = _build_summary_text(payload)
-    _emit_progress(progress_callback, "artifact_write_started", output_dir=str(output_dir))
+    _emit_progress(
+        progress_callback, "artifact_write_started", output_dir=str(output_dir)
+    )
     output_dir.mkdir(parents=True, exist_ok=True)
     artifact_path = output_dir / f"{ARTIFACT_VERSION}.json"
     summary_path = output_dir / f"{ARTIFACT_VERSION}.summary.md"
-    artifact_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    artifact_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     summary_path.write_text(summary_text + "\n", encoding="utf-8")
     _emit_progress(
         progress_callback,
@@ -238,19 +289,45 @@ def build_checkpoint(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build a persisted structural/legal checkpoint over the real AU hearing transcript files.")
-    parser.add_argument("--transcript-file", action="append", default=[], help="Transcript file to include; repeat to override the default real AU set.")
-    parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Directory to write the checkpoint into.")
-    parser.add_argument("--progress", action="store_true", help="Emit stage progress JSON to stderr.")
-    parser.add_argument("--progress-format", choices=("human", "json"), default="human", help="Progress renderer for stderr output.")
-    parser.add_argument("--log-level", default="INFO", help="stderr logging level (default: %(default)s).")
+    parser = argparse.ArgumentParser(
+        description="Build a persisted structural/legal checkpoint over the real AU hearing transcript files."
+    )
+    parser.add_argument(
+        "--transcript-file",
+        action="append",
+        default=[],
+        help="Transcript file to include; repeat to override the default real AU set.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default=str(DEFAULT_OUTPUT_DIR),
+        help="Directory to write the checkpoint into.",
+    )
+    parser.add_argument(
+        "--progress", action="store_true", help="Emit stage progress JSON to stderr."
+    )
+    parser.add_argument(
+        "--progress-format",
+        choices=("human", "json"),
+        default="human",
+        help="Progress renderer for stderr output.",
+    )
+    parser.add_argument(
+        "--log-level",
+        default="INFO",
+        help="stderr logging level (default: %(default)s).",
+    )
     args = parser.parse_args()
     configure_cli_logging(args.log_level)
-    transcript_paths = [_coerce_path(path) for path in args.transcript_file] or DEFAULT_TRANSCRIPT_PATHS
+    transcript_paths = [
+        _coerce_path(path) for path in args.transcript_file
+    ] or DEFAULT_TRANSCRIPT_PATHS
     result = build_checkpoint(
         Path(args.output_dir).resolve(),
         transcript_paths=transcript_paths,
-        progress_callback=build_progress_callback(enabled=bool(args.progress), fmt=str(args.progress_format)),
+        progress_callback=build_progress_callback(
+            enabled=bool(args.progress), fmt=str(args.progress_format)
+        ),
     )
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0

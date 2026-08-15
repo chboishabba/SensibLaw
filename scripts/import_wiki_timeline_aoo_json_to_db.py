@@ -8,8 +8,14 @@ from pathlib import Path
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Import legacy wiki_timeline_*_aoo.json artifacts into the canonical SQLite store.")
-    p.add_argument("--json-path", required=True, help="Path to a wiki_timeline_*_aoo.json artifact.")
+    p = argparse.ArgumentParser(
+        description="Import legacy wiki_timeline_*_aoo.json artifacts into the canonical SQLite store."
+    )
+    p.add_argument(
+        "--json-path",
+        required=True,
+        help="Path to a wiki_timeline_*_aoo.json artifact.",
+    )
     p.add_argument(
         "--db-path",
         default=".cache_local/itir.sqlite",
@@ -27,7 +33,11 @@ def main() -> None:
 
     # Best-effort: use the declared source_timeline.path as the timeline_path input.
     # (If it no longer exists, the persistence layer falls back to hashing the path string.)
-    src_tl = payload.get("source_timeline") if isinstance(payload.get("source_timeline"), dict) else {}
+    src_tl = (
+        payload.get("source_timeline")
+        if isinstance(payload.get("source_timeline"), dict)
+        else {}
+    )
     tl_path_raw = str(src_tl.get("path") or "").strip()
     tl_path = Path(tl_path_raw) if tl_path_raw else None
 
@@ -55,7 +65,18 @@ def main() -> None:
         extractor_path=Path(__file__),
     )
 
-    print(json.dumps({"ok": True, "db_path": str(db_path), "run_id": res.run_id, "events": res.n_events}, indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            {
+                "ok": True,
+                "db_path": str(db_path),
+                "run_id": res.run_id,
+                "events": res.n_events,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+    )
 
 
 if __name__ == "__main__":

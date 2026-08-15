@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import importlib
 
-from sensiblaw.interfaces import InteractionMode, QueryTree, build_query_tree, project_interaction_mode
-from sensiblaw.interfaces.ir_adapter import build_query_tree, project_interaction_mode
-from sensiblaw.interfaces.ir_types import InteractionMode
+from sensiblaw.interfaces import (
+    InteractionMode,
+    QueryTree,
+    build_query_tree,
+    project_interaction_mode,
+)
 
 
 def test_public_interfaces_import_succeeds_and_preserves_class_identity() -> None:
@@ -24,7 +27,9 @@ def test_build_query_tree_emits_sentence_token_and_structure_nodes() -> None:
 
     sentence_nodes = [node for node in query_tree.nodes if node.kind == "sentence"]
     token_nodes = [node for node in query_tree.nodes if node.kind == "token"]
-    structure_nodes = [node for node in query_tree.nodes if node.kind == "structure_marker"]
+    structure_nodes = [
+        node for node in query_tree.nodes if node.kind == "structure_marker"
+    ]
 
     assert sentence_nodes
     assert token_nodes
@@ -42,14 +47,18 @@ def test_project_interaction_mode_detects_interrogative() -> None:
 
 
 def test_project_interaction_mode_detects_imperative() -> None:
-    receipt = project_interaction_mode(build_query_tree("Please send the report today."))
+    receipt = project_interaction_mode(
+        build_query_tree("Please send the report today.")
+    )
 
     assert receipt.interaction_mode == InteractionMode.IMPERATIVE
     assert receipt.supporting_signal_ids
 
 
 def test_project_interaction_mode_detects_directed_request() -> None:
-    receipt = project_interaction_mode(build_query_tree("Can you send the report today?"))
+    receipt = project_interaction_mode(
+        build_query_tree("Can you send the report today?")
+    )
 
     assert receipt.interaction_mode == InteractionMode.DIRECTED_REQUEST
     assert receipt.supporting_node_ids

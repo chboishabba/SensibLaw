@@ -192,7 +192,9 @@ def test_external_alignment_function_has_no_discovery_surface() -> None:
     assert "authority_namespace" in source
     assert "authority_identifier" in source
     assert "semantic_pnf_identity_witness" in source
-    assert "decode('00'::text, 'hex'::text)" in source or "decode('00', 'hex')" in source
+    assert (
+        "decode('00'::text, 'hex'::text)" in source or "decode('00', 'hex')" in source
+    )
     assert "paragraph" not in source
     assert "similarity" not in source
     assert "semantic_pnf_global_lookup" not in source

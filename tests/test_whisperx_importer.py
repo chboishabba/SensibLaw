@@ -30,7 +30,9 @@ def test_whisperx_importer_creates_envelope_and_segments(tmp_path, sample_transc
     _make_silent_wav(audio_path, seconds=1.0)
     store = Storage(tmp_path / "test.db")
     try:
-        env_id = import_whisperx_transcript(store, sample_transcript, audio_path=audio_path)
+        env_id = import_whisperx_transcript(
+            store, sample_transcript, audio_path=audio_path
+        )
         # Envelope exists
         env = store.get_node(env_id)
         assert env is not None
@@ -41,7 +43,9 @@ def test_whisperx_importer_creates_envelope_and_segments(tmp_path, sample_transc
         assert "audio_hash" in env.data
 
         # Segments recorded
-        rows = store.conn.execute("SELECT id, data FROM nodes WHERE type = 'audio_segment'").fetchall()
+        rows = store.conn.execute(
+            "SELECT id, data FROM nodes WHERE type = 'audio_segment'"
+        ).fetchall()
         assert len(rows) == 2
         for row in rows:
             data = json.loads(row["data"])
@@ -86,9 +90,13 @@ def test_whisperx_importer_large_transcript_smoke(tmp_path):
     _make_silent_wav(audio_path, seconds=100.0)
     store = Storage(tmp_path / "test.db")
     try:
-        env_id = import_whisperx_transcript(store, large_transcript, audio_path=audio_path)
+        env_id = import_whisperx_transcript(
+            store, large_transcript, audio_path=audio_path
+        )
         assert env_id is not None
-        rows = store.conn.execute("SELECT count(*) as count FROM nodes WHERE type = 'audio_segment'").fetchone()
+        rows = store.conn.execute(
+            "SELECT count(*) as count FROM nodes WHERE type = 'audio_segment'"
+        ).fetchone()
         assert rows["count"] == 100
     finally:
         store.close()

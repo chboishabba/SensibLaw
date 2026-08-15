@@ -57,7 +57,10 @@ def test_graph_subgraph_unreadable_graph_file(tmp_path: Path):
         "seed",
     )
     assert completed.returncode != 0
-    assert "--graph-file" in completed.stderr or "unrecognized arguments" in completed.stderr
+    assert (
+        "--graph-file" in completed.stderr
+        or "unrecognized arguments" in completed.stderr
+    )
 
 
 def test_tests_run_missing_tests_file(tmp_path: Path):
@@ -90,4 +93,7 @@ def test_tests_run_missing_story_file(tmp_path: Path):
         str(missing_story),
     )
     assert completed.returncode != 0
-    assert "No such file" in completed.stderr or "No such file or directory" in completed.stderr
+    assert (
+        "No such file" in completed.stderr
+        or "No such file or directory" in completed.stderr
+    )

@@ -1,5 +1,4 @@
 import json
-import json
 import subprocess
 from pathlib import Path
 import sys
@@ -13,7 +12,7 @@ def test_concept_matcher_basic():
     matcher = ConceptMatcher()
     text = "Hello dog, hi there"
     hits = matcher.match(text)
-    found = {(h.concept_id, text[h.start:h.end].lower()) for h in hits}
+    found = {(h.concept_id, text[h.start : h.end].lower()) for h in hits}
     assert ("greeting", "hello") in found
     assert ("greeting", "hi") in found
     assert ("animal", "dog") in found
@@ -35,7 +34,6 @@ def test_concepts_cli():
     assert {"greeting", "animal"} <= ids
 
 
-import re
 import sys
 from dataclasses import dataclass
 from itertools import zip_longest
@@ -82,11 +80,13 @@ def test_match_boundaries():
     res = run_matcher(text)
 
     parts = []
-    for unmatched, match in zip_longest(res.unmatched_spans, res.matches, fillvalue=None):
+    for unmatched, match in zip_longest(
+        res.unmatched_spans, res.matches, fillvalue=None
+    ):
         if unmatched:
             parts.append(unmatched)
         if match:
-            parts.append(text[match.start:match.end])
+            parts.append(text[match.start : match.end])
     reconstructed = "".join(parts)
 
     assert " ".join(reconstructed.split()) == " ".join(text.split())

@@ -3,7 +3,6 @@ from __future__ import annotations
 from src.sensiblaw.interfaces import (
     CandidateResidual,
     PredicateAtom,
-    PredicateIndex,
     PredicatePNF,
     QualifierState,
     Residual,
@@ -95,7 +94,10 @@ def test_meet_atom_returns_partial_when_candidate_is_missing_query_role() -> Non
     candidate = PredicateAtom(
         predicate="publish",
         structural_signature="publish",
-        roles={"actor": TypedArg(value="leader"), "object": TypedArg(value="transactions")},
+        roles={
+            "actor": TypedArg(value="leader"),
+            "object": TypedArg(value="transactions"),
+        },
         provenance=("d:2",),
     )
 
@@ -119,7 +121,10 @@ def test_meet_atom_returns_no_typed_meet_for_unrelated_atoms() -> None:
     candidate = PredicateAtom(
         predicate="publish",
         structural_signature="publish",
-        roles={"actor": TypedArg(value="leader"), "object": TypedArg(value="transactions")},
+        roles={
+            "actor": TypedArg(value="leader"),
+            "object": TypedArg(value="transactions"),
+        },
     )
 
     residual = meet_atom(query, candidate)
@@ -132,12 +137,18 @@ def test_meet_atom_returns_contradiction_only_for_direct_role_collision() -> Non
     query = PredicateAtom(
         predicate="offer",
         structural_signature="offer",
-        roles={"subject": TypedArg(value="whitepaper"), "object": TypedArg(value="tokens")},
+        roles={
+            "subject": TypedArg(value="whitepaper"),
+            "object": TypedArg(value="tokens"),
+        },
     )
     candidate = PredicateAtom(
         predicate="offer",
         structural_signature="offer",
-        roles={"subject": TypedArg(value="whitepaper"), "object": TypedArg(value="shares")},
+        roles={
+            "subject": TypedArg(value="whitepaper"),
+            "object": TypedArg(value="shares"),
+        },
         provenance=("d:3",),
     )
 
@@ -152,13 +163,19 @@ def test_meet_atom_detects_negation_conflict_on_comparable_atoms() -> None:
     query = PredicateAtom(
         predicate="guarantee",
         structural_signature="guarantee",
-        roles={"subject": TypedArg(value="whitepaper"), "object": TypedArg(value="token_value")},
+        roles={
+            "subject": TypedArg(value="whitepaper"),
+            "object": TypedArg(value="token_value"),
+        },
         qualifiers=QualifierState(polarity="positive"),
     )
     candidate = PredicateAtom(
         predicate="guarantee",
         structural_signature="guarantee",
-        roles={"subject": TypedArg(value="whitepaper"), "object": TypedArg(value="token_value")},
+        roles={
+            "subject": TypedArg(value="whitepaper"),
+            "object": TypedArg(value="token_value"),
+        },
         qualifiers=QualifierState(polarity="negative"),
         provenance=("d:4",),
     )
@@ -281,7 +298,9 @@ def test_join_typed_args_refines_unresolved_to_bound_value() -> None:
 
 def test_join_role_states_tracks_refinement_without_losing_typed_args() -> None:
     left = RoleState(
-        bindings={"object": TypedArg(value="asset", status="unresolved", provenance=("q:2",))}
+        bindings={
+            "object": TypedArg(value="asset", status="unresolved", provenance=("q:2",))
+        }
     )
     right = RoleState(
         bindings={
@@ -329,8 +348,12 @@ def test_join_typed_args_rejects_incompatible_bound_values() -> None:
 
 
 def test_join_typed_args_allows_multi_cardinality_union() -> None:
-    left = TypedArg(value="court", entity_type="person", status="bound", cardinality="multi")
-    right = TypedArg(value="judge", entity_type="person", status="bound", cardinality="multi")
+    left = TypedArg(
+        value="court", entity_type="person", status="bound", cardinality="multi"
+    )
+    right = TypedArg(
+        value="judge", entity_type="person", status="bound", cardinality="multi"
+    )
 
     joined, error = join_typed_args(left, right)
 
@@ -454,8 +477,19 @@ def test_compute_residual_returns_no_typed_meet_when_no_atom_is_comparable() -> 
         roles={"subject": TypedArg(value="poh"), "object": TypedArg(value="time")},
     )
     atoms = (
-        PredicateAtom(predicate="publish", structural_signature="publish", roles={"actor": TypedArg(value="leader"), "object": TypedArg(value="transactions")}),
-        PredicateAtom(predicate="verify", structural_signature="verify", roles={"subject": TypedArg(value="poh"), "object": TypedArg(value="order")}),
+        PredicateAtom(
+            predicate="publish",
+            structural_signature="publish",
+            roles={
+                "actor": TypedArg(value="leader"),
+                "object": TypedArg(value="transactions"),
+            },
+        ),
+        PredicateAtom(
+            predicate="verify",
+            structural_signature="verify",
+            roles={"subject": TypedArg(value="poh"), "object": TypedArg(value="order")},
+        ),
     )
 
     residual = compute_residual(query, atoms)
@@ -467,7 +501,10 @@ def test_compute_residual_is_monotone_and_preserves_contradiction() -> None:
     query = PredicateAtom(
         predicate="guarantee",
         structural_signature="guarantee",
-        roles={"subject": TypedArg(value="whitepaper"), "object": TypedArg(value="token_value")},
+        roles={
+            "subject": TypedArg(value="whitepaper"),
+            "object": TypedArg(value="token_value"),
+        },
         qualifiers=QualifierState(polarity="positive"),
     )
     partial = PredicateAtom(
@@ -480,7 +517,10 @@ def test_compute_residual_is_monotone_and_preserves_contradiction() -> None:
     contradiction = PredicateAtom(
         predicate="guarantee",
         structural_signature="guarantee",
-        roles={"subject": TypedArg(value="whitepaper"), "object": TypedArg(value="token_value")},
+        roles={
+            "subject": TypedArg(value="whitepaper"),
+            "object": TypedArg(value="token_value"),
+        },
         qualifiers=QualifierState(polarity="negative"),
         provenance=("d:6",),
     )
@@ -647,7 +687,9 @@ def test_collect_candidate_predicate_refs_narrows_on_required_role_slots_only() 
     ).level in {ResidualLevel.EXACT, ResidualLevel.PARTIAL}
 
 
-def test_collect_candidate_predicate_refs_narrows_bound_role_args_without_scoring() -> None:
+def test_collect_candidate_predicate_refs_narrows_bound_role_args_without_scoring() -> (
+    None
+):
     atoms = (
         PredicateAtom(
             predicate="publish",
@@ -693,7 +735,9 @@ def test_collect_candidate_predicate_refs_narrows_bound_role_args_without_scorin
     assert refs == ("p1",)
 
 
-def test_collect_candidate_predicate_refs_does_not_overprune_unresolved_or_variable_query_args() -> None:
+def test_collect_candidate_predicate_refs_does_not_overprune_unresolved_or_variable_query_args() -> (
+    None
+):
     atoms = (
         PredicateAtom(
             predicate="publish",
@@ -738,7 +782,9 @@ def test_collect_candidate_predicate_refs_does_not_overprune_unresolved_or_varia
         },
     )
 
-    variable_refs = collect_candidate_predicate_refs(variable_query, build_predicate_index(atoms))
+    variable_refs = collect_candidate_predicate_refs(
+        variable_query, build_predicate_index(atoms)
+    )
 
     assert variable_refs == ("p1", "p2")
 
@@ -788,7 +834,8 @@ def test_collect_candidate_predicate_refs_is_only_a_narrowing_superset_helper() 
     valid_matches = {
         atom.atom_id
         for atom in atoms
-        if comparable(query, atom) and meet_atom(query, atom).level is not ResidualLevel.NO_TYPED_MEET
+        if comparable(query, atom)
+        and meet_atom(query, atom).level is not ResidualLevel.NO_TYPED_MEET
     }
 
     assert set(refs).issuperset(valid_matches)
@@ -927,7 +974,9 @@ def test_collect_candidate_predicate_refs_does_not_over_prune_variable_args() ->
     assert candidates == ("p1", "p2")
 
 
-def test_collect_candidate_predicate_refs_returns_superset_for_later_algebraic_refinement() -> None:
+def test_collect_candidate_predicate_refs_returns_superset_for_later_algebraic_refinement() -> (
+    None
+):
     atoms = (
         PredicateAtom(
             predicate="publish",

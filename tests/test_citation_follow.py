@@ -1,4 +1,3 @@
-from pathlib import Path
 import json
 
 from src.citations.normalize import CitationKey
@@ -20,7 +19,9 @@ def test_extract_citations_simple():
 
 
 def test_resolve_prefers_jade_and_skips_existing():
-    ref = CitationRef(raw_text="[1992] HCA 23", offset=0, key=CitationKey(1992, "HCA", 23))
+    ref = CitationRef(
+        raw_text="[1992] HCA 23", offset=0, key=CitationKey(1992, "HCA", 23)
+    )
     plan = resolve_citation(ref, store_has=lambda k: False)
     assert plan and plan.source == "jade" and "content/ext/mnc" in (plan.url or "")
 
@@ -29,7 +30,9 @@ def test_resolve_prefers_jade_and_skips_existing():
 
 
 def test_resolve_candidates_include_austlii_fallback():
-    ref = CitationRef(raw_text="[1992] HCA 23", offset=0, key=CitationKey(1992, "HCA", 23))
+    ref = CitationRef(
+        raw_text="[1992] HCA 23", offset=0, key=CitationKey(1992, "HCA", 23)
+    )
     plans = resolve_citation_candidates(ref, store_has=lambda k: False)
     assert [plan.source for plan in plans] == ["jade", "austlii"]
     assert plans[1].url and plans[1].url.endswith("/au/cases/cth/HCA/1992/23.html")
@@ -90,15 +93,17 @@ def test_follow_citations_bounded_falls_back_to_austlii_after_jade_failure():
 
 
 def test_resolve_austlii_search_plan_requires_exact_citation_match():
-    ref = CitationRef(raw_text="[1992] HCA 23", offset=0, key=CitationKey(1992, "HCA", 23))
+    ref = CitationRef(
+        raw_text="[1992] HCA 23", offset=0, key=CitationKey(1992, "HCA", 23)
+    )
 
     class FakeSearchAdapter:
         def search(self, query):
             return (
-                '<html><body>'
+                "<html><body>"
                 '<a href="/au/cases/cth/HCA/1992/23.html">Mabo v Queensland (No 2) [1992] HCA 23</a>'
                 '<a href="/au/cases/cth/HCA/1992/24.html">Other Case [1992] HCA 24</a>'
-                '</body></html>'
+                "</body></html>"
             )
 
     plan = resolve_austlii_search_plan(ref, search_adapter=FakeSearchAdapter())
@@ -121,13 +126,17 @@ def test_follow_citations_bounded_uses_sino_after_direct_fetch_failures():
         return 1, ""
 
     def resolve_search(ref):
-        return type("Plan", (), {
-            "source": "austlii_search",
-            "url": "https://www.austlii.edu.au/au/cases/cth/HCA/1992/23.html",
-            "query": ref.raw_text,
-            "vc": "/au",
-            "citation": ref.key,
-        })()
+        return type(
+            "Plan",
+            (),
+            {
+                "source": "austlii_search",
+                "url": "https://www.austlii.edu.au/au/cases/cth/HCA/1992/23.html",
+                "query": ref.raw_text,
+                "vc": "/au",
+                "citation": ref.key,
+            },
+        )()
 
     ingested = follow_citations_bounded(
         seed_text=seed_text,

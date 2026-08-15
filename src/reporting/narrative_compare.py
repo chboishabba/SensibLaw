@@ -21,24 +21,87 @@ class NarrativeSource:
 
 
 _ATTRIBUTION_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
-    ("assert", re.compile(r"^(?P<speaker>[A-Z][A-Za-z][A-Za-z .'-]{1,80}?)\s+(?:said|says|argued|argues|submitted|submits|contended|contends)\s+that\s+(?P<claim>.+)$", re.IGNORECASE)),
-    ("report", re.compile(r"^(?P<speaker>[A-Z][A-Za-z][A-Za-z .'-]{1,80}?)\s+(?:reported|reports)\s+that\s+(?P<claim>.+)$", re.IGNORECASE)),
-    ("hold", re.compile(r"^(?P<speaker>(?:the\s+)?(?:court|majority(?:\s+in\s+[A-Z][A-Za-z .'-]+)?|judge|justices?)[A-Za-z .'-]*)\s+(?:held|holds)\s+that\s+(?P<claim>.+)$", re.IGNORECASE)),
-    ("show", re.compile(r"^(?P<speaker>[A-Z][A-Za-z][A-Za-z .'-]{1,80}?)\s+(?:showed|shows)\s+that\s+(?P<claim>.+)$", re.IGNORECASE)),
+    (
+        "assert",
+        re.compile(
+            r"^(?P<speaker>[A-Z][A-Za-z][A-Za-z .'-]{1,80}?)\s+(?:said|says|argued|argues|submitted|submits|contended|contends)\s+that\s+(?P<claim>.+)$",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "report",
+        re.compile(
+            r"^(?P<speaker>[A-Z][A-Za-z][A-Za-z .'-]{1,80}?)\s+(?:reported|reports)\s+that\s+(?P<claim>.+)$",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "hold",
+        re.compile(
+            r"^(?P<speaker>(?:the\s+)?(?:court|majority(?:\s+in\s+[A-Z][A-Za-z .'-]+)?|judge|justices?)[A-Za-z .'-]*)\s+(?:held|holds)\s+that\s+(?P<claim>.+)$",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "show",
+        re.compile(
+            r"^(?P<speaker>[A-Z][A-Za-z][A-Za-z .'-]{1,80}?)\s+(?:showed|shows)\s+that\s+(?P<claim>.+)$",
+            re.IGNORECASE,
+        ),
+    ),
 )
 
 _FACT_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
-    ("happen_in", re.compile(r"^(?P<subject>.+?)\s+happened\s+in\s+(?P<object>.+)$", re.IGNORECASE)),
-    ("approve_after", re.compile(r"^(?P<subject>.+?)\s+(?:was|were)\s+approved\s+after\s+(?P<object>.+)$", re.IGNORECASE)),
-    ("begin_before", re.compile(r"^(?P<subject>.+?)\s+began\s+before\s+(?P<object>.+)$", re.IGNORECASE)),
+    (
+        "happen_in",
+        re.compile(
+            r"^(?P<subject>.+?)\s+happened\s+in\s+(?P<object>.+)$", re.IGNORECASE
+        ),
+    ),
+    (
+        "approve_after",
+        re.compile(
+            r"^(?P<subject>.+?)\s+(?:was|were)\s+approved\s+after\s+(?P<object>.+)$",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "begin_before",
+        re.compile(
+            r"^(?P<subject>.+?)\s+began\s+before\s+(?P<object>.+)$", re.IGNORECASE
+        ),
+    ),
     ("meet", re.compile(r"^(?P<subject>.+?)\s+met\s+(?P<object>.+)$", re.IGNORECASE)),
-    ("block", re.compile(r"^(?P<subject>.+?)\s+blocked\s+(?P<object>.+)$", re.IGNORECASE)),
-    ("contribute_to", re.compile(r"^(?P<subject>.+?)\s+contributed\s+to\s+(?P<object>.+)$", re.IGNORECASE)),
-    ("delay", re.compile(r"^(?P<subject>.+?)\s+delayed\s+(?P<object>.+)$", re.IGNORECASE)),
+    (
+        "block",
+        re.compile(r"^(?P<subject>.+?)\s+blocked\s+(?P<object>.+)$", re.IGNORECASE),
+    ),
+    (
+        "contribute_to",
+        re.compile(
+            r"^(?P<subject>.+?)\s+contributed\s+to\s+(?P<object>.+)$", re.IGNORECASE
+        ),
+    ),
+    (
+        "delay",
+        re.compile(r"^(?P<subject>.+?)\s+delayed\s+(?P<object>.+)$", re.IGNORECASE),
+    ),
     ("use", re.compile(r"^(?P<subject>.+?)\s+uses\s+(?P<object>.+)$", re.IGNORECASE)),
-    ("support", re.compile(r"^(?P<subject>.+?)\s+supports\s+(?P<object>.+)$", re.IGNORECASE)),
-    ("pass", re.compile(r"^(?P<subject>.+?)\s+passed\s+(?P<object>.+)$", re.IGNORECASE)),
-    ("govern_in", re.compile(r"^(?P<subject>.+?)\s+govern(?:s)?\s+successfully\s+in\s+(?P<object>.+)$", re.IGNORECASE)),
+    (
+        "support",
+        re.compile(r"^(?P<subject>.+?)\s+supports\s+(?P<object>.+)$", re.IGNORECASE),
+    ),
+    (
+        "pass",
+        re.compile(r"^(?P<subject>.+?)\s+passed\s+(?P<object>.+)$", re.IGNORECASE),
+    ),
+    (
+        "govern_in",
+        re.compile(
+            r"^(?P<subject>.+?)\s+govern(?:s)?\s+successfully\s+in\s+(?P<object>.+)$",
+            re.IGNORECASE,
+        ),
+    ),
 )
 
 _DISPUTE_PREDICATE_PAIRS = {
@@ -115,7 +178,10 @@ def _extract_fact_proposition(
             "predicate_key": predicate_key,
             "anchor_text": cleaned,
             "arguments": [_argument("subject", subject), _argument("object", obj)],
-            "receipts": [receipt_dict("source_signal", source_signal), receipt_dict("claim_text", cleaned)],
+            "receipts": [
+                receipt_dict("source_signal", source_signal),
+                receipt_dict("claim_text", cleaned),
+            ],
         }
         fact = {
             "fact_id": f"{event_id}:f{proposition_index}",
@@ -137,7 +203,10 @@ def _extract_fact_proposition(
         "predicate_key": "claim_text",
         "anchor_text": cleaned,
         "arguments": [_argument("content", cleaned)],
-        "receipts": [receipt_dict("source_signal", source_signal), receipt_dict("claim_text", cleaned)],
+        "receipts": [
+            receipt_dict("source_signal", source_signal),
+            receipt_dict("claim_text", cleaned),
+        ],
     }
     return proposition, None
 
@@ -206,10 +275,18 @@ def _extract_claim_graph(
                     "source_proposition_id": wrapper_id,
                     "target_proposition_id": target_proposition_id,
                     "link_kind": "attributes_to",
-                    "receipts": [receipt_dict("speaker", speaker), receipt_dict("wrapper_kind", link_kind)],
+                    "receipts": [
+                        receipt_dict("speaker", speaker),
+                        receipt_dict("wrapper_kind", link_kind),
+                    ],
                 }
             )
-            if _norm(speaker) in {"court records", "records", "documents", "court record"}:
+            if _norm(speaker) in {
+                "court records",
+                "records",
+                "documents",
+                "court record",
+            }:
                 corroboration_refs.append(
                     {
                         "event_id": event_id,
@@ -259,8 +336,19 @@ def build_narrative_validation_report(source: NarrativeSource) -> dict[str, Any]
             state=state,
             source_signal="direct_statement",
         )
-        proposition = next((row for row in propositions if str(row.get("proposition_id")) == proposition_id), None)
-        if len(facts) == before_fact_count and isinstance(proposition, dict) and str(proposition.get("proposition_kind")) == "statement":
+        proposition = next(
+            (
+                row
+                for row in propositions
+                if str(row.get("proposition_id")) == proposition_id
+            ),
+            None,
+        )
+        if (
+            len(facts) == before_fact_count
+            and isinstance(proposition, dict)
+            and str(proposition.get("proposition_kind")) == "statement"
+        ):
             abstentions.append(
                 {
                     "event_id": event_id,
@@ -303,7 +391,9 @@ def build_narrative_validation_report(source: NarrativeSource) -> dict[str, Any]
     return payload
 
 
-def _index_propositions(report: dict[str, Any]) -> tuple[dict[str, list[dict[str, Any]]], dict[str, list[dict[str, Any]]]]:
+def _index_propositions(
+    report: dict[str, Any],
+) -> tuple[dict[str, list[dict[str, Any]]], dict[str, list[dict[str, Any]]]]:
     by_signature: dict[str, list[dict[str, Any]]] = {}
     by_subject_object: dict[str, list[dict[str, Any]]] = {}
     for proposition in report.get("propositions", []):
@@ -311,7 +401,10 @@ def _index_propositions(report: dict[str, Any]) -> tuple[dict[str, list[dict[str
             continue
         signature = _proposition_signature(proposition)
         by_signature.setdefault(signature, []).append(proposition)
-        args = {str(arg.get("role")): str(arg.get("value") or "") for arg in proposition.get("arguments", [])}
+        args = {
+            str(arg.get("role")): str(arg.get("value") or "")
+            for arg in proposition.get("arguments", [])
+        }
         subject = _norm(args.get("subject") or args.get("content") or "")
         obj = _norm(args.get("object") or "")
         key = f"{subject}|{obj}"
@@ -320,7 +413,10 @@ def _index_propositions(report: dict[str, Any]) -> tuple[dict[str, list[dict[str
 
 
 def _predicate_object_key(proposition: dict[str, Any]) -> str:
-    args = {str(arg.get("role")): str(arg.get("value") or "") for arg in proposition.get("arguments", [])}
+    args = {
+        str(arg.get("role")): str(arg.get("value") or "")
+        for arg in proposition.get("arguments", [])
+    }
     return f"{str(proposition.get('predicate_key') or '')}|{_norm(args.get('object') or '')}"
 
 
@@ -331,7 +427,10 @@ def _comparison_subject_key(proposition: dict[str, Any]) -> str:
     content = _norm(args.get("content") or "")
     if predicate == "claim_text" and "woolworths" in content:
         return "woolworths"
-    if predicate in _GOVERNANCE_FAMILY_PREDICATES and subject in {"majority government", "minority government"}:
+    if predicate in _GOVERNANCE_FAMILY_PREDICATES and subject in {
+        "majority government",
+        "minority government",
+    }:
         return "government_formation"
     return _norm(args.get("subject") or args.get("content") or "")
 
@@ -341,7 +440,11 @@ def _comparison_outcome_family(proposition: dict[str, Any]) -> str:
     predicate = str(proposition.get("predicate_key") or "")
     obj = _norm(args.get("object") or args.get("content") or "")
     if predicate in _CAUSAL_DISPUTE_PREDICATES:
-        if "climate policy" in obj or "policy instability" in obj or "policy momentum" in obj:
+        if (
+            "climate policy" in obj
+            or "policy instability" in obj
+            or "policy momentum" in obj
+        ):
             return "climate_policy_setback"
     if predicate == "claim_text" and "woolworths" in obj:
         if "direct grocery impacts" in obj or "direct cost pass-through" in obj:
@@ -352,8 +455,12 @@ def _comparison_outcome_family(proposition: dict[str, Any]) -> str:
     return obj
 
 
-def _collect_attribution_summaries(report: dict[str, Any], proposition_id: str) -> list[str]:
-    propositions = {str(row.get("proposition_id")): row for row in report.get("propositions", [])}
+def _collect_attribution_summaries(
+    report: dict[str, Any], proposition_id: str
+) -> list[str]:
+    propositions = {
+        str(row.get("proposition_id")): row for row in report.get("propositions", [])
+    }
     incoming: dict[str, list[dict[str, Any]]] = {}
     for link in report.get("proposition_links", []):
         if str(link.get("link_kind")) != "attributes_to":
@@ -371,8 +478,11 @@ def _collect_attribution_summaries(report: dict[str, Any], proposition_id: str) 
             wrapper = propositions.get(wrapper_id)
             if not isinstance(wrapper, dict):
                 continue
-            args = {str(arg.get("role")): str(arg.get("value") or "") for arg in wrapper.get("arguments", [])}
-            out.append(f"{wrapper.get('predicate_key')}:{args.get('speaker','')}")
+            args = {
+                str(arg.get("role")): str(arg.get("value") or "")
+                for arg in wrapper.get("arguments", [])
+            }
+            out.append(f"{wrapper.get('predicate_key')}:{args.get('speaker', '')}")
             visit(wrapper_id)
 
     visit(proposition_id)
@@ -380,7 +490,10 @@ def _collect_attribution_summaries(report: dict[str, Any], proposition_id: str) 
 
 
 def _arguments_by_role(proposition: dict[str, Any]) -> dict[str, str]:
-    return {str(arg.get("role")): str(arg.get("value") or "") for arg in proposition.get("arguments", [])}
+    return {
+        str(arg.get("role")): str(arg.get("value") or "")
+        for arg in proposition.get("arguments", [])
+    }
 
 
 def _derive_comparison_links(
@@ -400,14 +513,25 @@ def _derive_comparison_links(
         right_predicate = str(right.get("predicate_key") or "")
         left_args = _arguments_by_role(left)
         right_args = _arguments_by_role(right)
-        shared_object = _norm(left_args.get("object") or "") and _norm(left_args.get("object") or "") == _norm(
-            right_args.get("object") or ""
+        shared_object = _norm(left_args.get("object") or "") and _norm(
+            left_args.get("object") or ""
+        ) == _norm(right_args.get("object") or "")
+        distinct_subjects = _norm(left_args.get("subject") or "") != _norm(
+            right_args.get("subject") or ""
         )
-        distinct_subjects = _norm(left_args.get("subject") or "") != _norm(right_args.get("subject") or "")
-        same_outcome_family = _comparison_outcome_family(left) and _comparison_outcome_family(left) == _comparison_outcome_family(right)
-        same_subject = _comparison_subject_key(left) and _comparison_subject_key(left) == _comparison_subject_key(right)
-        same_predicate_conflicting_subjects = shared_object and distinct_subjects and (
-            left_predicate == right_predicate or (left_predicate, right_predicate) in _DISPUTE_PREDICATE_PAIRS
+        same_outcome_family = _comparison_outcome_family(
+            left
+        ) and _comparison_outcome_family(left) == _comparison_outcome_family(right)
+        same_subject = _comparison_subject_key(left) and _comparison_subject_key(
+            left
+        ) == _comparison_subject_key(right)
+        same_predicate_conflicting_subjects = (
+            shared_object
+            and distinct_subjects
+            and (
+                left_predicate == right_predicate
+                or (left_predicate, right_predicate) in _DISPUTE_PREDICATE_PAIRS
+            )
         )
         same_subject_conflicting_outcome = (
             same_subject
@@ -468,7 +592,10 @@ def _derive_comparison_links(
                     "right_proposition_id": right_id,
                     "receipts": [
                         receipt_dict("comparison_basis", comparison_basis),
-                        receipt_dict("subject_object_key", str(row.get("subject_object_key") or "")),
+                        receipt_dict(
+                            "subject_object_key",
+                            str(row.get("subject_object_key") or ""),
+                        ),
                         receipt_dict("link_type", "causal_dispute"),
                         receipt_dict("confidence", confidence),
                         receipt_dict("counter_hypothesis_ref", counter_hypothesis_ref),
@@ -489,7 +616,9 @@ def _derive_support_links(
     link_index = starting_link_index
     seen: set[tuple[str, str, str]] = set()
 
-    factual = [row for row in propositions if str(row.get("proposition_kind")) == "fact"]
+    factual = [
+        row for row in propositions if str(row.get("proposition_kind")) == "fact"
+    ]
     by_signature: dict[str, list[dict[str, Any]]] = {}
     for row in factual:
         by_signature.setdefault(_proposition_signature(row), []).append(row)
@@ -505,8 +634,17 @@ def _derive_support_links(
                 continue
             candidate_args = _arguments_by_role(candidate)
             candidate_subject = _norm(candidate_args.get("subject") or "")
-            if block_subject and block_subject in candidate_subject and block_object and block_object in candidate_subject:
-                key = (str(row.get("proposition_id")), str(candidate.get("proposition_id")), "supports")
+            if (
+                block_subject
+                and block_subject in candidate_subject
+                and block_object
+                and block_object in candidate_subject
+            ):
+                key = (
+                    str(row.get("proposition_id")),
+                    str(candidate.get("proposition_id")),
+                    "supports",
+                )
                 if key in seen:
                     continue
                 seen.add(key)
@@ -518,25 +656,39 @@ def _derive_support_links(
                 links.append(
                     {
                         "link_id": f"{candidate.get('event_id')}:s{link_index}",
-                        "event_id": str(candidate.get("event_id") or row.get("event_id") or ""),
+                        "event_id": str(
+                            candidate.get("event_id") or row.get("event_id") or ""
+                        ),
                         "source_id": source_id,
                         "source_proposition_id": str(row.get("proposition_id") or ""),
-                        "target_proposition_id": str(candidate.get("proposition_id") or ""),
+                        "target_proposition_id": str(
+                            candidate.get("proposition_id") or ""
+                        ),
                         "link_kind": "supports",
                         "link_type": "causal_support",
                         "confidence": "medium",
                         "counter_hypothesis_ref": counter_hypothesis_ref,
                         "receipts": [
-                            receipt_dict("support_basis", "block_subject_embeds_causal_subject"),
-                            receipt_dict("support_source", str(row.get("predicate_key") or "")),
+                            receipt_dict(
+                                "support_basis", "block_subject_embeds_causal_subject"
+                            ),
+                            receipt_dict(
+                                "support_source", str(row.get("predicate_key") or "")
+                            ),
                             receipt_dict("link_type", "causal_support"),
                             receipt_dict("confidence", "medium"),
-                            receipt_dict("counter_hypothesis_ref", counter_hypothesis_ref),
+                            receipt_dict(
+                                "counter_hypothesis_ref", counter_hypothesis_ref
+                            ),
                         ],
                     }
                 )
 
-    attributed_by_id = {str(row.get("proposition_id")): row for row in propositions if str(row.get("proposition_kind")) == "attribution"}
+    attributed_by_id = {
+        str(row.get("proposition_id")): row
+        for row in propositions
+        if str(row.get("proposition_kind")) == "attribution"
+    }
     evidence_target_ids: set[str] = set()
     for link in proposition_links:
         if str(link.get("link_kind")) != "attributes_to":
@@ -545,17 +697,33 @@ def _derive_support_links(
         if not isinstance(wrapper, dict):
             continue
         wrapper_args = _arguments_by_role(wrapper)
-        if _norm(wrapper_args.get("speaker") or "") in {"court records", "records", "court record"}:
+        if _norm(wrapper_args.get("speaker") or "") in {
+            "court records",
+            "records",
+            "court record",
+        }:
             evidence_target_ids.add(str(link.get("target_proposition_id") or ""))
 
     for signature, rows in by_signature.items():
-        evidence_rows = [row for row in rows if str(row.get("proposition_id") or "") in evidence_target_ids]
-        non_evidence_fact_rows = [row for row in rows if str(row.get("proposition_id") or "") not in evidence_target_ids]
+        evidence_rows = [
+            row
+            for row in rows
+            if str(row.get("proposition_id") or "") in evidence_target_ids
+        ]
+        non_evidence_fact_rows = [
+            row
+            for row in rows
+            if str(row.get("proposition_id") or "") not in evidence_target_ids
+        ]
         if not evidence_rows or not non_evidence_fact_rows:
             continue
         for evidence_row in evidence_rows:
             for target_row in non_evidence_fact_rows:
-                key = (str(evidence_row.get("proposition_id")), str(target_row.get("proposition_id")), "supports")
+                key = (
+                    str(evidence_row.get("proposition_id")),
+                    str(target_row.get("proposition_id")),
+                    "supports",
+                )
                 if key in seen:
                     continue
                 seen.add(key)
@@ -567,20 +735,32 @@ def _derive_support_links(
                 links.append(
                     {
                         "link_id": f"{target_row.get('event_id')}:s{link_index}",
-                        "event_id": str(target_row.get("event_id") or evidence_row.get("event_id") or ""),
+                        "event_id": str(
+                            target_row.get("event_id")
+                            or evidence_row.get("event_id")
+                            or ""
+                        ),
                         "source_id": source_id,
-                        "source_proposition_id": str(evidence_row.get("proposition_id") or ""),
-                        "target_proposition_id": str(target_row.get("proposition_id") or ""),
+                        "source_proposition_id": str(
+                            evidence_row.get("proposition_id") or ""
+                        ),
+                        "target_proposition_id": str(
+                            target_row.get("proposition_id") or ""
+                        ),
                         "link_kind": "supports",
                         "link_type": "causal_support",
                         "confidence": "high",
                         "counter_hypothesis_ref": counter_hypothesis_ref,
                         "receipts": [
-                            receipt_dict("support_basis", "documentary_support_same_signature"),
+                            receipt_dict(
+                                "support_basis", "documentary_support_same_signature"
+                            ),
                             receipt_dict("support_source", "court_records"),
                             receipt_dict("link_type", "causal_support"),
                             receipt_dict("confidence", "high"),
-                            receipt_dict("counter_hypothesis_ref", counter_hypothesis_ref),
+                            receipt_dict(
+                                "counter_hypothesis_ref", counter_hypothesis_ref
+                            ),
                         ],
                     }
                 )
@@ -588,7 +768,9 @@ def _derive_support_links(
     return links, link_index
 
 
-def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSource) -> dict[str, Any]:
+def build_narrative_comparison_report(
+    left: NarrativeSource, right: NarrativeSource
+) -> dict[str, Any]:
     left_report = build_narrative_validation_report(left)
     right_report = build_narrative_validation_report(right)
     left_by_sig, left_by_subject_object = _index_propositions(left_report)
@@ -596,7 +778,10 @@ def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSou
 
     shared_propositions: list[dict[str, Any]] = []
     disputed_propositions: list[dict[str, Any]] = []
-    source_only_propositions: dict[str, list[dict[str, Any]]] = {left.source_id: [], right.source_id: []}
+    source_only_propositions: dict[str, list[dict[str, Any]]] = {
+        left.source_id: [],
+        right.source_id: [],
+    }
     seen_shared = set()
     seen_disputed = set()
 
@@ -604,7 +789,11 @@ def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSou
         right_rows = right_by_sig.get(signature, [])
         if not right_rows:
             continue
-        key = (signature, left_rows[0]["proposition_id"], right_rows[0]["proposition_id"])
+        key = (
+            signature,
+            left_rows[0]["proposition_id"],
+            right_rows[0]["proposition_id"],
+        )
         if key in seen_shared:
             continue
         seen_shared.add(key)
@@ -613,8 +802,12 @@ def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSou
                 "signature": signature,
                 "left": left_rows,
                 "right": right_rows,
-                "left_attributions": _collect_attribution_summaries(left_report, str(left_rows[0]["proposition_id"])),
-                "right_attributions": _collect_attribution_summaries(right_report, str(right_rows[0]["proposition_id"])),
+                "left_attributions": _collect_attribution_summaries(
+                    left_report, str(left_rows[0]["proposition_id"])
+                ),
+                "right_attributions": _collect_attribution_summaries(
+                    right_report, str(right_rows[0]["proposition_id"])
+                ),
             }
         )
 
@@ -624,7 +817,9 @@ def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSou
             continue
         for left_row in left_rows:
             for right_row in right_rows:
-                if _proposition_signature(left_row) == _proposition_signature(right_row):
+                if _proposition_signature(left_row) == _proposition_signature(
+                    right_row
+                ):
                     continue
                 pair = (
                     str(left_row.get("predicate_key")),
@@ -638,10 +833,9 @@ def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSou
                 )
                 if pair in seen_disputed or reverse_pair in seen_disputed:
                     continue
-                if (
-                    pair[:2] not in _DISPUTE_PREDICATE_PAIRS
-                    and str(left_row.get("predicate_key")) == str(right_row.get("predicate_key"))
-                ):
+                if pair[:2] not in _DISPUTE_PREDICATE_PAIRS and str(
+                    left_row.get("predicate_key")
+                ) == str(right_row.get("predicate_key")):
                     continue
                 seen_disputed.add(pair)
                 disputed_propositions.append(
@@ -652,8 +846,16 @@ def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSou
                     }
                 )
 
-    left_non_attr = [row for row in left_report.get("propositions", []) if str(row.get("proposition_kind")) != "attribution"]
-    right_non_attr = [row for row in right_report.get("propositions", []) if str(row.get("proposition_kind")) != "attribution"]
+    left_non_attr = [
+        row
+        for row in left_report.get("propositions", [])
+        if str(row.get("proposition_kind")) != "attribution"
+    ]
+    right_non_attr = [
+        row
+        for row in right_report.get("propositions", [])
+        if str(row.get("proposition_kind")) != "attribution"
+    ]
     for left_row in left_non_attr:
         for right_row in right_non_attr:
             left_predicate = str(left_row.get("predicate_key") or "")
@@ -662,7 +864,10 @@ def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSou
             right_subject = _comparison_subject_key(right_row)
             left_outcome_family = _comparison_outcome_family(left_row)
             right_outcome_family = _comparison_outcome_family(right_row)
-            same_predicate_outcome = left_predicate == right_predicate and _predicate_object_key(left_row) == _predicate_object_key(right_row)
+            same_predicate_outcome = (
+                left_predicate == right_predicate
+                and _predicate_object_key(left_row) == _predicate_object_key(right_row)
+            )
             same_causal_family = (
                 left_predicate in _CAUSAL_DISPUTE_PREDICATES
                 and right_predicate in _CAUSAL_DISPUTE_PREDICATES
@@ -687,7 +892,12 @@ def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSou
                 and left_outcome_family
                 and left_outcome_family == right_outcome_family
             )
-            if not same_predicate_outcome and not same_causal_family and not same_statement_family and not same_governance_family:
+            if (
+                not same_predicate_outcome
+                and not same_causal_family
+                and not same_statement_family
+                and not same_governance_family
+            ):
                 continue
             if _proposition_signature(left_row) == _proposition_signature(right_row):
                 continue
@@ -711,26 +921,40 @@ def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSou
             )
 
     shared_signatures = {row["signature"] for row in shared_propositions}
-    disputed_left_ids = {str(row["left"]["proposition_id"]) for row in disputed_propositions}
-    disputed_right_ids = {str(row["right"]["proposition_id"]) for row in disputed_propositions}
+    disputed_left_ids = {
+        str(row["left"]["proposition_id"]) for row in disputed_propositions
+    }
+    disputed_right_ids = {
+        str(row["right"]["proposition_id"]) for row in disputed_propositions
+    }
 
     for proposition in left_report.get("propositions", []):
         if str(proposition.get("proposition_kind")) == "attribution":
             continue
-        if _proposition_signature(proposition) in shared_signatures or str(proposition.get("proposition_id")) in disputed_left_ids:
+        if (
+            _proposition_signature(proposition) in shared_signatures
+            or str(proposition.get("proposition_id")) in disputed_left_ids
+        ):
             continue
         source_only_propositions[left.source_id].append(proposition)
     for proposition in right_report.get("propositions", []):
         if str(proposition.get("proposition_kind")) == "attribution":
             continue
-        if _proposition_signature(proposition) in shared_signatures or str(proposition.get("proposition_id")) in disputed_right_ids:
+        if (
+            _proposition_signature(proposition) in shared_signatures
+            or str(proposition.get("proposition_id")) in disputed_right_ids
+        ):
             continue
         source_only_propositions[right.source_id].append(proposition)
 
     left_facts = {_fact_signature(row): row for row in left_report.get("facts", [])}
     right_facts = {_fact_signature(row): row for row in right_report.get("facts", [])}
     shared_facts = [
-        {"signature": signature, "left": left_facts[signature], "right": right_facts[signature]}
+        {
+            "signature": signature,
+            "left": left_facts[signature],
+            "right": right_facts[signature],
+        }
         for signature in sorted(set(left_facts) & set(right_facts))
     ]
     disputed_facts = [
@@ -739,7 +963,8 @@ def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSou
             "right": row["right"],
         }
         for row in disputed_propositions
-        if row["left"].get("proposition_kind") == "fact" and row["right"].get("proposition_kind") == "fact"
+        if row["left"].get("proposition_kind") == "fact"
+        and row["right"].get("proposition_kind") == "fact"
     ]
 
     link_differences = []
@@ -753,7 +978,9 @@ def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSou
                 }
             )
 
-    comparison_links = _derive_comparison_links(disputed_propositions=disputed_propositions)
+    comparison_links = _derive_comparison_links(
+        disputed_propositions=disputed_propositions
+    )
 
     abstentions = {
         left.source_id: left_report.get("abstentions", []),
@@ -770,7 +997,9 @@ def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSou
         "summary": {
             "shared_proposition_count": len(shared_propositions),
             "disputed_proposition_count": len(disputed_propositions),
-            "source_only_proposition_count": sum(len(rows) for rows in source_only_propositions.values()),
+            "source_only_proposition_count": sum(
+                len(rows) for rows in source_only_propositions.values()
+            ),
             "shared_fact_count": len(shared_facts),
             "disputed_fact_count": len(disputed_facts),
             "link_difference_count": len(link_differences),
@@ -784,7 +1013,10 @@ def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSou
         "link_differences": link_differences,
         "comparison_links": comparison_links,
         "comparison_receipts": [
-            {"kind": "comparison_mode", "value": "normalized_proposition_and_fact_signatures_v1"},
+            {
+                "kind": "comparison_mode",
+                "value": "normalized_proposition_and_fact_signatures_v1",
+            },
             {"kind": "fixture_ids", "value": f"{left.source_id},{right.source_id}"},
         ],
         "abstentions": abstentions,
@@ -827,13 +1059,17 @@ def ensure_claim_link_provenance_for_public_artifact(payload: dict[str, Any]) ->
         confidence = str(link.get("confidence") or "").strip()
         counter_hypothesis_ref = str(link.get("counter_hypothesis_ref") or "").strip()
         if not link_type:
-            raise ValueError(f"{location} missing link_type for causal link_kind={link_kind}")
+            raise ValueError(
+                f"{location} missing link_type for causal link_kind={link_kind}"
+            )
         if confidence not in _ALLOWED_LINK_CONFIDENCE:
             raise ValueError(
                 f"{location} has invalid confidence={confidence!r} for causal link_kind={link_kind}"
             )
         if not counter_hypothesis_ref:
-            raise ValueError(f"{location} missing counter_hypothesis_ref for causal link_kind={link_kind}")
+            raise ValueError(
+                f"{location} missing counter_hypothesis_ref for causal link_kind={link_kind}"
+            )
 
         receipts = link.get("receipts") or []
         try:
@@ -869,7 +1105,9 @@ def _source_from_payload(payload: dict[str, Any]) -> NarrativeSource:
     )
 
 
-def load_fixture_sources(path: str | Path) -> tuple[dict[str, Any], list[NarrativeSource]]:
+def load_fixture_sources(
+    path: str | Path,
+) -> tuple[dict[str, Any], list[NarrativeSource]]:
     payload = load_narrative_fixture(path)
     sources = [_source_from_payload(row) for row in payload.get("sources", [])]
     return payload, sources

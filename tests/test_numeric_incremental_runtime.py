@@ -16,7 +16,10 @@ def test_numeric_cue_automaton_handles_overlaps_without_text_or_regex() -> None:
         (20, 2),
         (10, 5),
     ]
-    assert result.receipt.work_units == result.receipt.input_symbols + result.receipt.match_count
+    assert (
+        result.receipt.work_units
+        == result.receipt.input_symbols + result.receipt.match_count
+    )
     result.receipt.assert_within_contract()
 
 

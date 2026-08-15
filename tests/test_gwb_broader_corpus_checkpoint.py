@@ -27,8 +27,14 @@ def test_build_gwb_broader_corpus_checkpoint(tmp_path: Path) -> None:
     assert summary["new_relation_count_vs_checked_handoff"] >= 2
     assert summary["seed_lanes_supported_in_multiple_families"] >= 1
 
-    source_families = {row["source_family"] for row in slice_payload["source_family_summaries"]}
-    assert source_families == {"checked_handoff", "public_bios_timeline", "corpus_book_timeline"}
+    source_families = {
+        row["source_family"] for row in slice_payload["source_family_summaries"]
+    }
+    assert source_families == {
+        "checked_handoff",
+        "public_bios_timeline",
+        "corpus_book_timeline",
+    }
     braid = slice_payload["cross_source_event_braid"]
     assert braid["schema_version"] == "sl.cross_source_event_braid.v0_1"
     assert braid["summary"]["source_family_count"] == 2
@@ -67,19 +73,25 @@ def test_build_gwb_broader_corpus_checkpoint(tmp_path: Path) -> None:
 
     merged_relations = slice_payload["merged_promoted_relations"]
     assert any(row["predicate_key"] == "nominated" for row in merged_relations)
-    assert any(row["predicate_key"] in {"signed", "vetoed", "confirmed_by"} for row in merged_relations)
     assert any(
-        row["predicate_key"] == "signed" and row["object"]["canonical_key"] == "legal_ref:no_child_left_behind_act"
+        row["predicate_key"] in {"signed", "vetoed", "confirmed_by"}
         for row in merged_relations
     )
     assert any(
         row["predicate_key"] == "signed"
-        and row["object"]["canonical_key"] == "legal_ref:northwestern_hawaiian_islands_marine_national_monument"
+        and row["object"]["canonical_key"] == "legal_ref:no_child_left_behind_act"
+        for row in merged_relations
+    )
+    assert any(
+        row["predicate_key"] == "signed"
+        and row["object"]["canonical_key"]
+        == "legal_ref:northwestern_hawaiian_islands_marine_national_monument"
         for row in merged_relations
     )
     assert any(
         row["predicate_key"] == "vetoed"
-        and row["object"]["canonical_key"] == "legal_ref:stem_cell_research_enhancement_act"
+        and row["object"]["canonical_key"]
+        == "legal_ref:stem_cell_research_enhancement_act"
         and row["source_families"] == ["checked_handoff"]
         for row in merged_relations
     )
@@ -91,8 +103,16 @@ def test_build_gwb_broader_corpus_checkpoint(tmp_path: Path) -> None:
     )
     assert signed_row["lineage_records"]
     assert any(record["event_id"] for record in signed_row["lineage_records"])
-    assert any(record["source_path"] or record["source_url"] for record in signed_row["lineage_records"])
-    assert signed_row["cross_source_braid_depth"] in {"complete", "partial", "candidate_only", "missing"}
+    assert any(
+        record["source_path"] or record["source_url"]
+        for record in signed_row["lineage_records"]
+    )
+    assert signed_row["cross_source_braid_depth"] in {
+        "complete",
+        "partial",
+        "candidate_only",
+        "missing",
+    }
     assert isinstance(signed_row["merged_event_ids"], list)
     assert isinstance(signed_row["ordering_edge_ids"], list)
 

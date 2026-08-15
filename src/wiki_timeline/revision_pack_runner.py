@@ -8,13 +8,12 @@ import subprocess
 import sys
 import tempfile
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from src.wiki_timeline.revision_harness import build_revision_comparison_report
 from src.wiki_timeline.revision_pack_storage import (
-    default_out_dir_for_pack,
     pair_artifact_paths,
     read_json_file,
     revision_artifact_paths,
@@ -40,7 +39,9 @@ PAIR_REPORT_SCHEMA_VERSION = "wiki_revision_pair_report_v0_1"
 CONTESTED_GRAPH_SCHEMA_VERSION = "wiki_contested_region_graph_v0_1"
 _WS_RE = re.compile(r"\s+")
 _SECTION_RE = re.compile(r"^(={2,6})\s*(.*?)\s*\1\s*$", re.MULTILINE)
-_REVERT_RE = re.compile(r"\b(revert|reverted|reverting|undid|undo|rv|rollback)\b", re.IGNORECASE)
+_REVERT_RE = re.compile(
+    r"\b(revert|reverted|reverting|undid|undo|rv|rollback)\b", re.IGNORECASE
+)
 
 
 def _utc_now_iso() -> str:
@@ -60,17 +61,27 @@ def _safe_int(value: Any) -> int | None:
         return None
 
 
-def _emit_progress(progress_callback: Callable[[str, Mapping[str, Any]], None] | None, stage: str, details: Mapping[str, Any]) -> None:
+def _emit_progress(
+    progress_callback: Callable[[str, Mapping[str, Any]], None] | None,
+    stage: str,
+    details: Mapping[str, Any],
+) -> None:
     if callable(progress_callback):
         progress_callback(stage, dict(details))
 
 
-def _snapshot_contract_error(article: Mapping[str, Any], snapshot_payload: Mapping[str, Any]) -> str | None:
+def _snapshot_contract_error(
+    article: Mapping[str, Any], snapshot_payload: Mapping[str, Any]
+) -> str | None:
     warnings = snapshot_payload.get("warnings") or []
     warning_text = ", ".join(str(item) for item in warnings if item)
-    if snapshot_payload.get("revid") is None or not _norm_text(snapshot_payload.get("wikitext")):
+    if snapshot_payload.get("revid") is None or not _norm_text(
+        snapshot_payload.get("wikitext")
+    ):
         detail = f" ({warning_text})" if warning_text else ""
-        return f"wiki pull returned incomplete snapshot for {article.get('title')}{detail}"
+        return (
+            f"wiki pull returned incomplete snapshot for {article.get('title')}{detail}"
+        )
     return None
 
 
@@ -121,12 +132,16 @@ def _rebuild_table_with_columns(
     conn.execute(f"DROP TABLE {temp_name}")
 
 
-def _needs_rebuild(conn: sqlite3.Connection, *, table_name: str, target_columns: list[str]) -> bool:
+def _needs_rebuild(
+    conn: sqlite3.Connection, *, table_name: str, target_columns: list[str]
+) -> bool:
     existing_columns = _table_columns(conn, table_name)
     return bool(existing_columns) and existing_columns != set(target_columns)
 
 
-def _snapshot_rows(conn: sqlite3.Connection, *, table_name: str, columns: list[str]) -> list[tuple[Any, ...]]:
+def _snapshot_rows(
+    conn: sqlite3.Connection, *, table_name: str, columns: list[str]
+) -> list[tuple[Any, ...]]:
     existing_columns = _table_columns(conn, table_name)
     if not existing_columns:
         return []
@@ -360,7 +375,10 @@ CREATE TABLE IF NOT EXISTS wiki_revision_monitor_article_state (
             ],
         ),
     ]
-    if any(_needs_rebuild(conn, table_name=table_name, target_columns=target_columns) for table_name, _, target_columns in rebuild_specs):
+    if any(
+        _needs_rebuild(conn, table_name=table_name, target_columns=target_columns)
+        for table_name, _, target_columns in rebuild_specs
+    ):
         run_rows = _snapshot_rows(
             conn,
             table_name="wiki_revision_monitor_runs",
@@ -489,11 +507,15 @@ CREATE TABLE IF NOT EXISTS wiki_revision_monitor_article_state (
     ensure_read_model_schema(conn)
 
 
-def _store_pack_manifest(conn: sqlite3.Connection, *, pack_path: Path, pack: Mapping[str, Any]) -> None:
+def _store_pack_manifest(
+    conn: sqlite3.Connection, *, pack_path: Path, pack: Mapping[str, Any]
+) -> None:
     ensure_revision_pack_schema(conn)
     pack_id = str(pack.get("pack_id") or "").strip()
     manifest_json = stable_json(pack)
-    manifest_sha256 = __import__("hashlib").sha256(manifest_json.encode("utf-8")).hexdigest()
+    manifest_sha256 = (
+        __import__("hashlib").sha256(manifest_json.encode("utf-8")).hexdigest()
+    )
     conn.execute(
         """
         INSERT INTO wiki_revision_monitor_packs(
@@ -517,7 +539,9 @@ def _store_pack_manifest(conn: sqlite3.Connection, *, pack_path: Path, pack: Map
             _utc_now_iso(),
         ),
     )
-    conn.execute("DELETE FROM wiki_revision_monitor_articles WHERE pack_id = ?", (pack_id,))
+    conn.execute(
+        "DELETE FROM wiki_revision_monitor_articles WHERE pack_id = ?", (pack_id,)
+    )
     for index, article in enumerate(pack.get("articles") or []):
         if not isinstance(article, Mapping):
             continue
@@ -536,7 +560,7 @@ def _store_pack_manifest(conn: sqlite3.Connection, *, pack_path: Path, pack: Map
               article_order=excluded.article_order
             """,
             (
-                str(article.get("article_id") or f"article_{index+1:03d}"),
+                str(article.get("article_id") or f"article_{index + 1:03d}"),
                 pack_id,
                 str(article.get("wiki") or "enwiki"),
                 str(article.get("title") or ""),
@@ -548,7 +572,9 @@ def _store_pack_manifest(conn: sqlite3.Connection, *, pack_path: Path, pack: Map
         )
 
 
-def _load_article_state(conn: sqlite3.Connection, article_id: str) -> sqlite3.Row | None:
+def _load_article_state(
+    conn: sqlite3.Connection, article_id: str
+) -> sqlite3.Row | None:
     return conn.execute(
         """
         SELECT article_id, last_revid, last_rev_timestamp, last_fetched_at,
@@ -596,7 +622,9 @@ def _upsert_article_state(
     )
 
 
-def _insert_run(conn: sqlite3.Connection, *, run_id: str, pack_id: str, started_at: str) -> None:
+def _insert_run(
+    conn: sqlite3.Connection, *, run_id: str, pack_id: str, started_at: str
+) -> None:
     conn.execute(
         """
         INSERT INTO wiki_revision_monitor_runs(run_id, pack_id, started_at, completed_at, status)
@@ -719,7 +747,11 @@ def _insert_contested_graph(
     article_id: str,
     graph_payload: Mapping[str, Any],
 ) -> None:
-    summary = graph_payload.get("summary") if isinstance(graph_payload.get("summary"), Mapping) else {}
+    summary = (
+        graph_payload.get("summary")
+        if isinstance(graph_payload.get("summary"), Mapping)
+        else {}
+    )
     conn.execute(
         """
         INSERT OR REPLACE INTO wiki_revision_monitor_contested_graphs(
@@ -832,7 +864,9 @@ def _insert_contested_graph(
 
 
 def _subprocess_json(args: list[str], *, cwd: Path) -> dict[str, Any]:
-    completed = subprocess.run(args, cwd=str(cwd), capture_output=True, text=True, check=True)
+    completed = subprocess.run(
+        args, cwd=str(cwd), capture_output=True, text=True, check=True
+    )
     return json.loads(completed.stdout)
 
 
@@ -840,7 +874,11 @@ def _looks_like_person_title(title: str) -> bool:
     parts = [part for part in _norm_text(title).split(" ") if part]
     if len(parts) < 2 or len(parts) > 4:
         return False
-    if any(part.lower() in {"language", "languages", "park", "system", "space", "alphabet", "conflict"} for part in parts):
+    if any(
+        part.lower()
+        in {"language", "languages", "park", "system", "space", "alphabet", "conflict"}
+        for part in parts
+    ):
         return False
     return all(part[:1].isupper() for part in parts)
 
@@ -867,7 +905,9 @@ def _default_fetch_current_snapshot(
     )
     snapshots = payload.get("snapshots") or []
     if not snapshots:
-        raise RuntimeError(f"wiki pull returned no snapshots for {article.get('title')}")
+        raise RuntimeError(
+            f"wiki pull returned no snapshots for {article.get('title')}"
+        )
     snapshot_path = Path(str(snapshots[0]))
     snapshot_payload = read_json_file(snapshot_path)
     if snapshot_payload is None:
@@ -934,7 +974,10 @@ def _default_fetch_revision_history(
     payload = _subprocess_json(args, cwd=repo_root)
     histories = payload.get("histories") or []
     if not histories:
-        return {"history_path": None, "history_payload": {"rows": [], "warnings": ["no_history_manifest"]}}
+        return {
+            "history_path": None,
+            "history_payload": {"rows": [], "warnings": ["no_history_manifest"]},
+        }
     history_path = Path(str(histories[0]))
     history_payload = read_json_file(history_path)
     if history_payload is None:
@@ -950,8 +993,12 @@ def _default_build_timeline(
     repo_root: Path,
     snapshot_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    module_globals = runpy.run_path(str(repo_root / "SensibLaw" / "scripts" / "wiki_timeline_extract.py"))
-    build_timeline_payload_from_snapshot = module_globals["build_timeline_payload_from_snapshot"]
+    module_globals = runpy.run_path(
+        str(repo_root / "SensibLaw" / "scripts" / "wiki_timeline_extract.py")
+    )
+    build_timeline_payload_from_snapshot = module_globals[
+        "build_timeline_payload_from_snapshot"
+    ]
     if snapshot_payload is None:
         snapshot_payload = read_json_file(snapshot_path)
     if not isinstance(snapshot_payload, Mapping):
@@ -974,7 +1021,9 @@ def _default_build_aoo(
     repo_root: Path,
     timeline_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    module_globals = runpy.run_path(str(repo_root / "SensibLaw" / "scripts" / "wiki_timeline_aoo_extract.py"))
+    module_globals = runpy.run_path(
+        str(repo_root / "SensibLaw" / "scripts" / "wiki_timeline_aoo_extract.py")
+    )
     build_aoo_payload_from_timeline = module_globals["build_aoo_payload_from_timeline"]
     title = str(article.get("title") or "")
     root_actor = title if _looks_like_person_title(title) else "George W. Bush"
@@ -1026,7 +1075,12 @@ def _default_auto_review_context(
                     "source_surface": surface,
                     "slice_name": link.slice_name,
                 }
-    return {"auto_bridge_matches": sorted(hits.values(), key=lambda row: (row["canonical_kind"], row["canonical_ref"], row["curie"]))}
+    return {
+        "auto_bridge_matches": sorted(
+            hits.values(),
+            key=lambda row: (row["canonical_kind"], row["canonical_ref"], row["curie"]),
+        )
+    }
 
 
 def _merge_packet_review_context(
@@ -1037,7 +1091,11 @@ def _merge_packet_review_context(
     bridge_db_path: Path | None = None,
     section_context: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    curated_context = article.get("review_context") if isinstance(article.get("review_context"), Mapping) else {}
+    curated_context = (
+        article.get("review_context")
+        if isinstance(article.get("review_context"), Mapping)
+        else {}
+    )
     packets = report.get("issue_packets")
     if not isinstance(packets, list):
         return report
@@ -1049,7 +1107,9 @@ def _merge_packet_review_context(
             review_context["curated"] = curated_context
         if auto_review_context_fn is not None:
             try:
-                auto_ctx = auto_review_context_fn(packet=packet, article=article, bridge_db_path=bridge_db_path)
+                auto_ctx = auto_review_context_fn(
+                    packet=packet, article=article, bridge_db_path=bridge_db_path
+                )
             except Exception as exc:
                 auto_ctx = {"auto_context_error": f"{type(exc).__name__}: {exc}"}
             if auto_ctx:
@@ -1061,9 +1121,17 @@ def _merge_packet_review_context(
     return report
 
 
-def _history_config(pack: Mapping[str, Any], article: Mapping[str, Any]) -> dict[str, int]:
-    defaults = pack.get("history_defaults") if isinstance(pack.get("history_defaults"), Mapping) else {}
-    article_history = article.get("history") if isinstance(article.get("history"), Mapping) else {}
+def _history_config(
+    pack: Mapping[str, Any], article: Mapping[str, Any]
+) -> dict[str, int]:
+    defaults = (
+        pack.get("history_defaults")
+        if isinstance(pack.get("history_defaults"), Mapping)
+        else {}
+    )
+    article_history = (
+        article.get("history") if isinstance(article.get("history"), Mapping) else {}
+    )
 
     def pick(name: str, fallback: int) -> int:
         val = article_history.get(name, defaults.get(name, fallback))
@@ -1085,7 +1153,9 @@ def _graph_enabled(pack: Mapping[str, Any], article: Mapping[str, Any]) -> bool:
     return False
 
 
-def _normalize_history_rows(history_payload: Mapping[str, Any] | None) -> list[dict[str, Any]]:
+def _normalize_history_rows(
+    history_payload: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
     if not isinstance(history_payload, Mapping):
         return []
     rows = history_payload.get("rows")
@@ -1110,7 +1180,9 @@ def _normalize_history_rows(history_payload: Mapping[str, Any] | None) -> list[d
     return out
 
 
-def _ensure_history_contains_current(rows: list[dict[str, Any]], current_snapshot_payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+def _ensure_history_contains_current(
+    rows: list[dict[str, Any]], current_snapshot_payload: Mapping[str, Any]
+) -> list[dict[str, Any]]:
     current_revid = _safe_int(current_snapshot_payload.get("revid"))
     if current_revid is None:
         return rows
@@ -1122,7 +1194,8 @@ def _ensure_history_contains_current(rows: list[dict[str, Any]], current_snapsho
         {
             "revid": current_revid,
             "parentid": None,
-            "timestamp": _norm_text(current_snapshot_payload.get("rev_timestamp")) or None,
+            "timestamp": _norm_text(current_snapshot_payload.get("rev_timestamp"))
+            or None,
             "size": len(str(current_snapshot_payload.get("wikitext") or "")),
             "comment": None,
             "user": None,
@@ -1141,7 +1214,9 @@ def _add_candidate_pair(
     newer: Mapping[str, Any] | None,
     previous_revid: int | None = None,
 ) -> None:
-    older_revid = _safe_int(older.get("revid")) if isinstance(older, Mapping) else previous_revid
+    older_revid = (
+        _safe_int(older.get("revid")) if isinstance(older, Mapping) else previous_revid
+    )
     newer_revid = _safe_int(newer.get("revid")) if isinstance(newer, Mapping) else None
     if older_revid is None or newer_revid is None or older_revid == newer_revid:
         return
@@ -1167,30 +1242,67 @@ def _add_candidate_pair(
         payload["pair_kind"] = kind
 
 
-def _candidate_pairs(rows: list[dict[str, Any]], previous_state: sqlite3.Row | None, current_revid: int | None) -> list[dict[str, Any]]:
+def _candidate_pairs(
+    rows: list[dict[str, Any]],
+    previous_state: sqlite3.Row | None,
+    current_revid: int | None,
+) -> list[dict[str, Any]]:
     candidates: dict[tuple[int, int], dict[str, Any]] = {}
-    previous_revid = int(previous_state["last_revid"]) if previous_state and previous_state["last_revid"] is not None else None
-    current_row = next((row for row in rows if _safe_int(row.get("revid")) == current_revid), rows[0] if rows else None)
+    previous_revid = (
+        int(previous_state["last_revid"])
+        if previous_state and previous_state["last_revid"] is not None
+        else None
+    )
+    current_row = next(
+        (row for row in rows if _safe_int(row.get("revid")) == current_revid),
+        rows[0] if rows else None,
+    )
 
-    if previous_revid is not None and current_revid is not None and previous_revid != current_revid:
-        _add_candidate_pair(candidates, kind="last_seen_current", older={"revid": previous_revid}, newer=current_row, previous_revid=previous_revid)
+    if (
+        previous_revid is not None
+        and current_revid is not None
+        and previous_revid != current_revid
+    ):
+        _add_candidate_pair(
+            candidates,
+            kind="last_seen_current",
+            older={"revid": previous_revid},
+            newer=current_row,
+            previous_revid=previous_revid,
+        )
 
     if len(rows) >= 2:
-        _add_candidate_pair(candidates, kind="previous_current", older=rows[1], newer=rows[0])
+        _add_candidate_pair(
+            candidates, kind="previous_current", older=rows[1], newer=rows[0]
+        )
         largest = max(
             zip(rows[1:], rows[:-1]),
-            key=lambda pair: abs((_safe_int(pair[0].get("size")) or 0) - (_safe_int(pair[1].get("size")) or 0)),
+            key=lambda pair: abs(
+                (_safe_int(pair[0].get("size")) or 0)
+                - (_safe_int(pair[1].get("size")) or 0)
+            ),
         )
-        _add_candidate_pair(candidates, kind="largest_delta_in_window", older=largest[0], newer=largest[1])
+        _add_candidate_pair(
+            candidates,
+            kind="largest_delta_in_window",
+            older=largest[0],
+            newer=largest[1],
+        )
 
         reverted_pairs = [
             (older, newer)
             for older, newer in zip(rows[1:], rows[:-1])
-            if _REVERT_RE.search(str(newer.get("comment") or "")) or _REVERT_RE.search(str(older.get("comment") or ""))
+            if _REVERT_RE.search(str(newer.get("comment") or ""))
+            or _REVERT_RE.search(str(older.get("comment") or ""))
         ]
         if reverted_pairs:
             reverted = reverted_pairs[0]
-            _add_candidate_pair(candidates, kind="most_reverted_like_in_window", older=reverted[0], newer=reverted[1])
+            _add_candidate_pair(
+                candidates,
+                kind="most_reverted_like_in_window",
+                older=reverted[0],
+                newer=reverted[1],
+            )
 
     return list(candidates.values())
 
@@ -1336,14 +1448,32 @@ def _score_candidate_pair(
 ) -> dict[str, Any]:
     older_row = pair.get("older_row") or {}
     newer_row = pair.get("newer_row") or {}
-    older_size = _safe_int(older_row.get("size")) or len(str(older_snapshot_payload.get("wikitext") or ""))
-    newer_size = _safe_int(newer_row.get("size")) or len(str(newer_snapshot_payload.get("wikitext") or ""))
+    older_size = _safe_int(older_row.get("size")) or len(
+        str(older_snapshot_payload.get("wikitext") or "")
+    )
+    newer_size = _safe_int(newer_row.get("size")) or len(
+        str(newer_snapshot_payload.get("wikitext") or "")
+    )
     byte_delta = abs(newer_size - older_size)
-    revert_signal = 1.0 if (_REVERT_RE.search(str(newer_row.get("comment") or "")) or _REVERT_RE.search(str(older_row.get("comment") or ""))) else 0.0
+    revert_signal = (
+        1.0
+        if (
+            _REVERT_RE.search(str(newer_row.get("comment") or ""))
+            or _REVERT_RE.search(str(older_row.get("comment") or ""))
+        )
+        else 0.0
+    )
     burst_signal = _burst_signal(older_row, newer_row)
-    section_delta = _section_delta_summary(older_snapshot_payload, newer_snapshot_payload, limit=section_focus_limit)
+    section_delta = _section_delta_summary(
+        older_snapshot_payload, newer_snapshot_payload, limit=section_focus_limit
+    )
     section_touch_size = int(section_delta.get("section_touch_size") or 0)
-    total_score = float(byte_delta) + (500.0 * revert_signal) + (250.0 * burst_signal) + (0.1 * section_touch_size)
+    total_score = (
+        float(byte_delta)
+        + (500.0 * revert_signal)
+        + (250.0 * burst_signal)
+        + (0.1 * section_touch_size)
+    )
     return {
         "candidate_score": round(total_score, 3),
         "score_breakdown": {
@@ -1365,32 +1495,65 @@ def _pair_graph_extract(payload: Mapping[str, Any] | None) -> dict[str, Any]:
             "removed_claim_bearing_event_ids": [],
             "material_graph_change": False,
         }
-    comparison = payload.get("comparison_report") if isinstance(payload.get("comparison_report"), Mapping) else {}
-    extraction = comparison.get("extraction_delta_summary") if isinstance(comparison.get("extraction_delta_summary"), Mapping) else {}
-    epistemic = comparison.get("epistemic_delta_summary") if isinstance(comparison.get("epistemic_delta_summary"), Mapping) else {}
-    graph = comparison.get("graph_impact_summary") if isinstance(comparison.get("graph_impact_summary"), Mapping) else {}
+    comparison = (
+        payload.get("comparison_report")
+        if isinstance(payload.get("comparison_report"), Mapping)
+        else {}
+    )
+    extraction = (
+        comparison.get("extraction_delta_summary")
+        if isinstance(comparison.get("extraction_delta_summary"), Mapping)
+        else {}
+    )
+    epistemic = (
+        comparison.get("epistemic_delta_summary")
+        if isinstance(comparison.get("epistemic_delta_summary"), Mapping)
+        else {}
+    )
+    graph = (
+        comparison.get("graph_impact_summary")
+        if isinstance(comparison.get("graph_impact_summary"), Mapping)
+        else {}
+    )
     changed_events = set()
     for key in ("changed_event_ids", "added_event_ids", "removed_event_ids"):
         for item in extraction.get(key) or []:
             changed_events.add(str(item))
     return {
         "changed_event_ids": sorted(changed_events),
-        "changed_attribution_event_ids": sorted(str(item) for item in (epistemic.get("changed_attribution_event_ids") or [])),
-        "added_claim_bearing_event_ids": sorted(str(item) for item in (epistemic.get("added_claim_bearing_event_ids") or [])),
-        "removed_claim_bearing_event_ids": sorted(str(item) for item in (epistemic.get("removed_claim_bearing_event_ids") or [])),
+        "changed_attribution_event_ids": sorted(
+            str(item) for item in (epistemic.get("changed_attribution_event_ids") or [])
+        ),
+        "added_claim_bearing_event_ids": sorted(
+            str(item) for item in (epistemic.get("added_claim_bearing_event_ids") or [])
+        ),
+        "removed_claim_bearing_event_ids": sorted(
+            str(item)
+            for item in (epistemic.get("removed_claim_bearing_event_ids") or [])
+        ),
         "material_graph_change": bool(graph.get("material_change")),
     }
 
 
-def _selected_issue_packet_rows(selected_pairs: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
+def _selected_issue_packet_rows(
+    selected_pairs: list[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for pair in selected_pairs:
         pair_id = str(pair.get("pair_id") or "")
         payload = pair.get("pair_report_payload")
         if not isinstance(payload, Mapping):
             continue
-        comparison = payload.get("comparison_report") if isinstance(payload.get("comparison_report"), Mapping) else {}
-        issue_packets = comparison.get("issue_packets") if isinstance(comparison.get("issue_packets"), list) else []
+        comparison = (
+            payload.get("comparison_report")
+            if isinstance(payload.get("comparison_report"), Mapping)
+            else {}
+        )
+        issue_packets = (
+            comparison.get("issue_packets")
+            if isinstance(comparison.get("issue_packets"), list)
+            else []
+        )
         for index, packet in enumerate(issue_packets):
             if not isinstance(packet, Mapping):
                 continue
@@ -1401,7 +1564,9 @@ def _selected_issue_packet_rows(selected_pairs: list[Mapping[str, Any]]) -> list
     return rows
 
 
-def _selected_pair_rows(selected_pairs: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
+def _selected_pair_rows(
+    selected_pairs: list[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for pair in selected_pairs:
         if not isinstance(pair, Mapping):
@@ -1415,7 +1580,14 @@ def _selected_pair_rows(selected_pairs: list[Mapping[str, Any]]) -> list[dict[st
                 "newer_revid": pair.get("newer_revid"),
                 "candidate_score": pair.get("candidate_score"),
                 "top_severity": pair.get("top_severity", "none"),
-                "top_changed_sections": list(((pair.get("section_delta_summary") or {}).get("top_changed_sections")) or []),
+                "top_changed_sections": list(
+                    (
+                        (pair.get("section_delta_summary") or {}).get(
+                            "top_changed_sections"
+                        )
+                    )
+                    or []
+                ),
             }
         )
     return rows
@@ -1455,7 +1627,9 @@ def _build_contested_region_graph(
         graph_extract = _pair_graph_extract(pair.get("pair_report_payload"))
         pair["graph_extract"] = graph_extract
         region_ids: list[str] = []
-        for section in ((pair.get("section_delta_summary") or {}).get("top_changed_sections") or []):
+        for section in (pair.get("section_delta_summary") or {}).get(
+            "top_changed_sections"
+        ) or []:
             if not isinstance(section, Mapping):
                 continue
             section_title = str(section.get("section") or "").strip() or "(unknown)"
@@ -1477,16 +1651,26 @@ def _build_contested_region_graph(
                 },
             )
             region["touch_count"] = int(region.get("touch_count") or 0) + 1
-            region["total_touched_bytes"] = int(region.get("total_touched_bytes") or 0) + int(section.get("touched_bytes") or 0)
+            region["total_touched_bytes"] = int(
+                region.get("total_touched_bytes") or 0
+            ) + int(section.get("touched_bytes") or 0)
             if pair_id not in region["pair_ids"]:
                 region["pair_ids"].append(pair_id)
             if pair_kind and pair_kind not in region["pair_kinds"]:
                 region["pair_kinds"].append(pair_kind)
-            region["changed_event_ids"] = sorted(set(region.get("changed_event_ids") or []).union(graph_extract["changed_event_ids"]))
-            region["changed_attribution_event_ids"] = sorted(
-                set(region.get("changed_attribution_event_ids") or []).union(graph_extract["changed_attribution_event_ids"])
+            region["changed_event_ids"] = sorted(
+                set(region.get("changed_event_ids") or []).union(
+                    graph_extract["changed_event_ids"]
+                )
             )
-            if severity_rank(pair.get("top_severity")) > severity_rank(region.get("highest_severity")):
+            region["changed_attribution_event_ids"] = sorted(
+                set(region.get("changed_attribution_event_ids") or []).union(
+                    graph_extract["changed_attribution_event_ids"]
+                )
+            )
+            if severity_rank(pair.get("top_severity")) > severity_rank(
+                region.get("highest_severity")
+            ):
                 region["highest_severity"] = str(pair.get("top_severity") or "none")
             edges.append(
                 {
@@ -1527,7 +1711,9 @@ def _build_contested_region_graph(
                 )
             for event_id in graph_extract["changed_attribution_event_ids"]:
                 epi_id = f"epi:{event_id}"
-                epistemic_nodes.setdefault(epi_id, {"epistemic_id": epi_id, "event_id": event_id})
+                epistemic_nodes.setdefault(
+                    epi_id, {"epistemic_id": epi_id, "event_id": event_id}
+                )
                 edges.append(
                     {
                         "edge_id": f"edge:changes_attribution:{pair_id}:{epi_id}",
@@ -1538,7 +1724,13 @@ def _build_contested_region_graph(
                 )
         pair_regions[pair_id] = region_ids
 
-    pair_nodes.sort(key=lambda item: (int(item.get("newer_revid") or 0), int(item.get("older_revid") or 0), str(item.get("pair_id") or "")))
+    pair_nodes.sort(
+        key=lambda item: (
+            int(item.get("newer_revid") or 0),
+            int(item.get("older_revid") or 0),
+            str(item.get("pair_id") or ""),
+        )
+    )
     for index in range(1, len(pair_nodes)):
         older = pair_nodes[index - 1]
         newer = pair_nodes[index]
@@ -1553,12 +1745,20 @@ def _build_contested_region_graph(
 
     for region in regions.values():
         region["graph_heat"] = round(
-            float(region["total_touched_bytes"]) + (250.0 * severity_rank(region["highest_severity"])) + (125.0 * len(region["changed_attribution_event_ids"])),
+            float(region["total_touched_bytes"])
+            + (250.0 * severity_rank(region["highest_severity"]))
+            + (125.0 * len(region["changed_attribution_event_ids"])),
             3,
         )
-        if int(region["touch_count"] or 0) >= 3 or (int(region["touch_count"] or 0) >= 2 and len(region["pair_kinds"]) >= 2):
+        if int(region["touch_count"] or 0) >= 3 or (
+            int(region["touch_count"] or 0) >= 2 and len(region["pair_kinds"]) >= 2
+        ):
             cycle_id = f"cycle:{region['region_id']}"
-            reason = "multi_pair_kind_return" if len(region["pair_kinds"]) >= 2 else "repeat_region_touch"
+            reason = (
+                "multi_pair_kind_return"
+                if len(region["pair_kinds"]) >= 2
+                else "repeat_region_touch"
+            )
             cycles.append(
                 {
                     "cycle_id": cycle_id,
@@ -1585,15 +1785,23 @@ def _build_contested_region_graph(
 
     ranked_regions = sorted(
         regions.values(),
-        key=lambda item: (-float(item.get("graph_heat") or 0.0), -int(item.get("touch_count") or 0), str(item.get("title") or "")),
+        key=lambda item: (
+            -float(item.get("graph_heat") or 0.0),
+            -int(item.get("touch_count") or 0),
+            str(item.get("title") or ""),
+        ),
     )
     hottest_region = ranked_regions[0] if ranked_regions else None
     highest_severity = "none"
     for candidate in ("high", "medium", "low"):
-        if any(region.get("highest_severity") == candidate for region in ranked_regions) or any(cycle.get("highest_severity") == candidate for cycle in cycles):
+        if any(
+            region.get("highest_severity") == candidate for region in ranked_regions
+        ) or any(cycle.get("highest_severity") == candidate for cycle in cycles):
             highest_severity = candidate
             break
-    graph_heat = round(sum(float(region.get("graph_heat") or 0.0) for region in ranked_regions), 3)
+    graph_heat = round(
+        sum(float(region.get("graph_heat") or 0.0) for region in ranked_regions), 3
+    )
     summary = {
         "region_count": len(ranked_regions),
         "selected_pair_count": len(pair_nodes),
@@ -1605,7 +1813,14 @@ def _build_contested_region_graph(
         "graph_heat": graph_heat,
         "hottest_region": hottest_region,
         "top_regions": ranked_regions[:5],
-        "top_cycles": sorted(cycles, key=lambda item: (-severity_rank(item.get("highest_severity")), -int(item.get("touch_count") or 0), str(item.get("region_title") or "")))[:5],
+        "top_cycles": sorted(
+            cycles,
+            key=lambda item: (
+                -severity_rank(item.get("highest_severity")),
+                -int(item.get("touch_count") or 0),
+                str(item.get("region_title") or ""),
+            ),
+        )[:5],
     }
     payload = {
         "schema_version": CONTESTED_GRAPH_SCHEMA_VERSION,
@@ -1617,8 +1832,13 @@ def _build_contested_region_graph(
         "run": {"run_id": run_id},
         "regions": ranked_regions,
         "selected_pairs": pair_nodes,
-        "events": sorted(event_nodes.values(), key=lambda item: str(item.get("event_id") or "")),
-        "epistemic_surfaces": sorted(epistemic_nodes.values(), key=lambda item: str(item.get("epistemic_id") or "")),
+        "events": sorted(
+            event_nodes.values(), key=lambda item: str(item.get("event_id") or "")
+        ),
+        "epistemic_surfaces": sorted(
+            epistemic_nodes.values(),
+            key=lambda item: str(item.get("epistemic_id") or ""),
+        ),
         "edges": edges,
         "cycles": cycles,
         "summary": summary,
@@ -1642,7 +1862,9 @@ def _build_pair_report(
 ) -> dict[str, Any]:
     older_revid = int(pair["older_revid"])
     newer_revid = int(pair["newer_revid"])
-    with tempfile.TemporaryDirectory(prefix="wiki_pair_", dir=str(out_dir)) as temp_dir_text:
+    with tempfile.TemporaryDirectory(
+        prefix="wiki_pair_", dir=str(out_dir)
+    ) as temp_dir_text:
         temp_dir = Path(temp_dir_text)
         temp_pair_paths = pair_artifact_paths(
             out_dir=temp_dir,
@@ -1652,8 +1874,20 @@ def _build_pair_report(
             newer_revid=newer_revid,
         )
 
-        older_snapshot = fetch_revision_snapshot_fn(article=article, revid=older_revid, out_dir=temp_dir / "pair_snapshots", python_cmd=python_cmd, repo_root=repo_root)
-        newer_snapshot = fetch_revision_snapshot_fn(article=article, revid=newer_revid, out_dir=temp_dir / "pair_snapshots", python_cmd=python_cmd, repo_root=repo_root)
+        older_snapshot = fetch_revision_snapshot_fn(
+            article=article,
+            revid=older_revid,
+            out_dir=temp_dir / "pair_snapshots",
+            python_cmd=python_cmd,
+            repo_root=repo_root,
+        )
+        newer_snapshot = fetch_revision_snapshot_fn(
+            article=article,
+            revid=newer_revid,
+            out_dir=temp_dir / "pair_snapshots",
+            python_cmd=python_cmd,
+            repo_root=repo_root,
+        )
         older_snapshot_payload = dict(older_snapshot["snapshot_payload"])
         newer_snapshot_payload = dict(newer_snapshot["snapshot_payload"])
         older_contract_error = _snapshot_contract_error(article, older_snapshot_payload)
@@ -1663,7 +1897,12 @@ def _build_pair_report(
         if newer_contract_error:
             raise RuntimeError(newer_contract_error)
 
-        scoring = _score_candidate_pair(pair, older_snapshot_payload=older_snapshot_payload, newer_snapshot_payload=newer_snapshot_payload, section_focus_limit=section_focus_limit)
+        scoring = _score_candidate_pair(
+            pair,
+            older_snapshot_payload=older_snapshot_payload,
+            newer_snapshot_payload=newer_snapshot_payload,
+            section_focus_limit=section_focus_limit,
+        )
         pair.update(scoring)
 
         older_timeline = _invoke_build_timeline(
@@ -1709,7 +1948,9 @@ def _build_pair_report(
             previous_payload=older_aoo_payload,
             current_payload=newer_aoo_payload,
         )
-        section_context = list((pair.get("section_delta_summary") or {}).get("top_changed_sections") or [])
+        section_context = list(
+            (pair.get("section_delta_summary") or {}).get("top_changed_sections") or []
+        )
         inner = _merge_packet_review_context(
             report=inner,
             article=article,
@@ -1719,8 +1960,13 @@ def _build_pair_report(
         )
         wrapper = {
             "schema_version": PAIR_REPORT_SCHEMA_VERSION,
-            "highest_severity": str(((inner.get("triage_dashboard") or {}).get("highest_severity")) or "none"),
-            "packet_counts": dict(((inner.get("triage_dashboard") or {}).get("packet_counts")) or {}),
+            "highest_severity": str(
+                ((inner.get("triage_dashboard") or {}).get("highest_severity"))
+                or "none"
+            ),
+            "packet_counts": dict(
+                ((inner.get("triage_dashboard") or {}).get("packet_counts")) or {}
+            ),
             "pair": {
                 "pair_id": pair["pair_id"],
                 "pair_kind": pair["pair_kind"],
@@ -1744,8 +1990,13 @@ def _build_pair_report(
             "selected": True,
             "status": "reported",
             "pair_report_payload": wrapper,
-            "top_severity": str(((inner.get("triage_dashboard") or {}).get("highest_severity")) or "none"),
-            "packet_counts": dict(((inner.get("triage_dashboard") or {}).get("packet_counts")) or {}),
+            "top_severity": str(
+                ((inner.get("triage_dashboard") or {}).get("highest_severity"))
+                or "none"
+            ),
+            "packet_counts": dict(
+                ((inner.get("triage_dashboard") or {}).get("packet_counts")) or {}
+            ),
         }
     )
     return pair
@@ -1775,17 +2026,34 @@ def run(
     repo_root = Path(__file__).resolve().parents[3]
     py = python_cmd or sys.executable
 
-    fetch_current_snapshot_fn = fetch_current_snapshot_fn or _default_fetch_current_snapshot
-    fetch_revision_history_fn = fetch_revision_history_fn or _default_fetch_revision_history
-    fetch_revision_snapshot_fn = fetch_revision_snapshot_fn or _default_fetch_revision_snapshot
+    fetch_current_snapshot_fn = (
+        fetch_current_snapshot_fn or _default_fetch_current_snapshot
+    )
+    fetch_revision_history_fn = (
+        fetch_revision_history_fn or _default_fetch_revision_history
+    )
+    fetch_revision_snapshot_fn = (
+        fetch_revision_snapshot_fn or _default_fetch_revision_snapshot
+    )
     build_timeline_fn = build_timeline_fn or _default_build_timeline
     build_aoo_fn = build_aoo_fn or _default_build_aoo
     auto_review_context_fn = auto_review_context_fn or _default_auto_review_context
 
     article_results: list[dict[str, Any]] = []
-    summary_counts: dict[str, int] = {"baseline_initialized": 0, "unchanged": 0, "changed": 0, "error": 0, "no_candidate_delta": 0}
+    summary_counts: dict[str, int] = {
+        "baseline_initialized": 0,
+        "unchanged": 0,
+        "changed": 0,
+        "error": 0,
+        "no_candidate_delta": 0,
+    }
     candidate_pair_counts = {"considered": 0, "selected": 0, "reported": 0}
-    contested_graph_counts = {"articles_with_graphs": 0, "graphs_built": 0, "cycles_detected": 0, "regions_detected": 0}
+    contested_graph_counts = {
+        "articles_with_graphs": 0,
+        "graphs_built": 0,
+        "cycles_detected": 0,
+        "regions_detected": 0,
+    }
 
     with sqlite3.connect(str(state_db_path)) as conn:
         conn.row_factory = sqlite3.Row
@@ -1793,7 +2061,11 @@ def run(
         _store_pack_manifest(conn, pack_path=pack_path, pack=pack)
         _insert_run(conn, run_id=run_id, pack_id=pack_id, started_at=run_started)
 
-        articles = [article for article in pack.get("articles") or [] if isinstance(article, Mapping)]
+        articles = [
+            article
+            for article in pack.get("articles") or []
+            if isinstance(article, Mapping)
+        ]
         total_articles = len(articles)
         _emit_progress(
             progress_callback,
@@ -1812,7 +2084,11 @@ def run(
             article_id = str(article.get("article_id") or "")
             history_cfg = _history_config(pack, article)
             previous_state = _load_article_state(conn, article_id)
-            previous_revid = int(previous_state["last_revid"]) if previous_state and previous_state["last_revid"] is not None else None
+            previous_revid = (
+                int(previous_state["last_revid"])
+                if previous_state and previous_state["last_revid"] is not None
+                else None
+            )
             current_snapshot_path: Path | None = None
             contested_graph_summary: dict[str, Any] | None = None
 
@@ -1828,14 +2104,23 @@ def run(
                         "message": f"Fetching current snapshot for {article.get('title')}.",
                     },
                 )
-                fetched = fetch_current_snapshot_fn(article=article, out_dir=out_dir / "snapshots", python_cmd=py, repo_root=repo_root)
+                fetched = fetch_current_snapshot_fn(
+                    article=article,
+                    out_dir=out_dir / "snapshots",
+                    python_cmd=py,
+                    repo_root=repo_root,
+                )
                 current_snapshot_path = Path(str(fetched["snapshot_path"]))
                 current_snapshot_payload = dict(fetched["snapshot_payload"])
-                contract_error = _snapshot_contract_error(article, current_snapshot_payload)
+                contract_error = _snapshot_contract_error(
+                    article, current_snapshot_payload
+                )
                 if contract_error:
                     raise RuntimeError(contract_error)
                 current_revid = _safe_int(current_snapshot_payload.get("revid"))
-                current_paths = revision_artifact_paths(out_dir=out_dir, article_id=article_id, revid=current_revid)
+                current_paths = revision_artifact_paths(
+                    out_dir=out_dir, article_id=article_id, revid=current_revid
+                )
                 if current_snapshot_path != current_paths["snapshot"]:
                     write_json_file(current_paths["snapshot"], current_snapshot_payload)
                     current_snapshot_path = current_paths["snapshot"]
@@ -1848,8 +2133,13 @@ def run(
                     max_revisions=history_cfg["max_revisions"],
                     window_days=history_cfg["window_days"],
                 )
-                history_rows = _ensure_history_contains_current(_normalize_history_rows(history.get("history_payload")), current_snapshot_payload)
-                _insert_history_rows(conn, run_id=run_id, article_id=article_id, rows=history_rows)
+                history_rows = _ensure_history_contains_current(
+                    _normalize_history_rows(history.get("history_payload")),
+                    current_snapshot_payload,
+                )
+                _insert_history_rows(
+                    conn, run_id=run_id, article_id=article_id, rows=history_rows
+                )
                 _emit_progress(
                     progress_callback,
                     "revision_pack_article_history",
@@ -1864,7 +2154,9 @@ def run(
                 )
 
                 selected_pairs: list[dict[str, Any]] = []
-                candidates = _candidate_pairs(history_rows, previous_state, current_revid)
+                candidates = _candidate_pairs(
+                    history_rows, previous_state, current_revid
+                )
                 scored_candidates: list[dict[str, Any]] = []
                 total_candidates = len(candidates)
                 _emit_progress(
@@ -1881,8 +2173,20 @@ def run(
                 for candidate_index, candidate in enumerate(candidates, start=1):
                     older_revid = int(candidate["older_revid"])
                     newer_revid = int(candidate["newer_revid"])
-                    older_snapshot = fetch_revision_snapshot_fn(article=article, revid=older_revid, out_dir=out_dir / "pair_snapshots", python_cmd=py, repo_root=repo_root)
-                    newer_snapshot = fetch_revision_snapshot_fn(article=article, revid=newer_revid, out_dir=out_dir / "pair_snapshots", python_cmd=py, repo_root=repo_root)
+                    older_snapshot = fetch_revision_snapshot_fn(
+                        article=article,
+                        revid=older_revid,
+                        out_dir=out_dir / "pair_snapshots",
+                        python_cmd=py,
+                        repo_root=repo_root,
+                    )
+                    newer_snapshot = fetch_revision_snapshot_fn(
+                        article=article,
+                        revid=newer_revid,
+                        out_dir=out_dir / "pair_snapshots",
+                        python_cmd=py,
+                        repo_root=repo_root,
+                    )
                     older_payload = dict(older_snapshot["snapshot_payload"])
                     newer_payload = dict(newer_snapshot["snapshot_payload"])
                     older_error = _snapshot_contract_error(article, older_payload)
@@ -1923,7 +2227,9 @@ def run(
                 )
                 candidate_pair_counts["considered"] += len(scored_candidates)
 
-                selected_limit = min(len(scored_candidates), history_cfg["max_candidate_pairs"])
+                selected_limit = min(
+                    len(scored_candidates), history_cfg["max_candidate_pairs"]
+                )
                 _emit_progress(
                     progress_callback,
                     "revision_pack_article_reports_started",
@@ -1935,7 +2241,9 @@ def run(
                         "message": f"Building up to {selected_limit} pair reports.",
                     },
                 )
-                for selected_index, candidate in enumerate(scored_candidates[: history_cfg["max_candidate_pairs"]], start=1):
+                for selected_index, candidate in enumerate(
+                    scored_candidates[: history_cfg["max_candidate_pairs"]], start=1
+                ):
                     selected = _build_pair_report(
                         article=article,
                         pair=dict(candidate),
@@ -1965,11 +2273,25 @@ def run(
                     )
 
                 for candidate in scored_candidates:
-                    materialized = next((row for row in selected_pairs if row["pair_id"] == candidate["pair_id"]), candidate)
-                    _insert_candidate_pair(conn, run_id=run_id, article_id=article_id, pair_payload=materialized)
+                    materialized = next(
+                        (
+                            row
+                            for row in selected_pairs
+                            if row["pair_id"] == candidate["pair_id"]
+                        ),
+                        candidate,
+                    )
+                    _insert_candidate_pair(
+                        conn,
+                        run_id=run_id,
+                        article_id=article_id,
+                        pair_payload=materialized,
+                    )
 
                 if previous_revid is None:
-                    with tempfile.TemporaryDirectory(prefix="wiki_current_", dir=str(out_dir)) as current_temp_dir_text:
+                    with tempfile.TemporaryDirectory(
+                        prefix="wiki_current_", dir=str(out_dir)
+                    ) as current_temp_dir_text:
                         current_temp_dir = Path(current_temp_dir_text)
                         current_temp_paths = revision_artifact_paths(
                             out_dir=current_temp_dir,
@@ -2009,13 +2331,18 @@ def run(
                 packet_counts: dict[str, Any] = {}
                 if selected_pairs:
                     for severity in ("high", "medium", "low"):
-                        if any(pair.get("top_severity") == severity for pair in selected_pairs):
+                        if any(
+                            pair.get("top_severity") == severity
+                            for pair in selected_pairs
+                        ):
                             top_severity = severity
                             break
                     aggregate_counts = {"high": 0, "medium": 0, "low": 0}
                     for pair in selected_pairs:
                         for key, value in dict(pair.get("packet_counts") or {}).items():
-                            aggregate_counts[key] = aggregate_counts.get(key, 0) + int(value)
+                            aggregate_counts[key] = aggregate_counts.get(key, 0) + int(
+                                value
+                            )
                     packet_counts = aggregate_counts
                 primary_pair = selected_pairs[0] if selected_pairs else None
                 if _graph_enabled(pack, article) and selected_pairs:
@@ -2025,7 +2352,9 @@ def run(
                         selected_pairs=selected_pairs,
                         out_dir=out_dir,
                     )
-                    contested_graph_summary = dict((contested_graph_payload.get("summary") or {}))
+                    contested_graph_summary = dict(
+                        (contested_graph_payload.get("summary") or {})
+                    )
                     _insert_contested_graph(
                         conn,
                         run_id=run_id,
@@ -2034,8 +2363,12 @@ def run(
                     )
                     contested_graph_counts["articles_with_graphs"] += 1
                     contested_graph_counts["graphs_built"] += 1
-                    contested_graph_counts["cycles_detected"] += int(contested_graph_summary.get("cycle_count") or 0)
-                    contested_graph_counts["regions_detected"] += int(contested_graph_summary.get("region_count") or 0)
+                    contested_graph_counts["cycles_detected"] += int(
+                        contested_graph_summary.get("cycle_count") or 0
+                    )
+                    contested_graph_counts["regions_detected"] += int(
+                        contested_graph_summary.get("region_count") or 0
+                    )
 
                 result_payload = {
                     "article_id": article_id,
@@ -2052,11 +2385,23 @@ def run(
                     },
                     "candidate_pairs_considered": len(scored_candidates),
                     "candidate_pairs_selected": len(selected_pairs),
-                    "selected_pair_ids": [str(pair["pair_id"]) for pair in selected_pairs],
-                    "selected_primary_pair_id": primary_pair["pair_id"] if primary_pair else None,
-                    "selected_primary_pair_kind": primary_pair["pair_kind"] if primary_pair else None,
-                    "selected_primary_pair_kinds": list(primary_pair.get("pair_kinds") or []) if primary_pair else [],
-                    "selected_primary_pair_score": primary_pair["candidate_score"] if primary_pair else None,
+                    "selected_pair_ids": [
+                        str(pair["pair_id"]) for pair in selected_pairs
+                    ],
+                    "selected_primary_pair_id": primary_pair["pair_id"]
+                    if primary_pair
+                    else None,
+                    "selected_primary_pair_kind": primary_pair["pair_kind"]
+                    if primary_pair
+                    else None,
+                    "selected_primary_pair_kinds": list(
+                        primary_pair.get("pair_kinds") or []
+                    )
+                    if primary_pair
+                    else [],
+                    "selected_primary_pair_score": primary_pair["candidate_score"]
+                    if primary_pair
+                    else None,
                     "pair_reports": [
                         {
                             "pair_id": pair["pair_id"],
@@ -2067,7 +2412,14 @@ def run(
                             "candidate_score": pair["candidate_score"],
                             "top_severity": pair.get("top_severity", "none"),
                             "pair_report_payload": pair.get("pair_report_payload"),
-                            "top_changed_sections": list(((pair.get("section_delta_summary") or {}).get("top_changed_sections")) or []),
+                            "top_changed_sections": list(
+                                (
+                                    (pair.get("section_delta_summary") or {}).get(
+                                        "top_changed_sections"
+                                    )
+                                )
+                                or []
+                            ),
                         }
                         for pair in selected_pairs
                     ],
@@ -2080,8 +2432,12 @@ def run(
                     conn,
                     article_id=article_id,
                     revid=current_revid,
-                    rev_timestamp=_norm_text(current_snapshot_payload.get("rev_timestamp")) or None,
-                    fetched_at=_norm_text(current_snapshot_payload.get("fetched_at")) or None,
+                    rev_timestamp=_norm_text(
+                        current_snapshot_payload.get("rev_timestamp")
+                    )
+                    or None,
+                    fetched_at=_norm_text(current_snapshot_payload.get("fetched_at"))
+                    or None,
                     snapshot_path=current_snapshot_path,
                     status=status,
                 )
@@ -2147,8 +2503,12 @@ def run(
                     snapshot_path=current_snapshot_path,
                     result_payload=result_payload,
                 )
-                replace_issue_packets(conn, run_id=run_id, article_id=article_id, packet_rows=[])
-                replace_selected_pairs(conn, run_id=run_id, article_id=article_id, pair_rows=[])
+                replace_issue_packets(
+                    conn, run_id=run_id, article_id=article_id, packet_rows=[]
+                )
+                replace_selected_pairs(
+                    conn, run_id=run_id, article_id=article_id, pair_rows=[]
+                )
                 article_results.append(result_payload)
                 _emit_progress(
                     progress_callback,
@@ -2185,7 +2545,9 @@ def run(
             },
         )
         completed_at = _utc_now_iso()
-        _complete_run(conn, run_id=run_id, status="ok", summary=summary, completed_at=completed_at)
+        _complete_run(
+            conn, run_id=run_id, status="ok", summary=summary, completed_at=completed_at
+        )
         upsert_run_summary(
             conn,
             run_id=run_id,
@@ -2195,7 +2557,9 @@ def run(
             status="ok",
             summary=summary,
         )
-        replace_changed_articles(conn, run_id=run_id, pack_id=pack_id, article_rows=article_results)
+        replace_changed_articles(
+            conn, run_id=run_id, pack_id=pack_id, article_rows=article_results
+        )
         conn.commit()
         return summary
 

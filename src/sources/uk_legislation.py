@@ -23,11 +23,7 @@ _SECTION_RE = re.compile(r"/section/([^/]+)")
 
 def _load_fixture(filename: str) -> dict[str, Any]:
     fixture_path = (
-        Path(__file__).resolve().parents[2]
-        / "tests"
-        / "fixtures"
-        / "zelph"
-        / filename
+        Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "zelph" / filename
     )
     if not fixture_path.exists():
         return {}

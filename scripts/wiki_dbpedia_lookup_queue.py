@@ -87,7 +87,12 @@ def _guess_kind(title: str) -> Tuple[str, List[str]]:
     if "Convention" in t or "Treaty" in t:
         why.append("pattern:treaty_or_convention")
         return "treaty", why
-    if "Court" in t or "Senate" in t or "House of Representatives" in t or "Congress" in t:
+    if (
+        "Court" in t
+        or "Senate" in t
+        or "House of Representatives" in t
+        or "Congress" in t
+    ):
         why.append("pattern:government_body")
         return "institution", why
 
@@ -106,7 +111,9 @@ def _guess_kind(title: str) -> Tuple[str, List[str]]:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    ap = argparse.ArgumentParser(description="Generate a DBpedia lookup queue from wiki candidates JSON.")
+    ap = argparse.ArgumentParser(
+        description="Generate a DBpedia lookup queue from wiki candidates JSON."
+    )
     ap.add_argument(
         "--in",
         dest="in_path",
@@ -121,7 +128,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         default=Path("SensibLaw/.cache_local/dbpedia_lookup_queue_gwb.json"),
         help="Output queue JSON (default: %(default)s)",
     )
-    ap.add_argument("--top-n", type=int, default=50, help="Max queued candidates (default: 50)")
+    ap.add_argument(
+        "--top-n", type=int, default=50, help="Max queued candidates (default: 50)"
+    )
     ap.add_argument(
         "--include-kinds",
         default="person,office,institution,law,treaty,program,location",
@@ -168,7 +177,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "kind guess by title patterns (non-authoritative)",
         "allowlist of kinds for queueing",
         "no recursion; no inferred relevance",
-        "DBpedia resolution does not imply inclusion in any investigative graph"
+        "DBpedia resolution does not imply inclusion in any investigative graph",
     ]
 
     for score, title in scored:
@@ -210,8 +219,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     }
 
     args.out_path.parent.mkdir(parents=True, exist_ok=True)
-    args.out_path.write_text(json.dumps(out, indent=2, sort_keys=True), encoding="utf-8")
-    print(json.dumps({"ok": True, "out": str(args.out_path), "queued": len(candidates)}, indent=2, sort_keys=True))
+    args.out_path.write_text(
+        json.dumps(out, indent=2, sort_keys=True), encoding="utf-8"
+    )
+    print(
+        json.dumps(
+            {"ok": True, "out": str(args.out_path), "queued": len(candidates)},
+            indent=2,
+            sort_keys=True,
+        )
+    )
     return 0
 
 

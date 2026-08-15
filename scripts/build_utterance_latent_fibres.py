@@ -39,15 +39,54 @@ _COORDINATED_CLAUSE_RE = re.compile(r"\b(?:and|or)\b", re.IGNORECASE)
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--manifest", action="append", type=Path, default=[], help="Local JSON manifest with corpus metadata and optional candidate seeds.")
-    parser.add_argument("--corpus", action="append", type=Path, default=[], help="Local JSON/text corpus source to scan for predicate counts.")
-    parser.add_argument("--output", required=True, type=Path, help="Artifact path to write.")
-    parser.add_argument("--artifact-id", default="", help="Stable artifact id. Defaults to a hash-derived local id.")
-    parser.add_argument("--profile-name", default="local-pnf-candidate-manifest", help="Extraction profile name.")
-    parser.add_argument("--profile-version", default="v0_1", help="Extraction profile version.")
-    parser.add_argument("--min-evidence", type=int, default=DEFAULT_MIN_EVIDENCE_COUNT, help="Minimum co-occurrence support required for generated candidates.")
-    parser.add_argument("--min-signal", type=int, default=DEFAULT_MIN_SIGNAL_COUNT, help="Minimum signal count required for generated candidates.")
-    parser.add_argument("--min-confidence", type=float, default=DEFAULT_MIN_CONFIDENCE, help="Minimum confidence required for generated candidates.")
+    parser.add_argument(
+        "--manifest",
+        action="append",
+        type=Path,
+        default=[],
+        help="Local JSON manifest with corpus metadata and optional candidate seeds.",
+    )
+    parser.add_argument(
+        "--corpus",
+        action="append",
+        type=Path,
+        default=[],
+        help="Local JSON/text corpus source to scan for predicate counts.",
+    )
+    parser.add_argument(
+        "--output", required=True, type=Path, help="Artifact path to write."
+    )
+    parser.add_argument(
+        "--artifact-id",
+        default="",
+        help="Stable artifact id. Defaults to a hash-derived local id.",
+    )
+    parser.add_argument(
+        "--profile-name",
+        default="local-pnf-candidate-manifest",
+        help="Extraction profile name.",
+    )
+    parser.add_argument(
+        "--profile-version", default="v0_1", help="Extraction profile version."
+    )
+    parser.add_argument(
+        "--min-evidence",
+        type=int,
+        default=DEFAULT_MIN_EVIDENCE_COUNT,
+        help="Minimum co-occurrence support required for generated candidates.",
+    )
+    parser.add_argument(
+        "--min-signal",
+        type=int,
+        default=DEFAULT_MIN_SIGNAL_COUNT,
+        help="Minimum signal count required for generated candidates.",
+    )
+    parser.add_argument(
+        "--min-confidence",
+        type=float,
+        default=DEFAULT_MIN_CONFIDENCE,
+        help="Minimum confidence required for generated candidates.",
+    )
     args = parser.parse_args(argv)
 
     payload = build_artifact(
@@ -61,8 +100,19 @@ def main(argv: list[str] | None = None) -> int:
         min_confidence=args.min_confidence,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(json.dumps({"ok": True, "output": str(args.output), "candidate_count": len(payload["derived_fibre_candidates"])}, sort_keys=True))
+    args.output.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    print(
+        json.dumps(
+            {
+                "ok": True,
+                "output": str(args.output),
+                "candidate_count": len(payload["derived_fibre_candidates"]),
+            },
+            sort_keys=True,
+        )
+    )
     return 0
 
 
@@ -106,7 +156,10 @@ def build_artifact(
         "candidate_count": len(candidates),
     }
     manifest_hash = "sha256:" + _sha256_json(source_seed)
-    stable_artifact_id = artifact_id.strip() or f"utterance-latent-fibres:{manifest_hash.removeprefix('sha256:')[:16]}"
+    stable_artifact_id = (
+        artifact_id.strip()
+        or f"utterance-latent-fibres:{manifest_hash.removeprefix('sha256:')[:16]}"
+    )
 
     return {
         "artifact_id": stable_artifact_id,
@@ -221,9 +274,15 @@ def _collect_predicate_cooccurrence(
 
 
 def _collect_cooccurrence_atoms(text: str) -> tuple[Any, ...]:
-    atoms = list(collect_canonical_predicate_atoms(text, enable_utterance_latent_fibres=False))
+    atoms = list(
+        collect_canonical_predicate_atoms(text, enable_utterance_latent_fibres=False)
+    )
     for clause in _coordinated_clauses(text):
-        atoms.extend(collect_canonical_predicate_atoms(clause, enable_utterance_latent_fibres=False))
+        atoms.extend(
+            collect_canonical_predicate_atoms(
+                clause, enable_utterance_latent_fibres=False
+            )
+        )
 
     deduped: dict[tuple[str, tuple[tuple[str, str], ...]], Any] = {}
     for atom in atoms:
@@ -239,7 +298,11 @@ def _collect_cooccurrence_atoms(text: str) -> tuple[Any, ...]:
 
 
 def _coordinated_clauses(text: str) -> tuple[str, ...]:
-    parts = [part.strip(" .!?;:\n\t") for part in _COORDINATED_CLAUSE_RE.split(text) if part.strip(" .!?;:\n\t")]
+    parts = [
+        part.strip(" .!?;:\n\t")
+        for part in _COORDINATED_CLAUSE_RE.split(text)
+        if part.strip(" .!?;:\n\t")
+    ]
     if len(parts) < 2:
         return ()
     return tuple(f"{part}." for part in parts)
@@ -334,19 +397,25 @@ def _iter_candidate_seeds(values: Iterable[Any]) -> Iterable[Mapping[str, Any]]:
             yield from _iter_candidate_seeds(value)
 
 
-def _normalize_candidates(values: Iterable[Mapping[str, Any]]) -> Iterable[dict[str, Any]]:
+def _normalize_candidates(
+    values: Iterable[Mapping[str, Any]],
+) -> Iterable[dict[str, Any]]:
     normalized: dict[str, dict[str, Any]] = {}
     for raw in values:
         source = _required_text(raw, "source_predicate")
         target = _required_text(raw, "target_predicate")
-        candidate_id = str(raw.get("candidate_id") or f"fibre:{source}-{target}:canonical")
+        candidate_id = str(
+            raw.get("candidate_id") or f"fibre:{source}-{target}:canonical"
+        )
         candidate = {
             "candidate_id": candidate_id,
             "source_predicate": source,
             "target_predicate": target,
             "relation": str(raw.get("relation") or "same_family_candidate"),
             "confidence": float(raw.get("confidence") or 0.0),
-            "evidence_count": int(raw.get("evidence_count") or len(_text_list(raw.get("evidence_refs")))),
+            "evidence_count": int(
+                raw.get("evidence_count") or len(_text_list(raw.get("evidence_refs")))
+            ),
             "signal_count": int(raw.get("signal_count") or 0),
             "evidence_refs": _text_list(raw.get("evidence_refs")),
             "role_context_signatures": _text_list(raw.get("role_context_signatures")),

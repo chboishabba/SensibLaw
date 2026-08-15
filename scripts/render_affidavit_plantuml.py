@@ -22,14 +22,20 @@ from src.reporting.affidavit_plantuml import (
 )
 
 
-def _load_payload(*, artifact_json: Path | None, db_path: Path | None, review_run_id: str | None) -> dict[str, Any]:
+def _load_payload(
+    *, artifact_json: Path | None, db_path: Path | None, review_run_id: str | None
+) -> dict[str, Any]:
     if artifact_json is not None:
         return json.loads(artifact_json.read_text(encoding="utf-8"))
     if db_path is not None and review_run_id:
         with sqlite3.connect(str(db_path)) as conn:
             conn.row_factory = sqlite3.Row
-            return build_contested_affidavit_review_summary(conn, review_run_id=review_run_id)
-    raise SystemExit("provide either --artifact-json or both --db-path and --review-run-id")
+            return build_contested_affidavit_review_summary(
+                conn, review_run_id=review_run_id
+            )
+    raise SystemExit(
+        "provide either --artifact-json or both --db-path and --review-run-id"
+    )
 
 
 def _render_svg(paths: list[Path]) -> list[Path]:
@@ -41,16 +47,57 @@ def _render_svg(paths: list[Path]) -> list[Path]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Render semantic and mechanical PlantUML views from a contested affidavit review payload.")
-    parser.add_argument("--artifact-json", type=Path, default=None, help="Coverage-review JSON artifact to render.")
-    parser.add_argument("--db-path", type=Path, default=None, help="Optional sqlite path for persisted contested-review runs.")
-    parser.add_argument("--review-run-id", default=None, help="Persisted contested-review run id when using --db-path.")
-    parser.add_argument("--output-dir", type=Path, required=True, help="Directory to write PlantUML artifacts into.")
-    parser.add_argument("--stem", default="affidavit_claim_graph", help="Output file stem.")
-    parser.add_argument("--title-prefix", default="Affidavit", help="Title prefix for rendered diagrams.")
-    parser.add_argument("--max-claims", type=int, default=None, help="Optional limit on the number of claims rendered.")
-    parser.add_argument("--token-limit", type=int, default=10, help="Max lexical atoms shown per claim in the mechanical view.")
-    parser.add_argument("--render-svg", action="store_true", help="Also render SVG outputs through PlantUML.")
+    parser = argparse.ArgumentParser(
+        description="Render semantic and mechanical PlantUML views from a contested affidavit review payload."
+    )
+    parser.add_argument(
+        "--artifact-json",
+        type=Path,
+        default=None,
+        help="Coverage-review JSON artifact to render.",
+    )
+    parser.add_argument(
+        "--db-path",
+        type=Path,
+        default=None,
+        help="Optional sqlite path for persisted contested-review runs.",
+    )
+    parser.add_argument(
+        "--review-run-id",
+        default=None,
+        help="Persisted contested-review run id when using --db-path.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        required=True,
+        help="Directory to write PlantUML artifacts into.",
+    )
+    parser.add_argument(
+        "--stem", default="affidavit_claim_graph", help="Output file stem."
+    )
+    parser.add_argument(
+        "--title-prefix",
+        default="Affidavit",
+        help="Title prefix for rendered diagrams.",
+    )
+    parser.add_argument(
+        "--max-claims",
+        type=int,
+        default=None,
+        help="Optional limit on the number of claims rendered.",
+    )
+    parser.add_argument(
+        "--token-limit",
+        type=int,
+        default=10,
+        help="Max lexical atoms shown per claim in the mechanical view.",
+    )
+    parser.add_argument(
+        "--render-svg",
+        action="store_true",
+        help="Also render SVG outputs through PlantUML.",
+    )
     args = parser.parse_args(argv)
 
     payload = _load_payload(

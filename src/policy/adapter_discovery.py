@@ -11,7 +11,7 @@ The public API accepts data, not adapter names.
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Sequence
 
 
@@ -102,7 +102,9 @@ def _detect_input_shape(envelope: Mapping[str, Any]) -> dict[str, Any]:
         schema = _text(payload.get("schema_version"))
         if schema:
             detected["schema_version"] = schema
-    elif isinstance(payload, Sequence) and not isinstance(payload, (str, bytes, bytearray)):
+    elif isinstance(payload, Sequence) and not isinstance(
+        payload, (str, bytes, bytearray)
+    ):
         detected["payload_type"] = "sequence"
         detected["payload_length"] = len(payload)
         if payload and isinstance(payload[0], Mapping):

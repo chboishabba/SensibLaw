@@ -14,13 +14,25 @@ from src.wiki_timeline.timeline_view_projection import build_timeline_view_proje
 
 def test_build_timeline_view_projection_filters_and_sorts_events() -> None:
     payload = {
-        "snapshot": {"title": "Example", "wiki": "demo", "revid": "42", "source_url": "https://example.test"},
+        "snapshot": {
+            "title": "Example",
+            "wiki": "demo",
+            "revid": "42",
+            "source_url": "https://example.test",
+        },
         "events": [
             {
                 "event_id": "ev:later",
                 "text": "Later event",
                 "section": "Narrative",
-                "anchor": {"year": 2005, "month": 4, "day": 2, "precision": "day", "text": "2005-04-02", "kind": "mention"},
+                "anchor": {
+                    "year": 2005,
+                    "month": 4,
+                    "day": 2,
+                    "precision": "day",
+                    "text": "2005-04-02",
+                    "kind": "mention",
+                },
                 "links": ["https://b.example"],
             },
             {
@@ -34,7 +46,14 @@ def test_build_timeline_view_projection_filters_and_sorts_events() -> None:
                 "event_id": "ev:early",
                 "text": "Early event",
                 "section": "",
-                "anchor": {"year": "2001", "month": "9", "day": "11", "precision": "day", "text": "2001-09-11", "kind": "mention"},
+                "anchor": {
+                    "year": "2001",
+                    "month": "9",
+                    "day": "11",
+                    "precision": "day",
+                    "text": "2001-09-11",
+                    "kind": "mention",
+                },
                 "links": ["", "https://a.example"],
             },
         ],
@@ -50,25 +69,47 @@ def test_build_timeline_view_projection_filters_and_sorts_events() -> None:
 
 def test_query_wiki_timeline_aoo_db_timeline_view_projection(tmp_path: Path) -> None:
     timeline_path = tmp_path / "wiki_timeline_gwb.json"
-    timeline_path.write_text(json.dumps({"snapshot": {"title": "x"}, "events": []}, sort_keys=True), encoding="utf-8")
+    timeline_path.write_text(
+        json.dumps({"snapshot": {"title": "x"}, "events": []}, sort_keys=True),
+        encoding="utf-8",
+    )
     db_path = tmp_path / "itir.sqlite"
 
     payload = {
         "generated_at": "2026-03-30T00:00:00Z",
         "source_timeline": {"path": str(timeline_path), "snapshot": {"title": "x"}},
         "root_actor": {"label": "Root", "surname": "Actor"},
-        "snapshot": {"title": "Example", "wiki": "demo", "revid": "42", "source_url": "https://example.test"},
+        "snapshot": {
+            "title": "Example",
+            "wiki": "demo",
+            "revid": "42",
+            "source_url": "https://example.test",
+        },
         "events": [
             {
                 "event_id": "ev:later",
-                "anchor": {"year": 2005, "month": 4, "day": 2, "precision": "day", "kind": "mention", "text": "2005-04-02"},
+                "anchor": {
+                    "year": 2005,
+                    "month": 4,
+                    "day": 2,
+                    "precision": "day",
+                    "kind": "mention",
+                    "text": "2005-04-02",
+                },
                 "section": "Narrative",
                 "text": "Later event",
                 "links": ["https://b.example"],
             },
             {
                 "event_id": "ev:early",
-                "anchor": {"year": 2001, "month": 9, "day": 11, "precision": "day", "kind": "mention", "text": "2001-09-11"},
+                "anchor": {
+                    "year": 2001,
+                    "month": 9,
+                    "day": 11,
+                    "precision": "day",
+                    "kind": "mention",
+                    "text": "2001-09-11",
+                },
                 "section": "",
                 "text": "Early event",
                 "links": ["https://a.example"],
@@ -110,18 +151,31 @@ def test_query_wiki_timeline_aoo_db_timeline_view_projection(tmp_path: Path) -> 
 
 def test_query_wiki_timeline_aoo_db_source_key_meta_envelope(tmp_path: Path) -> None:
     timeline_path = tmp_path / "wiki_timeline_gwb.json"
-    timeline_path.write_text(json.dumps({"snapshot": {"title": "x"}, "events": []}, sort_keys=True), encoding="utf-8")
+    timeline_path.write_text(
+        json.dumps({"snapshot": {"title": "x"}, "events": []}, sort_keys=True),
+        encoding="utf-8",
+    )
     db_path = tmp_path / "itir.sqlite"
 
     payload = {
         "generated_at": "2026-03-30T00:00:00Z",
         "source_timeline": {"path": str(timeline_path), "snapshot": {"title": "x"}},
         "root_actor": {"label": "Root", "surname": "Actor"},
-        "snapshot": {"title": "Example", "wiki": "demo", "revid": "42", "source_url": "https://example.test"},
+        "snapshot": {
+            "title": "Example",
+            "wiki": "demo",
+            "revid": "42",
+            "source_url": "https://example.test",
+        },
         "events": [
             {
                 "event_id": "ev:one",
-                "anchor": {"year": 2001, "precision": "year", "kind": "mention", "text": "2001"},
+                "anchor": {
+                    "year": 2001,
+                    "precision": "year",
+                    "kind": "mention",
+                    "text": "2001",
+                },
                 "section": "Narrative",
                 "text": "First event",
                 "links": [],
@@ -164,19 +218,25 @@ def test_query_wiki_timeline_aoo_db_source_key_meta_envelope(tmp_path: Path) -> 
 
 
 def test_source_registry_supports_aoo_all_variant_for_gwb_corpus() -> None:
-    config = resolve_source_config("gwb_corpus_v1", projection="raw", fallback="hca", variant="aoo_all")
+    config = resolve_source_config(
+        "gwb_corpus_v1", projection="raw", fallback="hca", variant="aoo_all"
+    )
     assert config["source"] == "gwb_corpus_v1"
     assert config["timeline_suffix"] == "wiki_timeline_gwb_corpus_v1.json"
     assert config["rel_path"].endswith("wiki_timeline_gwb_corpus_v1.json")
 
 
-def test_query_runtime_prefers_explicit_db_path(monkeypatch: Any, tmp_path: Path) -> None:
+def test_query_runtime_prefers_explicit_db_path(
+    monkeypatch: Any, tmp_path: Path
+) -> None:
     explicit = tmp_path / "explicit.sqlite"
     monkeypatch.setenv("ITIR_DB_PATH", str(tmp_path / "env.sqlite"))
     assert resolve_query_db_path(str(explicit)) == explicit.resolve()
 
 
-def test_query_runtime_falls_back_to_modern_then_legacy_env(monkeypatch: Any, tmp_path: Path) -> None:
+def test_query_runtime_falls_back_to_modern_then_legacy_env(
+    monkeypatch: Any, tmp_path: Path
+) -> None:
     modern = tmp_path / "modern.sqlite"
     legacy = tmp_path / "legacy.sqlite"
     monkeypatch.setenv("ITIR_DB_PATH", str(modern))

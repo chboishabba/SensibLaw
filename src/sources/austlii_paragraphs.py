@@ -4,8 +4,6 @@ from dataclasses import dataclass
 from html.parser import HTMLParser
 import re
 
-from .paragraphs import select_paragraphs
-
 
 _WS_RE = re.compile(r"\s+")
 _LEADING_NUMBER_RE = re.compile(r"^\[?(?P<number>\d+)\]?(?:[.)]|\s)+")

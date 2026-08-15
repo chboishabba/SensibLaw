@@ -8,9 +8,14 @@ from .wikidata import build_wikidata_climate_review_demonstrator
 from .wikidata_change_review import build_change_review_report_from_path
 from .wikidata_disjointness import project_wikidata_disjointness_payload
 from .wikidata_hotspot import generate_hotspot_cluster_pack, load_hotspot_manifest
-from .wikidata_hotspot_eval import evaluate_hotspot_cluster_pack, load_hotspot_response_bundle
+from .wikidata_hotspot_eval import (
+    evaluate_hotspot_cluster_pack,
+    load_hotspot_response_bundle,
+)
 from .wikidata_latent_slice_graph import build_wikidata_latent_slice_graph
-from .wikidata_nat_live_follow_executor import build_policy_risk_population_preview_preflight
+from .wikidata_nat_live_follow_executor import (
+    build_policy_risk_population_preview_preflight,
+)
 from .wikidata_signal_review_bundle import (
     build_change_review_bundle,
     build_climate_review_bundle,
@@ -134,9 +139,12 @@ def _load_lane_reports() -> dict[str, dict[str, Any]]:
 
     migration_pack = _read_json(climate_root / "migration_pack.json")
     climate_text = _read_json(
-        climate_root / "climate_text_source_q10403939_akademiska_hus_scope1_2018_2020.json"
+        climate_root
+        / "climate_text_source_q10403939_akademiska_hus_scope1_2018_2020.json"
     )
-    review_packet = _read_json(fixture_root / "wikidata_nat_review_packet_20260401.json")
+    review_packet = _read_json(
+        fixture_root / "wikidata_nat_review_packet_20260401.json"
+    )
     climate_report = build_wikidata_climate_review_demonstrator(
         migration_pack,
         climate_text_payload=climate_text,
@@ -147,7 +155,9 @@ def _load_lane_reports() -> dict[str, dict[str, Any]]:
     )
     disjointness_report = project_wikidata_disjointness_payload(
         _read_json(
-            fixture_root / "disjointness_p2738_fixed_construction_real_pack_v1" / "slice.json"
+            fixture_root
+            / "disjointness_p2738_fixed_construction_real_pack_v1"
+            / "slice.json"
         )
     )
     hotspot_manifest = load_hotspot_manifest(
@@ -184,7 +194,9 @@ def _observed_summary(lane_id: str, report: Mapping[str, Any]) -> dict[str, Any]
             "entity_qid": report["inputs"]["entity_qid"],
             "candidate_count": report["candidate_change_surface"]["candidate_count"],
             "final_state": report["review_disposition"]["final_state"],
-            "bridge_case_count": report["residual_completeness_surface"]["bridge_case_count"],
+            "bridge_case_count": report["residual_completeness_surface"][
+                "bridge_case_count"
+            ],
         }
     if lane_id == "change_review_packet":
         candidate_reports = report.get("candidate_reports", [])
@@ -194,7 +206,8 @@ def _observed_summary(lane_id: str, report: Mapping[str, Any]) -> dict[str, Any]
             "checked_safe_reviewable_count": sum(
                 1
                 for row in candidate_reports
-                if isinstance(row, Mapping) and row.get("disposition") == "checked_safe_reviewable"
+                if isinstance(row, Mapping)
+                and row.get("disposition") == "checked_safe_reviewable"
             ),
             "held_count": sum(
                 1
@@ -214,7 +227,9 @@ def _observed_summary(lane_id: str, report: Mapping[str, Any]) -> dict[str, Any]
         return {
             "pack_count": len(report.get("selected_pack_ids", [])),
             "cluster_total": report["summary"]["cluster_counts"]["total"],
-            "inconsistent_cluster_count": report["summary"]["cluster_counts"]["inconsistent"],
+            "inconsistent_cluster_count": report["summary"]["cluster_counts"][
+                "inconsistent"
+            ],
         }
     return {
         "campaign_id": report["campaign_id"],
@@ -299,7 +314,9 @@ def build_wikidata_lane_proof(lane_id: str) -> dict[str, Any]:
         raise ValueError(f"unknown Wikidata lane: {lane_id}")
     proof = artifacts[lane_id].get("zelph_lane_proof")
     if not isinstance(proof, Mapping):
-        raise ValueError(f"lane does not expose a direct Zelph proof surface: {lane_id}")
+        raise ValueError(
+            f"lane does not expose a direct Zelph proof surface: {lane_id}"
+        )
     return dict(proof)
 
 
@@ -309,7 +326,9 @@ def build_wikidata_lane_plan(lane_id: str) -> dict[str, Any]:
         raise ValueError(f"unknown Wikidata lane: {lane_id}")
     plan = artifacts[lane_id].get("zelph_lane_plan")
     if not isinstance(plan, Mapping):
-        raise ValueError(f"lane does not expose an adjacent Zelph plan surface: {lane_id}")
+        raise ValueError(
+            f"lane does not expose an adjacent Zelph plan surface: {lane_id}"
+        )
     return dict(plan)
 
 
@@ -343,11 +362,19 @@ def build_wikidata_lane_status() -> dict[str, Any]:
                 },
                 "latent_slice_graph_summary": {
                     "schema_version": latent_slice_graph["schema_version"],
-                    "flatness_posture": latent_slice_graph["flatness_indicators"]["flatness_posture"],
-                    "node_count": latent_slice_graph["diagnostics"]["metrics"]["node_count"],
-                    "edge_count": latent_slice_graph["diagnostics"]["metrics"]["edge_count"],
+                    "flatness_posture": latent_slice_graph["flatness_indicators"][
+                        "flatness_posture"
+                    ],
+                    "node_count": latent_slice_graph["diagnostics"]["metrics"][
+                        "node_count"
+                    ],
+                    "edge_count": latent_slice_graph["diagnostics"]["metrics"][
+                        "edge_count"
+                    ],
                     "node_kind_counts": dict(
-                        latent_slice_graph["diagnostics"]["distributions"]["node_kind_counts"]
+                        latent_slice_graph["diagnostics"]["distributions"][
+                            "node_kind_counts"
+                        ]
                     ),
                 },
                 **(
@@ -356,11 +383,15 @@ def build_wikidata_lane_status() -> dict[str, Any]:
                             "schema_version": zelph_lane_plan["schema_version"],
                             "plan_scope": zelph_lane_plan["plan_scope"],
                             "zelph_role": zelph_lane_plan["zelph_role"],
-                            "overall_status": zelph_lane_plan["readiness"]["overall_status"],
+                            "overall_status": zelph_lane_plan["readiness"][
+                                "overall_status"
+                            ],
                             "hosted_wd_dependency_status": zelph_lane_plan["readiness"][
                                 "hosted_wd_dependency_status"
                             ],
-                            "query_pressure_count": len(zelph_lane_plan["query_pressures"]),
+                            "query_pressure_count": len(
+                                zelph_lane_plan["query_pressures"]
+                            ),
                         }
                     }
                     if isinstance(zelph_lane_plan, Mapping)
@@ -371,16 +402,18 @@ def build_wikidata_lane_status() -> dict[str, Any]:
                         "zelph_lane_proof_summary": {
                             "schema_version": zelph_lane_proof["schema_version"],
                             "proof_scope": zelph_lane_proof["proof_scope"],
-                            "overall_status": zelph_lane_proof["acceptance"]["overall_status"],
-                            "hosted_wd_acceptance_status": zelph_lane_proof["acceptance"][
-                                "hosted_wd_acceptance_status"
+                            "overall_status": zelph_lane_proof["acceptance"][
+                                "overall_status"
                             ],
-                            "transport_manifest_version": zelph_lane_proof["transport_artifact"]["summary"][
-                                "manifest_version"
-                            ],
-                            "selected_shard_count": zelph_lane_proof["transport_artifact"]["summary"][
-                                "selected_shard_count"
-                            ],
+                            "hosted_wd_acceptance_status": zelph_lane_proof[
+                                "acceptance"
+                            ]["hosted_wd_acceptance_status"],
+                            "transport_manifest_version": zelph_lane_proof[
+                                "transport_artifact"
+                            ]["summary"]["manifest_version"],
+                            "selected_shard_count": zelph_lane_proof[
+                                "transport_artifact"
+                            ]["summary"]["selected_shard_count"],
                         }
                     }
                     if isinstance(zelph_lane_proof, Mapping)
@@ -391,23 +424,25 @@ def build_wikidata_lane_status() -> dict[str, Any]:
         )
 
     direct_alignments = {
-        row["lane_id"]
-        for row in lanes
-        if row["zelph_096_alignment"] == "direct"
+        row["lane_id"] for row in lanes if row["zelph_096_alignment"] == "direct"
     }
     dependency_class_counts: dict[str, int] = {}
     for row in lanes:
         dependency_class = row["dependency_class"]
-        dependency_class_counts[dependency_class] = dependency_class_counts.get(dependency_class, 0) + 1
+        dependency_class_counts[dependency_class] = (
+            dependency_class_counts.get(dependency_class, 0) + 1
+        )
     bounded_local_direct_zelph = [
         row["lane_id"]
         for row in lanes
-        if row.get("zelph_lane_proof_summary", {}).get("overall_status") == "bounded_local_ready"
+        if row.get("zelph_lane_proof_summary", {}).get("overall_status")
+        == "bounded_local_ready"
     ]
     adjacent_parallel_ready = [
         row["lane_id"]
         for row in lanes
-        if row.get("zelph_lane_plan_summary", {}).get("overall_status") == "ready_for_parallel_discovery"
+        if row.get("zelph_lane_plan_summary", {}).get("overall_status")
+        == "ready_for_parallel_discovery"
     ]
     hosted_wd_pending = [
         row["lane_id"]
@@ -421,7 +456,9 @@ def build_wikidata_lane_status() -> dict[str, Any]:
             "lane_count": len(lanes),
             "ok_lane_count": len(lanes),
             "live_capable_lane_count": sum(1 for row in lanes if row["live_capable"]),
-            "fixture_backed_lane_count": sum(1 for row in lanes if "fixture" in str(row["evidence_mode"])),
+            "fixture_backed_lane_count": sum(
+                1 for row in lanes if "fixture" in str(row["evidence_mode"])
+            ),
             "direct_zelph_096_lane_count": len(direct_alignments),
             "direct_zelph_096_lane_ids": sorted(direct_alignments),
             "bounded_local_direct_zelph_lane_count": len(bounded_local_direct_zelph),

@@ -12,15 +12,25 @@ from src.gwb_us_law.semantic import ensure_gwb_semantic_schema
 from src.wiki_timeline.sqlite_store import persist_wiki_timeline_aoo_run
 
 
-def test_au_fact_review_script_bundle_emits_review_bundle(tmp_path: Path, capsys) -> None:
+def test_au_fact_review_script_bundle_emits_review_bundle(
+    tmp_path: Path, capsys
+) -> None:
     db_path = tmp_path / "itir.sqlite"
-    seed_path = Path(__file__).resolve().parents[1] / "data" / "ontology" / "au_semantic_linkage_seed_v1.json"
+    seed_path = (
+        Path(__file__).resolve().parents[1]
+        / "data"
+        / "ontology"
+        / "au_semantic_linkage_seed_v1.json"
+    )
     persist_wiki_timeline_aoo_run(
         db_path=db_path,
         out_payload={
             "generated_at": "2026-03-07T00:00:00Z",
             "parser": {"name": "fixture"},
-            "source_timeline": {"path": str(tmp_path / "wiki_timeline_hca_s942025_aoo.json"), "snapshot": None},
+            "source_timeline": {
+                "path": str(tmp_path / "wiki_timeline_hca_s942025_aoo.json"),
+                "snapshot": None,
+            },
             "events": [
                 {
                     "event_id": "ev1",
@@ -77,33 +87,72 @@ def test_au_fact_review_script_bundle_emits_review_bundle(tmp_path: Path, capsys
     assert payload["summary"]["fact_count"] == 1
     assert payload["summary"]["event_count"] >= 1
     assert "operator_views" in payload
-    assert payload["semantic_context"]["authority_receipts"]["summary"]["authority_receipt_count"] >= 1
+    assert (
+        payload["semantic_context"]["authority_receipts"]["summary"][
+            "authority_receipt_count"
+        ]
+        >= 1
+    )
     assert payload["operator_views"]["authority_follow"]["available"] is True
-    assert isinstance(payload["operator_views"]["authority_follow"]["summary"]["legal_ref_class_counts"], dict)
-    assert isinstance(payload["operator_views"]["authority_follow"]["summary"]["jurisdiction_hint_counts"], dict)
-    assert isinstance(payload["operator_views"]["authority_follow"]["summary"]["instrument_kind_counts"], dict)
-    assert isinstance(payload["operator_views"]["authority_follow"]["summary"]["route_target_counts"], dict)
+    assert isinstance(
+        payload["operator_views"]["authority_follow"]["summary"][
+            "legal_ref_class_counts"
+        ],
+        dict,
+    )
+    assert isinstance(
+        payload["operator_views"]["authority_follow"]["summary"][
+            "jurisdiction_hint_counts"
+        ],
+        dict,
+    )
+    assert isinstance(
+        payload["operator_views"]["authority_follow"]["summary"][
+            "instrument_kind_counts"
+        ],
+        dict,
+    )
+    assert isinstance(
+        payload["operator_views"]["authority_follow"]["summary"]["route_target_counts"],
+        dict,
+    )
     if payload["operator_views"]["authority_follow"]["queue"]:
         assert any(
             row["label"] == "Reference classes"
-            for row in payload["operator_views"]["authority_follow"]["queue"][0]["detail_rows"]
+            for row in payload["operator_views"]["authority_follow"]["queue"][0][
+                "detail_rows"
+            ]
         )
         assert any(
             row["label"] == "Jurisdictions"
-            for row in payload["operator_views"]["authority_follow"]["queue"][0]["detail_rows"]
+            for row in payload["operator_views"]["authority_follow"]["queue"][0][
+                "detail_rows"
+            ]
         )
-    assert any(row["event_type"] in {"appealed", "heard by"} for row in payload["events"])
+    assert any(
+        row["event_type"] in {"appealed", "heard by"} for row in payload["events"]
+    )
 
 
-def test_au_fact_review_script_can_disable_authority_receipts(tmp_path: Path, capsys) -> None:
+def test_au_fact_review_script_can_disable_authority_receipts(
+    tmp_path: Path, capsys
+) -> None:
     db_path = tmp_path / "itir.sqlite"
-    seed_path = Path(__file__).resolve().parents[1] / "data" / "ontology" / "au_semantic_linkage_seed_v1.json"
+    seed_path = (
+        Path(__file__).resolve().parents[1]
+        / "data"
+        / "ontology"
+        / "au_semantic_linkage_seed_v1.json"
+    )
     persist_wiki_timeline_aoo_run(
         db_path=db_path,
         out_payload={
             "generated_at": "2026-03-07T00:00:00Z",
             "parser": {"name": "fixture"},
-            "source_timeline": {"path": str(tmp_path / "wiki_timeline_hca_s942025_aoo.json"), "snapshot": None},
+            "source_timeline": {
+                "path": str(tmp_path / "wiki_timeline_hca_s942025_aoo.json"),
+                "snapshot": None,
+            },
             "events": [
                 {
                     "event_id": "ev1",
@@ -162,13 +211,21 @@ def test_au_fact_review_script_can_disable_authority_receipts(tmp_path: Path, ca
 
 def test_au_fact_review_script_run_emits_summary_ids(tmp_path: Path, capsys) -> None:
     db_path = tmp_path / "itir.sqlite"
-    seed_path = Path(__file__).resolve().parents[1] / "data" / "ontology" / "au_semantic_linkage_seed_v1.json"
+    seed_path = (
+        Path(__file__).resolve().parents[1]
+        / "data"
+        / "ontology"
+        / "au_semantic_linkage_seed_v1.json"
+    )
     persisted = persist_wiki_timeline_aoo_run(
         db_path=db_path,
         out_payload={
             "generated_at": "2026-03-07T00:00:00Z",
             "parser": {"name": "fixture"},
-            "source_timeline": {"path": str(tmp_path / "wiki_timeline_hca_s942025_aoo.json"), "snapshot": None},
+            "source_timeline": {
+                "path": str(tmp_path / "wiki_timeline_hca_s942025_aoo.json"),
+                "snapshot": None,
+            },
             "events": [
                 {
                     "event_id": "ev1",

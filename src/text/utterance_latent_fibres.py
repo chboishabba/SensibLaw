@@ -92,15 +92,20 @@ class UtteranceLatentIndex:
     extraction_profile: Mapping[str, Any]
     model_assets: tuple[Mapping[str, Any], ...] = ()
     predicate_nodes: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
-    role_context_signatures: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+    role_context_signatures: Mapping[str, Mapping[str, Any]] = field(
+        default_factory=dict
+    )
     candidates: tuple[LatentFibreCandidate, ...] = ()
     artifact_sha256: str | None = None
 
-    def canonical_candidates_for(self, predicate: str) -> tuple[LatentFibreCandidate, ...]:
+    def canonical_candidates_for(
+        self, predicate: str
+    ) -> tuple[LatentFibreCandidate, ...]:
         matches = (
             candidate
             for candidate in self.candidates
-            if candidate.source_predicate == predicate and candidate.supports_canonical()
+            if candidate.source_predicate == predicate
+            and candidate.supports_canonical()
         )
         return tuple(sorted(matches, key=_candidate_sort_key))
 
@@ -132,7 +137,10 @@ def parse_latent_index(
     extraction_profile = _required_mapping(payload, "extraction_profile")
     candidates = tuple(
         sorted(
-            (_candidate_from_mapping(item) for item in _mapping_sequence(payload.get("derived_fibre_candidates"))),
+            (
+                _candidate_from_mapping(item)
+                for item in _mapping_sequence(payload.get("derived_fibre_candidates"))
+            ),
             key=_candidate_sort_key,
         )
     )
@@ -146,7 +154,9 @@ def parse_latent_index(
         schema_version=schema_version,
         source_corpus=dict(source_corpus),
         extraction_profile=dict(extraction_profile),
-        model_assets=tuple(dict(item) for item in _mapping_sequence(payload.get("model_assets", []))),
+        model_assets=tuple(
+            dict(item) for item in _mapping_sequence(payload.get("model_assets", []))
+        ),
         predicate_nodes={
             str(key): dict(value)
             for key, value in _required_mapping(payload, "predicate_nodes").items()
@@ -154,7 +164,9 @@ def parse_latent_index(
         },
         role_context_signatures={
             str(key): dict(value)
-            for key, value in _required_mapping(payload, "role_context_signatures").items()
+            for key, value in _required_mapping(
+                payload, "role_context_signatures"
+            ).items()
             if isinstance(value, Mapping)
         },
         candidates=candidates,
@@ -201,7 +213,9 @@ def enrich_utterance_atoms(
                 support_fibres=tuple(candidate.to_dict() for candidate in candidates),
                 latent_grounding={
                     "artifact_id": latent_index.artifact_id,
-                    "candidate_refs": [candidate.candidate_id for candidate in candidates],
+                    "candidate_refs": [
+                        candidate.candidate_id for candidate in candidates
+                    ],
                     "confidence": max(candidate.confidence for candidate in candidates),
                     "abstention_reason": None,
                 },
@@ -275,7 +289,9 @@ def meet_atom_with_latent_fibres(
                 semantic_relation=fibre.relation,
                 latent_grounding=grounding,
             )
-        grounding["abstention_reason"] = "latent_fibre_not_high_precision_for_contradiction"
+        grounding["abstention_reason"] = (
+            "latent_fibre_not_high_precision_for_contradiction"
+        )
         return Residual(
             level=ResidualLevel.PARTIAL,
             shared_roles=role_state.bindings,
@@ -328,7 +344,9 @@ def _supported_candidates_for_atom(
             continue
         if not include_diagnostics and not candidate.supports_canonical():
             continue
-        if candidate.role_context_signatures and not _atom_matches_any_signature(atom, candidate.role_context_signatures):
+        if candidate.role_context_signatures and not _atom_matches_any_signature(
+            atom, candidate.role_context_signatures
+        ):
             continue
         matches.append(candidate)
     return tuple(sorted(matches, key=_candidate_sort_key))
@@ -356,7 +374,9 @@ def _best_pair_candidate(
         and (
             not candidate.role_context_signatures
             or _atom_matches_any_signature(query, candidate.role_context_signatures)
-            or _atom_matches_any_signature(candidate_atom, candidate.role_context_signatures)
+            or _atom_matches_any_signature(
+                candidate_atom, candidate.role_context_signatures
+            )
         )
     ]
     if not matches:
@@ -364,12 +384,19 @@ def _best_pair_candidate(
     return sorted(matches, key=_candidate_sort_key)[0]
 
 
-def _compatible_context_roles(left: PredicateAtom, right: PredicateAtom) -> RoleState | None:
+def _compatible_context_roles(
+    left: PredicateAtom, right: PredicateAtom
+) -> RoleState | None:
     shared_roles = sorted((set(left.roles).intersection(right.roles)) - {"action"})
     if not shared_roles:
         return None
     left_state = RoleState(bindings={role: left.roles[role] for role in shared_roles})
-    right_state = RoleState(bindings={role: _with_fallback_provenance(right.roles[role], right.provenance) for role in shared_roles})
+    right_state = RoleState(
+        bindings={
+            role: _with_fallback_provenance(right.roles[role], right.provenance)
+            for role in shared_roles
+        }
+    )
     joined = join_role_states(left_state, right_state)
     if joined.contradictions:
         return None
@@ -389,7 +416,9 @@ def _with_fallback_provenance(arg: TypedArg, provenance: tuple[str, ...]) -> Typ
     )
 
 
-def _atom_matches_any_signature(atom: PredicateAtom, signatures: tuple[str, ...]) -> bool:
+def _atom_matches_any_signature(
+    atom: PredicateAtom, signatures: tuple[str, ...]
+) -> bool:
     atom_signatures = set(_atom_role_context_signatures(atom))
     return any(signature in atom_signatures for signature in signatures)
 

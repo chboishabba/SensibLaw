@@ -3,18 +3,25 @@ from pathlib import Path
 
 from src.models.document import Document, DocumentMetadata, Provision
 from src.models.provision import RuleAtom, RuleReference
-from src.obligations import extract_obligations_from_document, extract_obligations_from_text
+from src.obligations import (
+    extract_obligations_from_document,
+    extract_obligations_from_text,
+)
 
 
 def _doc(body: str, refs: list[RuleReference], source_id: str = "doc") -> Document:
-    metadata = DocumentMetadata(jurisdiction="NSW", citation="CIT", date=date(2023, 1, 1), provenance=source_id)
+    metadata = DocumentMetadata(
+        jurisdiction="NSW", citation="CIT", date=date(2023, 1, 1), provenance=source_id
+    )
     prov = Provision(text=body, rule_atoms=[RuleAtom(references=refs)])
     return Document(metadata=metadata, body=body, provisions=[prov])
 
 
 def test_obligation_detects_must_with_reference():
     body = "A person must comply with the Crimes Act 1914."
-    ref = RuleReference(work="Crimes Act 1914", provenance={"clause_id": "doc-clause-0"})
+    ref = RuleReference(
+        work="Crimes Act 1914", provenance={"clause_id": "doc-clause-0"}
+    )
     obligations = extract_obligations_from_text(body, references=[ref], source_id="doc")
     assert len(obligations) == 1
     ob = obligations[0]
@@ -35,7 +42,9 @@ def test_permission_detects_may_without_inventing_refs():
 def test_prohibition_detects_must_not_stable_under_spacing():
     base_body = "The driver must not drive while intoxicated."
     noisy_body = "The driver must   not drive while intoxicated."
-    ref = RuleReference(work="Road Transport Act 2013", provenance={"clause_id": "doc-clause-0"})
+    ref = RuleReference(
+        work="Road Transport Act 2013", provenance={"clause_id": "doc-clause-0"}
+    )
     base = extract_obligations_from_text(base_body, references=[ref], source_id="doc")
     noisy = extract_obligations_from_text(noisy_body, references=[ref], source_id="doc")
     assert [(o.type, o.modality, o.reference_identities) for o in base] == [
@@ -45,7 +54,9 @@ def test_prohibition_detects_must_not_stable_under_spacing():
 
 def test_exclusion_does_not_apply():
     body = "This Part does not apply to ships registered overseas."
-    ref = RuleReference(work="Marine Safety Act 1998", provenance={"clause_id": "doc-clause-0"})
+    ref = RuleReference(
+        work="Marine Safety Act 1998", provenance={"clause_id": "doc-clause-0"}
+    )
     obligations = extract_obligations_from_text(body, references=[ref], source_id="doc")
     assert len(obligations) == 1
     ob = obligations[0]
@@ -56,8 +67,12 @@ def test_exclusion_does_not_apply():
 
 def test_clause_boundary_non_interference():
     body = "The operator must follow the Safety Act 2000. The pilot must follow the Aviation Act 1995."
-    ref1 = RuleReference(work="Safety Act 2000", provenance={"clause_id": "doc-clause-0"})
-    ref2 = RuleReference(work="Aviation Act 1995", provenance={"clause_id": "doc-clause-1"})
+    ref1 = RuleReference(
+        work="Safety Act 2000", provenance={"clause_id": "doc-clause-0"}
+    )
+    ref2 = RuleReference(
+        work="Aviation Act 1995", provenance={"clause_id": "doc-clause-1"}
+    )
     doc = _doc(body, [ref1, ref2], source_id="doc")
     obligations = extract_obligations_from_document(doc)
     assert len(obligations) == 2
@@ -89,9 +104,14 @@ def test_actor_fixture_variants(tmp_path):
     fixtures = Path(__file__).parent / "fixtures" / "actors"
 
     distinct = (fixtures / "distinct_actors.txt").read_text().strip()
-    obligations = extract_obligations_from_text(distinct, references=[], source_id="doc")
+    obligations = extract_obligations_from_text(
+        distinct, references=[], source_id="doc"
+    )
     assert len(obligations) == 2
-    assert {ob.actor.normalized for ob in obligations if ob.actor} == {"the operator", "the pilot"}
+    assert {ob.actor.normalized for ob in obligations if ob.actor} == {
+        "the operator",
+        "the pilot",
+    }
 
     missing = (fixtures / "missing_actor.txt").read_text().strip()
     missing_obs = extract_obligations_from_text(missing, references=[], source_id="doc")
@@ -105,17 +125,23 @@ def test_actor_fixture_variants(tmp_path):
     assert noisy_obs[0].actor.normalized == "the ope rator"
 
     stopword_noise = (fixtures / "lexical_noise_stopwords.txt").read_text().strip()
-    stopword_obs = extract_obligations_from_text(stopword_noise, references=[], source_id="doc")
+    stopword_obs = extract_obligations_from_text(
+        stopword_noise, references=[], source_id="doc"
+    )
     assert len(stopword_obs) == 1
     assert stopword_obs[0].actor is None
 
     number_noise = (fixtures / "lexical_noise_numbers.txt").read_text().strip()
-    number_noise_obs = extract_obligations_from_text(number_noise, references=[], source_id="doc")
+    number_noise_obs = extract_obligations_from_text(
+        number_noise, references=[], source_id="doc"
+    )
     assert len(number_noise_obs) == 1
     assert number_noise_obs[0].actor is None
 
     citation_noise = (fixtures / "lexical_noise_citations.txt").read_text().strip()
-    citation_noise_obs = extract_obligations_from_text(citation_noise, references=[], source_id="doc")
+    citation_noise_obs = extract_obligations_from_text(
+        citation_noise, references=[], source_id="doc"
+    )
     assert len(citation_noise_obs) == 1
     assert citation_noise_obs[0].actor is None
 

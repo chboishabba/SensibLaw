@@ -12,7 +12,10 @@ from src.policy.gwb_broader_review_world_model import (
     build_world_model,
 )
 from src.policy.gwb import build_report
-from src.policy.gwb_linkage_depth import GWB_BROADER_REVIEW_LINKAGE_CONTRACT_ID, build_case
+from src.policy.gwb_linkage_depth import (
+    GWB_BROADER_REVIEW_LINKAGE_CONTRACT_ID,
+    build_case,
+)
 from src.policy.linkage_depth import LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION
 
 
@@ -30,70 +33,161 @@ def test_build_gwb_broader_review(tmp_path: Path) -> None:
     assert payload["version"] == ARTIFACT_VERSION
     assert payload["fixture_kind"] == "gwb_broader_review"
     assert payload["compiler_contract"]["lane"] == "gwb"
-    assert payload["compiler_contract"]["evidence_bundle"]["source_family"] == "gwb_broader_review"
-    assert any(row["role"] == "legal_linkage_graph" for row in payload["compiler_contract"]["derived_products"])
+    assert (
+        payload["compiler_contract"]["evidence_bundle"]["source_family"]
+        == "gwb_broader_review"
+    )
+    assert any(
+        row["role"] == "legal_linkage_graph"
+        for row in payload["compiler_contract"]["derived_products"]
+    )
     assert payload["promotion_gate"]["decision"] in {"promote", "audit", "abstain"}
     assert payload["promotion_gate"]["product_ref"] == "gwb_broader_review_v1"
     assert payload["review_claim_records"]
     assert all(row["lane"] == "gwb" for row in payload["review_claim_records"])
-    assert all(row["family_id"] == "gwb_broader_review" for row in payload["review_claim_records"])
-    assert all(row["state"] == "review_claim" for row in payload["review_claim_records"])
-    assert all(row["state_basis"] == "source_review_row" for row in payload["review_claim_records"])
-    assert all(row["evidence_status"] == "review_only" for row in payload["review_claim_records"])
-    assert all(row["review_route"]["actionability"] == "must_review" for row in payload["review_claim_records"])
-    relation_rows = [row for row in payload["review_claim_records"] if "proposition_relation" in row]
+    assert all(
+        row["family_id"] == "gwb_broader_review"
+        for row in payload["review_claim_records"]
+    )
+    assert all(
+        row["state"] == "review_claim" for row in payload["review_claim_records"]
+    )
+    assert all(
+        row["state_basis"] == "source_review_row"
+        for row in payload["review_claim_records"]
+    )
+    assert all(
+        row["evidence_status"] == "review_only"
+        for row in payload["review_claim_records"]
+    )
+    assert all(
+        row["review_route"]["actionability"] == "must_review"
+        for row in payload["review_claim_records"]
+    )
+    relation_rows = [
+        row for row in payload["review_claim_records"] if "proposition_relation" in row
+    ]
     assert relation_rows
-    assert relation_rows[0]["target_proposition_identity"]["identity_basis"]["basis_kind"] == "seed_id"
-    assert relation_rows[0]["target_proposition_identity"]["provenance"]["source_kind"] == "review_item_target"
+    assert (
+        relation_rows[0]["target_proposition_identity"]["identity_basis"]["basis_kind"]
+        == "seed_id"
+    )
+    assert (
+        relation_rows[0]["target_proposition_identity"]["provenance"]["source_kind"]
+        == "review_item_target"
+    )
     assert relation_rows[0]["review_candidate"]["candidate_kind"] == "review_source_row"
-    assert relation_rows[0]["review_candidate"]["selection_basis"]["basis_kind"] == "source_review_row"
-    assert relation_rows[0]["review_candidate"]["selection_basis"]["review_status"] == "missing_review"
-    assert relation_rows[0]["review_candidate"]["anchor_refs"]["source_row_id"] == relation_rows[0]["claim_id"]
+    assert (
+        relation_rows[0]["review_candidate"]["selection_basis"]["basis_kind"]
+        == "source_review_row"
+    )
+    assert (
+        relation_rows[0]["review_candidate"]["selection_basis"]["review_status"]
+        == "missing_review"
+    )
+    assert (
+        relation_rows[0]["review_candidate"]["anchor_refs"]["source_row_id"]
+        == relation_rows[0]["claim_id"]
+    )
     assert (
         relation_rows[0]["review_candidate"]["target_proposition_id"]
         == relation_rows[0]["target_proposition_identity"]["proposition_id"]
     )
     assert relation_rows[0]["proposition_relation"]["relation_kind"] == "addresses"
-    assert relation_rows[0]["proposition_relation"]["target_proposition_id"] == relation_rows[0]["target_proposition_identity"]["proposition_id"]
+    assert (
+        relation_rows[0]["proposition_relation"]["target_proposition_id"]
+        == relation_rows[0]["target_proposition_identity"]["proposition_id"]
+    )
     assert relation_rows[0]["review_text"]["text_role"] == "review_source_text"
-    assert relation_rows[0]["review_text"]["source_kind"] == relation_rows[0]["provenance"]["source_kind"]
-    assert any("proposition_relation" not in row for row in payload["review_claim_records"])
+    assert (
+        relation_rows[0]["review_text"]["source_kind"]
+        == relation_rows[0]["provenance"]["source_kind"]
+    )
+    assert any(
+        "proposition_relation" not in row for row in payload["review_claim_records"]
+    )
     normalized_artifact = payload["suite_normalized_artifact"]
     assert normalized_artifact["schema_version"] == "itir.normalized.artifact.v1"
     assert normalized_artifact["artifact_role"] == "derived_product"
     assert normalized_artifact["authority"]["derived"] is True
     assert normalized_artifact["summary"]["lane"] == "gwb"
-    assert normalized_artifact["summary"]["gate_decision"] == payload["promotion_gate"]["decision"]
-    assert normalized_artifact["summary"]["workflow_stage"] == payload["workflow_summary"]["stage"]
-    assert normalized_artifact["summary"]["recommended_view"] == payload["workflow_summary"]["recommended_view"]
-    assert normalized_artifact["unresolved_pressure_status"] in {"none", "hold", "abstain"}
+    assert (
+        normalized_artifact["summary"]["gate_decision"]
+        == payload["promotion_gate"]["decision"]
+    )
+    assert (
+        normalized_artifact["summary"]["workflow_stage"]
+        == payload["workflow_summary"]["stage"]
+    )
+    assert (
+        normalized_artifact["summary"]["recommended_view"]
+        == payload["workflow_summary"]["recommended_view"]
+    )
+    assert normalized_artifact["unresolved_pressure_status"] in {
+        "none",
+        "hold",
+        "abstain",
+    }
     graph_diagnostics = normalized_artifact["graph_diagnostics"]
     assert graph_diagnostics["schema_version"] == "itir.graph_diagnostics.v1"
     assert graph_diagnostics["scope"]["substrate_kind"] == "legal_follow_graph"
     assert graph_diagnostics["scope"]["projection_role"] == "suite_normalized_artifact"
-    assert graph_diagnostics["metrics"]["node_count"] == payload["legal_follow_graph"]["summary"]["node_count"]
-    assert graph_diagnostics["metrics"]["edge_count"] == payload["legal_follow_graph"]["summary"]["edge_count"]
-    assert graph_diagnostics["cone"]["allowed_edge_types"] == ["follows_source", "supports_source_row"]
+    assert (
+        graph_diagnostics["metrics"]["node_count"]
+        == payload["legal_follow_graph"]["summary"]["node_count"]
+    )
+    assert (
+        graph_diagnostics["metrics"]["edge_count"]
+        == payload["legal_follow_graph"]["summary"]["edge_count"]
+    )
+    assert graph_diagnostics["cone"]["allowed_edge_types"] == [
+        "follows_source",
+        "supports_source_row",
+    ]
     assert "revision_stability" not in graph_diagnostics
     reasoner_input_artifact = payload["reasoner_input_artifact"]
     assert reasoner_input_artifact["schema_version"] == "sl.reasoner_input.v0_1"
     assert reasoner_input_artifact["source_system"] == "SensibLaw"
     assert reasoner_input_artifact["source_lane"] == "gwb"
-    assert reasoner_input_artifact["normalized_artifact"]["artifact_id"] == normalized_artifact["artifact_id"]
-    assert reasoner_input_artifact["normalized_artifact"]["graph_diagnostics"] == graph_diagnostics
-    assert reasoner_input_artifact["summary"]["gate_decision"] == payload["promotion_gate"]["decision"]
-    assert payload["workflow_summary"]["stage"] in {"decide", "follow_up", "record", "archive"}
+    assert (
+        reasoner_input_artifact["normalized_artifact"]["artifact_id"]
+        == normalized_artifact["artifact_id"]
+    )
+    assert (
+        reasoner_input_artifact["normalized_artifact"]["graph_diagnostics"]
+        == graph_diagnostics
+    )
+    assert (
+        reasoner_input_artifact["summary"]["gate_decision"]
+        == payload["promotion_gate"]["decision"]
+    )
+    assert payload["workflow_summary"]["stage"] in {
+        "decide",
+        "follow_up",
+        "record",
+        "archive",
+    }
     assert payload["workflow_summary"]["recommended_view"] in {
         "legal_follow_graph",
         "source_review_rows",
         "summary",
         "archive_follow_rows",
     }
-    assert payload["workflow_summary"]["counts"]["missing_review_count"] == summary["missing_review_count"]
+    assert (
+        payload["workflow_summary"]["counts"]["missing_review_count"]
+        == summary["missing_review_count"]
+    )
     assert "debate_edge_count" in summary
-    assert payload["workflow_summary"]["counts"]["debate_edge_count"] == summary["debate_edge_count"]
+    assert (
+        payload["workflow_summary"]["counts"]["debate_edge_count"]
+        == summary["debate_edge_count"]
+    )
     assert summary["debate_edge_count"] > 0
-    assert payload["workflow_summary"]["promotion_gate"]["decision"] in {"promote", "audit", "abstain"}
+    assert payload["workflow_summary"]["promotion_gate"]["decision"] in {
+        "promote",
+        "audit",
+        "abstain",
+    }
     assert summary["review_item_count"] > 10
     assert summary["distinct_seed_lane_count"] == 13
     assert summary["source_row_count"] > 30
@@ -102,7 +196,10 @@ def test_build_gwb_broader_review(tmp_path: Path) -> None:
     assert summary["related_review_cluster_count"] >= 5
     assert summary["candidate_anchor_count"] > summary["source_row_count"]
     assert summary["provisional_review_row_count"] > 10
-    assert summary["provisional_review_bundle_count"] >= summary["related_review_cluster_count"]
+    assert (
+        summary["provisional_review_bundle_count"]
+        >= summary["related_review_cluster_count"]
+    )
     normalized = payload["normalized_metrics_v1"]
     assert normalized["artifact_id"] == "gwb_broader_review_v1"
     assert normalized["review_item_status_counts"]["accepted"] == 8
@@ -114,25 +211,43 @@ def test_build_gwb_broader_review(tmp_path: Path) -> None:
     assert normalized["dominant_primary_workload"] == "linkage_pressure"
     assert normalized["primary_workload_counts"]["linkage_pressure"] == 11
     assert normalized["primary_workload_counts"]["event_or_time_pressure"] == 3
-    assert normalized["candidate_signal_count"] == normalized["provisional_queue_row_count"]
+    assert (
+        normalized["candidate_signal_count"]
+        == normalized["provisional_queue_row_count"]
+    )
     assert normalized["candidate_signal_count"] >= 58
     assert normalized["provisional_bundle_count"] >= 16
     assert normalized["review_required_source_ratio"] > 0.25
     assert normalized["candidate_signal_density"] >= 3.0
-    assert normalized["provisional_row_density"] == normalized["candidate_signal_density"]
+    assert (
+        normalized["provisional_row_density"] == normalized["candidate_signal_density"]
+    )
     assert normalized["provisional_bundle_density"] >= 0.9
 
-    assert any(row["source_kind"] == "seed_family_support" for row in payload["source_review_rows"])
-    assert any(row["source_kind"] == "merged_promoted_relation" for row in payload["source_review_rows"])
-    assert any(row["source_kind"] == "source_family_summary" for row in payload["source_review_rows"])
+    assert any(
+        row["source_kind"] == "seed_family_support"
+        for row in payload["source_review_rows"]
+    )
+    assert any(
+        row["source_kind"] == "merged_promoted_relation"
+        for row in payload["source_review_rows"]
+    )
+    assert any(
+        row["source_kind"] == "source_family_summary"
+        for row in payload["source_review_rows"]
+    )
     merged_relation_row = next(
         row
         for row in payload["source_review_rows"]
-        if row["source_kind"] == "merged_promoted_relation" and (row["source_paths"] or row["source_urls"])
+        if row["source_kind"] == "merged_promoted_relation"
+        and (row["source_paths"] or row["source_urls"])
     )
     assert merged_relation_row["event_ids"]
     assert merged_relation_row["metadata"]["promoted_relation_id"]
-    assert merged_relation_row["metadata"]["event_lineage_depth"] in {"complete", "partial"}
+    assert merged_relation_row["metadata"]["event_lineage_depth"] in {
+        "complete",
+        "partial",
+    }
     assert merged_relation_row["metadata"]["cross_source_braid_depth"] in {
         "complete",
         "partial",
@@ -143,26 +258,84 @@ def test_build_gwb_broader_review(tmp_path: Path) -> None:
     assert "ordering_edge_ids" in merged_relation_row["metadata"]
     assert payload["legal_follow_graph"]["derived_only"] is True
     assert payload["legal_follow_graph"]["challengeable"] is True
-    assert payload["legal_follow_graph"]["summary"]["seed_lane_count"] >= summary["distinct_seed_lane_count"]
-    assert payload["legal_follow_graph"]["summary"]["seed_lane_count"] < summary["review_item_count"]
-    assert payload["legal_follow_graph"]["summary"]["source_row_count"] == summary["source_row_count"]
-    assert payload["legal_follow_graph"]["summary"]["source_row_node_count"] <= summary["source_row_count"]
+    assert (
+        payload["legal_follow_graph"]["summary"]["seed_lane_count"]
+        >= summary["distinct_seed_lane_count"]
+    )
+    assert (
+        payload["legal_follow_graph"]["summary"]["seed_lane_count"]
+        < summary["review_item_count"]
+    )
+    assert (
+        payload["legal_follow_graph"]["summary"]["source_row_count"]
+        == summary["source_row_count"]
+    )
+    assert (
+        payload["legal_follow_graph"]["summary"]["source_row_node_count"]
+        <= summary["source_row_count"]
+    )
     assert payload["legal_follow_graph"]["summary"]["source_family_count"] >= 1
-    assert payload["legal_follow_graph"]["summary"]["source_kind_counts"].get("source_family_summary", 0) >= 1
-    assert isinstance(payload["legal_follow_graph"]["summary"]["source_family_label_counts"], dict)
-    assert isinstance(payload["legal_follow_graph"]["summary"]["linkage_kind_counts"], dict)
-    assert isinstance(payload["legal_follow_graph"]["summary"]["review_status_label_counts"], dict)
-    assert isinstance(payload["legal_follow_graph"]["summary"]["support_kind_label_counts"], dict)
-    assert isinstance(payload["legal_follow_graph"]["summary"]["followed_source_cite_class_counts"], dict)
+    assert (
+        payload["legal_follow_graph"]["summary"]["source_kind_counts"].get(
+            "source_family_summary", 0
+        )
+        >= 1
+    )
+    assert isinstance(
+        payload["legal_follow_graph"]["summary"]["source_family_label_counts"], dict
+    )
+    assert isinstance(
+        payload["legal_follow_graph"]["summary"]["linkage_kind_counts"], dict
+    )
+    assert isinstance(
+        payload["legal_follow_graph"]["summary"]["review_status_label_counts"], dict
+    )
+    assert isinstance(
+        payload["legal_follow_graph"]["summary"]["support_kind_label_counts"], dict
+    )
+    assert isinstance(
+        payload["legal_follow_graph"]["summary"]["followed_source_cite_class_counts"],
+        dict,
+    )
     assert payload["operator_views"]["legal_follow_graph"]["available"] is True
     assert isinstance(payload["operator_views"]["legal_follow_graph"]["summary"], dict)
-    assert payload["operator_views"]["legal_follow_graph"]["control_plane"]["version"] == "follow.control.v1"
-    assert payload["operator_views"]["legal_follow_graph"]["control_plane"]["source_family"] == "gwb_legal_follow"
-    assert isinstance(payload["operator_views"]["legal_follow_graph"]["summary"]["route_target_counts"], dict)
-    assert isinstance(payload["operator_views"]["legal_follow_graph"]["summary"]["resolution_status_counts"], dict)
-    assert isinstance(payload["operator_views"]["legal_follow_graph"]["summary"]["priority_band_counts"], dict)
-    assert payload["operator_views"]["legal_follow_graph"]["summary"]["highest_priority_score"] >= 0
-    assert payload["operator_views"]["legal_follow_graph"]["summary"]["highest_authority_yield"] in {
+    assert (
+        payload["operator_views"]["legal_follow_graph"]["control_plane"]["version"]
+        == "follow.control.v1"
+    )
+    assert (
+        payload["operator_views"]["legal_follow_graph"]["control_plane"][
+            "source_family"
+        ]
+        == "gwb_legal_follow"
+    )
+    assert isinstance(
+        payload["operator_views"]["legal_follow_graph"]["summary"][
+            "route_target_counts"
+        ],
+        dict,
+    )
+    assert isinstance(
+        payload["operator_views"]["legal_follow_graph"]["summary"][
+            "resolution_status_counts"
+        ],
+        dict,
+    )
+    assert isinstance(
+        payload["operator_views"]["legal_follow_graph"]["summary"][
+            "priority_band_counts"
+        ],
+        dict,
+    )
+    assert (
+        payload["operator_views"]["legal_follow_graph"]["summary"][
+            "highest_priority_score"
+        ]
+        >= 0
+    )
+    assert payload["operator_views"]["legal_follow_graph"]["summary"][
+        "highest_authority_yield"
+    ] in {
         "high",
         "medium",
         "low",
@@ -175,29 +348,49 @@ def test_build_gwb_broader_review(tmp_path: Path) -> None:
     else:
         assert payload["workflow_summary"]["recommended_view"] == "source_review_rows"
     assert isinstance(payload["operator_views"]["legal_follow_graph"]["queue"], list)
-    assert isinstance(payload["operator_views"]["legal_follow_graph"]["highlight_nodes"], list)
-    assert isinstance(payload["operator_views"]["legal_follow_graph"]["sample_edges"], list)
+    assert isinstance(
+        payload["operator_views"]["legal_follow_graph"]["highlight_nodes"], list
+    )
+    assert isinstance(
+        payload["operator_views"]["legal_follow_graph"]["sample_edges"], list
+    )
     if payload["operator_views"]["legal_follow_graph"]["queue"]:
-        assert payload["operator_views"]["legal_follow_graph"]["queue"][0]["priority_rank"] == 1
+        assert (
+            payload["operator_views"]["legal_follow_graph"]["queue"][0]["priority_rank"]
+            == 1
+        )
     assert payload["related_review_clusters"]
     assert payload["provisional_review_rows"][0]["priority_rank"] == 1
     assert payload["provisional_review_bundles"][0]["bundle_rank"] == 1
     parliamentary_rows = [
-        row for row in payload["source_review_rows"] if row.get("source_kind") == "parliamentary_statement"
+        row
+        for row in payload["source_review_rows"]
+        if row.get("source_kind") == "parliamentary_statement"
     ]
     assert len(parliamentary_rows) == 2
-    assert all(row["metadata"]["source_unit_id"].startswith("sourceunit:parliamentary") for row in parliamentary_rows)
+    assert all(
+        row["metadata"]["source_unit_id"].startswith("sourceunit:parliamentary")
+        for row in parliamentary_rows
+    )
     assert all(row.get("priority_score") == 5 for row in parliamentary_rows)
     assert all("operator_label" in row for row in parliamentary_rows)
-    assert all(row["metadata"].get("ready_for_follow") is True for row in parliamentary_rows)
+    assert all(
+        row["metadata"].get("ready_for_follow") is True for row in parliamentary_rows
+    )
     assert any(
-        anchor.get("anchor_kind") == "clause_label" for row in parliamentary_rows for anchor in row.get("candidate_anchors", [])
+        anchor.get("anchor_kind") == "clause_label"
+        for row in parliamentary_rows
+        for anchor in row.get("candidate_anchors", [])
     )
     receipt_rows = [
-        row for row in payload["source_review_rows"] if row.get("source_kind") == "uk_legislation_receipt"
+        row
+        for row in payload["source_review_rows"]
+        if row.get("source_kind") == "uk_legislation_receipt"
     ]
     assert receipt_rows
-    anchor_kinds = {anchor["anchor_kind"] for anchor in receipt_rows[0]["candidate_anchors"]}
+    anchor_kinds = {
+        anchor["anchor_kind"] for anchor in receipt_rows[0]["candidate_anchors"]
+    }
     assert "section_label" in anchor_kinds
     assert "version" in anchor_kinds
 
@@ -213,7 +406,9 @@ def test_build_gwb_broader_review(tmp_path: Path) -> None:
     assert "Top Provisional Review Bundles" in summary_text
 
 
-def test_broader_review_item_rows_split_multi_family_seed_into_multiple_candidates() -> None:
+def test_broader_review_item_rows_split_multi_family_seed_into_multiple_candidates() -> (
+    None
+):
     rows = module._build_review_item_rows(
         {
             "merged_seed_lanes": [
@@ -221,8 +416,15 @@ def test_broader_review_item_rows_split_multi_family_seed_into_multiple_candidat
                     "seed_id": "seed:multi",
                     "action_summary": "Multi family seed",
                     "linkage_kind": "legal_interaction",
-                    "matched_source_families": ["checked_handoff", "corpus_book_timeline"],
-                    "source_families": ["checked_handoff", "corpus_book_timeline", "public_bios_timeline"],
+                    "matched_source_families": [
+                        "checked_handoff",
+                        "corpus_book_timeline",
+                    ],
+                    "source_families": [
+                        "checked_handoff",
+                        "corpus_book_timeline",
+                        "public_bios_timeline",
+                    ],
                     "support_kinds": ["authority"],
                     "review_statuses": ["missing_review"],
                 }
@@ -238,10 +440,16 @@ def test_broader_review_item_rows_split_multi_family_seed_into_multiple_candidat
     assert {row["coverage_status"] for row in rows} == {"covered"}
 
 
-def test_build_gwb_broader_review_emits_revision_stability_for_explicit_baseline_pair(tmp_path: Path) -> None:
+def test_build_gwb_broader_review_emits_revision_stability_for_explicit_baseline_pair(
+    tmp_path: Path,
+) -> None:
     baseline_result = build_gwb_broader_review(tmp_path / "baseline-out")
-    baseline_payload = json.loads(Path(baseline_result["artifact_path"]).read_text(encoding="utf-8"))
-    baseline_graph_diagnostics = baseline_payload["suite_normalized_artifact"]["graph_diagnostics"]
+    baseline_payload = json.loads(
+        Path(baseline_result["artifact_path"]).read_text(encoding="utf-8")
+    )
+    baseline_graph_diagnostics = baseline_payload["suite_normalized_artifact"][
+        "graph_diagnostics"
+    ]
 
     result = build_gwb_broader_review(
         tmp_path / "out-with-baseline",
@@ -254,9 +462,18 @@ def test_build_gwb_broader_review_emits_revision_stability_for_explicit_baseline
 
     assert revision_stability["schema_version"] == "itir.graph_revision_stability.v1"
     assert revision_stability["admissibility"]["admissible"] is True
-    assert revision_stability["comparison_scope"]["comparison_basis"] == "explicit_graph_diagnostics_pair"
-    assert revision_stability["baseline_ref"]["source_artifact_id"] == baseline_graph_diagnostics["scope"]["source_artifact_id"]
-    assert revision_stability["candidate_ref"]["source_artifact_id"] == graph_diagnostics["scope"]["source_artifact_id"]
+    assert (
+        revision_stability["comparison_scope"]["comparison_basis"]
+        == "explicit_graph_diagnostics_pair"
+    )
+    assert (
+        revision_stability["baseline_ref"]["source_artifact_id"]
+        == baseline_graph_diagnostics["scope"]["source_artifact_id"]
+    )
+    assert (
+        revision_stability["candidate_ref"]["source_artifact_id"]
+        == graph_diagnostics["scope"]["source_artifact_id"]
+    )
     assert revision_stability["deltas"] == {
         "node_count_delta": 0,
         "edge_count_delta": 0,
@@ -269,7 +486,12 @@ def test_build_gwb_broader_review_emits_revision_stability_for_explicit_baseline
         "seed_count_delta": 0,
         "width_delta_by_depth": {"0": 0, "1": 0, "2": 0},
     }
-    assert payload["reasoner_input_artifact"]["normalized_artifact"]["graph_diagnostics"]["revision_stability"] == revision_stability
+    assert (
+        payload["reasoner_input_artifact"]["normalized_artifact"]["graph_diagnostics"][
+            "revision_stability"
+        ]
+        == revision_stability
+    )
 
 
 def test_gwb_broader_review_consumes_shared_queueing_component() -> None:
@@ -280,7 +502,9 @@ def test_gwb_broader_review_consumes_shared_queueing_component() -> None:
     assert "_build_provisional_anchor_bundles_impl" in bundles_src
 
 
-def test_gwb_broader_review_world_model_report_rebinds_legal_follow_queue(tmp_path: Path) -> None:
+def test_gwb_broader_review_world_model_report_rebinds_legal_follow_queue(
+    tmp_path: Path,
+) -> None:
     result = build_gwb_broader_review(tmp_path / "out")
     payload = json.loads(Path(result["artifact_path"]).read_text(encoding="utf-8"))
 
@@ -299,20 +523,35 @@ def test_gwb_broader_review_world_model_report_rebinds_legal_follow_queue(tmp_pa
     assert report["lane_id"] == "gwb"
     assert report["promotion_gate"] == payload["promotion_gate"]
     assert report["compiler_contract"] == payload["compiler_contract"]
-    assert report["operator_workflow_surface"]["summary"]["gate_decision"] == payload["promotion_gate"]["decision"]
-    assert report["operator_workflow_surface"]["summary"]["review_count"] == payload["compiler_contract"]["promoted_outcomes"]["review_count"]
+    assert (
+        report["operator_workflow_surface"]["summary"]["gate_decision"]
+        == payload["promotion_gate"]["decision"]
+    )
+    assert (
+        report["operator_workflow_surface"]["summary"]["review_count"]
+        == payload["compiler_contract"]["promoted_outcomes"]["review_count"]
+    )
     assert report["summary"]["claim_count"] >= 1
     assert report["summary"]["must_review_count"] >= 1
-    assert report["summary"]["queue_count"] == payload["operator_views"]["legal_follow_graph"]["summary"]["queue_count"]
+    assert (
+        report["summary"]["queue_count"]
+        == payload["operator_views"]["legal_follow_graph"]["summary"]["queue_count"]
+    )
     first_claim = report["claims"][0]
     assert first_claim["nat_claim"]["property"] == "legal_follow_target"
     assert first_claim["action_policy"]["actionability"] == "must_review"
     assert any(
-        any(ref.get("event_ids") for ref in claim["nat_claim"]["qualifiers"]["source_refs"])
+        any(
+            ref.get("event_ids")
+            for ref in claim["nat_claim"]["qualifiers"]["source_refs"]
+        )
         for claim in report["claims"]
     )
     assert any(
-        any(ref.get("cross_source_braid_depth") for ref in claim["nat_claim"]["qualifiers"]["source_refs"])
+        any(
+            ref.get("cross_source_braid_depth")
+            for ref in claim["nat_claim"]["qualifiers"]["source_refs"]
+        )
         for claim in report["claims"]
     )
     assert world_model["metadata"]["adapter_stack"] == [
@@ -323,7 +562,9 @@ def test_gwb_broader_review_world_model_report_rebinds_legal_follow_queue(tmp_pa
     assert "linkage_depth_receipt" not in report
 
 
-def test_gwb_broader_review_linkage_case_uses_projected_input_before_receipt(tmp_path: Path) -> None:
+def test_gwb_broader_review_linkage_case_uses_projected_input_before_receipt(
+    tmp_path: Path,
+) -> None:
     result = build_gwb_broader_review(tmp_path / "out")
     payload = json.loads(Path(result["artifact_path"]).read_text(encoding="utf-8"))
     report = build_world_model_report(payload)
@@ -332,7 +573,9 @@ def test_gwb_broader_review_linkage_case_uses_projected_input_before_receipt(tmp
     assert case["case_source"] == "projected_world_model_artifact"
 
 
-def test_gwb_broader_review_lane_receipt_attaches_at_wrapper_boundary(tmp_path: Path) -> None:
+def test_gwb_broader_review_lane_receipt_attaches_at_wrapper_boundary(
+    tmp_path: Path,
+) -> None:
     result = build_gwb_broader_review(tmp_path / "out")
     payload = json.loads(Path(result["artifact_path"]).read_text(encoding="utf-8"))
 
@@ -346,8 +589,31 @@ def test_gwb_broader_review_lane_receipt_attaches_at_wrapper_boundary(tmp_path: 
     assert receipt["contract"]["contract_id"] == GWB_BROADER_REVIEW_LINKAGE_CONTRACT_ID
     assert receipt["diagnostics"]["linkage_depth_status"] == "complete"
     assert receipt["diagnostics"]["typed_path_depth"] == 5
-    assert receipt["diagnostics"]["anchor_to_tranche_reachability"]["all_reachable"] is True
-    assert receipt["diagnostics"]["visibility_requirements"]["queue_review_depth"]["present"] is True
-    assert receipt["diagnostics"]["visibility_requirements"]["event_lineage_depth"]["present"] is True
-    assert receipt["diagnostics"]["visibility_requirements"]["cross_source_braid_depth"]["present"] is True
-    assert "complete" in receipt["diagnostics"]["visibility_requirements"]["event_lineage_depth"]["values"]
+    assert (
+        receipt["diagnostics"]["anchor_to_tranche_reachability"]["all_reachable"]
+        is True
+    )
+    assert (
+        receipt["diagnostics"]["visibility_requirements"]["queue_review_depth"][
+            "present"
+        ]
+        is True
+    )
+    assert (
+        receipt["diagnostics"]["visibility_requirements"]["event_lineage_depth"][
+            "present"
+        ]
+        is True
+    )
+    assert (
+        receipt["diagnostics"]["visibility_requirements"]["cross_source_braid_depth"][
+            "present"
+        ]
+        is True
+    )
+    assert (
+        "complete"
+        in receipt["diagnostics"]["visibility_requirements"]["event_lineage_depth"][
+            "values"
+        ]
+    )

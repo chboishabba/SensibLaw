@@ -1,9 +1,7 @@
 from pathlib import Path
 
 
-MIGRATION = Path(
-    "database/postgres_migrations/075_reference_mode_outcomes.sql"
-)
+MIGRATION = Path("database/postgres_migrations/075_reference_mode_outcomes.sql")
 
 
 def _source() -> str:
@@ -24,7 +22,9 @@ def test_reference_modes_are_explicit_typed_demand_state() -> None:
         assert required in source
 
 
-def test_singular_preserves_solver_multiplicity_while_non_singular_is_distinct() -> None:
+def test_singular_preserves_solver_multiplicity_while_non_singular_is_distinct() -> (
+    None
+):
     source = _source()
     classifier = source.split(
         "CREATE OR REPLACE FUNCTION execution.classify_numeric_pnf_reference_outcome",

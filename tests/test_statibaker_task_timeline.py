@@ -26,8 +26,14 @@ def test_prior_prefix_is_folded_before_seed_interpretation() -> None:
     assert probe["schema_version"] == "sl.statibaker_bidirectional_task_timeline.v0_1"
     assert probe["timeline_count"] == fixture["expected"]["timeline_count"]
     assert probe["summary"]["seed_reinterpreted_with_prior_state"] == 10
-    assert probe["authority_boundary"]["prior_prefix_is_folded_before_seed_interpretation"] is True
-    assert probe["authority_boundary"]["later_suffix_is_folded_after_seed_interpretation"] is True
+    assert (
+        probe["authority_boundary"]["prior_prefix_is_folded_before_seed_interpretation"]
+        is True
+    )
+    assert (
+        probe["authority_boundary"]["later_suffix_is_folded_after_seed_interpretation"]
+        is True
+    )
 
     by_title = {row["task_title"]: row for row in probe["timelines"]}
     phase4 = by_title["Resolve Phase-4 readiness blockers"]
@@ -60,7 +66,11 @@ def test_prior_event_can_prove_seed_is_not_task_origin() -> None:
                     "object": "signup flow",
                     "lifecycle_effect": "mark_in_progress",
                 },
-                "expected_event_slots": ["prior_completion", "failed_verification", "reopen"],
+                "expected_event_slots": [
+                    "prior_completion",
+                    "failed_verification",
+                    "reopen",
+                ],
                 "prior_event_receipts": [
                     {
                         "source_message_id": "m1",
@@ -105,7 +115,11 @@ def test_missing_slots_are_computed_across_both_sides_of_seed() -> None:
         timeline_cases=[
             {
                 "task_title": "Review deployment",
-                "expected_event_slots": ["prior_patch", "review_request", "acceptance_test"],
+                "expected_event_slots": [
+                    "prior_patch",
+                    "review_request",
+                    "acceptance_test",
+                ],
                 "prior_event_receipts": [
                     {
                         "lifecycle_event_type": "implemented",

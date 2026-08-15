@@ -27,4 +27,3 @@ def test_case_node_and_edges():
         source=c2.identifier, target=c1.identifier, type=EdgeType.FOLLOWS
     )
     assert matches == [edge]
-

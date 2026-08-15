@@ -69,7 +69,9 @@ def test_pdf_fixture_ingest_has_no_textspan_warnings(
     assert stored_id is None
     assert doc.body.strip(), f"Expected non-empty body for {pdf_path.name}"
     assert getattr(doc, "provisions", None), f"Expected provisions for {pdf_path.name}"
-    assert doc.metadata.compression_stats, f"Expected compression stats for {pdf_path.name}"
+    assert doc.metadata.compression_stats, (
+        f"Expected compression stats for {pdf_path.name}"
+    )
     assert not _missing_textspan_warnings(caplog.records), (
         f"Unexpected TextSpan warnings for {pdf_path.name}: "
         f"{_missing_textspan_warnings(caplog.records)}"

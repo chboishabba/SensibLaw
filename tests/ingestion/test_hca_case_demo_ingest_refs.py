@@ -13,22 +13,41 @@ def _write_doc(path: Path) -> Path:
                 "stable_id": "prov-001",
                 "text": "The Court applied s 6O of the Civil Liability Act and considered SC[210].",
                 "references": [
-                    ["civil liability act 2002", "section", "6O", "s 6O of the Civil Liability Act", None]
+                    [
+                        "civil liability act 2002",
+                        "section",
+                        "6O",
+                        "s 6O of the Civil Liability Act",
+                        None,
+                    ]
                 ],
                 "rule_tokens": {"references": ["Part 1B"]},
                 "rule_atoms": [
                     {
                         "stable_id": "atom-001",
                         "text": "The Court considered SC[210].",
-                        "references": [["supreme court reasons", "paragraph", "210", "SC[210]", None]],
+                        "references": [
+                            [
+                                "supreme court reasons",
+                                "paragraph",
+                                "210",
+                                "SC[210]",
+                                None,
+                            ]
+                        ],
                         "subject": {"refs": ["SC[210]"]},
-                        "elements": [{"text": "SC[210] was cited", "references": ["SC[210]"]}],
+                        "elements": [
+                            {"text": "SC[210] was cited", "references": ["SC[210]"]}
+                        ],
                     }
                 ],
             }
         ],
         "sentences": [
-            {"index": 0, "text": "The Court applied s 6O of the Civil Liability Act and considered SC[210]."}
+            {
+                "index": 0,
+                "text": "The Court applied s 6O of the Civil Liability Act and considered SC[210].",
+            }
         ],
     }
     path.write_text(json.dumps(payload), encoding="utf-8")
@@ -67,9 +86,21 @@ def test_sb_payload_preserves_sl_references_lane() -> None:
                 "anchor": {"year": 2025, "month": 7, "day": None},
                 "section": "Narrative",
                 "text": "Sample sentence.",
-                "steps": [{"action": "held", "subjects": ["Court"], "objects": ["Act"], "purpose": "test"}],
+                "steps": [
+                    {
+                        "action": "held",
+                        "subjects": ["Court"],
+                        "objects": ["Act"],
+                        "purpose": "test",
+                    }
+                ],
                 "citations": [{"text": "SC[210]"}],
-                "sl_references": [{"lane": "provisions.references", "text": "s 6O of the Civil Liability Act"}],
+                "sl_references": [
+                    {
+                        "lane": "provisions.references",
+                        "text": "s 6O of the Civil Liability Act",
+                    }
+                ],
                 "warnings": [],
             }
         ]
@@ -84,13 +115,21 @@ def test_sb_payload_preserves_sl_references_lane() -> None:
 
 def test_hca_case_snapshot_and_source_entity_are_non_null() -> None:
     manifest = {"generated_at": "2026-03-09T01:02:03+00:00"}
-    snapshot = ingest._build_hca_case_snapshot("https://www.hcourt.gov.au/cases-and-judgments/cases/decided/case-s942025", manifest)
+    snapshot = ingest._build_hca_case_snapshot(
+        "https://www.hcourt.gov.au/cases-and-judgments/cases/decided/case-s942025",
+        manifest,
+    )
     assert snapshot["title"] == "AA v Diocese (S94/2025)"
     assert snapshot["wiki"] == "hca_case_s942025"
-    assert snapshot["source_url"] == "https://www.hcourt.gov.au/cases-and-judgments/cases/decided/case-s942025"
+    assert (
+        snapshot["source_url"]
+        == "https://www.hcourt.gov.au/cases-and-judgments/cases/decided/case-s942025"
+    )
     assert snapshot["rev_timestamp"] == "2026-03-09T01:02:03+00:00"
 
-    source_entity = ingest._build_hca_source_entity(str(snapshot["source_url"]), snapshot)
+    source_entity = ingest._build_hca_source_entity(
+        str(snapshot["source_url"]), snapshot
+    )
     assert source_entity["type"] == "court_opinion"
     assert source_entity["title"] == "AA v Diocese (S94/2025)"
     assert source_entity["url"] == snapshot["source_url"]
@@ -138,11 +177,23 @@ def test_reasoning_proposition_layer_extracts_negated_against_idiom() -> None:
     )
 
     assert any(p.get("predicate_key") == "attend" for p in propositions)
-    reasoning = next(p for p in propositions if p.get("proposition_kind") == "reasoning")
+    reasoning = next(
+        p for p in propositions if p.get("proposition_kind") == "reasoning"
+    )
     assert reasoning["predicate_key"] == "negate"
     assert reasoning["negation"]["kind"] == "not"
     assert reasoning["source_signal"] == "idiom_against"
-    assert {"role": "subject", "value": "any imprecision in the precise timing of those visits"} in reasoning["arguments"]
-    assert any(arg.get("role") == "object" and "acceptance that the abuse occurred" in str(arg.get("value")) for arg in reasoning["arguments"])
+    assert {
+        "role": "subject",
+        "value": "any imprecision in the precise timing of those visits",
+    } in reasoning["arguments"]
+    assert any(
+        arg.get("role") == "object"
+        and "acceptance that the abuse occurred" in str(arg.get("value"))
+        for arg in reasoning["arguments"]
+    )
     assert all(link["link_kind"] == "supports" for link in links)
-    assert {link["source_proposition_id"] for link in links} == {"ev:0349:f01:p", "ev:0349:f02:p"}
+    assert {link["source_proposition_id"] for link in links} == {
+        "ev:0349:f01:p",
+        "ev:0349:f02:p",
+    }

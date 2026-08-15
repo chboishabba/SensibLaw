@@ -13,16 +13,40 @@ _SENSIBLAW_ROOT = _THIS_DIR.parent
 if str(_SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(_SENSIBLAW_ROOT))
 
-from src.reporting.worldmonitor_import import ensure_worldmonitor_capture_schema, import_worldmonitor_data, load_worldmonitor_units
+from src.reporting.worldmonitor_import import (
+    ensure_worldmonitor_capture_schema,
+    import_worldmonitor_data,
+    load_worldmonitor_units,
+)
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Import WorldMonitor JSON captures into itir.sqlite as observer-class artifacts.")
-    parser.add_argument("--source-path", type=Path, required=True, help="Path to WorldMonitor export JSON or directory")
-    parser.add_argument("--itir-db-path", type=Path, default=Path(".cache_local/itir.sqlite"), help="Target ITIR SQLite DB")
-    parser.add_argument("--limit", type=int, default=None, help="Optional max source files")
-    parser.add_argument("--import-run-id", default=None, help="Optional stable import run id")
-    parser.add_argument("--show-units", action="store_true", help="Include a small preview of imported text units")
+    parser = argparse.ArgumentParser(
+        description="Import WorldMonitor JSON captures into itir.sqlite as observer-class artifacts."
+    )
+    parser.add_argument(
+        "--source-path",
+        type=Path,
+        required=True,
+        help="Path to WorldMonitor export JSON or directory",
+    )
+    parser.add_argument(
+        "--itir-db-path",
+        type=Path,
+        default=Path(".cache_local/itir.sqlite"),
+        help="Target ITIR SQLite DB",
+    )
+    parser.add_argument(
+        "--limit", type=int, default=None, help="Optional max source files"
+    )
+    parser.add_argument(
+        "--import-run-id", default=None, help="Optional stable import run id"
+    )
+    parser.add_argument(
+        "--show-units",
+        action="store_true",
+        help="Include a small preview of imported text units",
+    )
     args = parser.parse_args(argv)
 
     import_run_id = args.import_run_id or f"worldmonitor-import:{uuid.uuid4().hex[:12]}"
@@ -49,7 +73,9 @@ def main(argv: list[str] | None = None) -> int:
         "itirDbPath": str(args.itir_db_path.resolve()),
     }
     if args.show_units:
-        units = load_worldmonitor_units(args.itir_db_path, import_run_id=summary.import_run_id, limit=5)
+        units = load_worldmonitor_units(
+            args.itir_db_path, import_run_id=summary.import_run_id, limit=5
+        )
         payload["unitPreview"] = [
             {
                 "unitId": unit.unit_id,

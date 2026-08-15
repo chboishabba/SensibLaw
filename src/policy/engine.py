@@ -72,9 +72,7 @@ class PolicyEngine:
         self.storage_hook = storage_hook
         self.inference_hook = inference_hook
         # Extract direct flag rules for enforcement convenience
-        self.rules = {
-            k.upper(): v for k, v in policy.items() if isinstance(v, dict)
-        }
+        self.rules = {k.upper(): v for k, v in policy.items() if isinstance(v, dict)}
 
     # ------------------------------------------------------------------
     # Construction helpers
@@ -232,4 +230,3 @@ class PolicyEngine:
             consent_required=consent_required,
             cultural_flags=canonical_names or node.cultural_flags,
         )
-

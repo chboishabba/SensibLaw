@@ -119,7 +119,9 @@ def _clean_fragment(fragment: str) -> str:
     return fragment.strip(" ,.;:")
 
 
-def _extract_patterns(text: str, patterns: List[re.Pattern[str]]) -> tuple[List[str], str]:
+def _extract_patterns(
+    text: str, patterns: List[re.Pattern[str]]
+) -> tuple[List[str], str]:
     """Extract ``patterns`` from ``text`` returning matches and remainder."""
 
     matches: List[str] = []
@@ -148,7 +150,9 @@ def _normalise_condition_text(text: str) -> str:
     return fragment.strip()
 
 
-def _classify_fragments(action: str, conditions: str | None, scope: str | None) -> Dict[str, List[str]]:
+def _classify_fragments(
+    action: str, conditions: str | None, scope: str | None
+) -> Dict[str, List[str]]:
     """Classify clause fragments into offence element roles."""
 
     roles: Dict[str, List[str]] = defaultdict(list)
@@ -156,14 +160,18 @@ def _classify_fragments(action: str, conditions: str | None, scope: str | None) 
     working_action = action or ""
 
     if working_action:
-        leading_cond = re.match(r"\b(if|when|where)\b\s+(?P<body>.+)", working_action, re.IGNORECASE)
+        leading_cond = re.match(
+            r"\b(if|when|where)\b\s+(?P<body>.+)", working_action, re.IGNORECASE
+        )
         if leading_cond:
             fragment = _clean_fragment(leading_cond.group(0))
             if fragment:
                 roles["circumstance"].append(fragment)
             working_action = leading_cond.group("body")
 
-    action_exceptions, working_action = _extract_patterns(working_action, _EXCEPTION_PATTERNS)
+    action_exceptions, working_action = _extract_patterns(
+        working_action, _EXCEPTION_PATTERNS
+    )
     if action_exceptions:
         roles["exception"].extend(action_exceptions)
 
@@ -175,7 +183,9 @@ def _classify_fragments(action: str, conditions: str | None, scope: str | None) 
     if results:
         roles["result"].extend(results)
 
-    circumstances, working_action = _extract_patterns(working_action, _CIRCUMSTANCE_PATTERNS)
+    circumstances, working_action = _extract_patterns(
+        working_action, _CIRCUMSTANCE_PATTERNS
+    )
     if circumstances:
         roles["circumstance"].extend(circumstances)
 
@@ -237,14 +247,17 @@ def extract_rules(text: str) -> List[Rule]:
                 for match_obj in re.finditer(r"[\s,;:]+", working_sentence)
             )
 
-            leading_match: tuple[
-                int,
-                int,
-                str,
-                str,
-                re.Match[str],
-                re.Pattern[str],
-            ] | None = None
+            leading_match: (
+                tuple[
+                    int,
+                    int,
+                    str,
+                    str,
+                    re.Match[str],
+                    re.Pattern[str],
+                ]
+                | None
+            ) = None
 
             for pos in prefix_positions:
                 segment = working_sentence[pos:]
@@ -257,11 +270,18 @@ def extract_rules(text: str) -> List[Rule]:
                 prefix_end = pos + consumed
                 prefix_text = working_sentence[:prefix_end]
                 normalised_prefix = _normalise_condition_text(prefix_text)
-                if not normalised_prefix or normalised_prefix.lower() in {"if", "when", "where", "unless"}:
+                if not normalised_prefix or normalised_prefix.lower() in {
+                    "if",
+                    "when",
+                    "where",
+                    "unless",
+                }:
                     continue
 
                 prefix_trimmed = prefix_text.rstrip()
-                prefix_has_delimiter = bool(prefix_trimmed and prefix_trimmed[-1] in ",;:")
+                prefix_has_delimiter = bool(
+                    prefix_trimmed and prefix_trimmed[-1] in ",;:"
+                )
 
                 for pattern in _PATTERNS:
                     potential_match = pattern.match(candidate)
@@ -269,7 +289,9 @@ def extract_rules(text: str) -> List[Rule]:
                         continue
 
                     actor_candidate = potential_match.group("actor").strip()
-                    if re.match(r"^(if|when|where|unless)\b", actor_candidate, re.IGNORECASE):
+                    if re.match(
+                        r"^(if|when|where|unless)\b", actor_candidate, re.IGNORECASE
+                    ):
                         continue
 
                     actor_lower = actor_candidate.lower()
@@ -285,11 +307,17 @@ def extract_rules(text: str) -> List[Rule]:
                             "all ",
                         )
                     )
-                    actor_starts_upper = bool(actor_candidate and actor_candidate[0].isupper())
+                    actor_starts_upper = bool(
+                        actor_candidate and actor_candidate[0].isupper()
+                    )
 
-                    score = 0 if prefix_has_delimiter else 1 if (
-                        actor_starts_with_determiner or actor_starts_upper
-                    ) else 2
+                    score = (
+                        0
+                        if prefix_has_delimiter
+                        else 1
+                        if (actor_starts_with_determiner or actor_starts_upper)
+                        else 2
+                    )
 
                     candidate_info = (
                         score,

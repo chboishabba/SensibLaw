@@ -59,7 +59,8 @@ def test_export_zip_is_deterministic(tmp_path: Path):
 def test_export_zip_order_invariant(tmp_path: Path):
     base = json.loads(Path("examples/review_collection_minimal.json").read_text())
     abs_bundles = [
-        {**b, "path": str((Path("examples") / b["path"]).resolve())} for b in base["bundles"]
+        {**b, "path": str((Path("examples") / b["path"]).resolve())}
+        for b in base["bundles"]
     ]
     swapped = {"version": base["version"], "bundles": list(reversed(abs_bundles))}
     base_abs = {"version": base["version"], "bundles": abs_bundles}

@@ -183,9 +183,7 @@ def persist_streaming_coordination_artifacts(
                 ),
                 _json(region_coordinator.get("region_certificate_refs") or {}),
                 _json(region_coordinator.get("boundary_routes") or {}),
-                _json(
-                    region_coordinator.get("discharged_boundary_refs") or ()
-                ),
+                _json(region_coordinator.get("discharged_boundary_refs") or ()),
                 _json(region_coordinator.get("unresolved_boundary_refs") or ()),
                 str(region_coordinator["local_fixed_point"]),
             ),

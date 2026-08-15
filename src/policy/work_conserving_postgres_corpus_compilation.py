@@ -23,9 +23,7 @@ WORK_CONSERVING_DOCUMENT_EXECUTOR_REF = (
 
 
 @contextmanager
-def _claim_budget_at_document_savepoint(
-    store: Any, runtime: Any
-) -> Iterator[None]:
+def _claim_budget_at_document_savepoint(store: Any, runtime: Any) -> Iterator[None]:
     """Transfer the full budget at the exact persistence boundary."""
 
     original_savepoint = store.savepoint

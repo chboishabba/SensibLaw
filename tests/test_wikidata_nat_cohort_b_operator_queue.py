@@ -16,25 +16,26 @@ from src.ontology.wikidata_nat_cohort_b_review_bucket import (
 
 
 def _load_fixture(name: str) -> dict:
-    fixture_path = (
-        Path(__file__).resolve().parent
-        / "fixtures"
-        / "wikidata"
-        / name
-    )
+    fixture_path = Path(__file__).resolve().parent / "fixtures" / "wikidata" / name
     return json.loads(fixture_path.read_text(encoding="utf-8"))
 
 
 def test_build_nat_cohort_b_operator_queue_matches_pinned_fixture() -> None:
-    operator_packet = _load_fixture("wikidata_nat_cohort_b_operator_packet_20260402.json")
+    operator_packet = _load_fixture(
+        "wikidata_nat_cohort_b_operator_packet_20260402.json"
+    )
     expected = _load_fixture("wikidata_nat_cohort_b_operator_queue_20260402.json")
 
     queue = build_nat_cohort_b_operator_queue([operator_packet], max_queue_items=10)
-    assert queue["schema_version"] == WIKIDATA_NAT_COHORT_B_OPERATOR_QUEUE_SCHEMA_VERSION
+    assert (
+        queue["schema_version"] == WIKIDATA_NAT_COHORT_B_OPERATOR_QUEUE_SCHEMA_VERSION
+    )
     assert queue == expected
 
 
-def test_build_nat_cohort_b_operator_queue_holds_when_any_input_packet_is_hold() -> None:
+def test_build_nat_cohort_b_operator_queue_holds_when_any_input_packet_is_hold() -> (
+    None
+):
     review_bucket = build_nat_cohort_b_review_bucket(
         {
             "schema_version": WIKIDATA_NAT_COHORT_B_REVIEW_BUCKET_SCHEMA_VERSION,

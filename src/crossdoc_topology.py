@@ -5,14 +5,24 @@ from typing import Dict, Iterable, List, Mapping, Tuple, Union
 
 from src.models.document import Document
 from src.obligation_identity import compute_identities
-from src.obligations import ObligationAtom, extract_obligations_from_document, extract_obligations_from_text
+from src.obligations import (
+    ObligationAtom,
+    extract_obligations_from_document,
+    extract_obligations_from_text,
+)
 
 CROSSDOC_VERSION = "obligation.crossdoc.v2"
 
 EDGE_PATTERNS: Dict[str, re.Pattern] = {
-    "repeals": re.compile(r"\b(repeals?|revokes?|ceases to have effect)\b", re.IGNORECASE),
-    "modifies": re.compile(r"\b(amends?|modif(?:y|ies)|varies|updates)\b", re.IGNORECASE),
-    "references": re.compile(r"\b(see|refer to|as provided in|as set out in)\b", re.IGNORECASE),
+    "repeals": re.compile(
+        r"\b(repeals?|revokes?|ceases to have effect)\b", re.IGNORECASE
+    ),
+    "modifies": re.compile(
+        r"\b(amends?|modif(?:y|ies)|varies|updates)\b", re.IGNORECASE
+    ),
+    "references": re.compile(
+        r"\b(see|refer to|as provided in|as set out in)\b", re.IGNORECASE
+    ),
     "cites": re.compile(r"\b(cites?|cited in|as cited in)\b", re.IGNORECASE),
 }
 
@@ -65,7 +75,9 @@ def _find_edges(
             matched_text = match.group(0)
             for ref_id in ob.reference_identities:
                 candidates = ref_target_map.get(ref_id, [])
-                target_ob = next((oid for oid, sid in candidates if sid != source_id), None)
+                target_ob = next(
+                    (oid for oid, sid in candidates if sid != source_id), None
+                )
                 if target_ob is None and candidates:
                     target_ob = candidates[0][0]  # fallback to any deterministic target
                 if not target_ob:
@@ -86,7 +98,9 @@ def _find_edges(
     return edges
 
 
-def _extract_obligations(source_id: str, payload: Union[str, Document]) -> Iterable[ObligationAtom]:
+def _extract_obligations(
+    source_id: str, payload: Union[str, Document]
+) -> Iterable[ObligationAtom]:
     if isinstance(payload, Document):
         return extract_obligations_from_document(payload)
     return extract_obligations_from_text(str(payload), source_id=source_id)
@@ -113,12 +127,16 @@ def build_crossdoc_topology(documents: Mapping[str, Union[str, Document]]) -> di
         identities = compute_identities(obligations)
         for ob, oid in zip(obligations, identities):
             for ref_id in ob.reference_identities:
-                ref_target_map.setdefault(ref_id, []).append((oid.identity_hash, ob.clause_id.rsplit("-clause-", 1)[0]))
+                ref_target_map.setdefault(ref_id, []).append(
+                    (oid.identity_hash, ob.clause_id.rsplit("-clause-", 1)[0])
+                )
 
     for source_id, text, obligations in doc_entries:
         edges.extend(_find_edges(text, source_id, obligations, ref_target_map))
 
-    edges_sorted = sorted(edges, key=lambda e: (e["kind"], e["from"], e["to"], e["text"]))
+    edges_sorted = sorted(
+        edges, key=lambda e: (e["kind"], e["from"], e["to"], e["text"])
+    )
     nodes_sorted = sorted(nodes, key=lambda n: n["obl_id"])
 
     return {

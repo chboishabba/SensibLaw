@@ -13,7 +13,12 @@ from src.ontology.wikidata_hotspot import (
 
 
 def test_generate_hotspot_cluster_pack_builds_selected_packs() -> None:
-    manifest_path = ROOT.parent / "docs" / "planning" / "wikidata_hotspot_pilot_pack_v1.manifest.json"
+    manifest_path = (
+        ROOT.parent
+        / "docs"
+        / "planning"
+        / "wikidata_hotspot_pilot_pack_v1.manifest.json"
+    )
     manifest = load_hotspot_manifest(manifest_path)
 
     pack = generate_hotspot_cluster_pack(
@@ -28,25 +33,42 @@ def test_generate_hotspot_cluster_pack_builds_selected_packs() -> None:
         "mixed_order_live_pack_v1",
         "finance_entity_kind_collapse_pack_v0",
     ]
-    mixed = next(item for item in pack["packs"] if item["pack_id"] == "mixed_order_live_pack_v1")
+    mixed = next(
+        item for item in pack["packs"] if item["pack_id"] == "mixed_order_live_pack_v1"
+    )
     assert mixed["cluster_count"] >= 2
     first_question = mixed["clusters"][0]["questions"][0]
     assert first_question["question_id"].endswith(":q0")
     assert isinstance(first_question["text"], str)
-    finance = next(item for item in pack["packs"] if item["pack_id"] == "finance_entity_kind_collapse_pack_v0")
+    finance = next(
+        item
+        for item in pack["packs"]
+        if item["pack_id"] == "finance_entity_kind_collapse_pack_v0"
+    )
     assert finance["status"] == "fixture_backed"
     assert finance["promotion_status"] == "promotable"
     assert finance["hold_reason"] == "awaiting_manifest_promotion"
-    assert finance["semantic_candidate"]["schema_version"] == "hotspot_pack.semantic_candidate.v1"
+    assert (
+        finance["semantic_candidate"]["schema_version"]
+        == "hotspot_pack.semantic_candidate.v1"
+    )
     assert finance["semantic_candidate"]["candidate_kind"] == "hotspot_pack"
     assert finance["semantic_basis"] == "structural"
     assert finance["canonical_promotion_status"] == "abstained"
     assert finance["canonical_promotion_basis"] == "structural"
-    assert any(cluster["cluster_family"] == "kind_disambiguation" for cluster in finance["clusters"])
+    assert any(
+        cluster["cluster_family"] == "kind_disambiguation"
+        for cluster in finance["clusters"]
+    )
 
 
 def test_generate_hotspot_cluster_pack_uses_repo_pinned_qualifier_drift() -> None:
-    manifest_path = ROOT.parent / "docs" / "planning" / "wikidata_hotspot_pilot_pack_v1.manifest.json"
+    manifest_path = (
+        ROOT.parent
+        / "docs"
+        / "planning"
+        / "wikidata_hotspot_pilot_pack_v1.manifest.json"
+    )
     manifest = load_hotspot_manifest(manifest_path)
 
     pack = generate_hotspot_cluster_pack(
@@ -63,7 +85,12 @@ def test_generate_hotspot_cluster_pack_uses_repo_pinned_qualifier_drift() -> Non
 
 
 def test_generate_hotspot_cluster_pack_builds_all_manifest_entries() -> None:
-    manifest_path = ROOT.parent / "docs" / "planning" / "wikidata_hotspot_pilot_pack_v1.manifest.json"
+    manifest_path = (
+        ROOT.parent
+        / "docs"
+        / "planning"
+        / "wikidata_hotspot_pilot_pack_v1.manifest.json"
+    )
     manifest = load_hotspot_manifest(manifest_path)
 
     pack = generate_hotspot_cluster_pack(
@@ -77,7 +104,9 @@ def test_generate_hotspot_cluster_pack_builds_all_manifest_entries() -> None:
     assert pack["cluster_count"] > 0
     assert all("promotion_status" in emitted_pack for emitted_pack in pack["packs"])
     assert all("semantic_candidate" in emitted_pack for emitted_pack in pack["packs"])
-    assert all("canonical_promotion_status" in emitted_pack for emitted_pack in pack["packs"])
+    assert all(
+        "canonical_promotion_status" in emitted_pack for emitted_pack in pack["packs"]
+    )
     for emitted_pack in pack["packs"]:
         if emitted_pack["promotion_status"] == "promoted":
             assert emitted_pack["hold_reason"] is None
@@ -130,4 +159,6 @@ def test_load_hotspot_manifest_requires_hold_reason_for_non_promoted(tmp_path) -
     except ValueError as exc:
         assert "hold_reason is required" in str(exc)
     else:
-        raise AssertionError("expected manifest validation failure for missing hold_reason")
+        raise AssertionError(
+            "expected manifest validation failure for missing hold_reason"
+        )

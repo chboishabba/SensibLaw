@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any, Dict, Iterable, Set
+from typing import Any, Dict, Set
 
 
 class OPAGateway:

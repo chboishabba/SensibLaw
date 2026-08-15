@@ -1,4 +1,3 @@
-from types import SimpleNamespace
 from pathlib import Path
 
 from src.sources.base import FetchResult
@@ -32,7 +31,9 @@ class FakeFetchAdapter:
 
 
 def test_pipeline_orchestrates_search_fetch_and_ingest(monkeypatch, tmp_path):
-    html = Path("tests/fixtures/austlii/sino_results_sample.html").read_text(encoding="utf-8")
+    html = Path("tests/fixtures/austlii/sino_results_sample.html").read_text(
+        encoding="utf-8"
+    )
     search_adapter = FakeSearchAdapter(html)
     fetch_adapter = FakeFetchAdapter()
 
@@ -61,7 +62,9 @@ def test_pipeline_orchestrates_search_fetch_and_ingest(monkeypatch, tmp_path):
 
 
 def test_hit_selection_by_index(monkeypatch, tmp_path):
-    html = Path("tests/fixtures/austlii/sino_results_sample.html").read_text(encoding="utf-8")
+    html = Path("tests/fixtures/austlii/sino_results_sample.html").read_text(
+        encoding="utf-8"
+    )
     search_adapter = FakeSearchAdapter(html)
     fetch_adapter = FakeFetchAdapter()
 

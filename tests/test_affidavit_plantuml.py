@@ -51,7 +51,9 @@ def test_affidavit_resolution_plantuml_renders_claim_root_and_relation() -> None
             {
                 "fact_id": "zelph_claim_state:demo",
                 "best_source_row_id": "fact:f1",
-                "claim_text_span": {"text": "The respondent cut off my internet in November 2024."},
+                "claim_text_span": {
+                    "text": "The respondent cut off my internet in November 2024."
+                },
                 "promotion_status": "candidate_conflict",
                 "semantic_basis": "structural",
             }
@@ -92,8 +94,7 @@ def test_affidavit_mechanical_plantuml_renders_tokens_and_duplicate_root() -> No
                         "score": 0.7,
                     }
                 ],
-            }
-            ,
+            },
             {
                 "proposition_id": "aff-prop:p1-s2",
                 "text": "The respondent pushed me on the back deck.",

@@ -48,7 +48,9 @@ def _workflow_summaries(slice_payload: dict[str, Any]) -> list[dict[str, Any]]:
         bucket["observation_count_total"] += int(row.get("observation_count") or 0)
         bucket["event_count_total"] += int(row.get("event_count") or 0)
         bucket["review_queue_count_total"] += int(row.get("review_queue_count") or 0)
-        bucket["contested_item_count_total"] += int(row.get("contested_item_count") or 0)
+        bucket["contested_item_count_total"] += int(
+            row.get("contested_item_count") or 0
+        )
         source_label = str(row.get("source_label") or "")
         if source_label:
             bucket["source_labels"].add(source_label)
@@ -74,26 +76,53 @@ def _bundle_pressure_inventory(slice_payload: dict[str, Any]) -> list[dict[str, 
                 "contested_item_count": int(row.get("contested_item_count") or 0),
                 "event_count": int(row.get("event_count") or 0),
                 "fact_count": int(row.get("fact_count") or 0),
-                "pressure_score": int(row.get("review_queue_count") or 0) + int(row.get("contested_item_count") or 0),
+                "pressure_score": int(row.get("review_queue_count") or 0)
+                + int(row.get("contested_item_count") or 0),
             }
         )
-    rows.sort(key=lambda row: (-row["pressure_score"], -row["event_count"], row["source_label"]))
+    rows.sort(
+        key=lambda row: (
+            -row["pressure_score"],
+            -row["event_count"],
+            row["source_label"],
+        )
+    )
     return rows
 
 
-def _build_summary(slice_payload: dict[str, Any], workflow_summaries: list[dict[str, Any]], pressure_inventory: list[dict[str, Any]]) -> dict[str, Any]:
+def _build_summary(
+    slice_payload: dict[str, Any],
+    workflow_summaries: list[dict[str, Any]],
+    pressure_inventory: list[dict[str, Any]],
+) -> dict[str, Any]:
     summary = slice_payload["summary"]
     return {
         "source_family_count": len(slice_payload["bundle_inventory"]),
         "workflow_kind_count": len(workflow_summaries),
-        "transcript_semantic_bundle_count": sum(1 for row in slice_payload["bundle_inventory"] if row["workflow_kind"] == "transcript_semantic"),
-        "bundles_with_events_count": sum(1 for row in slice_payload["bundle_inventory"] if int(row.get("event_count") or 0) > 0),
-        "bundles_with_contested_items_count": sum(1 for row in slice_payload["bundle_inventory"] if int(row.get("contested_item_count") or 0) > 0),
-        "known_raw_transcript_file_count": int(summary["known_raw_transcript_file_count"]),
+        "transcript_semantic_bundle_count": sum(
+            1
+            for row in slice_payload["bundle_inventory"]
+            if row["workflow_kind"] == "transcript_semantic"
+        ),
+        "bundles_with_events_count": sum(
+            1
+            for row in slice_payload["bundle_inventory"]
+            if int(row.get("event_count") or 0) > 0
+        ),
+        "bundles_with_contested_items_count": sum(
+            1
+            for row in slice_payload["bundle_inventory"]
+            if int(row.get("contested_item_count") or 0) > 0
+        ),
+        "known_raw_transcript_file_count": int(
+            summary["known_raw_transcript_file_count"]
+        ),
         "fact_count_total": int(summary["fact_count_total"]),
         "observation_count_total": int(summary["observation_count_total"]),
         "review_queue_count_total": int(summary["review_queue_count_total"]),
-        "peak_pressure_bundle": pressure_inventory[0]["source_label"] if pressure_inventory else "",
+        "peak_pressure_bundle": pressure_inventory[0]["source_label"]
+        if pressure_inventory
+        else "",
         "core_reading": "AU broader corpus coverage now spans multiple real workbench bundles and transcript-semantic lanes, but full transcript-derived event coverage still sits in a visible raw-source backlog.",
     }
 
@@ -153,14 +182,20 @@ def build_diagnostics(
     bundle_paths: list[Path] | None = None,
     raw_source_root: Path = DEFAULT_RAW_SOURCE_ROOT,
 ) -> dict[str, Any]:
-    selected_bundle_paths = [path.resolve() for path in (bundle_paths or DEFAULT_BUNDLE_PATHS)]
-    slice_payload = _build_slice(selected_bundle_paths, raw_source_root=raw_source_root.resolve())
+    selected_bundle_paths = [
+        path.resolve() for path in (bundle_paths or DEFAULT_BUNDLE_PATHS)
+    ]
+    slice_payload = _build_slice(
+        selected_bundle_paths, raw_source_root=raw_source_root.resolve()
+    )
     workflow_summaries = _workflow_summaries(slice_payload)
     pressure_inventory = _bundle_pressure_inventory(slice_payload)
     payload = {
         "version": ARTIFACT_VERSION,
         "fixture_kind": "au_broader_corpus_diagnostics",
-        "summary": _build_summary(slice_payload, workflow_summaries, pressure_inventory),
+        "summary": _build_summary(
+            slice_payload, workflow_summaries, pressure_inventory
+        ),
         "workflow_summaries": workflow_summaries,
         "bundle_pressure_inventory": pressure_inventory,
         "raw_source_backlog": slice_payload["known_raw_source_backlog"],
@@ -170,7 +205,9 @@ def build_diagnostics(
     output_dir.mkdir(parents=True, exist_ok=True)
     artifact_path = output_dir / f"{ARTIFACT_VERSION}.json"
     summary_path = output_dir / f"{ARTIFACT_VERSION}.summary.md"
-    artifact_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    artifact_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     summary_path.write_text(summary_text + "\n", encoding="utf-8")
     return {
         "summary": payload["summary"],
@@ -180,10 +217,25 @@ def build_diagnostics(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build diagnostics for broader AU corpus coverage across persisted real bundles.")
-    parser.add_argument("--bundle-path", action="append", default=[], help="Real workbench bundle path; repeat to override the default set.")
-    parser.add_argument("--raw-source-root", default=str(DEFAULT_RAW_SOURCE_ROOT), help="Directory containing known raw transcript source files.")
-    parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Directory to write diagnostics into.")
+    parser = argparse.ArgumentParser(
+        description="Build diagnostics for broader AU corpus coverage across persisted real bundles."
+    )
+    parser.add_argument(
+        "--bundle-path",
+        action="append",
+        default=[],
+        help="Real workbench bundle path; repeat to override the default set.",
+    )
+    parser.add_argument(
+        "--raw-source-root",
+        default=str(DEFAULT_RAW_SOURCE_ROOT),
+        help="Directory containing known raw transcript source files.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default=str(DEFAULT_OUTPUT_DIR),
+        help="Directory to write diagnostics into.",
+    )
     args = parser.parse_args()
 
     result = build_diagnostics(

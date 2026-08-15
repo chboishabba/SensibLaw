@@ -20,8 +20,14 @@ def _collapse_ws(text: str) -> str:
     return " ".join((text or "").split()).strip()
 
 
-def parse_jade_paragraphs(content: bytes | str, *, content_type: str | None = None) -> list[JadeParagraph]:
-    text = content.decode("utf-8", errors="replace") if isinstance(content, bytes) else content
+def parse_jade_paragraphs(
+    content: bytes | str, *, content_type: str | None = None
+) -> list[JadeParagraph]:
+    text = (
+        content.decode("utf-8", errors="replace")
+        if isinstance(content, bytes)
+        else content
+    )
     ct = (content_type or "").lower()
 
     if "html" in ct or "<html" in text.lower():

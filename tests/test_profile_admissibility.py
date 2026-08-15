@@ -14,8 +14,16 @@ def _payload():
             {"group_id": "system_component", "spans": [{"start": 49, "end": 63}]},
         ],
         "axes": [
-            {"axis_id": "jurisdiction", "value": "nsw", "spans": [{"start": 22, "end": 25}]},
-            {"axis_id": "hosting", "value": "hosted", "spans": [{"start": 49, "end": 55}]},
+            {
+                "axis_id": "jurisdiction",
+                "value": "nsw",
+                "spans": [{"start": 22, "end": 25}],
+            },
+            {
+                "axis_id": "hosting",
+                "value": "hosted",
+                "spans": [{"start": 49, "end": 55}],
+            },
         ],
         "overlays": [
             {"overlay_id": "citation", "spans": [{"start": 0, "end": 35}]},
@@ -49,7 +57,9 @@ def test_infra_profile_filters_legal_items_and_keeps_infra_items():
 def test_global_lint_rejects_empty_or_out_of_bounds_spans():
     payload = _payload()
     payload["groups"].append({"group_id": "statute_ref", "spans": []})
-    payload["overlays"].append({"overlay_id": "citation", "spans": [{"start": 999, "end": 1002}]})
+    payload["overlays"].append(
+        {"overlay_id": "citation", "spans": [{"start": 999, "end": 1002}]}
+    )
     _, issues = apply_profile_admissibility(payload, "sl_profile")
     codes = [i.code for i in issues]
     assert "empty_spans" in codes
@@ -64,4 +74,3 @@ def test_unknown_profile_raises():
     except ValueError:
         raised = True
     assert raised
-

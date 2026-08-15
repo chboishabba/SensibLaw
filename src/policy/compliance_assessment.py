@@ -9,7 +9,9 @@ COMPLIANCE_ASSESSMENT_SCHEMA_VERSION = "sl.compliance_assessment.v0_1"
 
 
 def _count_status(group_results: list[Mapping[str, Any]], status: str) -> int:
-    return sum(1 for row in group_results if str(row.get("status") or "").strip() == status)
+    return sum(
+        1 for row in group_results if str(row.get("status") or "").strip() == status
+    )
 
 
 def build_compliance_assessment(
@@ -19,7 +21,9 @@ def build_compliance_assessment(
 ) -> dict[str, Any]:
     result = evaluate_control_profile(profile=profile, evidence_bundle=evidence_bundle)
     group_results = [
-        row for row in result.get("control_group_results", []) if isinstance(row, Mapping)
+        row
+        for row in result.get("control_group_results", [])
+        if isinstance(row, Mapping)
     ]
     return {
         "schema_version": COMPLIANCE_ASSESSMENT_SCHEMA_VERSION,
@@ -32,7 +36,9 @@ def build_compliance_assessment(
             "group_count": len(group_results),
             "satisfied_count": _count_status(group_results, "satisfied"),
             "not_satisfied_count": _count_status(group_results, "not_satisfied"),
-            "insufficient_evidence_count": _count_status(group_results, "insufficient_evidence"),
+            "insufficient_evidence_count": _count_status(
+                group_results, "insufficient_evidence"
+            ),
             "not_applicable_count": _count_status(group_results, "not_applicable"),
         },
     }

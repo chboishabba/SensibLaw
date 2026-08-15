@@ -84,7 +84,9 @@ def validate_cultural_flag_references(
 
     for flag_key in flags:
         if flag_key not in rules:
-            errors.append(f"Cultural flag '{flag_key}' is defined without a handling rule")
+            errors.append(
+                f"Cultural flag '{flag_key}' is defined without a handling rule"
+            )
 
     return errors
 

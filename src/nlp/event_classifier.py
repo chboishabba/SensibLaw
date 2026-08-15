@@ -62,7 +62,11 @@ class EventClassifier:
             pos = str(getattr(tok, "pos_", "") or "")
             if pos not in self._TOKEN_POS:
                 continue
-            lemma = str(getattr(tok, "lemma_", "") or getattr(tok, "text", "") or "").strip().lower()
+            lemma = (
+                str(getattr(tok, "lemma_", "") or getattr(tok, "text", "") or "")
+                .strip()
+                .lower()
+            )
             if not lemma:
                 continue
             resolved = self._resolve_label(tok, lemma)
@@ -111,7 +115,9 @@ class EventClassifier:
             vals = []
         return any(str(v).lower() == "fin" for v in (vals or []))
 
-    def _resolve_label(self, tok: object, lemma: str) -> Optional[Tuple[str, float, Dict[str, Any]]]:
+    def _resolve_label(
+        self, tok: object, lemma: str
+    ) -> Optional[Tuple[str, float, Dict[str, Any]]]:
         labels = list(self._lemma_to_labels.get(lemma) or [])
         if not labels:
             # Profile-gated synset mapping fallback (deterministic, version-pinned).
@@ -121,7 +127,15 @@ class EventClassifier:
                 except Exception:
                     syn = None
                 if syn is not None:
-                    return syn.action_label, float(syn.confidence), {"rule": "synset_map", "synset_id": syn.synset_id, "resource": syn.resource}
+                    return (
+                        syn.action_label,
+                        float(syn.confidence),
+                        {
+                            "rule": "synset_map",
+                            "synset_id": syn.synset_id,
+                            "resource": syn.resource,
+                        },
+                    )
             return None
 
         # Deterministic dependency disambiguation for known ambiguous lemmas.
@@ -150,7 +164,11 @@ class EventClassifier:
         if not wanted:
             return False
         for ch in getattr(tok, "children", []):
-            clem = str(getattr(ch, "lemma_", "") or getattr(ch, "text", "") or "").strip().lower()
+            clem = (
+                str(getattr(ch, "lemma_", "") or getattr(ch, "text", "") or "")
+                .strip()
+                .lower()
+            )
             if clem in wanted:
                 return True
         return False

@@ -49,8 +49,7 @@ class PNFGraph:
         return replace(
             self,
             factors=tuple(
-                replacements.get(row.factor_ref, row)
-                for row in self.factors
+                replacements.get(row.factor_ref, row) for row in self.factors
             ),
         )
 

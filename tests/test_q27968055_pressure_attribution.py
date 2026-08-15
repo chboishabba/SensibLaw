@@ -10,7 +10,9 @@ sys.path.insert(0, str(ROOT))
 from src.ontology.wikidata_change_review import build_change_review_report_from_path
 
 
-FIXTURE = ROOT / "tests" / "fixtures" / "wikidata" / "q27968055_change_review_packet.json"
+FIXTURE = (
+    ROOT / "tests" / "fixtures" / "wikidata" / "q27968055_change_review_packet.json"
+)
 
 
 def _packet() -> dict:
@@ -42,14 +44,22 @@ def test_q27968055_report_echoes_pressure_attribution_without_edit_authority() -
 
     assert report["authority_policy"] == "review_only"
     assert report["edit_authority"] is False
-    assert report["pressure_attribution"] == packet["expected_report_surface"]["pressure_attribution"]
+    assert (
+        report["pressure_attribution"]
+        == packet["expected_report_surface"]["pressure_attribution"]
+    )
 
 
 def test_q27968055_held_candidate_echoes_pressure_reasons() -> None:
     packet = _packet()
     report = _report()
-    expected = packet["expected_report_surface"]["candidate_reports"]["hold_for_class_order_review"]
-    by_id = {candidate["candidate_id"]: candidate for candidate in report["candidate_reports"]}
+    expected = packet["expected_report_surface"]["candidate_reports"][
+        "hold_for_class_order_review"
+    ]
+    by_id = {
+        candidate["candidate_id"]: candidate
+        for candidate in report["candidate_reports"]
+    }
     candidate = by_id["hold_for_class_order_review"]
 
     assert candidate["disposition"] == "held"

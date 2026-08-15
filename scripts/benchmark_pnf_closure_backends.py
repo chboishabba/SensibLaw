@@ -104,8 +104,7 @@ def _sample_payload() -> dict[str, Any]:
     ]
     observations = [
         {
-            "observation_ref": "observation:"
-            + canonical_sha256({"token": row}),
+            "observation_ref": "observation:" + canonical_sha256({"token": row}),
             "observation_type": "parser.token",
             "token": row,
         }
@@ -128,9 +127,7 @@ def _job(payload: dict[str, Any]) -> SolverJob:
         ),
         declaration_ref="declaration:normalized-operator:v0_1",
         input_revision=0,
-        input_refs=tuple(
-            sorted(str(row["observation_ref"]) for row in observations)
-        ),
+        input_refs=tuple(sorted(str(row["observation_ref"]) for row in observations)),
         input_payload={
             "observation_delta": {
                 "observations": observations,
@@ -150,11 +147,7 @@ def main() -> int:
     )
     job = _job(payload)
     python = PythonClosureExecutor(
-        {
-            "declaration:normalized-operator:v0_1": (
-                native_operator_proposals
-            )
-        }
+        {"declaration:normalized-operator:v0_1": (native_operator_proposals)}
     )
     zelph = ZelphClosureExecutor(NormalizedOperatorZelphCodec())
     try:
@@ -165,8 +158,7 @@ def main() -> int:
         ).to_dict()
         result["status"] = (
             "parity"
-            if result["proposal_digest_equal"]
-            and result["reduction_digest_equal"]
+            if result["proposal_digest_equal"] and result["reduction_digest_equal"]
             else "mismatch"
         )
     except ZelphExecutionError as error:
@@ -186,7 +178,9 @@ def main() -> int:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(rendered, encoding="utf-8")
     print(rendered, end="")
-    return 0 if result.get("status") in {"parity", "engine_unavailable_or_failed"} else 1
+    return (
+        0 if result.get("status") in {"parity", "engine_unavailable_or_failed"} else 1
+    )
 
 
 if __name__ == "__main__":

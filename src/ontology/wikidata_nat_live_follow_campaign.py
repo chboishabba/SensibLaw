@@ -66,10 +66,12 @@ def build_wikidata_nat_live_follow_campaign_plan(
         max_hops = int(category.get("max_hops") or 0)
         stop_condition = _stringify(category.get("stop_condition")).strip()
         uncertainty_kind = _stringify(category.get("uncertainty_kind")).strip()
-        category_counts[category_id] = category_counts.get(category_id, 0) + len(targets)
-        source_class_counts[first_source_class] = (
-            source_class_counts.get(first_source_class, 0) + len(targets)
+        category_counts[category_id] = category_counts.get(category_id, 0) + len(
+            targets
         )
+        source_class_counts[first_source_class] = source_class_counts.get(
+            first_source_class, 0
+        ) + len(targets)
         for index, target in enumerate(targets, start=1):
             if not isinstance(target, Mapping):
                 continue

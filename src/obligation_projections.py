@@ -19,7 +19,9 @@ def actor_view(obligations: Iterable[ObligationAtom]) -> List[Dict]:
     return [
         {
             "actor": actor,
-            "obligations": [obligation_to_dict(ob) for ob in sorted(obs, key=lambda o: o.clause_id)],
+            "obligations": [
+                obligation_to_dict(ob) for ob in sorted(obs, key=lambda o: o.clause_id)
+            ],
         }
         for actor, obs in sorted(bucket.items(), key=lambda kv: kv[0])
     ]
@@ -33,7 +35,9 @@ def action_view(obligations: Iterable[ObligationAtom]) -> List[Dict]:
     return [
         {
             "action": action,
-            "obligations": [obligation_to_dict(ob) for ob in sorted(obs, key=lambda o: o.clause_id)],
+            "obligations": [
+                obligation_to_dict(ob) for ob in sorted(obs, key=lambda o: o.clause_id)
+            ],
         }
         for action, obs in sorted(bucket.items(), key=lambda kv: kv[0])
     ]
@@ -63,4 +67,10 @@ def timeline_view(obligations: Iterable[ObligationAtom]) -> List[Dict]:
     return out
 
 
-__all__ = ["actor_view", "action_view", "clause_view", "timeline_view", "PROJECTION_SCHEMA_VERSION"]
+__all__ = [
+    "actor_view",
+    "action_view",
+    "clause_view",
+    "timeline_view",
+    "PROJECTION_SCHEMA_VERSION",
+]

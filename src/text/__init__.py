@@ -112,8 +112,9 @@ __all__ = [
 ]
 
 
-_NLP_COMPAT_EXPORTS = frozenset(
+_LAZY_COMPAT_EXPORTS = frozenset(
     {
+        "extract_text_cues",
         "FastTextLanguageDetector",
         "LanguageDetector",
         "SimpleDoc",
@@ -127,7 +128,7 @@ _LAZY_TEXT_EXPORTS = {
 
 
 def __getattr__(name: str) -> Any:
-    """Lazily retain optional NLP compatibility re-exports."""
+    """Lazily retain optional compatibility re-exports."""
 
     if name in _NLP_COMPAT_EXPORTS:
         module_name, export_name = "nlp", name

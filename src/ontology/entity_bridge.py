@@ -28,7 +28,13 @@ _SEEDED_BRIDGE_PAYLOAD = {
             "provider": "wikidata",
             "external_id": "Q1065",
             "canonical_label": "United Nations",
-            "aliases": ["UN", "U.N.", "UNO", "United Nations", "United Nations Organization"],
+            "aliases": [
+                "UN",
+                "U.N.",
+                "UNO",
+                "United Nations",
+                "United Nations Organization",
+            ],
         },
         {
             "canonical_ref": "institution:united_nations_security_council",
@@ -66,7 +72,12 @@ _SEEDED_BRIDGE_PAYLOAD = {
             "provider": "wikidata",
             "external_id": "Q11201",
             "canonical_label": "Supreme Court of the United States",
-            "aliases": ["U.S. Supreme Court", "United States Supreme Court", "US Supreme Court", "SCOTUS"],
+            "aliases": [
+                "U.S. Supreme Court",
+                "United States Supreme Court",
+                "US Supreme Court",
+                "SCOTUS",
+            ],
         },
         {
             "canonical_ref": "court:united_states_district_court",
@@ -122,7 +133,12 @@ _SEEDED_BRIDGE_PAYLOAD = {
             "provider": "wikidata",
             "external_id": "Q66096",
             "canonical_label": "United States Senate",
-            "aliases": ["U.S. Senate", "US Senate", "United States Senate", "Senate of the United States"],
+            "aliases": [
+                "U.S. Senate",
+                "US Senate",
+                "United States Senate",
+                "Senate of the United States",
+            ],
         },
         {
             "canonical_ref": "institution:u_s_house_of_representatives",
@@ -180,22 +196,24 @@ def _normalize_alias(text: str) -> str:
     return " ".join(text.casefold().split())
 
 
-_BRIDGE_SCAN_PUNCTUATION = str.maketrans({
-    ".": " ",
-    ",": " ",
-    ";": " ",
-    ":": " ",
-    "(": " ",
-    ")": " ",
-    "[": " ",
-    "]": " ",
-    "{": " ",
-    "}": " ",
-    "!": " ",
-    "?": " ",
-    "\"": " ",
-    "'": " ",
-})
+_BRIDGE_SCAN_PUNCTUATION = str.maketrans(
+    {
+        ".": " ",
+        ",": " ",
+        ";": " ",
+        ":": " ",
+        "(": " ",
+        ")": " ",
+        "[": " ",
+        "]": " ",
+        "{": " ",
+        "}": " ",
+        "!": " ",
+        "?": " ",
+        '"': " ",
+        "'": " ",
+    }
+)
 
 
 def _normalize_bridge_scan_text(text: str) -> str:
@@ -203,7 +221,11 @@ def _normalize_bridge_scan_text(text: str) -> str:
 
 
 def _stable_sha256(payload: object) -> str:
-    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")).hexdigest()
+    return hashlib.sha256(
+        json.dumps(
+            payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True
+        ).encode("utf-8")
+    ).hexdigest()
 
 
 def _default_external_url(provider: str, external_id: str) -> str | None:
@@ -225,7 +247,9 @@ def _default_external_url(provider: str, external_id: str) -> str | None:
 def _bridge_lookup_candidates(norm_text: str, kind: str) -> list[tuple[str, str]]:
     candidates = [(norm_text, kind)]
     if kind == "act_ref" and norm_text.startswith("act:"):
-        candidates.append((f"legislation:{norm_text.split(':', 1)[1]}", "legislation_ref"))
+        candidates.append(
+            (f"legislation:{norm_text.split(':', 1)[1]}", "legislation_ref")
+        )
     return candidates
 
 
@@ -313,13 +337,19 @@ def import_bridge_payload(
     replace_slice: bool = False,
 ) -> dict[str, Any]:
     ensure_bridge_schema(conn)
-    slice_meta = payload.get("slice") if isinstance(payload.get("slice"), Mapping) else {}
-    entities = payload.get("entities") if isinstance(payload.get("entities"), list) else []
+    slice_meta = (
+        payload.get("slice") if isinstance(payload.get("slice"), Mapping) else {}
+    )
+    entities = (
+        payload.get("entities") if isinstance(payload.get("entities"), list) else []
+    )
     slice_name = str(slice_meta.get("name") or "").strip()
     if not slice_name:
         raise ValueError("bridge payload requires slice.name")
     source_version = str(slice_meta.get("source_version") or "").strip() or None
-    policy_version = str(slice_meta.get("policy_version") or DEFAULT_POLICY_VERSION).strip()
+    policy_version = str(
+        slice_meta.get("policy_version") or DEFAULT_POLICY_VERSION
+    ).strip()
     notes = str(slice_meta.get("notes") or "").strip() or None
     source_sha256 = _stable_sha256(payload)
 
@@ -329,7 +359,9 @@ def import_bridge_payload(
     ).fetchone()
     if existing and replace_slice:
         slice_id = int(existing["slice_id"])
-        conn.execute("DELETE FROM wikidata_bridge_match_receipts WHERE slice_id = ?", (slice_id,))
+        conn.execute(
+            "DELETE FROM wikidata_bridge_match_receipts WHERE slice_id = ?", (slice_id,)
+        )
         entity_ids = [
             int(row["bridge_entity_id"])
             for row in conn.execute(
@@ -338,8 +370,13 @@ def import_bridge_payload(
             ).fetchall()
         ]
         for bridge_entity_id in entity_ids:
-            conn.execute("DELETE FROM wikidata_bridge_aliases WHERE bridge_entity_id = ?", (bridge_entity_id,))
-        conn.execute("DELETE FROM wikidata_bridge_entities WHERE slice_id = ?", (slice_id,))
+            conn.execute(
+                "DELETE FROM wikidata_bridge_aliases WHERE bridge_entity_id = ?",
+                (bridge_entity_id,),
+            )
+        conn.execute(
+            "DELETE FROM wikidata_bridge_entities WHERE slice_id = ?", (slice_id,)
+        )
         conn.execute(
             """
             UPDATE wikidata_bridge_slices
@@ -372,7 +409,14 @@ def import_bridge_payload(
         if not canonical_ref or not canonical_kind or not provider or not external_id:
             continue
         label = str(entity.get("canonical_label") or "").strip() or None
-        external_url = str(entity.get("external_url") or _default_external_url(provider, external_id) or "").strip() or None
+        external_url = (
+            str(
+                entity.get("external_url")
+                or _default_external_url(provider, external_id)
+                or ""
+            ).strip()
+            or None
+        )
         ambiguity_policy = str(entity.get("ambiguity_policy") or "exact_only").strip()
         cur = conn.execute(
             """
@@ -415,7 +459,9 @@ def import_bridge_payload(
             ).fetchone()["bridge_entity_id"]
         )
         imported_entities += 1
-        aliases = entity.get("aliases") if isinstance(entity.get("aliases"), list) else []
+        aliases = (
+            entity.get("aliases") if isinstance(entity.get("aliases"), list) else []
+        )
         for alias_order, alias in enumerate(aliases):
             alias_text = str(alias).strip()
             if not alias_text:
@@ -426,7 +472,13 @@ def import_bridge_payload(
                   bridge_entity_id, alias_text, normalized_alias, alias_kind, alias_order
                 ) VALUES (?,?,?,?,?)
                 """,
-                (bridge_entity_id, alias_text, _normalize_alias(alias_text), "surface", alias_order),
+                (
+                    bridge_entity_id,
+                    alias_text,
+                    _normalize_alias(alias_text),
+                    "surface",
+                    alias_order,
+                ),
             )
             imported_aliases += 1
     return {
@@ -452,10 +504,14 @@ def ensure_seeded_bridge_slice(conn: sqlite3.Connection) -> None:
         import_bridge_payload(conn, _SEEDED_BRIDGE_PAYLOAD, replace_slice=True)
 
 
-def bridge_storage_summary(conn: sqlite3.Connection, *, slice_name: str | None = None) -> dict[str, Any]:
+def bridge_storage_summary(
+    conn: sqlite3.Connection, *, slice_name: str | None = None
+) -> dict[str, Any]:
     ensure_bridge_schema(conn)
     ensure_seeded_bridge_slice(conn)
-    selected_slice = slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
+    selected_slice = (
+        slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
+    )
     slice_row = conn.execute(
         "SELECT slice_id, slice_name, policy_version FROM wikidata_bridge_slices WHERE slice_name = ?",
         (selected_slice,),
@@ -482,7 +538,9 @@ def bridge_storage_summary(conn: sqlite3.Connection, *, slice_name: str | None =
     ).fetchall()
     url_counts: dict[str, int] = {}
     notes_counts: dict[str, int] = {}
-    if _table_exists(conn, "actor_external_refs") and _table_exists(conn, "concept_external_refs"):
+    if _table_exists(conn, "actor_external_refs") and _table_exists(
+        conn, "concept_external_refs"
+    ):
         for row in conn.execute(
             """
             SELECT external_url, notes FROM actor_external_refs
@@ -496,13 +554,19 @@ def bridge_storage_summary(conn: sqlite3.Connection, *, slice_name: str | None =
                 url_counts[url] = url_counts.get(url, 0) + 1
             if notes:
                 notes_counts[notes] = notes_counts.get(notes, 0) + 1
-    duplicate_url_bytes = sum((count - 1) * len(url) for url, count in url_counts.items() if count > 1)
-    duplicate_notes_bytes = sum((count - 1) * len(notes) for notes, count in notes_counts.items() if count > 1)
+    duplicate_url_bytes = sum(
+        (count - 1) * len(url) for url, count in url_counts.items() if count > 1
+    )
+    duplicate_notes_bytes = sum(
+        (count - 1) * len(notes) for notes, count in notes_counts.items() if count > 1
+    )
     entities_by_provider = {
         provider: sum(1 for row in entity_rows if str(row["provider"]) == provider)
         for provider in sorted({str(row["provider"]) for row in entity_rows})
     }
-    missing_external_url_count = sum(1 for row in entity_rows if not str(row["external_url"] or "").strip())
+    missing_external_url_count = sum(
+        1 for row in entity_rows if not str(row["external_url"] or "").strip()
+    )
     alias_counts: dict[str, set[str]] = {}
     for row in alias_rows:
         normalized_alias = str(row["normalized_alias"] or "").strip()
@@ -559,9 +623,13 @@ def bridge_storage_summary(conn: sqlite3.Connection, *, slice_name: str | None =
         "duplicate_alias_count": duplicate_alias_count,
         "duplicate_external_id_reuse": duplicate_external_id_reuse,
         "bridge_string_bytes": {
-            "canonical_ref_bytes": sum(len(str(row["canonical_ref"])) for row in entity_rows),
+            "canonical_ref_bytes": sum(
+                len(str(row["canonical_ref"])) for row in entity_rows
+            ),
             "alias_bytes": sum(len(str(row["alias_text"])) for row in alias_rows),
-            "external_url_bytes": sum(len(str(row["external_url"])) for row in entity_rows),
+            "external_url_bytes": sum(
+                len(str(row["external_url"])) for row in entity_rows
+            ),
         },
         "external_ref_duplicate_bytes_estimate": {
             "external_url": duplicate_url_bytes,
@@ -628,7 +696,9 @@ def link_canonical_ref(
     try:
         ensure_bridge_schema(resolved_conn)
         ensure_seeded_bridge_slice(resolved_conn)
-        active_slice = slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
+        active_slice = (
+            slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
+        )
         row = None
         for candidate_ref, candidate_kind in _bridge_lookup_candidates(norm_text, kind):
             row = resolved_conn.execute(
@@ -702,7 +772,9 @@ def _lookup_canonical_ref_rows(
 ) -> list[sqlite3.Row]:
     rows: list[sqlite3.Row] = []
     seen: set[tuple[str, str]] = set()
-    for candidate_ref, candidate_kind in _bridge_lookup_candidates(canonical_ref, canonical_kind):
+    for candidate_ref, candidate_kind in _bridge_lookup_candidates(
+        canonical_ref, canonical_kind
+    ):
         for row in conn.execute(
             """
             SELECT s.slice_id, s.slice_name, s.policy_version, e.provider, e.external_id, e.external_url, e.canonical_ref, e.canonical_kind
@@ -735,7 +807,9 @@ def link_lexeme_occurrences(
     try:
         ensure_bridge_schema(resolved_conn)
         ensure_seeded_bridge_slice(resolved_conn)
-        active_slice = slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
+        active_slice = (
+            slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
+        )
         seen_occurrences: set[tuple[str, str]] = set()
         for occ in occurrences:
             occurrence_key = (occ.norm_text, occ.kind)
@@ -817,7 +891,9 @@ def lookup_bridge_alias(
     try:
         ensure_bridge_schema(resolved_conn)
         ensure_seeded_bridge_slice(resolved_conn)
-        active_slice = slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
+        active_slice = (
+            slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
+        )
         rows = resolved_conn.execute(
             """
             SELECT s.slice_name, s.policy_version, e.canonical_ref, e.canonical_kind, e.provider, e.external_id, a.alias_text
@@ -865,8 +941,12 @@ def _bridge_refs_present(
     try:
         ensure_bridge_schema(resolved_conn)
         ensure_seeded_bridge_slice(resolved_conn)
-        active_slice = slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
-        canonical_refs = sorted({str(ref).strip() for ref in anchor_map.keys() if str(ref).strip()})
+        active_slice = (
+            slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
+        )
+        canonical_refs = sorted(
+            {str(ref).strip() for ref in anchor_map.keys() if str(ref).strip()}
+        )
         if not canonical_refs:
             return set()
         placeholders = ",".join("?" for _ in canonical_refs)
@@ -896,8 +976,12 @@ def _bridge_ref_kinds(
     try:
         ensure_bridge_schema(resolved_conn)
         ensure_seeded_bridge_slice(resolved_conn)
-        active_slice = slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
-        canonical_refs = sorted({str(ref).strip() for ref in anchor_map.keys() if str(ref).strip()})
+        active_slice = (
+            slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
+        )
+        canonical_refs = sorted(
+            {str(ref).strip() for ref in anchor_map.keys() if str(ref).strip()}
+        )
         if not canonical_refs:
             return {}
         placeholders = ",".join("?" for _ in canonical_refs)
@@ -942,8 +1026,12 @@ def link_text_via_bridge_aliases(
     try:
         ensure_bridge_schema(resolved_conn)
         ensure_seeded_bridge_slice(resolved_conn)
-        active_slice = slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
-        canonical_refs = sorted({str(ref).strip() for ref in anchor_map.keys() if str(ref).strip()})
+        active_slice = (
+            slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
+        )
+        canonical_refs = sorted(
+            {str(ref).strip() for ref in anchor_map.keys() if str(ref).strip()}
+        )
         if not canonical_refs:
             return []
         placeholders = ",".join("?" for _ in canonical_refs)
@@ -965,7 +1053,11 @@ def link_text_via_bridge_aliases(
             normalized_alias = str(row["normalized_alias"] or "").strip()
             if not _text_contains_normalized_alias(text, normalized_alias):
                 continue
-            key = (str(row["canonical_ref"]), str(row["provider"]), str(row["external_id"]))
+            key = (
+                str(row["canonical_ref"]),
+                str(row["provider"]),
+                str(row["external_id"]),
+            )
             if key in seen:
                 continue
             seen.add(key)
@@ -1003,14 +1095,20 @@ def build_text_alias_match_receipts(
         db_path=db_path,
         slice_name=slice_name,
     )
-    bridge_backed_refs = _bridge_refs_present(anchor_map, conn=conn, db_path=db_path, slice_name=slice_name)
-    bridge_ref_kinds = _bridge_ref_kinds(anchor_map, conn=conn, db_path=db_path, slice_name=slice_name)
+    bridge_backed_refs = _bridge_refs_present(
+        anchor_map, conn=conn, db_path=db_path, slice_name=slice_name
+    )
+    bridge_ref_kinds = _bridge_ref_kinds(
+        anchor_map, conn=conn, db_path=db_path, slice_name=slice_name
+    )
     link_map: dict[str, list[ExternalEntityLink]] = {}
     for link in links:
         link_map.setdefault(link.canonical_ref, []).append(link)
 
     receipts: list[dict[str, Any]] = []
-    for canonical_ref in sorted({str(ref).strip() for ref in anchor_map.keys() if str(ref).strip()}):
+    for canonical_ref in sorted(
+        {str(ref).strip() for ref in anchor_map.keys() if str(ref).strip()}
+    ):
         anchor = anchor_map.get(canonical_ref) or {}
         anchor_targets = _anchor_targets(anchor)
         matched_links = sorted(
@@ -1028,14 +1126,19 @@ def build_text_alias_match_receipts(
                         "matched_alias": link.matched_alias,
                         "provider": link.provider,
                         "external_id": link.external_id,
-                        "external_url": link.external_url or _default_external_url(link.provider, link.external_id),
+                        "external_url": link.external_url
+                        or _default_external_url(link.provider, link.external_id),
                         "slice_name": link.slice_name,
                         "policy_version": link.policy_version,
                         "anchor_targets": anchor_targets,
                     }
                 )
             continue
-        resolution_status = "abstain_no_alias" if canonical_ref in bridge_backed_refs else "abstain_no_bridge"
+        resolution_status = (
+            "abstain_no_alias"
+            if canonical_ref in bridge_backed_refs
+            else "abstain_no_bridge"
+        )
         receipts.append(
             {
                 "canonical_ref": canonical_ref,
@@ -1046,7 +1149,9 @@ def build_text_alias_match_receipts(
                 "provider": None,
                 "external_id": None,
                 "external_url": None,
-                "slice_name": slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME,
+                "slice_name": slice_name
+                or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE")
+                or SEEDED_SLICE_NAME,
                 "policy_version": DEFAULT_POLICY_VERSION,
                 "anchor_targets": anchor_targets,
             }
@@ -1065,7 +1170,9 @@ def build_external_refs_batch_from_text(
 ) -> dict[str, Any]:
     actor_external_refs: list[dict[str, Any]] = []
     concept_external_refs: list[dict[str, Any]] = []
-    active_slice = slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
+    active_slice = (
+        slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
+    )
     links = link_text_via_bridge_aliases(
         text,
         anchor_map,
@@ -1081,7 +1188,9 @@ def build_external_refs_batch_from_text(
         slice_name=active_slice,
     )
     resolved_bridge_refs = {link.canonical_ref for link in links}
-    bridge_backed_refs = _bridge_refs_present(anchor_map, conn=conn, db_path=db_path, slice_name=active_slice)
+    bridge_backed_refs = _bridge_refs_present(
+        anchor_map, conn=conn, db_path=db_path, slice_name=active_slice
+    )
     skipped_no_anchor = 0
     for linked in links:
         anchor = anchor_map.get(linked.canonical_ref)
@@ -1091,7 +1200,8 @@ def build_external_refs_batch_from_text(
         base = {
             "provider": linked.provider,
             "external_id": linked.external_id,
-            "external_url": linked.external_url or _default_external_url(linked.provider, linked.external_id),
+            "external_url": linked.external_url
+            or _default_external_url(linked.provider, linked.external_id),
             "notes": (
                 f"bridge canonical_ref={linked.canonical_ref} canonical_kind={linked.canonical_kind} "
                 f"slice={linked.slice_name} policy={linked.policy_version}"
@@ -1121,9 +1231,19 @@ def build_external_refs_batch_from_text(
                         slice_id=int(slice_row["slice_id"]),
                         canonical_ref=str(receipt["canonical_ref"]),
                         canonical_kind=str(receipt["canonical_kind"]),
-                        matched_alias=(str(receipt["matched_alias"]) if receipt["matched_alias"] else None),
-                        provider=(str(receipt["provider"]) if receipt["provider"] else None),
-                        external_id=(str(receipt["external_id"]) if receipt["external_id"] else None),
+                        matched_alias=(
+                            str(receipt["matched_alias"])
+                            if receipt["matched_alias"]
+                            else None
+                        ),
+                        provider=(
+                            str(receipt["provider"]) if receipt["provider"] else None
+                        ),
+                        external_id=(
+                            str(receipt["external_id"])
+                            if receipt["external_id"]
+                            else None
+                        ),
                         resolution_status=str(receipt["resolution_status"]),
                         policy_version=str(slice_row["policy_version"]),
                     )
@@ -1138,9 +1258,14 @@ def build_external_refs_batch_from_text(
             "bridge_refs": [link.canonical_ref for link in links],
             "match_receipts": match_receipts,
             "coverage": {
-                "total_candidate_refs": len({str(ref).strip() for ref in anchor_map.keys() if str(ref).strip()}),
+                "total_candidate_refs": len(
+                    {str(ref).strip() for ref in anchor_map.keys() if str(ref).strip()}
+                ),
                 "resolved_bridge_refs": len(resolved_bridge_refs),
-                "skipped_no_bridge_match": len({str(ref).strip() for ref in anchor_map.keys() if str(ref).strip()}) - len(bridge_backed_refs),
+                "skipped_no_bridge_match": len(
+                    {str(ref).strip() for ref in anchor_map.keys() if str(ref).strip()}
+                )
+                - len(bridge_backed_refs),
                 "skipped_no_anchor": skipped_no_anchor,
                 "emitted_actor_rows": len(actor_external_refs),
                 "emitted_concept_rows": len(concept_external_refs),
@@ -1159,7 +1284,9 @@ def bridge_match_receipt_summary(
 ) -> dict[str, Any]:
     ensure_bridge_schema(conn)
     ensure_seeded_bridge_slice(conn)
-    active_slice = slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
+    active_slice = (
+        slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
+    )
     slice_row = conn.execute(
         "SELECT slice_id, slice_name, policy_version FROM wikidata_bridge_slices WHERE slice_name = ?",
         (active_slice,),
@@ -1186,7 +1313,9 @@ def bridge_match_receipt_summary(
         if provider:
             provider_counts[provider] = provider_counts.get(provider, 0) + 1
         canonical_ref = str(row["canonical_ref"])
-        canonical_ref_counts[canonical_ref] = canonical_ref_counts.get(canonical_ref, 0) + 1
+        canonical_ref_counts[canonical_ref] = (
+            canonical_ref_counts.get(canonical_ref, 0) + 1
+        )
     return {
         "slice_name": str(slice_row["slice_name"]),
         "policy_version": str(slice_row["policy_version"]),
@@ -1238,7 +1367,10 @@ def build_external_refs_batch(
     resolved_occurrence_keys = {
         (norm_text, kind)
         for norm_text, kind in unique_occurrences
-        if any(candidate_ref in resolved_bridge_refs for candidate_ref, _ in _bridge_lookup_candidates(norm_text, kind))
+        if any(
+            candidate_ref in resolved_bridge_refs
+            for candidate_ref, _ in _bridge_lookup_candidates(norm_text, kind)
+        )
     }
     skipped_no_anchor = 0
     for linked in links:
@@ -1249,7 +1381,8 @@ def build_external_refs_batch(
         base = {
             "provider": linked.provider,
             "external_id": linked.external_id,
-            "external_url": linked.external_url or _default_external_url(linked.provider, linked.external_id),
+            "external_url": linked.external_url
+            or _default_external_url(linked.provider, linked.external_id),
             "notes": (
                 f"bridge canonical_ref={linked.canonical_ref} canonical_kind={linked.canonical_kind} "
                 f"slice={linked.slice_name} policy={linked.policy_version}"
@@ -1267,7 +1400,9 @@ def build_external_refs_batch(
     return {
         "meta": {
             "source": "entity_bridge",
-            "slice_name": (links[0].slice_name if links else (slice_name or SEEDED_SLICE_NAME)),
+            "slice_name": (
+                links[0].slice_name if links else (slice_name or SEEDED_SLICE_NAME)
+            ),
             "bridge_refs": [link.canonical_ref for link in links],
             "coverage": {
                 "total_unique_occurrences": len(unique_occurrences),

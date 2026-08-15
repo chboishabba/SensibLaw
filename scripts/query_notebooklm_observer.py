@@ -19,27 +19,49 @@ from src.reporting.notebooklm_observer import (  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Query NotebookLM observer metadata from SB runs.")
+    parser = argparse.ArgumentParser(
+        description="Query NotebookLM observer metadata from SB runs."
+    )
     parser.add_argument(
         "--runs-root",
         type=Path,
         default=Path("StatiBaker/runs"),
         help="Path to SB runs root containing logs/notes/<date>.jsonl",
     )
-    parser.add_argument("--start-date", default=None, help="Optional YYYY-MM-DD lower bound")
-    parser.add_argument("--end-date", default=None, help="Optional YYYY-MM-DD upper bound")
-    parser.add_argument("--notebook-id-hash", default=None, help="Optional hashed notebook scope")
+    parser.add_argument(
+        "--start-date", default=None, help="Optional YYYY-MM-DD lower bound"
+    )
+    parser.add_argument(
+        "--end-date", default=None, help="Optional YYYY-MM-DD upper bound"
+    )
+    parser.add_argument(
+        "--notebook-id-hash", default=None, help="Optional hashed notebook scope"
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser("dates", help="List NotebookLM observer date coverage")
 
-    summary_parser = subparsers.add_parser("summary", help="Build NotebookLM observer summary")
-    summary_parser.add_argument("--event-limit", type=int, default=50, help="Recent event tail size")
+    summary_parser = subparsers.add_parser(
+        "summary", help="Build NotebookLM observer summary"
+    )
+    summary_parser.add_argument(
+        "--event-limit", type=int, default=50, help="Recent event tail size"
+    )
 
-    events_parser = subparsers.add_parser("events", help="Query recent NotebookLM observer events")
-    events_parser.add_argument("--event", default=None, help="Optional event kind filter")
-    events_parser.add_argument("--text-query", default=None, help="Optional case-insensitive title/summary/keyword filter")
-    events_parser.add_argument("--limit", type=int, default=25, help="Max rows to return")
+    events_parser = subparsers.add_parser(
+        "events", help="Query recent NotebookLM observer events"
+    )
+    events_parser.add_argument(
+        "--event", default=None, help="Optional event kind filter"
+    )
+    events_parser.add_argument(
+        "--text-query",
+        default=None,
+        help="Optional case-insensitive title/summary/keyword filter",
+    )
+    events_parser.add_argument(
+        "--limit", type=int, default=25, help="Max rows to return"
+    )
 
     args = parser.parse_args(argv)
 

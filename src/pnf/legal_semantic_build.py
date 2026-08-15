@@ -167,7 +167,9 @@ def normalize_legacy_witnesses(
 ) -> tuple[LegacySemanticWitness, ...]:
     witnesses: dict[str, LegacySemanticWitness] = {}
     for row in rows:
-        candidate_kind = str(row.get("type") or row.get("modality") or "untyped_legal_candidate")
+        candidate_kind = str(
+            row.get("type") or row.get("modality") or "untyped_legal_candidate"
+        )
         spans = _span_refs(row)
         payload = {
             key: value
@@ -190,7 +192,9 @@ def normalize_legacy_witnesses(
             candidate_kind=candidate_kind,
             candidate_payload=payload,
             match_state="candidate_detected",
-            provenance_refs=tuple(sorted({document_ref, extractor_contract_ref, *spans})),
+            provenance_refs=tuple(
+                sorted({document_ref, extractor_contract_ref, *spans})
+            ),
         )
     return tuple(sorted(witnesses.values(), key=lambda row: row.witness_ref))
 
@@ -226,19 +230,31 @@ def _feature_factor_refs(
     refs: list[str] = []
     for factor in factors:
         factor_ref = str(factor.get("factor_ref") or "")
-        factor_type = str(factor.get("factor_type") or factor.get("factor_type_ref") or "")
+        factor_type = str(
+            factor.get("factor_type") or factor.get("factor_type_ref") or ""
+        )
         metadata = factor.get("metadata") or {}
         role = str(metadata.get("role") or "") if isinstance(metadata, Mapping) else ""
         matched = (
-            coordinate == "actor" and role in {"subject", "actor", "agent", "bearer"}
-            or coordinate == "conduct" and (factor_type == "semantic.eventuality" or "conduct" in factor_type)
-            or coordinate == "object" and role in {"object", "patient", "theme"}
-            or coordinate == "modality" and factor_type == "semantic.normative_relation"
-            or coordinate == "condition" and factor_type == "semantic.legal_condition"
-            or coordinate == "exception" and factor_type == "semantic.legal_exception"
-            or coordinate == "jurisdiction" and ("jurisdiction" in factor_type or role == "jurisdiction")
-            or coordinate == "temporal_validity" and factor_type == "semantic.legal_transition"
-            or coordinate == "authority_wrapper" and factor_type in {"semantic.legal_authority", "semantic.judicial_treatment"}
+            coordinate == "actor"
+            and role in {"subject", "actor", "agent", "bearer"}
+            or coordinate == "conduct"
+            and (factor_type == "semantic.eventuality" or "conduct" in factor_type)
+            or coordinate == "object"
+            and role in {"object", "patient", "theme"}
+            or coordinate == "modality"
+            and factor_type == "semantic.normative_relation"
+            or coordinate == "condition"
+            and factor_type == "semantic.legal_condition"
+            or coordinate == "exception"
+            and factor_type == "semantic.legal_exception"
+            or coordinate == "jurisdiction"
+            and ("jurisdiction" in factor_type or role == "jurisdiction")
+            or coordinate == "temporal_validity"
+            and factor_type == "semantic.legal_transition"
+            or coordinate == "authority_wrapper"
+            and factor_type
+            in {"semantic.legal_authority", "semantic.judicial_treatment"}
         )
         if matched and factor_ref:
             refs.append(factor_ref)
@@ -252,15 +268,26 @@ def _feature_ir_refs(
     for row in legal_ir:
         roles = {key.casefold() for key in row.role_bindings}
         matched = (
-            coordinate == "actor" and bool(roles.intersection({"actor", "bearer", "court", "party"}))
-            or coordinate == "conduct" and bool(roles.intersection({"conduct", "action", "predicate"}))
-            or coordinate == "object" and bool(roles.intersection({"object", "patient", "theme"}))
-            or coordinate == "modality" and bool(row.qualifier_state.get("modality") or "normative" in row.predicate_ref)
-            or coordinate == "condition" and bool(row.qualifier_state.get("condition_ref"))
-            or coordinate == "exception" and bool(row.qualifier_state.get("exception_ref"))
-            or coordinate == "jurisdiction" and bool(row.wrapper_state.get("jurisdiction_ref"))
-            or coordinate == "temporal_validity" and bool(row.wrapper_state.get("validity_interval"))
-            or coordinate == "authority_wrapper" and bool(row.wrapper_state.get("authority_class"))
+            coordinate == "actor"
+            and bool(roles.intersection({"actor", "bearer", "court", "party"}))
+            or coordinate == "conduct"
+            and bool(roles.intersection({"conduct", "action", "predicate"}))
+            or coordinate == "object"
+            and bool(roles.intersection({"object", "patient", "theme"}))
+            or coordinate == "modality"
+            and bool(
+                row.qualifier_state.get("modality") or "normative" in row.predicate_ref
+            )
+            or coordinate == "condition"
+            and bool(row.qualifier_state.get("condition_ref"))
+            or coordinate == "exception"
+            and bool(row.qualifier_state.get("exception_ref"))
+            or coordinate == "jurisdiction"
+            and bool(row.wrapper_state.get("jurisdiction_ref"))
+            or coordinate == "temporal_validity"
+            and bool(row.wrapper_state.get("validity_interval"))
+            or coordinate == "authority_wrapper"
+            and bool(row.wrapper_state.get("authority_class"))
         )
         if matched:
             refs.append(row.observation_ref)
@@ -274,19 +301,28 @@ def _feature_witness_refs(
     for witness in witnesses:
         row = witness.candidate_payload
         matched = (
-            coordinate == "actor" and bool(row.get("actor"))
-            or coordinate == "modality" and bool(row.get("modality") or row.get("type"))
-            or coordinate == "conduct" and bool(row.get("action"))
-            or coordinate == "object" and bool(row.get("object") or row.get("obj"))
-            or coordinate == "condition" and bool(row.get("conditions"))
-            or coordinate == "exception" and any(
+            coordinate == "actor"
+            and bool(row.get("actor"))
+            or coordinate == "modality"
+            and bool(row.get("modality") or row.get("type"))
+            or coordinate == "conduct"
+            and bool(row.get("action"))
+            or coordinate == "object"
+            and bool(row.get("object") or row.get("obj"))
+            or coordinate == "condition"
+            and bool(row.get("conditions"))
+            or coordinate == "exception"
+            and any(
                 str(item.get("type") or "") in {"unless", "except", "exception"}
                 for item in row.get("conditions") or ()
                 if isinstance(item, Mapping)
             )
-            or coordinate == "jurisdiction" and bool(row.get("scopes"))
-            or coordinate == "temporal_validity" and bool(row.get("lifecycle"))
-            or coordinate == "authority_wrapper" and bool(row.get("references") or row.get("reference_identities"))
+            or coordinate == "jurisdiction"
+            and bool(row.get("scopes"))
+            or coordinate == "temporal_validity"
+            and bool(row.get("lifecycle"))
+            or coordinate == "authority_wrapper"
+            and bool(row.get("references") or row.get("reference_identities"))
         )
         if matched:
             refs.append(witness.witness_ref)
@@ -315,7 +351,9 @@ def build_semantic_comparison_ledger(
             actions.append("inspect_legal_ir_projection_contract")
         elif witness_refs and not pnf_refs:
             state = "legacy_only"
-            discrepancies.append(f"legacy_{coordinate}_candidate_not_reconstructed_in_pnf")
+            discrepancies.append(
+                f"legacy_{coordinate}_candidate_not_reconstructed_in_pnf"
+            )
             actions.append("request_pnf_reconstruction")
         elif pnf_refs:
             state = "pnf_only"
@@ -385,7 +423,12 @@ def project_pnf_coverage_demands(
         "modality": ("bearer", "content"),
         "condition": ("condition", "consequent"),
         "exception": ("exception", "base_norm"),
-        "temporal_validity": ("legal_object", "prior_state", "new_state", "effective_time"),
+        "temporal_validity": (
+            "legal_object",
+            "prior_state",
+            "new_state",
+            "effective_time",
+        ),
         "authority_wrapper": ("authority", "content"),
         "actor": ("actor",),
         "conduct": ("conduct",),
@@ -423,10 +466,18 @@ def build_legal_semantic_build(
     declaration_revision_refs: Iterable[str] = (),
 ) -> dict[str, Any]:
     artifacts = compilation.get("artifacts") or compilation
-    document_ref = str(compilation.get("document_ref") or artifacts.get("document_ref") or "")
-    refined_graph = artifacts.get("refined_pnf_graph") or artifacts.get("pnf_graph") or {}
-    factors = tuple(row for row in refined_graph.get("factors") or () if isinstance(row, Mapping))
-    pnf_build_ref = str(refined_graph.get("graph_ref") or "pnf-build:" + canonical_sha256(refined_graph))
+    document_ref = str(
+        compilation.get("document_ref") or artifacts.get("document_ref") or ""
+    )
+    refined_graph = (
+        artifacts.get("refined_pnf_graph") or artifacts.get("pnf_graph") or {}
+    )
+    factors = tuple(
+        row for row in refined_graph.get("factors") or () if isinstance(row, Mapping)
+    )
+    pnf_build_ref = str(
+        refined_graph.get("graph_ref") or "pnf-build:" + canonical_sha256(refined_graph)
+    )
     witnesses = normalize_legacy_witnesses(legacy_rows, document_ref=document_ref)
     projection = materialize_legal_ir_projection(
         pnf_build_ref=pnf_build_ref,
@@ -440,12 +491,24 @@ def build_legal_semantic_build(
         witnesses=witnesses,
     )
     demands = project_pnf_coverage_demands(ledger)
-    source_revision_ref = str(artifacts.get("build_key_sha256") or compilation.get("content_sha256") or "")
-    canonical_text_ref = "canonical-text:" + canonical_sha256(artifacts.get("canonical_text") or "")
-    parser_build_ref = "parser-build:" + canonical_sha256(artifacts.get("parser_receipt") or {})
-    legacy_set_ref = "legacy-witness-set:" + canonical_sha256([row.to_dict() for row in witnesses])
-    ledger_ref = "semantic-comparison-ledger:" + canonical_sha256([row.to_dict() for row in ledger])
-    declarations = tuple(sorted(set(str(value) for value in declaration_revision_refs if value)))
+    source_revision_ref = str(
+        artifacts.get("build_key_sha256") or compilation.get("content_sha256") or ""
+    )
+    canonical_text_ref = "canonical-text:" + canonical_sha256(
+        artifacts.get("canonical_text") or ""
+    )
+    parser_build_ref = "parser-build:" + canonical_sha256(
+        artifacts.get("parser_receipt") or {}
+    )
+    legacy_set_ref = "legacy-witness-set:" + canonical_sha256(
+        [row.to_dict() for row in witnesses]
+    )
+    ledger_ref = "semantic-comparison-ledger:" + canonical_sha256(
+        [row.to_dict() for row in ledger]
+    )
+    declarations = tuple(
+        sorted(set(str(value) for value in declaration_revision_refs if value))
+    )
     identity = {
         "contract": LEGAL_SEMANTIC_BUILD_CONTRACT,
         "document_ref": document_ref,
@@ -472,7 +535,9 @@ def build_legal_semantic_build(
         coverage_demand_refs=tuple(row.demand_ref for row in demands),
         declaration_revision_refs=declarations,
         build_state="candidate_semantic_build",
-        provenance_refs=tuple(sorted({document_ref, source_revision_ref, pnf_build_ref})),
+        provenance_refs=tuple(
+            sorted({document_ref, source_revision_ref, pnf_build_ref})
+        ),
     )
     return {
         "build": build.to_dict(),

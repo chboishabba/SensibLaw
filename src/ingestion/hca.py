@@ -221,15 +221,29 @@ def _parse_pdf(
     seen_judges: set[str] = set()
     for line in lines:
         lowered = line.lower()
-        if not any(keyword in lowered for keyword in ("dissent", "concurr", "agreed with", "in the majority", "for the majority")):
+        if not any(
+            keyword in lowered
+            for keyword in (
+                "dissent",
+                "concurr",
+                "agreed with",
+                "in the majority",
+                "for the majority",
+            )
+        ):
             continue
         for match in opinion_pattern.finditer(line):
             judge_text = match.group("judge").strip()
             stance_raw = match.group("stance").lower()
             if judge_text.endswith("JJ"):
-                judge_names = re.split(r",|;|\band\b", judge_text[:-2], flags=re.IGNORECASE)
+                judge_names = re.split(
+                    r",|;|\band\b", judge_text[:-2], flags=re.IGNORECASE
+                )
                 judge_names = [n.strip() for n in judge_names if n.strip()]
-                judge_list = [f"{name} J" if not name.endswith("J") else name for name in judge_names]
+                judge_list = [
+                    f"{name} J" if not name.endswith("J") else name
+                    for name in judge_names
+                ]
             else:
                 judge_list = [judge_text]
 
@@ -261,7 +275,9 @@ def parse_index(html_text: str) -> Iterable[HCACase]:
         yield _parse_case(block)
 
 
-def parse_cases_cited(section_text: str, *, source: str) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
+def parse_cases_cited(
+    section_text: str, *, source: str
+) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
     """Parse a 'Cases cited' section into nodes and edges.
 
     Parameters
@@ -291,12 +307,14 @@ def parse_cases_cited(section_text: str, *, source: str) -> Tuple[List[Dict[str,
         citation = parse_case_citation(citation_text)
         reference = citation.to_rule_reference()
 
-        nodes.append({
-            "id": citation_text,
-            "type": NodeType.CASE.value,
-            "court_rank": rank,
-            "reference": reference.to_dict(),
-        })
+        nodes.append(
+            {
+                "id": citation_text,
+                "type": NodeType.CASE.value,
+                "court_rank": rank,
+                "reference": reference.to_dict(),
+            }
+        )
         try:
             edge_type = EdgeType[treatment.upper()].value
         except KeyError:
@@ -312,6 +330,7 @@ def parse_cases_cited(section_text: str, *, source: str) -> Tuple[List[Dict[str,
         )
 
     return nodes, edges
+
 
 def crawl_year(
     year: Optional[int] = None,

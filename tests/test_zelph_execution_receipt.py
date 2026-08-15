@@ -10,7 +10,9 @@ def test_required_output_contract_distinguishes_no_match(monkeypatch) -> None:
         stdout = ""
         stderr = ""
 
-    monkeypatch.setattr(zelph_bridge.subprocess, "run", lambda *args, **kwargs: _Result())
+    monkeypatch.setattr(
+        zelph_bridge.subprocess, "run", lambda *args, **kwargs: _Result()
+    )
     receipt = zelph_bridge.run_zelph_inference(
         "facts", "rules", required_output_predicates=("au_procedural_fact",)
     )
@@ -21,14 +23,18 @@ def test_required_output_contract_distinguishes_no_match(monkeypatch) -> None:
 
 
 def test_execution_receipt_marks_emitted_required_output(monkeypatch) -> None:
-    triples = [{"subject": "fact:one", "predicate": "au_procedural_fact", "object": "true"}]
+    triples = [
+        {"subject": "fact:one", "predicate": "au_procedural_fact", "object": "true"}
+    ]
     monkeypatch.setattr(zelph_bridge, "parse_zelph_inference", lambda _output: triples)
 
     class _Result:
         stdout = "output"
         stderr = ""
 
-    monkeypatch.setattr(zelph_bridge.subprocess, "run", lambda *args, **kwargs: _Result())
+    monkeypatch.setattr(
+        zelph_bridge.subprocess, "run", lambda *args, **kwargs: _Result()
+    )
     receipt = zelph_bridge.run_zelph_inference(
         "facts", "rules", required_output_predicates=("au_procedural_fact",)
     )

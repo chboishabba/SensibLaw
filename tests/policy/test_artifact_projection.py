@@ -36,7 +36,9 @@ def test_production_projection_emits_versioned_descriptor_and_bounded_batches() 
     first_record = next(iter(reader.iter_records("pnf_graph", batch_size=1)))[0]
     assert first_record["family"] == "factors"
     assert first_record["reconstruction"] == "mapping_repeated_member"
-    assert materialise_artifact(projected, "pnf_graph", reader) == artifacts["pnf_graph"]
+    assert (
+        materialise_artifact(projected, "pnf_graph", reader) == artifacts["pnf_graph"]
+    )
     assert projected["phase_boundary"] == artifacts["phase_boundary"]
 
 
@@ -70,11 +72,16 @@ def test_reader_replays_a_lazy_source_without_a_second_record_tuple() -> None:
     assert reader is not None
     assert not hasattr(reader, "_records")
     descriptor = projected["typed_meets"]
-    first = [row for batch in iter_verified_records(reader, descriptor) for row in batch]
-    second = [row for batch in iter_verified_records(reader, descriptor) for row in batch]
+    first = [
+        row for batch in iter_verified_records(reader, descriptor) for row in batch
+    ]
+    second = [
+        row for batch in iter_verified_records(reader, descriptor) for row in batch
+    ]
 
     assert first == second
     assert len(first) == 513
-    assert max(
-        len(batch) for batch in reader.iter_records("typed_meets", batch_size=256)
-    ) == 256
+    assert (
+        max(len(batch) for batch in reader.iter_records("typed_meets", batch_size=256))
+        == 256
+    )

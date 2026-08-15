@@ -82,7 +82,9 @@ def build_temporal_envelope(
             path.get("root_artifact_id", ""),
         )
     )
-    observed_dates = [path["observed_at"] for path in ordered_paths if path.get("observed_at")]
+    observed_dates = [
+        path["observed_at"] for path in ordered_paths if path.get("observed_at")
+    ]
     latest_path = ordered_paths[-1] if ordered_paths else {}
     latest_root_artifact_id = _as_text(latest_path.get("root_artifact_id"))
 
@@ -98,9 +100,15 @@ def build_temporal_envelope(
         ],
         revision_basis={
             "observation_count": len(ordered_paths),
-            "run_ids": [_as_text(path.get("run_id")) for path in ordered_paths if _as_text(path.get("run_id"))],
+            "run_ids": [
+                _as_text(path.get("run_id"))
+                for path in ordered_paths
+                if _as_text(path.get("run_id"))
+            ],
             "independent_root_artifact_ids": [
-                _as_text(value) for value in independent_root_artifact_ids if _as_text(value)
+                _as_text(value)
+                for value in independent_root_artifact_ids
+                if _as_text(value)
             ],
             "latest_root_artifact_id": latest_root_artifact_id,
         },

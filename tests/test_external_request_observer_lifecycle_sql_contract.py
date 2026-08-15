@@ -12,7 +12,9 @@ def _sql() -> str:
 
 
 def _function(sql: str, name: str) -> str:
-    return sql.split(f"CREATE OR REPLACE FUNCTION execution.{name}", 1)[1].split("$$;", 1)[0]
+    return sql.split(f"CREATE OR REPLACE FUNCTION execution.{name}", 1)[1].split(
+        "$$;", 1
+    )[0]
 
 
 def test_dormant_request_is_distinct_from_cache_hit_and_blocked() -> None:
@@ -27,13 +29,18 @@ def test_dormant_request_is_distinct_from_cache_hit_and_blocked() -> None:
 
 def test_active_member_requires_current_active_semantic_need() -> None:
     sql = _sql()
-    view = sql.split("CREATE OR REPLACE VIEW execution.semantic_pnf_external_request_active_member_v1", 1)[1].split(";", 1)[0]
+    view = sql.split(
+        "CREATE OR REPLACE VIEW execution.semantic_pnf_external_request_active_member_v1",
+        1,
+    )[1].split(";", 1)[0]
     assert "semantic_pnf_consumer_external_need AS need" in view
     assert "need.active" in view
     assert "need.provider_id=request.provider_id" in view
     assert "request.request_kind=2" in view
     assert "need.axis_kind=request.axis_kind" in view
-    assert "need.provider_property_numeric_id=request.provider_property_numeric_id" in view
+    assert (
+        "need.provider_property_numeric_id=request.provider_property_numeric_id" in view
+    )
 
 
 def test_completion_does_not_project_or_wake_after_observer_withdrawal() -> None:

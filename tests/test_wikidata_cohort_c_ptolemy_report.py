@@ -19,7 +19,9 @@ def _load_ptolemy_fixture() -> dict[str, object]:
 def test_ptolemy_batch_report_includes_multiple_packets() -> None:
     packet = _load_ptolemy_fixture()
     other_packet = _load_ptolemy_fixture()
-    batch = report_batch.build_nat_cohort_c_operator_report_batch([packet, other_packet])
+    batch = report_batch.build_nat_cohort_c_operator_report_batch(
+        [packet, other_packet]
+    )
     assert batch["batch_candidate_count"] == 6
     assert len(batch["packet_ids"]) == 2
     assert "P854 https://www.wikidata.org/wiki/Q4000001" in batch["reference_anchors"]

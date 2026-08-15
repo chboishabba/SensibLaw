@@ -75,9 +75,7 @@ def normalize_projection_applicability(build: DomainIRBuild) -> DomainIRBuild:
             for row in build.projections
             if (row.source_resolution_ref, row.domain) not in inapplicable_keys
         ),
-        receipts=tuple(
-            sorted(replacement_receipts, key=lambda row: row.receipt_ref)
-        ),
+        receipts=tuple(sorted(replacement_receipts, key=lambda row: row.receipt_ref)),
         losses=tuple(
             row
             for row in build.losses
@@ -95,9 +93,7 @@ def build_applicable_domain_ir(
     resolutions: Sequence[ResolutionReceipt],
     factors: Sequence[Any],
     proposals: Sequence[Any],
-    contracts: Sequence[
-        DomainIRProjectionContract
-    ] = DEFAULT_DOMAIN_IR_CONTRACTS,
+    contracts: Sequence[DomainIRProjectionContract] = DEFAULT_DOMAIN_IR_CONTRACTS,
 ) -> DomainIRBuild:
     return normalize_projection_applicability(
         build_domain_ir(

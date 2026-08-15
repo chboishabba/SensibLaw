@@ -26,4 +26,6 @@ def select_paragraphs(
         for candidate in range(number - radius, number + radius + 1):
             if candidate in by_number:
                 selected_numbers.add(candidate)
-    return [paragraph for paragraph in paragraphs if paragraph.number in selected_numbers]
+    return [
+        paragraph for paragraph in paragraphs if paragraph.number in selected_numbers
+    ]

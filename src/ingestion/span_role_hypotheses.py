@@ -16,7 +16,9 @@ def build_span_role_hypotheses(document: Document) -> List[SpanRoleHypothesis]:
     if not document.body:
         return []
 
-    span_source = document.metadata.canonical_id or document.metadata.citation or "unknown"
+    span_source = (
+        document.metadata.canonical_id or document.metadata.citation or "unknown"
+    )
     hypotheses: List[SpanRoleHypothesis] = []
     hypotheses.extend(_extract_defined_terms(document.body, span_source))
 

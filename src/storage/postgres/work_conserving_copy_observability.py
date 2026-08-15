@@ -122,15 +122,9 @@ def observable_stage_partition(
                 wait_type = wait_row[0] if wait_row is not None else None
                 wait_event = wait_row[1] if wait_row is not None else None
                 after = resource.getrusage(resource.RUSAGE_THREAD)
-                elapsed_ms = max(
-                    0, (monotonic_ns() - started_ns) // 1_000_000
-                )
-                user_ms = max(
-                    0, int((after.ru_utime - before.ru_utime) * 1000)
-                )
-                system_ms = max(
-                    0, int((after.ru_stime - before.ru_stime) * 1000)
-                )
+                elapsed_ms = max(0, (monotonic_ns() - started_ns) // 1_000_000)
+                user_ms = max(0, int((after.ru_utime - before.ru_utime) * 1000))
+                system_ms = max(0, int((after.ru_stime - before.ru_stime) * 1000))
                 cursor.execute(
                     """
                     UPDATE execution.document_persistence_lane
@@ -165,9 +159,7 @@ def observable_stage_partition(
                 stage_ref=stage_ref,
                 lane_ref=lane_ref,
                 partition_no=partition_no,
-                elapsed_ms=max(
-                    0, (monotonic_ns() - started_ns) // 1_000_000
-                ),
+                elapsed_ms=max(0, (monotonic_ns() - started_ns) // 1_000_000),
             )
         except Exception:
             pass

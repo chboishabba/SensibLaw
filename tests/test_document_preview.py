@@ -57,11 +57,6 @@ from sensiblaw_streamlit.document_preview import (  # noqa: E402
     build_document_preview_html,
 )
 from src.models.document import Document, DocumentMetadata, DocumentTOCEntry  # noqa: E402
-from src.models.document import (  # noqa: E402
-    Document,
-    DocumentMetadata,
-    DocumentTOCEntry,
-)
 from src.models.provision import (  # noqa: E402
     Provision,
     RuleAtom,
@@ -229,6 +224,8 @@ def test_normalise_provision_line_collapses_leader_dots() -> None:
 
     genuine = "An actual ... ellipsis remains."
     assert _normalise_provision_line(genuine) == genuine
+
+
 def _extract_toc_labels(html: str) -> List[str]:
     pattern = re.compile(r"<a[^>]*>(.*?)</a>", re.DOTALL)
     labels = []
@@ -357,10 +354,7 @@ def test_toc_parent_links_to_first_child_when_provision_missing() -> None:
     parser = _DocumentPreviewParser()
     parser.feed(html)
 
-    assert any(
-        link["href"] == "#5" and "Part" in link["text"]
-        for link in parser.links
-    )
+    assert any(link["href"] == "#5" and "Part" in link["text"] for link in parser.links)
 
 
 @pytest.mark.parametrize(

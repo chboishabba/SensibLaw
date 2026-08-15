@@ -1,4 +1,5 @@
 """Shared Wikidata structural review queue helpers."""
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -49,7 +50,9 @@ def make_provisional_rows(
     for cue in candidate_cues:
         source_row = source_by_id[cue["source_row_id"]]
         review_item = item_by_id[cue["review_item_id"]]
-        priority_score = workload_weight(source_row["workload_class"]) + candidate_cue_priority(cue["cue_kind"])
+        priority_score = workload_weight(
+            source_row["workload_class"]
+        ) + candidate_cue_priority(cue["cue_kind"])
         rows.append(
             {
                 "provisional_review_id": f"prov:{cue['cue_id']}",
@@ -90,7 +93,9 @@ def make_bundles(
     bundles: list[dict[str, Any]] = []
     for review_item_id, rows in grouped.items():
         source_row_ids = sorted({row["source_row_id"] for row in rows})
-        texts = [source_by_id[source_row_id]["text"] for source_row_id in source_row_ids]
+        texts = [
+            source_by_id[source_row_id]["text"] for source_row_id in source_row_ids
+        ]
         bundles.append(
             {
                 "bundle_id": f"bundle:{review_item_id}",
@@ -102,7 +107,13 @@ def make_bundles(
                 "recommended_next_action": rows[0]["recommended_next_action"],
             }
         )
-    bundles.sort(key=lambda row: (-row["top_priority_score"], -row["anchor_count"], row["bundle_id"]))
+    bundles.sort(
+        key=lambda row: (
+            -row["top_priority_score"],
+            -row["anchor_count"],
+            row["bundle_id"],
+        )
+    )
     for index, row in enumerate(bundles, start=1):
         row["bundle_rank"] = index
     return bundles

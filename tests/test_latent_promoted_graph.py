@@ -11,10 +11,16 @@ from tests.test_cross_system_phi_prototype import _build_au_report, _build_gwb_r
 
 
 def _load_schema() -> dict:
-    return yaml.safe_load(Path("schemas/sl.latent_promoted_graph.v1.schema.yaml").read_text(encoding="utf-8"))
+    return yaml.safe_load(
+        Path("schemas/sl.latent_promoted_graph.v1.schema.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
 
 
-def test_latent_promoted_graph_builds_from_real_au_promoted_records(tmp_path: Path) -> None:
+def test_latent_promoted_graph_builds_from_real_au_promoted_records(
+    tmp_path: Path,
+) -> None:
     au_report = _build_au_report(tmp_path)
     records = extract_promoted_records_from_report(system_id="au_hca", report=au_report)
 
@@ -51,9 +57,13 @@ def test_latent_promoted_graph_builds_from_real_au_promoted_records(tmp_path: Pa
             assert indexed["legal_claim_node_ref"] in node_refs
 
 
-def test_latent_promoted_graph_builds_for_gwb_with_authority_and_document_nodes(tmp_path: Path) -> None:
+def test_latent_promoted_graph_builds_for_gwb_with_authority_and_document_nodes(
+    tmp_path: Path,
+) -> None:
     gwb_report = _build_gwb_report(tmp_path)
-    records = extract_promoted_records_from_report(system_id="us_exec_judicial", report=gwb_report)
+    records = extract_promoted_records_from_report(
+        system_id="us_exec_judicial", report=gwb_report
+    )
 
     payload = build_latent_promoted_graph(
         system_id="us_exec_judicial",
@@ -71,7 +81,9 @@ def test_latent_promoted_graph_builds_for_gwb_with_authority_and_document_nodes(
     assert {"instantiated_by", "refers_to", "member_of", "applies_to"} <= edge_types
 
 
-def test_latent_promoted_graph_emits_promoted_legal_claim_edges_for_review_relations(tmp_path: Path) -> None:
+def test_latent_promoted_graph_emits_promoted_legal_claim_edges_for_review_relations(
+    tmp_path: Path,
+) -> None:
     au_report = _build_au_report(tmp_path)
     records = extract_promoted_records_from_report(system_id="au_hca", report=au_report)
 
@@ -87,12 +99,15 @@ def test_latent_promoted_graph_emits_promoted_legal_claim_edges_for_review_relat
         if row.get("rule_type") == "review_relation"
     }
     claim_nodes = [row for row in payload["nodes"] if row["node_type"] == "legal_claim"]
-    claim_edges = [row for row in payload["edges"] if row["edge_type"] in {"grounds_claim", "claim_subject", "claim_object"}]
+    claim_edges = [
+        row
+        for row in payload["edges"]
+        if row["edge_type"] in {"grounds_claim", "claim_subject", "claim_object"}
+    ]
 
     assert review_relation_refs
     assert len(claim_nodes) == len(review_relation_refs)
     assert claim_edges
     assert all(
-        set(edge["provenance_refs"]) <= review_relation_refs
-        for edge in claim_edges
+        set(edge["provenance_refs"]) <= review_relation_refs for edge in claim_edges
     )

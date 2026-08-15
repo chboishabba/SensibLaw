@@ -3,7 +3,9 @@ from __future__ import annotations
 from typing import Any
 
 
-PROPOSITION_CONTRADICTION_TAXONOMY_VERSION = "sl.proposition_contradiction_taxonomy.v0_1"
+PROPOSITION_CONTRADICTION_TAXONOMY_VERSION = (
+    "sl.proposition_contradiction_taxonomy.v0_1"
+)
 
 PROPOSITION_CONTRADICTION_LABELS = frozenset(
     {
@@ -79,4 +81,3 @@ def build_proposition_contradiction_taxonomy() -> dict[str, Any]:
             "Resolution policy and gate behavior must not derive directly from these labels.",
         ],
     }
-

@@ -38,7 +38,9 @@ def test_build_source_rows_and_event_fallback_preserve_ordering() -> None:
             }
         ],
         default_source_type="transcript_file",
-        lexical_mode_for=lambda source_type: "chat_archive" if source_type == "transcript_file" else None,
+        lexical_mode_for=lambda source_type: (
+            "chat_archive" if source_type == "transcript_file" else None
+        ),
     )
     source_id = ensure_event_source_row(
         sources=sources,
@@ -48,7 +50,9 @@ def test_build_source_rows_and_event_fallback_preserve_ordering() -> None:
         source_document_id="doc:2",
         source_type="transcript_file",
         source_text="world",
-        lexical_mode_for=lambda source_type: "chat_archive" if source_type == "transcript_file" else None,
+        lexical_mode_for=lambda source_type: (
+            "chat_archive" if source_type == "transcript_file" else None
+        ),
         source_document_value="doc:2",
     )
     assert len(sources) == 2

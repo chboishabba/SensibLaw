@@ -5,7 +5,6 @@ import json
 import sqlite3
 import calendar
 import hashlib
-import json
 import logging
 import re
 import sys
@@ -14,7 +13,18 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional, Sequence, Set, Tuple
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+)
 
 from pdfminer.high_level import extract_pages
 from pdfminer.layout import LTAnno, LTChar, LTTextContainer
@@ -105,16 +115,10 @@ _CURRENT_AS_AT_RE = re.compile(
 )
 _YEAR_ONLY_RE = re.compile(r"^\s*(?P<year>\d{4})\s*$")
 _MONTH_LOOKUP = {
-    name.lower(): index
-    for index, name in enumerate(calendar.month_name)
-    if name
+    name.lower(): index for index, name in enumerate(calendar.month_name) if name
 }
 _MONTH_LOOKUP.update(
-    {
-        name.lower(): index
-        for index, name in enumerate(calendar.month_abbr)
-        if name
-    }
+    {name.lower(): index for index, name in enumerate(calendar.month_abbr) if name}
 )
 _MONTH_LOOKUP.setdefault("sept", 9)
 
@@ -526,7 +530,9 @@ def _extract_pdf_links(data: bytes) -> Dict[int, List[PdfLink]]:
                     if action:
                         resolved_action = resolve1(action)
                         if isinstance(resolved_action, dict):
-                            uri_obj = resolved_action.get("URI") or resolved_action.get("uri")
+                            uri_obj = resolved_action.get("URI") or resolved_action.get(
+                                "uri"
+                            )
                             if uri_obj:
                                 uri = str(resolve1(uri_obj))
                     if not uri:
@@ -588,13 +594,17 @@ def _collect_glyphs_from_layout(layout) -> List[Glyph]:
     return glyphs
 
 
-def _rects_intersect(a: Tuple[float, float, float, float], b: Tuple[float, float, float, float]) -> bool:
+def _rects_intersect(
+    a: Tuple[float, float, float, float], b: Tuple[float, float, float, float]
+) -> bool:
     ax0, ay0, ax1, ay1 = a
     bx0, by0, bx1, by1 = b
     return not (ax1 <= bx0 or bx1 <= ax0 or ay1 <= by0 or by1 <= ay0)
 
 
-def _extract_link_text(rect: Tuple[float, float, float, float], glyphs: List[Glyph]) -> Optional[str]:
+def _extract_link_text(
+    rect: Tuple[float, float, float, float], glyphs: List[Glyph]
+) -> Optional[str]:
     """Best-effort extraction of visible text within a hyperlink rectangle."""
 
     inside = [
@@ -632,7 +642,9 @@ def _collect_layout_text_blocks(layout) -> List[tuple[float, float, str]]:
                 )
             return
         children = tuple(
-            child for child in getattr(node, "_objs", ()) if isinstance(child, LTTextContainer)
+            child
+            for child in getattr(node, "_objs", ())
+            if isinstance(child, LTTextContainer)
         )
         if isinstance(node, LTTextContainer) and not children:
             raw_text = node.get_text()
@@ -695,7 +707,9 @@ def extract_pdf_text(pdf_path: Path) -> Iterator[dict]:
             }
 
 
-def build_pdf_canonical_text(pages: Sequence[Mapping[str, Any]], source: Path) -> CanonicalText:
+def build_pdf_canonical_text(
+    pages: Sequence[Mapping[str, Any]], source: Path
+) -> CanonicalText:
     """Normalize extracted PDF pages into the shared canonical-text contract."""
 
     adapter = PdfPageMediaAdapter(
@@ -1168,6 +1182,8 @@ def _infer_cover_metadata(pages: List[dict]) -> Tuple[Optional[str], Optional[st
         return jurisdiction, None
 
     return None, None
+
+
 def _flatten_toc_entries(entries: List[DocumentTOCEntry]) -> Iterable[DocumentTOCEntry]:
     for entry in entries:
         yield entry
@@ -1253,9 +1269,8 @@ def _is_probable_toc_page(
         if normalised in heading_lookup:
             heading_hits += 1
             continue
-        if (
-            normalised in identifier_lookup
-            and _TOC_IDENTIFIER_ONLY_RE.match(raw.strip())
+        if normalised in identifier_lookup and _TOC_IDENTIFIER_ONLY_RE.match(
+            raw.strip()
         ):
             identifier_hits += 1
 
@@ -1269,7 +1284,9 @@ def _is_probable_toc_page(
     return False
 
 
-def _filter_pages_with_toc(pages: List[dict], toc_entries: List[DocumentTOCEntry]) -> List[dict]:
+def _filter_pages_with_toc(
+    pages: List[dict], toc_entries: List[DocumentTOCEntry]
+) -> List[dict]:
     if not toc_entries:
         return pages
 
@@ -1323,7 +1340,9 @@ def parse_table_of_contents(pages: List[dict]) -> List[DocumentTOCEntry]:
     return root_entries
 
 
-def _flatten_toc_entries(entries: Iterable[DocumentTOCEntry]) -> Iterable[DocumentTOCEntry]:
+def _flatten_toc_entries(
+    entries: Iterable[DocumentTOCEntry],
+) -> Iterable[DocumentTOCEntry]:
     for entry in entries:
         yield entry
         if entry.children:
@@ -1369,7 +1388,9 @@ def _is_table_of_contents_page(page: Dict[str, Any]) -> bool:
         normalised = _normalise_toc_candidate([str(raw_line)])
         if _TOC_LINE_RE.match(normalised) or _TOC_PREFIX_RE.match(normalised):
             toc_like += 1
-        if _TOC_TRAILING_PAGE_REF_RE.search(normalised) or _has_significant_dot_leader(normalised):
+        if _TOC_TRAILING_PAGE_REF_RE.search(normalised) or _has_significant_dot_leader(
+            normalised
+        ):
             page_ref_like += 1
 
     return toc_like >= 2 and page_ref_like >= 1
@@ -1487,9 +1508,7 @@ _PDF_CITATION_PANEL_PREFIXES = (
     "following paragraph cited by:",
     "decisions following paragraph cited by:",
 )
-_INLINE_BODY_START_MARKERS = (
-    "HIGH COURT OF AUSTRALIA",
-)
+_INLINE_BODY_START_MARKERS = ("HIGH COURT OF AUSTRALIA",)
 _INLINE_BODY_TRUNCATION_MARKERS = (
     "Following paragraph cited by:",
     "Decisions Following paragraph cited by:",
@@ -1670,7 +1689,9 @@ def _rules_to_atoms(
             text_parts.append(conditions)
         if scope:
             text_parts.append(scope)
-        text_combined = " ".join(part.strip() for part in text_parts if part).strip() or None
+        text_combined = (
+            " ".join(part.strip() for part in text_parts if part).strip() or None
+        )
         text, text_refs = _strip_inline_citations(text_combined)
         text = _normalize_principle_text(text)
 
@@ -1753,7 +1774,12 @@ def _rules_to_atoms(
                     if element_span
                     else None
                 )
-                if cleaned_fragment and element_text_span is None and span_source and span_source != "unknown":
+                if (
+                    cleaned_fragment
+                    and element_text_span is None
+                    and span_source
+                    and span_source != "unknown"
+                ):
                     logger.warning(
                         "missing TextSpan for rule element: %s",
                         (cleaned_fragment[:80] or "").strip(),
@@ -1805,7 +1831,9 @@ def _build_provision_from_node(node) -> Provision:
             if not child_text.strip():
                 continue
             identifier = getattr(child, "identifier", None)
-            fragment = f"{identifier} {child_text}".strip() if identifier else child_text
+            fragment = (
+                f"{identifier} {child_text}".strip() if identifier else child_text
+            )
             text_parts.append(fragment)
 
     rendered_text = "\n".join(part for part in text_parts if part).strip()
@@ -2183,7 +2211,10 @@ def _looks_like_substantive_prose_line(line: str) -> bool:
         return False
     if _looks_like_case_reference_line(stripped) and stripped[-1:] not in ".!?;:":
         return False
-    if re.search(r"\b(?:CJ|ACJ|DCJ|JA|JJ|JJA|J)\)?\.?$", stripped) and stripped[-1:] == ")":
+    if (
+        re.search(r"\b(?:CJ|ACJ|DCJ|JA|JJ|JJA|J)\)?\.?$", stripped)
+        and stripped[-1:] == ")"
+    ):
         return False
     return _looks_like_sentence_line(line)
 
@@ -2230,7 +2261,7 @@ def _find_inline_citation_digest_start(line: str) -> int | None:
     if case_match is None or case_match.start() == 0:
         return None
     prefix = normalized[: case_match.start()].rstrip()
-    if not prefix or prefix[-1] not in ".!?;:\"”)]":
+    if not prefix or prefix[-1] not in '.!?;:"”)]':
         return None
     remainder = normalized[case_match.start() :]
     case_ref_count = len(re.findall(r"\bv\.?\b", remainder.lower()))
@@ -2260,7 +2291,9 @@ def _looks_like_document_heading(line: str) -> bool:
     return False
 
 
-def _clean_page_lines_for_body(lines: Iterable[str], *, is_first_page: bool) -> list[str]:
+def _clean_page_lines_for_body(
+    lines: Iterable[str], *, is_first_page: bool
+) -> list[str]:
     cleaned: list[str] = []
     dropping_front_wrapper = is_first_page
     skipping_citation_digest = False
@@ -2286,7 +2319,9 @@ def _clean_page_lines_for_body(lines: Iterable[str], *, is_first_page: bool) -> 
         if skipping_citation_digest:
             if _looks_like_citation_digest_continuation_line(line):
                 continue
-            if _looks_like_substantive_prose_line(line) and not _looks_like_case_reference_line(line):
+            if _looks_like_substantive_prose_line(
+                line
+            ) and not _looks_like_case_reference_line(line):
                 skipping_citation_digest = False
             else:
                 continue
@@ -2298,7 +2333,9 @@ def _clean_page_lines_for_body(lines: Iterable[str], *, is_first_page: bool) -> 
         if line == "Decisions":
             skipping_citation_digest = True
             continue
-        if _looks_like_case_reference_line(line) and not _looks_like_substantive_prose_line(line):
+        if _looks_like_case_reference_line(
+            line
+        ) and not _looks_like_substantive_prose_line(line):
             skipping_citation_digest = True
             continue
         if dropping_front_wrapper and _looks_like_wrapper_heading(line):
@@ -2334,9 +2371,7 @@ def _normalize_extracted_pages_for_body(pages: List[dict]) -> List[dict]:
             heading_val = page.get("heading") or ""
             text_val = page.get("text") or ""
             lines = [heading_val, text_val] if heading_val or text_val else []
-        cleaned_lines = _clean_page_lines_for_body(
-            lines, is_first_page=index == 0
-        )
+        cleaned_lines = _clean_page_lines_for_body(lines, is_first_page=index == 0)
         heading = cleaned_lines[0] if cleaned_lines else ""
         body = " ".join(cleaned_lines[1:]) if len(cleaned_lines) > 1 else ""
         normalized_pages.append(
@@ -2457,7 +2492,9 @@ def _determine_document_title(
         heading = str(page.get("heading") or "").strip()
         if heading:
             lowered = heading.lower()
-            if lowered not in _FRONT_MISLEADING_TITLES and _looks_like_document_heading(heading):
+            if lowered not in _FRONT_MISLEADING_TITLES and _looks_like_document_heading(
+                heading
+            ):
                 return heading
 
     if filename_title:
@@ -2558,7 +2595,18 @@ def _extract_case_citations_from_tokens(tokens: List[str]) -> List[CaseCitation]
 
     citations: List[str] = []
     buffer: List[str] = []
-    stop_tokens = {"fca", "fca –", "federal", "court", "nt", "followed", "followed", "foil", "discd", "discussed"}
+    stop_tokens = {
+        "fca",
+        "fca –",
+        "federal",
+        "court",
+        "nt",
+        "followed",
+        "followed",
+        "foil",
+        "discd",
+        "discussed",
+    }
     for token in tokens:
         if _YEAR_TOKEN_RE.match(token.strip()):
             if buffer:
@@ -2601,7 +2649,16 @@ def _case_citation_to_reference(
     )
 
 
-_SECTION_INTRO_TOKENS = {"sec", "sec.", "section", "sections", "s", "ss", "secs", "secs."}
+_SECTION_INTRO_TOKENS = {
+    "sec",
+    "sec.",
+    "section",
+    "sections",
+    "s",
+    "ss",
+    "secs",
+    "secs.",
+}
 _SECTION_JOINERS = {"and", "or"}
 _REFERENCE_BOUNDARY_TOKENS = {".", ";", ":"}
 _ACT_NAME_NOISE_PREFIXES = {"see"}
@@ -2656,15 +2713,21 @@ def _token_slice_to_text(
         snippet = source_text[start_offset:end_offset]
         cleaned = " ".join(snippet.split())
         return cleaned or None
-    joined = " ".join(_token_text_for_reference(tok) for tok in tokens[start:end]).strip()
+    joined = " ".join(
+        _token_text_for_reference(tok) for tok in tokens[start:end]
+    ).strip()
     return joined or None
 
 
-def _iter_clause_spans(tree: logic_tree.LogicTree, token_count: int) -> List[Tuple[int, int]]:
+def _iter_clause_spans(
+    tree: logic_tree.LogicTree, token_count: int
+) -> List[Tuple[int, int]]:
     def _collect(target_types: Set[logic_tree.NodeType]) -> List[Tuple[int, int]]:
         buckets: List[Tuple[int, int]] = []
         for node in getattr(tree, "nodes", []):
-            if getattr(node, "node_type", None) in target_types and getattr(node, "span", None):
+            if getattr(node, "node_type", None) in target_types and getattr(
+                node, "span", None
+            ):
                 start, end = node.span  # type: ignore[misc]
                 buckets.append((int(start), int(end)))
         return buckets
@@ -2752,7 +2815,9 @@ def _looks_like_next_section(tokens: Sequence[Any], start: int, end: int) -> boo
     return False
 
 
-def _collect_act_tokens(tokens: Sequence[Any], start: int, end: int) -> Tuple[List[Any], int]:
+def _collect_act_tokens(
+    tokens: Sequence[Any], start: int, end: int
+) -> Tuple[List[Any], int]:
     act_tokens: List[Any] = []
     idx = start
     anchor_seen = False
@@ -2760,7 +2825,11 @@ def _collect_act_tokens(tokens: Sequence[Any], start: int, end: int) -> Tuple[Li
     while idx < end:
         raw = _token_text_for_reference(tokens[idx])
         lower = raw.lower()
-        if lower in _SECTION_INTRO_TOKENS or raw in _REFERENCE_BOUNDARY_TOKENS or raw == ",":
+        if (
+            lower in _SECTION_INTRO_TOKENS
+            or raw in _REFERENCE_BOUNDARY_TOKENS
+            or raw == ","
+        ):
             break
         if lower == "and" and _looks_like_next_section(tokens, idx + 1, end):
             break
@@ -2861,7 +2930,10 @@ def _extract_clause_statutory_references(
             if not sections:
                 idx += 1
                 continue
-            if cursor >= end or _token_text_for_reference(tokens[cursor]).lower() != "of":
+            if (
+                cursor >= end
+                or _token_text_for_reference(tokens[cursor]).lower() != "of"
+            ):
                 idx = cursor
                 continue
             act_tokens, after_act = _collect_act_tokens(tokens, cursor + 1, end)
@@ -2980,7 +3052,9 @@ def _canonicalize_references(
                 citation_text=ref.citation_text,
                 source=ref.source,
                 uri=ref.uri,
-                provenance=_merge_provenance(ref.provenance, clause_id, pages, anchor_used),
+                provenance=_merge_provenance(
+                    ref.provenance, clause_id, pages, anchor_used
+                ),
                 glossary=ref.glossary,
                 identity_hash=ref.identity_hash,
                 family_key=ref.family_key,
@@ -3006,6 +3080,7 @@ def _canonicalize_references(
     if anchor_core_merge and canonical:
         link_present = any(ref.source == "link" and ref.work for ref in canonical)
         if not link_present:
+
             def _anchor_score(value: RuleReference) -> Tuple[int, int, int, str]:
                 work_text = value.work or ""
                 has_year = 1 if re.search(r"\b\d{4}(?:-\d{4})?\b", work_text) else 0
@@ -3019,7 +3094,9 @@ def _canonicalize_references(
                     break
 
             anchor_core_work = anchor_core_ref.work if anchor_core_ref else None
-            anchor_core_family = _anchor_family_key(anchor_core_work) if anchor_core_work else None
+            anchor_core_family = (
+                _anchor_family_key(anchor_core_work) if anchor_core_work else None
+            )
 
             rewritten: List[RuleReference] = []
             for ref in canonical:
@@ -3104,7 +3181,11 @@ def _extract_statutory_references_from_logic_tree(
     for idx, span in enumerate(clause_spans):
         clause_id = f"{source_id}-clause-{idx}"
         clause_refs = _extract_clause_statutory_references(
-            tokens, span, str(normalized), source_label=source_label, clause_id=clause_id
+            tokens,
+            span,
+            str(normalized),
+            source_label=source_label,
+            clause_id=clause_id,
         )
         references.extend(
             _canonicalize_references(
@@ -3185,7 +3266,10 @@ def _extract_hyperlink_references(
                                 citation_text=anchor_text,
                                 source="link",
                                 uri=uri,
-                                provenance={"pages": [link_page], "anchor_used": "link"},
+                                provenance={
+                                    "pages": [link_page],
+                                    "anchor_used": "link",
+                                },
                             )
                         )
             work_from_uri = _parse_work_from_uri(uri) if uri else None
@@ -3238,7 +3322,9 @@ def _extract_front_page_references(pages: List[dict]) -> List[RuleReference]:
         return []
 
     case_names = _extract_case_names_from_lines(lines[:split_index])
-    citation_tokens = [str(token).strip() for token in lines[split_index + 1 :] if str(token).strip()]
+    citation_tokens = [
+        str(token).strip() for token in lines[split_index + 1 :] if str(token).strip()
+    ]
     citations = _extract_case_citations_from_tokens(citation_tokens)
 
     references: List[RuleReference] = []
@@ -3286,7 +3372,9 @@ def build_document(
     toc_entries = parse_table_of_contents(cleaned_pages)
     toc_heading_candidates = _collect_toc_heading_candidates(toc_entries)
 
-    non_toc_pages = [page for page in cleaned_pages if not _is_table_of_contents_page(page)]
+    non_toc_pages = [
+        page for page in cleaned_pages if not _is_table_of_contents_page(page)
+    ]
     body_pages = _filter_pages_with_toc(non_toc_pages, toc_entries)
     if not body_pages:
         body_pages = non_toc_pages or cleaned_pages
@@ -3300,15 +3388,14 @@ def build_document(
         cleaned_pages, source, title, inferred_title=inferred_title
     )
     resolved_jurisdiction = jurisdiction or inferred_jurisdiction or ""
-    resolved_date = (
-        detected_date
-        or document_date
-        or inferred_date
-        or date.today()
-    )
+    resolved_date = detected_date or document_date or inferred_date or date.today()
     if not resolved_jurisdiction:
         stem_upper = source.stem.upper()
-        if " HCA " in f" {stem_upper} " or stem_upper.startswith("HCA ") or " HCA" in stem_upper:
+        if (
+            " HCA " in f" {stem_upper} "
+            or stem_upper.startswith("HCA ")
+            or " HCA" in stem_upper
+        ):
             resolved_jurisdiction = "HCA"
 
     metadata = DocumentMetadata(
@@ -3414,7 +3501,15 @@ def build_document(
             seen_refs = set()
             for ref in prov.references:
                 if isinstance(ref, RuleReference):
-                    seen_refs.add((ref.work, ref.section, ref.pinpoint, ref.citation_text, ref.glossary_id))
+                    seen_refs.add(
+                        (
+                            ref.work,
+                            ref.section,
+                            ref.pinpoint,
+                            ref.citation_text,
+                            ref.glossary_id,
+                        )
+                    )
                 elif isinstance(ref, (list, tuple)):
                     seen_refs.add(tuple(ref))
             for ref in extra_refs:
@@ -3479,7 +3574,9 @@ def iter_process_pdf(
             db_path.parent.mkdir(parents=True, exist_ok=True)
             storage = Storage(db_path)
         registry = GlossaryRegistry(storage)
-        char_threshold = break_after_chars if break_after_chars and break_after_chars > 0 else None
+        char_threshold = (
+            break_after_chars if break_after_chars and break_after_chars > 0 else None
+        )
         pages: List[dict] = []
         total_pages = _count_pdf_pages(pdf)
         words_seen = 0
@@ -3517,7 +3614,11 @@ def iter_process_pdf(
                     "char_count": char_count,
                 },
             )
-            if char_threshold is not None and not breakpoint_triggered and char_count >= char_threshold:
+            if (
+                char_threshold is not None
+                and not breakpoint_triggered
+                and char_count >= char_threshold
+            ):
                 breakpoint_triggered = True
                 yield (
                     "extraction",
@@ -3555,7 +3656,10 @@ def iter_process_pdf(
         doc.metadata.compression_stats = compute_compression_stats(doc.body).to_dict()
         parsed_envelope = parse_canonical_text(
             canonical_text,
-            ingest_receipt={"adapter": "pdf_page_media_adapter", "source_path": str(pdf)},
+            ingest_receipt={
+                "adapter": "pdf_page_media_adapter",
+                "source_path": str(pdf),
+            },
         )
         yield (
             "build",

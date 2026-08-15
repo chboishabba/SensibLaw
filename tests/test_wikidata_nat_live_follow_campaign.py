@@ -33,7 +33,9 @@ def test_nat_live_follow_campaign_spans_multiple_uncertainty_categories() -> Non
     }.issubset({category["category_id"] for category in categories})
 
 
-def test_nat_live_follow_campaign_keeps_bounded_source_order_and_stop_conditions() -> None:
+def test_nat_live_follow_campaign_keeps_bounded_source_order_and_stop_conditions() -> (
+    None
+):
     payload = _load_fixture()
 
     for category in payload["categories"]:

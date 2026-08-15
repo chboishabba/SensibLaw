@@ -48,14 +48,18 @@ def build_profile(
 def normalize_profile(profile: Mapping[str, Any] | None) -> dict[str, Any]:
     payload = profile if isinstance(profile, Mapping) else {}
     return build_profile(
-        profile_id=_text(payload.get("profile_id")) or _text(payload.get("lane_family")),
-        lane_family=_text(payload.get("lane_family")) or _text(payload.get("profile_id")),
+        profile_id=_text(payload.get("profile_id"))
+        or _text(payload.get("lane_family")),
+        lane_family=_text(payload.get("lane_family"))
+        or _text(payload.get("profile_id")),
         source_kinds=payload.get("source_kinds", []),
         authority_surfaces=payload.get("authority_surfaces", []),
         external_bridges=payload.get("external_bridges", []),
         promotion_policy=_text(payload.get("promotion_policy")) or "candidate_only",
         default_projection_kinds=payload.get("default_projection_kinds", []),
-        metadata=payload.get("metadata") if isinstance(payload.get("metadata"), Mapping) else None,
+        metadata=payload.get("metadata")
+        if isinstance(payload.get("metadata"), Mapping)
+        else None,
     )
 
 

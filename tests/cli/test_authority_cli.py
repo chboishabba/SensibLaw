@@ -1,5 +1,4 @@
 import json
-from datetime import date
 from pathlib import Path
 import sys
 
@@ -25,7 +24,9 @@ def run_cli(monkeypatch, argv):
 
 def test_austlii_search_can_emit_local_paragraphs(monkeypatch, capsys, tmp_path):
     html = (FIXTURES / "sino_results_realistic.html").read_text(encoding="utf-8")
-    fetched_html = (FIXTURES / "judgment_paragraphs_sample.html").read_text(encoding="utf-8")
+    fetched_html = (FIXTURES / "judgment_paragraphs_sample.html").read_text(
+        encoding="utf-8"
+    )
     db_path = tmp_path / "itir.sqlite"
 
     monkeypatch.setattr(AustLiiSearchAdapter, "search", lambda self, q: html)
@@ -71,13 +72,23 @@ def test_austlii_search_can_emit_local_paragraphs(monkeypatch, capsys, tmp_path)
     with sqlite3.connect(str(db_path)) as conn:
         runs = list_authority_ingest_runs(conn, authority_kind="austlii")
         assert runs[0]["segment_count"] == 3
-        summary = build_authority_ingest_summary(conn, ingest_run_id=runs[0]["ingest_run_id"])
+        summary = build_authority_ingest_summary(
+            conn, ingest_run_id=runs[0]["ingest_run_id"]
+        )
         assert summary["run"]["selection_reason"] == "by_mnc:[1992] HCA 23"
-        assert [row["paragraph_number"] for row in summary["segments"]] == [119, 120, 121]
+        assert [row["paragraph_number"] for row in summary["segments"]] == [
+            119,
+            120,
+            121,
+        ]
 
 
-def test_austlii_case_fetch_can_resolve_citation_and_emit_local_paragraphs(monkeypatch, capsys, tmp_path):
-    fetched_html = (FIXTURES / "judgment_paragraphs_sample.html").read_text(encoding="utf-8")
+def test_austlii_case_fetch_can_resolve_citation_and_emit_local_paragraphs(
+    monkeypatch, capsys, tmp_path
+):
+    fetched_html = (FIXTURES / "judgment_paragraphs_sample.html").read_text(
+        encoding="utf-8"
+    )
     db_path = tmp_path / "itir.sqlite"
 
     monkeypatch.setattr(
@@ -87,7 +98,11 @@ def test_austlii_case_fetch_can_resolve_citation_and_emit_local_paragraphs(monke
             content=fetched_html.encode("utf-8"),
             content_type="text/html",
             url=url,
-            metadata={"source": "austlii", "status_code": 200, "path": "/au/cases/cth/HCA/1992/23.html"},
+            metadata={
+                "source": "austlii",
+                "status_code": 200,
+                "path": "/au/cases/cth/HCA/1992/23.html",
+            },
         ),
     )
 
@@ -116,13 +131,21 @@ def test_austlii_case_fetch_can_resolve_citation_and_emit_local_paragraphs(monke
 
     with sqlite3.connect(str(db_path)) as conn:
         runs = list_authority_ingest_runs(conn, authority_kind="austlii")
-        summary = build_authority_ingest_summary(conn, ingest_run_id=runs[0]["ingest_run_id"])
+        summary = build_authority_ingest_summary(
+            conn, ingest_run_id=runs[0]["ingest_run_id"]
+        )
         assert summary["run"]["selection_reason"] == "by_citation:[1992] HCA 23"
-        assert [row["paragraph_number"] for row in summary["segments"]] == [119, 120, 121]
+        assert [row["paragraph_number"] for row in summary["segments"]] == [
+            119,
+            120,
+            121,
+        ]
 
 
 def test_jade_fetch_can_emit_local_paragraphs(monkeypatch, capsys, tmp_path):
-    fetched_text = (JADE_FIXTURES / "judgment_paragraphs_sample.txt").read_text(encoding="utf-8")
+    fetched_text = (JADE_FIXTURES / "judgment_paragraphs_sample.txt").read_text(
+        encoding="utf-8"
+    )
     db_path = tmp_path / "itir.sqlite"
 
     monkeypatch.setattr(
@@ -163,14 +186,22 @@ def test_jade_fetch_can_emit_local_paragraphs(monkeypatch, capsys, tmp_path):
     with sqlite3.connect(str(db_path)) as conn:
         runs = list_authority_ingest_runs(conn, authority_kind="jade")
         assert runs[0]["citation"] == "[2021] FamCA 83"
-        summary = build_authority_ingest_summary(conn, ingest_run_id=runs[0]["ingest_run_id"])
+        summary = build_authority_ingest_summary(
+            conn, ingest_run_id=runs[0]["ingest_run_id"]
+        )
         assert summary["run"]["ingest_mode"] == "fetch"
-        assert [row["paragraph_number"] for row in summary["segments"]] == [119, 120, 121]
+        assert [row["paragraph_number"] for row in summary["segments"]] == [
+            119,
+            120,
+            121,
+        ]
 
 
 def test_jade_search_can_emit_local_paragraphs(monkeypatch, capsys, tmp_path):
     html = (JADE_FIXTURES / "search_results_sample.html").read_text(encoding="utf-8")
-    fetched_text = (JADE_FIXTURES / "judgment_paragraphs_sample.txt").read_text(encoding="utf-8")
+    fetched_text = (JADE_FIXTURES / "judgment_paragraphs_sample.txt").read_text(
+        encoding="utf-8"
+    )
     db_path = tmp_path / "itir.sqlite"
 
     monkeypatch.setattr(JadeSearchAdapter, "search", lambda self, query: html)
@@ -217,6 +248,12 @@ def test_jade_search_can_emit_local_paragraphs(monkeypatch, capsys, tmp_path):
     with sqlite3.connect(str(db_path)) as conn:
         runs = list_authority_ingest_runs(conn, authority_kind="jade")
         assert runs[0]["ingest_mode"] == "search"
-        summary = build_authority_ingest_summary(conn, ingest_run_id=runs[0]["ingest_run_id"])
+        summary = build_authority_ingest_summary(
+            conn, ingest_run_id=runs[0]["ingest_run_id"]
+        )
         assert summary["run"]["selection_reason"] == "by_mnc:[2021] FamCA 83"
-        assert [row["paragraph_number"] for row in summary["segments"]] == [119, 120, 121]
+        assert [row["paragraph_number"] for row in summary["segments"]] == [
+            119,
+            120,
+            121,
+        ]

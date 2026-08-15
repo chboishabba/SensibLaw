@@ -3,9 +3,7 @@ from pathlib import Path
 
 MIGRATION_ROOT = Path("database/postgres_migrations")
 STANDALONE_ACTORS = MIGRATION_ROOT / "066_standalone_actor_profiles.sql"
-TYPED_CONSTRAINTS = (
-    MIGRATION_ROOT / "067_typed_frontier_candidate_constraints.sql"
-)
+TYPED_CONSTRAINTS = MIGRATION_ROOT / "067_typed_frontier_candidate_constraints.sql"
 
 
 def test_standalone_actor_profiles_are_captured_set_wise() -> None:

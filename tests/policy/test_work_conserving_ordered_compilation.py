@@ -131,18 +131,14 @@ def test_completed_parser_buffer_blocks_second_future_until_consumed(
     coordinator.resume_parser_lookahead()
 
     assert scheduled == []
-    assert coordinator._state == (
-        "completed_parser_buffer_waiting_for_foreground"
-    )
+    assert coordinator._state == ("completed_parser_buffer_waiting_for_foreground")
     assert coordinator.wait_for("document:7") is buffered
     assert scheduled == ["scheduled"]
 
 
 def test_ordered_wrapper_rejects_parallel_semantic_documents() -> None:
     with pytest.raises(ValueError, match="document_workers=1"):
-        compile_directory_postgres_work_conserving_ordered(
-            ".", document_workers=2
-        )
+        compile_directory_postgres_work_conserving_ordered(".", document_workers=2)
 
 
 def test_ordered_wrapper_injects_work_conserving_executor(
@@ -172,9 +168,7 @@ def test_ordered_wrapper_injects_work_conserving_executor(
     assert observed["document_executor"] is (
         persist_document_compilation_work_conserving
     )
-    assert observed["document_executor_ref"] == (
-        WORK_CONSERVING_DOCUMENT_EXECUTOR_REF
-    )
+    assert observed["document_executor_ref"] == (WORK_CONSERVING_DOCUMENT_EXECUTOR_REF)
     assert observed["persistence_strategy_ref"] == (
         WORK_CONSERVING_PERSISTENCE_CONTRACT
     )

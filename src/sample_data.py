@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import date
 from typing import List, Optional
 
 from src.graph.models import (
@@ -36,9 +35,7 @@ GRAPH.add_node(
 )
 
 # Edges between documents and provisions
-GRAPH.add_edge(
-    GraphEdge(type=EdgeType.CITES, source="doc1", target="doc2", weight=1.0)
-)
+GRAPH.add_edge(GraphEdge(type=EdgeType.CITES, source="doc1", target="doc2", weight=1.0))
 GRAPH.add_edge(
     GraphEdge(type=EdgeType.REFERENCES, source="doc1", target="prov1", weight=1.0)
 )
@@ -77,11 +74,7 @@ def build_subgraph(nodes: Optional[List[str]], limit: int, offset: int) -> dict:
     selected_nodes = [
         _node_to_dict(GRAPH.nodes[n]) for n in node_ids if n in GRAPH.nodes
     ]
-    edges = [
-        e
-        for e in GRAPH.edges
-        if e.source in node_ids and e.target in node_ids
-    ]
+    edges = [e for e in GRAPH.edges if e.source in node_ids and e.target in node_ids]
     paginated_edges = edges[offset : offset + limit]
     return {
         "nodes": selected_nodes,

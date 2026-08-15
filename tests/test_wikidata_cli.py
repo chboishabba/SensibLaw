@@ -20,8 +20,12 @@ from SensibLaw.src.sources.national_archives.brexit_national_archives_lane impor
     build_report,
     fetch_records,
 )
-from SensibLaw.tests.test_au_fact_review_bundle import _prepare_au_fact_review_bundle_fixture
-from src.ontology.wikidata_nat_automation_graduation import build_nat_claim_convergence_report
+from SensibLaw.tests.test_au_fact_review_bundle import (
+    _prepare_au_fact_review_bundle_fixture,
+)
+from src.ontology.wikidata_nat_automation_graduation import (
+    build_nat_claim_convergence_report,
+)
 
 
 def test_wikidata_project_cli_writes_report(tmp_path, capsys) -> None:
@@ -131,7 +135,9 @@ def test_wikidata_project_cli_emits_qualifier_drift(tmp_path, capsys) -> None:
     assert file_payload["qualifier_drift"][0]["slot_id"] == "Qposthumous_case|P166"
 
 
-def test_wikidata_build_slice_and_project_real_qualifier_baseline(tmp_path, capsys) -> None:
+def test_wikidata_build_slice_and_project_real_qualifier_baseline(
+    tmp_path, capsys
+) -> None:
     root = Path(__file__).resolve().parent
     out_slice = tmp_path / "real_qualifier_slice.json"
     out_report = tmp_path / "real_qualifier_report.json"
@@ -174,12 +180,15 @@ def test_wikidata_build_slice_and_project_real_qualifier_baseline(tmp_path, caps
 
     assert stdout["output"] == str(out_report)
     assert file_payload["qualifier_drift"] == []
-    assert {
-        slot["slot_id"] for slot in file_payload["windows"][0]["slots"]
-    } == {"Q1336181|P166", "Q28792860|P166"}
+    assert {slot["slot_id"] for slot in file_payload["windows"][0]["slots"]} == {
+        "Q1336181|P166",
+        "Q28792860|P166",
+    }
 
 
-def test_wikidata_project_cli_matches_repo_pinned_live_drift_case(tmp_path, capsys) -> None:
+def test_wikidata_project_cli_matches_repo_pinned_live_drift_case(
+    tmp_path, capsys
+) -> None:
     root = Path(__file__).resolve().parent
     in_path = (
         root
@@ -211,7 +220,9 @@ def test_wikidata_project_cli_matches_repo_pinned_live_drift_case(tmp_path, caps
     assert file_payload["qualifier_drift"][0]["severity"] == "medium"
 
 
-def test_wikidata_project_cli_matches_repo_pinned_second_live_drift_case(tmp_path, capsys) -> None:
+def test_wikidata_project_cli_matches_repo_pinned_second_live_drift_case(
+    tmp_path, capsys
+) -> None:
     root = Path(__file__).resolve().parent
     in_path = (
         root
@@ -268,12 +279,17 @@ def test_wikidata_nat_live_follow_campaign_cli_writes_plan(tmp_path, capsys) -> 
     file_payload = json.loads(out_path.read_text(encoding="utf-8"))
 
     assert stdout["output"] == str(out_path)
-    assert file_payload["schema_version"] == "sl.wikidata_nat.live_follow_campaign_plan.v0_1"
+    assert (
+        file_payload["schema_version"]
+        == "sl.wikidata_nat.live_follow_campaign_plan.v0_1"
+    )
     assert file_payload["campaign_id"] == "wikidata_nat_live_follow_campaign_20260403"
     assert file_payload["plan_count"] == 11
 
 
-def test_wikidata_nat_live_follow_execute_cli_writes_result(tmp_path, capsys, monkeypatch) -> None:
+def test_wikidata_nat_live_follow_execute_cli_writes_result(
+    tmp_path, capsys, monkeypatch
+) -> None:
     root = Path(__file__).resolve().parent
     in_path = (
         root
@@ -292,7 +308,10 @@ def test_wikidata_nat_live_follow_execute_cli_writes_result(tmp_path, capsys, mo
                     "pages": {
                         "1": {
                             "revisions": [
-                                {"revid": 2474420124, "timestamp": "2026-04-01T12:00:00Z"},
+                                {
+                                    "revid": 2474420124,
+                                    "timestamp": "2026-04-01T12:00:00Z",
+                                },
                             ]
                         }
                     }
@@ -358,7 +377,10 @@ def test_wikidata_nat_live_follow_preflight_cli_writes_report(tmp_path, capsys) 
     file_payload = json.loads(out_path.read_text(encoding="utf-8"))
 
     assert stdout["output"] == str(out_path)
-    assert stdout["schema_version"] == "sl.wikidata_nat.policy_risk_population_preview_preflight.v0_1"
+    assert (
+        stdout["schema_version"]
+        == "sl.wikidata_nat.policy_risk_population_preview_preflight.v0_1"
+    )
     assert stdout["top_n"] == 2
     assert stdout["candidate_count"] == 2
     assert file_payload["candidate_count"] == 2
@@ -430,7 +452,9 @@ def test_wikidata_build_migration_pack_cli_writes_pack(tmp_path, capsys) -> None
     ]
 
 
-def test_wikidata_project_cli_accepts_prepopulation_core_profile(tmp_path, capsys) -> None:
+def test_wikidata_project_cli_accepts_prepopulation_core_profile(
+    tmp_path, capsys
+) -> None:
     in_path = tmp_path / "prepopulation_core_slice.json"
     out_path = tmp_path / "prepopulation_core_report.json"
     in_path.write_text(
@@ -440,9 +464,24 @@ def test_wikidata_project_cli_accepts_prepopulation_core_profile(tmp_path, capsy
                     {
                         "id": "t1",
                         "statement_bundles": [
-                            {"subject": "Q1", "property": "P31", "value": "QClass", "rank": "preferred"},
-                            {"subject": "Q1", "property": "P361", "value": "QWhole", "rank": "preferred"},
-                            {"subject": "QWhole", "property": "P527", "value": "Q1", "rank": "preferred"},
+                            {
+                                "subject": "Q1",
+                                "property": "P31",
+                                "value": "QClass",
+                                "rank": "preferred",
+                            },
+                            {
+                                "subject": "Q1",
+                                "property": "P361",
+                                "value": "QWhole",
+                                "rank": "preferred",
+                            },
+                            {
+                                "subject": "QWhole",
+                                "property": "P527",
+                                "value": "Q1",
+                                "rank": "preferred",
+                            },
                         ],
                     }
                 ]
@@ -468,11 +507,20 @@ def test_wikidata_project_cli_accepts_prepopulation_core_profile(tmp_path, capsy
     file_payload = json.loads(out_path.read_text(encoding="utf-8"))
     assert stdout["output"] == str(out_path)
     assert file_payload["bounded_slice"]["profile"] == "prepopulation_core"
-    assert file_payload["bounded_slice"]["properties"] == ["P279", "P31", "P361", "P527"]
-    assert file_payload["windows"][0]["diagnostics"]["parthood_typing"]["classifications"]
+    assert file_payload["bounded_slice"]["properties"] == [
+        "P279",
+        "P31",
+        "P361",
+        "P527",
+    ]
+    assert file_payload["windows"][0]["diagnostics"]["parthood_typing"][
+        "classifications"
+    ]
 
 
-def test_wikidata_export_migration_pack_openrefine_cli_writes_csv(tmp_path, capsys) -> None:
+def test_wikidata_export_migration_pack_openrefine_cli_writes_csv(
+    tmp_path, capsys
+) -> None:
     in_path = tmp_path / "migration_pack.json"
     out_path = tmp_path / "migration_pack_openrefine.csv"
     in_path.write_text(
@@ -528,7 +576,9 @@ def test_wikidata_export_migration_pack_openrefine_cli_writes_csv(tmp_path, caps
     assert rows[0]["split_axis_count"] == "0"
 
 
-def test_wikidata_export_migration_pack_checked_safe_cli_writes_csv(tmp_path, capsys) -> None:
+def test_wikidata_export_migration_pack_checked_safe_cli_writes_csv(
+    tmp_path, capsys
+) -> None:
     in_path = tmp_path / "migration_pack.json"
     out_path = tmp_path / "migration_pack_checked_safe.csv"
     in_path.write_text(
@@ -706,7 +756,12 @@ def test_wikidata_build_split_plan_cli_writes_json(tmp_path, capsys) -> None:
                         "classification": "split_required",
                         "action": "split",
                         "split_axes": [
-                            {"property": "__value__", "cardinality": 2, "source": "slot", "reason": "multi_value_slot"},
+                            {
+                                "property": "__value__",
+                                "cardinality": 2,
+                                "source": "slot",
+                                "reason": "multi_value_slot",
+                            },
                         ],
                         "claim_bundle_before": {
                             "subject": "Q1",
@@ -735,7 +790,12 @@ def test_wikidata_build_split_plan_cli_writes_json(tmp_path, capsys) -> None:
                         "classification": "split_required",
                         "action": "split",
                         "split_axes": [
-                            {"property": "__value__", "cardinality": 2, "source": "slot", "reason": "multi_value_slot"},
+                            {
+                                "property": "__value__",
+                                "cardinality": 2,
+                                "source": "slot",
+                                "reason": "multi_value_slot",
+                            },
                         ],
                         "claim_bundle_before": {
                             "subject": "Q1",
@@ -781,9 +841,16 @@ def test_wikidata_build_split_plan_cli_writes_json(tmp_path, capsys) -> None:
     assert payload["plans"][0]["status"] == "structurally_decomposable"
 
 
-def test_wikidata_cohort_c_operator_packet_cli_wraps_scan_payload(tmp_path, capsys) -> None:
+def test_wikidata_cohort_c_operator_packet_cli_wraps_scan_payload(
+    tmp_path, capsys
+) -> None:
     root = Path(__file__).resolve().parent
-    in_path = root / "fixtures" / "wikidata" / "wikidata_nat_cohort_c_population_scan_20260402.json"
+    in_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_cohort_c_population_scan_20260402.json"
+    )
     out_path = tmp_path / "cohort_c_operator_packet.json"
 
     cli_main.main(
@@ -803,10 +870,14 @@ def test_wikidata_cohort_c_operator_packet_cli_wraps_scan_payload(tmp_path, caps
     assert stdout["decision"] == "review"
     assert stdout["candidate_count"] == 3
     assert payload["decision"] == "review"
-    assert payload["triage_prompts"][0].startswith("Review the candidate P459 status split")
+    assert payload["triage_prompts"][0].startswith(
+        "Review the candidate P459 status split"
+    )
 
 
-def test_wikidata_cohort_d_operator_review_cli_materializes_queue_surface(tmp_path, capsys) -> None:
+def test_wikidata_cohort_d_operator_review_cli_materializes_queue_surface(
+    tmp_path, capsys
+) -> None:
     root = Path(__file__).resolve().parent
     in_path = (
         root
@@ -840,7 +911,9 @@ def test_wikidata_cohort_d_operator_review_cli_materializes_queue_surface(tmp_pa
     assert all(row["execution_allowed"] is False for row in payload["operator_queue"])
 
 
-def test_wikidata_cohort_d_operator_report_cli_materializes_report_surface(tmp_path, capsys) -> None:
+def test_wikidata_cohort_d_operator_report_cli_materializes_report_surface(
+    tmp_path, capsys
+) -> None:
     root = Path(__file__).resolve().parent
     in_path = (
         root
@@ -875,7 +948,9 @@ def test_wikidata_cohort_d_operator_report_cli_materializes_report_surface(tmp_p
     assert payload["governance"]["can_execute_edits"] is False
 
 
-def test_wikidata_cohort_d_operator_report_batch_cli_materializes_batch_report(tmp_path, capsys) -> None:
+def test_wikidata_cohort_d_operator_report_batch_cli_materializes_batch_report(
+    tmp_path, capsys
+) -> None:
     root = Path(__file__).resolve().parent
     in_path = (
         root
@@ -908,7 +983,9 @@ def test_wikidata_cohort_d_operator_report_batch_cli_materializes_batch_report(t
     assert payload["summary"]["total_unresolved_packet_ref_count"] == 1
 
 
-def test_wikidata_cohort_d_review_control_index_cli_materializes_control_index(tmp_path, capsys) -> None:
+def test_wikidata_cohort_d_review_control_index_cli_materializes_control_index(
+    tmp_path, capsys
+) -> None:
     root = Path(__file__).resolve().parent
     in_path = (
         root
@@ -942,10 +1019,15 @@ def test_wikidata_cohort_d_review_control_index_cli_materializes_control_index(t
     assert "batch_not_all_cases_ready" in payload["blocked_signals"]
 
 
-def test_wikidata_automation_graduation_eval_cli_approves_gate_a(tmp_path, capsys) -> None:
+def test_wikidata_automation_graduation_eval_cli_approves_gate_a(
+    tmp_path, capsys
+) -> None:
     root = Path(__file__).resolve().parent
     criteria_path = (
-        root / "fixtures" / "wikidata" / "wikidata_nat_automation_graduation_criteria_20260402.json"
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_automation_graduation_criteria_20260402.json"
     )
     proposal_path = (
         root
@@ -978,10 +1060,15 @@ def test_wikidata_automation_graduation_eval_cli_approves_gate_a(tmp_path, capsy
     assert payload["failed_checks"] == []
 
 
-def test_wikidata_automation_graduation_eval_cli_holds_gate_b_with_blocker(tmp_path, capsys) -> None:
+def test_wikidata_automation_graduation_eval_cli_holds_gate_b_with_blocker(
+    tmp_path, capsys
+) -> None:
     root = Path(__file__).resolve().parent
     criteria_path = (
-        root / "fixtures" / "wikidata" / "wikidata_nat_automation_graduation_criteria_20260402.json"
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_automation_graduation_criteria_20260402.json"
     )
     proposal_path = (
         root
@@ -1014,10 +1101,15 @@ def test_wikidata_automation_graduation_eval_cli_holds_gate_b_with_blocker(tmp_p
     assert "blocked_signal_triggered" in payload["failed_checks"]
 
 
-def test_wikidata_automation_graduation_eval_batch_cli_writes_index_report(tmp_path, capsys) -> None:
+def test_wikidata_automation_graduation_eval_batch_cli_writes_index_report(
+    tmp_path, capsys
+) -> None:
     root = Path(__file__).resolve().parent
     criteria_path = (
-        root / "fixtures" / "wikidata" / "wikidata_nat_automation_graduation_criteria_20260402.json"
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_automation_graduation_criteria_20260402.json"
     )
     proposal_batch_path = (
         root
@@ -1052,6 +1144,7 @@ def test_wikidata_automation_graduation_eval_batch_cli_writes_index_report(tmp_p
     assert payload["summary"]["approved_count"] == 1
     assert payload["summary"]["rejected_count"] == 1
 
+
 def test_wikidata_nat_migration_batch_export_cli(tmp_path, capsys) -> None:
     root = Path(__file__).resolve().parent
     in_path = (
@@ -1079,7 +1172,10 @@ def test_wikidata_nat_migration_batch_export_cli(tmp_path, capsys) -> None:
     assert stdout["output"] == str(out_path)
     assert stdout["export_id"] == payload["export_id"]
     assert stdout["row_count"] == payload["summary"]["row_count"]
-    assert payload["family_id"] == "business_family_reconciled_low_qualifier_checked_safe_subset"
+    assert (
+        payload["family_id"]
+        == "business_family_reconciled_low_qualifier_checked_safe_subset"
+    )
     assert payload["export_status"] == "ready_for_review_export"
     assert payload["summary"]["candidate_count"] == 2
     assert len(payload["artifacts"]) == 2
@@ -1113,7 +1209,10 @@ def test_wikidata_nat_migration_executed_rows_cli(tmp_path, capsys) -> None:
     assert stdout["output"] == str(out_path)
     assert stdout["execution_status"] == "ready_execution_receipts"
     assert stdout["row_count"] == payload["summary"]["row_count"]
-    assert payload["export_id"] == "business_family_reconciled_low_qualifier_checked_safe_subset-migration-export-5d9264e28e7f"
+    assert (
+        payload["export_id"]
+        == "business_family_reconciled_low_qualifier_checked_safe_subset-migration-export-5d9264e28e7f"
+    )
     assert payload["summary"]["row_count"] == 2
 
 
@@ -1174,7 +1273,13 @@ def test_wikidata_nat_sandbox_post_write_verification_cli(tmp_path, capsys) -> N
                             "unit_qid": "Q57084755",
                             "rank": "normal",
                             "qualifiers": {"P585": ["+2024-00-00T00:00:00Z"]},
-                            "references": [{"P854": ["https://www.wikidata.org/wiki/Property:P14143"]}],
+                            "references": [
+                                {
+                                    "P854": [
+                                        "https://www.wikidata.org/wiki/Property:P14143"
+                                    ]
+                                }
+                            ],
                         },
                     }
                 ],
@@ -1197,7 +1302,13 @@ def test_wikidata_nat_sandbox_post_write_verification_cli(tmp_path, capsys) -> N
                             "unit_qid": "Q57084755",
                             "rank": "normal",
                             "qualifiers": {"P585": ["+2024-00-00T00:00:00Z"]},
-                            "references": [{"P854": ["https://www.wikidata.org/wiki/Property:P14143"]}],
+                            "references": [
+                                {
+                                    "P854": [
+                                        "https://www.wikidata.org/wiki/Property:P14143"
+                                    ]
+                                }
+                            ],
                         },
                     }
                 ],
@@ -1289,7 +1400,9 @@ def test_wikidata_world_model_lane_summary_cli(tmp_path, capsys, monkeypatch) ->
         lambda **_kwargs: {},
     )
     gwb_result = build_gwb_broader_review(tmp_path / "gwb")
-    gwb_payload = json.loads(Path(gwb_result["artifact_path"]).read_text(encoding="utf-8"))
+    gwb_payload = json.loads(
+        Path(gwb_result["artifact_path"]).read_text(encoding="utf-8")
+    )
     gwb_report = build_gwb_broader_review_world_model_report(gwb_payload)
     gwb_path = tmp_path / "gwb_report.json"
     gwb_path.write_text(json.dumps(gwb_report), encoding="utf-8")
@@ -1310,7 +1423,9 @@ def test_wikidata_world_model_lane_summary_cli(tmp_path, capsys, monkeypatch) ->
             / "wikidata_nat_cohort_b_operator_packet_20260402.json"
         ).read_text(encoding="utf-8")
     )
-    reviewer_report = build_nat_cohort_b_operator_packet_world_model_report(reviewer_packet)
+    reviewer_report = build_nat_cohort_b_operator_packet_world_model_report(
+        reviewer_packet
+    )
     reviewer_path = tmp_path / "reviewer_report.json"
     reviewer_path.write_text(json.dumps(reviewer_report), encoding="utf-8")
 
@@ -1346,10 +1461,15 @@ def test_wikidata_world_model_lane_summary_cli(tmp_path, capsys, monkeypatch) ->
     assert payload["summary"]["total_must_review_count"] >= 10
     assert payload["summary"]["open_follow_conjectures"] > 10
     assert payload["summary"]["total_can_act_count"] == 2
-    assert "business_family_reconciled_low_qualifier_checked_safe_subset" in payload["governance_gate"]["ready_lanes"]
+    assert (
+        "business_family_reconciled_low_qualifier_checked_safe_subset"
+        in payload["governance_gate"]["ready_lanes"]
+    )
 
 
-def test_report_world_model_lane_summary_cli_alias(tmp_path, capsys, monkeypatch) -> None:
+def test_report_world_model_lane_summary_cli_alias(
+    tmp_path, capsys, monkeypatch
+) -> None:
     root = Path(__file__).resolve().parent
 
     nat_runs = json.loads(
@@ -1374,7 +1494,9 @@ def test_report_world_model_lane_summary_cli_alias(tmp_path, capsys, monkeypatch
         lambda **_kwargs: {},
     )
     gwb_result = build_gwb_broader_review(tmp_path / "gwb_alias")
-    gwb_payload = json.loads(Path(gwb_result["artifact_path"]).read_text(encoding="utf-8"))
+    gwb_payload = json.loads(
+        Path(gwb_result["artifact_path"]).read_text(encoding="utf-8")
+    )
     gwb_report = build_gwb_broader_review_world_model_report(gwb_payload)
     gwb_path = tmp_path / "gwb_report.json"
     gwb_path.write_text(json.dumps(gwb_report), encoding="utf-8")
@@ -1395,7 +1517,9 @@ def test_report_world_model_lane_summary_cli_alias(tmp_path, capsys, monkeypatch
             / "wikidata_nat_cohort_b_operator_packet_20260402.json"
         ).read_text(encoding="utf-8")
     )
-    reviewer_report = build_nat_cohort_b_operator_packet_world_model_report(reviewer_packet)
+    reviewer_report = build_nat_cohort_b_operator_packet_world_model_report(
+        reviewer_packet
+    )
     reviewer_path = tmp_path / "reviewer_report.json"
     reviewer_path.write_text(json.dumps(reviewer_report), encoding="utf-8")
 
@@ -1480,7 +1604,9 @@ def test_wikidata_climate_review_demonstrator_cli(tmp_path, capsys) -> None:
     assert stdout["bridge_case_count"] == 24
     assert stdout["final_state"] == "held"
     assert payload["review_disposition"]["final_state"] == "held"
-    assert payload["residual_completeness_surface"]["pressure_counts"] == {"split_pressure": 24}
+    assert payload["residual_completeness_surface"]["pressure_counts"] == {
+        "split_pressure": 24
+    }
 
 
 def test_wikidata_nat_migration_execution_proof_cli(tmp_path, capsys) -> None:
@@ -1514,7 +1640,9 @@ def test_wikidata_nat_migration_execution_proof_cli(tmp_path, capsys) -> None:
     assert payload["summary"]["candidate_count"] == 2
 
 
-def test_wikidata_nat_migration_execution_proof_cli_accepts_external_receipts(tmp_path, capsys) -> None:
+def test_wikidata_nat_migration_execution_proof_cli_accepts_external_receipts(
+    tmp_path, capsys
+) -> None:
     root = Path(__file__).resolve().parent
     verification_runs_path = (
         root
@@ -1555,10 +1683,15 @@ def test_wikidata_nat_migration_execution_proof_cli_accepts_external_receipts(tm
     assert payload["executed_rows_report"]["summary"]["row_count"] == 2
 
 
-def test_wikidata_automation_graduation_evidence_report_cli_writes_readiness_surface(tmp_path, capsys) -> None:
+def test_wikidata_automation_graduation_evidence_report_cli_writes_readiness_surface(
+    tmp_path, capsys
+) -> None:
     root = Path(__file__).resolve().parent
     criteria_path = (
-        root / "fixtures" / "wikidata" / "wikidata_nat_automation_graduation_criteria_20260402.json"
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_automation_graduation_criteria_20260402.json"
     )
     proposal_batches_path = (
         root
@@ -1594,10 +1727,15 @@ def test_wikidata_automation_graduation_evidence_report_cli_writes_readiness_sur
     assert "fail_closed_proposals_present" in payload["readiness_failed_reasons"]
 
 
-def test_wikidata_automation_graduation_governance_index_cli_writes_snapshot_summary(tmp_path, capsys) -> None:
+def test_wikidata_automation_graduation_governance_index_cli_writes_snapshot_summary(
+    tmp_path, capsys
+) -> None:
     root = Path(__file__).resolve().parent
     criteria_path = (
-        root / "fixtures" / "wikidata" / "wikidata_nat_automation_graduation_criteria_20260402.json"
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_automation_graduation_criteria_20260402.json"
     )
     evidence_snapshots_path = (
         root
@@ -1638,7 +1776,10 @@ def test_wikidata_automation_graduation_governance_summary_cli_writes_repeated_i
 ) -> None:
     root = Path(__file__).resolve().parent
     criteria_path = (
-        root / "fixtures" / "wikidata" / "wikidata_nat_automation_graduation_criteria_20260402.json"
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_automation_graduation_criteria_20260402.json"
     )
     governance_snapshots_path = (
         root

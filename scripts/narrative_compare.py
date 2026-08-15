@@ -24,7 +24,9 @@ def _parse_db_paths(raw: str, repo_root: Path) -> list[Path]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build bounded narrative validation/comparison artifacts.")
+    parser = argparse.ArgumentParser(
+        description="Build bounded narrative validation/comparison artifacts."
+    )
     parser.add_argument("--fixture", default="friendlyjordies_demo")
     parser.add_argument(
         "--archive-backed",
@@ -36,8 +38,16 @@ def main() -> int:
         default="~/chat_archive.sqlite,~/.chat_archive.sqlite,.chatgpt_history.sqlite3,chat-export-structurer/my_archive.sqlite",
         help="Comma-separated candidate archive DB paths used by --archive-backed.",
     )
-    parser.add_argument("--thread-id", default="", help="Optional canonical or source thread id for archive-backed fixture refresh.")
-    parser.add_argument("--thread-title-hint", default="", help="Optional title hint used when locating an archive thread.")
+    parser.add_argument(
+        "--thread-id",
+        default="",
+        help="Optional canonical or source thread id for archive-backed fixture refresh.",
+    )
+    parser.add_argument(
+        "--thread-title-hint",
+        default="",
+        help="Optional title hint used when locating an archive thread.",
+    )
     sub = parser.add_subparsers(dest="cmd", required=True)
     validate = sub.add_parser("validate")
     validate.add_argument("--source-id", required=True)

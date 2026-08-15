@@ -134,9 +134,7 @@ def test_incompatible_reduction_alternatives_do_not_resolve_independently() -> N
 
     assert len(lifecycle.resolutions) == 2
     assert all(row.state == "blocked_conflict" for row in lifecycle.resolutions)
-    assert all(
-        row.selected_proposal_ref is None for row in lifecycle.resolutions
-    )
+    assert all(row.selected_proposal_ref is None for row in lifecycle.resolutions)
     assert all(
         "incompatible_alternatives" in row.unresolved_residual_refs
         for row in lifecycle.resolutions

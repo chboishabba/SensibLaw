@@ -70,14 +70,19 @@ def test_build_sl_to_sb_iso_run_observer_payload_is_reference_heavy() -> None:
         "sl.normative_policy_extract:iso-demo",
     ]
     assert payload["unresolved_pressure_status"] == "follow_needed"
-    assert payload["output_refs"][0]["artifact_id"] == "sl.normative_policy_extract:iso-demo"
+    assert (
+        payload["output_refs"][0]["artifact_id"]
+        == "sl.normative_policy_extract:iso-demo"
+    )
     assert payload["output_refs"][1]["artifact_id"] == "sl.ir_query_bundle:iso-demo"
     assert payload["casey_observer_refs"][0]["operation_id"] == "op:casey:1"
     assert "workspace_payload" not in payload["casey_observer_refs"][0]
     assert "summary" not in payload
 
 
-def test_build_sl_to_sb_iso_run_observer_payload_keeps_legal_follow_pressure_additive() -> None:
+def test_build_sl_to_sb_iso_run_observer_payload_keeps_legal_follow_pressure_additive() -> (
+    None
+):
     payload = build_sl_to_sb_iso_run_observer_payload(
         suite_normalized_artifact=_normalized_artifact(
             unresolved_pressure_status="none",

@@ -58,7 +58,9 @@ def test_zelph_backend_is_candidate_only_and_parity_checked(monkeypatch) -> None
         "run_zelph_inference",
         lambda facts, rules: {
             "status": "ok",
-            "triples": [{"subject": "input:1", "predicate": "derived", "object": "true"}],
+            "triples": [
+                {"subject": "input:1", "predicate": "derived", "object": "true"}
+            ],
             "stdout": "",
             "stderr": "",
         },

@@ -23,7 +23,11 @@ def load_records() -> Sequence[Mapping[str, Any]]:
 def build_world_model(
     records: Sequence[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    return dict(_build_world_model_from_input(records if records is not None else _load_records()))
+    return dict(
+        _build_world_model_from_input(
+            records if records is not None else _load_records()
+        )
+    )
 
 
 def build_report(
@@ -31,7 +35,9 @@ def build_report(
     *,
     with_receipt: bool = False,
 ) -> dict[str, Any]:
-    report = _project_report(build_world_model(records if records is not None else _load_records()))
+    report = _project_report(
+        build_world_model(records if records is not None else _load_records())
+    )
     if not with_receipt:
         return report
     return _attach_receipt(report)

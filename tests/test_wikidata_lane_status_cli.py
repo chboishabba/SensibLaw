@@ -158,7 +158,10 @@ def test_wikidata_lane_proof_cli_writes_report(tmp_path, capsys) -> None:
         "overall_status": "bounded_local_ready",
         "hosted_wd_acceptance_status": "pending_manifest_alignment",
     }
-    assert payload["transport_artifact"]["summary"]["manifest_version"] == "zelph-hf-layout/v2"
+    assert (
+        payload["transport_artifact"]["summary"]["manifest_version"]
+        == "zelph-hf-layout/v2"
+    )
 
 
 def test_wikidata_lane_plan_cli_writes_report(tmp_path, capsys) -> None:

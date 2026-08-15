@@ -120,7 +120,10 @@ def project_review_state(
         row
         for row in assessments
         if row.coordinate_ref == coordinate.coordinate_ref
-        and (not accepted_credentials or row.reviewer_credential_ref in accepted_credentials)
+        and (
+            not accepted_credentials
+            or row.reviewer_credential_ref in accepted_credentials
+        )
         and (not accepted_institutions or row.institution_ref in accepted_institutions)
     )
     states = sorted({row.review_state for row in scoped})

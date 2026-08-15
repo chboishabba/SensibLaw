@@ -5,13 +5,17 @@ from typing import Any, Mapping, Sequence
 from src.models.convergence import build_convergence_record
 
 
-def _extract_receipt_sources(slice_payload: Mapping[str, Any]) -> Sequence[Mapping[str, Any]]:
+def _extract_receipt_sources(
+    slice_payload: Mapping[str, Any],
+) -> Sequence[Mapping[str, Any]]:
     rows: list[Mapping[str, Any]] = []
     for row in slice_payload.get("source_review_rows", []) or []:
         if not isinstance(row, Mapping):
             continue
         seed_id = str(row.get("seed_id") or "")
-        receipt_items: list[Mapping[str, Any]] = row.get("receipts", []) if isinstance(row.get("receipts"), list) else []
+        receipt_items: list[Mapping[str, Any]] = (
+            row.get("receipts", []) if isinstance(row.get("receipts"), list) else []
+        )
         for receipt in receipt_items:
             if not isinstance(receipt, Mapping):
                 continue
@@ -22,7 +26,9 @@ def _extract_receipt_sources(slice_payload: Mapping[str, Any]) -> Sequence[Mappi
                     "root_artifact_id": value or f"trace:{seed_id}",
                     "source_family": "gwb_public_review",
                     "authority_level": "public",
-                    "verification_status": "matched" if row.get("matched") else "unmatched",
+                    "verification_status": "matched"
+                    if row.get("matched")
+                    else "unmatched",
                     "provenance_chain": {
                         "seed_id": seed_id,
                         "event_id": row.get("event_id"),
@@ -50,6 +56,8 @@ def build_gwb_public_convergence(slice_payload: Mapping[str, Any]) -> dict[str, 
     return build_convergence_record(
         claim_id=claim_id,
         evidence_paths=evidence_paths,
-        independent_root_artifact_ids=[path["root_artifact_id"] for path in evidence_paths],
+        independent_root_artifact_ids=[
+            path["root_artifact_id"] for path in evidence_paths
+        ],
         claim_status="SINGLE_RUN" if evidence_paths else "RAW",
     )

@@ -4,7 +4,9 @@ from typing import Any, Mapping, Sequence
 
 from src.models.equivalence_assessment import build_equivalence_assessment_dict
 from src.models.lane_semantics_profile import build_lane_semantics_profile_dict
-from src.policy.review_claim_records import build_gwb_targeting_results_from_review_claim_records
+from src.policy.review_claim_records import (
+    build_gwb_targeting_results_from_review_claim_records,
+)
 from src.policy.review_targeting_contract import (
     assess_gwb_semantic_separability,
     normalize_gwb_target_split_kind,
@@ -39,7 +41,9 @@ _ORIGIN_SEMANTICS_RELATION_GROUPS = (
 )
 
 
-def _normalized_basis_vocab_for_record(record: Mapping[str, Any], lane: str) -> list[str]:
+def _normalized_basis_vocab_for_record(
+    record: Mapping[str, Any], lane: str
+) -> list[str]:
     review_candidate = _as_mapping(record.get("review_candidate"))
     selection_basis = _as_mapping(review_candidate.get("selection_basis"))
     vocabulary: list[str] = []
@@ -61,7 +65,9 @@ def _normalized_basis_vocab_for_record(record: Mapping[str, Any], lane: str) -> 
     return vocabulary
 
 
-def review_alignment_emission_allowed(*, equivalence_assessment: Mapping[str, Any]) -> bool:
+def review_alignment_emission_allowed(
+    *, equivalence_assessment: Mapping[str, Any]
+) -> bool:
     """Gate any future shared emitted alignment surface on a promote verdict."""
     return str(equivalence_assessment.get("verdict") or "").strip() == "promote"
 
@@ -132,7 +138,9 @@ def build_lane_semantics_profile_from_review_claim_records(
         target_basis = _as_mapping(target_identity.get("identity_basis"))
         target_basis_kind = str(target_basis.get("basis_kind") or "").strip()
         if target_basis_kind:
-            target_kinds.append(_TARGET_KIND_BY_BASIS.get(target_basis_kind, target_basis_kind))
+            target_kinds.append(
+                _TARGET_KIND_BY_BASIS.get(target_basis_kind, target_basis_kind)
+            )
 
         basis_vocabulary.extend(_normalized_basis_vocab_for_record(record, lane))
 
@@ -144,7 +152,9 @@ def build_lane_semantics_profile_from_review_claim_records(
 
         review_candidate = _as_mapping(record.get("review_candidate"))
         review_candidate_anchor_refs = _as_mapping(review_candidate.get("anchor_refs"))
-        anchor_ref_keys.extend(str(key) for key in review_candidate_anchor_refs.keys() if str(key).strip())
+        anchor_ref_keys.extend(
+            str(key) for key in review_candidate_anchor_refs.keys() if str(key).strip()
+        )
 
     cardinality_mode = _LANE_CARDINALITY_MODE.get(lane, "mixed")
     if lane == "gwb" and review_item_rows is not None:
@@ -165,7 +175,9 @@ def build_lane_semantics_profile_from_review_claim_records(
             ]
             semantic_notes.extend(f"semantic_reason:{value}" for value in reason_codes)
             for candidate in result.candidate_targets:
-                normalized_split = normalize_gwb_target_split_kind(candidate.target_split_kind)
+                normalized_split = normalize_gwb_target_split_kind(
+                    candidate.target_split_kind
+                )
                 if normalized_split != "no_split":
                     semantic_notes.append(f"normalized_split:{normalized_split}")
 
@@ -194,12 +206,36 @@ def assess_lane_semantics_equivalence(
     left_profile: Mapping[str, Any],
     right_profile: Mapping[str, Any],
 ) -> dict[str, Any]:
-    left_origin = set(str(value) for value in left_profile.get("origin_kinds", []) if str(value).strip())
-    right_origin = set(str(value) for value in right_profile.get("origin_kinds", []) if str(value).strip())
-    left_target = set(str(value) for value in left_profile.get("target_kinds", []) if str(value).strip())
-    right_target = set(str(value) for value in right_profile.get("target_kinds", []) if str(value).strip())
-    left_vocab = set(str(value) for value in left_profile.get("basis_vocabulary", []) if str(value).strip())
-    right_vocab = set(str(value) for value in right_profile.get("basis_vocabulary", []) if str(value).strip())
+    left_origin = set(
+        str(value)
+        for value in left_profile.get("origin_kinds", [])
+        if str(value).strip()
+    )
+    right_origin = set(
+        str(value)
+        for value in right_profile.get("origin_kinds", [])
+        if str(value).strip()
+    )
+    left_target = set(
+        str(value)
+        for value in left_profile.get("target_kinds", [])
+        if str(value).strip()
+    )
+    right_target = set(
+        str(value)
+        for value in right_profile.get("target_kinds", [])
+        if str(value).strip()
+    )
+    left_vocab = set(
+        str(value)
+        for value in left_profile.get("basis_vocabulary", [])
+        if str(value).strip()
+    )
+    right_vocab = set(
+        str(value)
+        for value in right_profile.get("basis_vocabulary", [])
+        if str(value).strip()
+    )
 
     literal_source_semantics_shared = bool(left_origin & right_origin)
     source_semantics_shared = _source_semantics_shared(left_origin, right_origin)

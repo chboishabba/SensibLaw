@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Set
 
-from src.obligations import ObligationAtom, ConditionAtom
+from src.obligations import ObligationAtom
 from src.obligation_identity import ObligationIdentity, compute_identities
 
 
@@ -21,14 +21,26 @@ def build_obligation_graph(obligations: Iterable[ObligationAtom]) -> ObligationG
     exc_edges: List[tuple[str, str]] = []
     for identity, ob in zip(identities, obligations):
         for cond in ob.conditions:
-            if cond.type in {"if", "subject", "provided", "when", "where", "until", "upon"}:
+            if cond.type in {
+                "if",
+                "subject",
+                "provided",
+                "when",
+                "where",
+                "until",
+                "upon",
+            }:
                 cond_edges.append((identity.identity_hash, cond.type))
             elif cond.type in {"unless", "except"}:
                 exc_edges.append((identity.identity_hash, cond.type))
-    return ObligationGraph(nodes=list(id_map.values()), conditional_on=cond_edges, exception_to=exc_edges)
+    return ObligationGraph(
+        nodes=list(id_map.values()), conditional_on=cond_edges, exception_to=exc_edges
+    )
 
 
-def obligations_for(reference_identity: str, graph: ObligationGraph) -> List[ObligationIdentity]:
+def obligations_for(
+    reference_identity: str, graph: ObligationGraph
+) -> List[ObligationIdentity]:
     return [node for node in graph.nodes if reference_identity in node.reference_hashes]
 
 

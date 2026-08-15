@@ -58,12 +58,28 @@ class CaseObservation:
             jurisdiction_id=str(self.jurisdiction_id or "").strip(),
             court_id=str(self.court_id or "").strip(),
             court_level=str(self.court_level or "").strip(),
-            decision_date=str(self.decision_date).strip() if self.decision_date else None,
-            wrong_type_id=str(self.wrong_type_id).strip() if self.wrong_type_id else None,
-            predicate_keys=tuple(sorted({str(x).strip() for x in (self.predicate_keys or []) if str(x).strip()})),
+            decision_date=str(self.decision_date).strip()
+            if self.decision_date
+            else None,
+            wrong_type_id=str(self.wrong_type_id).strip()
+            if self.wrong_type_id
+            else None,
+            predicate_keys=tuple(
+                sorted(
+                    {
+                        str(x).strip()
+                        for x in (self.predicate_keys or [])
+                        if str(x).strip()
+                    }
+                )
+            ),
             outcome=OutcomeLabel.canonicalize(self.outcome),
             judge_id=str(self.judge_id).strip() if self.judge_id else None,
-            panel_ids=tuple(sorted({str(x).strip() for x in (self.panel_ids or []) if str(x).strip()})),
+            panel_ids=tuple(
+                sorted(
+                    {str(x).strip() for x in (self.panel_ids or []) if str(x).strip()}
+                )
+            ),
         )
 
 
@@ -76,6 +92,13 @@ def normalize_observations(rows: Iterable[CaseObservation]) -> list[CaseObservat
         if n.case_id and n.jurisdiction_id and n.court_id and n.court_level:
             out.append(n)
     # Stable ordering for deterministic downstream grouping.
-    out.sort(key=lambda x: (x.jurisdiction_id, x.court_id, x.court_level, x.decision_date or "", x.case_id))
+    out.sort(
+        key=lambda x: (
+            x.jurisdiction_id,
+            x.court_id,
+            x.court_level,
+            x.decision_date or "",
+            x.case_id,
+        )
+    )
     return out
-

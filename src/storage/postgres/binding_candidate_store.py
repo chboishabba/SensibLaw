@@ -134,8 +134,7 @@ def _validate_indexed_membership(
     )
     actual = {str(row[0]) for row in cursor.fetchall()}
     expected = {
-        str(row["candidate_factor_ref"])
-        for row in candidate_set.get("members") or ()
+        str(row["candidate_factor_ref"]) for row in candidate_set.get("members") or ()
     }
     if actual != expected:
         raise ValueError(
@@ -178,9 +177,7 @@ def persist_binding_candidate_sets(
             raise ValueError(
                 "binding candidate set references an unpersisted factor revision"
             )
-        persisted_reference_revisions[candidate_set_ref] = (
-            reference_factor_revision_ref
-        )
+        persisted_reference_revisions[candidate_set_ref] = reference_factor_revision_ref
         cursor.execute(
             """
             INSERT INTO resolution.binding_candidate_set
@@ -213,12 +210,8 @@ def persist_binding_candidate_sets(
                 "candidate_set_ref": candidate_set_ref,
                 "reference_factor_revision_ref": reference_factor_revision_ref,
                 "document_pnf_index_ref": "",
-                "accessibility_declaration_ref": row[
-                    "accessibility_declaration_ref"
-                ],
-                "compatibility_declaration_ref": row[
-                    "compatibility_declaration_ref"
-                ],
+                "accessibility_declaration_ref": row["accessibility_declaration_ref"],
+                "compatibility_declaration_ref": row["compatibility_declaration_ref"],
                 "referential_type_ref": row["referential_type_ref"],
             }
         else:

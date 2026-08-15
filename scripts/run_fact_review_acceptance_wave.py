@@ -42,8 +42,12 @@ def _print_human(report: dict) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Build canonical Mary-parity acceptance fixtures and run a batch acceptance wave.")
-    parser.add_argument("--db-path", type=Path, default=Path(".cache_local/itir.sqlite"))
+    parser = argparse.ArgumentParser(
+        description="Build canonical Mary-parity acceptance fixtures and run a batch acceptance wave."
+    )
+    parser.add_argument(
+        "--db-path", type=Path, default=Path(".cache_local/itir.sqlite")
+    )
     parser.add_argument("--manifest-path", type=Path, default=None)
     parser.add_argument(
         "--wave",
@@ -63,7 +67,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--format", choices=["json", "human"], default="json")
     args = parser.parse_args(argv)
 
-    manifest_path = args.manifest_path or default_fact_review_fixture_manifest_path(args.wave)
+    manifest_path = args.manifest_path or default_fact_review_fixture_manifest_path(
+        args.wave
+    )
     built_fixtures = build_fact_review_acceptance_fixture_set(
         args.db_path,
         manifest_path=manifest_path,
@@ -76,7 +82,9 @@ def main(argv: list[str] | None = None) -> int:
     with sqlite3.connect(str(args.db_path)) as conn:
         conn.row_factory = sqlite3.Row
         for fixture in built_fixtures:
-            workbench = build_fact_review_workbench_payload(conn, run_id=fixture["fact_run_id"])
+            workbench = build_fact_review_workbench_payload(
+                conn, run_id=fixture["fact_run_id"]
+            )
 
             acceptance = build_fact_review_acceptance_report(
                 workbench,
@@ -86,7 +94,9 @@ def main(argv: list[str] | None = None) -> int:
             )
             fixture_reports.append({"fixture": fixture, "acceptance": acceptance})
 
-    batch_report = build_fact_review_acceptance_batch_report(fixture_reports, wave=args.wave)
+    batch_report = build_fact_review_acceptance_batch_report(
+        fixture_reports, wave=args.wave
+    )
     batch_report["manifest_path"] = str(manifest_path.resolve())
     batch_report["db_path"] = str(args.db_path.resolve())
 

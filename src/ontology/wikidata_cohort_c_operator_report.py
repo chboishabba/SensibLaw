@@ -7,7 +7,11 @@ REPORT_SCHEMA_VERSION = "sl.wikidata_nat.cohort_c.operator_report.v0_1"
 
 
 def _extract_hold_reason(candidate: Mapping[str, Any]) -> str:
-    reason = candidate.get("operator_hold_reason") or candidate.get("preview_hold_reason") or ""
+    reason = (
+        candidate.get("operator_hold_reason")
+        or candidate.get("preview_hold_reason")
+        or ""
+    )
     return str(reason).strip()
 
 
@@ -33,7 +37,9 @@ def build_nat_cohort_c_operator_report(
             reference_anchors.append(anchor.strip())
         qualifier_hint = row.get("qualifier_hint")
         if isinstance(qualifier_hint, list):
-            qualifier_hint_sets.extend(str(entry).strip() for entry in qualifier_hint if str(entry).strip())
+            qualifier_hint_sets.extend(
+                str(entry).strip() for entry in qualifier_hint if str(entry).strip()
+            )
     return {
         "schema_version": REPORT_SCHEMA_VERSION,
         "packet_id": str(evidence_packet.get("packet_id", "")),

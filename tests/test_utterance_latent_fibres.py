@@ -3,7 +3,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from src.text.residual_lattice import PredicateAtom, QualifierState, ResidualLevel, TypedArg, meet_atom
+from src.text.residual_lattice import (
+    PredicateAtom,
+    QualifierState,
+    ResidualLevel,
+    TypedArg,
+    meet_atom,
+)
 from src.text.utterance_latent_fibres import (
     LATENT_FIBRE_INDEX_SCHEMA,
     enrich_utterance_atoms,
@@ -76,7 +82,9 @@ def _artifact() -> dict:
     }
 
 
-def _utterance(predicate: str, polarity: str = "positive", obj: str = "trail") -> PredicateAtom:
+def _utterance(
+    predicate: str, polarity: str = "positive", obj: str = "trail"
+) -> PredicateAtom:
     return PredicateAtom(
         predicate=predicate,
         structural_signature=f"utterance_event:{predicate}",
@@ -92,7 +100,9 @@ def _utterance(predicate: str, polarity: str = "positive", obj: str = "trail") -
     )
 
 
-def test_latent_index_loads_deterministically_and_preserves_provenance(tmp_path: Path) -> None:
+def test_latent_index_loads_deterministically_and_preserves_provenance(
+    tmp_path: Path,
+) -> None:
     artifact_path = tmp_path / "latent.json"
     artifact_path.write_text(json.dumps(_artifact(), sort_keys=True), encoding="utf-8")
 
@@ -165,7 +175,9 @@ def test_builder_generates_cooccurrence_candidates_from_corpus(tmp_path: Path) -
         encoding="utf-8",
     )
     corpus_path_2 = tmp_path / "corpus2.txt"
-    corpus_path_2.write_text("I checked the update and they publish the update.\n", encoding="utf-8")
+    corpus_path_2.write_text(
+        "I checked the update and they publish the update.\n", encoding="utf-8"
+    )
     manifest_path = tmp_path / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, sort_keys=True), encoding="utf-8")
 
@@ -178,9 +190,16 @@ def test_builder_generates_cooccurrence_candidates_from_corpus(tmp_path: Path) -
     )
     index = parse_latent_index(artifact)
 
-    cooccurrence = [candidate for candidate in index.candidates if "cooccurrence_generator:v1" in candidate.model_refs]
+    cooccurrence = [
+        candidate
+        for candidate in index.candidates
+        if "cooccurrence_generator:v1" in candidate.model_refs
+    ]
     assert cooccurrence
-    pair = {(candidate.source_predicate, candidate.target_predicate) for candidate in cooccurrence}
+    pair = {
+        (candidate.source_predicate, candidate.target_predicate)
+        for candidate in cooccurrence
+    }
     assert ("publish", "check") in pair or ("check", "publish") in pair
     assert all(candidate.canonical for candidate in cooccurrence)
 
@@ -188,14 +207,20 @@ def test_builder_generates_cooccurrence_candidates_from_corpus(tmp_path: Path) -
 def test_enrich_emits_only_corpus_supported_canonical_fibres() -> None:
     index = parse_latent_index(_artifact())
 
-    enriched = enrich_utterance_atoms([_utterance("stride"), _utterance("ignite")], index)
+    enriched = enrich_utterance_atoms(
+        [_utterance("stride"), _utterance("ignite")], index
+    )
 
     assert enriched[0].semantic_comparison_mode == "latent_candidate"
-    assert enriched[0].support_fibres[0]["candidate_id"] == "fibre:stride-amble:canonical"
+    assert (
+        enriched[0].support_fibres[0]["candidate_id"] == "fibre:stride-amble:canonical"
+    )
     assert enriched[0].latent_grounding["artifact_id"] == "fixture-local-corpus-v1"
     assert enriched[1].semantic_comparison_mode == "abstained"
     assert enriched[1].support_fibres == ()
-    assert enriched[1].latent_grounding["abstention_reason"] == "no_supported_latent_fibre"
+    assert (
+        enriched[1].latent_grounding["abstention_reason"] == "no_supported_latent_fibre"
+    )
 
 
 def test_exact_structural_signature_still_wins_without_latent_path() -> None:
@@ -213,19 +238,25 @@ def test_exact_structural_signature_still_wins_without_latent_path() -> None:
 def test_latent_candidate_produces_partial_same_family_residual() -> None:
     index = parse_latent_index(_artifact())
 
-    residual = meet_atom_with_latent_fibres(_utterance("stride"), _utterance("amble"), index)
+    residual = meet_atom_with_latent_fibres(
+        _utterance("stride"), _utterance("amble"), index
+    )
 
     assert residual.level is ResidualLevel.PARTIAL
     assert residual.semantic_comparison_mode == "latent_candidate"
     assert residual.semantic_relation == "same_family_candidate"
-    assert residual.latent_grounding["candidate_refs"] == ["fibre:stride-amble:canonical"]
+    assert residual.latent_grounding["candidate_refs"] == [
+        "fibre:stride-amble:canonical"
+    ]
     assert residual.provenance == ("corpus:fixture:1",)
 
 
 def test_weak_single_signal_evidence_does_not_affect_canonical_comparison() -> None:
     index = parse_latent_index(_artifact())
 
-    residual = meet_atom_with_latent_fibres(_utterance("stride"), _utterance("ignite"), index)
+    residual = meet_atom_with_latent_fibres(
+        _utterance("stride"), _utterance("ignite"), index
+    )
 
     assert residual.level is ResidualLevel.NO_TYPED_MEET
     assert residual.semantic_comparison_mode == "abstained"
@@ -256,7 +287,9 @@ def test_polarity_conflict_promotes_only_for_high_precision_context_support() ->
     )
 
     assert residual.level is ResidualLevel.CONTRADICTION
-    assert residual.contradictions == ("polarity conflict across supported latent fibre",)
+    assert residual.contradictions == (
+        "polarity conflict across supported latent fibre",
+    )
     assert residual.semantic_comparison_mode == "latent_candidate"
 
 

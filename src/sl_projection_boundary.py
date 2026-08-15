@@ -120,7 +120,9 @@ def _transition_receipt_matches_claim_context(
             )
 
 
-def _evidence_refs_for_observation(observation: Mapping[str, Any]) -> list[dict[str, str]]:
+def _evidence_refs_for_observation(
+    observation: Mapping[str, Any],
+) -> list[dict[str, str]]:
     refs: list[dict[str, str]] = []
     evidence_refs = observation.get("evidence_refs", [])
     if not isinstance(evidence_refs, list):
@@ -163,7 +165,9 @@ def _load_transition_receipts(
     evidence_links_by_id: Mapping[str, Mapping[str, Any]],
     valid_observation_ids: set[str],
 ) -> tuple[dict[str, list[str]], dict[str, Mapping[str, Any]], int, int, int]:
-    transitions_by_observation: dict[str, list[tuple[str, datetime, datetime | None]]] = {}
+    transitions_by_observation: dict[
+        str, list[tuple[str, datetime, datetime | None]]
+    ] = {}
     transition_receipts_by_id: dict[str, Mapping[str, Any]] = {}
     transition_receipt_count = 0
     legal_version_count = 0
@@ -194,8 +198,12 @@ def _load_transition_receipts(
         if effective_to is not None:
             effective_to_dt = _optional_timestamp(receipt, "effective_to")
             if effective_to_dt is None:
-                raise ValueError("effective_to must be a valid ISO-8601 timestamp when present")
-            effective_to_dt = datetime.fromisoformat(effective_to_dt.replace("Z", "+00:00"))
+                raise ValueError(
+                    "effective_to must be a valid ISO-8601 timestamp when present"
+                )
+            effective_to_dt = datetime.fromisoformat(
+                effective_to_dt.replace("Z", "+00:00")
+            )
             if effective_to_dt < effective_from_dt:
                 raise ValueError(
                     "transition_receipts.effective_to must be greater than or equal to effective_from"
@@ -217,11 +225,18 @@ def _load_transition_receipts(
             _required_str(delta, "after")
 
         for raw_observation_id in _as_list(receipt, "observation_ids"):
-            if not isinstance(raw_observation_id, str) or not raw_observation_id.strip():
-                raise ValueError("transition_receipts.observation_ids must contain non-empty strings")
+            if (
+                not isinstance(raw_observation_id, str)
+                or not raw_observation_id.strip()
+            ):
+                raise ValueError(
+                    "transition_receipts.observation_ids must contain non-empty strings"
+                )
             observation_id = raw_observation_id.strip()
             if observation_id not in valid_observation_ids:
-                raise ValueError(f"transition_receipts.observation_ids references unknown observation {observation_id}")
+                raise ValueError(
+                    f"transition_receipts.observation_ids references unknown observation {observation_id}"
+                )
             transitions_by_observation.setdefault(observation_id, []).append(
                 (receipt_id, effective_from_dt, window_end)
             )
@@ -266,7 +281,9 @@ def _load_transition_receipts(
 def build_wikidata_projection_report(payload: Mapping[str, Any]) -> dict[str, Any]:
     payload_version = _required_str(payload, "payload_version")
     if payload_version != SL_OBSERVATION_CLAIM_CONTRACT_VERSION:
-        raise ValueError(f"payload_version must be {SL_OBSERVATION_CLAIM_CONTRACT_VERSION}")
+        raise ValueError(
+            f"payload_version must be {SL_OBSERVATION_CLAIM_CONTRACT_VERSION}"
+        )
 
     observations_by_id = _load_observations(payload)
     evidence_links_by_id = _load_evidence_links(payload)
@@ -276,12 +293,21 @@ def build_wikidata_projection_report(payload: Mapping[str, Any]) -> dict[str, An
         transition_receipt_count,
         legal_version_count,
         jurisdiction_count,
-    ) = _load_transition_receipts(payload, evidence_links_by_id, set(observations_by_id))
+    ) = _load_transition_receipts(
+        payload, evidence_links_by_id, set(observations_by_id)
+    )
     recorded_jurisdictions: set[str] = set()
     temporal_scope_count = 0
 
     records: list[dict[str, Any]] = []
-    dropped_fields = {"claim_id", "claim_created_at", "claim_updated_at", "hash", "source_conflict_refs", "evidence_conflicts"}
+    dropped_fields = {
+        "claim_id",
+        "claim_created_at",
+        "claim_updated_at",
+        "hash",
+        "source_conflict_refs",
+        "evidence_conflicts",
+    }
 
     for claim in _as_list(payload, "claims"):
         if not isinstance(claim, Mapping):
@@ -297,7 +323,9 @@ def build_wikidata_projection_report(payload: Mapping[str, Any]) -> dict[str, An
 
         observation = observations_by_id.get(observation_id)
         if observation is None:
-            raise ValueError(f"claim {claim_id} references missing observation {observation_id}")
+            raise ValueError(
+                f"claim {claim_id} references missing observation {observation_id}"
+            )
 
         jurisdiction = None
         claim_jurisdiction = claim.get("jurisdiction")
@@ -306,7 +334,10 @@ def build_wikidata_projection_report(payload: Mapping[str, Any]) -> dict[str, An
             recorded_jurisdictions.add(jurisdiction)
         else:
             observation_jurisdiction = observation.get("jurisdiction")
-            if isinstance(observation_jurisdiction, str) and observation_jurisdiction.strip():
+            if (
+                isinstance(observation_jurisdiction, str)
+                and observation_jurisdiction.strip()
+            ):
                 jurisdiction = observation_jurisdiction.strip()
                 recorded_jurisdictions.add(jurisdiction)
 
@@ -331,17 +362,25 @@ def build_wikidata_projection_report(payload: Mapping[str, Any]) -> dict[str, An
                 continue
             trace_refs = link.get("trace_refs", [])
             if not isinstance(trace_refs, list):
-                raise ValueError("evidence_links.trace_refs must be an array if present")
+                raise ValueError(
+                    "evidence_links.trace_refs must be an array if present"
+                )
             for trace_ref in trace_refs:
                 if not isinstance(trace_ref, str) or not trace_ref.strip():
-                    raise ValueError("evidence_links.trace_refs entries must be non-empty strings")
-                evidence_refs.append({"ref_type": "trace_ref", "ref_value": trace_ref.strip()})
+                    raise ValueError(
+                        "evidence_links.trace_refs entries must be non-empty strings"
+                    )
+                evidence_refs.append(
+                    {"ref_type": "trace_ref", "ref_value": trace_ref.strip()}
+                )
 
         transition_receipt_ids = transitions_by_observation.get(observation_id, [])
         transition_receipts_payload = []
         for receipt_id in transition_receipt_ids:
             receipt = transition_receipts_by_id[receipt_id]
-            _transition_receipt_matches_claim_context(jurisdiction, claim.get("norm_id"), receipt, claim_id)
+            _transition_receipt_matches_claim_context(
+                jurisdiction, claim.get("norm_id"), receipt, claim_id
+            )
             transition_receipts_payload.append(
                 {
                     "transition_receipt_id": receipt_id,
@@ -370,7 +409,9 @@ def build_wikidata_projection_report(payload: Mapping[str, Any]) -> dict[str, An
                 "source_quote": observation.get("source_quote", None),
                 "evidence_link_ids": evidence_link_ids,
                 "evidence_refs": evidence_refs,
-                "state_transition_receipt_ids": transitions_by_observation.get(observation_id, []),
+                "state_transition_receipt_ids": transitions_by_observation.get(
+                    observation_id, []
+                ),
                 "state_transition_receipts": transition_receipts_payload,
                 "temporal_scope": {
                     "observed_at": observation.get("observed_at"),

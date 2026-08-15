@@ -9,7 +9,9 @@ def test_eu_member_state_penalty() -> None:
 
 
 def test_constitutional_and_national_boost() -> None:
-    score = compute_polity_awareness_score(["constitutional_court", "national_court"], base_score=1.0)
+    score = compute_polity_awareness_score(
+        ["constitutional_court", "national_court"], base_score=1.0
+    )
     assert abs(score - (1.0 + 0.9 + 0.6 + 0.2)) < 1e-12
 
 

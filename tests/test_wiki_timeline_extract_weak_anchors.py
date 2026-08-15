@@ -36,7 +36,9 @@ def test_inline_bare_year_emits_weak_anchor(tmp_path: Path) -> None:
     payload = json.loads(out_path.read_text(encoding="utf-8"))
     anchors = [ev.get("anchor", {}) for ev in payload.get("events", [])]
     assert anchors, "expected at least one anchor"
-    weak_years = [a for a in anchors if a.get("kind") == "weak" and a.get("precision") == "year"]
+    weak_years = [
+        a for a in anchors if a.get("kind") == "weak" and a.get("precision") == "year"
+    ]
     assert weak_years, "expected weak year anchor from inline bare year"
     assert any(a.get("year") == 1999 for a in weak_years)
 

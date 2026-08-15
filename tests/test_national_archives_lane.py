@@ -51,7 +51,10 @@ def test_fetch_records_uses_live_response(monkeypatch) -> None:
     def fake_get(url: str, timeout: int, headers: Mapping[str, str]) -> _StubResponse:
         return _StubResponse(url + "?live=1", "Live archive text sample.")
 
-    monkeypatch.setattr("SensibLaw.src.sources.national_archives.brexit_national_archives_lane.requests.get", fake_get)
+    monkeypatch.setattr(
+        "SensibLaw.src.sources.national_archives.brexit_national_archives_lane.requests.get",
+        fake_get,
+    )
     records = fetch_records()
     assert records[0]["document_text"] == "Live archive text sample."
     assert "?live=1" in records[0]["url"]
@@ -61,22 +64,32 @@ def test_fetch_records_falls_back_to_fixture(monkeypatch) -> None:
     def fake_get(_url: str, **_kwargs):
         raise RuntimeError("dialing blocked")
 
-    monkeypatch.setattr("SensibLaw.src.sources.national_archives.brexit_national_archives_lane.requests.get", fake_get)
+    monkeypatch.setattr(
+        "SensibLaw.src.sources.national_archives.brexit_national_archives_lane.requests.get",
+        fake_get,
+    )
     records = fetch_records()
     assert records[0]["text_excerpt"].startswith("The Cabinet resolved")
     assert records[0]["provenance"].get("fixture")
 
 
-def test_brexit_world_model_report_rebinds_records_into_shared_substrate(monkeypatch) -> None:
+def test_brexit_world_model_report_rebinds_records_into_shared_substrate(
+    monkeypatch,
+) -> None:
     def fake_get(_url: str, **_kwargs):
         raise RuntimeError("dialing blocked")
 
-    monkeypatch.setattr("SensibLaw.src.sources.national_archives.brexit_national_archives_lane.requests.get", fake_get)
+    monkeypatch.setattr(
+        "SensibLaw.src.sources.national_archives.brexit_national_archives_lane.requests.get",
+        fake_get,
+    )
     records = fetch_records(limit=1)
     world_model = build_world_model(records)
     report = build_report(records)
 
-    assert report["schema_version"] == BREXIT_NATIONAL_ARCHIVES_WORLD_MODEL_SCHEMA_VERSION
+    assert (
+        report["schema_version"] == BREXIT_NATIONAL_ARCHIVES_WORLD_MODEL_SCHEMA_VERSION
+    )
     assert report["action_policy_schema_version"] == ACTION_POLICY_SCHEMA_VERSION
     assert report["summary"]["claim_count"] == 1
     assert report["summary"]["must_review_count"] == 1

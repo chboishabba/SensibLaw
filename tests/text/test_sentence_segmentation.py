@@ -14,7 +14,10 @@ def test_get_nlp_configures_sentencizer() -> None:
     "text,expected",
     [
         ("First sentence. Second sentence.", ["First sentence.", "Second sentence."]),
-        ("Heading\n\nBody continues? Indeed!", ["Heading", "Body continues?", "Indeed!"]),
+        (
+            "Heading\n\nBody continues? Indeed!",
+            ["Heading", "Body continues?", "Indeed!"],
+        ),
     ],
 )
 def test_make_doc_exposes_sentence_iterator(text: str, expected: list[str]) -> None:

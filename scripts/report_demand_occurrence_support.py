@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Report exact demand-occurrence provenance before H9 external planning."""
+
 from __future__ import annotations
 
 import argparse

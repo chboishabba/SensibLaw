@@ -19,17 +19,27 @@ def test_build_proposition_resolution_policy_is_fail_closed_and_policy_only() ->
     assert policy["fail_closed"] is True
     assert "promote" in policy["excluded_categories"]["runtime_resolution"]
     assert "review_claim" in policy["excluded_categories"]["review_pressure"]
-    assert "canonical_form_divergence" in policy["excluded_categories"]["contradiction_labels"]
+    assert (
+        "canonical_form_divergence"
+        in policy["excluded_categories"]["contradiction_labels"]
+    )
     assert any("Policy-only resolution layer" in note for note in policy["notes"])
-    assert any("separate from product-gate promotion posture" in note for note in policy["notes"])
+    assert any(
+        "separate from product-gate promotion posture" in note
+        for note in policy["notes"]
+    )
 
 
 @pytest.mark.parametrize("state", sorted(PROPOSITION_RESOLUTION_STATES))
-def test_validate_proposition_resolution_state_accepts_allowed_values(state: str) -> None:
+def test_validate_proposition_resolution_state_accepts_allowed_values(
+    state: str,
+) -> None:
     assert validate_proposition_resolution_state(state) == state
 
 
-def test_validate_proposition_resolution_state_rejects_runtime_and_review_states() -> None:
+def test_validate_proposition_resolution_state_rejects_runtime_and_review_states() -> (
+    None
+):
     with pytest.raises(ValueError):
         validate_proposition_resolution_state("promote")
 

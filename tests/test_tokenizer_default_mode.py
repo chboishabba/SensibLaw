@@ -27,4 +27,3 @@ def test_legacy_env_switches_to_regex():
     profile = mod.get_tokenizer_profile()
     assert profile["canonical_mode"] == "legacy_regex"
     assert profile["canonical_tokenizer_id"] == "regex_legacy_v1"
-

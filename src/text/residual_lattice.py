@@ -199,11 +199,16 @@ class PredicateIndex:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "by_structural_sig": {key: list(value) for key, value in self.by_structural_sig.items()},
-            "by_role_slot": {key: list(value) for key, value in self.by_role_slot.items()},
+            "by_structural_sig": {
+                key: list(value) for key, value in self.by_structural_sig.items()
+            },
+            "by_role_slot": {
+                key: list(value) for key, value in self.by_role_slot.items()
+            },
             "by_argval": {key: list(value) for key, value in self.by_argval.items()},
             "by_role_arg": {
-                f"{role}|{arg}": list(value) for (role, arg), value in self.by_role_arg.items()
+                f"{role}|{arg}": list(value)
+                for (role, arg), value in self.by_role_arg.items()
             },
         }
 
@@ -232,7 +237,9 @@ def _normalize_string_mapping(raw: Any) -> dict[str, str]:
     }
 
 
-def _normalize_typed_arg(value: Any, *, default_provenance: tuple[str, ...] = ()) -> TypedArg | None:
+def _normalize_typed_arg(
+    value: Any, *, default_provenance: tuple[str, ...] = ()
+) -> TypedArg | None:
     if value is None:
         return None
     if isinstance(value, TypedArg):
@@ -244,7 +251,9 @@ def _normalize_typed_arg(value: Any, *, default_provenance: tuple[str, ...] = ()
         entity_type = value.get("entity_type")
         status = str(value.get("status") or "bound")
         cardinality = str(value.get("cardinality") or "single")
-        provenance = _normalize_provenance(value.get("provenance")) or default_provenance
+        provenance = (
+            _normalize_provenance(value.get("provenance")) or default_provenance
+        )
         raw_members = value.get("members")
         members = _normalize_provenance(raw_members)
         return TypedArg(
@@ -338,12 +347,20 @@ def _normalize_qualifiers(raw: Any, *, modifiers: Mapping[str, Any]) -> Qualifie
         polarity = str(raw.get("polarity") or "positive")
         return QualifierState(
             polarity=polarity,
-            modality=str(raw.get("modality")) if raw.get("modality") is not None else None,
+            modality=str(raw.get("modality"))
+            if raw.get("modality") is not None
+            else None,
             tense=str(raw.get("tense")) if raw.get("tense") is not None else None,
-            certainty=str(raw.get("certainty")) if raw.get("certainty") is not None else None,
-            condition=str(raw.get("condition")) if raw.get("condition") is not None else None,
+            certainty=str(raw.get("certainty"))
+            if raw.get("certainty") is not None
+            else None,
+            condition=str(raw.get("condition"))
+            if raw.get("condition") is not None
+            else None,
             temporal_scope=(
-                str(raw.get("temporal_scope")) if raw.get("temporal_scope") is not None else None
+                str(raw.get("temporal_scope"))
+                if raw.get("temporal_scope") is not None
+                else None
             ),
             jurisdiction_scope=(
                 str(raw.get("jurisdiction_scope"))
@@ -375,7 +392,9 @@ def _qualifier_support(qualifiers: QualifierState) -> dict[str, str]:
     return {key: str(value) for key, value in payload.items() if value is not None}
 
 
-def coerce_predicate_atom(atom: PredicateAtom | Mapping[str, Any]) -> PredicateAtom | None:
+def coerce_predicate_atom(
+    atom: PredicateAtom | Mapping[str, Any],
+) -> PredicateAtom | None:
     """Normalize an explicit predicate/role carrier into a stable atom."""
 
     if isinstance(atom, PredicateAtom):
@@ -391,7 +410,9 @@ def coerce_predicate_atom(atom: PredicateAtom | Mapping[str, Any]) -> PredicateA
 
     modifiers = _normalize_generic_mapping(atom.get("modifiers"))
     provenance = _normalize_provenance(atom.get("provenance"))
-    roles = _normalize_typed_role_mapping(atom.get("roles"), default_provenance=provenance)
+    roles = _normalize_typed_role_mapping(
+        atom.get("roles"), default_provenance=provenance
+    )
     if not roles:
         return None
     atom_id = atom.get("atom_id")
@@ -432,7 +453,11 @@ def comparable(
         return False
     if query.structural_signature != candidate.structural_signature:
         return False
-    if query.domain is not None and candidate.domain is not None and query.domain != candidate.domain:
+    if (
+        query.domain is not None
+        and candidate.domain is not None
+        and query.domain != candidate.domain
+    ):
         return False
     return bool(set(query.roles).intersection(candidate.roles))
 
@@ -449,7 +474,9 @@ def _status_rank(status: str) -> int:
     return 0
 
 
-def join_typed_args(left: TypedArg, right: TypedArg) -> tuple[TypedArg | None, str | None]:
+def join_typed_args(
+    left: TypedArg, right: TypedArg
+) -> tuple[TypedArg | None, str | None]:
     """Join two typed role bindings when they are slotwise compatible."""
 
     if (
@@ -474,10 +501,16 @@ def join_typed_args(left: TypedArg, right: TypedArg) -> tuple[TypedArg | None, s
         return None, "value conflict"
 
     joined_entity_type = left.entity_type or right.entity_type
-    joined_status = left.status if _status_rank(left.status) >= _status_rank(right.status) else right.status
+    joined_status = (
+        left.status
+        if _status_rank(left.status) >= _status_rank(right.status)
+        else right.status
+    )
     joined_provenance = tuple(sorted(set(left.provenance).union(right.provenance)))
     joined_cardinality = (
-        "multi" if _allows_multiple_occupants(left) or _allows_multiple_occupants(right) else "single"
+        "multi"
+        if _allows_multiple_occupants(left) or _allows_multiple_occupants(right)
+        else "single"
     )
     return (
         TypedArg(
@@ -534,7 +567,9 @@ def join_residual(left: Residual, right: Residual) -> Residual:
         shared_roles=role_state.bindings,
         missing_roles=tuple(sorted(set(left.missing_roles).union(right.missing_roles))),
         shared_qualifiers=shared_qualifiers,
-        missing_qualifiers=tuple(sorted(set(left.missing_qualifiers).union(right.missing_qualifiers))),
+        missing_qualifiers=tuple(
+            sorted(set(left.missing_qualifiers).union(right.missing_qualifiers))
+        ),
         contradictions=role_state.contradictions,
         provenance=tuple(sorted(set(left.provenance).union(right.provenance))),
         semantic_comparison_mode=(
@@ -565,7 +600,9 @@ def meet_atom(
                 TypedArg(
                     value=value.value,
                     entity_type=value.entity_type,
-                    provenance=candidate.provenance if not value.provenance and candidate.provenance else value.provenance,
+                    provenance=candidate.provenance
+                    if not value.provenance and candidate.provenance
+                    else value.provenance,
                     status=value.status,
                 )
                 if not value.provenance and candidate.provenance
@@ -706,7 +743,9 @@ def build_predicate_index(
             by_role_arg.setdefault((role, arg_key), []).append(ref)
 
     return PredicateIndex(
-        by_structural_sig={key: tuple(value) for key, value in by_structural_sig.items()},
+        by_structural_sig={
+            key: tuple(value) for key, value in by_structural_sig.items()
+        },
         by_role_slot={key: tuple(value) for key, value in by_role_slot.items()},
         by_argval={key: tuple(value) for key, value in by_argval.items()},
         by_role_arg={key: tuple(value) for key, value in by_role_arg.items()},
@@ -747,7 +786,9 @@ def collect_candidate_predicate_refs(
     if query is None:
         return ()
 
-    ordered_candidates = predicate_index.by_structural_sig.get(query.structural_signature, ())
+    ordered_candidates = predicate_index.by_structural_sig.get(
+        query.structural_signature, ()
+    )
     if not ordered_candidates:
         return ()
 
@@ -764,7 +805,9 @@ def collect_candidate_predicate_refs(
     for role, typed_arg in query.roles.items():
         if not _is_bound_typed_arg(typed_arg):
             continue
-        role_arg_refs = predicate_index.by_role_arg.get((role, _typed_arg_key(typed_arg)))
+        role_arg_refs = predicate_index.by_role_arg.get(
+            (role, _typed_arg_key(typed_arg))
+        )
         if not role_arg_refs:
             return ()
         allowed_refs.intersection_update(role_arg_refs)
@@ -801,7 +844,9 @@ def compute_indexed_residual(
 ) -> Residual:
     """Join residuals only across the bounded shortlisted refs."""
 
-    candidate_residuals = collect_candidate_residuals(query_atom, predicate_index, atoms_by_ref)
+    candidate_residuals = collect_candidate_residuals(
+        query_atom, predicate_index, atoms_by_ref
+    )
     if not candidate_residuals:
         return Residual(level=ResidualLevel.NO_TYPED_MEET)
 

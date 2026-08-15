@@ -15,8 +15,19 @@ def test_schema_and_crud(tmp_path):
     store = Storage(db_path)
 
     conn = sqlite3.connect(db_path)
-    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-    assert {"nodes", "edges", "frames", "action_templates", "corrections", "glossary", "receipts"} <= tables
+    tables = {
+        row[0]
+        for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    }
+    assert {
+        "nodes",
+        "edges",
+        "frames",
+        "action_templates",
+        "corrections",
+        "glossary",
+        "receipts",
+    } <= tables
 
     node_id = store.insert_node("entity", {"a": 1})
     node = store.get_node(node_id)
@@ -28,7 +39,9 @@ def test_schema_and_crud(tmp_path):
 
     frame_id = store.insert_frame(node_id, {"frame": "info"})
     frame = store.get_frame(frame_id)
-    assert frame is not None and frame.node_id == node_id and frame.data["frame"] == "info"
+    assert (
+        frame is not None and frame.node_id == node_id and frame.data["frame"] == "info"
+    )
 
     action_id = store.insert_action_template("greet", {"text": "hi"})
     action = store.get_action_template(action_id)

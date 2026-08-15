@@ -21,5 +21,8 @@ def test_stage_timing_reports_throughput_and_reduction_efficiency() -> None:
     assert row["stage"] == "base_proposal_reduction"
     assert row["reduction_ratio"] == 0.75
     assert row["tokens_processed"] == 500
-    assert row["reduction_efficiency_edges_per_second"] is not None or row["elapsed_ms"] == 0
+    assert (
+        row["reduction_efficiency_edges_per_second"] is not None
+        or row["elapsed_ms"] == 0
+    )
     assert ledger.to_dict()["stage_totals_ms"]["base_proposal_reduction"] >= 0

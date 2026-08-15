@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from src.fact_intake.control_plane import build_follow_queue_item, summarize_follow_queue
+from src.fact_intake.control_plane import (
+    build_follow_queue_item,
+    summarize_follow_queue,
+)
 from src.review_geometry.reviewer_packets import (
     build_reviewer_packet,
     normalize_packet_chips,
@@ -10,9 +13,9 @@ from src.review_geometry.reviewer_packets import (
 
 def test_reviewer_packet_helpers_are_deterministic() -> None:
     assert normalize_packet_chips(["a", "", "b"]) == ["a", "b"]
-    assert normalize_packet_detail_rows([{"label": "L", "value": "V"}, {"label": "", "value": "skip"}]) == [
-        {"label": "L", "value": "V"}
-    ]
+    assert normalize_packet_detail_rows(
+        [{"label": "L", "value": "V"}, {"label": "", "value": "skip"}]
+    ) == [{"label": "L", "value": "V"}]
     assert build_reviewer_packet(
         item_id="item:1",
         title="Item",

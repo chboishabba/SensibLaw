@@ -40,8 +40,15 @@ def build_sample_inquiries() -> dict[str, InquiryReport]:
             jurisdiction="Australia",
             issued_date="2019-02-01",
             summary="Detailed misconduct findings with recommendations for enhanced consumer protections.",
-            advisory_tags=["consumer_protection", "banking_legislation", "executive_power"],
-            influence_targets=["law:aus:consumer_credit", "policy:aus:banking_supervision"],
+            advisory_tags=[
+                "consumer_protection",
+                "banking_legislation",
+                "executive_power",
+            ],
+            influence_targets=[
+                "law:aus:consumer_credit",
+                "policy:aus:banking_supervision",
+            ],
         ),
         InquiryReport(
             report_id="inquiry:uk:rcs:2015:child_protection",
@@ -50,7 +57,10 @@ def build_sample_inquiries() -> dict[str, InquiryReport]:
             issued_date="2015-12-15",
             summary="Examined systemic child protection failures and proposed statutory reforms.",
             advisory_tags=["child_welfare", "statutory_reform"],
-            influence_targets=["law:uk:children_act", "policy:uk:local_authority_responsibility"],
+            influence_targets=[
+                "law:uk:children_act",
+                "policy:uk:local_authority_responsibility",
+            ],
         ),
         InquiryReport(
             report_id="inquiry:ca:commission:2020:healthcare",
@@ -59,7 +69,10 @@ def build_sample_inquiries() -> dict[str, InquiryReport]:
             issued_date="2020-08-30",
             summary="Advised on pandemic preparedness and provincial/federal coordination mechanisms.",
             advisory_tags=["public_health", "federalism", "report:customary"],
-            influence_targets=["law:ca:public_health_act", "policy:ca:intergovernmental-health"],
+            influence_targets=[
+                "law:ca:public_health_act",
+                "policy:ca:intergovernmental-health",
+            ],
         ),
     ]
     return {report.report_id: report for report in reports}

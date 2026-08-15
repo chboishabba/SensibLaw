@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from src.policy.fragment_grammar import (
     BirthGrammar,
     EducationGrammar,
@@ -14,7 +16,6 @@ from src.policy.fragment_grammar import (
     get_default_registry,
 )
 from src.policy.fragment_pnf import (
-    BraidRelevanceReceipt,
     ConnectednessLevel,
     DepthLevel,
     ExportClass,
@@ -44,6 +45,7 @@ from src.policy.fragment_pnf import (
 
 # ── fragment_pnf: dataclass construction ──────────────────────────────────
 
+
 def test_typed_role_construction() -> None:
     role = TypedRole(canonical_key="actor:gwb", canonical_label="George W. Bush")
     assert role.canonical_key == "actor:gwb"
@@ -58,7 +60,11 @@ def test_time_anchor_construction() -> None:
 
 
 def test_source_span_construction() -> None:
-    ss = SourceSpanRef(parent_event_id="evt:001", atom_id="atom:0000", fragment_surface_text="Governor 1995-2000")
+    ss = SourceSpanRef(
+        parent_event_id="evt:001",
+        atom_id="atom:0000",
+        fragment_surface_text="Governor 1995-2000",
+    )
     assert ss.parent_event_id == "evt:001"
     assert ss.atom_id == "atom:0000"
     assert ss.fragment_surface_text == "Governor 1995-2000"
@@ -89,9 +95,14 @@ def test_fragment_pnf_with_roles() -> None:
         fragment_subclass="office_range",
         grammar_id="office_range_grammar_v0",
         grammar_match_strength=GrammarMatchStrength.exact_pattern,
-        subject_role=TypedRole(canonical_key="actor:gwb", canonical_label="George W. Bush"),
+        subject_role=TypedRole(
+            canonical_key="actor:gwb", canonical_label="George W. Bush"
+        ),
         predicate_spine="served_as",
-        object_role=TypedRole(canonical_key="office:governor_of_texas", canonical_label="Governor of Texas"),
+        object_role=TypedRole(
+            canonical_key="office:governor_of_texas",
+            canonical_label="Governor of Texas",
+        ),
         time_anchor=TimeAnchor(start_date="1995", end_date="2000", precision="range"),
         pnf_basis=("office_role_range_pattern", "inherited_actor_context"),
     )
@@ -103,6 +114,7 @@ def test_fragment_pnf_with_roles() -> None:
 
 
 # ── fragment_pnf: level enums ────────────────────────────────────────────
+
 
 def test_connectedness_level_order() -> None:
     assert ConnectednessLevel.isolated.value == "isolated"
@@ -118,21 +130,32 @@ def test_classify_connectedness() -> None:
 
 def test_classify_referentiality() -> None:
     assert classify_referentiality(0, 0, 0) == ReferentialityLevel.single_source
-    assert classify_referentiality(1, 2, 0) == ReferentialityLevel.same_family_multi_span
+    assert (
+        classify_referentiality(1, 2, 0) == ReferentialityLevel.same_family_multi_span
+    )
     assert classify_referentiality(2, 0, 0) == ReferentialityLevel.multi_family
     assert classify_referentiality(2, 0, 2) == ReferentialityLevel.cross_source
 
 
 def test_classify_pnf_closure_open() -> None:
-    assert classify_pnf_closure(False, False, False, False, False, False) == PNFClosureLevel.open
+    assert (
+        classify_pnf_closure(False, False, False, False, False, False)
+        == PNFClosureLevel.open
+    )
 
 
 def test_classify_pnf_closure_role_closed() -> None:
-    assert classify_pnf_closure(True, True, True, False, False, False) == PNFClosureLevel.role_closed
+    assert (
+        classify_pnf_closure(True, True, True, False, False, False)
+        == PNFClosureLevel.role_closed
+    )
 
 
 def test_classify_pnf_closure_span_receipt_closed() -> None:
-    assert classify_pnf_closure(True, True, True, True, True, True) == PNFClosureLevel.span_receipt_closed
+    assert (
+        classify_pnf_closure(True, True, True, True, True, True)
+        == PNFClosureLevel.span_receipt_closed
+    )
 
 
 def test_classify_source_span_missing() -> None:
@@ -144,12 +167,22 @@ def test_classify_source_span_has_raw() -> None:
 
 
 def test_projection_basis_from_fallback() -> None:
-    assert projection_basis_from_fallback(False, 3) == ProjectionBasisLevel.grammar_projected
-    assert projection_basis_from_fallback(True, 3) == ProjectionBasisLevel.fallback_projected
-    assert projection_basis_from_fallback(False, 1) == ProjectionBasisLevel.partial_projected
+    assert (
+        projection_basis_from_fallback(False, 3)
+        == ProjectionBasisLevel.grammar_projected
+    )
+    assert (
+        projection_basis_from_fallback(True, 3)
+        == ProjectionBasisLevel.fallback_projected
+    )
+    assert (
+        projection_basis_from_fallback(False, 1)
+        == ProjectionBasisLevel.partial_projected
+    )
 
 
 # ── fragment_pnf: export classification ───────────────────────────────────
+
 
 def test_classify_export_blocked_when_pnf_open() -> None:
     cls, reasons = classify_export_class(
@@ -190,6 +223,7 @@ def test_classify_export_exportable() -> None:
 
 # ── fragment_pnf: build_braid_relevance_receipt ──────────────────────────
 
+
 def test_build_braid_relevance_receipt_defaults_blocked() -> None:
     r = build_braid_relevance_receipt()
     assert r.export_class == ExportClass.blocked
@@ -217,6 +251,7 @@ def test_build_braid_relevance_receipt_high_confidence() -> None:
 
 # ── fragment_grammar: classify_fragment_surface ──────────────────────────
 
+
 def test_classify_cv_cell_with_office_keyword() -> None:
     assert classify_fragment_surface("Governor of Texas 1995-2000") == "cv_cell"
 
@@ -230,7 +265,10 @@ def test_classify_cv_cell_with_dash_prefix() -> None:
 
 
 def test_classify_caption_fragment_proclamation() -> None:
-    assert classify_fragment_surface("Proclaimed to be White House Office") == "caption_fragment"
+    assert (
+        classify_fragment_surface("Proclaimed to be White House Office")
+        == "caption_fragment"
+    )
 
 
 def test_classify_prose_fragment() -> None:
@@ -243,6 +281,7 @@ def test_classify_fallback_empty() -> None:
 
 
 # ── fragment_grammar: FragmentMatch → FragmentPNF ────────────────────────
+
 
 def test_fragment_match_to_pnf() -> None:
     match = FragmentMatch(
@@ -268,14 +307,21 @@ def test_fragment_match_to_pnf() -> None:
 
 def test_fragment_matches_to_pnfs_multiple() -> None:
     m1 = FragmentMatch(
-        grammar_id="g1", fragment_surface_class="cv_cell", fragment_subclass="s1",
+        grammar_id="g1",
+        fragment_surface_class="cv_cell",
+        fragment_subclass="s1",
         grammar_match_strength=GrammarMatchStrength.exact_pattern,
     )
     m2 = FragmentMatch(
-        grammar_id="g2", fragment_surface_class="prose_fragment", fragment_subclass="s2",
-        grammar_match_strength=GrammarMatchStrength.fallback_bundle, fallback_used=True,
+        grammar_id="g2",
+        fragment_surface_class="prose_fragment",
+        fragment_subclass="s2",
+        grammar_match_strength=GrammarMatchStrength.fallback_bundle,
+        fallback_used=True,
     )
-    pnfs = fragment_matches_to_pnfs([m1, m2], parent_event_id="evt", fragment_surface="test")
+    pnfs = fragment_matches_to_pnfs(
+        [m1, m2], parent_event_id="evt", fragment_surface="test"
+    )
     assert len(pnfs) == 2
     assert pnfs[0].fragment_id == "evt:frag:0000"
     assert pnfs[1].fragment_id == "evt:frag:0001"
@@ -285,7 +331,10 @@ def test_fragment_matches_to_pnfs_multiple() -> None:
 
 # ── fragment_grammar: OfficeRangeGrammar ─────────────────────────────────
 
-def _parent_row(actor_key: str = "actor:george_w_bush", actor_label: str = "George W. Bush") -> dict:
+
+def _parent_row(
+    actor_key: str = "actor:george_w_bush", actor_label: str = "George W. Bush"
+) -> dict:
     return {
         "event_roles": [
             {"entity": {"canonical_key": actor_key, "canonical_label": actor_label}},
@@ -328,9 +377,14 @@ def test_office_range_no_keyword() -> None:
 
 # ── fragment_grammar: ProclamationGrammar ────────────────────────────────
 
+
 def test_proclamation_matches_to_be() -> None:
     g = ProclamationGrammar()
-    matches = list(g.iter_matches("Proclaimed to be White House Office on January 20, 2001", _parent_row()))
+    matches = list(
+        g.iter_matches(
+            "Proclaimed to be White House Office on January 20, 2001", _parent_row()
+        )
+    )
     assert len(matches) == 1
     m = matches[0]
     assert m.predicate_spine == "proclaimed"
@@ -354,9 +408,12 @@ def test_proclamation_no_match() -> None:
 
 # ── fragment_grammar: OwnershipGrammar ───────────────────────────────────
 
+
 def test_ownership_matches_co_owned() -> None:
     g = OwnershipGrammar()
-    matches = list(g.iter_matches("Co-owned the Texas Rangers 1994-1998", _parent_row()))
+    matches = list(
+        g.iter_matches("Co-owned the Texas Rangers 1994-1998", _parent_row())
+    )
     assert len(matches) == 1
     assert matches[0].predicate_spine == "co_owned"
     assert "Texas Rangers" in matches[0].object_role.canonical_label
@@ -370,6 +427,7 @@ def test_ownership_no_match() -> None:
 
 
 # ── fragment_grammar: EducationGrammar ───────────────────────────────────
+
 
 def test_education_matches_university() -> None:
     g = EducationGrammar()
@@ -394,6 +452,7 @@ def test_education_no_keyword() -> None:
 
 # ── fragment_grammar: MarriageGrammar ────────────────────────────────────
 
+
 def test_marriage_matches_married() -> None:
     g = MarriageGrammar()
     matches = list(g.iter_matches("Married Laura Welch 1977", _parent_row()))
@@ -417,6 +476,7 @@ def test_marriage_no_match() -> None:
 
 # ── fragment_grammar: BirthGrammar ───────────────────────────────────────
 
+
 def test_birth_matches() -> None:
     g = BirthGrammar()
     matches = list(g.iter_matches("Born in 1946 in New Haven", _parent_row()))
@@ -433,6 +493,7 @@ def test_birth_no_match() -> None:
 
 
 # ── fragment_grammar: FragmentGrammarRegistry ────────────────────────────
+
 
 def test_registry_default_grammars() -> None:
     reg = get_default_registry()
@@ -471,17 +532,21 @@ def test_registry_register() -> None:
 def test_registry_register_front() -> None:
     reg = FragmentGrammarRegistry()
     first = reg.grammars[0].grammar_id
+
     class _PriorityStub:
         grammar_id = "priority_stub"
         fragment_subclass = "stub"
+
         def iter_matches(self, text, parent_row):
             return []
+
     reg.register_front(_PriorityStub())
     assert reg.grammars[0].grammar_id == "priority_stub"
     assert reg.grammars[1].grammar_id == first
 
 
 # ── cross_source_event_braid: bind_atom_pnf integration ──────────────────
+
 
 def test_bind_atom_pnf_office_range_emits_fragment_pnfs() -> None:
     from src.policy.cross_source_event_braid import bind_atom_pnf
@@ -509,7 +574,11 @@ def test_bind_atom_pnf_proclamation_emits_fragment_pnfs() -> None:
     from src.policy.cross_source_event_braid import bind_atom_pnf
 
     parent = _parent_row()
-    row = {"text": "Proclaimed January 20, 2001 to be White House Office", "source_family": "gwb", "event_id": "evt002"}
+    row = {
+        "text": "Proclaimed January 20, 2001 to be White House Office",
+        "source_family": "gwb",
+        "event_id": "evt002",
+    }
     bind_atom_pnf(row, parent)
     assert row.get("pnf") is not None
     assert row["pnf"]["predicate"] == "predicate:proclaimed"
@@ -526,7 +595,12 @@ def test_bind_atom_pnf_birth_marks_blocked() -> None:
         "source_family": "gwb",
         "event_id": "evt003",
         "event_roles": [
-            {"entity": {"canonical_key": "actor:different", "canonical_label": "Different Person"}},
+            {
+                "entity": {
+                    "canonical_key": "actor:different",
+                    "canonical_label": "Different Person",
+                }
+            },
         ],
     }
     bind_atom_pnf(row, parent)
@@ -539,7 +613,11 @@ def test_bind_atom_pnf_fallback_for_unmatched_text() -> None:
     from src.policy.cross_source_event_braid import bind_atom_pnf
 
     parent = _parent_row()
-    row = {"text": "The committee approved the plan", "source_family": "gwb", "event_id": "evt004"}
+    row = {
+        "text": "The committee approved the plan",
+        "source_family": "gwb",
+        "event_id": "evt004",
+    }
     bind_atom_pnf(row, parent)
     assert row.get("pnf") is not None
     assert row.get("fragment_pnfs") is not None
@@ -552,7 +630,11 @@ def test_bind_atom_pnf_marriage_emits_fragment_pnfs() -> None:
     from src.policy.cross_source_event_braid import bind_atom_pnf
 
     parent = _parent_row()
-    row = {"text": "Married Laura Welch 1977", "source_family": "gwb", "event_id": "evt005"}
+    row = {
+        "text": "Married Laura Welch 1977",
+        "source_family": "gwb",
+        "event_id": "evt005",
+    }
     bind_atom_pnf(row, parent)
     assert row.get("fragment_pnfs") is not None
     assert row["fragment_pnfs"][0].fragment_subclass == "marriage"
@@ -562,7 +644,11 @@ def test_bind_atom_pnf_education_emits_fragment_pnfs() -> None:
     from src.policy.cross_source_event_braid import bind_atom_pnf
 
     parent = _parent_row()
-    row = {"text": "Graduated from Yale University 1968", "source_family": "gwb", "event_id": "evt006"}
+    row = {
+        "text": "Graduated from Yale University 1968",
+        "source_family": "gwb",
+        "event_id": "evt006",
+    }
     bind_atom_pnf(row, parent)
     assert row.get("fragment_pnfs") is not None
     assert row["fragment_pnfs"][0].fragment_subclass == "education"
@@ -572,9 +658,20 @@ def test_bind_atom_pnf_setup_event_roles_and_relation_candidates() -> None:
     from src.policy.cross_source_event_braid import bind_atom_pnf
 
     parent = _parent_row()
-    row = {"text": "Governor of Texas 1995-2000", "source_family": "gwb", "event_id": "evt007"}
+    row = {
+        "text": "Governor of Texas 1995-2000",
+        "source_family": "gwb",
+        "event_id": "evt007",
+    }
     bind_atom_pnf(row, parent)
-    assert row.get("event_roles") == [{"entity": {"canonical_key": "actor:george_w_bush", "canonical_label": "George W. Bush"}}]
+    assert row.get("event_roles") == [
+        {
+            "entity": {
+                "canonical_key": "actor:george_w_bush",
+                "canonical_label": "George W. Bush",
+            }
+        }
+    ]
     assert row.get("relation_candidates") is not None
     assert len(row["relation_candidates"]) == 1
     assert row["relation_candidates"][0]["predicate_key"] == "served_as"
@@ -582,68 +679,85 @@ def test_bind_atom_pnf_setup_event_roles_and_relation_candidates() -> None:
 
 # ── cross_source_event_braid: component-level receipts in braid ──────────
 
+
 def test_braid_relevance_receipts_present_in_payload() -> None:
     from src.policy.cross_source_event_braid import build_cross_source_event_braid
 
-    payload = build_cross_source_event_braid([
-        {
-            "source_family": "gwb",
-            "source_event_rows": [
-                {
-                    "source_family": "gwb",
-                    "doc_id": "bio1",
-                    "doc_title": "Biography",
-                    "event_id": "A",
-                    "source_event_key": "gwb:A",
-                    "local_order_index": 1,
-                    "anchor": {"year": 2006, "text": "2006-01-01"},
-                    "text": "Governor of Texas 1995-2000",
-                    "source_path": "/tmp/bio1.txt",
-                    "source_url": "",
-                    "source_id": "bio1",
-                    "citation_refs": [],
-                    "event_roles": [
-                        {"entity": {"canonical_key": "actor:george_w_bush", "canonical_label": "George W. Bush"}},
-                    ],
-                    "relation_candidates": [],
-                    "promoted_relations": [],
-                    "candidate_only_relations": [],
-                    "abstained_relation_candidates": [],
-                    "mentions": [],
-                },
-                {
-                    "source_family": "gwb",
-                    "doc_id": "bio1",
-                    "doc_title": "Biography",
-                    "event_id": "B",
-                    "source_event_key": "gwb:B",
-                    "local_order_index": 2,
-                    "anchor": {"year": 2006, "text": "2006-01-01"},
-                    "text": "President of the United States 2001-2009",
-                    "source_path": "/tmp/bio1.txt",
-                    "source_url": "",
-                    "source_id": "bio1",
-                    "citation_refs": [],
-                    "event_roles": [
-                        {"entity": {"canonical_key": "actor:george_w_bush", "canonical_label": "George W. Bush"}},
-                    ],
-                    "relation_candidates": [],
-                    "promoted_relations": [],
-                    "candidate_only_relations": [],
-                    "abstained_relation_candidates": [],
-                    "mentions": [],
-                },
-            ],
-        },
-    ])
+    payload = build_cross_source_event_braid(
+        [
+            {
+                "source_family": "gwb",
+                "source_event_rows": [
+                    {
+                        "source_family": "gwb",
+                        "doc_id": "bio1",
+                        "doc_title": "Biography",
+                        "event_id": "A",
+                        "source_event_key": "gwb:A",
+                        "local_order_index": 1,
+                        "anchor": {"year": 2006, "text": "2006-01-01"},
+                        "text": "Governor of Texas 1995-2000",
+                        "source_path": "/tmp/bio1.txt",
+                        "source_url": "",
+                        "source_id": "bio1",
+                        "citation_refs": [],
+                        "event_roles": [
+                            {
+                                "entity": {
+                                    "canonical_key": "actor:george_w_bush",
+                                    "canonical_label": "George W. Bush",
+                                }
+                            },
+                        ],
+                        "relation_candidates": [],
+                        "promoted_relations": [],
+                        "candidate_only_relations": [],
+                        "abstained_relation_candidates": [],
+                        "mentions": [],
+                    },
+                    {
+                        "source_family": "gwb",
+                        "doc_id": "bio1",
+                        "doc_title": "Biography",
+                        "event_id": "B",
+                        "source_event_key": "gwb:B",
+                        "local_order_index": 2,
+                        "anchor": {"year": 2006, "text": "2006-01-01"},
+                        "text": "President of the United States 2001-2009",
+                        "source_path": "/tmp/bio1.txt",
+                        "source_url": "",
+                        "source_id": "bio1",
+                        "citation_refs": [],
+                        "event_roles": [
+                            {
+                                "entity": {
+                                    "canonical_key": "actor:george_w_bush",
+                                    "canonical_label": "George W. Bush",
+                                }
+                            },
+                        ],
+                        "relation_candidates": [],
+                        "promoted_relations": [],
+                        "candidate_only_relations": [],
+                        "abstained_relation_candidates": [],
+                        "mentions": [],
+                    },
+                ],
+            },
+        ]
+    )
     for row in payload["source_event_rows"]:
         assert "braid_metrics" in row, f"Missing braid_metrics in {row.get('event_id')}"
         assert "relevance" in row, f"Missing relevance in {row.get('event_id')}"
         fpnfs = row.get("fragment_pnfs")
         if fpnfs:
             receipts = row.get("fragment_pnf_receipts")
-            assert receipts is not None, f"Missing fragment_pnf_receipts in {row.get('event_id')}"
-            assert len(receipts) == len(fpnfs), f"Receipt count {len(receipts)} != fragment count {len(fpnfs)}"
+            assert receipts is not None, (
+                f"Missing fragment_pnf_receipts in {row.get('event_id')}"
+            )
+            assert len(receipts) == len(fpnfs), (
+                f"Receipt count {len(receipts)} != fragment count {len(fpnfs)}"
+            )
             for r in receipts:
                 assert "fragment_id" in r
                 assert "export_class" in r
@@ -652,6 +766,7 @@ def test_braid_relevance_receipts_present_in_payload() -> None:
 
 
 # ── FragmentPNFProjectionReceipt ─────────────────────────────────────────
+
 
 def test_fragment_pnf_projection_receipt() -> None:
     receipt = FragmentPNFProjectionReceipt(
@@ -664,6 +779,7 @@ def test_fragment_pnf_projection_receipt() -> None:
 
 
 # ── project_fragment_pnf adapter ─────────────────────────────────────────
+
 
 def _make_test_fragment(
     *,
@@ -682,8 +798,12 @@ def _make_test_fragment(
         fragment_surface_class="cv_cell",
         fragment_subclass=subclass,
         grammar_id="test_grammar_v0",
-        grammar_match_strength=GrammarMatchStrength.fallback_bundle if fallback else GrammarMatchStrength.exact_pattern,
-        subject_role=TypedRole(canonical_key=subject_key, canonical_label=subject_label),
+        grammar_match_strength=GrammarMatchStrength.fallback_bundle
+        if fallback
+        else GrammarMatchStrength.exact_pattern,
+        subject_role=TypedRole(
+            canonical_key=subject_key, canonical_label=subject_label
+        ),
         predicate_spine=predicate,
         object_role=TypedRole(canonical_key=object_key, canonical_label=object_label),
         time_anchor=TimeAnchor(start_date="1995", end_date="2000", precision="range"),
@@ -760,7 +880,9 @@ def test_project_multiple_fragments() -> None:
     from src.policy.project_fragment_pnf import project_fragment_pnfs
 
     f1 = _make_test_fragment(predicate="served_as", object_key="office:gov")
-    f2 = _make_test_fragment(predicate="graduated_from", object_key="edu:yale", subclass="education")
+    f2 = _make_test_fragment(
+        predicate="graduated_from", object_key="edu:yale", subclass="education"
+    )
     f3 = FragmentPNF(
         fragment_id="test:frag:0002",
         parent_event_id="evt:001",
@@ -785,7 +907,9 @@ def test_project_row_fragment_pnfs() -> None:
     row = {
         "fragment_pnfs": [
             _make_test_fragment(predicate="served_as", object_key="office:gov"),
-            _make_test_fragment(predicate="graduated_from", object_key="edu:yale", subclass="education"),
+            _make_test_fragment(
+                predicate="graduated_from", object_key="edu:yale", subclass="education"
+            ),
         ],
     }
     result = project_row_fragment_pnfs(row)
@@ -816,6 +940,7 @@ def test_project_row_empty_list() -> None:
 
 
 # ── linkage_depth layer ──────────────────────────────────────────────────
+
 
 def test_linkage_depth_flat_shortcut() -> None:
     from src.policy.fragment_linkage_depth import assess_linkage_depth
@@ -936,7 +1061,11 @@ def test_assess_rows_linkage_depth() -> None:
 
     rows = [
         {"source_path": "/tmp/a.txt", "text": "flat"},
-        {"source_path": "/tmp/b.txt", "fragment_pnfs": [{"fragment_id": "t"}], "text": "deep"},
+        {
+            "source_path": "/tmp/b.txt",
+            "fragment_pnfs": [{"fragment_id": "t"}],
+            "text": "deep",
+        },
     ]
     assess_rows_linkage_depth(rows)
     assert rows[0]["flat_shortcut_detected"] is True
@@ -946,6 +1075,7 @@ def test_assess_rows_linkage_depth() -> None:
 
 
 # ── gwb_spot_audit: build_export_gate_receipt ───────────────────────────
+
 
 def test_export_gate_receipt_blocked_empty_row() -> None:
     from src.policy.gwb_spot_audit import build_export_gate_receipt
@@ -963,11 +1093,17 @@ def test_export_gate_receipt_exportable_full_row() -> None:
 
     row = {
         "pnf_status": "canonicalized",
-        "pnf": {"subject": "actor:gwb", "predicate": "predicate:served_as", "object": "office:gov"},
+        "pnf": {
+            "subject": "actor:gwb",
+            "predicate": "predicate:served_as",
+            "object": "office:gov",
+        },
         "resolved_historical_date": "2001-01-20",
         "text": "Governor of Texas 1995-2000",
         "fragment_pnfs": [{"fragment_id": "test:frag:0000"}],
-        "fragment_projection_receipts": [{"fragment_id": "test:frag:0000", "projection_status": "grammar_projected"}],
+        "fragment_projection_receipts": [
+            {"fragment_id": "test:frag:0000", "projection_status": "grammar_projected"}
+        ],
         "fragment_pnf_receipts": [{"export_class": "exportable"}],
         "braid_metrics": {"referentiality": 3},
         "linkage_depth_level": "braid_node",
@@ -983,7 +1119,11 @@ def test_export_gate_receipt_exportable_without_projection() -> None:
 
     row = {
         "pnf_status": "canonicalized",
-        "pnf": {"subject": "actor:gwb", "predicate": "predicate:served_as", "object": "office:gov"},
+        "pnf": {
+            "subject": "actor:gwb",
+            "predicate": "predicate:served_as",
+            "object": "office:gov",
+        },
         "anchor": {"year": 2001},
         "text": "Governor 1995-2000",
         "fragment_pnfs": [{"fragment_id": "test:frag:0000"}],
@@ -999,7 +1139,11 @@ def test_export_gate_receipt_residual_blocked() -> None:
 
     row = {
         "pnf_status": "canonicalized",
-        "pnf": {"subject": "actor:gwb", "predicate": "predicate:served_as", "object": "office:gov"},
+        "pnf": {
+            "subject": "actor:gwb",
+            "predicate": "predicate:served_as",
+            "object": "office:gov",
+        },
         "anchor": {"year": 2001},
         "text": "Governor 1995-2000",
         "fragment_pnfs": [{"fragment_id": "test:frag:0000"}],
@@ -1015,7 +1159,11 @@ def test_export_gate_receipt_reviewable() -> None:
 
     row = {
         "pnf_status": "canonicalized",
-        "pnf": {"subject": "actor:gwb", "predicate": "predicate:served_as", "object": "office:gov"},
+        "pnf": {
+            "subject": "actor:gwb",
+            "predicate": "predicate:served_as",
+            "object": "office:gov",
+        },
         "text": "Governor 1995-2000",
     }
     receipt = build_export_gate_receipt(row)

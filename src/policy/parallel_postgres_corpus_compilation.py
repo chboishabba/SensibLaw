@@ -247,13 +247,9 @@ def compile_directory_postgres_parallel(
     if not 1 <= workers <= 32:
         raise ValueError("workers must be between 1 and 32")
     if not 1 <= closure_workers_per_document <= 32:
-        raise ValueError(
-            "closure_workers_per_document must be between 1 and 32"
-        )
+        raise ValueError("closure_workers_per_document must be between 1 and 32")
     if not 1 <= owner_partitions_per_document <= 128:
-        raise ValueError(
-            "owner_partitions_per_document must be between 1 and 128"
-        )
+        raise ValueError("owner_partitions_per_document must be between 1 and 128")
 
     root = Path(input_dir).resolve()
     manifest = build_corpus_manifest(
@@ -290,9 +286,7 @@ def compile_directory_postgres_parallel(
             document_ref = str(entry["document_ref"])
             relative_path = str(entry["relative_path"])
             if document_ref in seen:
-                duplicate_occurrences.append(
-                    (document_ref, relative_path)
-                )
+                duplicate_occurrences.append((document_ref, relative_path))
                 continue
             seen.add(document_ref)
             admitted.append(entry)
@@ -345,18 +339,14 @@ def compile_directory_postgres_parallel(
                         "worker": outcome.worker,
                         "relative_path": outcome.relative_path,
                         "failure_ref": outcome.failure_ref,
-                        "canonical_token_count": (
-                            outcome.canonical_token_count
-                        ),
+                        "canonical_token_count": (outcome.canonical_token_count),
                         "local_fixed_point": outcome.local_fixed_point,
                         "fixed_point_certificate_ref": (
                             outcome.fixed_point_certificate_ref
                         ),
                         "closure_workers": outcome.closure_workers,
                         "owner_partitions": outcome.owner_partitions,
-                        "stage_totals_ms": _stage_totals(
-                            outcome.stage_timings
-                        ),
+                        "stage_totals_ms": _stage_totals(outcome.stage_timings),
                     },
                     processed_tokens=outcome.canonical_token_count,
                 )
@@ -374,9 +364,7 @@ def compile_directory_postgres_parallel(
         occurrence_store = PostgresCompilerStore.connect(database_url)
         try:
             with occurrence_store.transaction() as cursor:
-                for document_ref, relative_path in sorted(
-                    duplicate_occurrences
-                ):
+                for document_ref, relative_path in sorted(duplicate_occurrences):
                     if document_ref not in completed_document_refs:
                         continue
                     occurrence_store.persist_occurrence(
@@ -389,19 +377,11 @@ def compile_directory_postgres_parallel(
         finally:
             occurrence_store.close()
     document_refs = tuple(
-        sorted(
-            row.document_ref for row in ordered if row.state != "failed"
-        )
+        sorted(row.document_ref for row in ordered if row.state != "failed")
     )
-    demand_refs = tuple(
-        sorted({ref for row in ordered for ref in row.demand_refs})
-    )
+    demand_refs = tuple(sorted({ref for row in ordered for ref in row.demand_refs}))
     failure_refs = tuple(
-        sorted(
-            row.failure_ref
-            for row in ordered
-            if row.failure_ref is not None
-        )
+        sorted(row.failure_ref for row in ordered if row.failure_ref is not None)
     )
     return (
         PersistedCompilation(

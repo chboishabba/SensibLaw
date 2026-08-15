@@ -17,13 +17,19 @@ class StructureOccurrence:
     flags: int = 0
 
 
-_ROLE_LINE_RE = re.compile(r"(?m)^(User|Assistant|System|Developer|Tool)\s*:\s*", re.IGNORECASE)
+_ROLE_LINE_RE = re.compile(
+    r"(?m)^(User|Assistant|System|Developer|Tool)\s*:\s*", re.IGNORECASE
+)
 _SPEAKER_LINE_RE = re.compile(
     r"(?m)^(?:Q|A|THE COURT|WITNESS|COUNSEL|JUDGE|MAGISTRATE|REGISTRAR|SPEAKER|CHAIR|MR|MS|DR)\b[^:\n]{0,40}:"
 )
-_TIMESTAMP_RE = re.compile(r"(?<!\d)(?:\[\s*)?(?:\d{1,2}:\d{2}(?::\d{2})?)(?:\s*\])?(?!\d)")
+_TIMESTAMP_RE = re.compile(
+    r"(?<!\d)(?:\[\s*)?(?:\d{1,2}:\d{2}(?::\d{2})?)(?:\s*\])?(?!\d)"
+)
 _PROMPT_COMMAND_RE = re.compile(r"(?m)^(?:\$|%|❯)\s+([A-Za-z0-9_.:/-]+)")
-_BACKTICK_COMMAND_RE = re.compile(r"`((?:npm|python|pytest|node|bash|cd|git|cargo|uv|pnpm|yarn)\b[^`]*)`")
+_BACKTICK_COMMAND_RE = re.compile(
+    r"`((?:npm|python|pytest|node|bash|cd|git|cargo|uv|pnpm|yarn)\b[^`]*)`"
+)
 _FLAG_RE = re.compile(r"(?<!\w)(--[a-z0-9][a-z0-9-]*|-[A-Za-z])(?!\w)", re.IGNORECASE)
 _PATH_RE = re.compile(
     r"(?<![\w])("
@@ -62,7 +68,13 @@ def _norm_slug(value: str) -> str:
     return "".join(out).strip("_") or "unknown"
 
 
-def _emit(matches: list[StructureOccurrence], match: re.Match[str], kind: str, norm_text: str, text: str | None = None) -> None:
+def _emit(
+    matches: list[StructureOccurrence],
+    match: re.Match[str],
+    kind: str,
+    norm_text: str,
+    text: str | None = None,
+) -> None:
     start, end = match.span()
     matches.append(
         StructureOccurrence(
@@ -135,7 +147,10 @@ def _looks_like_path(raw: str) -> bool:
     if "://" in raw:
         return True
     plain_segments = [segment for segment in segments if segment]
-    if all(segment.replace("-", "").replace("_", "").isalpha() for segment in plain_segments):
+    if all(
+        segment.replace("-", "").replace("_", "").isalpha()
+        for segment in plain_segments
+    ):
         allow_plain_roots = {
             "src",
             "docs",
@@ -159,13 +174,23 @@ def _looks_like_path(raw: str) -> bool:
         return False
     if all(segment.isdigit() for segment in segments):
         return False
-    if raw.count("/") == 1 and segments[0].isdigit() and segments[1].isalpha() and len(segments[1]) <= 3:
+    if (
+        raw.count("/") == 1
+        and segments[0].isdigit()
+        and segments[1].isalpha()
+        and len(segments[1]) <= 3
+    ):
         return False
-    if all(segment.upper() == segment and any(ch.isalpha() for ch in segment) for segment in segments):
+    if all(
+        segment.upper() == segment and any(ch.isalpha() for ch in segment)
+        for segment in segments
+    ):
         return False
     if all(re.fullmatch(r"[A-Z]\d+", segment) for segment in segments):
         return False
-    if raw.count("/") >= 2 and all(re.fullmatch(r"[A-Za-z]?\d+", segment) for segment in segments):
+    if raw.count("/") >= 2 and all(
+        re.fullmatch(r"[A-Za-z]?\d+", segment) for segment in segments
+    ):
         return False
     if any("." in segment for segment in segments):
         return True
@@ -234,10 +259,19 @@ def collect_operational_structure_occurrences(text: str) -> list[StructureOccurr
 
     for match in _SPEAKER_LINE_RE.finditer(text):
         label = match.group().rstrip(":").strip()
-        _emit(matches, match, "speaker_ref", f"speaker:{_norm_slug(label)}", text=match.group().rstrip())
+        _emit(
+            matches,
+            match,
+            "speaker_ref",
+            f"speaker:{_norm_slug(label)}",
+            text=match.group().rstrip(),
+        )
 
     for match in _TIMESTAMP_RE.finditer(text):
-        if any(start <= match.start() and match.end() <= end for start, end in transcript_timestamp_spans):
+        if any(
+            start <= match.start() and match.end() <= end
+            for start, end in transcript_timestamp_spans
+        ):
             continue
         raw = match.group().strip("[] ").casefold()
         _emit(matches, match, "timestamp_ref", f"ts:{raw}")
@@ -248,7 +282,13 @@ def collect_operational_structure_occurrences(text: str) -> list[StructureOccurr
 
     for match in _BACKTICK_COMMAND_RE.finditer(text):
         command = match.group(1).strip().split()[0].split("/")[-1]
-        _emit(matches, match, "command_ref", f"cmd:{_norm_slug(command)}", text=match.group(1).strip())
+        _emit(
+            matches,
+            match,
+            "command_ref",
+            f"cmd:{_norm_slug(command)}",
+            text=match.group(1).strip(),
+        )
 
     for match in _FLAG_RE.finditer(text):
         _emit(matches, match, "flag_ref", f"flag:{match.group(1).casefold()}")

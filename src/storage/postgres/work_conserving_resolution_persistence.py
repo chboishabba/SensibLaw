@@ -52,9 +52,7 @@ def _resolution_payloads(
             )
         )
         payloads.extend(
-            StagePayload(
-                "evidence_subject", texts=(evidence_ref, str(subject_ref))
-            )
+            StagePayload("evidence_subject", texts=(evidence_ref, str(subject_ref)))
             for subject_ref in row.get("subject_refs") or ()
         )
     for row in demands:
@@ -73,11 +71,7 @@ def _resolution_payloads(
                     demand_ref,
                     factor_ref,
                     factor_revisions.get(factor_ref),
-                    str(
-                        row.get("subject_kind")
-                        or row.get("factor_type")
-                        or "unknown"
-                    ),
+                    str(row.get("subject_kind") or row.get("factor_type") or "unknown"),
                     (
                         str(row["formal_role"])
                         if row.get("formal_role") is not None

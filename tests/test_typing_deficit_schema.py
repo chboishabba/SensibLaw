@@ -22,7 +22,10 @@ def test_collect_typing_deficit_signals_combines_sources() -> None:
     chat_payload = {
         "source_system": "tircorder-JOBBIE",
         "typing_deficit_signals": [
-            {"signal_id": "chat:follow-1", "details": "chat mention of missing instance-of"},
+            {
+                "signal_id": "chat:follow-1",
+                "details": "chat mention of missing instance-of",
+            },
         ],
     }
     signals = collect_typing_deficit_signals([au_payload, gwb_payload, chat_payload])

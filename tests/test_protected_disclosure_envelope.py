@@ -5,18 +5,32 @@ import json
 import sqlite3
 from pathlib import Path
 
-from scripts.build_protected_disclosure_envelope import build_protected_disclosure_artifact, main
+from scripts.build_protected_disclosure_envelope import (
+    build_protected_disclosure_artifact,
+    main,
+)
 from src.fact_intake import protected_disclosure_envelope
-from src.fact_intake.protected_disclosure_envelope import build_protected_disclosure_envelope
+from src.fact_intake.protected_disclosure_envelope import (
+    build_protected_disclosure_envelope,
+)
 
 _FIXTURE_PATH = (
-    Path(__file__).resolve().parent / "fixtures" / "fact_intake" / "protected_disclosure_input_v1.json"
+    Path(__file__).resolve().parent
+    / "fixtures"
+    / "fact_intake"
+    / "protected_disclosure_input_v1.json"
 )
 
 
-def test_protected_disclosure_envelope_is_metadata_only_and_deny_by_default(monkeypatch) -> None:
+def test_protected_disclosure_envelope_is_metadata_only_and_deny_by_default(
+    monkeypatch,
+) -> None:
     payload = json.loads(_FIXTURE_PATH.read_text(encoding="utf-8"))
-    monkeypatch.setattr(sqlite3, "connect", lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("sqlite forbidden")))
+    monkeypatch.setattr(
+        sqlite3,
+        "connect",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("sqlite forbidden")),
+    )
 
     report = build_protected_disclosure_envelope(payload)
     serialized = json.dumps(report, sort_keys=True)
@@ -24,18 +38,29 @@ def test_protected_disclosure_envelope_is_metadata_only_and_deny_by_default(monk
     assert report["version"] == "protected.disclosure.envelope.v1"
     assert report["run"]["local_only"] is True
     assert report["run"]["do_not_sync"] is True
-    assert report["protected_disclosure"]["disclosure_route"] == "counsel_or_regulator_first"
-    assert report["protected_disclosure"]["minimization_mode"] == "standard_metadata_only"
+    assert (
+        report["protected_disclosure"]["disclosure_route"]
+        == "counsel_or_regulator_first"
+    )
+    assert (
+        report["protected_disclosure"]["minimization_mode"] == "standard_metadata_only"
+    )
     assert report["integrity"]["sealed_item_count"] == 3
     assert report["integrity"]["exclusion_count"] == 1
     assert "I wrote the full account immediately after the meeting." not in serialized
     assert "The email thread confirms the meeting date and attendees." not in serialized
     assert "2026-02-14" not in serialized
-    assert "Keep provisional until documentary corroboration is assembled." not in serialized
+    assert (
+        "Keep provisional until documentary corroboration is assembled."
+        not in serialized
+    )
     excluded = {item["unit_id"]: item for item in report["exclusions"]}
     assert excluded["pd4"]["exclusion_reason"] == "recipient_not_permitted"
     exported = {item["unit_id"]: item for item in report["sealed_items"]}
-    assert exported["pd2"]["retaliation_risk_tags"] == ["manager_visibility", "workplace_retaliation"]
+    assert exported["pd2"]["retaliation_risk_tags"] == [
+        "manager_visibility",
+        "workplace_retaliation",
+    ]
 
 
 def test_protected_disclosure_scope_blocks_protected_only_item_for_advocate() -> None:
@@ -48,13 +73,18 @@ def test_protected_disclosure_scope_blocks_protected_only_item_for_advocate() ->
     assert report["integrity"]["sealed_item_count"] == 0
     assert excluded["pd1"]["exclusion_reason"] == "disclosure_route_mismatch"
     assert excluded["pd2"]["exclusion_reason"] == "disclosure_route_mismatch"
-    assert excluded["pd2"]["protected_disclosure_reason"] == "potential workplace retaliation risk"
+    assert (
+        excluded["pd2"]["protected_disclosure_reason"]
+        == "potential workplace retaliation risk"
+    )
 
 
 def test_protected_disclosure_minimization_can_exclude_named_identity_items() -> None:
     payload = json.loads(_FIXTURE_PATH.read_text(encoding="utf-8"))
     payload["handoff"]["retaliation_risk_level"] = "extreme"
-    payload["handoff"]["protected_disclosure"]["minimization_mode"] = "withheld_identity_only"
+    payload["handoff"]["protected_disclosure"]["minimization_mode"] = (
+        "withheld_identity_only"
+    )
 
     report = build_protected_disclosure_envelope(payload)
 
@@ -67,10 +97,14 @@ def test_protected_disclosure_minimization_can_exclude_named_identity_items() ->
     assert excluded["pd3"]["exclusion_reason"] == "identity_policy_too_exposed"
 
 
-def test_protected_disclosure_script_writes_artifact_and_summary(tmp_path, capsys) -> None:
+def test_protected_disclosure_script_writes_artifact_and_summary(
+    tmp_path, capsys
+) -> None:
     output_dir = tmp_path / "protected"
 
-    exit_code = main(["--input-json", str(_FIXTURE_PATH), "--output-dir", str(output_dir)])
+    exit_code = main(
+        ["--input-json", str(_FIXTURE_PATH), "--output-dir", str(output_dir)]
+    )
     captured = capsys.readouterr()
     payload = json.loads(captured.out)
 
@@ -82,7 +116,9 @@ def test_protected_disclosure_script_writes_artifact_and_summary(tmp_path, capsy
     assert "Protected workplace-integrity material must remain local-only" in summary
     assert "- Disclosure route: counsel_or_regulator_first" in summary
     assert "- Minimization mode: standard_metadata_only" in summary
-    assert "Keep provisional until documentary corroboration is assembled." not in summary
+    assert (
+        "Keep provisional until documentary corroboration is assembled." not in summary
+    )
     assert "I wrote the full account immediately after the meeting." not in summary
 
 

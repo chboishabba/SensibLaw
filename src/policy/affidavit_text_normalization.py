@@ -1,4 +1,5 @@
 """Affidavit text normalization and contested-text helpers."""
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -67,7 +68,9 @@ def tokenize_duplicate_filter_text(text: str) -> frozenset[str]:
     return frozenset(tokenize_affidavit_text(strip_enumeration_prefix(text)))
 
 
-def token_overlap_similarity(left: set[str] | frozenset[str], right: set[str] | frozenset[str]) -> float:
+def token_overlap_similarity(
+    left: set[str] | frozenset[str], right: set[str] | frozenset[str]
+) -> float:
     if not left or not right:
         return 0.0
     shared = set(left) & set(right)
@@ -101,7 +104,10 @@ def is_duplicate_affidavit_unit(
             return False
         candidates = build_affidavit_duplicate_candidates(affidavit_text)
     unit_tokens = tokenize_duplicate_filter_text(text)
-    return any(token_overlap_similarity(unit_tokens, aff_tokens) >= threshold for aff_tokens in candidates)
+    return any(
+        token_overlap_similarity(unit_tokens, aff_tokens) >= threshold
+        for aff_tokens in candidates
+    )
 
 
 def is_duplicate_response_excerpt(proposition_text: str, excerpt_text: str) -> bool:

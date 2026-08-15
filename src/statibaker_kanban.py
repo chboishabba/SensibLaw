@@ -72,7 +72,9 @@ def _dict(value: Any) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
 
-def _grounding_rows(grounding_catalog: Mapping[str, Any]) -> dict[str, list[dict[str, Any]]]:
+def _grounding_rows(
+    grounding_catalog: Mapping[str, Any],
+) -> dict[str, list[dict[str, Any]]]:
     rows: dict[str, list[dict[str, Any]]] = {}
     raw_rows = grounding_catalog.get("groundings")
     if not isinstance(raw_rows, Mapping):
@@ -92,8 +94,12 @@ def _iter_segments(document: Mapping[str, Any]) -> Iterable[dict[str, Any]]:
         for index, raw_segment in enumerate(raw_segments):
             if isinstance(raw_segment, Mapping):
                 segment = dict(raw_segment)
-                segment.setdefault("segment_id", f"{document.get('doc_id', 'doc')}:s{index + 1}")
-                segment.setdefault("text", document.get("raw_text") or document.get("text") or "")
+                segment.setdefault(
+                    "segment_id", f"{document.get('doc_id', 'doc')}:s{index + 1}"
+                )
+                segment.setdefault(
+                    "text", document.get("raw_text") or document.get("text") or ""
+                )
                 yield segment
         return
     yield {
@@ -110,7 +116,12 @@ def _role_text(atom: Mapping[str, Any], *names: str) -> str:
     for name in names:
         value = roles.get(name)
         if isinstance(value, Mapping):
-            text = _text(value.get("text") or value.get("value") or value.get("span") or value.get("label"))
+            text = _text(
+                value.get("text")
+                or value.get("value")
+                or value.get("span")
+                or value.get("label")
+            )
         else:
             text = _text(value)
         if text:
@@ -118,7 +129,9 @@ def _role_text(atom: Mapping[str, Any], *names: str) -> str:
     return ""
 
 
-def _atom_wrapper(atom: Mapping[str, Any], segment: Mapping[str, Any], document: Mapping[str, Any]) -> str:
+def _atom_wrapper(
+    atom: Mapping[str, Any], segment: Mapping[str, Any], document: Mapping[str, Any]
+) -> str:
     return _text(
         atom.get("wrapper_state")
         or atom.get("wrapper")
@@ -156,7 +169,9 @@ def _atom_object(atom: Mapping[str, Any]) -> str:
         or atom.get("topic")
         or frame.get("object")
         or frame.get("affected_system")
-        or _role_text(atom, "object", "topic", "target", "target_system", "feature", "artifact")
+        or _role_text(
+            atom, "object", "topic", "target", "target_system", "feature", "artifact"
+        )
     )
 
 
@@ -173,15 +188,21 @@ def _qualifiers(atom: Mapping[str, Any]) -> dict[str, Any]:
 
 def _lifecycle_effect(atom: Mapping[str, Any]) -> str:
     frame = _task_frame(atom)
-    return _text(atom.get("lifecycle_effect") or frame.get("lifecycle_effect")).casefold()
+    return _text(
+        atom.get("lifecycle_effect") or frame.get("lifecycle_effect")
+    ).casefold()
 
 
 def _predicate_family(atom: Mapping[str, Any]) -> str:
     frame = _task_frame(atom)
-    return _text(atom.get("predicate_family") or frame.get("predicate_family")).casefold()
+    return _text(
+        atom.get("predicate_family") or frame.get("predicate_family")
+    ).casefold()
 
 
-def _project_relevant(atom: Mapping[str, Any], groundings: list[Mapping[str, Any]]) -> bool:
+def _project_relevant(
+    atom: Mapping[str, Any], groundings: list[Mapping[str, Any]]
+) -> bool:
     frame = _task_frame(atom)
     raw = atom.get("project_relevant")
     if raw is None:
@@ -218,7 +239,9 @@ def _has_lifecycle_transition(atom: Mapping[str, Any]) -> bool:
 def _context_atoms(project_context: Mapping[str, Any] | None) -> list[dict[str, Any]]:
     if not isinstance(project_context, Mapping):
         return []
-    raw_atoms = project_context.get("context_pnfs") or project_context.get("atoms") or []
+    raw_atoms = (
+        project_context.get("context_pnfs") or project_context.get("atoms") or []
+    )
     atoms = [_dict(atom) for atom in _list(raw_atoms) if isinstance(atom, Mapping)]
     for section in (
         "project_ontology",
@@ -243,7 +266,12 @@ def _context_roles(atom: Mapping[str, Any]) -> dict[str, str]:
     row: dict[str, str] = {}
     for key, value in roles.items():
         if isinstance(value, Mapping):
-            text = _text(value.get("id") or value.get("value") or value.get("text") or value.get("label"))
+            text = _text(
+                value.get("id")
+                or value.get("value")
+                or value.get("text")
+                or value.get("label")
+            )
         else:
             text = _text(value)
         if text:
@@ -270,7 +298,16 @@ def _context_roles(atom: Mapping[str, Any]) -> dict[str, str]:
 def _context_entity_keys(atom: Mapping[str, Any]) -> set[str]:
     roles = _context_roles(atom)
     keys: set[str] = set()
-    for key in ("entity", "object", "feature", "service", "repo", "environment", "task_object", "affected_system"):
+    for key in (
+        "entity",
+        "object",
+        "feature",
+        "service",
+        "repo",
+        "environment",
+        "task_object",
+        "affected_system",
+    ):
         if roles.get(key):
             keys.add(_key(roles[key]))
     for alias in _list(atom.get("aliases")):
@@ -282,7 +319,9 @@ def _context_entity_keys(atom: Mapping[str, Any]) -> set[str]:
     return {key for key in keys if key}
 
 
-def build_project_context_pnf_index(project_context: Mapping[str, Any] | None) -> dict[str, Any]:
+def build_project_context_pnf_index(
+    project_context: Mapping[str, Any] | None,
+) -> dict[str, Any]:
     """Normalize supplied project context into PNF-style lookup indexes."""
 
     atoms = _context_atoms(project_context)
@@ -301,17 +340,27 @@ def build_project_context_pnf_index(project_context: Mapping[str, Any] | None) -
         row.setdefault("context_pnf_id", f"gamma:{position + 1}")
         atom_ref = _text(row.get("atom_id") or row.get("context_pnf_id"))
         atom_ref_map[atom_ref] = row
-        family = _text(row.get("context_family") or row.get("predicate_family") or row.get("predicate")).casefold()
+        family = _text(
+            row.get("context_family")
+            or row.get("predicate_family")
+            or row.get("predicate")
+        ).casefold()
         roles = _context_roles(row)
         structural_signature = _text(row.get("structural_signature"))
         if structural_signature:
-            structural_signature_index.setdefault(structural_signature, []).append(atom_ref)
+            structural_signature_index.setdefault(structural_signature, []).append(
+                atom_ref
+            )
         for role_slot, role_value in roles.items():
             role_slot_index.setdefault(role_slot, []).append(atom_ref)
-            role_arg_index.setdefault(f"{role_slot}:{_key(role_value)}", []).append(atom_ref)
+            role_arg_index.setdefault(f"{role_slot}:{_key(role_value)}", []).append(
+                atom_ref
+            )
         for key in _context_entity_keys(row):
             entity_index.setdefault(key, []).append(row)
-        effect = _text(row.get("lifecycle_effect") or roles.get("lifecycle_effect")).casefold()
+        effect = _text(
+            row.get("lifecycle_effect") or roles.get("lifecycle_effect")
+        ).casefold()
         if family in {"task_schema", "task_schemas", "schema"} or effect:
             if effect:
                 task_schema_index.setdefault(effect, []).append(row)
@@ -319,7 +368,9 @@ def build_project_context_pnf_index(project_context: Mapping[str, Any] | None) -
         if task_id or family in {"board_state", "task_status", "task_card"}:
             if task_id:
                 board_state_index.setdefault(task_id, []).append(row)
-            object_key = _key(row.get("object") or roles.get("object") or roles.get("task_object"))
+            object_key = _key(
+                row.get("object") or roles.get("object") or roles.get("task_object")
+            )
             if object_key:
                 board_state_index.setdefault(object_key, []).append(row)
         if family in {"policy", "policies", "policy_boundary", "requires_approval"}:
@@ -332,14 +383,24 @@ def build_project_context_pnf_index(project_context: Mapping[str, Any] | None) -
         if owner or owned:
             owner_index.setdefault(owned or owner, []).append(row)
         blocker = _key(row.get("blocker") or roles.get("blocker"))
-        blocked = _key(row.get("blocked_object") or roles.get("blocked_object") or roles.get("object"))
+        blocked = _key(
+            row.get("blocked_object")
+            or roles.get("blocked_object")
+            or roles.get("object")
+        )
         if blocker or blocked:
             dependency_index.setdefault(blocked or blocker, []).append(row)
     return {
         "schema_version": PROJECT_CONTEXT_PNF_INDEX_SCHEMA_VERSION,
-        "context_id": _text(project_context.get("context_id")) if isinstance(project_context, Mapping) else "",
-        "source_refs": [_text(ref) for ref in _list(project_context.get("source_refs"))] if isinstance(project_context, Mapping) else [],
-        "context_source": _text(project_context.get("context_source")) if isinstance(project_context, Mapping) else "",
+        "context_id": _text(project_context.get("context_id"))
+        if isinstance(project_context, Mapping)
+        else "",
+        "source_refs": [_text(ref) for ref in _list(project_context.get("source_refs"))]
+        if isinstance(project_context, Mapping)
+        else [],
+        "context_source": _text(project_context.get("context_source"))
+        if isinstance(project_context, Mapping)
+        else "",
         "context_atom_count": len(atoms),
         "context_pnfs": atoms,
         "predicate_pnf_index": atoms,
@@ -369,7 +430,11 @@ def build_project_context_pnf_index(project_context: Mapping[str, Any] | None) -
 
 
 def _context_index(project_context: Mapping[str, Any] | None) -> dict[str, Any]:
-    if isinstance(project_context, Mapping) and project_context.get("schema_version") == PROJECT_CONTEXT_PNF_INDEX_SCHEMA_VERSION:
+    if (
+        isinstance(project_context, Mapping)
+        and project_context.get("schema_version")
+        == PROJECT_CONTEXT_PNF_INDEX_SCHEMA_VERSION
+    ):
         return dict(project_context)
     return build_project_context_pnf_index(project_context)
 
@@ -389,16 +454,25 @@ def _context_meet(
     lifecycle_effect = _lifecycle_effect(atom)
     qualifiers = _qualifiers(atom)
     matched_entities: list[dict[str, Any]] = []
-    for key in {object_key} | {_key(g.get("grounded_label") or g.get("grounded_node")) for g in groundings}:
+    for key in {object_key} | {
+        _key(g.get("grounded_label") or g.get("grounded_node")) for g in groundings
+    }:
         if key and key in entity_index:
             matched_entities.extend(_list(entity_index[key]))
     matched_schema = [_dict(row) for row in _list(schema_index.get(lifecycle_effect))]
     matched_board = [_dict(row) for row in _list(board_index.get(object_key))]
     action = _key(_atom_action(atom))
     environment = _key(qualifiers.get("environment"))
-    matched_policy = [_dict(row) for row in _list(policy_index.get(f"{action}:{environment}"))]
+    matched_policy = [
+        _dict(row) for row in _list(policy_index.get(f"{action}:{environment}"))
+    ]
     blockers: list[str] = []
-    if matched_policy and lifecycle_effect in {"promote_todo", "mark_in_progress", "mark_done", "mark_review"}:
+    if matched_policy and lifecycle_effect in {
+        "promote_todo",
+        "mark_in_progress",
+        "mark_done",
+        "mark_review",
+    }:
         blockers.append("policy_boundary")
     if not matched_entities and not groundings:
         blockers.append("no_context_entity_meet")
@@ -468,10 +542,14 @@ def _owner(atom: Mapping[str, Any]) -> str:
 
 
 def _requester(atom: Mapping[str, Any], segment: Mapping[str, Any]) -> str:
-    return _text(atom.get("requester") or _role_text(atom, "requester") or segment.get("speaker"))
+    return _text(
+        atom.get("requester") or _role_text(atom, "requester") or segment.get("speaker")
+    )
 
 
-def _candidate_groundings(object_text: str, grounding_catalog: Mapping[str, Any]) -> list[dict[str, Any]]:
+def _candidate_groundings(
+    object_text: str, grounding_catalog: Mapping[str, Any]
+) -> list[dict[str, Any]]:
     if not object_text:
         return []
     catalog = _grounding_rows(grounding_catalog)
@@ -484,12 +562,23 @@ def _candidate_groundings(object_text: str, grounding_catalog: Mapping[str, Any]
                     {
                         "span": object_text,
                         "matched_phrase": phrase,
-                        "grounded_node": _text(candidate.get("grounded_node") or candidate.get("qid") or candidate.get("id")),
-                        "grounded_label": _text(
-                            candidate.get("grounded_label") or candidate.get("label") or candidate.get("grounded_node")
+                        "grounded_node": _text(
+                            candidate.get("grounded_node")
+                            or candidate.get("qid")
+                            or candidate.get("id")
                         ),
-                        "grounding_residual": _text(candidate.get("grounding_residual") or "partial_grounding"),
-                        "topic_closure": [_dict(topic) for topic in _list(candidate.get("topic_closure"))],
+                        "grounded_label": _text(
+                            candidate.get("grounded_label")
+                            or candidate.get("label")
+                            or candidate.get("grounded_node")
+                        ),
+                        "grounding_residual": _text(
+                            candidate.get("grounding_residual") or "partial_grounding"
+                        ),
+                        "topic_closure": [
+                            _dict(topic)
+                            for topic in _list(candidate.get("topic_closure"))
+                        ],
                     }
                 )
     return rows
@@ -511,7 +600,10 @@ def _status_from_atom(atom: Mapping[str, Any], wrapper: str) -> str:
         return "review"
     if lifecycle_effect == "mark_blocked":
         return "blocked"
-    if lifecycle_effect == "mark_in_progress" or wrapper in {"in_progress", "committed_in_progress"}:
+    if lifecycle_effect == "mark_in_progress" or wrapper in {
+        "in_progress",
+        "committed_in_progress",
+    }:
         return "in_progress"
     if lifecycle_effect == "create_candidate" or wrapper == "question":
         return "candidate"
@@ -581,7 +673,9 @@ def _dependency_refs(atom: Mapping[str, Any]) -> list[str]:
         text = _text(value)
         if text:
             refs.append(text)
-    condition = _text(qualifiers.get("after") or _role_text(atom, "dependency", "after"))
+    condition = _text(
+        qualifiers.get("after") or _role_text(atom, "dependency", "after")
+    )
     if condition:
         refs.append(condition)
     return refs
@@ -608,7 +702,11 @@ def build_task_memory_index(
         doc_id = _text(document.get("doc_id")) or f"doc_{len(tasks_by_key) + 1}"
         doc_provenance = _dict(document.get("provenance"))
         for segment in _iter_segments(document):
-            atoms = [_dict(atom) for atom in _list(segment.get("atoms")) if isinstance(atom, Mapping)]
+            atoms = [
+                _dict(atom)
+                for atom in _list(segment.get("atoms"))
+                if isinstance(atom, Mapping)
+            ]
             if not atoms:
                 ignored_segments.append(
                     {
@@ -625,7 +723,9 @@ def build_task_memory_index(
                 wrapper = _atom_wrapper(atom, segment, document)
                 groundings = _candidate_groundings(object_text, grounding_catalog)
                 context_meet = _context_meet(atom, groundings, context_index)
-                is_task_like, non_task_reasons = _task_like(atom, groundings, wrapper, context_meet)
+                is_task_like, non_task_reasons = _task_like(
+                    atom, groundings, wrapper, context_meet
+                )
                 if not is_task_like:
                     ignored_segments.append(
                         {
@@ -640,12 +740,16 @@ def build_task_memory_index(
                     continue
                 segment_had_task = True
                 grounding_key = _grounding_key(object_text, groundings)
-                task_key = _text(atom.get("task_key")) or f"{_id_key(action)}:{grounding_key}"
+                task_key = (
+                    _text(atom.get("task_key")) or f"{_id_key(action)}:{grounding_key}"
+                )
                 evidence_id = f"task_receipt:{len(evidence_log) + 1}"
                 status = _status_from_atom(atom, wrapper)
                 acceptance = _acceptance(atom)
                 task = tasks_by_key.get(task_key)
-                existing_acceptance = bool(task and _text(task.get("acceptance_criteria")))
+                existing_acceptance = bool(
+                    task and _text(task.get("acceptance_criteria"))
+                )
                 promotion = "candidate_only"
                 hold_reasons: list[str] = []
                 if wrapper in HELD_WRAPPERS:
@@ -653,10 +757,19 @@ def build_task_memory_index(
                 if not groundings:
                     hold_reasons.append("missing_grounding")
                 if context_meet.get("residual") == "partial":
-                    hold_reasons.extend([f"context:{reason}" for reason in _list(context_meet.get("blockers"))])
+                    hold_reasons.extend(
+                        [
+                            f"context:{reason}"
+                            for reason in _list(context_meet.get("blockers"))
+                        ]
+                    )
                 if context_meet.get("residual") == "contradiction":
                     hold_reasons.append("context:policy_boundary")
-                if not acceptance and not existing_acceptance and status in {"todo", "in_progress", "done"}:
+                if (
+                    not acceptance
+                    and not existing_acceptance
+                    and status in {"todo", "in_progress", "done"}
+                ):
                     hold_reasons.append("missing_acceptance_criteria")
                 hold_reasons = sorted(set(hold_reasons))
                 if status == "held" or hold_reasons:
@@ -669,7 +782,8 @@ def build_task_memory_index(
                     "evidence_id": evidence_id,
                     "doc_id": doc_id,
                     "segment_id": _text(segment.get("segment_id")),
-                    "atom_id": _text(atom.get("atom_id")) or f"{doc_id}:{len(evidence_log) + 1}",
+                    "atom_id": _text(atom.get("atom_id"))
+                    or f"{doc_id}:{len(evidence_log) + 1}",
                     "snippet": _text(segment.get("text")),
                     "predicate": _text(atom.get("predicate")),
                     "predicate_family": _predicate_family(atom),
@@ -716,10 +830,19 @@ def build_task_memory_index(
                     task["owner"] = _owner(atom)
                 if acceptance:
                     task["acceptance_criteria"] = acceptance
-                task["context_meet"] = _merge_context_meet(_dict(task.get("context_meet")), context_meet)
-                task["priority"] = max([_text(task.get("priority")), _priority(atom, object_text)], key=_priority_rank)
-                task["dependencies"] = sorted(set(_list(task.get("dependencies")) + _dependency_refs(atom)))
-                task["hold_reasons"] = sorted(set(_list(task.get("hold_reasons")) + hold_reasons))
+                task["context_meet"] = _merge_context_meet(
+                    _dict(task.get("context_meet")), context_meet
+                )
+                task["priority"] = max(
+                    [_text(task.get("priority")), _priority(atom, object_text)],
+                    key=_priority_rank,
+                )
+                task["dependencies"] = sorted(
+                    set(_list(task.get("dependencies")) + _dependency_refs(atom))
+                )
+                task["hold_reasons"] = sorted(
+                    set(_list(task.get("hold_reasons")) + hold_reasons)
+                )
                 task["evidence_refs"].append(evidence_id)
                 task["source_receipts"].append(evidence)
             if not segment_had_task:
@@ -763,7 +886,9 @@ def build_task_memory_index(
     }
 
 
-def _merge_context_meet(existing: Mapping[str, Any], new: Mapping[str, Any]) -> dict[str, Any]:
+def _merge_context_meet(
+    existing: Mapping[str, Any], new: Mapping[str, Any]
+) -> dict[str, Any]:
     residual_rank = {"exact": 0, "partial": 1, "no_typed_meet": 2, "contradiction": 3}
     existing_residual = _text(existing.get("residual") or "partial")
     new_residual = _text(new.get("residual") or "partial")
@@ -774,10 +899,22 @@ def _merge_context_meet(existing: Mapping[str, Any], new: Mapping[str, Any]) -> 
     )
     merged = dict(existing)
     merged["residual"] = residual
-    for key in ("matched_entities", "matched_schemas", "matched_board_cards", "matched_policies"):
+    for key in (
+        "matched_entities",
+        "matched_schemas",
+        "matched_board_cards",
+        "matched_policies",
+    ):
         merged[key] = _list(existing.get(key)) + _list(new.get(key))
-    merged["blockers"] = sorted(set(_list(existing.get("blockers")) + _list(new.get("blockers"))))
-    for key in ("matched_entity_count", "matched_schema_count", "matched_board_count", "matched_policy_count"):
+    merged["blockers"] = sorted(
+        set(_list(existing.get("blockers")) + _list(new.get("blockers")))
+    )
+    for key in (
+        "matched_entity_count",
+        "matched_schema_count",
+        "matched_board_count",
+        "matched_policy_count",
+    ):
         merged[key] = int(existing.get(key, 0) or 0) + int(new.get(key, 0) or 0)
     return merged
 
@@ -794,7 +931,10 @@ def _priority_rank(priority: str) -> int:
 
 
 def project_kanban(task_memory_index: Mapping[str, Any]) -> dict[str, Any]:
-    columns = {name: [] for name in ("Inbox", "Todo", "Doing", "Blocked", "Review", "Done", "Held")}
+    columns = {
+        name: []
+        for name in ("Inbox", "Todo", "Doing", "Blocked", "Review", "Done", "Held")
+    }
     cards: list[dict[str, Any]] = []
     for raw_task in task_memory_index.get("tasks", []):
         if not isinstance(raw_task, Mapping):
@@ -815,7 +955,9 @@ def project_kanban(task_memory_index: Mapping[str, Any]) -> dict[str, Any]:
             "dependencies": task.get("dependencies", []),
             "hold_reasons": task.get("hold_reasons", []),
             "evidence_refs": task.get("evidence_refs", []),
-            "latest_status_event": _list(task.get("source_receipts"))[-1] if _list(task.get("source_receipts")) else {},
+            "latest_status_event": _list(task.get("source_receipts"))[-1]
+            if _list(task.get("source_receipts"))
+            else {},
             "source_receipts": task.get("source_receipts", []),
             "grounding_refs": task.get("grounding_refs", []),
         }
@@ -846,17 +988,23 @@ def _task_tags(task: Mapping[str, Any]) -> list[str]:
     tags = {_text(task.get("kind")), _text(task.get("priority"))}
     for grounding in _list(task.get("grounding_refs")):
         if isinstance(grounding, Mapping):
-            label = _text(grounding.get("grounded_label") or grounding.get("grounded_node"))
+            label = _text(
+                grounding.get("grounded_label") or grounding.get("grounded_node")
+            )
             if label:
                 tags.add(label)
     return sorted(tag for tag in tags if tag)
 
 
-def _timeline_event(raw_event: Mapping[str, Any], phase: str, position: int) -> dict[str, Any]:
+def _timeline_event(
+    raw_event: Mapping[str, Any], phase: str, position: int
+) -> dict[str, Any]:
     event = dict(raw_event)
     event.setdefault("event_id", f"{phase}:{position + 1}")
     event.setdefault("phase", phase)
-    event.setdefault("event_type", _text(event.get("lifecycle_event_type") or event.get("type")))
+    event.setdefault(
+        "event_type", _text(event.get("lifecycle_event_type") or event.get("type"))
+    )
     event.setdefault("residual", _text(event.get("residual") or "partial"))
     event.setdefault("expected_slot_matched", bool(event.get("expected_slot")))
     return event
@@ -877,7 +1025,9 @@ def _timeline_graph_effects(events: list[Mapping[str, Any]]) -> list[str]:
         "held_missing_evidence",
     }
     for event in events:
-        for value in _list(event.get("task_graph_effects")) + _list(event.get("task_graph_effect")):
+        for value in _list(event.get("task_graph_effects")) + _list(
+            event.get("task_graph_effect")
+        ):
             text = _text(value)
             if text:
                 effects.add(text)
@@ -892,14 +1042,18 @@ def _matched_expected_slots(events: list[Mapping[str, Any]]) -> list[str]:
     for event in events:
         if event.get("expected_slot_matched") is False:
             continue
-        for value in _list(event.get("expected_slot")) + _list(event.get("matched_expected_slots")):
+        for value in _list(event.get("expected_slot")) + _list(
+            event.get("matched_expected_slots")
+        ):
             text = _text(value)
             if text:
                 slots.add(text)
     return sorted(slots)
 
 
-def _timeline_residual(events: list[Mapping[str, Any]], missing_slots: list[str]) -> str:
+def _timeline_residual(
+    events: list[Mapping[str, Any]], missing_slots: list[str]
+) -> str:
     residuals = {_text(event.get("residual")) for event in events}
     if "contradiction" in residuals:
         return "contradiction"
@@ -918,7 +1072,11 @@ def _timeline_status(events: list[Mapping[str, Any]], fallback: str = "") -> str
     return fallback or "observed"
 
 
-def build_task_timeline_probe(*, timeline_cases: Iterable[Mapping[str, Any]], source: Mapping[str, Any] | None = None) -> dict[str, Any]:
+def build_task_timeline_probe(
+    *,
+    timeline_cases: Iterable[Mapping[str, Any]],
+    source: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     """Build bidirectional task-timeline reconciliations from supplied receipts.
 
     The probe is a deterministic read model. It does not query a live archive and
@@ -941,14 +1099,29 @@ def build_task_timeline_probe(*, timeline_cases: Iterable[Mapping[str, Any]], so
             if isinstance(event, Mapping)
         ]
         events = prior_events + [seed_event] + later_events
-        expected_slots = sorted({_text(slot) for slot in _list(case.get("expected_event_slots")) if _text(slot)})
+        expected_slots = sorted(
+            {
+                _text(slot)
+                for slot in _list(case.get("expected_event_slots"))
+                if _text(slot)
+            }
+        )
         matched_slots = _matched_expected_slots(events)
-        explicit_missing = sorted({_text(slot) for slot in _list(case.get("missing_expected_slots")) if _text(slot)})
-        missing_slots = explicit_missing or [slot for slot in expected_slots if slot not in set(matched_slots)]
+        explicit_missing = sorted(
+            {
+                _text(slot)
+                for slot in _list(case.get("missing_expected_slots"))
+                if _text(slot)
+            }
+        )
+        missing_slots = explicit_missing or [
+            slot for slot in expected_slots if slot not in set(matched_slots)
+        ]
         graph_effects = _timeline_graph_effects(events)
         final_status = _timeline_status(events, _text(case.get("final_task_status")))
         timeline = {
-            "timeline_id": _text(case.get("timeline_id")) or f"archive_timeline:{case_index + 1}",
+            "timeline_id": _text(case.get("timeline_id"))
+            or f"archive_timeline:{case_index + 1}",
             "task_id": _text(case.get("task_id")) or f"task:{case_index + 1}",
             "task_title": _text(case.get("task_title")),
             "canonical_thread_id": _text(case.get("canonical_thread_id")),
@@ -962,14 +1135,25 @@ def build_task_timeline_probe(*, timeline_cases: Iterable[Mapping[str, Any]], so
             "expected_event_slots": expected_slots,
             "matched_expected_slots": matched_slots,
             "missing_expected_slots": missing_slots,
-            "successor_tasks": [_dict(task) for task in _list(case.get("successor_tasks")) if isinstance(task, Mapping)],
+            "successor_tasks": [
+                _dict(task)
+                for task in _list(case.get("successor_tasks"))
+                if isinstance(task, Mapping)
+            ],
             "split_or_merge_events": [
-                _dict(event) for event in _list(case.get("split_or_merge_events")) if isinstance(event, Mapping)
+                _dict(event)
+                for event in _list(case.get("split_or_merge_events"))
+                if isinstance(event, Mapping)
             ],
             "task_graph_effects": graph_effects,
             "final_task_status": final_status,
-            "task_identity_residual": _text(case.get("task_identity_residual") or "partial"),
-            "lifecycle_residual": _text(case.get("lifecycle_residual") or _timeline_residual(events, missing_slots)),
+            "task_identity_residual": _text(
+                case.get("task_identity_residual") or "partial"
+            ),
+            "lifecycle_residual": _text(
+                case.get("lifecycle_residual")
+                or _timeline_residual(events, missing_slots)
+            ),
             "authority_policy": "receipt_backed_reconciliation_only",
         }
         timelines.append(timeline)
@@ -979,10 +1163,16 @@ def build_task_timeline_probe(*, timeline_cases: Iterable[Mapping[str, Any]], so
         "timeline_count": len(timelines),
         "timelines": timelines,
         "summary": {
-            "with_prior_evidence": sum(1 for row in timelines if row["prior_event_receipts"]),
-            "with_later_evidence": sum(1 for row in timelines if row["later_event_receipts"]),
+            "with_prior_evidence": sum(
+                1 for row in timelines if row["prior_event_receipts"]
+            ),
+            "with_later_evidence": sum(
+                1 for row in timelines if row["later_event_receipts"]
+            ),
             "with_successors": sum(1 for row in timelines if row["successor_tasks"]),
-            "with_missing_expected_slots": sum(1 for row in timelines if row["missing_expected_slots"]),
+            "with_missing_expected_slots": sum(
+                1 for row in timelines if row["missing_expected_slots"]
+            ),
         },
         "authority_boundary": {
             "archive_thread_reconciliation_only": True,
@@ -1019,7 +1209,11 @@ def _runsheet_status_from_task(task: Mapping[str, Any]) -> str:
 
 def _runsheet_status_from_timeline(timeline: Mapping[str, Any]) -> str:
     lifecycle_residual = _text(timeline.get("lifecycle_residual")).casefold()
-    task_graph_effects = {_text(effect).casefold() for effect in _list(timeline.get("task_graph_effects")) if _text(effect)}
+    task_graph_effects = {
+        _text(effect).casefold()
+        for effect in _list(timeline.get("task_graph_effects"))
+        if _text(effect)
+    }
     final_status = _text(timeline.get("final_task_status")).casefold()
     if lifecycle_residual in {"contradiction", "incomplete"}:
         return "blocked"
@@ -1046,7 +1240,11 @@ def _runsheet_status_rank(status: str) -> int:
 
 
 def _merge_runsheet_status(existing: str, new: str) -> str:
-    return new if _runsheet_status_rank(new) >= _runsheet_status_rank(existing) else existing
+    return (
+        new
+        if _runsheet_status_rank(new) >= _runsheet_status_rank(existing)
+        else existing
+    )
 
 
 def build_runsheet_bridge(
@@ -1062,17 +1260,31 @@ def build_runsheet_bridge(
     artifacts into orchestrator-facing task/subtask statuses.
     """
 
-    board = dict(kanban_projection) if isinstance(kanban_projection, Mapping) else project_kanban(task_memory_index)
+    board = (
+        dict(kanban_projection)
+        if isinstance(kanban_projection, Mapping)
+        else project_kanban(task_memory_index)
+    )
     source_row = _dict(source)
     runner_id = _text(source_row.get("orchestrator_id") or source_row.get("runner_id"))
     lane = _text(source_row.get("lane"))
     timelines = (
-        [_dict(row) for row in _list(timeline_probe.get("timelines")) if isinstance(row, Mapping)]
+        [
+            _dict(row)
+            for row in _list(timeline_probe.get("timelines"))
+            if isinstance(row, Mapping)
+        ]
         if isinstance(timeline_probe, Mapping)
         else []
     )
-    timeline_by_id = {_text(row.get("task_id")): row for row in timelines if _text(row.get("task_id"))}
-    timeline_by_title = {_key(row.get("task_title")): row for row in timelines if _text(row.get("task_title"))}
+    timeline_by_id = {
+        _text(row.get("task_id")): row for row in timelines if _text(row.get("task_id"))
+    }
+    timeline_by_title = {
+        _key(row.get("task_title")): row
+        for row in timelines
+        if _text(row.get("task_title"))
+    }
     cards_by_id: dict[str, dict[str, Any]] = {}
     for card in _list(board.get("cards")):
         if isinstance(card, Mapping):
@@ -1086,21 +1298,37 @@ def build_runsheet_bridge(
         if not isinstance(raw_task, Mapping):
             continue
         task = dict(raw_task)
-        task_id = _text(task.get("task_id")) or _text(task.get("task_key")) or f"task:{len(items) + 1}"
+        task_id = (
+            _text(task.get("task_id"))
+            or _text(task.get("task_key"))
+            or f"task:{len(items) + 1}"
+        )
         card = cards_by_id.get(task_id, {})
-        timeline = timeline_by_id.get(task_id) or timeline_by_title.get(_key(task.get("title")))
+        timeline = timeline_by_id.get(task_id) or timeline_by_title.get(
+            _key(task.get("title"))
+        )
         if timeline:
             matched_timeline_ids.add(_text(timeline.get("timeline_id")))
         base_status = _runsheet_status_from_task(task)
         timeline_status = _runsheet_status_from_timeline(timeline) if timeline else ""
-        merged_status = _merge_runsheet_status(base_status, timeline_status) if timeline_status else base_status
+        merged_status = (
+            _merge_runsheet_status(base_status, timeline_status)
+            if timeline_status
+            else base_status
+        )
         context_meet = _dict(task.get("context_meet"))
         context_residual = _text(context_meet.get("residual") or "partial")
-        timeline_lifecycle_residual = _text(timeline.get("lifecycle_residual")) if timeline else ""
-        timeline_task_identity_residual = _text(timeline.get("task_identity_residual")) if timeline else ""
+        timeline_lifecycle_residual = (
+            _text(timeline.get("lifecycle_residual")) if timeline else ""
+        )
+        timeline_task_identity_residual = (
+            _text(timeline.get("task_identity_residual")) if timeline else ""
+        )
         lifecycle_residual = timeline_lifecycle_residual or context_residual
         task_identity_residual = timeline_task_identity_residual or context_residual
-        canonical_thread_id = _text(timeline.get("canonical_thread_id")) if timeline else ""
+        canonical_thread_id = (
+            _text(timeline.get("canonical_thread_id")) if timeline else ""
+        )
         seed_receipt = _dict(timeline.get("seed_message_receipt")) if timeline else {}
         source_message_id = _text(seed_receipt.get("source_message_id"))
         if not source_message_id and timeline:
@@ -1109,8 +1337,12 @@ def build_runsheet_bridge(
                 source_message_id = _text(event_row.get("source_message_id"))
                 if source_message_id:
                     break
-        evidence_refs = [_text(row) for row in _list(task.get("evidence_refs")) if _text(row)]
-        hold_reasons = [_text(row) for row in _list(task.get("hold_reasons")) if _text(row)]
+        evidence_refs = [
+            _text(row) for row in _list(task.get("evidence_refs")) if _text(row)
+        ]
+        hold_reasons = [
+            _text(row) for row in _list(task.get("hold_reasons")) if _text(row)
+        ]
         provenance = {
             "task_memory_task_id": task_id,
             "source_task_status": _text(task.get("status")),
@@ -1164,7 +1396,9 @@ def build_runsheet_bridge(
             }
         )
 
-    status_counts = {name: 0 for name in ("todo", "in_progress", "blocked", "done", "skipped")}
+    status_counts = {
+        name: 0 for name in ("todo", "in_progress", "blocked", "done", "skipped")
+    }
     for row in items:
         name = _text(row.get("status"))
         if name in status_counts:
@@ -1179,7 +1413,9 @@ def build_runsheet_bridge(
         "lane": lane,
         "task_memory_schema_version": _text(task_memory_index.get("schema_version")),
         "kanban_schema_version": _text(board.get("schema_version")),
-        "timeline_schema_version": _text(timeline_probe.get("schema_version")) if isinstance(timeline_probe, Mapping) else "",
+        "timeline_schema_version": _text(timeline_probe.get("schema_version"))
+        if isinstance(timeline_probe, Mapping)
+        else "",
         "items": items,
         "runsheet": {"items": items},
         "status_counts": status_counts,

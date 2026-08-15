@@ -62,7 +62,12 @@ def _event_has_object(event: Mapping[str, Any]) -> bool:
     for step in event.get("steps") or []:
         if not isinstance(step, Mapping):
             continue
-        for lane_name in ("entity_objects", "numeric_objects", "modifier_objects", "objects"):
+        for lane_name in (
+            "entity_objects",
+            "numeric_objects",
+            "modifier_objects",
+            "objects",
+        ):
             lane = step.get(lane_name)
             if isinstance(lane, list) and any(str(item).strip() for item in lane):
                 return True
@@ -76,18 +81,41 @@ def _page_row_from_outputs(
 ) -> dict[str, Any]:
     timeline_events = timeline_payload.get("events")
     aoo_events = aoo_payload.get("events")
-    timeline_rows = [row for row in timeline_events if isinstance(row, Mapping)] if isinstance(timeline_events, list) else []
-    aoo_rows = [row for row in aoo_events if isinstance(row, Mapping)] if isinstance(aoo_events, list) else []
+    timeline_rows = (
+        [row for row in timeline_events if isinstance(row, Mapping)]
+        if isinstance(timeline_events, list)
+        else []
+    )
+    aoo_rows = (
+        [row for row in aoo_events if isinstance(row, Mapping)]
+        if isinstance(aoo_events, list)
+        else []
+    )
 
     timeline_candidate_count = len(timeline_rows)
-    dated_timeline_candidate_count = sum(1 for row in timeline_rows if isinstance(row.get("anchor"), Mapping))
+    dated_timeline_candidate_count = sum(
+        1 for row in timeline_rows if isinstance(row.get("anchor"), Mapping)
+    )
     aoo_event_count = len(aoo_rows)
-    dated_aao_event_count = sum(1 for row in aoo_rows if isinstance(row.get("anchor"), Mapping))
-    actor_event_count = sum(1 for row in aoo_rows if isinstance(row.get("actors"), list) and any(isinstance(actor, Mapping) for actor in row.get("actors") or []))
+    dated_aao_event_count = sum(
+        1 for row in aoo_rows if isinstance(row.get("anchor"), Mapping)
+    )
+    actor_event_count = sum(
+        1
+        for row in aoo_rows
+        if isinstance(row.get("actors"), list)
+        and any(isinstance(actor, Mapping) for actor in row.get("actors") or [])
+    )
     action_event_count = sum(1 for row in aoo_rows if _event_has_action(row))
     object_event_count = sum(1 for row in aoo_rows if _event_has_object(row))
-    claim_bearing_event_count = sum(1 for row in aoo_rows if bool(row.get("claim_bearing")))
-    step_count = sum(len(row.get("steps") or []) for row in aoo_rows if isinstance(row.get("steps"), list))
+    claim_bearing_event_count = sum(
+        1 for row in aoo_rows if bool(row.get("claim_bearing"))
+    )
+    step_count = sum(
+        len(row.get("steps") or [])
+        for row in aoo_rows
+        if isinstance(row.get("steps"), list)
+    )
 
     candidate_retention_score = _ratio(aoo_event_count, timeline_candidate_count)
     actor_coverage_score = _ratio(actor_event_count, aoo_event_count)
@@ -98,8 +126,14 @@ def _page_row_from_outputs(
         if dated_timeline_candidate_count
         else (1.0 if aoo_event_count else 0.0)
     )
-    event_surface_score = round((actor_coverage_score + action_coverage_score + object_coverage_score) / 3.0, 6)
-    overall_readiness_score = round((candidate_retention_score + chronology_support_score + event_surface_score) / 3.0, 6)
+    event_surface_score = round(
+        (actor_coverage_score + action_coverage_score + object_coverage_score) / 3.0, 6
+    )
+    overall_readiness_score = round(
+        (candidate_retention_score + chronology_support_score + event_surface_score)
+        / 3.0,
+        6,
+    )
 
     issues: list[str] = []
     if timeline_candidate_count == 0:
@@ -149,8 +183,12 @@ def _page_row_from_outputs(
                 "event_id": str(row.get("event_id") or ""),
                 "anchor": row.get("anchor"),
                 "action": str(row.get("action") or ""),
-                "actor_count": len(row.get("actors") or []) if isinstance(row.get("actors"), list) else 0,
-                "step_count": len(row.get("steps") or []) if isinstance(row.get("steps"), list) else 0,
+                "actor_count": len(row.get("actors") or [])
+                if isinstance(row.get("actors"), list)
+                else 0,
+                "step_count": len(row.get("steps") or [])
+                if isinstance(row.get("steps"), list)
+                else 0,
                 "claim_bearing": bool(row.get("claim_bearing")),
                 "text": str(row.get("text") or "")[:180],
             }
@@ -173,7 +211,10 @@ def score_snapshot_payload(
         snapshot_path = tmp_root / "snapshot.json"
         timeline_path = tmp_root / "timeline.json"
         aoo_path = tmp_root / "timeline_aoo.json"
-        snapshot_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
+        snapshot_path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
 
         extract_argv = [
             "--snapshot",
@@ -185,7 +226,9 @@ def score_snapshot_payload(
         ]
         exit_code = _run_quiet(wiki_timeline_extract_main, extract_argv)
         if exit_code != 0:
-            raise RuntimeError(f"wiki_timeline_extract failed for {payload.get('title')}")
+            raise RuntimeError(
+                f"wiki_timeline_extract failed for {payload.get('title')}"
+            )
 
         aoo_argv = [
             "--timeline",
@@ -200,9 +243,13 @@ def score_snapshot_payload(
             aoo_argv.append("--no-spacy")
         exit_code = _run_quiet(wiki_timeline_aoo_main, aoo_argv)
         if exit_code != 0:
-            raise RuntimeError(f"wiki_timeline_aoo_extract failed for {payload.get('title')}")
+            raise RuntimeError(
+                f"wiki_timeline_aoo_extract failed for {payload.get('title')}"
+            )
 
-        return _page_row_from_outputs(payload, _load_json(timeline_path), _load_json(aoo_path))
+        return _page_row_from_outputs(
+            payload, _load_json(timeline_path), _load_json(aoo_path)
+        )
 
 
 def build_timeline_readiness_report(
@@ -239,13 +286,17 @@ def build_timeline_readiness_report(
         if not isinstance(snapshot_path, str):
             continue
         payload = _load_json(Path(snapshot_path))
-        page_row = score_snapshot_payload(payload, max_events=max_events, no_spacy=no_spacy)
+        page_row = score_snapshot_payload(
+            payload, max_events=max_events, no_spacy=no_spacy
+        )
         page_rows.append(page_row)
         issue_counts.update(page_row["issues"])
         total_counts.update(
             {
                 "timeline_candidate_count": int(page_row["timeline_candidate_count"]),
-                "dated_timeline_candidate_count": int(page_row["dated_timeline_candidate_count"]),
+                "dated_timeline_candidate_count": int(
+                    page_row["dated_timeline_candidate_count"]
+                ),
                 "aao_event_count": int(page_row["aao_event_count"]),
                 "dated_aao_event_count": int(page_row["dated_aao_event_count"]),
                 "actor_event_count": int(page_row["actor_event_count"]),
@@ -263,10 +314,18 @@ def build_timeline_readiness_report(
         "page_count": page_count,
         "issue_counts": dict(sorted(issue_counts.items())),
         "total_counts": dict(sorted(total_counts.items())),
-        "pages_with_timeline_candidates": sum(1 for row in page_rows if row["timeline_candidate_count"] > 0),
-        "pages_with_aao_events": sum(1 for row in page_rows if row["aao_event_count"] > 0),
-        "pages_with_dated_aao_events": sum(1 for row in page_rows if row["dated_aao_event_count"] > 0),
-        "pages_with_claim_bearing_events": sum(1 for row in page_rows if row["claim_bearing_event_count"] > 0),
+        "pages_with_timeline_candidates": sum(
+            1 for row in page_rows if row["timeline_candidate_count"] > 0
+        ),
+        "pages_with_aao_events": sum(
+            1 for row in page_rows if row["aao_event_count"] > 0
+        ),
+        "pages_with_dated_aao_events": sum(
+            1 for row in page_rows if row["dated_aao_event_count"] > 0
+        ),
+        "pages_with_claim_bearing_events": sum(
+            1 for row in page_rows if row["claim_bearing_event_count"] > 0
+        ),
         "average_scores": {
             key: round((value / page_count), 6) if page_count else 0.0
             for key, value in score_sums.items()

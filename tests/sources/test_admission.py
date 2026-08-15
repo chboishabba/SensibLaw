@@ -30,7 +30,9 @@ def test_hca_profile_keeps_transport_as_evidence_but_out_of_parser() -> None:
         "source:transcript"
     ]
     assert {
-        row.source_revision_ref for row in receipts if row.admission_state == "evidence_only"
+        row.source_revision_ref
+        for row in receipts
+        if row.admission_state == "evidence_only"
     } == {"source:search", "source:oembed", "source:recording"}
     assert {
         row.source_revision_ref for row in receipts if row.admission_state == "exclude"

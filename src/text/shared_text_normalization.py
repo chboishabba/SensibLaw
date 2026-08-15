@@ -1,4 +1,5 @@
 """Shared pre-semantic text normalization helpers."""
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -79,7 +80,11 @@ def split_text_segments(text: str) -> list[str]:
     compact = re.sub(r"\s+", " ", text).strip()
     if not compact:
         return []
-    parts = [segment.strip(" -") for segment in re.split(r"(?<=[.!?])\s+", compact) if segment.strip()]
+    parts = [
+        segment.strip(" -")
+        for segment in re.split(r"(?<=[.!?])\s+", compact)
+        if segment.strip()
+    ]
     return parts or [compact]
 
 
@@ -104,7 +109,11 @@ def split_semicolon_clauses(text: str) -> list[str]:
     compact = re.sub(r"\s+", " ", text).strip()
     if not compact:
         return []
-    parts = [segment.strip(" -") for segment in re.split(r"\s*;\s*", compact) if segment.strip()]
+    parts = [
+        segment.strip(" -")
+        for segment in re.split(r"\s*;\s*", compact)
+        if segment.strip()
+    ]
     return parts or [compact]
 
 

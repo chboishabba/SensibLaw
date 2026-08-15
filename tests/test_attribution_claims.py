@@ -113,7 +113,12 @@ def test_authority_edges_include_expected_predicates() -> None:
     )
     edges = authority_edges_for_attribution(attr)
     preds = {e.predicate for e in edges}
-    assert {"attributed_by", "attributed_actor", "source_entity", "reporting_actor"} <= preds
+    assert {
+        "attributed_by",
+        "attributed_actor",
+        "source_entity",
+        "reporting_actor",
+    } <= preds
 
 
 def test_extraction_record_edges_shape() -> None:

@@ -105,6 +105,7 @@ def test_run_kit_returns_complete_report() -> None:
     assert report.tone_audit.has_flags
     assert len(report.offers) == 2
     assert any("Without prejudice" in macro for macro in report.cooling_off_macros)
-    assert any("maintenance logs" in risk for risk in report.batna_sheet.objective_risks)
+    assert any(
+        "maintenance logs" in risk for risk in report.batna_sheet.objective_risks
+    )
     assert any("requests" in after for _, _, after in report.diff)
-

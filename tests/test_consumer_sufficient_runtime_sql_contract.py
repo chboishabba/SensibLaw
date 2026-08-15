@@ -4,7 +4,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-M092 = ROOT / "database/postgres_migrations/092_consumer_sufficient_context_and_tape.sql"
+M092 = (
+    ROOT / "database/postgres_migrations/092_consumer_sufficient_context_and_tape.sql"
+)
 M093 = ROOT / "database/postgres_migrations/093_controlled_learning_and_tape_wiring.sql"
 
 
@@ -18,11 +20,18 @@ def test_hot_projection_verifier_is_symmetric_for_all_three_projections() -> Non
     assert sql.count("semantic_pnf_candidate_current_execution") >= 2
     assert sql.count("semantic_pnf_candidate_current_admissibility") >= 2
     assert sql.count("semantic_pnf_candidate_current_preference") >= 2
-    assert "FROM execution.semantic_pnf_candidate_current_admissibility\n     EXCEPT" in sql
-    assert "FROM execution.semantic_pnf_candidate_current_preference\n     EXCEPT" in sql
+    assert (
+        "FROM execution.semantic_pnf_candidate_current_admissibility\n     EXCEPT"
+        in sql
+    )
+    assert (
+        "FROM execution.semantic_pnf_candidate_current_preference\n     EXCEPT" in sql
+    )
 
 
-def test_context_attachment_requires_positive_typed_fit_and_never_admits_identity() -> None:
+def test_context_attachment_requires_positive_typed_fit_and_never_admits_identity() -> (
+    None
+):
     sql = _sql(M092)
     assert "semantic_pnf_world_candidate_requirement" in sql
     assert "semantic_pnf_world_context_axis_symbol" in sql
@@ -37,7 +46,8 @@ def test_context_attachment_requires_positive_typed_fit_and_never_admits_identit
 def test_consumer_sufficiency_stops_execution_without_mutating_demand_state() -> None:
     sql = _sql(M092)
     body = sql.split(
-        "CREATE OR REPLACE FUNCTION execution.advance_numeric_pnf_horizon_work_for_consumer", 1
+        "CREATE OR REPLACE FUNCTION execution.advance_numeric_pnf_horizon_work_for_consumer",
+        1,
     )[1].split("$$;", 1)[0]
     assert "numeric_pnf_consumer_stop_at_horizon" in body
     assert "INSERT INTO execution.semantic_pnf_horizon_work_queue" in body

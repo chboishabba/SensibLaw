@@ -43,7 +43,10 @@ from src.fact_intake import (  # noqa: E402
 )
 from src.gwb_us_law.semantic import ensure_gwb_semantic_schema  # noqa: E402
 from src.reporting.structure_report import load_file_units  # noqa: E402
-from src.transcript_semantic.semantic import build_transcript_semantic_report, run_transcript_semantic_pipeline  # noqa: E402
+from src.transcript_semantic.semantic import (
+    build_transcript_semantic_report,
+    run_transcript_semantic_pipeline,
+)  # noqa: E402
 
 _OVERLAY_KEYWORD_HINTS = (
     "act",
@@ -62,7 +65,9 @@ _COUNSEL_PREFIX_RE = re.compile(r"^(MR|MS|MRS|DR|PROF)\b", re.IGNORECASE)
 _COURT_PREFIX_RE = re.compile(r"^[A-Z][A-Z .'-]{1,40}(?:CJ|J|ACJ)\s*:")
 _SPEAKER_PREFIX_RE = re.compile(r"^([A-Z][A-Z .,'-]{1,60}):\s*")
 _SECTION_REF_RE = re.compile(r"\bsection\s+([0-9]+[a-z]?)\b", re.IGNORECASE)
-_CASE_CITATION_RE = re.compile(r"\b([A-Z][A-Za-z.&'-]+)\s+v(?:s\.)?\s+([A-Z][A-Za-z.&'-]+)\b")
+_CASE_CITATION_RE = re.compile(
+    r"\b([A-Z][A-Za-z.&'-]+)\s+v(?:s\.)?\s+([A-Z][A-Za-z.&'-]+)\b"
+)
 _REVIEWED_EVENT_MIN_SCORE = 4
 _REVIEWED_EVENT_LIMIT = 12
 _REVIEWED_EVENT_FILTER_REASON_LOW_CONFIDENCE = "low_confidence"
@@ -159,13 +164,17 @@ _PROCEDURAL_KIND_RULES: tuple[tuple[str, dict[str, int]], ...] = (
 ProgressCallback = Callable[[str, dict[str, Any]], None]
 
 
-def _emit_progress(progress_callback: ProgressCallback | None, stage: str, **details: Any) -> None:
+def _emit_progress(
+    progress_callback: ProgressCallback | None, stage: str, **details: Any
+) -> None:
     if progress_callback is None:
         return
     progress_callback(stage, details)
 
 
-def _wrap_fact_persist_progress(progress_callback: ProgressCallback | None) -> Callable[[dict[str, Any]], None] | None:
+def _wrap_fact_persist_progress(
+    progress_callback: ProgressCallback | None,
+) -> Callable[[dict[str, Any]], None] | None:
     if progress_callback is None:
         return None
 
@@ -185,7 +194,11 @@ def _status_counts(rows: list[dict[str, Any]], key: str) -> dict[str, int]:
     return {label: int(count) for label, count in sorted(counts.items()) if label}
 
 
-def _fact_signal_score(fact: dict[str, Any], excerpts_by_id: dict[str, dict[str, Any]], statements_by_id: dict[str, dict[str, Any]]) -> tuple[int, dict[str, Any]]:
+def _fact_signal_score(
+    fact: dict[str, Any],
+    excerpts_by_id: dict[str, dict[str, Any]],
+    statements_by_id: dict[str, dict[str, Any]],
+) -> tuple[int, dict[str, Any]]:
     excerpt_texts = [
         str((excerpts_by_id.get(excerpt_id) or {}).get("excerpt_text") or "")
         for excerpt_id in fact.get("excerpt_ids", [])
@@ -196,7 +209,9 @@ def _fact_signal_score(fact: dict[str, Any], excerpts_by_id: dict[str, dict[str,
         for statement_id in fact.get("statement_ids", [])
         if statement_id in statements_by_id
     ]
-    text = "\n".join(part for part in excerpt_texts + statement_texts if part.strip()) or str(fact.get("fact_text") or "")
+    text = "\n".join(
+        part for part in excerpt_texts + statement_texts if part.strip()
+    ) or str(fact.get("fact_text") or "")
     score, meta = _excerpt_score(text)
     status_bonus = 0 if str(fact.get("candidate_status") or "") == "candidate" else 1
     review_bonus = min(len(fact.get("observations", [])), 4)
@@ -210,9 +225,15 @@ def _fact_signal_score(fact: dict[str, Any], excerpts_by_id: dict[str, dict[str,
 
 
 def _selected_overlay(bundle: dict[str, Any], *, limit: int = 24) -> dict[str, Any]:
-    excerpts_by_id = {str(row.get("excerpt_id") or ""): row for row in bundle.get("excerpts", [])}
-    statements_by_id = {str(row.get("statement_id") or ""): row for row in bundle.get("statements", [])}
-    review_by_fact = {str(row.get("fact_id") or ""): row for row in bundle.get("review_queue", [])}
+    excerpts_by_id = {
+        str(row.get("excerpt_id") or ""): row for row in bundle.get("excerpts", [])
+    }
+    statements_by_id = {
+        str(row.get("statement_id") or ""): row for row in bundle.get("statements", [])
+    }
+    review_by_fact = {
+        str(row.get("fact_id") or ""): row for row in bundle.get("review_queue", [])
+    }
     scored: list[dict[str, Any]] = []
     for fact in bundle.get("facts", []):
         fact_id = str(fact.get("fact_id") or "")
@@ -246,7 +267,11 @@ def _selected_overlay(bundle: dict[str, Any], *, limit: int = 24) -> dict[str, A
     )
     selected = scored[:limit]
     selected_fact_ids = {row["fact_id"] for row in selected}
-    selected_review_queue = [row for row in bundle.get("review_queue", []) if str(row.get("fact_id") or "") in selected_fact_ids]
+    selected_review_queue = [
+        row
+        for row in bundle.get("review_queue", [])
+        if str(row.get("fact_id") or "") in selected_fact_ids
+    ]
     reason_counts = Counter(
         reason
         for row in selected_review_queue
@@ -258,14 +283,23 @@ def _selected_overlay(bundle: dict[str, Any], *, limit: int = 24) -> dict[str, A
         "selection_rule": "top dense transcript facts ranked by structural/legal excerpt score with bundle review context attached",
         "selected_fact_count": len(selected),
         "selected_review_queue_count": len(selected_review_queue),
-        "selected_reason_counts": {label: int(count) for label, count in sorted(reason_counts.items())},
+        "selected_reason_counts": {
+            label: int(count) for label, count in sorted(reason_counts.items())
+        },
         "selected_facts": selected,
         "selected_review_queue": selected_review_queue,
     }
 
 
-def _reviewed_event_projection(bundle: dict[str, Any], event_overlay: dict[str, Any], *, limit: int = _REVIEWED_EVENT_LIMIT) -> dict[str, Any]:
-    review_by_fact = {str(row.get("fact_id") or ""): row for row in bundle.get("review_queue", [])}
+def _reviewed_event_projection(
+    bundle: dict[str, Any],
+    event_overlay: dict[str, Any],
+    *,
+    limit: int = _REVIEWED_EVENT_LIMIT,
+) -> dict[str, Any]:
+    review_by_fact = {
+        str(row.get("fact_id") or ""): row for row in bundle.get("review_queue", [])
+    }
     fact_by_id = {str(row.get("fact_id") or ""): row for row in bundle.get("facts", [])}
     scored: list[dict[str, Any]] = []
     exclusion_counts: Counter[str] = Counter()
@@ -273,7 +307,9 @@ def _reviewed_event_projection(bundle: dict[str, Any], event_overlay: dict[str, 
         if not isinstance(row, dict):
             continue
         fact_ids = [str(fact_id) for fact_id in row.get("fact_ids", []) if str(fact_id)]
-        review_rows = [review_by_fact[fact_id] for fact_id in fact_ids if fact_id in review_by_fact]
+        review_rows = [
+            review_by_fact[fact_id] for fact_id in fact_ids if fact_id in review_by_fact
+        ]
         fact_statuses = sorted(
             {
                 str((fact_by_id.get(fact_id) or {}).get("candidate_status") or "")
@@ -327,13 +363,23 @@ def _reviewed_event_projection(bundle: dict[str, Any], event_overlay: dict[str, 
     )
     selected = scored[:limit]
     review_queue_total = len(bundle.get("review_queue", []))
-    selected_fact_ids = {fact_id for row in selected for fact_id in row.get("fact_ids", [])}
-    selected_review_queue = [row for row in bundle.get("review_queue", []) if str(row.get("fact_id") or "") in selected_fact_ids]
+    selected_fact_ids = {
+        fact_id for row in selected for fact_id in row.get("fact_ids", [])
+    }
+    selected_review_queue = [
+        row
+        for row in bundle.get("review_queue", [])
+        if str(row.get("fact_id") or "") in selected_fact_ids
+    ]
     selected_review_queue_count = len(selected_review_queue)
-    reviewed_event_coverage_ratio = round(
-        selected_review_queue_count / review_queue_total,
-        6,
-    ) if review_queue_total else 0.0
+    reviewed_event_coverage_ratio = (
+        round(
+            selected_review_queue_count / review_queue_total,
+            6,
+        )
+        if review_queue_total
+        else 0.0
+    )
     reviewed_event_total = len(scored) + sum(exclusion_counts.values())
     exclusion_counts["total_excluded"] = max(0, reviewed_event_total - len(scored))
     kind_counts = Counter(str(row["event_kind"]) for row in selected)
@@ -342,11 +388,15 @@ def _reviewed_event_projection(bundle: dict[str, Any], event_overlay: dict[str, 
         "selection_rule": "top assembled hearing events ranked by local event score plus linked review/fact support from the dense transcript bundle",
         "reviewed_event_count": len(scored),
         "reviewed_event_total_candidate_count": reviewed_event_total,
-        "reviewed_event_excluded_counts": {label: int(count) for label, count in sorted(exclusion_counts.items())},
+        "reviewed_event_excluded_counts": {
+            label: int(count) for label, count in sorted(exclusion_counts.items())
+        },
         "reviewed_event_coverage_ratio": reviewed_event_coverage_ratio,
         "selected_review_queue_count": len(selected_review_queue),
         "selected_reviewed_event_count": len(selected),
-        "selected_kind_counts": {label: int(count) for label, count in sorted(kind_counts.items())},
+        "selected_kind_counts": {
+            label: int(count) for label, count in sorted(kind_counts.items())
+        },
         "reviewed_events": scored,
         "selected_reviewed_events": selected,
         "selected_review_queue": selected_review_queue,
@@ -358,7 +408,9 @@ def _procedural_turn_score(text: str) -> tuple[int, str | None, list[str]]:
     total_scores: dict[str, int] = {}
     cue_hits: dict[str, list[str]] = {}
     if _COURT_PREFIX_RE.match(str(text or "")):
-        total_scores["court_intervention"] = total_scores.get("court_intervention", 0) + 4
+        total_scores["court_intervention"] = (
+            total_scores.get("court_intervention", 0) + 4
+        )
         cue_hits.setdefault("court_intervention", []).append("court_prefix")
     if _COUNSEL_PREFIX_RE.match(str(text or "")):
         total_scores["party_submission"] = total_scores.get("party_submission", 0) + 3
@@ -436,12 +488,20 @@ def _topic_tokens(text: str) -> set[str]:
     return tokens
 
 
-def _hearing_act_overlay(semantic_report: dict[str, Any], bundle: dict[str, Any], *, limit: int = 48) -> dict[str, Any]:
+def _hearing_act_overlay(
+    semantic_report: dict[str, Any], bundle: dict[str, Any], *, limit: int = 48
+) -> dict[str, Any]:
     facts_by_event_id: dict[str, dict[str, Any]] = {}
-    review_by_fact = {str(row.get("fact_id") or ""): row for row in bundle.get("review_queue", [])}
-    excerpts_by_id = {str(row.get("excerpt_id") or ""): row for row in bundle.get("excerpts", [])}
+    review_by_fact = {
+        str(row.get("fact_id") or ""): row for row in bundle.get("review_queue", [])
+    }
+    excerpts_by_id = {
+        str(row.get("excerpt_id") or ""): row for row in bundle.get("excerpts", [])
+    }
     for fact in bundle.get("facts", []):
-        provenance = fact.get("provenance") if isinstance(fact.get("provenance"), dict) else {}
+        provenance = (
+            fact.get("provenance") if isinstance(fact.get("provenance"), dict) else {}
+        )
         source_event_id = str(provenance.get("source_event_id") or "")
         if source_event_id and source_event_id not in facts_by_event_id:
             facts_by_event_id[source_event_id] = fact
@@ -459,8 +519,12 @@ def _hearing_act_overlay(semantic_report: dict[str, Any], bundle: dict[str, Any]
         excerpt_preview = " ".join(text.split())[:420]
         fact_id = str(fact.get("fact_id") or "")
         review_row = review_by_fact.get(fact_id) if fact_id else None
-        statement_ids = list(fact.get("statement_ids", [])) if isinstance(fact, dict) else []
-        excerpt_ids = list(fact.get("excerpt_ids", [])) if isinstance(fact, dict) else []
+        statement_ids = (
+            list(fact.get("statement_ids", [])) if isinstance(fact, dict) else []
+        )
+        excerpt_ids = (
+            list(fact.get("excerpt_ids", [])) if isinstance(fact, dict) else []
+        )
         excerpt_texts = [
             str((excerpts_by_id.get(excerpt_id) or {}).get("excerpt_text") or "")
             for excerpt_id in excerpt_ids
@@ -479,7 +543,9 @@ def _hearing_act_overlay(semantic_report: dict[str, Any], bundle: dict[str, Any]
                 "speaker_group": _speaker_group(text),
                 "speaker_label": _speaker_label(text),
                 "topic_tokens": sorted(_topic_tokens(text)),
-                "fact_status": str(fact.get("candidate_status") or "") if isinstance(fact, dict) else "",
+                "fact_status": str(fact.get("candidate_status") or "")
+                if isinstance(fact, dict)
+                else "",
                 "statement_ids": statement_ids,
                 "excerpt_ids": excerpt_ids,
                 "review_row": review_row,
@@ -495,7 +561,11 @@ def _hearing_act_overlay(semantic_report: dict[str, Any], bundle: dict[str, Any]
     )
     selected = classified_rows[:limit]
     selected_fact_ids = {str(row["fact_id"]) for row in selected if row.get("fact_id")}
-    selected_review_queue = [row for row in bundle.get("review_queue", []) if str(row.get("fact_id") or "") in selected_fact_ids]
+    selected_review_queue = [
+        row
+        for row in bundle.get("review_queue", [])
+        if str(row.get("fact_id") or "") in selected_fact_ids
+    ]
     kind_counts = Counter(str(row["hearing_act_kind"]) for row in selected)
     return {
         "overlay_kind": "au_hearing_act_projection",
@@ -503,14 +573,18 @@ def _hearing_act_overlay(semantic_report: dict[str, Any], bundle: dict[str, Any]
         "classified_hearing_act_count": len(classified_rows),
         "selected_candidate_count": len(selected),
         "selected_review_queue_count": len(selected_review_queue),
-        "selected_kind_counts": {label: int(count) for label, count in sorted(kind_counts.items())},
+        "selected_kind_counts": {
+            label: int(count) for label, count in sorted(kind_counts.items())
+        },
         "hearing_acts": classified_rows,
         "selected_candidates": selected,
         "selected_review_queue": selected_review_queue,
     }
 
 
-def _procedural_move_overlay(hearing_act_overlay: dict[str, Any], *, limit: int = 24) -> dict[str, Any]:
+def _procedural_move_overlay(
+    hearing_act_overlay: dict[str, Any], *, limit: int = 24
+) -> dict[str, Any]:
     acts = list(hearing_act_overlay.get("hearing_acts", []))
     moves: list[dict[str, Any]] = []
     current: dict[str, Any] | None = None
@@ -522,7 +596,7 @@ def _procedural_move_overlay(hearing_act_overlay: dict[str, Any], *, limit: int 
         act_score = int(act.get("hearing_act_score") or 0)
         if current is None:
             current = {
-                "move_id": f"move:{len(moves)+1:04d}",
+                "move_id": f"move:{len(moves) + 1:04d}",
                 "move_kind": act_kind,
                 "speaker_group": act_speaker,
                 "speaker_label": act.get("speaker_label"),
@@ -540,15 +614,31 @@ def _procedural_move_overlay(hearing_act_overlay: dict[str, Any], *, limit: int 
             continue
 
         same_speaker = current["speaker_group"] == act_speaker
-        same_speaker_label = bool(current.get("speaker_label")) and current.get("speaker_label") == act.get("speaker_label")
-        adjacent = int(act.get("event_order") or 0) - int(current.get("last_event_order") or 0) <= 1
+        same_speaker_label = bool(current.get("speaker_label")) and current.get(
+            "speaker_label"
+        ) == act.get("speaker_label")
+        adjacent = (
+            int(act.get("event_order") or 0) - int(current.get("last_event_order") or 0)
+            <= 1
+        )
         overlapping_topics = bool(current["topic_tokens"] & act_topics)
         compatible_kind = act_kind == current["move_kind"] or {
             current["move_kind"],
             act_kind,
-        } <= {"bench_question", "court_intervention", "answer_or_response", "party_submission", "citation_to_authority", "statutory_argument"}
+        } <= {
+            "bench_question",
+            "court_intervention",
+            "answer_or_response",
+            "party_submission",
+            "citation_to_authority",
+            "statutory_argument",
+        }
 
-        if (same_speaker or same_speaker_label) and compatible_kind and (overlapping_topics or adjacent or same_speaker_label):
+        if (
+            (same_speaker or same_speaker_label)
+            and compatible_kind
+            and (overlapping_topics or adjacent or same_speaker_label)
+        ):
             current["event_ids"].append(str(act.get("event_id") or ""))
             current["hearing_act_kinds"].append(act_kind)
             if act.get("fact_id"):
@@ -565,7 +655,7 @@ def _procedural_move_overlay(hearing_act_overlay: dict[str, Any], *, limit: int 
 
         moves.append(current)
         current = {
-            "move_id": f"move:{len(moves)+1:04d}",
+            "move_id": f"move:{len(moves) + 1:04d}",
             "move_kind": act_kind,
             "speaker_group": act_speaker,
             "speaker_label": act.get("speaker_label"),
@@ -604,7 +694,13 @@ def _procedural_move_overlay(hearing_act_overlay: dict[str, Any], *, limit: int 
                 "excerpt_preview": move["excerpt_preview"],
             }
         )
-    normalized_moves.sort(key=lambda row: (-int(row["move_score"]), -int(row["event_count"]), str(row["move_id"])))
+    normalized_moves.sort(
+        key=lambda row: (
+            -int(row["move_score"]),
+            -int(row["event_count"]),
+            str(row["move_id"]),
+        )
+    )
     selected = normalized_moves[:limit]
     kind_counts = Counter(str(row["move_kind"]) for row in selected)
     return {
@@ -612,7 +708,9 @@ def _procedural_move_overlay(hearing_act_overlay: dict[str, Any], *, limit: int 
         "selection_rule": "adjacent hearing acts with compatible speaker/topic cues merged into bounded procedural moves",
         "assembled_move_count": len(normalized_moves),
         "selected_move_count": len(selected),
-        "selected_kind_counts": {label: int(count) for label, count in sorted(kind_counts.items())},
+        "selected_kind_counts": {
+            label: int(count) for label, count in sorted(kind_counts.items())
+        },
         "procedural_moves": normalized_moves,
         "selected_moves": selected,
     }
@@ -626,7 +724,9 @@ def _event_kind_for_move(move: dict[str, Any]) -> tuple[str | None, int]:
 
     if move_kind == "procedural_direction" and event_count >= 1:
         return "procedural_direction_event", 8 + event_count
-    if move_kind == "bench_question" or ({"bench_question", "court_intervention"} & act_kinds and event_count >= 1):
+    if move_kind == "bench_question" or (
+        {"bench_question", "court_intervention"} & act_kinds and event_count >= 1
+    ):
         return "bench_question_exchange", 6 + event_count
     if move_kind in {"party_submission", "concession_or_position"} and event_count >= 1:
         return "party_submission_sequence", 5 + event_count
@@ -657,14 +757,29 @@ def _looks_like_exchange_pair(left: dict[str, Any], right: dict[str, Any]) -> bo
         left.get("speaker_group") == "bench"
         and right.get("speaker_group") == "counsel"
         and left_kind in {"bench_question", "court_intervention"}
-        and right_kind in {"party_submission", "answer_or_response", "statutory_argument", "citation_to_authority"}
+        and right_kind
+        in {
+            "party_submission",
+            "answer_or_response",
+            "statutory_argument",
+            "citation_to_authority",
+        }
     )
 
 
-def _event_assembly_overlay(procedural_move_overlay: dict[str, Any], *, limit: int = 16) -> dict[str, Any]:
+def _event_assembly_overlay(
+    procedural_move_overlay: dict[str, Any], *, limit: int = 16
+) -> dict[str, Any]:
     moves = sorted(
-        [move for move in procedural_move_overlay.get("procedural_moves", []) if isinstance(move, dict)],
-        key=lambda row: (int(row.get("first_event_order") or 0), str(row.get("move_id") or "")),
+        [
+            move
+            for move in procedural_move_overlay.get("procedural_moves", [])
+            if isinstance(move, dict)
+        ],
+        key=lambda row: (
+            int(row.get("first_event_order") or 0),
+            str(row.get("move_id") or ""),
+        ),
     )
     events: list[dict[str, Any]] = []
     consumed_move_ids: set[str] = set()
@@ -701,24 +816,57 @@ def _event_assembly_overlay(procedural_move_overlay: dict[str, Any], *, limit: i
                 {
                     "event_id": f"hearing_event:exchange_chain:{left_id}:{middle_id}:{right_id}",
                     "event_kind": "bench_counsel_exchange_chain",
-                    "event_score": int(left.get("move_score") or 0) + int(middle.get("move_score") or 0) + int(right.get("move_score") or 0) + 10,
+                    "event_score": int(left.get("move_score") or 0)
+                    + int(middle.get("move_score") or 0)
+                    + int(right.get("move_score") or 0)
+                    + 10,
                     "source_move_ids": [left_id, middle_id, right_id],
                     "speaker_group": "mixed",
-                    "speaker_labels": [label for label in [left.get("speaker_label"), middle.get("speaker_label"), right.get("speaker_label")] if label],
-                    "event_count": int(left.get("event_count") or 0) + int(middle.get("event_count") or 0) + int(right.get("event_count") or 0),
-                    "event_ids": list(left.get("event_ids") or []) + list(middle.get("event_ids") or []) + list(right.get("event_ids") or []),
-                    "fact_ids": sorted(set(list(left.get("fact_ids") or []) + list(middle.get("fact_ids") or []) + list(right.get("fact_ids") or []))),
+                    "speaker_labels": [
+                        label
+                        for label in [
+                            left.get("speaker_label"),
+                            middle.get("speaker_label"),
+                            right.get("speaker_label"),
+                        ]
+                        if label
+                    ],
+                    "event_count": int(left.get("event_count") or 0)
+                    + int(middle.get("event_count") or 0)
+                    + int(right.get("event_count") or 0),
+                    "event_ids": list(left.get("event_ids") or [])
+                    + list(middle.get("event_ids") or [])
+                    + list(right.get("event_ids") or []),
+                    "fact_ids": sorted(
+                        set(
+                            list(left.get("fact_ids") or [])
+                            + list(middle.get("fact_ids") or [])
+                            + list(right.get("fact_ids") or [])
+                        )
+                    ),
                     "topic_tokens": chain_topics,
-                    "hearing_act_kinds": sorted(set(list(left.get("hearing_act_kinds") or []) + list(middle.get("hearing_act_kinds") or []) + list(right.get("hearing_act_kinds") or []))),
+                    "hearing_act_kinds": sorted(
+                        set(
+                            list(left.get("hearing_act_kinds") or [])
+                            + list(middle.get("hearing_act_kinds") or [])
+                            + list(right.get("hearing_act_kinds") or [])
+                        )
+                    ),
                     "excerpt_preview": f"{left.get('excerpt_preview') or ''} {middle.get('excerpt_preview') or ''} {right.get('excerpt_preview') or ''}".strip(),
                 }
             )
 
         if (
-            left.get("speaker_group") == middle.get("speaker_group") == right.get("speaker_group") == "counsel"
-            and left_kind in {"statutory_argument", "citation_to_authority", "party_submission"}
-            and middle_kind in {"statutory_argument", "citation_to_authority", "party_submission"}
-            and right_kind in {"statutory_argument", "citation_to_authority", "party_submission"}
+            left.get("speaker_group")
+            == middle.get("speaker_group")
+            == right.get("speaker_group")
+            == "counsel"
+            and left_kind
+            in {"statutory_argument", "citation_to_authority", "party_submission"}
+            and middle_kind
+            in {"statutory_argument", "citation_to_authority", "party_submission"}
+            and right_kind
+            in {"statutory_argument", "citation_to_authority", "party_submission"}
             and chain_topics
         ):
             consumed_move_ids.update({left_id, middle_id, right_id})
@@ -726,15 +874,43 @@ def _event_assembly_overlay(procedural_move_overlay: dict[str, Any], *, limit: i
                 {
                     "event_id": f"hearing_event:argument_chain:{left_id}:{middle_id}:{right_id}",
                     "event_kind": "extended_authority_argument_cluster",
-                    "event_score": int(left.get("move_score") or 0) + int(middle.get("move_score") or 0) + int(right.get("move_score") or 0) + len(chain_topics) + 8,
+                    "event_score": int(left.get("move_score") or 0)
+                    + int(middle.get("move_score") or 0)
+                    + int(right.get("move_score") or 0)
+                    + len(chain_topics)
+                    + 8,
                     "source_move_ids": [left_id, middle_id, right_id],
                     "speaker_group": "counsel",
-                    "speaker_labels": [label for label in [left.get("speaker_label"), middle.get("speaker_label"), right.get("speaker_label")] if label],
-                    "event_count": int(left.get("event_count") or 0) + int(middle.get("event_count") or 0) + int(right.get("event_count") or 0),
-                    "event_ids": list(left.get("event_ids") or []) + list(middle.get("event_ids") or []) + list(right.get("event_ids") or []),
-                    "fact_ids": sorted(set(list(left.get("fact_ids") or []) + list(middle.get("fact_ids") or []) + list(right.get("fact_ids") or []))),
+                    "speaker_labels": [
+                        label
+                        for label in [
+                            left.get("speaker_label"),
+                            middle.get("speaker_label"),
+                            right.get("speaker_label"),
+                        ]
+                        if label
+                    ],
+                    "event_count": int(left.get("event_count") or 0)
+                    + int(middle.get("event_count") or 0)
+                    + int(right.get("event_count") or 0),
+                    "event_ids": list(left.get("event_ids") or [])
+                    + list(middle.get("event_ids") or [])
+                    + list(right.get("event_ids") or []),
+                    "fact_ids": sorted(
+                        set(
+                            list(left.get("fact_ids") or [])
+                            + list(middle.get("fact_ids") or [])
+                            + list(right.get("fact_ids") or [])
+                        )
+                    ),
                     "topic_tokens": chain_topics,
-                    "hearing_act_kinds": sorted(set(list(left.get("hearing_act_kinds") or []) + list(middle.get("hearing_act_kinds") or []) + list(right.get("hearing_act_kinds") or []))),
+                    "hearing_act_kinds": sorted(
+                        set(
+                            list(left.get("hearing_act_kinds") or [])
+                            + list(middle.get("hearing_act_kinds") or [])
+                            + list(right.get("hearing_act_kinds") or [])
+                        )
+                    ),
                     "excerpt_preview": f"{left.get('excerpt_preview') or ''} {middle.get('excerpt_preview') or ''} {right.get('excerpt_preview') or ''}".strip(),
                 }
             )
@@ -762,23 +938,46 @@ def _event_assembly_overlay(procedural_move_overlay: dict[str, Any], *, limit: i
                 {
                     "event_id": f"hearing_event:exchange:{left_id}:{right_id}",
                     "event_kind": "bench_counsel_exchange",
-                    "event_score": int(left.get("move_score") or 0) + int(right.get("move_score") or 0) + 6,
+                    "event_score": int(left.get("move_score") or 0)
+                    + int(right.get("move_score") or 0)
+                    + 6,
                     "source_move_ids": [left_id, right_id],
                     "speaker_group": "mixed",
-                    "speaker_labels": [label for label in [left.get("speaker_label"), right.get("speaker_label")] if label],
-                    "event_count": int(left.get("event_count") or 0) + int(right.get("event_count") or 0),
-                    "event_ids": list(left.get("event_ids") or []) + list(right.get("event_ids") or []),
-                    "fact_ids": sorted(set(list(left.get("fact_ids") or []) + list(right.get("fact_ids") or []))),
+                    "speaker_labels": [
+                        label
+                        for label in [
+                            left.get("speaker_label"),
+                            right.get("speaker_label"),
+                        ]
+                        if label
+                    ],
+                    "event_count": int(left.get("event_count") or 0)
+                    + int(right.get("event_count") or 0),
+                    "event_ids": list(left.get("event_ids") or [])
+                    + list(right.get("event_ids") or []),
+                    "fact_ids": sorted(
+                        set(
+                            list(left.get("fact_ids") or [])
+                            + list(right.get("fact_ids") or [])
+                        )
+                    ),
                     "topic_tokens": shared_topics or sorted(left_topics | right_topics),
-                    "hearing_act_kinds": sorted(set(list(left.get("hearing_act_kinds") or []) + list(right.get("hearing_act_kinds") or []))),
+                    "hearing_act_kinds": sorted(
+                        set(
+                            list(left.get("hearing_act_kinds") or [])
+                            + list(right.get("hearing_act_kinds") or [])
+                        )
+                    ),
                     "excerpt_preview": f"{left.get('excerpt_preview') or ''} {right.get('excerpt_preview') or ''}".strip(),
                 }
             )
 
         if (
             left.get("speaker_group") == right.get("speaker_group") == "counsel"
-            and str(left.get("move_kind") or "") in {"statutory_argument", "citation_to_authority", "party_submission"}
-            and str(right.get("move_kind") or "") in {"statutory_argument", "citation_to_authority", "party_submission"}
+            and str(left.get("move_kind") or "")
+            in {"statutory_argument", "citation_to_authority", "party_submission"}
+            and str(right.get("move_kind") or "")
+            in {"statutory_argument", "citation_to_authority", "party_submission"}
             and shared_topics
         ):
             consumed_move_ids.update({left_id, right_id})
@@ -786,15 +985,37 @@ def _event_assembly_overlay(procedural_move_overlay: dict[str, Any], *, limit: i
                 {
                     "event_id": f"hearing_event:cluster:{left_id}:{right_id}",
                     "event_kind": "authority_argument_cluster",
-                    "event_score": int(left.get("move_score") or 0) + int(right.get("move_score") or 0) + len(shared_topics) + 4,
+                    "event_score": int(left.get("move_score") or 0)
+                    + int(right.get("move_score") or 0)
+                    + len(shared_topics)
+                    + 4,
                     "source_move_ids": [left_id, right_id],
                     "speaker_group": str(left.get("speaker_group") or "unknown"),
-                    "speaker_labels": [label for label in [left.get("speaker_label"), right.get("speaker_label")] if label],
-                    "event_count": int(left.get("event_count") or 0) + int(right.get("event_count") or 0),
-                    "event_ids": list(left.get("event_ids") or []) + list(right.get("event_ids") or []),
-                    "fact_ids": sorted(set(list(left.get("fact_ids") or []) + list(right.get("fact_ids") or []))),
+                    "speaker_labels": [
+                        label
+                        for label in [
+                            left.get("speaker_label"),
+                            right.get("speaker_label"),
+                        ]
+                        if label
+                    ],
+                    "event_count": int(left.get("event_count") or 0)
+                    + int(right.get("event_count") or 0),
+                    "event_ids": list(left.get("event_ids") or [])
+                    + list(right.get("event_ids") or []),
+                    "fact_ids": sorted(
+                        set(
+                            list(left.get("fact_ids") or [])
+                            + list(right.get("fact_ids") or [])
+                        )
+                    ),
                     "topic_tokens": shared_topics,
-                    "hearing_act_kinds": sorted(set(list(left.get("hearing_act_kinds") or []) + list(right.get("hearing_act_kinds") or []))),
+                    "hearing_act_kinds": sorted(
+                        set(
+                            list(left.get("hearing_act_kinds") or [])
+                            + list(right.get("hearing_act_kinds") or [])
+                        )
+                    ),
                     "excerpt_preview": f"{left.get('excerpt_preview') or ''} {right.get('excerpt_preview') or ''}".strip(),
                 }
             )
@@ -815,7 +1036,9 @@ def _event_assembly_overlay(procedural_move_overlay: dict[str, Any], *, limit: i
                 "source_move_id": str(move.get("move_id") or ""),
                 "source_move_ids": [str(move.get("move_id") or "")],
                 "speaker_group": str(move.get("speaker_group") or "unknown"),
-                "speaker_labels": [label for label in [move.get("speaker_label")] if label],
+                "speaker_labels": [
+                    label for label in [move.get("speaker_label")] if label
+                ],
                 "event_count": int(move.get("event_count") or 0),
                 "event_ids": list(move.get("event_ids") or []),
                 "fact_ids": list(move.get("fact_ids") or []),
@@ -824,14 +1047,28 @@ def _event_assembly_overlay(procedural_move_overlay: dict[str, Any], *, limit: i
                 "excerpt_preview": str(move.get("excerpt_preview") or ""),
             }
         )
-    events.sort(key=lambda row: (-int(row["event_score"]), -int(row["event_count"]), str(row["event_id"])))
+    events.sort(
+        key=lambda row: (
+            -int(row["event_score"]),
+            -int(row["event_count"]),
+            str(row["event_id"]),
+        )
+    )
     selected = events[:limit]
     kind_counts = Counter(str(row["event_kind"]) for row in selected)
-    source_move_ids = {move_id for row in events for move_id in row.get("source_move_ids", [])}
-    selected_source_move_ids = {move_id for row in selected for move_id in row.get("source_move_ids", [])}
+    source_move_ids = {
+        move_id for row in events for move_id in row.get("source_move_ids", [])
+    }
+    selected_source_move_ids = {
+        move_id for row in selected for move_id in row.get("source_move_ids", [])
+    }
     total_moves = len(moves)
-    source_move_coverage_ratio = round(len(source_move_ids) / total_moves, 6) if total_moves else 0.0
-    selected_move_coverage_ratio = round(len(selected_source_move_ids) / total_moves, 6) if total_moves else 0.0
+    source_move_coverage_ratio = (
+        round(len(source_move_ids) / total_moves, 6) if total_moves else 0.0
+    )
+    selected_move_coverage_ratio = (
+        round(len(selected_source_move_ids) / total_moves, 6) if total_moves else 0.0
+    )
     return {
         "overlay_kind": "au_event_assembly_projection",
         "selection_rule": "conservative hearing events assembled from bounded procedural moves with explicit local cues",
@@ -841,7 +1078,9 @@ def _event_assembly_overlay(procedural_move_overlay: dict[str, Any], *, limit: i
         "selected_move_coverage_count": len(selected_source_move_ids),
         "source_move_coverage_ratio": source_move_coverage_ratio,
         "selected_move_coverage_ratio": selected_move_coverage_ratio,
-        "selected_kind_counts": {label: int(count) for label, count in sorted(kind_counts.items())},
+        "selected_kind_counts": {
+            label: int(count) for label, count in sorted(kind_counts.items())
+        },
         "events": events,
         "selected_events": selected,
     }
@@ -853,7 +1092,9 @@ def _build_payload(
     reviewed_event_limit: int = _REVIEWED_EVENT_LIMIT,
     progress_callback: ProgressCallback | None = None,
 ) -> dict[str, Any]:
-    _emit_progress(progress_callback, "load_units_started", source_file_count=len(transcript_paths))
+    _emit_progress(
+        progress_callback, "load_units_started", source_file_count=len(transcript_paths)
+    )
     units = []
     for path in transcript_paths:
         units.extend(load_file_units(path, "transcript_file"))
@@ -864,12 +1105,27 @@ def _build_payload(
             cumulative_unit_count=len(units),
         )
     _emit_progress(progress_callback, "load_units_finished", unit_count=len(units))
-    if transcript_paths == [path.resolve() for path in DEFAULT_TRANSCRIPT_PATHS] and _default_structural_artifact_path().exists():
-        _emit_progress(progress_callback, "structural_checkpoint_reused", path=str(_default_structural_artifact_path()))
-        structural_payload = json.loads(_default_structural_artifact_path().read_text(encoding="utf-8"))
+    if (
+        transcript_paths == [path.resolve() for path in DEFAULT_TRANSCRIPT_PATHS]
+        and _default_structural_artifact_path().exists()
+    ):
+        _emit_progress(
+            progress_callback,
+            "structural_checkpoint_reused",
+            path=str(_default_structural_artifact_path()),
+        )
+        structural_payload = json.loads(
+            _default_structural_artifact_path().read_text(encoding="utf-8")
+        )
     else:
-        _emit_progress(progress_callback, "structural_checkpoint_started", source_file_count=len(transcript_paths))
-        structural_payload = _build_structural_payload(transcript_paths, progress_callback=progress_callback)
+        _emit_progress(
+            progress_callback,
+            "structural_checkpoint_started",
+            source_file_count=len(transcript_paths),
+        )
+        structural_payload = _build_structural_payload(
+            transcript_paths, progress_callback=progress_callback
+        )
         _emit_progress(
             progress_callback,
             "structural_checkpoint_finished",
@@ -877,7 +1133,12 @@ def _build_payload(
         )
     with tempfile.TemporaryDirectory(prefix="au_dense_substrate_") as tmp_dir:
         db_path = Path(tmp_dir) / "itir.sqlite"
-        _emit_progress(progress_callback, "semantic_pipeline_started", db_path=str(db_path), unit_count=len(units))
+        _emit_progress(
+            progress_callback,
+            "semantic_pipeline_started",
+            db_path=str(db_path),
+            unit_count=len(units),
+        )
         with sqlite3.connect(str(db_path)) as conn:
             conn.row_factory = sqlite3.Row
             ensure_gwb_semantic_schema(conn)
@@ -890,20 +1151,46 @@ def _build_payload(
                 progress_callback,
                 "semantic_pipeline_finished",
                 semantic_run_id=str(semantic_run["run_id"]),
-                relation_candidate_count=int(semantic_run.get("relation_candidate_count") or 0),
-                promoted_relation_count=int(semantic_run.get("promoted_relation_count") or 0),
+                relation_candidate_count=int(
+                    semantic_run.get("relation_candidate_count") or 0
+                ),
+                promoted_relation_count=int(
+                    semantic_run.get("promoted_relation_count") or 0
+                ),
             )
-            _emit_progress(progress_callback, "semantic_report_started", semantic_run_id=str(semantic_run["run_id"]))
-            semantic_report = build_transcript_semantic_report(conn, run_id=str(semantic_run["run_id"]), units=units)
-            _emit_progress(progress_callback, "semantic_report_finished", observation_count=len(semantic_report.get("observations", [])))
-            _emit_progress(progress_callback, "fact_payload_started", semantic_run_id=str(semantic_run["run_id"]))
+            _emit_progress(
+                progress_callback,
+                "semantic_report_started",
+                semantic_run_id=str(semantic_run["run_id"]),
+            )
+            semantic_report = build_transcript_semantic_report(
+                conn, run_id=str(semantic_run["run_id"]), units=units
+            )
+            _emit_progress(
+                progress_callback,
+                "semantic_report_finished",
+                observation_count=len(semantic_report.get("observations", [])),
+            )
+            _emit_progress(
+                progress_callback,
+                "fact_payload_started",
+                semantic_run_id=str(semantic_run["run_id"]),
+            )
             fact_payload = build_fact_intake_payload_from_transcript_report(
                 semantic_report,
                 source_label="wave6:real_au_transcript_hearing_v1",
                 notes="Dense transcript substrate over the real HCA hearing files.",
             )
-            _emit_progress(progress_callback, "fact_payload_finished", fact_run_id=str(fact_payload["run"]["run_id"]))
-            _emit_progress(progress_callback, "fact_payload_persist_started", fact_run_id=str(fact_payload["run"]["run_id"]))
+            _emit_progress(
+                progress_callback,
+                "fact_payload_finished",
+                fact_run_id=str(fact_payload["run"]["run_id"]),
+            )
+            _emit_progress(
+                progress_callback,
+                "fact_payload_persist_started",
+                fact_run_id=str(fact_payload["run"]["run_id"]),
+            )
             persist_fact_intake_payload(
                 conn,
                 fact_payload,
@@ -916,9 +1203,21 @@ def _build_payload(
                 fact_run_id=str(fact_payload["run"]["run_id"]),
                 source_label=str(fact_payload["run"].get("source_label") or ""),
             )
-            _emit_progress(progress_callback, "fact_payload_persist_finished", fact_run_id=str(fact_payload["run"]["run_id"]))
-            _emit_progress(progress_callback, "overlay_bundle_started", fact_run_id=str(fact_payload["run"]["run_id"]))
-            bundle = build_transcript_fact_review_bundle(conn, fact_run_id=str(fact_payload["run"]["run_id"]), semantic_report=semantic_report)
+            _emit_progress(
+                progress_callback,
+                "fact_payload_persist_finished",
+                fact_run_id=str(fact_payload["run"]["run_id"]),
+            )
+            _emit_progress(
+                progress_callback,
+                "overlay_bundle_started",
+                fact_run_id=str(fact_payload["run"]["run_id"]),
+            )
+            bundle = build_transcript_fact_review_bundle(
+                conn,
+                fact_run_id=str(fact_payload["run"]["run_id"]),
+                semantic_report=semantic_report,
+            )
             _emit_progress(
                 progress_callback,
                 "overlay_bundle_finished",
@@ -937,11 +1236,21 @@ def _build_payload(
             "observation_count": int(bundle["summary"].get("observation_count") or 0),
             "event_count": int(bundle["summary"].get("event_count") or 0),
             "review_queue_count": len(bundle.get("review_queue", [])),
-            "promoted_relation_count": int(semantic_run.get("promoted_relation_count") or 0),
-            "relation_candidate_count": int(semantic_run.get("relation_candidate_count") or 0),
-            "abstained_resolution_count": int(semantic_run.get("abstained_resolution_count") or 0),
-            "structural_token_count": int(structural_payload["summary"]["structural_token_count"]),
-            "unique_structural_atoms": int(structural_payload["summary"]["unique_structural_atoms"]),
+            "promoted_relation_count": int(
+                semantic_run.get("promoted_relation_count") or 0
+            ),
+            "relation_candidate_count": int(
+                semantic_run.get("relation_candidate_count") or 0
+            ),
+            "abstained_resolution_count": int(
+                semantic_run.get("abstained_resolution_count") or 0
+            ),
+            "structural_token_count": int(
+                structural_payload["summary"]["structural_token_count"]
+            ),
+            "unique_structural_atoms": int(
+                structural_payload["summary"]["unique_structural_atoms"]
+            ),
             "hearing_act_count": 0,
             "procedural_overlay_candidate_count": 0,
             "procedural_move_count": 0,
@@ -965,9 +1274,15 @@ def _build_payload(
             "bundle_version": str(bundle.get("version") or ""),
         },
         "status_counts": {
-            "statement_status_counts": _status_counts(bundle.get("statements", []), "statement_status"),
-            "observation_status_counts": _status_counts(bundle.get("observations", []), "observation_status"),
-            "fact_status_counts": _status_counts(bundle.get("facts", []), "candidate_status"),
+            "statement_status_counts": _status_counts(
+                bundle.get("statements", []), "statement_status"
+            ),
+            "observation_status_counts": _status_counts(
+                bundle.get("observations", []), "observation_status"
+            ),
+            "fact_status_counts": _status_counts(
+                bundle.get("facts", []), "candidate_status"
+            ),
         },
         "structural_checkpoint": {
             "summary": structural_payload["summary"],
@@ -978,62 +1293,122 @@ def _build_payload(
         "overlay_projection": _selected_overlay(bundle),
         "procedural_overlay": _hearing_act_overlay(semantic_report, bundle),
     }
-    payload["procedural_move_overlay"] = _procedural_move_overlay(payload["procedural_overlay"])
-    payload["event_assembly_overlay"] = _event_assembly_overlay(payload["procedural_move_overlay"])
+    payload["procedural_move_overlay"] = _procedural_move_overlay(
+        payload["procedural_overlay"]
+    )
+    payload["event_assembly_overlay"] = _event_assembly_overlay(
+        payload["procedural_move_overlay"]
+    )
     reviewed_event_limit = max(1, int(reviewed_event_limit or 0))
     payload["reviewed_event_projection"] = _reviewed_event_projection(
         bundle,
         payload["event_assembly_overlay"],
         limit=reviewed_event_limit,
     )
-    payload["summary"]["hearing_act_count"] = int(payload["procedural_overlay"]["classified_hearing_act_count"])
-    payload["summary"]["procedural_overlay_candidate_count"] = int(payload["procedural_overlay"]["selected_candidate_count"])
-    payload["summary"]["procedural_move_count"] = int(payload["procedural_move_overlay"]["assembled_move_count"])
-    payload["summary"]["procedural_move_selected_count"] = int(payload["procedural_move_overlay"]["selected_move_count"])
-    payload["summary"]["assembled_event_count"] = int(payload["event_assembly_overlay"]["assembled_event_count"])
-    payload["summary"]["selected_event_count"] = int(payload["event_assembly_overlay"]["selected_event_count"])
-    payload["summary"]["event_move_coverage_count"] = int(payload["event_assembly_overlay"]["source_move_coverage_count"])
-    payload["summary"]["event_move_coverage_ratio"] = float(payload["event_assembly_overlay"]["source_move_coverage_ratio"])
-    payload["summary"]["reviewed_event_review_queue_count"] = int(payload["reviewed_event_projection"]["selected_review_queue_count"])
-    payload["summary"]["reviewed_event_coverage_ratio"] = float(payload["reviewed_event_projection"]["reviewed_event_coverage_ratio"])
-    payload["summary"]["reviewed_event_total_candidate_count"] = int(payload["reviewed_event_projection"]["reviewed_event_total_candidate_count"])
-    payload["summary"]["reviewed_event_excluded_counts"] = payload["reviewed_event_projection"]["reviewed_event_excluded_counts"]
-    payload["summary"]["reviewed_event_projection_count"] = int(payload["reviewed_event_projection"]["reviewed_event_count"])
-    payload["summary"]["selected_reviewed_event_count"] = int(payload["reviewed_event_projection"]["selected_reviewed_event_count"])
+    payload["summary"]["hearing_act_count"] = int(
+        payload["procedural_overlay"]["classified_hearing_act_count"]
+    )
+    payload["summary"]["procedural_overlay_candidate_count"] = int(
+        payload["procedural_overlay"]["selected_candidate_count"]
+    )
+    payload["summary"]["procedural_move_count"] = int(
+        payload["procedural_move_overlay"]["assembled_move_count"]
+    )
+    payload["summary"]["procedural_move_selected_count"] = int(
+        payload["procedural_move_overlay"]["selected_move_count"]
+    )
+    payload["summary"]["assembled_event_count"] = int(
+        payload["event_assembly_overlay"]["assembled_event_count"]
+    )
+    payload["summary"]["selected_event_count"] = int(
+        payload["event_assembly_overlay"]["selected_event_count"]
+    )
+    payload["summary"]["event_move_coverage_count"] = int(
+        payload["event_assembly_overlay"]["source_move_coverage_count"]
+    )
+    payload["summary"]["event_move_coverage_ratio"] = float(
+        payload["event_assembly_overlay"]["source_move_coverage_ratio"]
+    )
+    payload["summary"]["reviewed_event_review_queue_count"] = int(
+        payload["reviewed_event_projection"]["selected_review_queue_count"]
+    )
+    payload["summary"]["reviewed_event_coverage_ratio"] = float(
+        payload["reviewed_event_projection"]["reviewed_event_coverage_ratio"]
+    )
+    payload["summary"]["reviewed_event_total_candidate_count"] = int(
+        payload["reviewed_event_projection"]["reviewed_event_total_candidate_count"]
+    )
+    payload["summary"]["reviewed_event_excluded_counts"] = payload[
+        "reviewed_event_projection"
+    ]["reviewed_event_excluded_counts"]
+    payload["summary"]["reviewed_event_projection_count"] = int(
+        payload["reviewed_event_projection"]["reviewed_event_count"]
+    )
+    payload["summary"]["selected_reviewed_event_count"] = int(
+        payload["reviewed_event_projection"]["selected_reviewed_event_count"]
+    )
     _emit_progress(
         progress_callback,
         "overlay_projection_finished",
         selected_fact_count=int(payload["overlay_projection"]["selected_fact_count"]),
-        selected_review_queue_count=int(payload["overlay_projection"]["selected_review_queue_count"]),
+        selected_review_queue_count=int(
+            payload["overlay_projection"]["selected_review_queue_count"]
+        ),
     )
     _emit_progress(
         progress_callback,
         "procedural_overlay_finished",
-        hearing_act_count=int(payload["procedural_overlay"]["classified_hearing_act_count"]),
-        selected_candidate_count=int(payload["procedural_overlay"]["selected_candidate_count"]),
-        selected_review_queue_count=int(payload["procedural_overlay"]["selected_review_queue_count"]),
+        hearing_act_count=int(
+            payload["procedural_overlay"]["classified_hearing_act_count"]
+        ),
+        selected_candidate_count=int(
+            payload["procedural_overlay"]["selected_candidate_count"]
+        ),
+        selected_review_queue_count=int(
+            payload["procedural_overlay"]["selected_review_queue_count"]
+        ),
     )
     _emit_progress(
         progress_callback,
         "procedural_move_overlay_finished",
-        assembled_move_count=int(payload["procedural_move_overlay"]["assembled_move_count"]),
-        selected_move_count=int(payload["procedural_move_overlay"]["selected_move_count"]),
+        assembled_move_count=int(
+            payload["procedural_move_overlay"]["assembled_move_count"]
+        ),
+        selected_move_count=int(
+            payload["procedural_move_overlay"]["selected_move_count"]
+        ),
     )
     _emit_progress(
         progress_callback,
         "event_assembly_overlay_finished",
-        assembled_event_count=int(payload["event_assembly_overlay"]["assembled_event_count"]),
-        selected_event_count=int(payload["event_assembly_overlay"]["selected_event_count"]),
-        source_move_coverage_count=int(payload["event_assembly_overlay"]["source_move_coverage_count"]),
-        source_move_coverage_ratio=float(payload["event_assembly_overlay"]["source_move_coverage_ratio"]),
+        assembled_event_count=int(
+            payload["event_assembly_overlay"]["assembled_event_count"]
+        ),
+        selected_event_count=int(
+            payload["event_assembly_overlay"]["selected_event_count"]
+        ),
+        source_move_coverage_count=int(
+            payload["event_assembly_overlay"]["source_move_coverage_count"]
+        ),
+        source_move_coverage_ratio=float(
+            payload["event_assembly_overlay"]["source_move_coverage_ratio"]
+        ),
     )
     _emit_progress(
         progress_callback,
         "reviewed_event_projection_finished",
-        reviewed_event_count=int(payload["reviewed_event_projection"]["reviewed_event_count"]),
-        selected_reviewed_event_count=int(payload["reviewed_event_projection"]["selected_reviewed_event_count"]),
-        selected_review_queue_count=int(payload["reviewed_event_projection"]["selected_review_queue_count"]),
-        reviewed_event_coverage_ratio=float(payload["reviewed_event_projection"]["reviewed_event_coverage_ratio"]),
+        reviewed_event_count=int(
+            payload["reviewed_event_projection"]["reviewed_event_count"]
+        ),
+        selected_reviewed_event_count=int(
+            payload["reviewed_event_projection"]["selected_reviewed_event_count"]
+        ),
+        selected_review_queue_count=int(
+            payload["reviewed_event_projection"]["selected_review_queue_count"]
+        ),
+        reviewed_event_coverage_ratio=float(
+            payload["reviewed_event_projection"]["reviewed_event_coverage_ratio"]
+        ),
     )
     return payload
 
@@ -1097,14 +1472,18 @@ def _build_summary_text(payload: dict[str, Any]) -> str:
         "",
     ]
     for row in overlay["selected_facts"][:8]:
-        reasons = ", ".join((row.get("review_row") or {}).get("reason_codes", [])) or "-"
+        reasons = (
+            ", ".join((row.get("review_row") or {}).get("reason_codes", [])) or "-"
+        )
         keywords = ", ".join(row["keyword_hits"]) or "-"
         lines.append(
             f"- score={row['score']} status={row['candidate_status']} keywords={keywords} reasons={reasons}: {row['excerpt_preview']}"
         )
     lines.extend(["", "## Selected procedural candidates", ""])
     for row in payload["procedural_overlay"]["selected_candidates"][:8]:
-        reasons = ", ".join((row.get("review_row") or {}).get("reason_codes", [])) or "-"
+        reasons = (
+            ", ".join((row.get("review_row") or {}).get("reason_codes", [])) or "-"
+        )
         cues = ", ".join(row["cue_hits"]) or "-"
         lines.append(
             f"- score={row['hearing_act_score']} kind={row['hearing_act_kind']} cues={cues} reasons={reasons}: {row['excerpt_preview']}"
@@ -1120,7 +1499,13 @@ def _build_summary_text(payload: dict[str, Any]) -> str:
     for row in payload["event_assembly_overlay"]["selected_events"][:8]:
         kinds = ", ".join(row["hearing_act_kinds"]) or "-"
         topics = ", ".join(row["topic_tokens"]) or "-"
-        source_moves = ", ".join(row.get("source_move_ids") or ([row["source_move_id"]] if row.get("source_move_id") else [])) or "-"
+        source_moves = (
+            ", ".join(
+                row.get("source_move_ids")
+                or ([row["source_move_id"]] if row.get("source_move_id") else [])
+            )
+            or "-"
+        )
         lines.append(
             f"- score={row['event_score']} kind={row['event_kind']} speaker={row['speaker_group']} source_moves={source_moves} acts={row['event_count']} act_kinds={kinds} topics={topics}: {row['excerpt_preview']}"
         )
@@ -1128,12 +1513,19 @@ def _build_summary_text(payload: dict[str, Any]) -> str:
     for row in payload["reviewed_event_projection"]["selected_reviewed_events"][:8]:
         kinds = ", ".join(row["hearing_act_kinds"]) or "-"
         topics = ", ".join(row["topic_tokens"]) or "-"
-        speakers = ", ".join(row.get("speaker_labels") or []) or row.get("speaker_group") or "-"
-        reasons = ", ".join(
-            reason
-            for review_row in row.get("review_rows", [])
-            for reason in review_row.get("reason_codes", [])
-        ) or "-"
+        speakers = (
+            ", ".join(row.get("speaker_labels") or [])
+            or row.get("speaker_group")
+            or "-"
+        )
+        reasons = (
+            ", ".join(
+                reason
+                for review_row in row.get("review_rows", [])
+                for reason in review_row.get("reason_codes", [])
+            )
+            or "-"
+        )
         lines.append(
             f"- score={row['reviewed_event_score']} kind={row['event_kind']} speakers={speakers} review_queue={row['review_queue_count']} reasons={reasons} act_kinds={kinds} topics={topics}: {row['excerpt_preview']}"
         )
@@ -1162,19 +1554,30 @@ def build_dense_substrate(
     reviewed_event_limit: int = _REVIEWED_EVENT_LIMIT,
     progress_callback: ProgressCallback | None = None,
 ) -> dict[str, Any]:
-    selected_paths = [path.resolve() for path in (transcript_paths or DEFAULT_TRANSCRIPT_PATHS)]
-    _emit_progress(progress_callback, "build_started", output_dir=str(output_dir), source_file_count=len(selected_paths))
+    selected_paths = [
+        path.resolve() for path in (transcript_paths or DEFAULT_TRANSCRIPT_PATHS)
+    ]
+    _emit_progress(
+        progress_callback,
+        "build_started",
+        output_dir=str(output_dir),
+        source_file_count=len(selected_paths),
+    )
     payload = _build_payload(
         selected_paths,
         reviewed_event_limit=reviewed_event_limit,
         progress_callback=progress_callback,
     )
     summary_text = _build_summary_text(payload)
-    _emit_progress(progress_callback, "artifact_write_started", output_dir=str(output_dir))
+    _emit_progress(
+        progress_callback, "artifact_write_started", output_dir=str(output_dir)
+    )
     output_dir.mkdir(parents=True, exist_ok=True)
     artifact_path = output_dir / f"{ARTIFACT_VERSION}.json"
     summary_path = output_dir / f"{ARTIFACT_VERSION}.summary.md"
-    artifact_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    artifact_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     summary_path.write_text(summary_text + "\n", encoding="utf-8")
     _emit_progress(
         progress_callback,
@@ -1192,10 +1595,23 @@ def build_dense_substrate(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build a dense transcript-derived AU substrate artifact plus secondary fact-review overlay projection.")
-    parser.add_argument("--transcript-file", action="append", default=[], help="Transcript file to include; repeat to override the default AU set.")
-    parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Directory to write the artifact into.")
-    parser.add_argument("--progress", action="store_true", help="Emit stage progress JSON to stderr.")
+    parser = argparse.ArgumentParser(
+        description="Build a dense transcript-derived AU substrate artifact plus secondary fact-review overlay projection."
+    )
+    parser.add_argument(
+        "--transcript-file",
+        action="append",
+        default=[],
+        help="Transcript file to include; repeat to override the default AU set.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default=str(DEFAULT_OUTPUT_DIR),
+        help="Directory to write the artifact into.",
+    )
+    parser.add_argument(
+        "--progress", action="store_true", help="Emit stage progress JSON to stderr."
+    )
     parser.add_argument(
         "--progress-format",
         choices=("human", "json", "bar"),
@@ -1208,15 +1624,23 @@ def main() -> int:
         default=_REVIEWED_EVENT_LIMIT,
         help="Maximum number of reviewed hearing events to keep in the reviewed projection (default: %(default)s).",
     )
-    parser.add_argument("--log-level", default="INFO", help="stderr logging level (default: %(default)s).")
+    parser.add_argument(
+        "--log-level",
+        default="INFO",
+        help="stderr logging level (default: %(default)s).",
+    )
     args = parser.parse_args()
     configure_cli_logging(args.log_level)
-    transcript_paths = [_coerce_path(path) for path in args.transcript_file] or DEFAULT_TRANSCRIPT_PATHS
+    transcript_paths = [
+        _coerce_path(path) for path in args.transcript_file
+    ] or DEFAULT_TRANSCRIPT_PATHS
     result = build_dense_substrate(
         Path(args.output_dir).resolve(),
         transcript_paths=transcript_paths,
         reviewed_event_limit=int(args.reviewed_event_limit or _REVIEWED_EVENT_LIMIT),
-        progress_callback=build_progress_callback(enabled=bool(args.progress), fmt=str(args.progress_format)),
+        progress_callback=build_progress_callback(
+            enabled=bool(args.progress), fmt=str(args.progress_format)
+        ),
     )
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0

@@ -46,7 +46,9 @@ def mock_icj_bundle() -> list[Mapping[str, Any]]:
     ]
 
 
-def fetch_live_icj_record(*, record_id: str, url: str, timeout: int = 10) -> dict[str, Any] | None:
+def fetch_live_icj_record(
+    *, record_id: str, url: str, timeout: int = 10
+) -> dict[str, Any] | None:
     try:
         response = requests.head(url, timeout=timeout)
         response.raise_for_status()

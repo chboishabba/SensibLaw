@@ -1,4 +1,5 @@
 """Affidavit adapter over the shared hint surface."""
+
 from __future__ import annotations
 
 from .hint_surface import (

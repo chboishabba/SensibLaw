@@ -171,9 +171,7 @@ def _candidate_metrics(cursor: Any, corpus_ref: str | None) -> dict[str, object]
             },
         )
         row["candidate_sets"] = int(row["candidate_sets"]) + int(bucket_sets)
-        row["candidate_members"] = int(row["candidate_members"]) + int(
-            bucket_members
-        )
+        row["candidate_members"] = int(row["candidate_members"]) + int(bucket_members)
         row["cardinality_buckets"][str(bucket)] = {
             "candidate_sets": int(bucket_sets),
             "candidate_members": int(bucket_members),
@@ -225,9 +223,7 @@ def _candidate_metrics(cursor: Any, corpus_ref: str | None) -> dict[str, object]
         }
         for reason, summary_rows, excluded_candidates in cursor.fetchall()
     }
-    excluded_count = sum(
-        int(row["excluded_candidates"]) for row in exclusions.values()
-    )
+    excluded_count = sum(int(row["excluded_candidates"]) for row in exclusions.values())
     member_count = int(member_count)
     accessible_count = member_count + excluded_count
     return {
@@ -275,9 +271,7 @@ def _factor_metrics(cursor: Any, corpus_ref: str | None) -> dict[str, object]:
         "factor_revisions": int(revisions),
         "refinements": int(refinements),
         "refined_factors": refined_factors,
-        "revision_locality": (
-            round(refined_factors / factors, 6) if factors else None
-        ),
+        "revision_locality": (round(refined_factors / factors, 6) if factors else None),
     }
 
 
@@ -406,9 +400,7 @@ def _document_metrics(cursor: Any, corpus_ref: str | None) -> dict[str, int]:
     }
 
 
-def collect_binding_report(
-    cursor: Any, *, corpus_ref: str | None
-) -> dict[str, object]:
+def collect_binding_report(cursor: Any, *, corpus_ref: str | None) -> dict[str, object]:
     """Collect one explicit corpus-scoped semantic and execution ledger."""
 
     relation_sizes = _relation_sizes(cursor)
@@ -436,9 +428,7 @@ def collect_binding_report(
             "relations": relation_sizes,
             "binding_relation_total_bytes": candidate_storage,
             "average_binding_relation_bytes_per_member": (
-                round(candidate_storage / member_count, 3)
-                if member_count
-                else None
+                round(candidate_storage / member_count, 3) if member_count else None
             ),
         },
         "measurement_boundary": {

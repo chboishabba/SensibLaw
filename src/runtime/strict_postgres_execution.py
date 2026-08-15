@@ -286,9 +286,7 @@ class PostgresLeasedExecution:
         self.build_key_sha256 = build_key_sha256
         self.operation_contract_ref = operation_contract_ref
         self.max_rounds = int(os.environ.get("SENSIBLAW_MAX_ROUNDS", str(max_rounds)))
-        self.coordinator_lease_seconds = int(
-            os.environ.get("SENSIBLAW_COORDINATOR_LEASE_SECONDS", "90")
-        )
+        self.coordinator_lease_seconds = coordinator_lease_seconds()
 
     def connection_factory(self) -> Any:
         return connect_postgres(self.database_url)

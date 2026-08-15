@@ -38,16 +38,12 @@ def _find_sentence_pnf(row: dict[str, Any]) -> bool:
 
 
 def _find_document_pnf(row: dict[str, Any]) -> bool:
-    return bool(
-        row.get("doc_title")
-        and len(row.get("text", "")) > 200
-    )
+    return bool(row.get("doc_title") and len(row.get("text", "")) > 200)
 
 
 def _find_braid_attachment(row: dict[str, Any]) -> bool:
     return bool(
-        row.get("braid_metrics")
-        and row["braid_metrics"].get("connectedness", 0) > 0
+        row.get("braid_metrics") and row["braid_metrics"].get("connectedness", 0) > 0
     )
 
 

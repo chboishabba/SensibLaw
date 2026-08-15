@@ -25,7 +25,9 @@ from src.sensiblaw.conversation_vm.compiler import reset_projector_cache_for_tes
 from src.text import LATENT_FIBRE_INDEX_SCHEMA
 
 
-def test_compile_turn_preserves_receipted_source_surfaces_and_is_deterministic() -> None:
+def test_compile_turn_preserves_receipted_source_surfaces_and_is_deterministic() -> (
+    None
+):
     turn = {
         "turn_id": "fixture-turn-1",
         "text": "Alpha supports beta. No alpha supports beta.",
@@ -44,12 +46,12 @@ def test_compile_turn_preserves_receipted_source_surfaces_and_is_deterministic()
     assert left["predicate_atoms"]
     assert left["predicate_pnfs"]
     assert all(
-            atom["projection_method"]
-            in {
-                "sensiblaw.shared_reducer.collect_canonical_predicate_atoms",
-                "sensiblaw.shared_reducer.collect_canonical_relational_bundle",
-                "conversation_vm_structural_parser",
-            }
+        atom["projection_method"]
+        in {
+            "sensiblaw.shared_reducer.collect_canonical_predicate_atoms",
+            "sensiblaw.shared_reducer.collect_canonical_relational_bundle",
+            "conversation_vm_structural_parser",
+        }
         for atom in left["predicate_atoms"]
     )
 
@@ -57,18 +59,26 @@ def test_compile_turn_preserves_receipted_source_surfaces_and_is_deterministic()
 def test_compile_turn_uses_shared_reducer_head_as_predicate_when_available() -> None:
     reset_projector_cache_for_tests()
 
-    delta = compile_turn({"turn_id": "typed-projection", "text": "Leader publishes transactions."})
+    delta = compile_turn(
+        {"turn_id": "typed-projection", "text": "Leader publishes transactions."}
+    )
 
     predicates = {atom["predicate"] for atom in delta["predicate_atoms"]}
     assert "publish" in predicates
     assert "predicate" not in predicates
-    assert any(atom["projection_method"] == "sensiblaw.shared_reducer.collect_canonical_predicate_atoms" for atom in delta["predicate_atoms"])
+    assert any(
+        atom["projection_method"]
+        == "sensiblaw.shared_reducer.collect_canonical_predicate_atoms"
+        for atom in delta["predicate_atoms"]
+    )
 
 
 def test_compile_turn_preserves_utterance_pnf_roles_and_qualifiers() -> None:
     reset_projector_cache_for_tests()
 
-    delta = compile_turn({"turn_id": "utterance-pnf", "text": "I did not walk the dog."})
+    delta = compile_turn(
+        {"turn_id": "utterance-pnf", "text": "I did not walk the dog."}
+    )
 
     atom = delta["predicate_atoms"][0]
     assert atom["predicate"] == "walk"
@@ -80,29 +90,49 @@ def test_compile_turn_preserves_utterance_pnf_roles_and_qualifiers() -> None:
     assert atom["roles"]["object"]["value"] == "dog"
     assert atom["roles"]["action"]["value"] == "walk"
     assert atom["qualifiers"]["polarity"] == "negative"
-    assert delta["predicate_pnfs"][0]["normal_form"]["roles"]["object"]["value"] == "dog"
+    assert (
+        delta["predicate_pnfs"][0]["normal_form"]["roles"]["object"]["value"] == "dog"
+    )
 
 
 def test_compile_turn_emits_pnf_receipts_for_copular_classification_tension() -> None:
     reset_projector_cache_for_tests()
 
-    delta = compile_turn({"turn_id": "copular-pnf", "text": "6 is a 1-morphism, not an object."})
+    delta = compile_turn(
+        {"turn_id": "copular-pnf", "text": "6 is a 1-morphism, not an object."}
+    )
 
-    classification_atoms = [atom for atom in delta["predicate_atoms"] if atom["predicate"] == "be/classify"]
+    classification_atoms = [
+        atom for atom in delta["predicate_atoms"] if atom["predicate"] == "be/classify"
+    ]
     assert len(classification_atoms) == 2
-    assert {(atom["roles"]["theme"]["value"], atom["polarity"]) for atom in classification_atoms} == {
+    assert {
+        (atom["roles"]["theme"]["value"], atom["polarity"])
+        for atom in classification_atoms
+    } == {
         ("1-morphism", "positive"),
         ("object", "negative"),
     }
-    contested = [item for item in delta["residual_comparisons"] if item["relation"] == "classification-tension"]
+    contested = [
+        item
+        for item in delta["residual_comparisons"]
+        if item["relation"] == "classification-tension"
+    ]
     assert len(contested) == 1
     assert contested[0]["residual_level"] == "contradiction"
     assert delta["pnf_emission_receipts"]
-    residual_receipts = [item for item in delta["pnf_residual_receipts"] if item["relation"] == "classification-tension"]
+    residual_receipts = [
+        item
+        for item in delta["pnf_residual_receipts"]
+        if item["relation"] == "classification-tension"
+    ]
     assert len(residual_receipts) == 1
     assert residual_receipts[0]["left_emission_receipt_id"]
     assert residual_receipts[0]["right_emission_receipt_id"]
-    assert residual_receipts[0]["payload"]["runtime_provider_status"] == "missingHeckeCandidatePoolReceiptId"
+    assert (
+        residual_receipts[0]["payload"]["runtime_provider_status"]
+        == "missingHeckeCandidatePoolReceiptId"
+    )
 
 
 def _latent_fibre_artifact(path: Path) -> Path:
@@ -145,7 +175,9 @@ def test_compile_turn_enriches_predicate_atoms_from_env_seeded_latent_fibre_inde
     tmp_path: Path,
 ) -> None:
     artifact_path = _latent_fibre_artifact(tmp_path)
-    monkeypatch.setenv("SENSIBLAW_UTTERANCE_LATENT_FIBRE_INDEX_PATH", str(artifact_path))
+    monkeypatch.setenv(
+        "SENSIBLAW_UTTERANCE_LATENT_FIBRE_INDEX_PATH", str(artifact_path)
+    )
     reset_projector_cache_for_tests()
 
     delta = compile_turn({"turn_id": "latent-turn", "text": "I walked the dog."})
@@ -155,9 +187,15 @@ def test_compile_turn_enriches_predicate_atoms_from_env_seeded_latent_fibre_inde
     assert atom["semantic_comparison_mode"] == "latent_candidate"
     assert atom["support_fibres"]
     assert atom["latent_grounding"]["artifact_id"] == "fixture-local-corpus-v1"
-    assert delta["predicate_pnfs"][0]["normal_form"]["semantic_comparison_mode"] == "latent_candidate"
+    assert (
+        delta["predicate_pnfs"][0]["normal_form"]["semantic_comparison_mode"]
+        == "latent_candidate"
+    )
     assert delta["predicate_pnfs"][0]["normal_form"]["support_fibres"]
-    assert delta["predicate_pnfs"][0]["normal_form"]["latent_grounding"]["artifact_id"] == "fixture-local-corpus-v1"
+    assert (
+        delta["predicate_pnfs"][0]["normal_form"]["latent_grounding"]["artifact_id"]
+        == "fixture-local-corpus-v1"
+    )
 
 
 def test_compile_turn_selects_latent_fibre_index_from_config_file(
@@ -176,7 +214,9 @@ def test_compile_turn_selects_latent_fibre_index_from_config_file(
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("SENSIBLAW_UTTERANCE_LATENT_FIBRE_INDEX_CONFIG", str(config_path))
+    monkeypatch.setenv(
+        "SENSIBLAW_UTTERANCE_LATENT_FIBRE_INDEX_CONFIG", str(config_path)
+    )
     monkeypatch.setenv("SENSIBLAW_UTTERANCE_LATENT_FIBRE_INDEX_PATH", "")
     shared_reducer._clear_utterance_latent_fibre_index_cache()
     reset_projector_cache_for_tests()
@@ -194,7 +234,9 @@ def test_state_join_preserves_supported_receipts() -> None:
         {
             "turn_id": "supported-turn",
             "text": "Alpha supports beta.",
-            "fact_candidates": [{"kind": "candidate-fact", "text": "Alpha supports beta."}],
+            "fact_candidates": [
+                {"kind": "candidate-fact", "text": "Alpha supports beta."}
+            ],
         }
     )
 
@@ -247,8 +289,13 @@ def test_cross_turn_utterance_pnf_sign_conflict_adds_contested_item() -> None:
     reset_projector_cache_for_tests()
 
     state = empty_state()
-    state = step_state(state, compile_turn({"turn_id": "walk-positive", "text": "I walked the dog."}))
-    state = step_state(state, compile_turn({"turn_id": "walk-negative", "text": "I did not walk the dog."}))
+    state = step_state(
+        state, compile_turn({"turn_id": "walk-positive", "text": "I walked the dog."})
+    )
+    state = step_state(
+        state,
+        compile_turn({"turn_id": "walk-negative", "text": "I did not walk the dog."}),
+    )
 
     assert state["contested_items"]
     assert state["residual_comparisons"][0]["relation"] == "polarity-conflict"
@@ -306,7 +353,10 @@ def test_promotion_without_required_receipts_is_blocked() -> None:
 
 
 def test_proof_and_context_payloads_preserve_provenance_not_opaque_summary() -> None:
-    state = step_state(empty_state(), compile_turn({"turn_id": "query-turn", "text": "Alpha supports beta."}))
+    state = step_state(
+        empty_state(),
+        compile_turn({"turn_id": "query-turn", "text": "Alpha supports beta."}),
+    )
 
     surface = build_proof_surface(state, query="beta")
     context = build_context_payload(state, query="beta")
@@ -332,20 +382,49 @@ def test_cli_compile_step_query_roundtrip(tmp_path: Path) -> None:
     delta_path = tmp_path / "delta.json"
     state_path = tmp_path / "state.json"
     proof_path = tmp_path / "proof.json"
-    turn_path.write_text(json.dumps({"turn_id": "cli-turn", "text": "Alpha supports beta."}), encoding="utf-8")
+    turn_path.write_text(
+        json.dumps({"turn_id": "cli-turn", "text": "Alpha supports beta."}),
+        encoding="utf-8",
+    )
 
     subprocess.run(
-        [sys.executable, "scripts/conversation_vm.py", "compile-turn", "-i", str(turn_path), "-o", str(delta_path)],
+        [
+            sys.executable,
+            "scripts/conversation_vm.py",
+            "compile-turn",
+            "-i",
+            str(turn_path),
+            "-o",
+            str(delta_path),
+        ],
         cwd=ROOT,
         check=True,
     )
     subprocess.run(
-        [sys.executable, "scripts/conversation_vm.py", "step", "--delta", str(delta_path), "-o", str(state_path)],
+        [
+            sys.executable,
+            "scripts/conversation_vm.py",
+            "step",
+            "--delta",
+            str(delta_path),
+            "-o",
+            str(state_path),
+        ],
         cwd=ROOT,
         check=True,
     )
     subprocess.run(
-        [sys.executable, "scripts/conversation_vm.py", "query-surface", "--state", str(state_path), "-q", "beta", "-o", str(proof_path)],
+        [
+            sys.executable,
+            "scripts/conversation_vm.py",
+            "query-surface",
+            "--state",
+            str(state_path),
+            "-q",
+            "beta",
+            "-o",
+            str(proof_path),
+        ],
         cwd=ROOT,
         check=True,
     )

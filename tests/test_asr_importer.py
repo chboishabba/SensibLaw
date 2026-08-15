@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 from sensiblaw.ingest.asr_adapter import import_asr_transcript
 from storage.core import Storage
@@ -23,7 +22,9 @@ def test_generic_asr_importer(tmp_path):
         assert env is not None
         assert env.type == "execution_envelope"
         assert env.data["toolchain"]["model"] == "example-asr"
-        rows = store.conn.execute("SELECT data FROM nodes WHERE type='audio_segment'").fetchall()
+        rows = store.conn.execute(
+            "SELECT data FROM nodes WHERE type='audio_segment'"
+        ).fetchall()
         assert len(rows) == 2
         for row in rows:
             data = json.loads(row["data"])
@@ -45,7 +46,9 @@ def test_asr_importer_speaker_transitions(tmp_path):
     store = Storage(tmp_path / "test.db")
     try:
         import_asr_transcript(store, transcript, source="test_source")
-        rows = store.conn.execute("SELECT data FROM nodes WHERE type='audio_segment' ORDER BY id").fetchall()
+        rows = store.conn.execute(
+            "SELECT data FROM nodes WHERE type='audio_segment' ORDER BY id"
+        ).fetchall()
         assert len(rows) == 2
         data0 = json.loads(rows[0]["data"])
         data1 = json.loads(rows[1]["data"])
@@ -66,7 +69,9 @@ def test_asr_importer_overlapping_segments(tmp_path):
     store = Storage(tmp_path / "test.db")
     try:
         import_asr_transcript(store, transcript, source="test_source")
-        rows = store.conn.execute("SELECT data FROM nodes WHERE type='audio_segment'").fetchall()
+        rows = store.conn.execute(
+            "SELECT data FROM nodes WHERE type='audio_segment'"
+        ).fetchall()
         assert len(rows) == 2
     finally:
         store.close()

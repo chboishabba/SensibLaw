@@ -1,4 +1,5 @@
 """Canonical shared owner for review/workflow decision surfaces."""
+
 from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
@@ -59,7 +60,9 @@ def build_decision_surface(
     }
 
     for rule in rules:
-        if not isinstance(rule, Mapping) or not _rule_triggered(rule, normalized_counts):
+        if not isinstance(rule, Mapping) or not _rule_triggered(
+            rule, normalized_counts
+        ):
             continue
         payload = {
             "stage": str(rule.get("stage") or "").strip(),
@@ -77,7 +80,9 @@ def build_decision_surface(
         "stage": str(default_step.get("stage") or "").strip(),
         "title": str(default_step.get("title") or "").strip(),
         "recommended_view": str(default_step.get("recommended_view") or "").strip(),
-        "reason": _format_reason(default_step.get("reason_template"), normalized_counts),
+        "reason": _format_reason(
+            default_step.get("reason_template"), normalized_counts
+        ),
         **shared,
     }
     for key in ("recommended_filter", "focus_fact_id"):

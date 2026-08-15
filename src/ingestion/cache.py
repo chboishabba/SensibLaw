@@ -111,13 +111,9 @@ polite when it needs to talk to real services but still remains deterministic
 for tests.
 """
 
-import hashlib
-import json
 import logging
 import os
 import threading
-import time
-from pathlib import Path
 from typing import Dict, Any
 from urllib.error import HTTPError
 from urllib.parse import urlparse
@@ -287,4 +283,3 @@ def fetch_json(url: str) -> Dict[str, Any]:
 
 
 __all__ = ["fetch_html", "fetch_pdf", "fetch_json", "CACHE_DIR"]
-

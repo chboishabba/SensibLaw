@@ -1,4 +1,5 @@
 """PostgreSQL coordination for lazy/incremental numeric PNF execution."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -67,9 +68,13 @@ class NumericIncrementalRuntimeStore(ReopenableRuntimeStore):
             connection.close()
 
     def seed_h3(self, *, run_id: int, document_id: int) -> int:
-        return self._scalar_function("execution.seed_numeric_pnf_h3_work", (run_id, document_id))
+        return self._scalar_function(
+            "execution.seed_numeric_pnf_h3_work", (run_id, document_id)
+        )
 
-    def advance_horizon(self, *, run_id: int, document_id: int, completed_horizon: int) -> int:
+    def advance_horizon(
+        self, *, run_id: int, document_id: int, completed_horizon: int
+    ) -> int:
         return self._scalar_function(
             "execution.advance_numeric_pnf_horizon_work",
             (run_id, document_id, completed_horizon),
@@ -182,7 +187,9 @@ class NumericIncrementalRuntimeStore(ReopenableRuntimeStore):
         )
 
     def refresh_entity_label_cache(self) -> int:
-        return self._scalar_function("execution.refresh_numeric_pnf_corpus_entity_label_cache", ())
+        return self._scalar_function(
+            "execution.refresh_numeric_pnf_corpus_entity_label_cache", ()
+        )
 
     def cached_entities_for_label(
         self, label_symbol_id: int, *, limit: int = 16
@@ -286,7 +293,9 @@ class NumericIncrementalRuntimeStore(ReopenableRuntimeStore):
             (context_witness_id, revision),
         )
 
-    def world_context_fit(self, *, context_witness_id: int) -> tuple[WorldContextFitRow, ...]:
+    def world_context_fit(
+        self, *, context_witness_id: int
+    ) -> tuple[WorldContextFitRow, ...]:
         connection = connect(self.database_url)
         try:
             with connection.cursor() as cursor:
@@ -333,7 +342,12 @@ class NumericIncrementalRuntimeStore(ReopenableRuntimeStore):
                 with connection.cursor() as cursor:
                     cursor.execute(
                         "SELECT execution.attach_numeric_pnf_world_candidate(%s,%s,%s,%s)",
-                        (token_id, label_symbol_id, world_entity_id, context_witness_id),
+                        (
+                            token_id,
+                            label_symbol_id,
+                            world_entity_id,
+                            context_witness_id,
+                        ),
                     )
                     return bool(cursor.fetchone()[0])
         finally:
@@ -373,7 +387,11 @@ class NumericIncrementalRuntimeStore(ReopenableRuntimeStore):
 
     @staticmethod
     def controlled_workload_digest(
-        *, authority_digest: bytes, consumer_ref: str, query_ref: str, policy_ref: str = ""
+        *,
+        authority_digest: bytes,
+        consumer_ref: str,
+        query_ref: str,
+        policy_ref: str = "",
     ) -> bytes:
         if len(authority_digest) != 32:
             raise ValueError("authority_digest must be SHA-256 width")
@@ -435,7 +453,9 @@ class NumericIncrementalRuntimeStore(ReopenableRuntimeStore):
         document_ref: str,
         codebook_revision: int = 0,
     ) -> int:
-        rows = self.load_numeric_observation_rows(run_ref=run_ref, document_ref=document_ref)
+        rows = self.load_numeric_observation_rows(
+            run_ref=run_ref, document_ref=document_ref
+        )
         payload, receipt = pack_numeric_observation_tape(rows)
         connection = connect(self.database_url)
         try:
@@ -460,10 +480,16 @@ class NumericIncrementalRuntimeStore(ReopenableRuntimeStore):
                     verification = verify_numeric_observation_tape(rows, payload)
                     cursor.execute(
                         "SELECT execution.verify_registered_numeric_parser_tape(%s,%s,%s)",
-                        (tape_id, verification.authority_digest, verification.packed_digest),
+                        (
+                            tape_id,
+                            verification.authority_digest,
+                            verification.packed_digest,
+                        ),
                     )
                     if not bool(cursor.fetchone()[0]):
-                        raise RuntimeError("numeric observation tape verification failed")
+                        raise RuntimeError(
+                            "numeric observation tape verification failed"
+                        )
                     return tape_id
         finally:
             connection.close()
@@ -472,7 +498,9 @@ class NumericIncrementalRuntimeStore(ReopenableRuntimeStore):
         connection = connect(self.database_url)
         try:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT execution.verify_numeric_pnf_candidate_current_state()")
+                cursor.execute(
+                    "SELECT execution.verify_numeric_pnf_candidate_current_state()"
+                )
                 return bool(cursor.fetchone()[0])
         finally:
             connection.close()

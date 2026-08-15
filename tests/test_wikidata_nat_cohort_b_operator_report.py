@@ -18,12 +18,7 @@ from src.ontology.wikidata_nat_cohort_b_review_bucket import (
 
 
 def _load_fixture(name: str) -> dict:
-    fixture_path = (
-        Path(__file__).resolve().parent
-        / "fixtures"
-        / "wikidata"
-        / name
-    )
+    fixture_path = Path(__file__).resolve().parent / "fixtures" / "wikidata" / name
     return json.loads(fixture_path.read_text(encoding="utf-8"))
 
 
@@ -32,7 +27,9 @@ def test_build_nat_cohort_b_operator_report_matches_pinned_fixture() -> None:
     expected = _load_fixture("wikidata_nat_cohort_b_operator_report_20260402.json")
 
     report = build_nat_cohort_b_operator_report(queue_payload, max_examples=3)
-    assert report["schema_version"] == WIKIDATA_NAT_COHORT_B_OPERATOR_REPORT_SCHEMA_VERSION
+    assert (
+        report["schema_version"] == WIKIDATA_NAT_COHORT_B_OPERATOR_REPORT_SCHEMA_VERSION
+    )
     assert report == expected
 
 

@@ -19,6 +19,7 @@ def _pdf_ingest_module(monkeypatch):
 
     def fake_parse_sections(text):
         section_parser_calls.append(text)
+
         def _node(identifier: str, heading: str, body: str):
             return types.SimpleNamespace(
                 text=body,

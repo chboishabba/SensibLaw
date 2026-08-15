@@ -3,7 +3,9 @@ from __future__ import annotations
 from typing import Any, Iterable, Mapping
 
 
-def normalize_packet_detail_rows(detail_rows: Iterable[Mapping[str, Any]] | None) -> list[dict[str, str]]:
+def normalize_packet_detail_rows(
+    detail_rows: Iterable[Mapping[str, Any]] | None,
+) -> list[dict[str, str]]:
     normalized: list[dict[str, str]] = []
     for row in detail_rows or []:
         label = str(row.get("label") or "").strip()
@@ -55,7 +57,9 @@ def summarize_reviewer_packets(queue: Iterable[Mapping[str, Any]]) -> dict[str, 
         route_target = str(row.get("route_target") or "manual_review")
         resolution_status = str(row.get("resolution_status") or "open")
         route_target_counts[route_target] = route_target_counts.get(route_target, 0) + 1
-        resolution_status_counts[resolution_status] = resolution_status_counts.get(resolution_status, 0) + 1
+        resolution_status_counts[resolution_status] = (
+            resolution_status_counts.get(resolution_status, 0) + 1
+        )
     return {
         "queue_count": len(queue_rows),
         "route_target_counts": route_target_counts,

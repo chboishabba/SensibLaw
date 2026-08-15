@@ -2,12 +2,18 @@ import json
 import sqlite3
 from pathlib import Path
 
-from src.wiki_timeline.sqlite_store import load_run_payload_from_normalized, persist_wiki_timeline_aoo_run
+from src.wiki_timeline.sqlite_store import (
+    load_run_payload_from_normalized,
+    persist_wiki_timeline_aoo_run,
+)
 
 
 def test_wiki_timeline_aoo_sqlite_persist_is_idempotent(tmp_path: Path) -> None:
     timeline_path = tmp_path / "timeline.json"
-    timeline_path.write_text(json.dumps({"snapshot": {"rev": 1}, "events": []}, sort_keys=True), encoding="utf-8")
+    timeline_path.write_text(
+        json.dumps({"snapshot": {"rev": 1}, "events": []}, sort_keys=True),
+        encoding="utf-8",
+    )
 
     extractor_path = tmp_path / "extractor.py"
     extractor_path.write_text("# extractor\n", encoding="utf-8")
@@ -21,14 +27,23 @@ def test_wiki_timeline_aoo_sqlite_persist_is_idempotent(tmp_path: Path) -> None:
         "events": [
             {
                 "event_id": "e1",
-                "anchor": {"year": 2001, "month": 9, "day": 11, "precision": "day", "kind": "explicit", "text": "September 11, 2001"},
+                "anchor": {
+                    "year": 2001,
+                    "month": 9,
+                    "day": 11,
+                    "precision": "day",
+                    "kind": "explicit",
+                    "text": "September 11, 2001",
+                },
                 "section": "2001",
                 "text": (
                     "Civil Liability Act 2002 (NSW) s 5B(2)(a). "
                     "Art 5 applies under the Constitution. "
                     "Later discussions referenced the India–United States Civil Nuclear Agreement."
                 ),
-                "actors": [{"label": "A", "resolved": "A", "role": "subject", "source": "x"}],
+                "actors": [
+                    {"label": "A", "resolved": "A", "role": "subject", "source": "x"}
+                ],
                 "action": "happen",
                 "steps": [{"action": "happen", "subjects": ["A"], "objects": ["B"]}],
                 "objects": [{"title": "B", "source": "wikilink"}],
@@ -80,7 +95,9 @@ def test_wiki_timeline_aoo_sqlite_persist_is_idempotent(tmp_path: Path) -> None:
 
     with sqlite3.connect(str(db_path)) as conn:
         conn.row_factory = sqlite3.Row
-        runs = conn.execute("SELECT run_id, n_events FROM wiki_timeline_aoo_runs").fetchall()
+        runs = conn.execute(
+            "SELECT run_id, n_events FROM wiki_timeline_aoo_runs"
+        ).fetchall()
         assert len(runs) == 1
         row = conn.execute(
             """
@@ -109,15 +126,69 @@ def test_wiki_timeline_aoo_sqlite_persist_is_idempotent(tmp_path: Path) -> None:
         assert row["residual_json"] is None
         assert row["action_meta_json"] is None
 
-        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_actors WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
-        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_links WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
-        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_objects WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
-        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_steps WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
-        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_field_values WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 0
-        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_object_field_values WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 0
-        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_step_field_values WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 0
-        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_list_field_values WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
-        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_run_list_field_values WHERE run_id = ?", (res1.run_id,)).fetchone()[0] > 1
+        assert (
+            conn.execute(
+                "SELECT COUNT(*) FROM wiki_timeline_event_actors WHERE run_id = ?",
+                (res1.run_id,),
+            ).fetchone()[0]
+            == 1
+        )
+        assert (
+            conn.execute(
+                "SELECT COUNT(*) FROM wiki_timeline_event_links WHERE run_id = ?",
+                (res1.run_id,),
+            ).fetchone()[0]
+            == 1
+        )
+        assert (
+            conn.execute(
+                "SELECT COUNT(*) FROM wiki_timeline_event_objects WHERE run_id = ?",
+                (res1.run_id,),
+            ).fetchone()[0]
+            == 1
+        )
+        assert (
+            conn.execute(
+                "SELECT COUNT(*) FROM wiki_timeline_event_steps WHERE run_id = ?",
+                (res1.run_id,),
+            ).fetchone()[0]
+            == 1
+        )
+        assert (
+            conn.execute(
+                "SELECT COUNT(*) FROM wiki_timeline_event_field_values WHERE run_id = ?",
+                (res1.run_id,),
+            ).fetchone()[0]
+            == 0
+        )
+        assert (
+            conn.execute(
+                "SELECT COUNT(*) FROM wiki_timeline_event_object_field_values WHERE run_id = ?",
+                (res1.run_id,),
+            ).fetchone()[0]
+            == 0
+        )
+        assert (
+            conn.execute(
+                "SELECT COUNT(*) FROM wiki_timeline_step_field_values WHERE run_id = ?",
+                (res1.run_id,),
+            ).fetchone()[0]
+            == 0
+        )
+        assert (
+            conn.execute(
+                "SELECT COUNT(*) FROM wiki_timeline_event_list_field_values WHERE run_id = ?",
+                (res1.run_id,),
+            ).fetchone()[0]
+            == 1
+        )
+        assert (
+            conn.execute(
+                "SELECT COUNT(*) FROM wiki_timeline_run_list_field_values WHERE run_id = ?",
+                (res1.run_id,),
+            ).fetchone()[0]
+            > 1
+        )
         structural_atoms = conn.execute(
             """
             SELECT a.norm_text, a.norm_kind
@@ -134,7 +205,10 @@ def test_wiki_timeline_aoo_sqlite_persist_is_idempotent(tmp_path: Path) -> None:
             ("subsec:2", "subsection_ref"),
             ("para:a", "paragraph_ref"),
             ("art:5", "article_ref"),
-            ("instrument:india_united_states_civil_nuclear_agreement", "instrument_ref"),
+            (
+                "instrument:india_united_states_civil_nuclear_agreement",
+                "instrument_ref",
+            ),
         ]
 
         payload = load_run_payload_from_normalized(conn, res1.run_id)

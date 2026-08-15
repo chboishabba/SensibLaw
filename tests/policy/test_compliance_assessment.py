@@ -53,9 +53,13 @@ def test_compliance_assessment_succeeds_with_grouped_clause_evidence() -> None:
     assert assessment["summary"]["satisfied_count"] == 3
 
 
-def test_compliance_assessment_marks_missing_follow_obligation_as_not_satisfied() -> None:
+def test_compliance_assessment_marks_missing_follow_obligation_as_not_satisfied() -> (
+    None
+):
     payload = build_sb_to_sl_contract_payload(
-        suite_normalized_artifact=_compiled_state_artifact(unresolved_pressure_status="follow_needed"),
+        suite_normalized_artifact=_compiled_state_artifact(
+            unresolved_pressure_status="follow_needed"
+        ),
     )
     bundle = build_compliance_evidence_bundle(
         subject_ref="artifact:iso-demo",
@@ -68,13 +72,17 @@ def test_compliance_assessment_marks_missing_follow_obligation_as_not_satisfied(
         evidence_bundle=bundle,
     )
     workflow_group = next(
-        row for row in assessment["control_group_results"] if row["control_group_id"] == "workflow_traceability"
+        row
+        for row in assessment["control_group_results"]
+        if row["control_group_id"] == "workflow_traceability"
     )
     assert workflow_group["status"] == "not_satisfied"
     assert assessment["status"] == "not_satisfied"
 
 
-def test_compliance_assessment_keeps_legal_follow_pressure_additive_to_unresolved_pressure() -> None:
+def test_compliance_assessment_keeps_legal_follow_pressure_additive_to_unresolved_pressure() -> (
+    None
+):
     payload = build_sb_to_sl_contract_payload(
         suite_normalized_artifact=_compiled_state_artifact(
             unresolved_pressure_status="none",
@@ -96,17 +104,23 @@ def test_compliance_assessment_keeps_legal_follow_pressure_additive_to_unresolve
         evidence_bundle=bundle,
     )
     workflow_group = next(
-        row for row in assessment["control_group_results"] if row["control_group_id"] == "workflow_traceability"
+        row
+        for row in assessment["control_group_results"]
+        if row["control_group_id"] == "workflow_traceability"
     )
     clause = next(
-        row for row in workflow_group["member_clause_results"] if row["clause_id"] == "follow_pressure_visibility"
+        row
+        for row in workflow_group["member_clause_results"]
+        if row["clause_id"] == "follow_pressure_visibility"
     )
     assert clause["status"] == "satisfied"
     assert "unresolved_pressure_status:none" in clause["evidence_refs"]
     assert "legal_follow_pressure.value:high" in clause["evidence_refs"]
 
 
-def test_compliance_assessment_marks_casey_group_not_applicable_without_casey_refs() -> None:
+def test_compliance_assessment_marks_casey_group_not_applicable_without_casey_refs() -> (
+    None
+):
     payload = build_sb_to_sl_contract_payload(
         suite_normalized_artifact=_compiled_state_artifact(),
     )
@@ -121,6 +135,8 @@ def test_compliance_assessment_marks_casey_group_not_applicable_without_casey_re
         evidence_bundle=bundle,
     )
     execution_group = next(
-        row for row in assessment["control_group_results"] if row["control_group_id"] == "execution_traceability"
+        row
+        for row in assessment["control_group_results"]
+        if row["control_group_id"] == "execution_traceability"
     )
     assert execution_group["status"] == "not_applicable"

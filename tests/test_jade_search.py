@@ -8,7 +8,9 @@ from src.sources.jade_search import (
 )
 
 
-FIXTURE = Path(__file__).resolve().parent / "fixtures" / "jade" / "search_results_sample.html"
+FIXTURE = (
+    Path(__file__).resolve().parent / "fixtures" / "jade" / "search_results_sample.html"
+)
 
 
 def test_build_jade_search_url_uses_path_template():
@@ -18,7 +20,10 @@ def test_build_jade_search_url_uses_path_template():
 
 def test_parse_jade_search_html_extracts_article_and_mnc_links():
     hits = parse_jade_search_html(FIXTURE.read_text(encoding="utf-8"))
-    assert [hit.citation for hit in hits[:2]] == ["[2021] FamCA 83", "[2010] FamCAFC 13"]
+    assert [hit.citation for hit in hits[:2]] == [
+        "[2021] FamCA 83",
+        "[2010] FamCAFC 13",
+    ]
     assert hits[0].url == "https://jade.io/article/791483"
     assert hits[1].url == "https://jade.io/mnc/2010/FamCAFC/13"
 

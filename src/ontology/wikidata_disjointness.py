@@ -59,9 +59,13 @@ def _label(qid: str, labels: Mapping[str, str]) -> str:
 def _active_bundles(payload: Mapping[str, Any]) -> tuple[str, list[StatementBundle]]:
     windows = load_windows(payload)
     if len(windows) != 1:
-        raise ValueError("disjointness report requires exactly one window in the input slice")
+        raise ValueError(
+            "disjointness report requires exactly one window in the input slice"
+        )
     window = windows[0]
-    return window.window_id, [bundle for bundle in window.bundles if bundle.rank != "deprecated"]
+    return window.window_id, [
+        bundle for bundle in window.bundles if bundle.rank != "deprecated"
+    ]
 
 
 def _qualifier_values(bundle: StatementBundle, property_pid: str) -> list[str]:
@@ -88,7 +92,10 @@ def _pairs_from_bundles(bundles: list[StatementBundle]) -> list[DisjointPair]:
                 right_qid=right_qid,
                 statement_value=statement_value,
             )
-    return sorted(pairs.values(), key=lambda item: (item.holder_qid, item.left_qid, item.right_qid))
+    return sorted(
+        pairs.values(),
+        key=lambda item: (item.holder_qid, item.left_qid, item.right_qid),
+    )
 
 
 def _subclass_graph(bundles: list[StatementBundle]) -> dict[str, set[str]]:
@@ -223,11 +230,14 @@ def project_wikidata_disjointness_payload(payload: Mapping[str, Any]) -> dict[st
         candidate_culprits = [
             culprit_qid
             for culprit_qid, culprit_pair_key in culprit_class_lookup
-            if culprit_pair_key == pair_key and culprit_qid in violation["ancestor_classes"]
+            if culprit_pair_key == pair_key
+            and culprit_qid in violation["ancestor_classes"]
         ]
         if candidate_culprits:
             distances = _ancestor_distances(subclass_graph, qid)
-            chosen = min(candidate_culprits, key=lambda item: (distances.get(item, 10**9), item))
+            chosen = min(
+                candidate_culprits, key=lambda item: (distances.get(item, 10**9), item)
+            )
             violation["explained_by_culprit_class_qid"] = chosen
         else:
             violation["explained_by_culprit_class_qid"] = None
@@ -237,7 +247,8 @@ def project_wikidata_disjointness_payload(payload: Mapping[str, Any]) -> dict[st
     for item_qid in sorted(instance_map):
         direct_classes = sorted(instance_map[item_qid])
         distances_by_direct_class = {
-            class_qid: _ancestor_distances(subclass_graph, class_qid) for class_qid in direct_classes
+            class_qid: _ancestor_distances(subclass_graph, class_qid)
+            for class_qid in direct_classes
         }
         inferred_classes: set[str] = set()
         for class_qid in direct_classes:

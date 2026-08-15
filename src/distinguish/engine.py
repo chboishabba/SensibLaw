@@ -3,9 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, Sequence, List, Tuple, Set, TypedDict, Any
 
-from dataclasses import dataclass, field
+from dataclasses import field
 import re
-from typing import Dict, Sequence, List, Tuple, Set
 
 from .factors import GLJ_PERMANENT_STAY_CUES
 

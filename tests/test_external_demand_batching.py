@@ -88,9 +88,21 @@ def test_zero_provider_calls_when_cache_probe_leases_no_requests() -> None:
 
 def test_one_provider_call_can_serve_multiple_deduplicated_requests() -> None:
     requests = (
-        ExternalRequest(1, ExternalRequestKind.CANDIDATE_DISCOVERY, "Springfield", None, None, None, 1),
-        ExternalRequest(2, ExternalRequestKind.PROPERTY_ENRICHMENT, None, 1001, 17, 1, 1),
-        ExternalRequest(3, ExternalRequestKind.PROPERTY_ENRICHMENT, None, 1002, 17, 1, 1),
+        ExternalRequest(
+            1,
+            ExternalRequestKind.CANDIDATE_DISCOVERY,
+            "Springfield",
+            None,
+            None,
+            None,
+            1,
+        ),
+        ExternalRequest(
+            2, ExternalRequestKind.PROPERTY_ENRICHMENT, None, 1001, 17, 1, 1
+        ),
+        ExternalRequest(
+            3, ExternalRequestKind.PROPERTY_ENRICHMENT, None, 1002, 17, 1, 1
+        ),
     )
     evidence = ExternalEvidence(
         evidence_digest=b"e" * 32,

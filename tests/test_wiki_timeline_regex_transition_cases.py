@@ -27,7 +27,9 @@ def test_subjects_for_action_splits_conjoined_subjects() -> None:
 
 def test_extract_capitalized_surname_names_ignores_titles_only() -> None:
     text = "President Bush met with Congress."
-    out = ext._extract_capitalized_surname_names(text, "Bush", root_actor="George W. Bush")
+    out = ext._extract_capitalized_surname_names(
+        text, "Bush", root_actor="George W. Bush"
+    )
     assert out == []
 
 
@@ -60,7 +62,7 @@ def test_citation_tail_and_footnote_trim() -> None:
 
 @pytest.mark.xfail(
     reason="Possessive subject normalization does not yet handle multi-token possessives "
-    "like \"President Obama's\" consistently."
+    'like "President Obama\'s" consistently.'
 )
 def test_normalize_requester_surface_possessive_multi_token() -> None:
     assert ext._normalize_requester_surface("President Obama's") == "President Obama"
@@ -97,9 +99,16 @@ def test_numeric_value_regex_accepts_simple_values() -> None:
     "and should be upgraded to action-aware roles."
 )
 def test_infer_numeric_role_for_action_context() -> None:
-    assert ext._infer_numeric_role("pay", "100 usd", "paid 100 usd") == "transaction_price"
-    assert ext._infer_numeric_role("invest", "2 million", "invested 2 million") == "investment_amount"
-    assert ext._infer_numeric_role("cost", "5 billion", "cost 5 billion") == "cost_amount"
+    assert (
+        ext._infer_numeric_role("pay", "100 usd", "paid 100 usd") == "transaction_price"
+    )
+    assert (
+        ext._infer_numeric_role("invest", "2 million", "invested 2 million")
+        == "investment_amount"
+    )
+    assert (
+        ext._infer_numeric_role("cost", "5 billion", "cost 5 billion") == "cost_amount"
+    )
 
 
 @pytest.mark.xfail(

@@ -261,13 +261,22 @@ def persist(
                 peak_memory_bytes=EXCLUDED.peak_memory_bytes
             """,
             (
-                measurement_ref, stage.workload_ref, stage.stage_name,
-                stage.n_input, stage.n_generated, stage.n_retained, stage.n_output,
-                stage.work_units, stage.elapsed_microseconds, stage.peak_memory_bytes,
+                measurement_ref,
+                stage.workload_ref,
+                stage.stage_name,
+                stage.n_input,
+                stage.n_generated,
+                stage.n_retained,
+                stage.n_output,
+                stage.work_units,
+                stage.elapsed_microseconds,
+                stage.peak_memory_bytes,
             ),
         )
     for retrieval in retrievals:
-        measurement_ref = f"benchmark:{retrieval.workload_ref}:{retrieval.retrieval_kind}"
+        measurement_ref = (
+            f"benchmark:{retrieval.workload_ref}:{retrieval.retrieval_kind}"
+        )
         cursor.execute(
             """
             INSERT INTO execution.semantic_pnf_retrieval_measurement
@@ -282,9 +291,12 @@ def persist(
                 downstream_work_units=EXCLUDED.downstream_work_units
             """,
             (
-                measurement_ref, retrieval.workload_ref,
-                retrieval.universe_units, retrieval.frontier_units,
-                retrieval.probe_microseconds, retrieval.downstream_work_units,
+                measurement_ref,
+                retrieval.workload_ref,
+                retrieval.universe_units,
+                retrieval.frontier_units,
+                retrieval.probe_microseconds,
+                retrieval.downstream_work_units,
             ),
         )
 
@@ -315,15 +327,24 @@ def main() -> int:
         else:
             connection.rollback()
 
-    print(json.dumps({
-        "stage_measurements": [
-            {**asdict(stage), "tokens_per_second": stage.tokens_per_second,
-             "work_per_token": stage.work_per_token}
-            for stage in stages
-        ],
-        "retrieval_reduction": [asdict(item) for item in retrievals],
-        "structural_support_fanout": asdict(support),
-    }, indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            {
+                "stage_measurements": [
+                    {
+                        **asdict(stage),
+                        "tokens_per_second": stage.tokens_per_second,
+                        "work_per_token": stage.work_per_token,
+                    }
+                    for stage in stages
+                ],
+                "retrieval_reduction": [asdict(item) for item in retrievals],
+                "structural_support_fanout": asdict(support),
+            },
+            indent=2,
+            sort_keys=True,
+        )
+    )
     return 0
 
 

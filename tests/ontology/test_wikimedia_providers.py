@@ -57,9 +57,7 @@ class WikidataSession:
                                 {"value": "America"},
                             ]
                         },
-                        "descriptions": {
-                            "en": {"value": "country in North America"}
-                        },
+                        "descriptions": {"en": {"value": "country in North America"}},
                         "claims": {},
                     }
                 }
@@ -78,8 +76,16 @@ class WiktionarySession:
             {
                 "query": {
                     "pages": {
-                        "1": {"pageid": 1, "title": "bank", "extract": "A financial institution."},
-                        "2": {"pageid": 2, "title": "trust", "extract": "Confidence or reliance."},
+                        "1": {
+                            "pageid": 1,
+                            "title": "bank",
+                            "extract": "A financial institution.",
+                        },
+                        "2": {
+                            "pageid": 2,
+                            "title": "trust",
+                            "extract": "Confidence or reliance.",
+                        },
                     }
                 }
             }
@@ -144,6 +150,5 @@ def test_wiktionary_batches_multiple_titles_in_one_request() -> None:
         "trust",
     }
     assert all(
-        "lexical_sense_unresolved" in row.candidate_sets[0].residuals
-        for row in results
+        "lexical_sense_unresolved" in row.candidate_sets[0].residuals for row in results
     )

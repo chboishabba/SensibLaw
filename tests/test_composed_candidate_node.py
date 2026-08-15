@@ -14,7 +14,11 @@ from src.models.composed_candidate_node import (
 
 
 def _load_payload() -> dict:
-    path = Path(__file__).resolve().parents[1] / "examples" / "composed_candidate_node_minimal.json"
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "examples"
+        / "composed_candidate_node_minimal.json"
+    )
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -34,11 +38,27 @@ def test_composed_candidate_node_builder_normalizes_canonical_fields() -> None:
             "predicate": " confirmed_by ",
             "object": " actor:u_s_senate ",
         },
-        content_refs=[{"kind": " source_unit ", "value": " source://demo/transcript/1 ", "note": "kept"}],
-        authority_wrapper={"kind": " authority_wrapper ", "value": " judicial_review_gate "},
+        content_refs=[
+            {
+                "kind": " source_unit ",
+                "value": " source://demo/transcript/1 ",
+                "note": "kept",
+            }
+        ],
+        authority_wrapper={
+            "kind": " authority_wrapper ",
+            "value": " judicial_review_gate ",
+        },
         status=" candidate ",
         support_phi_ids=[" phi:demo:001 "],
-        span_refs=[{"kind": " source_span ", "value": " span://demo/1 ", "start_char": 0, "end_char": 42}],
+        span_refs=[
+            {
+                "kind": " source_span ",
+                "value": " span://demo/1 ",
+                "start_char": 0,
+                "end_char": 42,
+            }
+        ],
         provenance_receipts=[{"kind": " source ", "value": " demo_transcript "}],
         section=" Judicial review ",
         genre=" legal_ir ",

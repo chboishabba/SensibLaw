@@ -216,7 +216,9 @@ def build_statement_family_member_evidence(
         family_id = _text(supplied.get("family_id"))
         statement_id = _text(supplied.get("statement_id"))
         if not family_id or not statement_id:
-            raise ValueError("family member evidence requires family_id and statement_id")
+            raise ValueError(
+                "family member evidence requires family_id and statement_id"
+            )
         if family_id not in family_contexts:
             raise ValueError("family member evidence references unknown family")
         if statement_id in grouped[family_id]:
@@ -244,15 +246,16 @@ def build_statement_family_member_evidence(
             period_state = _text(evidence.get("period_coverage_state")) or "unresolved"
             conformance_state = _text(evidence.get("conformance_state")) or "unresolved"
             if period_state not in supported_period_coverage:
-                raise ValueError("family member evidence has unsupported period coverage")
+                raise ValueError(
+                    "family member evidence has unsupported period coverage"
+                )
             if conformance_state not in supported_conformance:
                 raise ValueError("family member evidence has unsupported conformance")
             period_states[statement_id] = period_state
             conformance_states[statement_id] = conformance_state
             period_values[statement_id] = list(_values(evidence.get("period_values")))
             period_shapes[statement_id] = (
-                _text(evidence.get("period_shape"))
-                or "single_observed_slot"
+                _text(evidence.get("period_shape")) or "single_observed_slot"
                 if period_state == "observed" and len(period_values[statement_id]) == 1
                 else "unresolved"
             )
@@ -267,7 +270,9 @@ def build_statement_family_member_evidence(
         else:
             values = [values[0] for values in period_values.values()]
             period_partition_state = (
-                "overlapping" if len(set(values)) != len(values) else "distinct_non_overlapping"
+                "overlapping"
+                if len(set(values)) != len(values)
+                else "distinct_non_overlapping"
             )
 
         if not context.get("coverage_complete") or not complete_member_evidence:

@@ -87,9 +87,7 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
         resolution_persistence,
         binding_persistence,
     )
-    compiler_originals = {
-        name: getattr(compiler, name) for name in replacements
-    }
+    compiler_originals = {name: getattr(compiler, name) for name in replacements}
     helper_originals = {
         module: (module._stage_payloads, module._complete_stage)
         for module in helper_modules

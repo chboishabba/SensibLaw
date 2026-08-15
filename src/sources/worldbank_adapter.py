@@ -51,10 +51,14 @@ def mock_worldbank_bundle() -> list[Mapping[str, Any]]:
     ]
 
 
-def fetch_live_worldbank_report(*, doc_id: str, url: str, timeout: int = 10) -> dict[str, Any] | None:
+def fetch_live_worldbank_report(
+    *, doc_id: str, url: str, timeout: int = 10
+) -> dict[str, Any] | None:
     try:
         response = requests.head(url, timeout=timeout)
         response.raise_for_status()
     except requests.RequestException:
         return None
-    return normalize_worldbank_source(doc_id=doc_id, title="World Bank Document", url=url)
+    return normalize_worldbank_source(
+        doc_id=doc_id, title="World Bank Document", url=url
+    )

@@ -31,6 +31,7 @@ from scripts.build_wikidata_structural_review import (
     _make_clusters,
     _make_review_items,
 )
+
 try:
     from src.policy.wikidata_review_queue import (
         make_bundles as _make_bundles,
@@ -100,7 +101,9 @@ def _build_source_review_rows() -> list[dict[str, Any]]:
                     "source_kind": "qualifier_statement_bundle",
                     "workload_class": "baseline_confirmation",
                     "review_status": "baseline",
-                    "recommended_next_action": _next_action_for_workload("baseline_confirmation"),
+                    "recommended_next_action": _next_action_for_workload(
+                        "baseline_confirmation"
+                    ),
                     "source_path": _relative(QUALIFIER_BASELINE_PATH),
                     "text": (
                         f"{subject} {bundle.get('property')} {value} in {window_id} "
@@ -121,7 +124,9 @@ def _build_source_review_rows() -> list[dict[str, Any]]:
                 drift_row=drift_row,
                 review_item_id=drift_item_id,
                 source_path=_relative(QUALIFIER_DRIFT_PROJECTION_PATH),
-                recommended_next_action=_next_action_for_workload("qualifier_drift_gap"),
+                recommended_next_action=_next_action_for_workload(
+                    "qualifier_drift_gap"
+                ),
             )
         )
 
@@ -129,8 +134,14 @@ def _build_source_review_rows() -> list[dict[str, Any]]:
         pack_id = pack.get("pack_id")
         if pack_id not in checked_slice["hotspot_governance"]["selected_pack_ids"]:
             continue
-        workload_class = "governance_gap" if pack.get("promotion_status") != "promoted" else "cluster_promotion_gap"
-        review_status = "review_required" if workload_class == "governance_gap" else "promoted"
+        workload_class = (
+            "governance_gap"
+            if pack.get("promotion_status") != "promoted"
+            else "cluster_promotion_gap"
+        )
+        review_status = (
+            "review_required" if workload_class == "governance_gap" else "promoted"
+        )
         item_id = f"review:hotspot_pack:{pack_id}"
         rows.extend(
             build_dense_hotspot_rows(
@@ -153,7 +164,9 @@ def _build_source_review_rows() -> list[dict[str, Any]]:
             workload_class = "structural_contradiction"
             review_status = "review_required"
         for window in payload.get("windows", []):
-            for index, bundle in enumerate(window.get("statement_bundles", []), start=1):
+            for index, bundle in enumerate(
+                window.get("statement_bundles", []), start=1
+            ):
                 subject = str(bundle.get("subject") or "")
                 value = str(bundle.get("value") or "")
                 text = (
@@ -166,7 +179,9 @@ def _build_source_review_rows() -> list[dict[str, Any]]:
                         review_item_id=review_item_id,
                         workload_class=workload_class,
                         review_status=review_status,
-                        recommended_next_action=_next_action_for_workload(workload_class),
+                        recommended_next_action=_next_action_for_workload(
+                            workload_class
+                        ),
                         source_path=_relative(path),
                         index=index,
                         text=text,
@@ -179,7 +194,9 @@ def _build_source_review_rows() -> list[dict[str, Any]]:
     return rows
 
 
-def _make_candidate_structural_cues(source_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _make_candidate_structural_cues(
+    source_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     cues: list[dict[str, Any]] = []
     for row in source_rows:
         payload = row.get("cue_payload") or {}
@@ -202,10 +219,14 @@ def _make_candidate_structural_cues(source_rows: list[dict[str, Any]]) -> list[d
                         "cue_kind": "qualifier_property",
                         "cue_value": key,
                     }
-            )
+                )
         elif row["source_kind"] == "qualifier_drift_summary":
             cues.extend(build_dense_qualifier_drift_cues(row))
-        elif row["source_kind"] in {"hotspot_pack_summary", "hotspot_focus_qid", "hotspot_cluster_family"}:
+        elif row["source_kind"] in {
+            "hotspot_pack_summary",
+            "hotspot_focus_qid",
+            "hotspot_cluster_family",
+        }:
             cues.extend(build_dense_hotspot_cues(row))
         elif row["source_kind"] == "disjointness_statement_bundle":
             cues.extend(build_dense_disjointness_cues(row))
@@ -223,7 +244,9 @@ def build_dense_review_artifact(output_dir: Path) -> dict[str, Any]:
     provisional_review_rows = _make_provisional_rows(
         review_item_rows, source_review_rows, candidate_structural_cues
     )
-    provisional_review_bundles = _make_bundles(provisional_review_rows, source_review_rows)
+    provisional_review_bundles = _make_bundles(
+        provisional_review_rows, source_review_rows
+    )
 
     workload_counts = Counter(row["workload_class"] for row in source_review_rows)
     review_required_source_ids = {
@@ -244,14 +267,20 @@ def build_dense_review_artifact(output_dir: Path) -> dict[str, Any]:
             "review_item_count": len(review_item_rows),
             "source_review_row_count": len(source_review_rows),
             "review_required_item_count": sum(
-                1 for row in review_item_rows if row["review_status"] == "review_required"
+                1
+                for row in review_item_rows
+                if row["review_status"] == "review_required"
             ),
             "related_review_cluster_count": len(related_review_clusters),
             "candidate_structural_cue_count": len(candidate_structural_cues),
             "provisional_review_row_count": len(provisional_review_rows),
             "provisional_review_bundle_count": len(provisional_review_bundles),
-            "baseline_confirmation_count": workload_counts.get("baseline_confirmation", 0),
-            "cluster_promotion_gap_count": workload_counts.get("cluster_promotion_gap", 0),
+            "baseline_confirmation_count": workload_counts.get(
+                "baseline_confirmation", 0
+            ),
+            "cluster_promotion_gap_count": workload_counts.get(
+                "cluster_promotion_gap", 0
+            ),
             "governance_gap_count": workload_counts.get("governance_gap", 0),
             "qualifier_drift_gap_count": workload_counts.get("qualifier_drift_gap", 0),
             "structural_contradiction_count": workload_counts.get(
@@ -317,14 +346,22 @@ def build_summary_markdown(payload: dict[str, Any]) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build the dense Wikidata structural review artifact.")
+    parser = argparse.ArgumentParser(
+        description="Build the dense Wikidata structural review artifact."
+    )
     parser.add_argument(
         "--output-dir",
         default=str(DEFAULT_OUTPUT_DIR),
         help="Directory to write the dense review artifact into.",
     )
     args = parser.parse_args()
-    print(json.dumps(build_dense_review_artifact(Path(args.output_dir).resolve()), indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            build_dense_review_artifact(Path(args.output_dir).resolve()),
+            indent=2,
+            sort_keys=True,
+        )
+    )
     return 0
 
 

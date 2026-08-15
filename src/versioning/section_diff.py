@@ -5,6 +5,7 @@ between two statute versions and highlights textual changes. Sections are
 matched by normalised headings (stripping numbering and extra whitespace)
 before computing word-level diffs.
 """
+
 from __future__ import annotations
 
 import html
@@ -34,7 +35,9 @@ def _split_sections(doc: str) -> Dict[str, Tuple[str, str]]:
     Returns a mapping of section key to a tuple of (display heading, body).
     """
     sections: Dict[str, Tuple[str, str]] = {}
-    pattern = re.compile(r"(<h[1-6][^>]*>.*?</h[1-6]>)(.*?)(?=<h[1-6][^>]*>|$)", re.I | re.S)
+    pattern = re.compile(
+        r"(<h[1-6][^>]*>.*?</h[1-6]>)(.*?)(?=<h[1-6][^>]*>|$)", re.I | re.S
+    )
     for heading_html, body in pattern.findall(doc):
         heading = _heading_re.search(heading_html)
         if not heading:

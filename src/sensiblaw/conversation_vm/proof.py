@@ -7,7 +7,9 @@ from typing import Any
 from .schema import CONTEXT_PAYLOAD_SCHEMA, PROOF_SURFACE_SCHEMA, stable_id
 
 
-def build_proof_surface(state: dict[str, Any], query: str | None = None) -> dict[str, Any]:
+def build_proof_surface(
+    state: dict[str, Any], query: str | None = None
+) -> dict[str, Any]:
     atoms = _filter_by_query(state.get("predicate_atoms", []), query)
     atom_ids = {atom["id"] for atom in atoms}
     residuals = [
@@ -17,7 +19,10 @@ def build_proof_surface(state: dict[str, Any], query: str | None = None) -> dict
     ]
     return {
         "schema": PROOF_SURFACE_SCHEMA,
-        "id": stable_id("proof", {"state_id": state.get("id"), "query": query, "atoms": sorted(atom_ids)}),
+        "id": stable_id(
+            "proof",
+            {"state_id": state.get("id"), "query": query, "atoms": sorted(atom_ids)},
+        ),
         "state_id": state.get("id"),
         "query": query,
         "sources": state.get("sources", []),
@@ -25,7 +30,11 @@ def build_proof_surface(state: dict[str, Any], query: str | None = None) -> dict
         "statements": state.get("statements", []),
         "observations": state.get("observations", []),
         "predicate_atoms": atoms,
-        "predicate_pnfs": [item for item in state.get("predicate_pnfs", []) if item.get("atom_id") in atom_ids],
+        "predicate_pnfs": [
+            item
+            for item in state.get("predicate_pnfs", [])
+            if item.get("atom_id") in atom_ids
+        ],
         "residual_comparisons": residuals,
         "promotion_gates": state.get("promotion_gates", []),
         "proof_obligations": state.get("proof_obligations", []),
@@ -35,7 +44,9 @@ def build_proof_surface(state: dict[str, Any], query: str | None = None) -> dict
     }
 
 
-def build_context_payload(state: dict[str, Any], query: str | None = None, limit: int = 12) -> dict[str, Any]:
+def build_context_payload(
+    state: dict[str, Any], query: str | None = None, limit: int = 12
+) -> dict[str, Any]:
     surface = build_proof_surface(state, query=query)
     atoms = surface["predicate_atoms"][:limit]
     atom_ids = {atom["id"] for atom in atoms}
@@ -47,18 +58,30 @@ def build_context_payload(state: dict[str, Any], query: str | None = None, limit
         "items": [
             {
                 "atom": atom,
-                "pnf": next((pnf for pnf in surface["predicate_pnfs"] if pnf.get("atom_id") == atom["id"]), None),
+                "pnf": next(
+                    (
+                        pnf
+                        for pnf in surface["predicate_pnfs"]
+                        if pnf.get("atom_id") == atom["id"]
+                    ),
+                    None,
+                ),
                 "residuals": [
                     residual
                     for residual in surface["residual_comparisons"]
-                    if residual.get("left_atom_id") == atom["id"] or residual.get("right_atom_id") == atom["id"]
+                    if residual.get("left_atom_id") == atom["id"]
+                    or residual.get("right_atom_id") == atom["id"]
                 ],
             }
             for atom in atoms
         ],
         "missing_evidence": surface["proof_obligations"],
         "abstentions": surface["abstentions"],
-        "contested_items": [item for item in surface["contested_items"] if any(atom_id in item.get("atom_ids", []) for atom_id in atom_ids)],
+        "contested_items": [
+            item
+            for item in surface["contested_items"]
+            if any(atom_id in item.get("atom_ids", []) for atom_id in atom_ids)
+        ],
         "metadata": {
             "opaque_summary": False,
             "item_count": len(atoms),
@@ -67,7 +90,9 @@ def build_context_payload(state: dict[str, Any], query: str | None = None, limit
     }
 
 
-def _filter_by_query(items: list[dict[str, Any]], query: str | None) -> list[dict[str, Any]]:
+def _filter_by_query(
+    items: list[dict[str, Any]], query: str | None
+) -> list[dict[str, Any]]:
     if not query:
         return list(items)
     needle = query.lower()
@@ -75,5 +100,7 @@ def _filter_by_query(items: list[dict[str, Any]], query: str | None) -> list[dic
         item
         for item in items
         if needle in item.get("predicate", "").lower()
-        or any(needle in str(argument).lower() for argument in item.get("arguments", []))
+        or any(
+            needle in str(argument).lower() for argument in item.get("arguments", [])
+        )
     ]

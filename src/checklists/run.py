@@ -24,7 +24,11 @@ def evaluate(checklist, story_tags: set[str]):
 
     logic = checklist.get("logic", "")
     try:
-        passed = bool(eval(logic, {"__builtins__": {}}, context)) if logic else all(context.values())
+        passed = (
+            bool(eval(logic, {"__builtins__": {}}, context))
+            if logic
+            else all(context.values())
+        )
     except Exception:
         passed = False
 

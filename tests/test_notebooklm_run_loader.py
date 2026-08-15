@@ -5,7 +5,9 @@ from pathlib import Path
 from src.reporting.notebooklm_run_loader import iter_dated_artifacts, resolve_runs_root
 
 
-def test_notebooklm_run_loader_resolves_root_and_filters_dated_artifacts(tmp_path: Path) -> None:
+def test_notebooklm_run_loader_resolves_root_and_filters_dated_artifacts(
+    tmp_path: Path,
+) -> None:
     runs_root = tmp_path / "runs"
     good_a = runs_root / "2026-03-10" / "logs" / "notes"
     good_b = runs_root / "2026-03-11" / "outputs" / "notebooklm"
@@ -37,5 +39,11 @@ def test_notebooklm_modules_import_shared_run_loader() -> None:
     reporting_root = Path(__file__).resolve().parents[1] / "src" / "reporting"
     observer = (reporting_root / "notebooklm_observer.py").read_text(encoding="utf-8")
     activity = (reporting_root / "notebooklm_activity.py").read_text(encoding="utf-8")
-    assert "from src.reporting.notebooklm_run_loader import iter_dated_artifacts, resolve_runs_root" in observer
-    assert "from src.reporting.notebooklm_run_loader import iter_dated_artifacts" in activity
+    assert (
+        "from src.reporting.notebooklm_run_loader import iter_dated_artifacts, resolve_runs_root"
+        in observer
+    )
+    assert (
+        "from src.reporting.notebooklm_run_loader import iter_dated_artifacts"
+        in activity
+    )

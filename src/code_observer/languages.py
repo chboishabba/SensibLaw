@@ -49,6 +49,10 @@ def _tree_sitter_language(language: str) -> Language:
     if language in {"typescript", "tsx"}:
         import tree_sitter_typescript
 
-        fn: Any = tree_sitter_typescript.language_tsx if language == "tsx" else tree_sitter_typescript.language_typescript
+        fn: Any = (
+            tree_sitter_typescript.language_tsx
+            if language == "tsx"
+            else tree_sitter_typescript.language_typescript
+        )
         return Language(fn())
     raise ValueError(f"unsupported language: {language}")

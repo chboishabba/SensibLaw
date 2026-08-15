@@ -4,15 +4,14 @@
 from __future__ import annotations
 
 import argparse
-import math
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 from pdfminer.high_level import extract_text
 
-from src.text.tokenize_simple import count_tokens, repeat_ratio_ngrams, tokenize
+from src.text.tokenize_simple import repeat_ratio_ngrams, tokenize
 
 
 def _analyze_pdf(path: Path, *, limit_chars: int | None = None) -> Dict:
@@ -39,10 +38,22 @@ def _eta(start: float, done: int, total: int) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Compute corpus growth stats over PDFs.")
+    parser = argparse.ArgumentParser(
+        description="Compute corpus growth stats over PDFs."
+    )
     parser.add_argument("path", type=Path, help="Directory containing PDFs")
-    parser.add_argument("--workers", type=int, default=0, help="Number of parallel workers (default: cpu count)")
-    parser.add_argument("--limit-chars", type=int, default=None, help="Optionally truncate text per file")
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=0,
+        help="Number of parallel workers (default: cpu count)",
+    )
+    parser.add_argument(
+        "--limit-chars",
+        type=int,
+        default=None,
+        help="Optionally truncate text per file",
+    )
     args = parser.parse_args()
 
     pdfs: List[Path] = sorted(p for p in args.path.glob("*.pdf"))
@@ -55,7 +66,8 @@ def main() -> None:
 
     with ProcessPoolExecutor(max_workers=workers) as pool:
         future_map = {
-            pool.submit(_analyze_pdf, pdf, limit_chars=args.limit_chars): pdf for pdf in pdfs
+            pool.submit(_analyze_pdf, pdf, limit_chars=args.limit_chars): pdf
+            for pdf in pdfs
         }
         total = len(future_map)
         for i, future in enumerate(as_completed(future_map), start=1):

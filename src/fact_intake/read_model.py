@@ -12,7 +12,10 @@ from typing import Any, Iterable, Mapping
 from src.reporting.structure_report import TextUnit
 from src.sensiblaw.db.dao import ensure_database
 from src.zelph_bridge import enrich_workbench_with_zelph, load_zelph_rules
-from .control_plane import FOLLOW_CONTROL_PLANE_VERSION, build_follow_control_plane, summarize_follow_queue
+from .control_plane import (
+    build_follow_control_plane,
+    summarize_follow_queue,
+)
 from .operator_views import (
     build_contested_control_items,
     build_review_queue_control_items,
@@ -27,11 +30,38 @@ AUTHORITY_INGEST_VERSION = "authority.ingest.v1"
 FEEDBACK_RECEIPT_VERSION = "feedback.receipt.v1"
 
 OBSERVATION_PREDICATE_FAMILIES: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("actor_identification", ("actor", "co_actor", "actor_role", "actor_attribute", "organization")),
-    ("actions_events", ("performed_action", "failed_to_act", "caused_event", "received_action", "communicated")),
-    ("object_target", ("acted_on", "affected_object", "subject_matter", "document_reference")),
-    ("temporal", ("event_time", "event_date", "temporal_relation", "duration", "sequence_marker")),
-    ("harm_consequence", ("harm_type", "injury", "loss", "damage_amount", "causal_link")),
+    (
+        "actor_identification",
+        ("actor", "co_actor", "actor_role", "actor_attribute", "organization"),
+    ),
+    (
+        "actions_events",
+        (
+            "performed_action",
+            "failed_to_act",
+            "caused_event",
+            "received_action",
+            "communicated",
+        ),
+    ),
+    (
+        "object_target",
+        ("acted_on", "affected_object", "subject_matter", "document_reference"),
+    ),
+    (
+        "temporal",
+        (
+            "event_time",
+            "event_date",
+            "temporal_relation",
+            "duration",
+            "sequence_marker",
+        ),
+    ),
+    (
+        "harm_consequence",
+        ("harm_type", "injury", "loss", "damage_amount", "causal_link"),
+    ),
     (
         "legal_procedural",
         (
@@ -87,7 +117,14 @@ EVENT_ATTRIBUTE_PREDICATES = {
 
 STATEMENT_STATUS_VALUES = {"captured", "abstained"}
 OBSERVATION_STATUS_VALUES = {"captured", "uncertain", "abstained"}
-FACT_STATUS_VALUES = {"captured", "candidate", "reviewed", "uncertain", "abstained", "no_fact"}
+FACT_STATUS_VALUES = {
+    "captured",
+    "candidate",
+    "reviewed",
+    "uncertain",
+    "abstained",
+    "no_fact",
+}
 EVENT_STATUS_VALUES = {"candidate", "reviewed", "abstained"}
 _FACT_INTAKE_MIGRATION_FILES = (
     "005_fact_intake_read_model.sql",
@@ -138,7 +175,14 @@ FACT_REVIEW_ZELPH_RULESET_VERSION = "fact.review.workbench.zelph.v2"
 FACT_SEMANTIC_LAYER_VERSION = "fact.semantic.layer.v1"
 _ASSERTION_PREDICATES = {"claimed", "denied", "admitted", "alleged"}
 _PROCEDURAL_OUTCOME_PREDICATES = {"ordered", "ruled", "decided_by", "held_that"}
-_PROCEDURAL_CONTEXT_PREDICATES = {"appealed", "challenged", "heard_by", "applied", "followed", "distinguished"}
+_PROCEDURAL_CONTEXT_PREDICATES = {
+    "appealed",
+    "challenged",
+    "heard_by",
+    "applied",
+    "followed",
+    "distinguished",
+}
 
 _SEMANTIC_CLASS_SPECS: tuple[tuple[str, str, str, str], ...] = (
     ("public_summary", "source_authority", "source", "Public summary source."),
@@ -147,14 +191,29 @@ _SEMANTIC_CLASS_SPECS: tuple[tuple[str, str, str, str], ...] = (
     ("legal_record", "source_authority", "source", "Legal record source."),
     ("procedural_record", "source_authority", "source", "Procedural record source."),
     ("strong_legal_source", "source_authority", "source", "Strong legal source."),
-    ("reporting_source", "source_authority", "source", "Reporting-style summary source."),
+    (
+        "reporting_source",
+        "source_authority",
+        "source",
+        "Reporting-style summary source.",
+    ),
     ("ocr_capture", "source_authority", "source", "OCR capture source."),
     ("later_annotation", "source_authority", "source", "Later annotation source."),
     ("agent_summary", "role_boundary", "source", "Agent-generated summary source."),
     ("system_summary", "role_boundary", "source", "System-generated summary source."),
-    ("agent_action_log", "role_boundary", "source", "Agent execution/activity log source."),
+    (
+        "agent_action_log",
+        "role_boundary",
+        "source",
+        "Agent execution/activity log source.",
+    ),
     ("professional_note", "role_boundary", "source", "Professional note source."),
-    ("professional_interpretation", "role_boundary", "source", "Professional interpretation source."),
+    (
+        "professional_interpretation",
+        "role_boundary",
+        "source",
+        "Professional interpretation source.",
+    ),
     ("support_worker_note", "role_boundary", "source", "Support-worker note source."),
     ("third_party_record", "source_authority", "source", "Third-party record source."),
     ("documentary_record", "source_authority", "source", "Documentary record source."),
@@ -173,13 +232,28 @@ _SEMANTIC_CLASS_SPECS: tuple[tuple[str, str, str, str], ...] = (
     ("appeal_stage_signal", "claim_status", "fact", "Appeal-stage signal."),
     ("volatility_signal", "epistemic", "fact", "Volatility or contested-edit signal."),
     ("authority_transfer_risk", "epistemic", "fact", "Authority transfer risk."),
-    ("public_knowledge_not_authority", "epistemic", "fact", "Public knowledge is not authority."),
-    ("wiki_wikidata_claim_alignment", "epistemic", "fact", "Wiki/Wikidata alignment signal."),
+    (
+        "public_knowledge_not_authority",
+        "epistemic",
+        "fact",
+        "Public knowledge is not authority.",
+    ),
+    (
+        "wiki_wikidata_claim_alignment",
+        "epistemic",
+        "fact",
+        "Wiki/Wikidata alignment signal.",
+    ),
 )
 
 _SEMANTIC_RELATION_SPECS: tuple[tuple[str, str, str, str], ...] = (
     ("contextualizes", "source", "source", "Source contextualizes another source."),
-    ("cannot_upgrade_authority_of", "source", "source", "Source cannot upgrade authority of another source."),
+    (
+        "cannot_upgrade_authority_of",
+        "source",
+        "source",
+        "Source cannot upgrade authority of another source.",
+    ),
     ("corroborates", "fact", "fact", "Fact corroborates another fact."),
     ("contradicts", "fact", "fact", "Fact contradicts another fact."),
 )
@@ -194,10 +268,18 @@ _SEMANTIC_RULE_SPECS: tuple[tuple[str, str, str], ...] = (
 
 _POLICY_SPECS: tuple[tuple[str, str, str], ...] = (
     ("review_required", "fact", "Fact requires review."),
-    ("do_not_promote_to_primary", "fact", "Fact must not be promoted to a primary-authority claim."),
+    (
+        "do_not_promote_to_primary",
+        "fact",
+        "Fact must not be promoted to a primary-authority claim.",
+    ),
     ("preserve_source_boundary", "fact", "Source boundary must be preserved."),
     ("manual_resolution_required", "fact", "Manual resolution is required."),
-    ("bounded_context_required", "fact", "Downstream agents must receive bounded context only."),
+    (
+        "bounded_context_required",
+        "fact",
+        "Downstream agents must receive bounded context only.",
+    ),
 )
 
 
@@ -254,7 +336,9 @@ def _normalize_event_field(value: Any) -> str | None:
     return text.casefold() if text else None
 
 
-def _normalize_status(value: Any, *, allowed: set[str], label: str, default: str) -> str:
+def _normalize_status(
+    value: Any, *, allowed: set[str], label: str, default: str
+) -> str:
     status = str(value or default).strip()
     if status not in allowed:
         raise ValueError(f"unsupported {label}: {status}")
@@ -312,7 +396,11 @@ def _source_projection_modes(sources: Iterable[Mapping[str, Any]]) -> list[str]:
 def _derived_source_classes(source: Mapping[str, Any]) -> list[str]:
     out: list[str] = []
     source_type = str(source.get("source_type") or "").strip()
-    provenance = source.get("provenance") if isinstance(source.get("provenance"), Mapping) else {}
+    provenance = (
+        source.get("provenance")
+        if isinstance(source.get("provenance"), Mapping)
+        else {}
+    )
     if source_type == "wiki_article":
         out.extend(["public_summary", "wiki_article"])
     if source_type == "wikidata_claim_sheet":
@@ -385,11 +473,16 @@ def _has_legal_procedural_visibility(
     )
 
 
-def _event_time_precision(event: Mapping[str, Any], observations_by_id: Mapping[str, Mapping[str, Any]]) -> str:
+def _event_time_precision(
+    event: Mapping[str, Any], observations_by_id: Mapping[str, Mapping[str, Any]]
+) -> str:
     if not _normalize_opt_text(event.get("time_start")):
         return "undated"
     for evidence in event.get("evidence", []):
-        if not isinstance(evidence, Mapping) or str(evidence.get("role")) != "time_start":
+        if (
+            not isinstance(evidence, Mapping)
+            or str(evidence.get("role")) != "time_start"
+        ):
             continue
         observation = observations_by_id.get(str(evidence.get("observation_id")))
         if not isinstance(observation, Mapping):
@@ -420,19 +513,29 @@ FACT_INT_ROLLBACK_TABLES = [
 def _delete_run(conn: sqlite3.Connection, run_id: str) -> None:
     fact_ids = [
         str(row[0])
-        for row in conn.execute("SELECT fact_id FROM fact_candidates WHERE run_id = ?", (run_id,))
+        for row in conn.execute(
+            "SELECT fact_id FROM fact_candidates WHERE run_id = ?", (run_id,)
+        )
         if row and row[0]
     ]
     if fact_ids:
         placeholders = ",".join("?" for _ in fact_ids)
-        for table in ("fact_candidate_statements", "fact_reviews", "fact_contestations"):
-            conn.execute(f"DELETE FROM {table} WHERE fact_id IN ({placeholders})", fact_ids)
+        for table in (
+            "fact_candidate_statements",
+            "fact_reviews",
+            "fact_contestations",
+        ):
+            conn.execute(
+                f"DELETE FROM {table} WHERE fact_id IN ({placeholders})", fact_ids
+            )
     for table in FACT_INT_ROLLBACK_TABLES:
         conn.execute(f"DELETE FROM {table} WHERE run_id = ?", (run_id,))
 
 
 def _delete_contested_review_run(conn: sqlite3.Connection, review_run_id: str) -> None:
-    conn.execute("DELETE FROM contested_review_runs WHERE review_run_id = ?", (review_run_id,))
+    conn.execute(
+        "DELETE FROM contested_review_runs WHERE review_run_id = ?", (review_run_id,)
+    )
 
 
 def _ensure_fact_intake_tables(conn: sqlite3.Connection) -> None:
@@ -506,7 +609,9 @@ def _ensure_semantic_refresh_progress_columns(conn: sqlite3.Connection) -> None:
     for column, column_type in wanted.items():
         if column in columns:
             continue
-        conn.execute(f"ALTER TABLE semantic_refresh_runs ADD COLUMN {column} {column_type}")
+        conn.execute(
+            f"ALTER TABLE semantic_refresh_runs ADD COLUMN {column} {column_type}"
+        )
 
 
 def _seed_fact_semantic_vocab(conn: sqlite3.Connection) -> None:
@@ -517,16 +622,35 @@ def _seed_fact_semantic_vocab(conn: sqlite3.Connection) -> None:
               class_key, dimension, applies_to, class_status, description, introduced_in_version
             ) VALUES (?,?,?,?,?,?)
             """,
-            (class_key, dimension, applies_to, "active", description, FACT_SEMANTIC_LAYER_VERSION),
+            (
+                class_key,
+                dimension,
+                applies_to,
+                "active",
+                description,
+                FACT_SEMANTIC_LAYER_VERSION,
+            ),
         )
-    for relation_key, subject_kind, object_kind, description in _SEMANTIC_RELATION_SPECS:
+    for (
+        relation_key,
+        subject_kind,
+        object_kind,
+        description,
+    ) in _SEMANTIC_RELATION_SPECS:
         conn.execute(
             """
             INSERT OR IGNORE INTO semantic_relation_vocab(
               relation_key, subject_kind, object_kind, relation_status, description, introduced_in_version
             ) VALUES (?,?,?,?,?,?)
             """,
-            (relation_key, subject_kind, object_kind, "active", description, FACT_SEMANTIC_LAYER_VERSION),
+            (
+                relation_key,
+                subject_kind,
+                object_kind,
+                "active",
+                description,
+                FACT_SEMANTIC_LAYER_VERSION,
+            ),
         )
     for rule_key, engine_kind, description in _SEMANTIC_RULE_SPECS:
         conn.execute(
@@ -548,15 +672,23 @@ def _seed_fact_semantic_vocab(conn: sqlite3.Connection) -> None:
         )
 
 
-def _assemble_event_candidates(conn: sqlite3.Connection, *, run_id: str) -> dict[str, int]:
+def _assemble_event_candidates(
+    conn: sqlite3.Connection, *, run_id: str
+) -> dict[str, int]:
     """Assemble derived events from normalized observation predicates only.
 
     Language/jurisdiction-specific variation must have already been normalized
     into the observation layer before this function runs.
     """
 
-    conn.execute("DELETE FROM event_evidence WHERE event_id IN (SELECT event_id FROM event_candidates WHERE run_id = ?)", (run_id,))
-    conn.execute("DELETE FROM event_attributes WHERE event_id IN (SELECT event_id FROM event_candidates WHERE run_id = ?)", (run_id,))
+    conn.execute(
+        "DELETE FROM event_evidence WHERE event_id IN (SELECT event_id FROM event_candidates WHERE run_id = ?)",
+        (run_id,),
+    )
+    conn.execute(
+        "DELETE FROM event_attributes WHERE event_id IN (SELECT event_id FROM event_candidates WHERE run_id = ?)",
+        (run_id,),
+    )
     conn.execute("DELETE FROM event_candidates WHERE run_id = ?", (run_id,))
 
     rows = conn.execute(
@@ -603,7 +735,9 @@ def _assemble_event_candidates(conn: sqlite3.Connection, *, run_id: str) -> dict
         if predicate_key in EVENT_TRIGGER_PREDICATES:
             if bucket["event_type"] is None:
                 bucket["event_type"] = object_text
-            bucket["roles"].append((str(row["observation_id"]), "event_type", predicate_key, object_text))
+            bucket["roles"].append(
+                (str(row["observation_id"]), "event_type", predicate_key, object_text)
+            )
             continue
 
         role: str | None = None
@@ -611,14 +745,22 @@ def _assemble_event_candidates(conn: sqlite3.Connection, *, run_id: str) -> dict
             if bucket["primary_actor"] is None:
                 bucket["primary_actor"] = object_text
                 role = "primary_actor"
-            elif bucket["secondary_actor"] is None and object_text != bucket["primary_actor"]:
+            elif (
+                bucket["secondary_actor"] is None
+                and object_text != bucket["primary_actor"]
+            ):
                 bucket["secondary_actor"] = object_text
                 role = "secondary_actor"
         elif predicate_key in {"co_actor", "organization"}:
             if bucket["secondary_actor"] is None:
                 bucket["secondary_actor"] = object_text
                 role = "secondary_actor"
-        elif predicate_key in {"acted_on", "affected_object", "subject_matter", "document_reference"}:
+        elif predicate_key in {
+            "acted_on",
+            "affected_object",
+            "subject_matter",
+            "document_reference",
+        }:
             if bucket["object_text"] is None:
                 bucket["object_text"] = object_text
                 role = "object_text"
@@ -627,13 +769,19 @@ def _assemble_event_candidates(conn: sqlite3.Connection, *, run_id: str) -> dict
                 bucket["time_start"] = object_text
                 role = "time_start"
         elif predicate_key in EVENT_ATTRIBUTE_PREDICATES:
-            bucket["attributes"].append((str(row["observation_id"]), predicate_key, object_text))
+            bucket["attributes"].append(
+                (str(row["observation_id"]), predicate_key, object_text)
+            )
             role = "attribute"
 
         if role:
-            bucket["roles"].append((str(row["observation_id"]), role, predicate_key, object_text))
+            bucket["roles"].append(
+                (str(row["observation_id"]), role, predicate_key, object_text)
+            )
 
-    grouped: dict[tuple[str | None, str | None, str | None, str | None], dict[str, Any]] = {}
+    grouped: dict[
+        tuple[str | None, str | None, str | None, str | None], dict[str, Any]
+    ] = {}
     pending_attribute_buckets: list[dict[str, Any]] = []
     for bucket in statement_buckets.values():
         if not bucket["event_type"]:
@@ -714,7 +862,12 @@ def _assemble_event_candidates(conn: sqlite3.Connection, *, run_id: str) -> dict
                 bucket["time_start"],
                 bucket["time_end"],
                 confidence,
-                _normalize_status("candidate", allowed=EVENT_STATUS_VALUES, label="event_status", default="candidate"),
+                _normalize_status(
+                    "candidate",
+                    allowed=EVENT_STATUS_VALUES,
+                    label="event_status",
+                    default="candidate",
+                ),
                 EVENT_ASSEMBLER_VERSION,
             ),
         )
@@ -734,7 +887,13 @@ def _assemble_event_candidates(conn: sqlite3.Connection, *, run_id: str) -> dict
                 INSERT INTO event_attributes(event_id, attribute_type, attribute_value, source_observation_id, confidence)
                 VALUES (?,?,?,?,?)
                 """,
-                (event_id, attribute_type, attribute_value or "", observation_id, confidence),
+                (
+                    event_id,
+                    attribute_type,
+                    attribute_value or "",
+                    observation_id,
+                    confidence,
+                ),
             )
             attribute_count += 1
     return {
@@ -800,7 +959,9 @@ def build_fact_intake_payload_from_text_units(
         excerpt_order_by_source[source_id] += 1
         excerpt_order = excerpt_order_by_source[source_id]
         excerpt_id = f"excerpt:{_sha256_text(f'{run_id}:{unit.unit_id}:excerpt')[:16]}"
-        statement_id = f"statement:{_sha256_text(f'{run_id}:{unit.unit_id}:statement')[:16]}"
+        statement_id = (
+            f"statement:{_sha256_text(f'{run_id}:{unit.unit_id}:statement')[:16]}"
+        )
         fact_id = f"fact:{_sha256_text(f'{run_id}:{unit.unit_id}:fact')[:16]}"
         excerpts.append(
             {
@@ -873,11 +1034,15 @@ def persist_fact_intake_payload(
     run_id = str(run.get("run_id") or "").strip()
     if not run_id:
         raise ValueError("payload.run.run_id is required")
-    contract_version = str(run.get("contract_version") or FACT_INTAKE_CONTRACT_VERSION).strip()
+    contract_version = str(
+        run.get("contract_version") or FACT_INTAKE_CONTRACT_VERSION
+    ).strip()
     source_label = str(run.get("source_label") or "").strip()
     if not source_label:
         raise ValueError("payload.run.source_label is required")
-    mary_projection_version = str(run.get("mary_projection_version") or MARY_FACT_WORKFLOW_VERSION).strip()
+    mary_projection_version = str(
+        run.get("mary_projection_version") or MARY_FACT_WORKFLOW_VERSION
+    ).strip()
 
     def emit_progress(
         stage: str,
@@ -892,7 +1057,9 @@ def persist_fact_intake_payload(
     ) -> None:
         if not callable(progress_callback):
             return
-        elapsed_seconds = None if started_at is None else max(time.monotonic() - started_at, 0.0)
+        elapsed_seconds = (
+            None if started_at is None else max(time.monotonic() - started_at, 0.0)
+        )
         items_per_second = None
         if elapsed_seconds and completed is not None and elapsed_seconds > 0:
             items_per_second = round(completed / elapsed_seconds, 2)
@@ -904,7 +1071,9 @@ def persist_fact_intake_payload(
                 "section": section,
                 "completed": completed,
                 "total": total,
-                "elapsed_seconds": None if elapsed_seconds is None else round(elapsed_seconds, 3),
+                "elapsed_seconds": None
+                if elapsed_seconds is None
+                else round(elapsed_seconds, 3),
                 "items_per_second": items_per_second,
                 "message": message,
                 **extra,
@@ -951,10 +1120,14 @@ def persist_fact_intake_payload(
             remaining = max(total - completed, 0)
             eta_seconds = remaining / current_rate
             finish_at = datetime.now(timezone.utc).timestamp() + eta_seconds
-            eta_finish_utc = datetime.fromtimestamp(finish_at, tz=timezone.utc).isoformat()
+            eta_finish_utc = datetime.fromtimestamp(
+                finish_at, tz=timezone.utc
+            ).isoformat()
             if len(rate_samples) >= 2:
                 mean_rate = statistics.fmean(rate_samples)
-                rate_std = statistics.pstdev(rate_samples) if len(rate_samples) > 1 else 0.0
+                rate_std = (
+                    statistics.pstdev(rate_samples) if len(rate_samples) > 1 else 0.0
+                )
                 low_rate = max(mean_rate - rate_std, 0.001)
                 high_rate = max(mean_rate + rate_std, low_rate)
                 lower_eta = remaining / high_rate
@@ -962,7 +1135,10 @@ def persist_fact_intake_payload(
                 eta_interval = [round(lower_eta, 3), round(upper_eta, 3)]
                 eta_confidence = "heuristic_1sigma_rate_band"
             else:
-                eta_interval = [round(eta_seconds * 0.5, 3), round(eta_seconds * 1.5, 3)]
+                eta_interval = [
+                    round(eta_seconds * 0.5, 3),
+                    round(eta_seconds * 1.5, 3),
+                ]
                 eta_confidence = "heuristic_single_sample_low_confidence"
             return {
                 "eta_seconds_remaining": round(eta_seconds, 3),
@@ -1028,7 +1204,9 @@ def persist_fact_intake_payload(
             _normalize_opt_text(run.get("notes")),
         ),
     )
-    source_rows = payload.get("sources") if isinstance(payload.get("sources"), list) else []
+    source_rows = (
+        payload.get("sources") if isinstance(payload.get("sources"), list) else []
+    )
     source_count = persist_section(
         "sources",
         list(source_rows),
@@ -1051,7 +1229,9 @@ def persist_fact_intake_payload(
             ),
         ),
     )
-    excerpt_rows = payload.get("excerpts") if isinstance(payload.get("excerpts"), list) else []
+    excerpt_rows = (
+        payload.get("excerpts") if isinstance(payload.get("excerpts"), list) else []
+    )
     excerpt_count = persist_section(
         "excerpts",
         list(excerpt_rows),
@@ -1075,7 +1255,9 @@ def persist_fact_intake_payload(
             ),
         ),
     )
-    statement_rows = payload.get("statements") if isinstance(payload.get("statements"), list) else []
+    statement_rows = (
+        payload.get("statements") if isinstance(payload.get("statements"), list) else []
+    )
     statement_count = persist_section(
         "statements",
         list(statement_rows),
@@ -1106,7 +1288,11 @@ def persist_fact_intake_payload(
             ),
         ),
     )
-    observation_rows = payload.get("observations") if isinstance(payload.get("observations"), list) else []
+    observation_rows = (
+        payload.get("observations")
+        if isinstance(payload.get("observations"), list)
+        else []
+    )
     observation_count = persist_section(
         "observations",
         list(observation_rows),
@@ -1131,14 +1317,18 @@ def persist_fact_intake_payload(
                     (
                         lambda predicate_family: (
                             predicate_family
-                            if predicate_family == OBSERVATION_PREDICATE_TO_FAMILY[predicate_key]
+                            if predicate_family
+                            == OBSERVATION_PREDICATE_TO_FAMILY[predicate_key]
                             else (_ for _ in ()).throw(
                                 ValueError(
                                     f"predicate_family mismatch for {predicate_key}: expected {OBSERVATION_PREDICATE_TO_FAMILY[predicate_key]}, got {predicate_family}"
                                 )
                             )
                         )
-                    )(str(row.get("predicate_family") or "").strip() or OBSERVATION_PREDICATE_TO_FAMILY[predicate_key]),
+                    )(
+                        str(row.get("predicate_family") or "").strip()
+                        or OBSERVATION_PREDICATE_TO_FAMILY[predicate_key]
+                    ),
                     str(row.get("object_text") or "").strip(),
                     _normalize_opt_text(row.get("object_type")),
                     _normalize_opt_text(row.get("object_ref")),
@@ -1154,7 +1344,11 @@ def persist_fact_intake_payload(
             )
         )(_normalize_observation_predicate_key(row.get("predicate_key"))),
     )
-    fact_rows = payload.get("fact_candidates") if isinstance(payload.get("fact_candidates"), list) else []
+    fact_rows = (
+        payload.get("fact_candidates")
+        if isinstance(payload.get("fact_candidates"), list)
+        else []
+    )
     fact_count = persist_section(
         "facts",
         list(fact_rows),
@@ -1204,7 +1398,11 @@ def persist_fact_intake_payload(
             )
         )(str(row.get("fact_id") or "").strip()),
     )
-    contestation_rows = payload.get("contestations") if isinstance(payload.get("contestations"), list) else []
+    contestation_rows = (
+        payload.get("contestations")
+        if isinstance(payload.get("contestations"), list)
+        else []
+    )
     contestation_count = persist_section(
         "contestations",
         list(contestation_rows),
@@ -1226,7 +1424,9 @@ def persist_fact_intake_payload(
             ),
         ),
     )
-    review_rows = payload.get("reviews") if isinstance(payload.get("reviews"), list) else []
+    review_rows = (
+        payload.get("reviews") if isinstance(payload.get("reviews"), list) else []
+    )
     review_count = persist_section(
         "reviews",
         list(review_rows),
@@ -1247,7 +1447,12 @@ def persist_fact_intake_payload(
             ),
         ),
     )
-    emit_progress("event_assembly_started", status="running", section="event_assembly", message="Assembling event candidates.")
+    emit_progress(
+        "event_assembly_started",
+        status="running",
+        section="event_assembly",
+        message="Assembling event candidates.",
+    )
     event_summary = _assemble_event_candidates(conn, run_id=run_id)
     emit_progress(
         "event_assembly_finished",
@@ -1258,7 +1463,11 @@ def persist_fact_intake_payload(
         message="Event candidate assembly finished.",
     )
     conn.commit()
-    semantic_summary: dict[str, Any] = {"assertion_count": 0, "relation_count": 0, "policy_count": 0}
+    semantic_summary: dict[str, Any] = {
+        "assertion_count": 0,
+        "relation_count": 0,
+        "policy_count": 0,
+    }
     if not deferred_refresh:
         semantic_summary = persist_fact_semantic_materialization(
             conn,
@@ -1309,7 +1518,6 @@ def persist_fact_intake_payload(
     }
 
 
-
 def _json_or_empty(text: str | None) -> Any:
     if not text:
         return {}
@@ -1331,10 +1539,26 @@ def _json_or_dict(text: str | None) -> dict[str, Any]:
 
 
 def _build_contested_review_run_id(payload: Mapping[str, Any]) -> str:
-    source_input = payload.get("source_input") if isinstance(payload.get("source_input"), Mapping) else {}
-    affidavit_input = payload.get("affidavit_input") if isinstance(payload.get("affidavit_input"), Mapping) else {}
-    affidavit_rows = payload.get("affidavit_rows") if isinstance(payload.get("affidavit_rows"), list) else []
-    source_review_rows = payload.get("source_review_rows") if isinstance(payload.get("source_review_rows"), list) else []
+    source_input = (
+        payload.get("source_input")
+        if isinstance(payload.get("source_input"), Mapping)
+        else {}
+    )
+    affidavit_input = (
+        payload.get("affidavit_input")
+        if isinstance(payload.get("affidavit_input"), Mapping)
+        else {}
+    )
+    affidavit_rows = (
+        payload.get("affidavit_rows")
+        if isinstance(payload.get("affidavit_rows"), list)
+        else []
+    )
+    source_review_rows = (
+        payload.get("source_review_rows")
+        if isinstance(payload.get("source_review_rows"), list)
+        else []
+    )
     identity = {
         "version": payload.get("version"),
         "fixture_kind": payload.get("fixture_kind"),
@@ -1366,7 +1590,9 @@ def _build_contested_review_run_id(payload: Mapping[str, Any]) -> str:
             {
                 "source_row_id": row.get("source_row_id"),
                 "review_status": row.get("review_status"),
-                "best_affidavit_proposition_id": row.get("best_affidavit_proposition_id"),
+                "best_affidavit_proposition_id": row.get(
+                    "best_affidavit_proposition_id"
+                ),
             }
             for row in source_review_rows
             if isinstance(row, Mapping)
@@ -1386,12 +1612,34 @@ def persist_contested_affidavit_review(
     version = str(payload.get("version") or "").strip()
     if not version:
         raise ValueError("payload.version is required")
-    summary = payload.get("summary") if isinstance(payload.get("summary"), Mapping) else {}
-    source_input = payload.get("source_input") if isinstance(payload.get("source_input"), Mapping) else {}
-    affidavit_input = payload.get("affidavit_input") if isinstance(payload.get("affidavit_input"), Mapping) else {}
-    affidavit_rows = payload.get("affidavit_rows") if isinstance(payload.get("affidavit_rows"), list) else []
-    source_review_rows = payload.get("source_review_rows") if isinstance(payload.get("source_review_rows"), list) else []
-    zelph_facts = payload.get("zelph_claim_state_facts") if isinstance(payload.get("zelph_claim_state_facts"), list) else []
+    summary = (
+        payload.get("summary") if isinstance(payload.get("summary"), Mapping) else {}
+    )
+    source_input = (
+        payload.get("source_input")
+        if isinstance(payload.get("source_input"), Mapping)
+        else {}
+    )
+    affidavit_input = (
+        payload.get("affidavit_input")
+        if isinstance(payload.get("affidavit_input"), Mapping)
+        else {}
+    )
+    affidavit_rows = (
+        payload.get("affidavit_rows")
+        if isinstance(payload.get("affidavit_rows"), list)
+        else []
+    )
+    source_review_rows = (
+        payload.get("source_review_rows")
+        if isinstance(payload.get("source_review_rows"), list)
+        else []
+    )
+    zelph_facts = (
+        payload.get("zelph_claim_state_facts")
+        if isinstance(payload.get("zelph_claim_state_facts"), list)
+        else []
+    )
 
     review_run_id = _build_contested_review_run_id(payload)
     payload_sha256 = _sha256_payload(payload)
@@ -1555,9 +1803,15 @@ def persist_contested_affidavit_review(
     return {
         "review_run_id": review_run_id,
         "artifact_version": version,
-        "affidavit_row_count": len([row for row in affidavit_rows if isinstance(row, Mapping)]),
-        "source_row_count": len([row for row in source_review_rows if isinstance(row, Mapping)]),
-        "zelph_fact_count": len([row for row in zelph_facts if isinstance(row, Mapping)]),
+        "affidavit_row_count": len(
+            [row for row in affidavit_rows if isinstance(row, Mapping)]
+        ),
+        "source_row_count": len(
+            [row for row in source_review_rows if isinstance(row, Mapping)]
+        ),
+        "zelph_fact_count": len(
+            [row for row in zelph_facts if isinstance(row, Mapping)]
+        ),
         "payload_sha256": payload_sha256,
     }
 
@@ -1612,7 +1866,9 @@ def list_contested_affidavit_review_runs(
             "contested_source_count": int(row["contested_source_count"] or 0),
             "abstained_source_count": int(row["abstained_source_count"] or 0),
             "semantic_basis_counts": _json_or_dict(row["semantic_basis_counts_json"]),
-            "promotion_status_counts": _json_or_dict(row["promotion_status_counts_json"]),
+            "promotion_status_counts": _json_or_dict(
+                row["promotion_status_counts_json"]
+            ),
             "created_at": str(row["created_at"]),
         }
         for row in rows
@@ -1698,11 +1954,19 @@ def build_contested_affidavit_review_summary(
         "contested_source_count": int(run_row["contested_source_count"] or 0),
         "abstained_source_count": int(run_row["abstained_source_count"] or 0),
         "semantic_basis_counts": _json_or_dict(run_row["semantic_basis_counts_json"]),
-        "promotion_status_counts": _json_or_dict(run_row["promotion_status_counts_json"]),
-        "support_direction_counts": _json_or_dict(run_row["support_direction_counts_json"]),
+        "promotion_status_counts": _json_or_dict(
+            run_row["promotion_status_counts_json"]
+        ),
+        "support_direction_counts": _json_or_dict(
+            run_row["support_direction_counts_json"]
+        ),
         "conflict_state_counts": _json_or_dict(run_row["conflict_state_counts_json"]),
-        "evidentiary_state_counts": _json_or_dict(run_row["evidentiary_state_counts_json"]),
-        "operational_status_counts": _json_or_dict(run_row["operational_status_counts_json"]),
+        "evidentiary_state_counts": _json_or_dict(
+            run_row["evidentiary_state_counts_json"]
+        ),
+        "operational_status_counts": _json_or_dict(
+            run_row["operational_status_counts_json"]
+        ),
     }
     return {
         "run": run,
@@ -1710,72 +1974,98 @@ def build_contested_affidavit_review_summary(
         "affidavit_rows": [
             (
                 lambda affidavit_row: {
-                **affidavit_row,
-                "status_explanation": _build_affidavit_status_explanation(affidavit_row),
-            }
+                    **affidavit_row,
+                    "status_explanation": _build_affidavit_status_explanation(
+                        affidavit_row
+                    ),
+                }
             )(
                 {
-                "proposition_id": str(row["proposition_id"]),
-                "paragraph_id": _normalize_opt_text(row["paragraph_id"]),
-                "paragraph_order": int(row["paragraph_order"] or 0),
-                "sentence_order": int(row["sentence_order"] or 0),
-                "text": str(row["proposition_text"] or ""),
-                "coverage_status": _normalize_opt_text(row["coverage_status"]),
-                "best_source_row_id": _normalize_opt_text(row["best_source_row_id"]),
-                "best_match_score": row["best_match_score"],
-                "best_adjusted_match_score": row["best_adjusted_match_score"],
-                "best_match_basis": _normalize_opt_text(row["best_match_basis"]),
-                "best_match_excerpt": _normalize_opt_text(row["best_match_excerpt"]),
-                "duplicate_match_excerpt": _normalize_opt_text(row["duplicate_match_excerpt"]),
-                "best_response_role": _normalize_opt_text(row["best_response_role"]),
-                "support_status": _normalize_opt_text(row["support_status"]),
-                "semantic_basis": _normalize_opt_text(row["semantic_basis"]),
-                "promotion_status": _normalize_opt_text(row["promotion_status"]),
-                "promotion_basis": _normalize_opt_text(row["promotion_basis"]),
-                "promotion_reason": _normalize_opt_text(row["promotion_reason"]),
-                "support_direction": _normalize_opt_text(row["support_direction"]),
-                "conflict_state": _normalize_opt_text(row["conflict_state"]),
-                "evidentiary_state": _normalize_opt_text(row["evidentiary_state"]),
-                "operational_status": _normalize_opt_text(row["operational_status"]),
-                "relation_root": _normalize_opt_text(row["relation_root"]),
-                "relation_leaf": _normalize_opt_text(row["relation_leaf"]),
-                "primary_target_component": _normalize_opt_text(row["primary_target_component"]),
-                "explanation": _json_or_dict(row["explanation_json"]),
-                "missing_dimensions": _json_or_list(row["missing_dimensions_json"]),
-                "semantic_candidate": _json_or_dict(row["semantic_candidate_json"]),
-                "claim": _json_or_dict(row["claim_json"]),
-                "response": _json_or_dict(row["response_json"]),
-                "justifications": _json_or_list(row["justifications_json"]),
-                "matched_source_rows": _json_or_list(row["matched_source_rows_json"]),
-            }
+                    "proposition_id": str(row["proposition_id"]),
+                    "paragraph_id": _normalize_opt_text(row["paragraph_id"]),
+                    "paragraph_order": int(row["paragraph_order"] or 0),
+                    "sentence_order": int(row["sentence_order"] or 0),
+                    "text": str(row["proposition_text"] or ""),
+                    "coverage_status": _normalize_opt_text(row["coverage_status"]),
+                    "best_source_row_id": _normalize_opt_text(
+                        row["best_source_row_id"]
+                    ),
+                    "best_match_score": row["best_match_score"],
+                    "best_adjusted_match_score": row["best_adjusted_match_score"],
+                    "best_match_basis": _normalize_opt_text(row["best_match_basis"]),
+                    "best_match_excerpt": _normalize_opt_text(
+                        row["best_match_excerpt"]
+                    ),
+                    "duplicate_match_excerpt": _normalize_opt_text(
+                        row["duplicate_match_excerpt"]
+                    ),
+                    "best_response_role": _normalize_opt_text(
+                        row["best_response_role"]
+                    ),
+                    "support_status": _normalize_opt_text(row["support_status"]),
+                    "semantic_basis": _normalize_opt_text(row["semantic_basis"]),
+                    "promotion_status": _normalize_opt_text(row["promotion_status"]),
+                    "promotion_basis": _normalize_opt_text(row["promotion_basis"]),
+                    "promotion_reason": _normalize_opt_text(row["promotion_reason"]),
+                    "support_direction": _normalize_opt_text(row["support_direction"]),
+                    "conflict_state": _normalize_opt_text(row["conflict_state"]),
+                    "evidentiary_state": _normalize_opt_text(row["evidentiary_state"]),
+                    "operational_status": _normalize_opt_text(
+                        row["operational_status"]
+                    ),
+                    "relation_root": _normalize_opt_text(row["relation_root"]),
+                    "relation_leaf": _normalize_opt_text(row["relation_leaf"]),
+                    "primary_target_component": _normalize_opt_text(
+                        row["primary_target_component"]
+                    ),
+                    "explanation": _json_or_dict(row["explanation_json"]),
+                    "missing_dimensions": _json_or_list(row["missing_dimensions_json"]),
+                    "semantic_candidate": _json_or_dict(row["semantic_candidate_json"]),
+                    "claim": _json_or_dict(row["claim_json"]),
+                    "response": _json_or_dict(row["response_json"]),
+                    "justifications": _json_or_list(row["justifications_json"]),
+                    "matched_source_rows": _json_or_list(
+                        row["matched_source_rows_json"]
+                    ),
+                }
             )
             for row in affidavit_rows
         ],
         "source_review_rows": [
             (
                 lambda source_row: {
-                **source_row,
-                "status_explanation": _build_source_status_explanation(source_row),
-            }
+                    **source_row,
+                    "status_explanation": _build_source_status_explanation(source_row),
+                }
             )(
                 {
-                "source_row_id": str(row["source_row_id"]),
-                "source_kind": _normalize_opt_text(row["source_kind"]),
-                "text": str(row["source_text"] or ""),
-                "candidate_status": _normalize_opt_text(row["candidate_status"]),
-                "review_status": _normalize_opt_text(row["review_status"]),
-                "best_affidavit_proposition_id": _normalize_opt_text(row["best_affidavit_proposition_id"]),
-                "best_match_score": row["best_match_score"],
-                "best_adjusted_match_score": row["best_adjusted_match_score"],
-                "best_match_basis": _normalize_opt_text(row["best_match_basis"]),
-                "best_match_excerpt": _normalize_opt_text(row["best_match_excerpt"]),
-                "best_response_role": _normalize_opt_text(row["best_response_role"]),
-                "matched_affidavit_proposition_ids": _json_or_list(row["matched_affidavit_proposition_ids_json"]),
-                "related_affidavit_proposition_ids": _json_or_list(row["related_affidavit_proposition_ids_json"]),
-                "reason_codes": _json_or_list(row["reason_codes_json"]),
-                "workload_classes": _json_or_list(row["workload_classes_json"]),
-                "candidate_anchors": _json_or_list(row["candidate_anchors_json"]),
-            }
+                    "source_row_id": str(row["source_row_id"]),
+                    "source_kind": _normalize_opt_text(row["source_kind"]),
+                    "text": str(row["source_text"] or ""),
+                    "candidate_status": _normalize_opt_text(row["candidate_status"]),
+                    "review_status": _normalize_opt_text(row["review_status"]),
+                    "best_affidavit_proposition_id": _normalize_opt_text(
+                        row["best_affidavit_proposition_id"]
+                    ),
+                    "best_match_score": row["best_match_score"],
+                    "best_adjusted_match_score": row["best_adjusted_match_score"],
+                    "best_match_basis": _normalize_opt_text(row["best_match_basis"]),
+                    "best_match_excerpt": _normalize_opt_text(
+                        row["best_match_excerpt"]
+                    ),
+                    "best_response_role": _normalize_opt_text(
+                        row["best_response_role"]
+                    ),
+                    "matched_affidavit_proposition_ids": _json_or_list(
+                        row["matched_affidavit_proposition_ids_json"]
+                    ),
+                    "related_affidavit_proposition_ids": _json_or_list(
+                        row["related_affidavit_proposition_ids_json"]
+                    ),
+                    "reason_codes": _json_or_list(row["reason_codes_json"]),
+                    "workload_classes": _json_or_list(row["workload_classes_json"]),
+                    "candidate_anchors": _json_or_list(row["candidate_anchors_json"]),
+                }
             )
             for row in source_rows
         ],
@@ -1845,7 +2135,10 @@ def _render_reason_summary(
 ) -> str | None:
     parts: list[str] = []
     seen_keys: set[str] = set()
-    for value in [*_stringify_reason_details(reason_labels), *_stringify_reason_details(detail_labels)]:
+    for value in [
+        *_stringify_reason_details(reason_labels),
+        *_stringify_reason_details(detail_labels),
+    ]:
         key = value.casefold()
         if key in seen_keys:
             continue
@@ -1876,10 +2169,14 @@ def _build_status_explanation_base(
     related_record_id: str | None,
     details: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    normalized_codes = [str(value).strip() for value in reason_codes if str(value).strip()]
+    normalized_codes = [
+        str(value).strip() for value in reason_codes if str(value).strip()
+    ]
     normalized_bucket = str(status_bucket).strip() or "inspect"
     normalized_details = dict(details or {})
-    normalized_labels = [label for label in (_status_label(code) for code in normalized_codes) if label]
+    normalized_labels = [
+        label for label in (_status_label(code) for code in normalized_codes) if label
+    ]
     return {
         "status_scope": str(status_scope).strip(),
         "status_value": _normalize_opt_text(status_value) or "unknown",
@@ -1900,8 +2197,12 @@ def _build_affidavit_status_explanation(row: Mapping[str, Any]) -> dict[str, Any
     relation_root = str(row.get("relation_root") or "").strip()
     relation_leaf = str(row.get("relation_leaf") or "").strip()
     best_source_row_id = _normalize_opt_text(row.get("best_source_row_id"))
-    explanation = row.get("explanation") if isinstance(row.get("explanation"), Mapping) else {}
-    missing_dimensions = [str(value) for value in row.get("missing_dimensions", []) if str(value).strip()]
+    explanation = (
+        row.get("explanation") if isinstance(row.get("explanation"), Mapping) else {}
+    )
+    missing_dimensions = [
+        str(value) for value in row.get("missing_dimensions", []) if str(value).strip()
+    ]
     rendered_reason = _normalize_opt_text(explanation.get("reason"))
     matched_response = _normalize_opt_text(explanation.get("matched_response"))
     if coverage_status == "covered":
@@ -1910,7 +2211,11 @@ def _build_affidavit_status_explanation(row: Mapping[str, Any]) -> dict[str, Any
         status_bucket = "clarify"
     elif coverage_status in {"unsupported_affidavit", "missing_review"}:
         status_bucket = "review_source"
-    elif coverage_status in {"contested_affidavit", "contested_source", "abstained_source"}:
+    elif coverage_status in {
+        "contested_affidavit",
+        "contested_source",
+        "abstained_source",
+    }:
         status_bucket = "adjudicate"
     else:
         status_bucket = "inspect"
@@ -1936,10 +2241,13 @@ def _build_affidavit_status_explanation(row: Mapping[str, Any]) -> dict[str, Any
         _detail_label(relation_leaf),
         *(f"missing {value.replace('_', ' ')}" for value in missing_dimensions),
     ]
-    status_explanation["why"] = _render_reason_summary(
-        reason_labels=status_explanation["reason_labels"],
-        detail_labels=detail_labels,
-    ) or rendered_reason
+    status_explanation["why"] = (
+        _render_reason_summary(
+            reason_labels=status_explanation["reason_labels"],
+            detail_labels=detail_labels,
+        )
+        or rendered_reason
+    )
     return status_explanation
 
 
@@ -1948,14 +2256,24 @@ def _build_source_status_explanation(row: Mapping[str, Any]) -> dict[str, Any]:
     candidate_status = str(row.get("candidate_status") or "").strip()
     best_match_basis = _normalize_opt_text(row.get("best_match_basis"))
     best_response_role = _normalize_opt_text(row.get("best_response_role"))
-    reason_codes = [str(value) for value in row.get("reason_codes", []) if str(value).strip()]
-    workload_classes = [str(value) for value in row.get("workload_classes", []) if str(value).strip()]
-    best_affidavit_proposition_id = _normalize_opt_text(row.get("best_affidavit_proposition_id"))
+    reason_codes = [
+        str(value) for value in row.get("reason_codes", []) if str(value).strip()
+    ]
+    workload_classes = [
+        str(value) for value in row.get("workload_classes", []) if str(value).strip()
+    ]
+    best_affidavit_proposition_id = _normalize_opt_text(
+        row.get("best_affidavit_proposition_id")
+    )
     matched_affidavit_proposition_ids = [
-        str(value) for value in row.get("matched_affidavit_proposition_ids", []) if str(value).strip()
+        str(value)
+        for value in row.get("matched_affidavit_proposition_ids", [])
+        if str(value).strip()
     ]
     related_affidavit_proposition_ids = [
-        str(value) for value in row.get("related_affidavit_proposition_ids", []) if str(value).strip()
+        str(value)
+        for value in row.get("related_affidavit_proposition_ids", [])
+        if str(value).strip()
     ]
     if review_status in _DISPUTED_SOURCE_REVIEW_STATUSES:
         status_bucket = "adjudicate"
@@ -1982,7 +2300,9 @@ def _build_source_status_explanation(row: Mapping[str, Any]) -> dict[str, Any]:
         related_record_id=best_affidavit_proposition_id,
         details=details,
     )
-    proposition_count = len(related_affidavit_proposition_ids or matched_affidavit_proposition_ids)
+    proposition_count = len(
+        related_affidavit_proposition_ids or matched_affidavit_proposition_ids
+    )
     proposition_label = (
         f"linked proposition set ({proposition_count} row{'s' if proposition_count != 1 else ''})"
         if proposition_count
@@ -1990,9 +2310,15 @@ def _build_source_status_explanation(row: Mapping[str, Any]) -> dict[str, Any]:
     )
     detail_labels = [
         *(value.replace("_", " ") for value in workload_classes),
-        None if _is_low_information_detail(candidate_status) else _detail_label(candidate_status),
-        None if _is_low_information_detail(best_match_basis) else _detail_label(best_match_basis),
-        None if _is_low_information_detail(best_response_role) else _detail_label(best_response_role),
+        None
+        if _is_low_information_detail(candidate_status)
+        else _detail_label(candidate_status),
+        None
+        if _is_low_information_detail(best_match_basis)
+        else _detail_label(best_match_basis),
+        None
+        if _is_low_information_detail(best_response_role)
+        else _detail_label(best_response_role),
         proposition_label,
     ]
     status_explanation["why"] = _render_reason_summary(
@@ -2005,10 +2331,20 @@ def _build_source_status_explanation(row: Mapping[str, Any]) -> dict[str, Any]:
 def _build_review_queue_status_explanation(row: Mapping[str, Any]) -> dict[str, Any]:
     latest_review_status = str(row.get("latest_review_status") or "").strip()
     candidate_status = str(row.get("candidate_status") or "").strip()
-    reason_codes = [str(value) for value in row.get("reason_codes", []) if str(value).strip()]
-    source_signal_classes = [str(value) for value in row.get("source_signal_classes", []) if str(value).strip()]
-    primary_contested_reason_text = _normalize_opt_text(row.get("primary_contested_reason_text"))
-    if latest_review_status in {"contested", "disputed"} or bool(row.get("contestation_count")):
+    reason_codes = [
+        str(value) for value in row.get("reason_codes", []) if str(value).strip()
+    ]
+    source_signal_classes = [
+        str(value)
+        for value in row.get("source_signal_classes", [])
+        if str(value).strip()
+    ]
+    primary_contested_reason_text = _normalize_opt_text(
+        row.get("primary_contested_reason_text")
+    )
+    if latest_review_status in {"contested", "disputed"} or bool(
+        row.get("contestation_count")
+    ):
         status_bucket = "adjudicate"
     elif latest_review_status == "needs_followup":
         status_bucket = "clarify"
@@ -2024,19 +2360,25 @@ def _build_review_queue_status_explanation(row: Mapping[str, Any]) -> dict[str, 
         "chronology_impacted": bool(row.get("chronology_impacted")),
         "primary_contested_reason_text": primary_contested_reason_text,
         "source_signal_classes": source_signal_classes,
-        "event_ids": [str(value) for value in row.get("event_ids", []) if str(value).strip()],
+        "event_ids": [
+            str(value) for value in row.get("event_ids", []) if str(value).strip()
+        ],
     }
     status_explanation = _build_status_explanation_base(
         status_scope="review",
-        status_value=latest_review_status or ("needs_review" if bool(row.get("needs_review")) else candidate_status),
+        status_value=latest_review_status
+        or ("needs_review" if bool(row.get("needs_review")) else candidate_status),
         status_bucket=status_bucket,
         why=None,
-        reason_codes=reason_codes or [latest_review_status or candidate_status or "review_pending"],
+        reason_codes=reason_codes
+        or [latest_review_status or candidate_status or "review_pending"],
         related_record_id=_normalize_opt_text(row.get("fact_id")),
         details=details,
     )
     detail_labels = [
-        None if _is_low_information_detail(candidate_status) else _detail_label(candidate_status),
+        None
+        if _is_low_information_detail(candidate_status)
+        else _detail_label(candidate_status),
         _detail_label(row.get("chronology_bucket")),
         "chronology impacted" if bool(row.get("chronology_impacted")) else None,
         primary_contested_reason_text,
@@ -2065,7 +2407,9 @@ def _extract_interrogative_labels_from_relation_graph(
             continue
         if _normalize_opt_text(node.get("node_kind")) != node_kind:
             continue
-        label = _normalize_opt_text(node.get("label")) or _normalize_opt_text(node.get("value"))
+        label = _normalize_opt_text(node.get("label")) or _normalize_opt_text(
+            node.get("value")
+        )
         if label:
             values.append(label)
     return list(dict.fromkeys(values))
@@ -2109,26 +2453,46 @@ def build_interrogative_view(
     *,
     relation_graph: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    status_explanation = record.get("status_explanation") if isinstance(record.get("status_explanation"), Mapping) else {}
-    details = status_explanation.get("details") if isinstance(status_explanation.get("details"), Mapping) else {}
+    status_explanation = (
+        record.get("status_explanation")
+        if isinstance(record.get("status_explanation"), Mapping)
+        else {}
+    )
+    details = (
+        status_explanation.get("details")
+        if isinstance(status_explanation.get("details"), Mapping)
+        else {}
+    )
     claim = record.get("claim") if isinstance(record.get("claim"), Mapping) else {}
-    response = record.get("response") if isinstance(record.get("response"), Mapping) else {}
+    response = (
+        record.get("response") if isinstance(record.get("response"), Mapping) else {}
+    )
 
-    who = _extract_interrogative_labels_from_relation_graph(relation_graph, node_kind="actor")
+    who = _extract_interrogative_labels_from_relation_graph(
+        relation_graph, node_kind="actor"
+    )
     if not who:
         who = _claim_component_texts(claim, "actor")
 
-    what = _extract_interrogative_labels_from_relation_graph(relation_graph, node_kind="object")
+    what = _extract_interrogative_labels_from_relation_graph(
+        relation_graph, node_kind="object"
+    )
     if not what:
         what = _claim_component_texts(claim, "predicate_text")
     if not what:
-        primary_target_component = _normalize_opt_text(record.get("primary_target_component"))
+        primary_target_component = _normalize_opt_text(
+            record.get("primary_target_component")
+        )
         if primary_target_component:
             what = [primary_target_component]
 
-    how = _extract_interrogative_labels_from_relation_graph(relation_graph, node_kind="action")
+    how = _extract_interrogative_labels_from_relation_graph(
+        relation_graph, node_kind="action"
+    )
     if not how:
-        response_acts = response.get("acts") if isinstance(response.get("acts"), list) else []
+        response_acts = (
+            response.get("acts") if isinstance(response.get("acts"), list) else []
+        )
         how = [str(value) for value in response_acts if str(value).strip()]
     if not how:
         best_response_role = _normalize_opt_text(record.get("best_response_role"))
@@ -2145,7 +2509,12 @@ def build_interrogative_view(
     when = list(dict.fromkeys(when))
 
     where_values: list[str] = []
-    for key in ("source_row_id", "best_source_row_id", "related_record_id", "paragraph_id"):
+    for key in (
+        "source_row_id",
+        "best_source_row_id",
+        "related_record_id",
+        "paragraph_id",
+    ):
         text = _normalize_opt_text(record.get(key))
         if text:
             where_values.append(f"{key}:{text}")
@@ -2179,6 +2548,8 @@ def build_interrogative_view(
         "why": why,
         "how": list(dict.fromkeys(how)),
     }
+
+
 _WEAKLY_ADDRESSED_SUPPORT_STATUSES = {
     "textually_addressed",
     "responsive_but_non_substantive",
@@ -2288,9 +2659,24 @@ def _subject_alignment(proposition_text: str, matched_response: str) -> bool:
     response_subjects = response_tokens & _RELATION_SUBJECT_TOKENS
     if proposition_subjects and response_subjects:
         return bool(proposition_subjects & response_subjects)
-    pronoun_tokens = {"i", "me", "my", "we", "our", "he", "she", "they", "them", "their"}
-    proposition_pronouns = set(str(proposition_text or "").lower().split()) & pronoun_tokens
-    response_pronouns = set(str(matched_response or "").lower().split()) & pronoun_tokens
+    pronoun_tokens = {
+        "i",
+        "me",
+        "my",
+        "we",
+        "our",
+        "he",
+        "she",
+        "they",
+        "them",
+        "their",
+    }
+    proposition_pronouns = (
+        set(str(proposition_text or "").lower().split()) & pronoun_tokens
+    )
+    response_pronouns = (
+        set(str(matched_response or "").lower().split()) & pronoun_tokens
+    )
     if proposition_pronouns and response_pronouns:
         return bool(proposition_pronouns & response_pronouns)
     return bool(proposition_tokens & response_tokens)
@@ -2315,7 +2701,11 @@ def _polarity_alignment(row: Mapping[str, Any]) -> bool:
     support_direction = str(row.get("support_direction") or "").strip().lower()
     conflict_state = str(row.get("conflict_state") or "").strip().lower()
     best_response_role = str(row.get("best_response_role") or "").strip().lower()
-    if best_response_role in {"dispute", "hedged_denial"} or conflict_state == "disputed" or support_direction == "against":
+    if (
+        best_response_role in {"dispute", "hedged_denial"}
+        or conflict_state == "disputed"
+        or support_direction == "against"
+    ):
         return polarity in {"negative", "qualified", "neutral", ""}
     if support_direction in {"for", "supports"}:
         return polarity in {"positive", "qualified", "neutral", ""}
@@ -2395,8 +2785,16 @@ def _derive_contested_affidavit_relation(row: Mapping[str, Any]) -> dict[str, An
     elif conflict_state == "disputed" or support_direction == "against":
         relation_type = "implicit_dispute"
         reason = "The matched response materially opposes the proposition under the current conflict/support state."
-    elif coverage_status in _SUPPORTED_AFFIDAVIT_STATUSES and subject_aligned and action_aligned:
-        relation_type = "exact_support" if support_status == "substantively_addressed" else "equivalent_support"
+    elif (
+        coverage_status in _SUPPORTED_AFFIDAVIT_STATUSES
+        and subject_aligned
+        and action_aligned
+    ):
+        relation_type = (
+            "exact_support"
+            if support_status == "substantively_addressed"
+            else "equivalent_support"
+        )
         reason = "The matched response aligns on the same proposition with substantive support."
     elif coverage_status in _MISSING_AFFIDAVIT_STATUSES:
         relation_type = "unrelated"
@@ -2404,13 +2802,22 @@ def _derive_contested_affidavit_relation(row: Mapping[str, Any]) -> dict[str, An
     elif primary_target_component == "time":
         relation_type = "adjacent_event"
         reason = "The matched response appears to concern a nearby event or timing slice rather than the exact proposition."
-    elif best_response_role in {"explanation", "procedural_frame", "restatement_only", "non_response"}:
+    elif best_response_role in {
+        "explanation",
+        "procedural_frame",
+        "restatement_only",
+        "non_response",
+    }:
         relation_type = "procedural_nonanswer"
         reason = "The matched response is procedural, explanatory, or otherwise non-substantive for this proposition."
     elif action_aligned and subject_aligned and polarity_aligned:
         relation_type = "partial_overlap"
         reason = "The matched response partially overlaps the proposition but leaves key dimensions unresolved."
-    elif support_status == "textually_addressed" and action_aligned and not subject_aligned:
+    elif (
+        support_status == "textually_addressed"
+        and action_aligned
+        and not subject_aligned
+    ):
         relation_type = "substitution"
         reason = "The matched response overlaps lexically, but substitutes a different actor or incident."
     elif support_status == "textually_addressed":
@@ -2457,14 +2864,24 @@ def _derive_contested_affidavit_relation(row: Mapping[str, Any]) -> dict[str, An
         "relation_root": relation_root,
         "relation_leaf": relation_leaf,
         "bucket": bucket,
-        "legacy_bucket": "needs_clarification" if bucket in {"partial_support", "adjacent_event", "substitution", "non_substantive_response"} else bucket,
+        "legacy_bucket": "needs_clarification"
+        if bucket
+        in {
+            "partial_support",
+            "adjacent_event",
+            "substitution",
+            "non_substantive_response",
+        }
+        else bucket,
         "explanation": explanation,
         "matched_response": best_match_excerpt,
         "missing_dimensions": missing_dimensions,
     }
 
 
-def _build_contested_affidavit_next_steps(summary: Mapping[str, Any]) -> list[dict[str, Any]]:
+def _build_contested_affidavit_next_steps(
+    summary: Mapping[str, Any],
+) -> list[dict[str, Any]]:
     next_steps: list[dict[str, Any]] = []
     if int(summary.get("unsupported_affidavit_count") or 0) > 0:
         next_steps.append(
@@ -2484,7 +2901,9 @@ def _build_contested_affidavit_next_steps(summary: Mapping[str, Any]) -> list[di
                 "text": "Resolve source rows that are still absent from the affidavit and awaiting review before making omission claims.",
             }
         )
-    contested_total = int(summary.get("contested_source_count") or 0) + int(summary.get("contested_affidavit_count") or 0)
+    contested_total = int(summary.get("contested_source_count") or 0) + int(
+        summary.get("contested_affidavit_count") or 0
+    )
     if contested_total > 0:
         next_steps.append(
             {
@@ -2494,7 +2913,9 @@ def _build_contested_affidavit_next_steps(summary: Mapping[str, Any]) -> list[di
                 "text": "Inspect contested source or affidavit material before promoting contradiction or omission conclusions.",
             }
         )
-    clarification_total = int(summary.get("partial_count") or 0) + int(summary.get("abstained_source_count") or 0)
+    clarification_total = int(summary.get("partial_count") or 0) + int(
+        summary.get("abstained_source_count") or 0
+    )
     if clarification_total > 0:
         next_steps.append(
             {
@@ -2513,9 +2934,19 @@ def build_contested_affidavit_proving_slice(
     review_run_id: str,
 ) -> dict[str, Any]:
     review = build_contested_affidavit_review_summary(conn, review_run_id=review_run_id)
-    affidavit_rows = review.get("affidavit_rows") if isinstance(review.get("affidavit_rows"), list) else []
-    source_rows = review.get("source_review_rows") if isinstance(review.get("source_review_rows"), list) else []
-    summary = review.get("summary") if isinstance(review.get("summary"), Mapping) else {}
+    affidavit_rows = (
+        review.get("affidavit_rows")
+        if isinstance(review.get("affidavit_rows"), list)
+        else []
+    )
+    source_rows = (
+        review.get("source_review_rows")
+        if isinstance(review.get("source_review_rows"), list)
+        else []
+    )
+    summary = (
+        review.get("summary") if isinstance(review.get("summary"), Mapping) else {}
+    )
 
     bucketed_rows: dict[str, list[dict[str, Any]]] = {
         "supported": [],
@@ -2529,7 +2960,11 @@ def build_contested_affidavit_proving_slice(
         "needs_clarification": [],
     }
     for row in affidavit_rows:
-        persisted_explanation = row.get("explanation") if isinstance(row.get("explanation"), Mapping) else None
+        persisted_explanation = (
+            row.get("explanation")
+            if isinstance(row.get("explanation"), Mapping)
+            else None
+        )
         persisted_classification = (
             str(persisted_explanation.get("classification") or "").strip()
             if isinstance(persisted_explanation, Mapping)
@@ -2541,10 +2976,13 @@ def build_contested_affidavit_proving_slice(
                 "relation_type": persisted_relation_type,
                 "relation_root": _normalize_opt_text(row.get("relation_root")),
                 "relation_leaf": _normalize_opt_text(row.get("relation_leaf")),
-                "bucket": persisted_classification or _classify_contested_affidavit_proving_bucket(row),
+                "bucket": persisted_classification
+                or _classify_contested_affidavit_proving_bucket(row),
                 "matched_response": _normalize_opt_text(row.get("best_match_excerpt")),
                 "explanation": persisted_explanation,
-                "missing_dimensions": row.get("missing_dimensions") if isinstance(row.get("missing_dimensions"), list) else None,
+                "missing_dimensions": row.get("missing_dimensions")
+                if isinstance(row.get("missing_dimensions"), list)
+                else None,
             }
             if (
                 _normalize_opt_text(row.get("relation_root"))
@@ -2584,10 +3022,14 @@ def build_contested_affidavit_proving_slice(
     needs_clarification = bucketed_rows["needs_clarification"]
 
     disputed_source_rows = [
-        row for row in source_rows if str(row.get("review_status") or "") in _DISPUTED_SOURCE_REVIEW_STATUSES
+        row
+        for row in source_rows
+        if str(row.get("review_status") or "") in _DISPUTED_SOURCE_REVIEW_STATUSES
     ]
     clarification_source_rows = [
-        row for row in source_rows if str(row.get("review_status") or "") in _CLARIFY_SOURCE_REVIEW_STATUSES
+        row
+        for row in source_rows
+        if str(row.get("review_status") or "") in _CLARIFY_SOURCE_REVIEW_STATUSES
     ]
 
     return {
@@ -2705,7 +3147,9 @@ def resolve_fact_run_link(
         (str(workflow_kind or "").strip(), str(workflow_run_id or "").strip()),
     ).fetchone()
     if row is None:
-        raise ValueError(f"Unknown fact workflow link: {workflow_kind}:{workflow_run_id}")
+        raise ValueError(
+            f"Unknown fact workflow link: {workflow_kind}:{workflow_run_id}"
+        )
     return _workflow_link_row_to_dict(row) or {}
 
 
@@ -2735,7 +3179,9 @@ def find_latest_fact_workflow_link(
     ).fetchone()
     if row is None:
         label_suffix = f" source_label={source_label}" if source_label else ""
-        raise ValueError(f"No fact workflow link found for {workflow_kind}{label_suffix}")
+        raise ValueError(
+            f"No fact workflow link found for {workflow_kind}{label_suffix}"
+        )
     return _workflow_link_row_to_dict(row) or {}
 
 
@@ -2784,7 +3230,9 @@ def resolve_fact_run_id(
     )
 
 
-def build_fact_intake_report(conn: sqlite3.Connection, *, run_id: str) -> dict[str, Any]:
+def build_fact_intake_report(
+    conn: sqlite3.Connection, *, run_id: str
+) -> dict[str, Any]:
     ensure_database(conn)
     _ensure_fact_intake_tables(conn)
     conn.row_factory = sqlite3.Row
@@ -2932,7 +3380,12 @@ def build_fact_intake_report(conn: sqlite3.Connection, *, run_id: str) -> dict[s
     for row in link_rows:
         bucket = links_by_fact.setdefault(
             str(row["fact_id"]),
-            {"statement_ids": [], "excerpt_ids": [], "source_ids": [], "statement_texts": []},
+            {
+                "statement_ids": [],
+                "excerpt_ids": [],
+                "source_ids": [],
+                "statement_texts": [],
+            },
         )
         for field, value in (
             ("statement_ids", str(row["statement_id"])),
@@ -2996,7 +3449,9 @@ def build_fact_intake_report(conn: sqlite3.Connection, *, run_id: str) -> dict[s
             {
                 "attribute_type": str(row["attribute_type"]),
                 "attribute_value": str(row["attribute_value"]),
-                "source_observation_id": _normalize_opt_text(row["source_observation_id"]),
+                "source_observation_id": _normalize_opt_text(
+                    row["source_observation_id"]
+                ),
                 "confidence": float(row["confidence"]),
             }
         )
@@ -3012,14 +3467,23 @@ def build_fact_intake_report(conn: sqlite3.Connection, *, run_id: str) -> dict[s
             "confidence": float(row["confidence"]),
         }
         event_evidence_by_event.setdefault(event_id, []).append(evidence)
-        observation_row = next((obs for obs in all_observations if obs["observation_id"] == evidence["observation_id"]), None)
+        observation_row = next(
+            (
+                obs
+                for obs in all_observations
+                if obs["observation_id"] == evidence["observation_id"]
+            ),
+            None,
+        )
         if observation_row is not None:
             statement_id = str(observation_row["statement_id"])
             source_id = _normalize_opt_text(observation_row["source_id"])
             observation_provenance = observation_row.get("provenance")
             source_event_id = None
             if isinstance(observation_provenance, dict):
-                source_event_id = _normalize_opt_text(observation_provenance.get("source_event_id"))
+                source_event_id = _normalize_opt_text(
+                    observation_provenance.get("source_event_id")
+                )
             event_statement_ids_by_event.setdefault(event_id, [])
             if statement_id not in event_statement_ids_by_event[event_id]:
                 event_statement_ids_by_event[event_id].append(statement_id)
@@ -3103,7 +3567,15 @@ def build_fact_intake_report(conn: sqlite3.Connection, *, run_id: str) -> dict[s
     facts: list[dict[str, Any]] = []
     for row in fact_rows:
         fact_id = str(row["fact_id"])
-        refs = links_by_fact.get(fact_id, {"statement_ids": [], "excerpt_ids": [], "source_ids": [], "statement_texts": []})
+        refs = links_by_fact.get(
+            fact_id,
+            {
+                "statement_ids": [],
+                "excerpt_ids": [],
+                "source_ids": [],
+                "statement_texts": [],
+            },
+        )
         fact_observations: list[dict[str, Any]] = []
         seen_observation_ids: set[str] = set()
         for statement_id in refs["statement_ids"]:
@@ -3126,7 +3598,9 @@ def build_fact_intake_report(conn: sqlite3.Connection, *, run_id: str) -> dict[s
                 "candidate_status": str(row["candidate_status"]),
                 "chronology_sort_key": _normalize_opt_text(row["chronology_sort_key"]),
                 "chronology_label": _normalize_opt_text(row["chronology_label"]),
-                "primary_statement_id": _normalize_opt_text(row["primary_statement_id"]),
+                "primary_statement_id": _normalize_opt_text(
+                    row["primary_statement_id"]
+                ),
                 "provenance": _json_or_empty(row["provenance_json"]),
                 "statement_ids": refs["statement_ids"],
                 "excerpt_ids": refs["excerpt_ids"],
@@ -3178,7 +3652,9 @@ def _has_semantic_materialization(conn: sqlite3.Connection, *, run_id: str) -> b
     return row is not None
 
 
-def _load_entity_class_map(conn: sqlite3.Connection, *, run_id: str, target_kind: str) -> dict[str, list[str]]:
+def _load_entity_class_map(
+    conn: sqlite3.Connection, *, run_id: str, target_kind: str
+) -> dict[str, list[str]]:
     rows = conn.execute(
         """
         SELECT target_id, class_key
@@ -3197,7 +3673,9 @@ def _load_entity_class_map(conn: sqlite3.Connection, *, run_id: str, target_kind
     return out
 
 
-def _load_policy_map(conn: sqlite3.Connection, *, run_id: str, target_kind: str) -> dict[str, list[str]]:
+def _load_policy_map(
+    conn: sqlite3.Connection, *, run_id: str, target_kind: str
+) -> dict[str, list[str]]:
     rows = conn.execute(
         """
         SELECT target_id, policy_key
@@ -3226,7 +3704,9 @@ def list_semantic_refresh_runs(
     _ensure_fact_intake_tables(conn)
     conn.row_factory = sqlite3.Row
     where = "WHERE run_id = ?" if run_id else ""
-    params: tuple[Any, ...] = ((run_id, max(int(limit), 1)) if run_id else (max(int(limit), 1),))
+    params: tuple[Any, ...] = (
+        (run_id, max(int(limit), 1)) if run_id else (max(int(limit), 1),)
+    )
     rows = conn.execute(
         f"""
         SELECT refresh_id, run_id, bridge_version, ruleset_version, refresh_kind, refresh_status,
@@ -3261,7 +3741,9 @@ def list_semantic_refresh_runs(
     ]
 
 
-def build_fact_semantic_status_report(conn: sqlite3.Connection, *, run_id: str) -> dict[str, Any]:
+def build_fact_semantic_status_report(
+    conn: sqlite3.Connection, *, run_id: str
+) -> dict[str, Any]:
     ensure_database(conn)
     _ensure_fact_intake_tables(conn)
     conn.row_factory = sqlite3.Row
@@ -3339,7 +3821,9 @@ def _policy_message(policy_key: str) -> str:
     }.get(policy_key, f"Policy active: {policy_key}")
 
 
-def build_fact_agent_feedback_payload(conn: sqlite3.Connection, *, run_id: str) -> dict[str, Any]:
+def build_fact_agent_feedback_payload(
+    conn: sqlite3.Connection, *, run_id: str
+) -> dict[str, Any]:
     ensure_database(conn)
     _ensure_fact_intake_tables(conn)
     conn.row_factory = sqlite3.Row
@@ -3349,14 +3833,20 @@ def build_fact_agent_feedback_payload(conn: sqlite3.Connection, *, run_id: str) 
     for fact in workbench.get("facts", []):
         if not isinstance(fact, Mapping):
             continue
-        policies = [str(value) for value in fact.get("policy_outcomes", []) if str(value).strip()]
+        policies = [
+            str(value)
+            for value in fact.get("policy_outcomes", [])
+            if str(value).strip()
+        ]
         if not policies:
             continue
         active_policy_count += len(policies)
         items.append(
             {
                 "fact_id": str(fact.get("fact_id")),
-                "label": str(fact.get("canonical_label") or fact.get("fact_text") or "")[:120],
+                "label": str(
+                    fact.get("canonical_label") or fact.get("fact_text") or ""
+                )[:120],
                 "policy_outcomes": policies,
                 "messages": [_policy_message(policy_key) for policy_key in policies],
                 "signal_classes": list(fact.get("signal_classes", [])),
@@ -3373,11 +3863,7 @@ def build_fact_agent_feedback_payload(conn: sqlite3.Connection, *, run_id: str) 
             "active_policy_count": active_policy_count,
         },
         "global_messages": list(
-            dict.fromkeys(
-                message
-                for item in items
-                for message in item["messages"]
-            )
+            dict.fromkeys(message for item in items for message in item["messages"])
         ),
         "items": items,
     }
@@ -3612,7 +4098,9 @@ def _upsert_semantic_refresh_run(
     )
 
 
-def build_mary_fact_workflow_projection(conn: sqlite3.Connection, *, run_id: str) -> dict[str, Any]:
+def build_mary_fact_workflow_projection(
+    conn: sqlite3.Connection, *, run_id: str
+) -> dict[str, Any]:
     report = build_fact_intake_report(conn, run_id=run_id)
     chronology: list[dict[str, Any]] = []
     for index, fact in enumerate(report["facts"], start=1):
@@ -3620,7 +4108,9 @@ def build_mary_fact_workflow_projection(conn: sqlite3.Connection, *, run_id: str
             {
                 "order": index,
                 "chronology_sort_key": fact["chronology_sort_key"],
-                "chronology_label": fact["chronology_label"] or fact["canonical_label"] or fact["fact_text"][:80],
+                "chronology_label": fact["chronology_label"]
+                or fact["canonical_label"]
+                or fact["fact_text"][:80],
                 "fact_id": fact["fact_id"],
                 "candidate_status": fact["candidate_status"],
             }
@@ -3633,7 +4123,9 @@ def build_mary_fact_workflow_projection(conn: sqlite3.Connection, *, run_id: str
             "status": fact["candidate_status"],
             "contested": bool(fact["contestations"]),
             "review_statuses": [row["review_status"] for row in fact["reviews"]],
-            "observation_predicates": [row["predicate_key"] for row in fact["observations"]],
+            "observation_predicates": [
+                row["predicate_key"] for row in fact["observations"]
+            ],
             "provenance": {
                 "source_ids": fact["source_ids"],
                 "excerpt_ids": fact["excerpt_ids"],
@@ -3727,11 +4219,35 @@ def list_fact_intake_runs(
                 "mary_projection_version": str(row["mary_projection_version"]),
                 "notes": _normalize_opt_text(row["notes"]),
                 "created_at": str(row["created_at"]),
-                "source_count": int(conn.execute("SELECT COUNT(*) FROM fact_sources WHERE run_id = ?", (run_id,)).fetchone()[0]),
-                "statement_count": int(conn.execute("SELECT COUNT(*) FROM fact_statements WHERE run_id = ?", (run_id,)).fetchone()[0]),
-                "observation_count": int(conn.execute("SELECT COUNT(*) FROM fact_observations WHERE run_id = ?", (run_id,)).fetchone()[0]),
-                "fact_count": int(conn.execute("SELECT COUNT(*) FROM fact_candidates WHERE run_id = ?", (run_id,)).fetchone()[0]),
-                "event_count": int(conn.execute("SELECT COUNT(*) FROM event_candidates WHERE run_id = ?", (run_id,)).fetchone()[0]),
+                "source_count": int(
+                    conn.execute(
+                        "SELECT COUNT(*) FROM fact_sources WHERE run_id = ?", (run_id,)
+                    ).fetchone()[0]
+                ),
+                "statement_count": int(
+                    conn.execute(
+                        "SELECT COUNT(*) FROM fact_statements WHERE run_id = ?",
+                        (run_id,),
+                    ).fetchone()[0]
+                ),
+                "observation_count": int(
+                    conn.execute(
+                        "SELECT COUNT(*) FROM fact_observations WHERE run_id = ?",
+                        (run_id,),
+                    ).fetchone()[0]
+                ),
+                "fact_count": int(
+                    conn.execute(
+                        "SELECT COUNT(*) FROM fact_candidates WHERE run_id = ?",
+                        (run_id,),
+                    ).fetchone()[0]
+                ),
+                "event_count": int(
+                    conn.execute(
+                        "SELECT COUNT(*) FROM event_candidates WHERE run_id = ?",
+                        (run_id,),
+                    ).fetchone()[0]
+                ),
                 "contestation_count": int(
                     conn.execute(
                         """
@@ -3802,21 +4318,25 @@ def list_fact_review_sources(
         source_label_value = _normalize_opt_text(row["source_label"])
         latest_link = None
         if source_label_value:
-            latest_link = find_latest_fact_workflow_link(
-                conn,
-                workflow_kind=workflow_kind or "transcript_semantic",
-                source_label=source_label_value,
-            ) if workflow_kind else _workflow_link_row_to_dict(
-                conn.execute(
-                    """
+            latest_link = (
+                find_latest_fact_workflow_link(
+                    conn,
+                    workflow_kind=workflow_kind or "transcript_semantic",
+                    source_label=source_label_value,
+                )
+                if workflow_kind
+                else _workflow_link_row_to_dict(
+                    conn.execute(
+                        """
                     SELECT workflow_kind, workflow_run_id, fact_run_id, source_label, adapter_version, created_at
                     FROM fact_workflow_links
                     WHERE source_label = ?
                     ORDER BY created_at DESC, workflow_kind, workflow_run_id DESC
                     LIMIT 1
                     """,
-                    (source_label_value,),
-                ).fetchone()
+                        (source_label_value,),
+                    ).fetchone()
+                )
             )
         out.append(
             {
@@ -3829,19 +4349,28 @@ def list_fact_review_sources(
     return out
 
 
-def _build_fact_review_run_summary_legacy(conn: sqlite3.Connection, *, run_id: str) -> dict[str, Any]:
+def _build_fact_review_run_summary_legacy(
+    conn: sqlite3.Connection, *, run_id: str
+) -> dict[str, Any]:
     report = build_fact_intake_report(conn, run_id=run_id)
     projection = build_mary_fact_workflow_projection(conn, run_id=run_id)
     events_by_id = {str(event["event_id"]): event for event in report["events"]}
-    observations_by_id = {str(observation["observation_id"]): observation for observation in report["observations"]}
+    observations_by_id = {
+        str(observation["observation_id"]): observation
+        for observation in report["observations"]
+    }
     sources_by_id = {str(source["source_id"]): source for source in report["sources"]}
-    statements_by_id = {str(statement["statement_id"]): statement for statement in report["statements"]}
+    statements_by_id = {
+        str(statement["statement_id"]): statement for statement in report["statements"]
+    }
     fact_rows: list[dict[str, Any]] = []
     review_queue: list[dict[str, Any]] = []
     for fact in report["facts"]:
         review_statuses = [row["review_status"] for row in fact["reviews"]]
         latest_review = fact["reviews"][-1] if fact["reviews"] else None
-        primary_contested_reason_text = _latest_contestation_reason(fact["contestations"])
+        primary_contested_reason_text = _latest_contestation_reason(
+            fact["contestations"]
+        )
         reason_codes: list[str] = []
         if not fact["reviews"]:
             reason_codes.append("unreviewed")
@@ -3851,14 +4380,21 @@ def _build_fact_review_run_summary_legacy(conn: sqlite3.Connection, *, run_id: s
             reason_codes.append(f"candidate_{fact['candidate_status']}")
         if any(status == "needs_followup" for status in review_statuses):
             reason_codes.append("review_followup")
-        fact_events = [events_by_id[event_id] for event_id in fact["event_ids"] if event_id in events_by_id]
+        fact_events = [
+            events_by_id[event_id]
+            for event_id in fact["event_ids"]
+            if event_id in events_by_id
+        ]
         if not fact_events:
             chronology_bucket = "no_event"
             reason_codes.append("event_missing")
         elif any(event.get("time_start") for event in fact_events):
             chronology_bucket = (
                 "dated"
-                if any(_event_time_precision(event, observations_by_id) == "dated" for event in fact_events)
+                if any(
+                    _event_time_precision(event, observations_by_id) == "dated"
+                    for event in fact_events
+                )
                 else "approximate"
             )
         else:
@@ -3866,11 +4402,16 @@ def _build_fact_review_run_summary_legacy(conn: sqlite3.Connection, *, run_id: s
             reason_codes.append("event_undated")
         if not fact["chronology_sort_key"]:
             reason_codes.append("chronology_undated")
-        observation_families = sorted({str(row["predicate_family"]) for row in fact["observations"]})
-        observation_predicates = [str(row["predicate_key"]) for row in fact["observations"]]
+        observation_families = sorted(
+            {str(row["predicate_family"]) for row in fact["observations"]}
+        )
+        observation_predicates = [
+            str(row["predicate_key"]) for row in fact["observations"]
+        ]
         signal_classes = list(
             dict.fromkeys(
-                _observation_signal_classes(observation_predicates) + _explicit_signal_classes(fact["observations"])
+                _observation_signal_classes(observation_predicates)
+                + _explicit_signal_classes(fact["observations"])
             )
         )
         legal_procedural_predicates = [
@@ -3885,7 +4426,11 @@ def _build_fact_review_run_summary_legacy(conn: sqlite3.Connection, *, run_id: s
                 if (sources_by_id.get(source_id) or {}).get("source_type")
             }
         )
-        source_rows = [sources_by_id[source_id] for source_id in fact["source_ids"] if source_id in sources_by_id]
+        source_rows = [
+            sources_by_id[source_id]
+            for source_id in fact["source_ids"]
+            if source_id in sources_by_id
+        ]
         source_signal_classes = _source_signal_classes(source_rows)
         source_projection_modes = _source_projection_modes(source_rows)
         has_legal_procedural_observations = _has_legal_procedural_visibility(
@@ -3901,21 +4446,35 @@ def _build_fact_review_run_summary_legacy(conn: sqlite3.Connection, *, run_id: s
             }
         )
         actorish_predicates = {"actor", "co_actor", "organization"}
-        if not any(predicate in actorish_predicates for predicate in observation_predicates):
+        if not any(
+            predicate in actorish_predicates for predicate in observation_predicates
+        ):
             reason_codes.append("missing_actor")
-        if not any(predicate in {"event_time", "event_date"} for predicate in observation_predicates) and chronology_bucket != "dated":
+        if (
+            not any(
+                predicate in {"event_time", "event_date"}
+                for predicate in observation_predicates
+            )
+            and chronology_bucket != "dated"
+        ):
             reason_codes.append("missing_date")
-        if not fact["observations"] or (not fact["event_ids"] and fact["candidate_status"] in {"captured", "candidate", "uncertain"}):
+        if not fact["observations"] or (
+            not fact["event_ids"]
+            and fact["candidate_status"] in {"captured", "candidate", "uncertain"}
+        ):
             reason_codes.append("statement_only_fact")
         if has_legal_procedural_observations:
             reason_codes.append("procedural_significance")
         chronology_contested = any(
             isinstance(row.get("provenance"), Mapping)
-            and _normalize_opt_text(row["provenance"].get("contestation_scope")) == "chronology"
+            and _normalize_opt_text(row["provenance"].get("contestation_scope"))
+            == "chronology"
             for row in fact["contestations"]
         )
         if chronology_impacted := bool(fact["chronology_sort_key"]) or any(
-            events_by_id[event_id].get("time_start") for event_id in fact["event_ids"] if event_id in events_by_id
+            events_by_id[event_id].get("time_start")
+            for event_id in fact["event_ids"]
+            if event_id in events_by_id
         ):
             if chronology_contested:
                 reason_codes.append("contradictory_chronology")
@@ -3931,7 +4490,11 @@ def _build_fact_review_run_summary_legacy(conn: sqlite3.Connection, *, run_id: s
             "review_statuses": review_statuses,
             "chronology_label": fact["chronology_label"],
             "reason_codes": reason_codes,
-            "reason_labels": [REVIEW_REASON_LABELS[code] for code in reason_codes if code in REVIEW_REASON_LABELS],
+            "reason_labels": [
+                REVIEW_REASON_LABELS[code]
+                for code in reason_codes
+                if code in REVIEW_REASON_LABELS
+            ],
             "chronology_bucket": chronology_bucket,
             "event_ids": list(fact["event_ids"]),
             "observation_families": observation_families,
@@ -3944,13 +4507,17 @@ def _build_fact_review_run_summary_legacy(conn: sqlite3.Connection, *, run_id: s
             "source_projection_modes": source_projection_modes,
             "statement_roles": statement_roles,
             "primary_contested_reason_text": primary_contested_reason_text,
-            "latest_review_status": latest_review.get("review_status") if latest_review else None,
+            "latest_review_status": latest_review.get("review_status")
+            if latest_review
+            else None,
             "latest_review_note": _latest_review_note(latest_review),
             "chronology_impacted": chronology_impacted,
             "source_ids": list(fact["source_ids"]),
             "statement_ids": list(fact["statement_ids"]),
         }
-        fact_row["status_explanation"] = _build_review_queue_status_explanation(fact_row)
+        fact_row["status_explanation"] = _build_review_queue_status_explanation(
+            fact_row
+        )
         fact_rows.append(fact_row)
         review_queue.append(fact_row)
     review_queue = [row for row in review_queue if row["needs_review"]]
@@ -3969,13 +4536,18 @@ def _build_fact_review_run_summary_legacy(conn: sqlite3.Connection, *, run_id: s
             "fact_id": fact["fact_id"],
             "label": fact["canonical_label"] or fact["fact_text"][:80],
             "contestation_count": len(fact["contestations"]),
-            "contestation_statuses": [row["contestation_status"] for row in fact["contestations"]],
+            "contestation_statuses": [
+                row["contestation_status"] for row in fact["contestations"]
+            ],
             "reason_texts": [row["reason_text"] for row in fact["contestations"]],
             "review_statuses": [row["review_status"] for row in fact["reviews"]],
             "chronology_sort_key": fact["chronology_sort_key"],
             "event_ids": list(fact["event_ids"]),
-            "chronology_impacted": bool(fact["chronology_sort_key"]) or any(
-                events_by_id[event_id].get("time_start") for event_id in fact["event_ids"] if event_id in events_by_id
+            "chronology_impacted": bool(fact["chronology_sort_key"])
+            or any(
+                events_by_id[event_id].get("time_start")
+                for event_id in fact["event_ids"]
+                if event_id in events_by_id
             ),
         }
         for fact in report["facts"]
@@ -3997,14 +4569,28 @@ def _build_fact_review_run_summary_legacy(conn: sqlite3.Connection, *, run_id: s
     chronology_facts = list(projection["chronology"])
     chronology_summary = {
         "event_count": len(chronology_events),
-        "dated_event_count": sum(1 for row in chronology_events if row["time_precision"] == "dated"),
-        "approximate_event_count": sum(1 for row in chronology_events if row["time_precision"] == "approximate"),
-        "undated_event_count": sum(1 for row in chronology_events if row["time_precision"] == "undated"),
+        "dated_event_count": sum(
+            1 for row in chronology_events if row["time_precision"] == "dated"
+        ),
+        "approximate_event_count": sum(
+            1 for row in chronology_events if row["time_precision"] == "approximate"
+        ),
+        "undated_event_count": sum(
+            1 for row in chronology_events if row["time_precision"] == "undated"
+        ),
         "fact_count": len(chronology_facts),
-        "dated_fact_count": sum(1 for row in chronology_facts if row["chronology_sort_key"]),
-        "undated_fact_count": sum(1 for row in chronology_facts if not row["chronology_sort_key"]),
-        "no_event_fact_count": sum(1 for fact in report["facts"] if not fact["event_ids"]),
-        "contested_chronology_item_count": sum(1 for row in contested_items if row["chronology_impacted"]),
+        "dated_fact_count": sum(
+            1 for row in chronology_facts if row["chronology_sort_key"]
+        ),
+        "undated_fact_count": sum(
+            1 for row in chronology_facts if not row["chronology_sort_key"]
+        ),
+        "no_event_fact_count": sum(
+            1 for fact in report["facts"] if not fact["event_ids"]
+        ),
+        "contested_chronology_item_count": sum(
+            1 for row in contested_items if row["chronology_impacted"]
+        ),
     }
     summary = {
         **report["summary"],
@@ -4012,21 +4598,45 @@ def _build_fact_review_run_summary_legacy(conn: sqlite3.Connection, *, run_id: s
         "excerpt_count": len(report["excerpts"]),
         "statement_count": len(report["statements"]),
         "review_queue_count": len(review_queue),
-        "needs_followup_count": sum(1 for row in review_queue if row["latest_review_status"] == "needs_followup"),
-        "chronology_impacted_review_queue_count": sum(1 for row in review_queue if row["chronology_impacted"]),
-        "legal_procedural_review_queue_count": sum(1 for row in review_queue if row["has_legal_procedural_observations"]),
-        "missing_date_review_queue_count": sum(1 for row in review_queue if "missing_date" in row["reason_codes"]),
-        "missing_actor_review_queue_count": sum(1 for row in review_queue if "missing_actor" in row["reason_codes"]),
-        "statement_only_review_queue_count": sum(1 for row in review_queue if "statement_only_fact" in row["reason_codes"]),
-        "contradictory_chronology_review_queue_count": sum(1 for row in review_queue if "contradictory_chronology" in row["reason_codes"]),
+        "needs_followup_count": sum(
+            1 for row in review_queue if row["latest_review_status"] == "needs_followup"
+        ),
+        "chronology_impacted_review_queue_count": sum(
+            1 for row in review_queue if row["chronology_impacted"]
+        ),
+        "legal_procedural_review_queue_count": sum(
+            1 for row in review_queue if row["has_legal_procedural_observations"]
+        ),
+        "missing_date_review_queue_count": sum(
+            1 for row in review_queue if "missing_date" in row["reason_codes"]
+        ),
+        "missing_actor_review_queue_count": sum(
+            1 for row in review_queue if "missing_actor" in row["reason_codes"]
+        ),
+        "statement_only_review_queue_count": sum(
+            1 for row in review_queue if "statement_only_fact" in row["reason_codes"]
+        ),
+        "contradictory_chronology_review_queue_count": sum(
+            1
+            for row in review_queue
+            if "contradictory_chronology" in row["reason_codes"]
+        ),
         "contested_item_count": len(contested_items),
-        "abstained_fact_count": sum(1 for fact in report["facts"] if fact["candidate_status"] == "abstained"),
+        "abstained_fact_count": sum(
+            1 for fact in report["facts"] if fact["candidate_status"] == "abstained"
+        ),
         **chronology_summary,
     }
     chronology_groups = {
-        "dated_events": [row for row in chronology_events if row["time_precision"] == "dated"],
-        "approximate_events": [row for row in chronology_events if row["time_precision"] == "approximate"],
-        "undated_events": [row for row in chronology_events if row["time_precision"] == "undated"],
+        "dated_events": [
+            row for row in chronology_events if row["time_precision"] == "dated"
+        ],
+        "approximate_events": [
+            row for row in chronology_events if row["time_precision"] == "approximate"
+        ],
+        "undated_events": [
+            row for row in chronology_events if row["time_precision"] == "undated"
+        ],
         "facts_with_no_event": [
             {
                 "fact_id": fact["fact_id"],
@@ -4039,7 +4649,9 @@ def _build_fact_review_run_summary_legacy(conn: sqlite3.Connection, *, run_id: s
             for fact in report["facts"]
             if not fact["event_ids"]
         ],
-        "contested_chronology_items": [row for row in contested_items if row["chronology_impacted"]],
+        "contested_chronology_items": [
+            row for row in contested_items if row["chronology_impacted"]
+        ],
     }
     return {
         "run": report["run"],
@@ -4049,12 +4661,28 @@ def _build_fact_review_run_summary_legacy(conn: sqlite3.Connection, *, run_id: s
         "contested_summary": {
             "count": len(contested_items),
             "items": contested_items,
-            "needs_followup_count": sum(1 for row in contested_items if "needs_followup" in row["review_statuses"]),
-            "reviewed_count": sum(1 for row in contested_items if row["review_statuses"]),
-            "chronology_impacted_count": sum(1 for row in contested_items if row["chronology_impacted"]),
-            "needs_followup_items": [row for row in contested_items if "needs_followup" in row["review_statuses"]],
-            "reviewed_items": [row for row in contested_items if row["review_statuses"]],
-            "chronology_impacted_items": [row for row in contested_items if row["chronology_impacted"]],
+            "needs_followup_count": sum(
+                1
+                for row in contested_items
+                if "needs_followup" in row["review_statuses"]
+            ),
+            "reviewed_count": sum(
+                1 for row in contested_items if row["review_statuses"]
+            ),
+            "chronology_impacted_count": sum(
+                1 for row in contested_items if row["chronology_impacted"]
+            ),
+            "needs_followup_items": [
+                row
+                for row in contested_items
+                if "needs_followup" in row["review_statuses"]
+            ],
+            "reviewed_items": [
+                row for row in contested_items if row["review_statuses"]
+            ],
+            "chronology_impacted_items": [
+                row for row in contested_items if row["chronology_impacted"]
+            ],
         },
         "chronology_summary": chronology_summary,
         "chronology": {
@@ -4065,7 +4693,9 @@ def _build_fact_review_run_summary_legacy(conn: sqlite3.Connection, *, run_id: s
     }
 
 
-def build_fact_review_run_summary(conn: sqlite3.Connection, *, run_id: str) -> dict[str, Any]:
+def build_fact_review_run_summary(
+    conn: sqlite3.Connection, *, run_id: str
+) -> dict[str, Any]:
     ensure_database(conn)
     _ensure_fact_intake_tables(conn)
     if not _has_semantic_materialization(conn, run_id=run_id):
@@ -4100,7 +4730,9 @@ def build_fact_review_run_summary(conn: sqlite3.Connection, *, run_id: str) -> d
     ]
     updated_summary = dict(legacy["summary"])
     updated_summary["policy_review_required_count"] = sum(
-        1 for row in updated_facts if "review_required" in set(row.get("policy_outcomes", []))
+        1
+        for row in updated_facts
+        if "review_required" in set(row.get("policy_outcomes", []))
     )
     return {
         **legacy,
@@ -4119,7 +4751,11 @@ def _build_fact_review_workbench_payload_legacy(
     report = build_fact_intake_report(conn, run_id=run_id)
     summary = _build_fact_review_run_summary_legacy(conn, run_id=run_id)
     operator_views = build_fact_review_operator_views(conn, run_id=run_id)
-    workflow_link = report["run"].get("workflow_link") if isinstance(report["run"].get("workflow_link"), Mapping) else {}
+    workflow_link = (
+        report["run"].get("workflow_link")
+        if isinstance(report["run"].get("workflow_link"), Mapping)
+        else {}
+    )
     recent_sources = list_fact_review_sources(
         conn,
         workflow_kind=_normalize_opt_text(workflow_link.get("workflow_kind")),
@@ -4134,19 +4770,51 @@ def _build_fact_review_workbench_payload_legacy(
         facts.append(
             {
                 **fact,
-                "signal_classes": list(queue_row.get("signal_classes", [])) if queue_row else [],
-                "source_signal_classes": list(queue_row.get("source_signal_classes", [])) if queue_row else [],
-                "lexical_projection_mode": (list(queue_row.get("source_projection_modes", []))[0] if queue_row and queue_row.get("source_projection_modes") else None),
-                "source_types": list(queue_row.get("source_types", [])) if queue_row else [],
-                "statement_roles": list(queue_row.get("statement_roles", [])) if queue_row else [],
-                "legal_procedural_predicates": list(queue_row.get("legal_procedural_predicates", [])) if queue_row else [],
-                "latest_review_status": queue_row.get("latest_review_status") if queue_row else None,
-                "latest_review_note": queue_row.get("latest_review_note") if queue_row else None,
-                "status_explanation": dict(review_queue_row.get("status_explanation", {})) if review_queue_row else None,
-                "inspector_classification": _inspector_classification_for_fact_row(queue_row or {}),
+                "signal_classes": list(queue_row.get("signal_classes", []))
+                if queue_row
+                else [],
+                "source_signal_classes": list(
+                    queue_row.get("source_signal_classes", [])
+                )
+                if queue_row
+                else [],
+                "lexical_projection_mode": (
+                    list(queue_row.get("source_projection_modes", []))[0]
+                    if queue_row and queue_row.get("source_projection_modes")
+                    else None
+                ),
+                "source_types": list(queue_row.get("source_types", []))
+                if queue_row
+                else [],
+                "statement_roles": list(queue_row.get("statement_roles", []))
+                if queue_row
+                else [],
+                "legal_procedural_predicates": list(
+                    queue_row.get("legal_procedural_predicates", [])
+                )
+                if queue_row
+                else [],
+                "latest_review_status": queue_row.get("latest_review_status")
+                if queue_row
+                else None,
+                "latest_review_note": queue_row.get("latest_review_note")
+                if queue_row
+                else None,
+                "status_explanation": dict(
+                    review_queue_row.get("status_explanation", {})
+                )
+                if review_queue_row
+                else None,
+                "inspector_classification": _inspector_classification_for_fact_row(
+                    queue_row or {}
+                ),
             }
         )
-    default_fact_id = summary["review_queue"][0]["fact_id"] if summary["review_queue"] else (report["facts"][0]["fact_id"] if report["facts"] else None)
+    default_fact_id = (
+        summary["review_queue"][0]["fact_id"]
+        if summary["review_queue"]
+        else (report["facts"][0]["fact_id"] if report["facts"] else None)
+    )
     workbench = {
         "version": FACT_REVIEW_WORKBENCH_VERSION,
         "zelph_ruleset_version": FACT_REVIEW_ZELPH_RULESET_VERSION,
@@ -4175,7 +4843,11 @@ def _build_fact_review_workbench_payload_legacy(
             default_fact_id=default_fact_id,
         ),
         "inspector_classification": {
-            "status_order": ["party_assertion", "procedural_outcome", "later_annotation"],
+            "status_order": [
+                "party_assertion",
+                "procedural_outcome",
+                "later_annotation",
+            ],
             "selected_fact_id": default_fact_id,
             "facts": {row["fact_id"]: row["inspector_classification"] for row in facts},
         },
@@ -4210,8 +4882,12 @@ def persist_authority_ingest_receipt(
     if not resolved_url:
         raise ValueError("payload.resolved_url is required")
 
-    segments = payload.get("segments") if isinstance(payload.get("segments"), list) else []
-    normalized_segments = [segment for segment in segments if isinstance(segment, Mapping)]
+    segments = (
+        payload.get("segments") if isinstance(payload.get("segments"), list) else []
+    )
+    normalized_segments = [
+        segment for segment in segments if isinstance(segment, Mapping)
+    ]
     content_sha256 = _normalize_opt_text(payload.get("content_sha256"))
     if not content_sha256:
         raise ValueError("payload.content_sha256 is required")
@@ -4226,12 +4902,15 @@ def persist_authority_ingest_receipt(
             "selection_reason": _normalize_opt_text(payload.get("selection_reason")),
             "resolved_url": resolved_url,
             "content_sha256": content_sha256,
-            "paragraph_request": payload.get("paragraph_request") if isinstance(payload.get("paragraph_request"), list) else [],
+            "paragraph_request": payload.get("paragraph_request")
+            if isinstance(payload.get("paragraph_request"), list)
+            else [],
             "paragraph_window": int(payload.get("paragraph_window") or 0),
             "segments": [
                 {
                     "paragraph_number": segment.get("paragraph_number"),
-                    "segment_kind": _normalize_opt_text(segment.get("segment_kind")) or "paragraph",
+                    "segment_kind": _normalize_opt_text(segment.get("segment_kind"))
+                    or "paragraph",
                     "segment_text": str(segment.get("segment_text") or ""),
                 }
                 for segment in normalized_segments
@@ -4240,7 +4919,9 @@ def persist_authority_ingest_receipt(
     )
     payload_sha256 = _sha256_payload(payload)
 
-    conn.execute("DELETE FROM authority_ingest_runs WHERE ingest_run_id = ?", (ingest_run_id,))
+    conn.execute(
+        "DELETE FROM authority_ingest_runs WHERE ingest_run_id = ?", (ingest_run_id,)
+    )
     conn.execute(
         """
         INSERT INTO authority_ingest_runs(
@@ -4282,7 +4963,15 @@ def persist_authority_ingest_receipt(
             """,
             (
                 ingest_run_id,
-                _stable_id("authseg", {"ingest_run_id": ingest_run_id, "order": order, "paragraph_number": paragraph_number, "segment_text": segment_text}),
+                _stable_id(
+                    "authseg",
+                    {
+                        "ingest_run_id": ingest_run_id,
+                        "order": order,
+                        "paragraph_number": paragraph_number,
+                        "segment_text": segment_text,
+                    },
+                ),
                 order,
                 _normalize_opt_text(segment.get("segment_kind")) or "paragraph",
                 int(paragraph_number) if paragraph_number is not None else None,
@@ -4400,7 +5089,9 @@ def build_authority_ingest_summary(
                 "segment_id": str(row["segment_id"]),
                 "segment_order": int(row["segment_order"] or 0),
                 "segment_kind": str(row["segment_kind"]),
-                "paragraph_number": int(row["paragraph_number"]) if row["paragraph_number"] is not None else None,
+                "paragraph_number": int(row["paragraph_number"])
+                if row["paragraph_number"] is not None
+                else None,
                 "segment_text": str(row["segment_text"]),
                 "char_count": int(row["char_count"] or 0),
             }
@@ -4627,7 +5318,16 @@ def persist_fact_semantic_materialization(
         },
     )
 
-    def emit(stage: str, message: str, *, status: str = "running", facts_serialized_count: int = 0, assertion_count: int = 0, relation_count: int = 0, policy_count: int = 0) -> None:
+    def emit(
+        stage: str,
+        message: str,
+        *,
+        status: str = "running",
+        facts_serialized_count: int = 0,
+        assertion_count: int = 0,
+        relation_count: int = 0,
+        policy_count: int = 0,
+    ) -> None:
         _upsert_semantic_refresh_run(
             conn,
             refresh_id=refresh_id,
@@ -4665,15 +5365,30 @@ def persist_fact_semantic_materialization(
     try:
         report = build_fact_intake_report(conn, run_id=run_id)
         emit("build_workbench", "Building legacy workbench for semantic projection.")
-        workbench = _build_fact_review_workbench_payload_legacy(conn, run_id=run_id, include_zelph=include_zelph)
-        workbench_facts_serialized_count = int(workbench.get("zelph", {}).get("facts_serialized_count", 0))
-        emit("clear_previous", "Clearing previous semantic materialization rows.", facts_serialized_count=workbench_facts_serialized_count)
+        workbench = _build_fact_review_workbench_payload_legacy(
+            conn, run_id=run_id, include_zelph=include_zelph
+        )
+        workbench_facts_serialized_count = int(
+            workbench.get("zelph", {}).get("facts_serialized_count", 0)
+        )
+        emit(
+            "clear_previous",
+            "Clearing previous semantic materialization rows.",
+            facts_serialized_count=workbench_facts_serialized_count,
+        )
         conn.execute("DELETE FROM policy_outcomes WHERE run_id = ?", (run_id,))
         conn.execute("DELETE FROM entity_relations WHERE run_id = ?", (run_id,))
         conn.execute("DELETE FROM entity_class_assertions WHERE run_id = ?", (run_id,))
 
-        emit("materialize_sources", f"Writing source semantic assertions for {len(report['sources'])} sources.", facts_serialized_count=workbench_facts_serialized_count)
-        source_signal_by_id = {str(source["source_id"]): _derived_source_classes(source) for source in report["sources"]}
+        emit(
+            "materialize_sources",
+            f"Writing source semantic assertions for {len(report['sources'])} sources.",
+            facts_serialized_count=workbench_facts_serialized_count,
+        )
+        source_signal_by_id = {
+            str(source["source_id"]): _derived_source_classes(source)
+            for source in report["sources"]
+        }
         for source in report["sources"]:
             source_id = str(source["source_id"])
             for class_key in source_signal_by_id.get(source_id, []):
@@ -4689,10 +5404,17 @@ def persist_fact_semantic_materialization(
                 )
                 assertion_count += 1
 
-        emit("materialize_observations", f"Writing observation semantic assertions for {len(report['observations'])} observations.", facts_serialized_count=workbench_facts_serialized_count, assertion_count=assertion_count)
+        emit(
+            "materialize_observations",
+            f"Writing observation semantic assertions for {len(report['observations'])} observations.",
+            facts_serialized_count=workbench_facts_serialized_count,
+            assertion_count=assertion_count,
+        )
         for observation in report["observations"]:
             observation_id = str(observation["observation_id"])
-            predicate_classes = _observation_signal_classes([str(observation["predicate_key"])])
+            predicate_classes = _observation_signal_classes(
+                [str(observation["predicate_key"])]
+            )
             explicit_classes = _explicit_signal_classes([observation])
             for class_key in list(dict.fromkeys(predicate_classes + explicit_classes)):
                 _record_class_assertion(
@@ -4701,20 +5423,37 @@ def persist_fact_semantic_materialization(
                     target_kind="observation",
                     target_id=observation_id,
                     class_key=class_key,
-                    assertion_origin="ingest" if class_key in explicit_classes else "native_rule",
-                    rule_key="legacy_observation_metadata" if class_key in explicit_classes else "native_signal_projection",
+                    assertion_origin="ingest"
+                    if class_key in explicit_classes
+                    else "native_rule",
+                    rule_key="legacy_observation_metadata"
+                    if class_key in explicit_classes
+                    else "native_signal_projection",
                     provenance={"observation_id": observation_id},
                 )
                 assertion_count += 1
 
-        emit("materialize_facts", f"Writing fact assertions/policies for {len(report['facts'])} facts.", facts_serialized_count=workbench_facts_serialized_count, assertion_count=assertion_count)
+        emit(
+            "materialize_facts",
+            f"Writing fact assertions/policies for {len(report['facts'])} facts.",
+            facts_serialized_count=workbench_facts_serialized_count,
+            assertion_count=assertion_count,
+        )
         fact_rows_by_id = {str(row["fact_id"]): row for row in workbench["facts"]}
         for fact in report["facts"]:
             fact_id = str(fact["fact_id"])
             fact_row = fact_rows_by_id.get(fact_id, {})
             for class_key in fact_row.get("signal_classes", []):
-                origin = "zelph" if class_key in set(fact_row.get("inferred_signal_classes", [])) else "native_rule"
-                rule_key = "zelph_signal_projection" if origin == "zelph" else "native_signal_projection"
+                origin = (
+                    "zelph"
+                    if class_key in set(fact_row.get("inferred_signal_classes", []))
+                    else "native_rule"
+                )
+                rule_key = (
+                    "zelph_signal_projection"
+                    if origin == "zelph"
+                    else "native_signal_projection"
+                )
                 _record_class_assertion(
                     conn,
                     run_id=run_id,
@@ -4727,7 +5466,9 @@ def persist_fact_semantic_materialization(
                 )
                 assertion_count += 1
             for policy_key in (
-                ["review_required"] if any(row["fact_id"] == fact_id for row in workbench["review_queue"]) else []
+                ["review_required"]
+                if any(row["fact_id"] == fact_id for row in workbench["review_queue"])
+                else []
             ):
                 _record_policy_outcome(
                     conn,
@@ -4740,7 +5481,10 @@ def persist_fact_semantic_materialization(
                 )
                 policy_count += 1
             fact_signal_set = set(fact_row.get("signal_classes", []))
-            if {"authority_transfer_risk", "public_knowledge_not_authority"} & fact_signal_set:
+            if {
+                "authority_transfer_risk",
+                "public_knowledge_not_authority",
+            } & fact_signal_set:
                 _record_policy_outcome(
                     conn,
                     run_id=run_id,
@@ -4748,7 +5492,16 @@ def persist_fact_semantic_materialization(
                     target_id=fact_id,
                     policy_key="do_not_promote_to_primary",
                     rule_key="policy_projection",
-                    provenance={"fact_id": fact_id, "signals": sorted({"authority_transfer_risk", "public_knowledge_not_authority"} & fact_signal_set)},
+                    provenance={
+                        "fact_id": fact_id,
+                        "signals": sorted(
+                            {
+                                "authority_transfer_risk",
+                                "public_knowledge_not_authority",
+                            }
+                            & fact_signal_set
+                        ),
+                    },
                 )
                 policy_count += 1
             if {"uncertainty_preserved", "self_correction_signal"} & fact_signal_set:
@@ -4762,7 +5515,12 @@ def persist_fact_semantic_materialization(
                     provenance={"fact_id": fact_id},
                 )
                 policy_count += 1
-            if {"ocr_capture", "agent_summary", "system_summary", "later_annotation"} & {
+            if {
+                "ocr_capture",
+                "agent_summary",
+                "system_summary",
+                "later_annotation",
+            } & {
                 signal
                 for source_id in fact.get("source_ids", [])
                 for signal in source_signal_by_id.get(str(source_id), [])
@@ -4793,12 +5551,14 @@ def persist_fact_semantic_materialization(
             public_source_ids = [
                 source_id
                 for source_id in source_ids
-                if {"public_summary", "wiki_article", "reporting_source"} & set(source_signal_by_id.get(str(source_id), []))
+                if {"public_summary", "wiki_article", "reporting_source"}
+                & set(source_signal_by_id.get(str(source_id), []))
             ]
             record_source_ids = [
                 source_id
                 for source_id in source_ids
-                if {"legal_record", "procedural_record", "strong_legal_source"} & set(source_signal_by_id.get(str(source_id), []))
+                if {"legal_record", "procedural_record", "strong_legal_source"}
+                & set(source_signal_by_id.get(str(source_id), []))
             ]
             for public_source_id in public_source_ids:
                 for record_source_id in record_source_ids:
@@ -4823,18 +5583,26 @@ def persist_fact_semantic_materialization(
                         relation_key="cannot_upgrade_authority_of",
                         object_kind="source",
                         object_id=str(record_source_id),
-                        assertion_origin="zelph" if "public_knowledge_not_authority" in fact_signal_set else "native_rule",
-                        rule_key="zelph_signal_projection" if "public_knowledge_not_authority" in fact_signal_set else "native_signal_projection",
+                        assertion_origin="zelph"
+                        if "public_knowledge_not_authority" in fact_signal_set
+                        else "native_rule",
+                        rule_key="zelph_signal_projection"
+                        if "public_knowledge_not_authority" in fact_signal_set
+                        else "native_signal_projection",
                         provenance={"fact_id": fact_id},
                     )
                     relation_count += 1
 
         for idx, fact in enumerate(report["facts"]):
             fact_id = str(fact["fact_id"])
-            fact_signal_set = set(fact_rows_by_id.get(fact_id, {}).get("signal_classes", []))
+            fact_signal_set = set(
+                fact_rows_by_id.get(fact_id, {}).get("signal_classes", [])
+            )
             for other in report["facts"][idx + 1 :]:
                 other_id = str(other["fact_id"])
-                other_signal_set = set(fact_rows_by_id.get(other_id, {}).get("signal_classes", []))
+                other_signal_set = set(
+                    fact_rows_by_id.get(other_id, {}).get("signal_classes", [])
+                )
                 if fact.get("contestations") and other.get("contestations"):
                     _record_relation(
                         conn,
@@ -4849,7 +5617,10 @@ def persist_fact_semantic_materialization(
                         provenance={"reason": "mutual_contestation"},
                     )
                     relation_count += 1
-                if fact_signal_set & {"procedural_outcome", "public_knowledge_not_authority"} and other_signal_set & {"party_assertion", "uncertainty_preserved"}:
+                if fact_signal_set & {
+                    "procedural_outcome",
+                    "public_knowledge_not_authority",
+                } and other_signal_set & {"party_assertion", "uncertainty_preserved"}:
                     _record_relation(
                         conn,
                         run_id=run_id,
@@ -4864,7 +5635,15 @@ def persist_fact_semantic_materialization(
                     )
                     relation_count += 1
 
-        emit("finalize", "Semantic materialization complete.", status="ok", facts_serialized_count=workbench_facts_serialized_count, assertion_count=assertion_count, relation_count=relation_count, policy_count=policy_count)
+        emit(
+            "finalize",
+            "Semantic materialization complete.",
+            status="ok",
+            facts_serialized_count=workbench_facts_serialized_count,
+            assertion_count=assertion_count,
+            relation_count=relation_count,
+            policy_count=policy_count,
+        )
     except Exception as exc:
         emit(
             "error",
@@ -4888,7 +5667,9 @@ def persist_fact_semantic_materialization(
     }
 
 
-def build_fact_review_operator_views(conn: sqlite3.Connection, *, run_id: str) -> dict[str, Any]:
+def build_fact_review_operator_views(
+    conn: sqlite3.Connection, *, run_id: str
+) -> dict[str, Any]:
     summary = build_fact_review_run_summary(conn, run_id=run_id)
     review_queue = list(summary["review_queue"])
     chronology_groups = dict(summary["chronology_groups"])
@@ -4898,10 +5679,22 @@ def build_fact_review_operator_views(conn: sqlite3.Connection, *, run_id: str) -
     contested_control_items = build_contested_control_items(contested_summary["items"])
     contested_control_summary = summarize_follow_queue(contested_control_items)
     intake_groups = {
-        "missing_date": [row for row in review_queue if "missing_date" in row["reason_codes"]],
-        "missing_actor": [row for row in review_queue if "missing_actor" in row["reason_codes"]],
-        "contradictory_chronology": [row for row in review_queue if "contradictory_chronology" in row["reason_codes"]],
-        "procedural_significance": [row for row in review_queue if "procedural_significance" in row["reason_codes"]],
+        "missing_date": [
+            row for row in review_queue if "missing_date" in row["reason_codes"]
+        ],
+        "missing_actor": [
+            row for row in review_queue if "missing_actor" in row["reason_codes"]
+        ],
+        "contradictory_chronology": [
+            row
+            for row in review_queue
+            if "contradictory_chronology" in row["reason_codes"]
+        ],
+        "procedural_significance": [
+            row
+            for row in review_queue
+            if "procedural_significance" in row["reason_codes"]
+        ],
     }
     return {
         "intake_triage": {
@@ -4912,18 +5705,32 @@ def build_fact_review_operator_views(conn: sqlite3.Connection, *, run_id: str) -
                 receipt_kind="fact_observation_record",
                 substrate_kind="fact_review_workbench",
                 conjecture_kind="review_queue_item",
-                route_targets=list(review_queue_control_summary["route_target_counts"].keys()),
-                resolution_statuses=list(review_queue_control_summary["resolution_status_counts"].keys()),
+                route_targets=list(
+                    review_queue_control_summary["route_target_counts"].keys()
+                ),
+                resolution_statuses=list(
+                    review_queue_control_summary["resolution_status_counts"].keys()
+                ),
             ),
             "summary": {
                 "review_queue_count": summary["summary"]["review_queue_count"],
                 "needs_followup_count": summary["summary"]["needs_followup_count"],
-                "missing_date_review_queue_count": summary["summary"]["missing_date_review_queue_count"],
-                "missing_actor_review_queue_count": summary["summary"]["missing_actor_review_queue_count"],
-                "statement_only_review_queue_count": summary["summary"]["statement_only_review_queue_count"],
+                "missing_date_review_queue_count": summary["summary"][
+                    "missing_date_review_queue_count"
+                ],
+                "missing_actor_review_queue_count": summary["summary"][
+                    "missing_actor_review_queue_count"
+                ],
+                "statement_only_review_queue_count": summary["summary"][
+                    "statement_only_review_queue_count"
+                ],
                 "queue_count": review_queue_control_summary["queue_count"],
-                "route_target_counts": review_queue_control_summary["route_target_counts"],
-                "resolution_status_counts": review_queue_control_summary["resolution_status_counts"],
+                "route_target_counts": review_queue_control_summary[
+                    "route_target_counts"
+                ],
+                "resolution_status_counts": review_queue_control_summary[
+                    "resolution_status_counts"
+                ],
             },
             "groups": {
                 **intake_groups,
@@ -4941,11 +5748,15 @@ def build_fact_review_operator_views(conn: sqlite3.Connection, *, run_id: str) -
         "procedural_posture": {
             "title": "Procedural posture",
             "summary": {
-                "legal_procedural_review_queue_count": summary["summary"]["legal_procedural_review_queue_count"],
+                "legal_procedural_review_queue_count": summary["summary"][
+                    "legal_procedural_review_queue_count"
+                ],
                 "contested_item_count": summary["summary"]["contested_item_count"],
             },
             "groups": {},
-            "items": [row for row in review_queue if row["has_legal_procedural_observations"]],
+            "items": [
+                row for row in review_queue if row["has_legal_procedural_observations"]
+            ],
         },
         "contested_items": {
             "title": "Contested items",
@@ -4955,16 +5766,24 @@ def build_fact_review_operator_views(conn: sqlite3.Connection, *, run_id: str) -
                 receipt_kind="fact_contestation_record",
                 substrate_kind="fact_review_workbench",
                 conjecture_kind="contested_fact_item",
-                route_targets=list(contested_control_summary["route_target_counts"].keys()),
-                resolution_statuses=list(contested_control_summary["resolution_status_counts"].keys()),
+                route_targets=list(
+                    contested_control_summary["route_target_counts"].keys()
+                ),
+                resolution_statuses=list(
+                    contested_control_summary["resolution_status_counts"].keys()
+                ),
             ),
             "summary": {
                 "count": contested_summary["count"],
                 "needs_followup_count": contested_summary["needs_followup_count"],
-                "chronology_impacted_count": contested_summary["chronology_impacted_count"],
+                "chronology_impacted_count": contested_summary[
+                    "chronology_impacted_count"
+                ],
                 "queue_count": contested_control_summary["queue_count"],
                 "route_target_counts": contested_control_summary["route_target_counts"],
-                "resolution_status_counts": contested_control_summary["resolution_status_counts"],
+                "resolution_status_counts": contested_control_summary[
+                    "resolution_status_counts"
+                ],
             },
             "groups": {},
             "items": list(contested_summary["items"]),
@@ -4974,33 +5793,60 @@ def build_fact_review_operator_views(conn: sqlite3.Connection, *, run_id: str) -
             "title": "Trauma handoff",
             "summary": {
                 "support_handoff_count": sum(
-                    1 for row in review_queue if {"user_authored", "support_worker_note", "third_party_record"} & set(row["source_signal_classes"])
+                    1
+                    for row in review_queue
+                    if {"user_authored", "support_worker_note", "third_party_record"}
+                    & set(row["source_signal_classes"])
                 ),
                 "abstained_count": summary["summary"]["abstained_fact_count"],
             },
             "items": [
                 row
                 for row in review_queue
-                if {"user_authored", "support_worker_note", "third_party_record", "later_annotation"} & set(row["source_signal_classes"])
+                if {
+                    "user_authored",
+                    "support_worker_note",
+                    "third_party_record",
+                    "later_annotation",
+                }
+                & set(row["source_signal_classes"])
             ],
         },
         "professional_handoff": {
             "title": "Professional handoff",
             "summary": {
                 "user_authored_count": sum(
-                    1 for row in review_queue if {"user_authored", "client_account", "patient_account"} & set(row["source_signal_classes"])
+                    1
+                    for row in review_queue
+                    if {"user_authored", "client_account", "patient_account"}
+                    & set(row["source_signal_classes"])
                 ),
                 "professional_note_count": sum(
-                    1 for row in review_queue if {"professional_note", "professional_interpretation"} & set(row["source_signal_classes"])
+                    1
+                    for row in review_queue
+                    if {"professional_note", "professional_interpretation"}
+                    & set(row["source_signal_classes"])
                 ),
                 "documentary_count": sum(
-                    1 for row in review_queue if {"documentary_record", "third_party_record", "legal_record"} & set(row["source_signal_classes"])
+                    1
+                    for row in review_queue
+                    if {"documentary_record", "third_party_record", "legal_record"}
+                    & set(row["source_signal_classes"])
                 ),
             },
             "items": [
                 row
                 for row in review_queue
-                if {"user_authored", "client_account", "patient_account", "professional_note", "professional_interpretation", "documentary_record", "third_party_record"} & set(row["source_signal_classes"])
+                if {
+                    "user_authored",
+                    "client_account",
+                    "patient_account",
+                    "professional_note",
+                    "professional_interpretation",
+                    "documentary_record",
+                    "third_party_record",
+                }
+                & set(row["source_signal_classes"])
             ],
         },
         "false_coherence_review": {
@@ -5008,13 +5854,22 @@ def build_fact_review_operator_views(conn: sqlite3.Connection, *, run_id: str) -
             "summary": {
                 "abstained_count": summary["summary"]["abstained_fact_count"],
                 "contested_count": summary["summary"]["contested_item_count"],
-                "no_event_fact_count": summary["chronology_summary"]["no_event_fact_count"],
+                "no_event_fact_count": summary["chronology_summary"][
+                    "no_event_fact_count"
+                ],
             },
             "items": [
                 row
                 for row in review_queue
-                if {"fragmentary_account", "contradiction_cluster", "not_enough_evidence", "uncertainty_preserved"} & set(row["signal_classes"])
-                or {"candidate_abstained", "statement_only_fact", "source_conflict"} & set(row["reason_codes"])
+                if {
+                    "fragmentary_account",
+                    "contradiction_cluster",
+                    "not_enough_evidence",
+                    "uncertainty_preserved",
+                }
+                & set(row["signal_classes"])
+                or {"candidate_abstained", "statement_only_fact", "source_conflict"}
+                & set(row["reason_codes"])
             ],
         },
         "public_claim_review": {
@@ -5023,17 +5878,37 @@ def build_fact_review_operator_views(conn: sqlite3.Connection, *, run_id: str) -
                 "public_claim_count": sum(
                     1
                     for row in review_queue
-                    if {"public_summary", "wiki_article", "reporting_source", "wikidata_claim"} & set(row["source_signal_classes"])
+                    if {
+                        "public_summary",
+                        "wiki_article",
+                        "reporting_source",
+                        "wikidata_claim",
+                    }
+                    & set(row["source_signal_classes"])
                 ),
                 "procedural_record_count": sum(
-                    1 for row in review_queue if {"legal_record", "procedural_record"} & set(row["source_signal_classes"])
+                    1
+                    for row in review_queue
+                    if {"legal_record", "procedural_record"}
+                    & set(row["source_signal_classes"])
                 ),
             },
             "items": [
                 row
                 for row in review_queue
-                if {"public_summary", "wiki_article", "reporting_source", "wikidata_claim"} & set(row["source_signal_classes"])
-                or {"public_summary_claim", "overstatement_risk", "source_shopping_risk"} & set(row["signal_classes"])
+                if {
+                    "public_summary",
+                    "wiki_article",
+                    "reporting_source",
+                    "wikidata_claim",
+                }
+                & set(row["source_signal_classes"])
+                or {
+                    "public_summary_claim",
+                    "overstatement_risk",
+                    "source_shopping_risk",
+                }
+                & set(row["signal_classes"])
             ],
         },
         "wiki_fidelity": {
@@ -5042,85 +5917,153 @@ def build_fact_review_operator_views(conn: sqlite3.Connection, *, run_id: str) -
                 "wiki_fidelity_count": sum(
                     1
                     for row in review_queue
-                    if {"wiki_article", "public_summary"} & set(row["source_signal_classes"])
-                    and {"legal_record", "procedural_record"} & set(row["source_signal_classes"])
+                    if {"wiki_article", "public_summary"}
+                    & set(row["source_signal_classes"])
+                    and {"legal_record", "procedural_record"}
+                    & set(row["source_signal_classes"])
                 ),
             },
             "items": [
                 row
                 for row in review_queue
-                if {"wiki_article", "public_summary"} & set(row["source_signal_classes"])
-                and {"legal_record", "procedural_record"} & set(row["source_signal_classes"])
+                if {"wiki_article", "public_summary"}
+                & set(row["source_signal_classes"])
+                and {"legal_record", "procedural_record"}
+                & set(row["source_signal_classes"])
             ],
         },
         "claim_alignment": {
             "title": "Claim alignment",
             "summary": {
-                "wikidata_claim_count": sum(1 for row in review_queue if "wikidata_claim" in set(row["source_signal_classes"])),
+                "wikidata_claim_count": sum(
+                    1
+                    for row in review_queue
+                    if "wikidata_claim" in set(row["source_signal_classes"])
+                ),
                 "structural_boundary_count": sum(
-                    1 for row in review_queue if {"structural_ambiguity", "identity_claim", "institutional_boundary"} & set(row["signal_classes"])
+                    1
+                    for row in review_queue
+                    if {
+                        "structural_ambiguity",
+                        "identity_claim",
+                        "institutional_boundary",
+                    }
+                    & set(row["signal_classes"])
                 ),
             },
             "items": [
                 row
                 for row in review_queue
                 if "wikidata_claim" in set(row["source_signal_classes"])
-                or {"structural_ambiguity", "identity_claim", "institutional_boundary", "office_holder_role"} & set(row["signal_classes"])
+                or {
+                    "structural_ambiguity",
+                    "identity_claim",
+                    "institutional_boundary",
+                    "office_holder_role",
+                }
+                & set(row["signal_classes"])
             ],
         },
     }
 
 
-def _inspector_classification_for_fact_row(fact_row: Mapping[str, Any]) -> dict[str, Any]:
-    signal_classes = [str(value) for value in fact_row.get("signal_classes", []) if str(value).strip()]
-    source_signal_classes = [str(value) for value in fact_row.get("source_signal_classes", []) if str(value).strip()]
+def _inspector_classification_for_fact_row(
+    fact_row: Mapping[str, Any],
+) -> dict[str, Any]:
+    signal_classes = [
+        str(value) for value in fact_row.get("signal_classes", []) if str(value).strip()
+    ]
+    source_signal_classes = [
+        str(value)
+        for value in fact_row.get("source_signal_classes", [])
+        if str(value).strip()
+    ]
     status_keys = {
         "party_assertion": "party_assertion" in signal_classes,
         "procedural_outcome": "procedural_outcome" in signal_classes,
         "later_annotation": "later_annotation" in source_signal_classes,
     }
-    dominant_label = next((key for key in ("procedural_outcome", "party_assertion", "later_annotation") if status_keys[key]), "unclassified")
+    dominant_label = next(
+        (
+            key
+            for key in ("procedural_outcome", "party_assertion", "later_annotation")
+            if status_keys[key]
+        ),
+        "unclassified",
+    )
     return {
         "status_keys": status_keys,
         "dominant_label": dominant_label,
         "display_labels": [
-            label.replace("_", " ")
-            for label, enabled in status_keys.items()
-            if enabled
-        ] or ["unclassified"],
+            label.replace("_", " ") for label, enabled in status_keys.items() if enabled
+        ]
+        or ["unclassified"],
     }
 
 
-def _build_issue_filters(summary: Mapping[str, Any], operator_views: Mapping[str, Any]) -> dict[str, Any]:
-    intake_triage = operator_views.get("intake_triage") if isinstance(operator_views, Mapping) else None
-    triage_groups = intake_triage.get("groups") if isinstance(intake_triage, Mapping) else {}
+def _build_issue_filters(
+    summary: Mapping[str, Any], operator_views: Mapping[str, Any]
+) -> dict[str, Any]:
+    intake_triage = (
+        operator_views.get("intake_triage")
+        if isinstance(operator_views, Mapping)
+        else None
+    )
+    triage_groups = (
+        intake_triage.get("groups") if isinstance(intake_triage, Mapping) else {}
+    )
     filters: list[dict[str, Any]] = []
-    for key in ("missing_date", "missing_actor", "contradictory_chronology", "procedural_significance"):
+    for key in (
+        "missing_date",
+        "missing_actor",
+        "contradictory_chronology",
+        "procedural_significance",
+    ):
         items = triage_groups.get(key, []) if isinstance(triage_groups, Mapping) else []
         filters.append(
             {
                 "filter_key": key,
                 "label": REVIEW_REASON_LABELS.get(key, key.replace("_", " ").title()),
                 "count": len(items) if isinstance(items, list) else 0,
-                "fact_ids": [row["fact_id"] for row in items if isinstance(row, Mapping) and row.get("fact_id")],
+                "fact_ids": [
+                    row["fact_id"]
+                    for row in items
+                    if isinstance(row, Mapping) and row.get("fact_id")
+                ],
             }
         )
     return {
         "default_filter": "all",
-        "available_filters": ["all", *[row["filter_key"] for row in filters if row["count"] > 0]],
+        "available_filters": [
+            "all",
+            *[row["filter_key"] for row in filters if row["count"] > 0],
+        ],
         "filters": filters,
         "summary": {
-            "missing_date_review_queue_count": summary["summary"]["missing_date_review_queue_count"],
-            "missing_actor_review_queue_count": summary["summary"]["missing_actor_review_queue_count"],
-            "contradictory_chronology_review_queue_count": summary["summary"]["contradictory_chronology_review_queue_count"],
-            "procedural_significance_review_queue_count": summary["summary"]["legal_procedural_review_queue_count"],
+            "missing_date_review_queue_count": summary["summary"][
+                "missing_date_review_queue_count"
+            ],
+            "missing_actor_review_queue_count": summary["summary"][
+                "missing_actor_review_queue_count"
+            ],
+            "contradictory_chronology_review_queue_count": summary["summary"][
+                "contradictory_chronology_review_queue_count"
+            ],
+            "procedural_significance_review_queue_count": summary["summary"][
+                "legal_procedural_review_queue_count"
+            ],
         },
     }
 
 
-
-def _build_reopen_navigation(run: Mapping[str, Any], sources: list[Mapping[str, Any]]) -> dict[str, Any]:
-    workflow_link = run.get("workflow_link") if isinstance(run.get("workflow_link"), Mapping) else {}
+def _build_reopen_navigation(
+    run: Mapping[str, Any], sources: list[Mapping[str, Any]]
+) -> dict[str, Any]:
+    workflow_link = (
+        run.get("workflow_link")
+        if isinstance(run.get("workflow_link"), Mapping)
+        else {}
+    )
     workflow_kind = _normalize_opt_text(workflow_link.get("workflow_kind"))
     workflow_run_id = _normalize_opt_text(workflow_link.get("workflow_run_id"))
     source_label = _normalize_opt_text(run.get("source_label"))
@@ -5139,9 +6082,21 @@ def _build_reopen_navigation(run: Mapping[str, Any], sources: list[Mapping[str, 
         "recent_sources": [
             {
                 "source_label": row.get("source_label"),
-                "workflow_kind": ((row.get("latest_workflow_link") or {}).get("workflow_kind") if isinstance(row.get("latest_workflow_link"), Mapping) else None),
-                "workflow_run_id": ((row.get("latest_workflow_link") or {}).get("workflow_run_id") if isinstance(row.get("latest_workflow_link"), Mapping) else None),
-                "fact_run_id": ((row.get("latest_workflow_link") or {}).get("fact_run_id") if isinstance(row.get("latest_workflow_link"), Mapping) else None),
+                "workflow_kind": (
+                    (row.get("latest_workflow_link") or {}).get("workflow_kind")
+                    if isinstance(row.get("latest_workflow_link"), Mapping)
+                    else None
+                ),
+                "workflow_run_id": (
+                    (row.get("latest_workflow_link") or {}).get("workflow_run_id")
+                    if isinstance(row.get("latest_workflow_link"), Mapping)
+                    else None
+                ),
+                "fact_run_id": (
+                    (row.get("latest_workflow_link") or {}).get("fact_run_id")
+                    if isinstance(row.get("latest_workflow_link"), Mapping)
+                    else None
+                ),
                 "run_count": row.get("run_count"),
             }
             for row in sources
@@ -5157,7 +6112,9 @@ def _build_fact_review_workflow_summary(
     default_fact_id: str | None,
 ) -> dict[str, Any]:
     semantic_context = (
-        report.get("semantic_context") if isinstance(report.get("semantic_context"), Mapping) else {}
+        report.get("semantic_context")
+        if isinstance(report.get("semantic_context"), Mapping)
+        else {}
     )
     promotion_gate = (
         semantic_context.get("promotion_gate")
@@ -5187,11 +6144,17 @@ def build_fact_review_workbench_payload(
     include_zelph: bool = True,
 ) -> dict[str, Any]:
     if not _has_semantic_materialization(conn, run_id=run_id):
-        return _build_fact_review_workbench_payload_legacy(conn, run_id=run_id, include_zelph=include_zelph)
+        return _build_fact_review_workbench_payload_legacy(
+            conn, run_id=run_id, include_zelph=include_zelph
+        )
     report = build_fact_intake_report(conn, run_id=run_id)
     summary = build_fact_review_run_summary(conn, run_id=run_id)
     operator_views = build_fact_review_operator_views(conn, run_id=run_id)
-    workflow_link = report["run"].get("workflow_link") if isinstance(report["run"].get("workflow_link"), Mapping) else {}
+    workflow_link = (
+        report["run"].get("workflow_link")
+        if isinstance(report["run"].get("workflow_link"), Mapping)
+        else {}
+    )
     recent_sources = list_fact_review_sources(
         conn,
         workflow_kind=_normalize_opt_text(workflow_link.get("workflow_kind")),
@@ -5206,20 +6169,54 @@ def build_fact_review_workbench_payload(
         facts.append(
             {
                 **fact,
-                "signal_classes": list(queue_row.get("signal_classes", [])) if queue_row else [],
-                "source_signal_classes": list(queue_row.get("source_signal_classes", [])) if queue_row else [],
-                "lexical_projection_mode": (list(queue_row.get("source_projection_modes", []))[0] if queue_row and queue_row.get("source_projection_modes") else None),
-                "source_types": list(queue_row.get("source_types", [])) if queue_row else [],
-                "statement_roles": list(queue_row.get("statement_roles", [])) if queue_row else [],
-                "legal_procedural_predicates": list(queue_row.get("legal_procedural_predicates", [])) if queue_row else [],
-                "policy_outcomes": list(queue_row.get("policy_outcomes", [])) if queue_row else [],
-                "latest_review_status": queue_row.get("latest_review_status") if queue_row else None,
-                "latest_review_note": queue_row.get("latest_review_note") if queue_row else None,
-                "status_explanation": dict(review_queue_row.get("status_explanation", {})) if review_queue_row else None,
-                "inspector_classification": _inspector_classification_for_fact_row(queue_row or {}),
+                "signal_classes": list(queue_row.get("signal_classes", []))
+                if queue_row
+                else [],
+                "source_signal_classes": list(
+                    queue_row.get("source_signal_classes", [])
+                )
+                if queue_row
+                else [],
+                "lexical_projection_mode": (
+                    list(queue_row.get("source_projection_modes", []))[0]
+                    if queue_row and queue_row.get("source_projection_modes")
+                    else None
+                ),
+                "source_types": list(queue_row.get("source_types", []))
+                if queue_row
+                else [],
+                "statement_roles": list(queue_row.get("statement_roles", []))
+                if queue_row
+                else [],
+                "legal_procedural_predicates": list(
+                    queue_row.get("legal_procedural_predicates", [])
+                )
+                if queue_row
+                else [],
+                "policy_outcomes": list(queue_row.get("policy_outcomes", []))
+                if queue_row
+                else [],
+                "latest_review_status": queue_row.get("latest_review_status")
+                if queue_row
+                else None,
+                "latest_review_note": queue_row.get("latest_review_note")
+                if queue_row
+                else None,
+                "status_explanation": dict(
+                    review_queue_row.get("status_explanation", {})
+                )
+                if review_queue_row
+                else None,
+                "inspector_classification": _inspector_classification_for_fact_row(
+                    queue_row or {}
+                ),
             }
         )
-    default_fact_id = summary["review_queue"][0]["fact_id"] if summary["review_queue"] else (report["facts"][0]["fact_id"] if report["facts"] else None)
+    default_fact_id = (
+        summary["review_queue"][0]["fact_id"]
+        if summary["review_queue"]
+        else (report["facts"][0]["fact_id"] if report["facts"] else None)
+    )
     workbench = {
         "version": FACT_REVIEW_WORKBENCH_VERSION,
         "zelph_ruleset_version": FACT_REVIEW_ZELPH_RULESET_VERSION,
@@ -5248,7 +6245,11 @@ def build_fact_review_workbench_payload(
             default_fact_id=default_fact_id,
         ),
         "inspector_classification": {
-            "status_order": ["party_assertion", "procedural_outcome", "later_annotation"],
+            "status_order": [
+                "party_assertion",
+                "procedural_outcome",
+                "later_annotation",
+            ],
             "selected_fact_id": default_fact_id,
             "facts": {row["fact_id"]: row["inspector_classification"] for row in facts},
         },

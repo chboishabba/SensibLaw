@@ -20,12 +20,14 @@ def _reject_selector(name: str, value: Any) -> None:
         )
 
 
-_SMUGGLED_SELECTORS = frozenset({
-    "adapter_hint",
-    "_compat_family",
-    "_compat_profile",
-    "_artifact_shape",
-})
+_SMUGGLED_SELECTORS = frozenset(
+    {
+        "adapter_hint",
+        "_compat_family",
+        "_compat_profile",
+        "_artifact_shape",
+    }
+)
 
 
 def _repo_root() -> Path:
@@ -121,7 +123,11 @@ def normalize_input_envelope(
     input_kind: str | None = None,
     metadata: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    if isinstance(input_data, Mapping) and _text(input_data.get("schema_version")) == WORLD_MODEL_INPUT_ENVELOPE_SCHEMA_VERSION:
+    if (
+        isinstance(input_data, Mapping)
+        and _text(input_data.get("schema_version"))
+        == WORLD_MODEL_INPUT_ENVELOPE_SCHEMA_VERSION
+    ):
         payload = deepcopy(dict(input_data))
         payload["input_id"] = _text(payload.get("input_id"))
         payload["input_kind"] = _text(payload.get("input_kind"))
@@ -153,7 +159,9 @@ def normalize_input_envelope(
             **deepcopy(dict(envelope.get("metadata") or {})),
             **deepcopy(dict(path_payload.get("metadata") or {})),
         }
-        envelope["input_id"] = _text(envelope.get("input_id")) or _text(path_payload.get("metadata", {}).get("path"))
+        envelope["input_id"] = _text(envelope.get("input_id")) or _text(
+            path_payload.get("metadata", {}).get("path")
+        )
         return envelope
 
     if isinstance(input_data, str):
@@ -166,7 +174,9 @@ def normalize_input_envelope(
                 **deepcopy(dict(envelope.get("metadata") or {})),
                 **deepcopy(dict(path_payload.get("metadata") or {})),
             }
-            envelope["input_id"] = _text(envelope.get("input_id")) or _text(path_payload.get("metadata", {}).get("path"))
+            envelope["input_id"] = _text(envelope.get("input_id")) or _text(
+                path_payload.get("metadata", {}).get("path")
+            )
             return envelope
         text_payload = _normalize_text_payload(input_data)
         envelope["input_kind"] = text_payload["input_kind"]
@@ -176,10 +186,16 @@ def normalize_input_envelope(
 
     if isinstance(input_data, Mapping):
         envelope["input_kind"] = "mapping"
-        envelope["input_id"] = _text(envelope.get("input_id")) or _text(input_data.get("artifact_id")) or _text(input_data.get("model_id"))
+        envelope["input_id"] = (
+            _text(envelope.get("input_id"))
+            or _text(input_data.get("artifact_id"))
+            or _text(input_data.get("model_id"))
+        )
         return envelope
 
-    if isinstance(input_data, Sequence) and not isinstance(input_data, (bytes, bytearray)):
+    if isinstance(input_data, Sequence) and not isinstance(
+        input_data, (bytes, bytearray)
+    ):
         envelope["input_kind"] = "sequence"
         envelope["input_id"] = _text(envelope.get("input_id")) or "sequence_input"
         return envelope

@@ -19,14 +19,18 @@ def normalize_product_gate(
     value: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     mapping = value if isinstance(value, Mapping) else {}
-    evidence = mapping.get("evidence") if isinstance(mapping.get("evidence"), Mapping) else {}
+    evidence = (
+        mapping.get("evidence") if isinstance(mapping.get("evidence"), Mapping) else {}
+    )
     product_roles = [
         str(role).strip()
         for role in evidence.get("product_roles", [])
         if str(role).strip()
     ]
     return {
-        "schema_version": str(mapping.get("schema_version") or PRODUCT_GATE_SCHEMA_VERSION),
+        "schema_version": str(
+            mapping.get("schema_version") or PRODUCT_GATE_SCHEMA_VERSION
+        ),
         "lane": str(mapping.get("lane") or "").strip(),
         "product_ref": str(mapping.get("product_ref") or "").strip(),
         "decision": str(mapping.get("decision") or "").strip(),
@@ -75,16 +79,18 @@ def build_product_gate(
         decision = "promote"
         reason = "promoted_outcomes_without_open_pressure"
 
-    return normalize_product_gate({
-        "schema_version": PRODUCT_GATE_SCHEMA_VERSION,
-        "lane": str(lane),
-        "product_ref": str(product_ref),
-        "decision": decision,
-        "reason": reason,
-        "evidence": {
-            "promoted_count": promoted_count,
-            "review_count": review_count,
-            "abstained_count": abstained_count,
-            "product_roles": product_roles,
-        },
-    })
+    return normalize_product_gate(
+        {
+            "schema_version": PRODUCT_GATE_SCHEMA_VERSION,
+            "lane": str(lane),
+            "product_ref": str(product_ref),
+            "decision": decision,
+            "reason": reason,
+            "evidence": {
+                "promoted_count": promoted_count,
+                "review_count": review_count,
+                "abstained_count": abstained_count,
+                "product_roles": product_roles,
+            },
+        }
+    )

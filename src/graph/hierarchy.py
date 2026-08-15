@@ -4,9 +4,9 @@ from typing import Dict
 
 # Simple ranking for Australian courts. Higher numbers indicate higher courts.
 COURT_RANKS: Dict[str, int] = {
-    "HCA": 3,      # High Court of Australia
-    "FCAFC": 2,   # Full Court of the Federal Court
-    "FCA": 1,     # Federal Court of Australia
+    "HCA": 3,  # High Court of Australia
+    "FCAFC": 2,  # Full Court of the Federal Court
+    "FCA": 1,  # Federal Court of Australia
 }
 
 

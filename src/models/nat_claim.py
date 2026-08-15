@@ -30,7 +30,9 @@ def _normalize_claim_bundle(value: Any) -> dict[str, Any]:
     normalized_references: list[dict[str, Any]] = []
     if isinstance(references, list):
         normalized_references = [
-            _copy_mapping(reference) for reference in references if isinstance(reference, Mapping)
+            _copy_mapping(reference)
+            for reference in references
+            if isinstance(reference, Mapping)
         ]
     normalized["subject"] = _as_text(value.get("subject"))
     normalized["property"] = _as_text(value.get("property"))
@@ -69,7 +71,7 @@ class NatClaim:
             "family_id": self.family_id,
             "cohort_id": self.cohort_id,
             "candidate_id": self.candidate_id,
-            "subject": self.subject,
+            "canonical_subject": self.subject,
             "predicate": self.predicate,
             "object": self.obj,
             "source_property": self.source_property,
@@ -140,31 +142,47 @@ def build_nat_claim_from_candidate(candidate: Mapping[str, Any]) -> NatClaim:
     )
     if not canonical_form:
         canonical_form = _normalize_claim_bundle(
-            candidate.get("claim_bundle_before") if isinstance(candidate, Mapping) else {}
+            candidate.get("claim_bundle_before")
+            if isinstance(candidate, Mapping)
+            else {}
         )
-    candidate_id = _as_text(candidate.get("candidate_id")) if isinstance(candidate, Mapping) else ""
+    candidate_id = (
+        _as_text(candidate.get("candidate_id"))
+        if isinstance(candidate, Mapping)
+        else ""
+    )
     subject = _as_text(canonical_form.get("subject"))
     predicate = _as_text(canonical_form.get("property"))
     obj = _as_text(canonical_form.get("value"))
     return NatClaim(
         claim_id=candidate_id,
-        family_id=_as_text(candidate.get("family_id")) if isinstance(candidate, Mapping) else "",
-        cohort_id=_as_text(candidate.get("cohort_id")) if isinstance(candidate, Mapping) else "",
+        family_id=_as_text(candidate.get("family_id"))
+        if isinstance(candidate, Mapping)
+        else "",
+        cohort_id=_as_text(candidate.get("cohort_id"))
+        if isinstance(candidate, Mapping)
+        else "",
         candidate_id=candidate_id,
         subject=subject,
         predicate=predicate,
         obj=obj,
         source_property=_as_text(
-            _normalize_claim_bundle(candidate.get("claim_bundle_before")).get("property")
+            _normalize_claim_bundle(candidate.get("claim_bundle_before")).get(
+                "property"
+            )
         )
         if isinstance(candidate, Mapping)
         else predicate,
         target_property=predicate,
-        state=_as_text(candidate.get("status")) if isinstance(candidate, Mapping) and candidate.get("status") else "candidate",
+        state=_as_text(candidate.get("status"))
+        if isinstance(candidate, Mapping) and candidate.get("status")
+        else "candidate",
         state_basis=_as_text(candidate.get("state_basis"))
         if isinstance(candidate, Mapping) and candidate.get("state_basis")
         else "baseline_runtime",
-        root_artifact_id=_as_text(candidate.get("root_artifact_id")) if isinstance(candidate, Mapping) else "",
+        root_artifact_id=_as_text(candidate.get("root_artifact_id"))
+        if isinstance(candidate, Mapping)
+        else "",
         canonical_form=canonical_form,
         provenance={"source_kind": _as_text(candidate.get("source_kind"))}
         if isinstance(candidate, Mapping) and candidate.get("source_kind")
@@ -177,5 +195,7 @@ def build_normalized_claim_dict(**kwargs: Any) -> dict[str, Any]:
     return build_nat_claim_dict(**kwargs)
 
 
-def build_normalized_claim_from_candidate(candidate: Mapping[str, Any]) -> NormalizedClaim:
+def build_normalized_claim_from_candidate(
+    candidate: Mapping[str, Any],
+) -> NormalizedClaim:
     return build_nat_claim_from_candidate(candidate)

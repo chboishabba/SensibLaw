@@ -35,7 +35,11 @@ class DeterministicSynsetActionMapper:
     ) -> None:
         self._resource = str(resource or "none").strip().lower()
         self._wsd_policy = str(wsd_policy or "none").strip().lower()
-        self._version_pins = {str(k).strip().lower(): str(v).strip() for k, v in (version_pins or {}).items() if str(k).strip() and str(v).strip()}
+        self._version_pins = {
+            str(k).strip().lower(): str(v).strip()
+            for k, v in (version_pins or {}).items()
+            if str(k).strip() and str(v).strip()
+        }
         self._synset_action_map = {
             str(k).strip().lower(): str(v).strip()
             for k, v in (synset_action_map or {}).items()
@@ -65,7 +69,11 @@ class DeterministicSynsetActionMapper:
         }
 
     def resolve_action(self, tok: object) -> Optional[SynsetActionMatch]:
-        lemma = str(getattr(tok, "lemma_", "") or getattr(tok, "text", "") or "").strip().lower()
+        lemma = (
+            str(getattr(tok, "lemma_", "") or getattr(tok, "text", "") or "")
+            .strip()
+            .lower()
+        )
         if not lemma:
             return None
         for res in self._resource_sequence():
@@ -111,8 +119,12 @@ class DeterministicSynsetActionMapper:
         if self._wordnet is None:
             return None
         wn = self._wordnet
-        wn_pos = wn.VERB if str(getattr(tok, "pos_", "") or "") in {"VERB", "AUX"} else None
-        synsets = wn.synsets(lemma, pos=wn_pos) if wn_pos is not None else wn.synsets(lemma)
+        wn_pos = (
+            wn.VERB if str(getattr(tok, "pos_", "") or "") in {"VERB", "AUX"} else None
+        )
+        synsets = (
+            wn.synsets(lemma, pos=wn_pos) if wn_pos is not None else wn.synsets(lemma)
+        )
         if not synsets:
             return None
         candidates = sorted(self._wordnet_synset_id(s) for s in synsets)
@@ -122,10 +134,14 @@ class DeterministicSynsetActionMapper:
         synsets = self._babelnet_lemma_synsets.get(lemma) or []
         if not synsets:
             return None
-        candidates = sorted({str(s or "").strip().lower() for s in synsets if str(s or "").strip()})
+        candidates = sorted(
+            {str(s or "").strip().lower() for s in synsets if str(s or "").strip()}
+        )
         return self._select_single_action_or_abstain(candidates, resource="babelnet")
 
-    def _select_single_action_or_abstain(self, synset_ids: Sequence[str], *, resource: str) -> Optional[SynsetActionMatch]:
+    def _select_single_action_or_abstain(
+        self, synset_ids: Sequence[str], *, resource: str
+    ) -> Optional[SynsetActionMatch]:
         mapped: List[Tuple[str, str]] = []
         for sid in synset_ids:
             key = str(sid or "").strip().lower()

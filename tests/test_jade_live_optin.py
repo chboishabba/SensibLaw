@@ -15,6 +15,8 @@ def test_live_jade_fetch_and_local_paragraph_parse_opt_in():
 
     adapter = JadeAdapter()
     fetched = adapter.fetch("[2011] HCA 1")
-    paragraphs = parse_jade_paragraphs(fetched.content, content_type=fetched.content_type)
+    paragraphs = parse_jade_paragraphs(
+        fetched.content, content_type=fetched.content_type
+    )
     assert fetched.metadata["source"] == "jade.io"
     assert len(paragraphs) > 0

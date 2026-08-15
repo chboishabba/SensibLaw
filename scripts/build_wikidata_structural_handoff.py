@@ -20,15 +20,26 @@ if str(SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(SENSIBLAW_ROOT))
 
 from src.ontology.wikidata_disjointness import project_wikidata_disjointness_payload
-from src.ontology.wikidata_hotspot import generate_hotspot_cluster_pack, load_hotspot_manifest
+from src.ontology.wikidata_hotspot import (
+    generate_hotspot_cluster_pack,
+    load_hotspot_manifest,
+)
 from src.policy.wikidata_structural_io import load_json_object, relative_repo_path
 from src.zelph_bridge import run_zelph_inference
 
 
 ARTIFACT_VERSION = "wikidata_structural_handoff_v1"
 DEFAULT_OUTPUT_DIR = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / ARTIFACT_VERSION
-HOTSPOT_MANIFEST_PATH = REPO_ROOT / "docs" / "planning" / "wikidata_hotspot_pilot_pack_v1.manifest.json"
-QUALIFIER_BASELINE_PATH = SENSIBLAW_ROOT / "tests" / "fixtures" / "wikidata" / "real_qualifier_imported_slice_20260307.json"
+HOTSPOT_MANIFEST_PATH = (
+    REPO_ROOT / "docs" / "planning" / "wikidata_hotspot_pilot_pack_v1.manifest.json"
+)
+QUALIFIER_BASELINE_PATH = (
+    SENSIBLAW_ROOT
+    / "tests"
+    / "fixtures"
+    / "wikidata"
+    / "real_qualifier_imported_slice_20260307.json"
+)
 QUALIFIER_DRIFT_SLICE_PATH = (
     SENSIBLAW_ROOT
     / "tests"
@@ -210,7 +221,9 @@ def _build_slice() -> dict[str, Any]:
     disjointness_cases = _build_disjointness_cases()
 
     promoted_pack_count = sum(
-        1 for pack in hotspot_governance["packs"] if pack.get("promotion_status") == "promoted"
+        1
+        for pack in hotspot_governance["packs"]
+        if pack.get("promotion_status") == "promoted"
     )
     held_pack_count = sum(
         1 for pack in hotspot_governance["packs"] if pack.get("hold_reason")
@@ -226,7 +239,9 @@ def _build_slice() -> dict[str, Any]:
         "version": ARTIFACT_VERSION,
         "fixture_kind": "checked_structural_review_handoff",
         "summary": {
-            "qualifier_baseline_statement_count": qualifier_core["baseline"]["statement_count"],
+            "qualifier_baseline_statement_count": qualifier_core["baseline"][
+                "statement_count"
+            ],
             "qualifier_drift_case_count": 1,
             "promoted_hotspot_pack_count": promoted_pack_count,
             "held_hotspot_pack_count": held_pack_count,
@@ -282,10 +297,11 @@ def _build_summary_text(slice_payload: dict[str, Any]) -> str:
         if pack["promotion_status"] == "promoted":
             continue
         lines.append(
-            f"- {pack['pack_id']} remains held/promotable: "
-            f"{pack['hold_reason']}."
+            f"- {pack['pack_id']} remains held/promotable: {pack['hold_reason']}."
         )
-    lines.append("- GNU and GNU Project remain visible as review pressure rather than being over-promoted.")
+    lines.append(
+        "- GNU and GNU Project remain visible as review pressure rather than being over-promoted."
+    )
     for case in disjointness_cases:
         pair_text = ", ".join(case["pair_labels"])
         if case["case_status"] == "baseline":
@@ -338,7 +354,7 @@ def _build_facts(slice_payload: dict[str, Any]) -> str:
     emit('qualifier_drift_q100104196_p166 "qualifier_drift" "true"')
 
     for pack in slice_payload["hotspot_governance"]["packs"]:
-        node_id = f'pack_{_sanitize_id(str(pack["pack_id"]))}'
+        node_id = f"pack_{_sanitize_id(str(pack['pack_id']))}"
         emit(f'{node_id} "kind" "hotspot_pack"')
         emit(f'{node_id} "hotspot_family" {_quote(pack["hotspot_family"])}')
         emit(f'{node_id} "promotion_status" {_quote(pack["promotion_status"])}')
@@ -347,7 +363,7 @@ def _build_facts(slice_payload: dict[str, Any]) -> str:
             emit(f'{node_id} "hold_reason" {_quote(pack["hold_reason"])}')
 
     for case in slice_payload["disjointness_cases"]:
-        node_id = f'case_{_sanitize_id(str(case["case_id"]))}'
+        node_id = f"case_{_sanitize_id(str(case['case_id']))}"
         emit(f'{node_id} "kind" "disjointness_case"')
         emit(f'{node_id} "case_status" {_quote(case["case_status"])}')
         emit(
@@ -377,7 +393,9 @@ def _build_rules() -> str:
     )
 
 
-def _build_scorecard(slice_payload: dict[str, Any], engine_status: str | None) -> dict[str, Any]:
+def _build_scorecard(
+    slice_payload: dict[str, Any], engine_status: str | None
+) -> dict[str, Any]:
     summary = slice_payload["summary"]
     return {
         "destination": "checked_wikidata_structural_understanding",
@@ -387,8 +405,12 @@ def _build_scorecard(slice_payload: dict[str, Any], engine_status: str | None) -
         "hotspot_cluster_count": summary["hotspot_cluster_count"],
         "disjointness_case_count": summary["disjointness_case_count"],
         "contradiction_case_count": summary["contradiction_case_count"],
-        "zero_violation_baseline_case_count": summary["zero_violation_baseline_case_count"],
-        "qualifier_baseline_statement_count": summary["qualifier_baseline_statement_count"],
+        "zero_violation_baseline_case_count": summary[
+            "zero_violation_baseline_case_count"
+        ],
+        "qualifier_baseline_statement_count": summary[
+            "qualifier_baseline_statement_count"
+        ],
         "qualifier_drift_case_count": summary["qualifier_drift_case_count"],
         "zelph_engine_status": engine_status or "unknown",
     }
@@ -400,7 +422,9 @@ def build_handoff_artifact(output_dir: Path) -> dict[str, Any]:
     facts_text = _build_facts(slice_payload)
     rules_text = _build_rules()
     engine_payload = run_zelph_inference(facts_text, rules_text)
-    scorecard_payload = _build_scorecard(slice_payload, str(engine_payload.get("status") or "unknown"))
+    scorecard_payload = _build_scorecard(
+        slice_payload, str(engine_payload.get("status") or "unknown")
+    )
 
     output_dir.mkdir(parents=True, exist_ok=True)
     paths = {
@@ -411,12 +435,18 @@ def build_handoff_artifact(output_dir: Path) -> dict[str, Any]:
         "engine_path": output_dir / f"{ARTIFACT_VERSION}.engine.json",
         "scorecard_path": output_dir / f"{ARTIFACT_VERSION}.scorecard.json",
     }
-    paths["slice_path"].write_text(json.dumps(slice_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    paths["slice_path"].write_text(
+        json.dumps(slice_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     paths["summary_path"].write_text(summary_text, encoding="utf-8")
     paths["facts_path"].write_text(facts_text, encoding="utf-8")
     paths["rules_path"].write_text(rules_text, encoding="utf-8")
-    paths["engine_path"].write_text(json.dumps(engine_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    paths["scorecard_path"].write_text(json.dumps(scorecard_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    paths["engine_path"].write_text(
+        json.dumps(engine_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    paths["scorecard_path"].write_text(
+        json.dumps(scorecard_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     return {
         "engine_status": engine_payload.get("status"),
         "scorecard": scorecard_payload,
@@ -426,10 +456,22 @@ def build_handoff_artifact(output_dir: Path) -> dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build the checked wiki/Wikidata structural handoff artifact.")
-    parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Directory to write the checked handoff artifact into.")
+    parser = argparse.ArgumentParser(
+        description="Build the checked wiki/Wikidata structural handoff artifact."
+    )
+    parser.add_argument(
+        "--output-dir",
+        default=str(DEFAULT_OUTPUT_DIR),
+        help="Directory to write the checked handoff artifact into.",
+    )
     args = parser.parse_args()
-    print(json.dumps(build_handoff_artifact(Path(args.output_dir).resolve()), indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            build_handoff_artifact(Path(args.output_dir).resolve()),
+            indent=2,
+            sort_keys=True,
+        )
+    )
     return 0
 
 

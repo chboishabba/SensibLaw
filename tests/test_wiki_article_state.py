@@ -31,7 +31,10 @@ def test_build_wiki_article_state_preserves_dated_and_undated_events() -> None:
     anchor_statuses = {row["anchor_status"] for row in state["timeline_projection"]}
     assert "none" in anchor_statuses
     assert "explicit" in anchor_statuses
-    assert all(row["ordering_basis"] == "source_text_order" for row in state["timeline_projection"])
+    assert all(
+        row["ordering_basis"] == "source_text_order"
+        for row in state["timeline_projection"]
+    )
 
 
 def test_build_wiki_article_state_derives_regime_vector() -> None:
@@ -69,15 +72,30 @@ def test_observation_builder_emits_actor_action_object_claim_and_anchor_rows() -
                 "action": "report",
                 "objects": [{"title": "Bob resigned"}],
                 "claim_bearing": True,
-                "attributions": [{"attribution_type": "direct_statement", "step_index": 0}],
-                "anchor": {"year": 2021, "month": 5, "day": 5, "kind": "explicit", "precision": "day"},
+                "attributions": [
+                    {"attribution_type": "direct_statement", "step_index": 0}
+                ],
+                "anchor": {
+                    "year": 2021,
+                    "month": 5,
+                    "day": 5,
+                    "kind": "explicit",
+                    "precision": "day",
+                },
                 "anchor_status": "explicit",
             }
         ]
     )
 
     predicates = {row["predicate"] for row in observations}
-    assert {"actor", "performed_action", "acted_on", "claimed", "communicated", "event_date"} <= predicates
+    assert {
+        "actor",
+        "performed_action",
+        "acted_on",
+        "claimed",
+        "communicated",
+        "event_date",
+    } <= predicates
 
 
 def test_timeline_projection_keeps_order_and_anchor_status() -> None:

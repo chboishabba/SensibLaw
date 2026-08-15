@@ -383,12 +383,16 @@ def _streaming_semantic_build(
             # PostgreSQL is the only strict execution authority.  The local
             # owner remains the reducer; workers return immutable receipts and
             # never mutate it directly.
-            round_jobs = tuple(sorted(jobs, key=lambda job: (job.input_revision, job.job_ref)))
+            round_jobs = tuple(
+                sorted(jobs, key=lambda job: (job.input_revision, job.job_ref))
+            )
 
             # The strict worker receives only the serialized immutable job.
             # This keeps the closure owner heap in the coordinator out of the
             # spawned process and makes the executor spawn-picklable.
-            from src.storage.postgres.distributed_semantic_execution import execute_serialized_streaming_job
+            from src.storage.postgres.distributed_semantic_execution import (
+                execute_serialized_streaming_job,
+            )
 
             execute_manifest = execute_serialized_streaming_job
 
@@ -412,21 +416,31 @@ def _streaming_semantic_build(
                 )
 
             def apply_delta(payload: Mapping[str, Any], _revision: int) -> None:
-                from src.policy.parallel_semantic_execution import _solver_receipt_from_row
+                from src.policy.parallel_semantic_execution import (
+                    _solver_receipt_from_row,
+                )
 
                 receipt = _solver_receipt_from_row(payload)
                 owner.admit_solver_receipt(receipt)
                 owner.reduce_dirty_groups()
                 receipts.append(receipt)
                 if progress_observer is not None:
-                    progress_observer({
-                        "jobs_completed": len(receipts),
-                        "input_refs_processed": sum(len(row.input_refs) for row in receipts),
-                        "proposals_emitted": sum(len(row.proposals) for row in receipts),
-                        "current_kernel": "postgresql_leased_worker",
-                    })
+                    progress_observer(
+                        {
+                            "jobs_completed": len(receipts),
+                            "input_refs_processed": sum(
+                                len(row.input_refs) for row in receipts
+                            ),
+                            "proposals_emitted": sum(
+                                len(row.proposals) for row in receipts
+                            ),
+                            "current_kernel": "postgresql_leased_worker",
+                        }
+                    )
 
-            from src.storage.postgres.distributed_semantic_execution import ImmutableJobManifest
+            from src.storage.postgres.distributed_semantic_execution import (
+                ImmutableJobManifest,
+            )
 
             manifests = tuple(
                 ImmutableJobManifest.build(
@@ -492,7 +506,9 @@ def _streaming_semantic_build(
         ],
         "fixed_point_certificate": certificate.to_dict(),
         "declarations": [declaration.to_dict()],
-        "closure_backend": "postgresql-leased-worker:v1" if strict_strategy is not None else closure.backend_ref,
+        "closure_backend": "postgresql-leased-worker:v1"
+        if strict_strategy is not None
+        else closure.backend_ref,
         "streaming_bidirectional": True,
         "logical_owner_granularity": "document_scope_factor_family",
         "eventual_consistency": "convergent_append_only",
@@ -564,10 +580,15 @@ def compile_document_operational(
 
     if not 1 <= closure_workers <= 32:
         raise ValueError("closure_workers must be between 1 and 32")
-    if execution_strategy_ref == "postgresql-leased-exact-execution:v1" and not database_url:
+    if (
+        execution_strategy_ref == "postgresql-leased-exact-execution:v1"
+        and not database_url
+    ):
         from src.runtime.strict_postgres_execution import StrictExecutionError
 
-        raise StrictExecutionError("postgresql_authority_missing", kernel_key="strict.closure_handoff")
+        raise StrictExecutionError(
+            "postgresql_authority_missing", kernel_key="strict.closure_handoff"
+        )
     if not 1 <= owner_partitions <= 128:
         raise ValueError("owner_partitions must be between 1 and 128")
     parser_policy = DocumentFibrePolicy(

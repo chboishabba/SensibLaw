@@ -168,9 +168,7 @@ class SemanticTransport:
 
     @property
     def transport_ref(self) -> str:
-        return "semantic-transport:" + canonical_sha256(
-            self.to_dict(include_ref=False)
-        )
+        return "semantic-transport:" + canonical_sha256(self.to_dict(include_ref=False))
 
     def to_dict(self, *, include_ref: bool = True) -> dict[str, Any]:
         payload: dict[str, Any] = {
@@ -248,9 +246,7 @@ class FibreElement:
 
     @property
     def element_ref(self) -> str:
-        return "semantic-fibre-element:" + canonical_sha256(
-            self.identity_payload()
-        )
+        return "semantic-fibre-element:" + canonical_sha256(self.identity_payload())
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -294,9 +290,7 @@ class FibreDerivation:
 
     @property
     def derivation_ref(self) -> str:
-        return "semantic-fibre-derivation:" + canonical_sha256(
-            self.identity_payload()
-        )
+        return "semantic-fibre-derivation:" + canonical_sha256(self.identity_payload())
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -420,12 +414,8 @@ class FibreValidation:
             "coordinate_ref": self.coordinate_ref,
             "outcome": self.outcome,
             "supporting_element_refs": list(_refs(self.supporting_element_refs)),
-            "contradicting_element_refs": list(
-                _refs(self.contradicting_element_refs)
-            ),
-            "undetermined_element_refs": list(
-                _refs(self.undetermined_element_refs)
-            ),
+            "contradicting_element_refs": list(_refs(self.contradicting_element_refs)),
+            "undetermined_element_refs": list(_refs(self.undetermined_element_refs)),
             "residual_refs": list(_refs(self.residual_refs)),
             "ontology_axis_refs": list(_refs(self.ontology_axis_refs)),
             "applicable": self.applicable,
@@ -495,17 +485,16 @@ class SemanticFibreLedger:
         coordinates = {
             row.coordinate_ref: row for row in (*self.coordinates, *other.coordinates)
         }
-        elements = {
-            row.element_ref: row for row in (*self.elements, *other.elements)
-        }
+        elements = {row.element_ref: row for row in (*self.elements, *other.elements)}
         transports = {
             row.transport_ref: row for row in (*self.transports, *other.transports)
         }
         derivations = {
-            row.derivation_ref: row
-            for row in (*self.derivations, *other.derivations)
+            row.derivation_ref: row for row in (*self.derivations, *other.derivations)
         }
-        axes = {row.axis_ref: row for row in (*self.ontology_axes, *other.ontology_axes)}
+        axes = {
+            row.axis_ref: row for row in (*self.ontology_axes, *other.ontology_axes)
+        }
         axis_obligations = {
             row.obligation_ref: row
             for row in (*self.axis_obligations, *other.axis_obligations)
@@ -523,9 +512,7 @@ class SemanticFibreLedger:
             axis_obligations=tuple(
                 axis_obligations[key] for key in sorted(axis_obligations)
             ),
-            boundary_obligations=tuple(
-                boundaries[key] for key in sorted(boundaries)
-            ),
+            boundary_obligations=tuple(boundaries[key] for key in sorted(boundaries)),
         )
 
     def fibre(self, coordinate_ref: str) -> tuple[FibreElement, ...]:
@@ -547,9 +534,7 @@ class SemanticFibreLedger:
             "transports": [row.to_dict() for row in self.transports],
             "derivations": [row.to_dict() for row in self.derivations],
             "ontology_axes": [row.to_dict() for row in self.ontology_axes],
-            "axis_obligations": [
-                row.to_dict() for row in self.axis_obligations
-            ],
+            "axis_obligations": [row.to_dict() for row in self.axis_obligations],
             "boundary_obligations": [
                 row.to_dict() for row in self.boundary_obligations
             ],
@@ -585,9 +570,7 @@ def fibre_element_from_proposal_row(
         dependency_refs=tuple(
             str(ref) for ref in proposal.get("dependency_factor_refs") or ()
         ),
-        transport_refs=tuple(
-            str(ref) for ref in proposal.get("transport_refs") or ()
-        ),
+        transport_refs=tuple(str(ref) for ref in proposal.get("transport_refs") or ()),
         ontology_axis_refs=tuple(
             str(ref) for ref in proposal.get("ontology_axis_refs") or ()
         ),

@@ -10,7 +10,6 @@ from src.logic_tree import (
     build,
     index_tokens_for_fts,
     prepare_logic_tree_schema,
-    prepare_fts_schema,
     project_logic_tree_to_sqlite,
     rehydrate_logic_tree_from_sqlite,
     search_fts_over_logic_tree,
@@ -30,7 +29,15 @@ def test_build_handles_empty_tokens() -> None:
     assert tree.root_id == "n0"
     assert [node.node_type for node in tree.nodes] == [NodeType.ROOT]
     assert tree.edges == []
-    assert list(tree.to_dict()["nodes"]) == [{"id": "n0", "node_type": "ROOT", "span": None, "text": None, "source_id": "unknown"}]
+    assert list(tree.to_dict()["nodes"]) == [
+        {
+            "id": "n0",
+            "node_type": "ROOT",
+            "span": None,
+            "text": None,
+            "source_id": "unknown",
+        }
+    ]
 
 
 def test_build_single_clause_sequences_tokens() -> None:
@@ -51,7 +58,11 @@ def test_build_single_clause_sequences_tokens() -> None:
     clause = clause_nodes[0]
     assert clause.span == (0, len(tokens))
     assert clause.text == "A person must not enter"
-    token_nodes = [node for node in tree.nodes if node.node_type not in (NodeType.ROOT, NodeType.CLAUSE)]
+    token_nodes = [
+        node
+        for node in tree.nodes
+        if node.node_type not in (NodeType.ROOT, NodeType.CLAUSE)
+    ]
     assert [node.node_type for node in token_nodes] == [
         NodeType.TOKEN,
         NodeType.TOKEN,
@@ -87,7 +98,10 @@ def test_build_multi_clause_sequence() -> None:
     assert clause_nodes[0].span == (0, 4)
     assert clause_nodes[1].span == (4, 6)
     root_edges = [edge for edge in tree.edges if edge.parent_id == tree.root_id]
-    assert [edge.child_id for edge in root_edges] == [clause_nodes[0].id, clause_nodes[1].id]
+    assert [edge.child_id for edge in root_edges] == [
+        clause_nodes[0].id,
+        clause_nodes[1].id,
+    ]
 
 
 def test_build_qualifiers_and_exceptions_edge_types() -> None:
@@ -121,11 +135,17 @@ def test_traversal_orders_are_stable() -> None:
 
     preorder_ids = [node.id for node in walk_preorder(tree)]
     postorder_ids = [node.id for node in walk_postorder(tree)]
-    root_to_leaf_paths = [[node.id for node in path] for path in walk_root_to_leaves(tree)]
+    root_to_leaf_paths = [
+        [node.id for node in path] for path in walk_root_to_leaves(tree)
+    ]
 
     assert preorder_ids == ["n0", "n1", "n2", "n3", "n4"]
     assert postorder_ids[-1] == "n0"
-    assert root_to_leaf_paths == [["n0", "n1", "n2"], ["n0", "n1", "n3"], ["n0", "n1", "n4"]]
+    assert root_to_leaf_paths == [
+        ["n0", "n1", "n2"],
+        ["n0", "n1", "n3"],
+        ["n0", "n1", "n4"],
+    ]
 
 
 def test_build_is_deterministic() -> None:

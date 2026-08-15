@@ -24,7 +24,9 @@ def _scalar(cursor: Any, query: str, params: tuple[object, ...]) -> int:
     return int(row[0]) if row is not None and row[0] is not None else 0
 
 
-def _rows(cursor: Any, query: str, params: tuple[object, ...]) -> tuple[tuple[Any, ...], ...]:
+def _rows(
+    cursor: Any, query: str, params: tuple[object, ...]
+) -> tuple[tuple[Any, ...], ...]:
     cursor.execute(query, params)
     return tuple(cursor.fetchall())
 
@@ -52,11 +54,15 @@ def _resolve_run(cursor: Any, run_id: int | None) -> int:
     )
     row = cursor.fetchone()
     if row is None or row[0] is None:
-        raise SystemExit("no numeric PNF run with a registered run identity is available")
+        raise SystemExit(
+            "no numeric PNF run with a registered run identity is available"
+        )
     return int(row[0])
 
 
-def _document_ids(cursor: Any, run_id: int, requested: tuple[int, ...]) -> tuple[int, ...]:
+def _document_ids(
+    cursor: Any, run_id: int, requested: tuple[int, ...]
+) -> tuple[int, ...]:
     if requested:
         return tuple(sorted(set(requested)))
     return tuple(
@@ -168,7 +174,9 @@ def build_report(
         with connection.transaction():
             with connection.cursor() as cursor:
                 selected_run_id = _resolve_run(cursor, run_id)
-                selected_documents = _document_ids(cursor, selected_run_id, document_ids)
+                selected_documents = _document_ids(
+                    cursor, selected_run_id, document_ids
+                )
 
         if refresh:
             _refresh_documents(

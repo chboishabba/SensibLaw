@@ -96,14 +96,18 @@ def build_conflict_set(
 ) -> dict[str, Any]:
     normalized_rows = _normalize_evidence_rows(evidence_rows)
     canonical_forms = {
-        json.dumps(_semantic_conflict_view(row.get("canonical_form", {})), sort_keys=True)
+        json.dumps(
+            _semantic_conflict_view(row.get("canonical_form", {})), sort_keys=True
+        )
         for row in normalized_rows
         if row.get("canonical_form")
     }
     has_conflict = len(canonical_forms) > 1
     conflict = ConflictSet(
         claim_id=_as_text(claim_id),
-        conflict_id=_conflict_id_for_claim(claim_id, normalized_rows) if has_conflict else "",
+        conflict_id=_conflict_id_for_claim(claim_id, normalized_rows)
+        if has_conflict
+        else "",
         candidate_ids=[_as_text(value) for value in candidate_ids if _as_text(value)],
         conflict_type="canonical_form_divergence" if has_conflict else "none",
         evidence_rows=normalized_rows if has_conflict else [],

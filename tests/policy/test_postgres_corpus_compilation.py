@@ -70,7 +70,9 @@ class _Store:
     def persist_completed_operational_build(self, *args, **kwargs) -> None:
         return None
 
-    def persist_occurrence(self, cursor, *, corpus_ref, relative_path, document_ref, state):
+    def persist_occurrence(
+        self, cursor, *, corpus_ref, relative_path, document_ref, state
+    ):
         self.occurrences.append(
             {
                 "corpus_ref": corpus_ref,
@@ -86,7 +88,9 @@ class _Store:
         return failure_ref
 
 
-def test_document_parent_closure_fails_before_savepoint(monkeypatch, tmp_path: Path) -> None:
+def test_document_parent_closure_fails_before_savepoint(
+    monkeypatch, tmp_path: Path
+) -> None:
     context = default_compiler_context()
     source_text = "Bush met Bush."
     source_bytes = source_text.encode("utf-8")
@@ -304,9 +308,7 @@ def test_compile_directory_postgres_resume_state_skips_completed_documents(
         for event in progress.events
     )
     active_events = [
-        event
-        for event in progress.events
-        if event.get("message") == "active document"
+        event for event in progress.events if event.get("message") == "active document"
     ]
     assert {event["details"]["document_ref"] for event in active_events} == set(
         first.document_refs
@@ -318,7 +320,9 @@ def test_compile_directory_postgres_resume_state_skips_completed_documents(
             for row in progress.events[:event_index]
             if row.get("state") == "running"
         ]
-        assert event["completed"] == (prior_running[-1]["completed"] if prior_running else 0)
+        assert event["completed"] == (
+            prior_running[-1]["completed"] if prior_running else 0
+        )
 
     executor_calls.clear()
     load_calls.clear()
@@ -379,10 +383,16 @@ def test_compile_directory_postgres_records_failed_document_without_success_coun
     assert state["completed_document_count"] == 1
     assert len(state["document_refs"]) == 1
     assert len(state["failure_refs"]) == 1
-    assert state["documents"][next(
-        ref for ref in state["documents"]
-        if state["documents"][ref]["state"] == "failed"
-    )]["state"] == "failed"
+    assert (
+        state["documents"][
+            next(
+                ref
+                for ref in state["documents"]
+                if state["documents"][ref]["state"] == "failed"
+            )
+        ]["state"]
+        == "failed"
+    )
     assert any(
         event.get("message") == "active document"
         and event.get("details", {}).get("document_ref")

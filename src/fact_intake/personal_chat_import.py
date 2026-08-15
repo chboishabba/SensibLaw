@@ -38,9 +38,16 @@ def _build_envelope_summary(message: Mapping[str, Any]) -> str:
     return f"Chat message from {speaker} at {ts}"
 
 
-def _normalize_messages_to_entries(input_payload: Mapping[str, Any], *, protected: bool) -> list[dict[str, Any]]:
-    source_type_default = str(input_payload.get("source_type") or "chat_archive_sample").strip() or "chat_archive_sample"
-    source_id_default = str(input_payload.get("source_id") or "chat_import").strip() or "chat_import"
+def _normalize_messages_to_entries(
+    input_payload: Mapping[str, Any], *, protected: bool
+) -> list[dict[str, Any]]:
+    source_type_default = (
+        str(input_payload.get("source_type") or "chat_archive_sample").strip()
+        or "chat_archive_sample"
+    )
+    source_id_default = (
+        str(input_payload.get("source_id") or "chat_import").strip() or "chat_import"
+    )
     entries: list[dict[str, Any]] = []
     messages = input_payload.get("messages")
     if not isinstance(messages, list) or not messages:
@@ -53,38 +60,60 @@ def _normalize_messages_to_entries(input_payload: Mapping[str, Any], *, protecte
             raise ValueError("message_id must not be blank")
         entry = {
             "unit_id": unit_id,
-            "source_id": str(raw_message.get("source_id") or source_id_default).strip() or source_id_default,
-            "source_type": str(raw_message.get("source_type") or source_type_default).strip() or source_type_default,
+            "source_id": str(raw_message.get("source_id") or source_id_default).strip()
+            or source_id_default,
+            "source_type": str(
+                raw_message.get("source_type") or source_type_default
+            ).strip()
+            or source_type_default,
             "text": _render_message_text(raw_message),
             "share_with": raw_message.get("share_with"),
         }
         if protected:
             entry.update(
                 {
-                    "local_handle": str(raw_message.get("local_handle") or f"chat://{unit_id}").strip(),
+                    "local_handle": str(
+                        raw_message.get("local_handle") or f"chat://{unit_id}"
+                    ).strip(),
                     "envelope_summary": _build_envelope_summary(raw_message),
-                    "identity_policy": str(raw_message.get("identity_policy") or "withheld"),
-                    "envelope_export_policy": str(raw_message.get("envelope_export_policy") or "metadata_only"),
-                    "protected_disclosure_only": bool(raw_message.get("protected_disclosure_only")),
+                    "identity_policy": str(
+                        raw_message.get("identity_policy") or "withheld"
+                    ),
+                    "envelope_export_policy": str(
+                        raw_message.get("envelope_export_policy") or "metadata_only"
+                    ),
+                    "protected_disclosure_only": bool(
+                        raw_message.get("protected_disclosure_only")
+                    ),
                 }
             )
-            protected_reason = str(raw_message.get("protected_disclosure_reason") or "").strip()
+            protected_reason = str(
+                raw_message.get("protected_disclosure_reason") or ""
+            ).strip()
             if protected_reason:
                 entry["protected_disclosure_reason"] = protected_reason
         else:
-            entry["text_export_policy"] = str(raw_message.get("text_export_policy") or "full")
+            entry["text_export_policy"] = str(
+                raw_message.get("text_export_policy") or "full"
+            )
             if isinstance(raw_message.get("signal_classes"), list):
-                entry["signal_classes"] = [str(value) for value in raw_message["signal_classes"]]
+                entry["signal_classes"] = [
+                    str(value) for value in raw_message["signal_classes"]
+                ]
         entries.append(entry)
     return entries
 
 
-def build_handoff_input_from_chat_json(input_payload: Mapping[str, Any]) -> dict[str, Any]:
+def build_handoff_input_from_chat_json(
+    input_payload: Mapping[str, Any],
+) -> dict[str, Any]:
     mode = str(input_payload.get("mode") or "personal_handoff").strip()
     protected = mode == "protected_disclosure_envelope"
     if mode not in {"personal_handoff", "protected_disclosure_envelope"}:
         raise ValueError(f"unsupported mode: {mode}")
-    recipient_profile = normalize_profile(str(input_payload.get("recipient_profile") or ""))
+    recipient_profile = normalize_profile(
+        str(input_payload.get("recipient_profile") or "")
+    )
     payload = {
         "mode": mode,
         "source_label": str(input_payload.get("source_label") or "").strip(),
@@ -92,8 +121,12 @@ def build_handoff_input_from_chat_json(input_payload: Mapping[str, Any]) -> dict
         "recipient_profile": recipient_profile,
         "handoff": dict(input_payload.get("handoff") or {}),
         "entries": _normalize_messages_to_entries(input_payload, protected=protected),
-        "observations": list(input_payload.get("observations", [])) if isinstance(input_payload.get("observations"), list) else [],
-        "reviews": list(input_payload.get("reviews", [])) if isinstance(input_payload.get("reviews"), list) else [],
+        "observations": list(input_payload.get("observations", []))
+        if isinstance(input_payload.get("observations"), list)
+        else [],
+        "reviews": list(input_payload.get("reviews", []))
+        if isinstance(input_payload.get("reviews"), list)
+        else [],
     }
     if not payload["source_label"]:
         raise ValueError("source_label is required")
@@ -116,7 +149,11 @@ def build_handoff_input_from_units(
         raise ValueError(f"unsupported mode: {mode}")
     protected = mode == "protected_disclosure_envelope"
     recipient_profile = normalize_profile(recipient_profile)
-    share_with = list(default_share_with) if default_share_with else list(DEFAULT_HANDOFF_SHARE_WITH)
+    share_with = (
+        list(default_share_with)
+        if default_share_with
+        else list(DEFAULT_HANDOFF_SHARE_WITH)
+    )
     messages: list[dict[str, Any]] = []
     for unit in units:
         message: dict[str, Any] = {
@@ -146,7 +183,9 @@ def build_handoff_input_from_units(
                     "disclosure_level": "protected_disclosure_v1",
                     "envelope_policy": "protected_disclosure_local_only_v1",
                     "handling_notice": "Protected-disclosure material must remain local-only and scoped to legal or regulatory recipients.",
-                    "allowed_recipient_profiles": list(DEFAULT_PROTECTED_ALLOWED_RECIPIENT_PROFILES),
+                    "allowed_recipient_profiles": list(
+                        DEFAULT_PROTECTED_ALLOWED_RECIPIENT_PROFILES
+                    ),
                 },
             }
         )
@@ -162,7 +201,9 @@ def build_handoff_input_from_units(
     )
 
 
-def build_handoff_report_from_chat_json(input_payload: Mapping[str, Any]) -> dict[str, Any]:
+def build_handoff_report_from_chat_json(
+    input_payload: Mapping[str, Any],
+) -> dict[str, Any]:
     if isinstance(input_payload.get("entries"), list):
         payload = dict(input_payload)
     else:

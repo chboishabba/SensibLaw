@@ -5,7 +5,9 @@ import sqlite3
 from pathlib import Path
 
 
-SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "archive_turn_fact_extract.py"
+SCRIPT_PATH = (
+    Path(__file__).resolve().parents[1] / "scripts" / "archive_turn_fact_extract.py"
+)
 SPEC = importlib.util.spec_from_file_location("archive_turn_fact_extract", SCRIPT_PATH)
 archive_turn_fact_extract = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
@@ -86,12 +88,16 @@ def _seed_archive_db(path: Path) -> None:
         )
 
 
-def test_archive_turn_fact_extract_uses_existing_semantic_pipeline(tmp_path: Path) -> None:
+def test_archive_turn_fact_extract_uses_existing_semantic_pipeline(
+    tmp_path: Path,
+) -> None:
     db_path = tmp_path / "archive.sqlite"
     _seed_archive_db(db_path)
 
     turn = archive_turn_fact_extract.load_archive_turn(db_path, message_id="msg-call")
-    payload = archive_turn_fact_extract.build_archive_turn_fact_extract(turn, run_id="archive-test-run")
+    payload = archive_turn_fact_extract.build_archive_turn_fact_extract(
+        turn, run_id="archive-test-run"
+    )
 
     assert payload["schema_version"] == "sl.archive_turn_fact_extract.v0_1"
     assert payload["authority_boundary"]["uses_existing_sensiblaw_extractors"] is True
@@ -113,7 +119,9 @@ def test_archive_turn_fact_extract_uses_existing_semantic_pipeline(tmp_path: Pat
     assert len(semantic_report["per_event"]) == 2
     assert semantic_report["summary"]["unresolved_mention_count"] >= 1
 
-    relational_types = {row["type"] for row in response_debug["relational_bundle"]["relations"]}
+    relational_types = {
+        row["type"] for row in response_debug["relational_bundle"]["relations"]
+    }
     assert "predicate" in relational_types
 
     fact_payload = payload["fact_intake_payload"]

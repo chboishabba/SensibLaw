@@ -29,9 +29,15 @@ except Exception:  # pragma: no cover - optional structural parser path
     _get_dependencies = None
 
 try:
-    from src.policy.semantic_promotion import build_contested_claim_candidate, promote_contested_claim
+    from src.policy.semantic_promotion import (
+        build_contested_claim_candidate,
+        promote_contested_claim,
+    )
 except Exception:  # pragma: no cover - import path fallback for direct script use
-    from policy.semantic_promotion import build_contested_claim_candidate, promote_contested_claim
+    from policy.semantic_promotion import (
+        build_contested_claim_candidate,
+        promote_contested_claim,
+    )
 
 try:
     from src.policy.compiler_contract import build_affidavit_coverage_review_contract
@@ -47,17 +53,25 @@ try:
 except Exception:  # pragma: no cover - import path fallback for direct script use
     from policy.review_workflow_summary import build_count_priority_workflow_summary
 try:
-    from src.policy.review_claim_records import build_review_claim_records_from_affidavit_rows
+    from src.policy.review_claim_records import (
+        build_review_claim_records_from_affidavit_rows,
+    )
 except Exception:  # pragma: no cover - import path fallback for direct script use
-    from policy.review_claim_records import build_review_claim_records_from_affidavit_rows
+    from policy.review_claim_records import (
+        build_review_claim_records_from_affidavit_rows,
+    )
 try:
     from src.policy.reasoner_input_artifact import build_reasoner_input_artifact
 except Exception:  # pragma: no cover - import path fallback for direct script use
     from policy.reasoner_input_artifact import build_reasoner_input_artifact
 try:
-    from src.policy.suite_normalized_artifact import build_affidavit_coverage_review_normalized_artifact
+    from src.policy.suite_normalized_artifact import (
+        build_affidavit_coverage_review_normalized_artifact,
+    )
 except Exception:  # pragma: no cover - import path fallback for direct script use
-    from policy.suite_normalized_artifact import build_affidavit_coverage_review_normalized_artifact
+    from policy.suite_normalized_artifact import (
+        build_affidavit_coverage_review_normalized_artifact,
+    )
 
 try:
     from src.policy.affidavit_normalized_surface import (
@@ -82,9 +96,17 @@ except Exception:  # pragma: no cover - import path fallback for direct script u
     from fact_intake import persist_contested_affidavit_review
 
 try:
-    from scripts.cli_runtime import build_event_callback, build_progress_callback, configure_cli_logging
+    from scripts.cli_runtime import (
+        build_event_callback,
+        build_progress_callback,
+        configure_cli_logging,
+    )
 except Exception:  # pragma: no cover - import path fallback for direct script use
-    from cli_runtime import build_event_callback, build_progress_callback, configure_cli_logging
+    from cli_runtime import (
+        build_event_callback,
+        build_progress_callback,
+        configure_cli_logging,
+    )
 
 
 ARTIFACT_VERSION = "affidavit_coverage_review_v1"
@@ -100,7 +122,9 @@ _tokenize = _text_surface.tokenize_affidavit_text
 _split_affidavit_text = _text_surface.split_affidavit_text
 _derive_claim_root_fields = _matching_surface.derive_claim_root_fields
 _infer_response_packet_impl = _semantics_surface.infer_response_packet
-_derive_primary_target_component_impl = _semantics_surface.derive_primary_target_component
+_derive_primary_target_component_impl = (
+    _semantics_surface.derive_primary_target_component
+)
 _derive_semantic_basis_impl = _semantics_surface.derive_semantic_basis
 _derive_claim_state_impl = _semantics_surface.derive_claim_state
 _derive_missing_dimensions_impl = _semantics_surface.derive_missing_dimensions
@@ -118,6 +142,7 @@ _CHARACTERIZATION_TERMS = {
     "improper",
 }
 
+
 def _emit_progress(progress_callback: Any | None, stage: str, **details: Any) -> None:
     if not callable(progress_callback):
         return
@@ -131,15 +156,27 @@ def _emit_trace(trace_callback: Any | None, stage: str, **details: Any) -> None:
 
 
 def _build_workflow_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
-    summary = payload.get("summary") if isinstance(payload.get("summary"), Mapping) else {}
-    promotion_gate = payload.get("promotion_gate") if isinstance(payload.get("promotion_gate"), Mapping) else {}
+    summary = (
+        payload.get("summary") if isinstance(payload.get("summary"), Mapping) else {}
+    )
+    promotion_gate = (
+        payload.get("promotion_gate")
+        if isinstance(payload.get("promotion_gate"), Mapping)
+        else {}
+    )
     counts = {
         "missing_review_count": int(summary.get("missing_review_count") or 0),
         "contested_source_count": int(summary.get("contested_source_count") or 0),
-        "unsupported_affidavit_count": int(summary.get("unsupported_affidavit_count") or 0),
+        "unsupported_affidavit_count": int(
+            summary.get("unsupported_affidavit_count") or 0
+        ),
         "partial_count": int(summary.get("partial_count") or 0),
-        "related_review_cluster_count": int(summary.get("related_review_cluster_count") or 0),
-        "provisional_anchor_bundle_count": int(summary.get("provisional_anchor_bundle_count") or 0),
+        "related_review_cluster_count": int(
+            summary.get("related_review_cluster_count") or 0
+        ),
+        "provisional_anchor_bundle_count": int(
+            summary.get("provisional_anchor_bundle_count") or 0
+        ),
     }
     return build_count_priority_workflow_summary(
         counts=counts,
@@ -182,6 +219,7 @@ def _build_workflow_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
         },
     )
 
+
 def _load_json(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
@@ -189,7 +227,9 @@ def _load_json(path: Path) -> dict[str, Any]:
     return payload
 
 
-def _apply_lexical_heuristic_group(text: str, group: str) -> dict[str, list[dict[str, Any]]]:
+def _apply_lexical_heuristic_group(
+    text: str, group: str
+) -> dict[str, list[dict[str, Any]]]:
     return _semantics_surface.apply_lexical_heuristic_group(text, group)
 
 
@@ -216,7 +256,10 @@ def _is_contested(review_row: Mapping[str, Any] | None, candidate_status: str) -
         return False
     if int(review_row.get("contestation_count") or 0) > 0:
         return True
-    return any(code in {"source_conflict", "contradictory_chronology"} for code in _reason_codes(review_row))
+    return any(
+        code in {"source_conflict", "contradictory_chronology"}
+        for code in _reason_codes(review_row)
+    )
 
 
 def _is_abstained(review_row: Mapping[str, Any] | None, candidate_status: str) -> bool:
@@ -238,23 +281,37 @@ def _extract_extraction_hints(text: str) -> dict[str, Any]:
         text,
         tokenize=_text_surface.tokenize_affidavit_text,
         month_pattern=_review_hints_surface.MONTH_PATTERN,
-        procedural_event_keywords=frozenset(_review_hints_surface.PROCEDURAL_EVENT_KEYWORDS),
+        procedural_event_keywords=frozenset(
+            _review_hints_surface.PROCEDURAL_EVENT_KEYWORDS
+        ),
     )
 
 
-def _build_candidate_anchors(extraction_hints: Mapping[str, Any]) -> list[dict[str, Any]]:
+def _build_candidate_anchors(
+    extraction_hints: Mapping[str, Any],
+) -> list[dict[str, Any]]:
     return _review_hints_surface.build_candidate_anchors(extraction_hints)
 
 
-def _build_provisional_structured_anchors(source_review_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return _review_hints_surface.build_provisional_structured_anchors(source_review_rows)
+def _build_provisional_structured_anchors(
+    source_review_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    return _review_hints_surface.build_provisional_structured_anchors(
+        source_review_rows
+    )
 
 
-def _build_provisional_anchor_bundles(provisional_structured_anchors: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return _review_hints_surface.build_provisional_anchor_bundles(provisional_structured_anchors)
+def _build_provisional_anchor_bundles(
+    provisional_structured_anchors: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    return _review_hints_surface.build_provisional_anchor_bundles(
+        provisional_structured_anchors
+    )
 
 
-def _classify_workload_with_hints(reason_codes: list[str], review_status: str, extraction_hints: Mapping[str, Any]) -> dict[str, Any]:
+def _classify_workload_with_hints(
+    reason_codes: list[str], review_status: str, extraction_hints: Mapping[str, Any]
+) -> dict[str, Any]:
     return _review_hints_surface.classify_workload_with_hints(
         reason_codes,
         review_status,
@@ -263,12 +320,20 @@ def _classify_workload_with_hints(reason_codes: list[str], review_status: str, e
     )
 
 
-def _extract_source_rows(source_payload: Mapping[str, Any]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def _extract_source_rows(
+    source_payload: Mapping[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     version = str(source_payload.get("version") or "").strip()
     if not version and isinstance(source_payload.get("run"), Mapping):
-        version = str((source_payload.get("run") or {}).get("contract_version") or "").strip()
+        version = str(
+            (source_payload.get("run") or {}).get("contract_version") or ""
+        ).strip()
     fixture_kind = str(source_payload.get("fixture_kind") or "").strip()
-    comparison_mode = str((source_payload.get("run") or {}).get("comparison_mode") or "").strip() if isinstance(source_payload.get("run"), Mapping) else ""
+    comparison_mode = (
+        str((source_payload.get("run") or {}).get("comparison_mode") or "").strip()
+        if isinstance(source_payload.get("run"), Mapping)
+        else ""
+    )
 
     if version == "fact.intake.bundle.v1":
         source_lookup = {
@@ -294,19 +359,31 @@ def _extract_source_rows(source_payload: Mapping[str, Any]) -> tuple[list[dict[s
             fact_text = str(fact.get("fact_text") or "").strip()
             if not fact_id or not fact_text:
                 continue
-            statement_ids = list(fact.get("statement_ids", [])) if isinstance(fact.get("statement_ids"), list) else []
+            statement_ids = (
+                list(fact.get("statement_ids", []))
+                if isinstance(fact.get("statement_ids"), list)
+                else []
+            )
             excerpt_ids = sorted(
                 {
-                    str(statement_lookup.get(statement_id, {}).get("excerpt_id") or "").strip()
+                    str(
+                        statement_lookup.get(statement_id, {}).get("excerpt_id") or ""
+                    ).strip()
                     for statement_id in statement_ids
-                    if str(statement_lookup.get(statement_id, {}).get("excerpt_id") or "").strip()
+                    if str(
+                        statement_lookup.get(statement_id, {}).get("excerpt_id") or ""
+                    ).strip()
                 }
             )
             source_ids = sorted(
                 {
-                    str(excerpt_lookup.get(excerpt_id, {}).get("source_id") or "").strip()
+                    str(
+                        excerpt_lookup.get(excerpt_id, {}).get("source_id") or ""
+                    ).strip()
                     for excerpt_id in excerpt_ids
-                    if str(excerpt_lookup.get(excerpt_id, {}).get("source_id") or "").strip()
+                    if str(
+                        excerpt_lookup.get(excerpt_id, {}).get("source_id") or ""
+                    ).strip()
                 }
             )
             rows.append(
@@ -315,7 +392,10 @@ def _extract_source_rows(source_payload: Mapping[str, Any]) -> tuple[list[dict[s
                     "source_kind": "fact_intake_fact",
                     "text": fact_text,
                     "tokens": sorted(_text_surface.tokenize_affidavit_text(fact_text)),
-                    "candidate_status": str(fact.get("candidate_status") or "candidate").strip() or "candidate",
+                    "candidate_status": str(
+                        fact.get("candidate_status") or "candidate"
+                    ).strip()
+                    or "candidate",
                     "review_status": None,
                     "reason_codes": [],
                     "is_contested": False,
@@ -330,7 +410,11 @@ def _extract_source_rows(source_payload: Mapping[str, Any]) -> tuple[list[dict[s
         return rows, {
             "source_contract": version,
             "source_kind": "fact_intake_bundle",
-            "source_label": ((source_payload.get("run") or {}).get("source_label") if isinstance(source_payload.get("run"), Mapping) else None),
+            "source_label": (
+                (source_payload.get("run") or {}).get("source_label")
+                if isinstance(source_payload.get("run"), Mapping)
+                else None
+            ),
             "source_row_count": len(rows),
         }
 
@@ -349,7 +433,9 @@ def _extract_source_rows(source_payload: Mapping[str, Any]) -> tuple[list[dict[s
             if not fact_id or not fact_text:
                 continue
             review_row = review_by_fact_id.get(fact_id, {})
-            candidate_status = str(fact.get("candidate_status") or "candidate").strip() or "candidate"
+            candidate_status = (
+                str(fact.get("candidate_status") or "candidate").strip() or "candidate"
+            )
             rows.append(
                 {
                     "source_row_id": fact_id,
@@ -357,21 +443,36 @@ def _extract_source_rows(source_payload: Mapping[str, Any]) -> tuple[list[dict[s
                     "text": fact_text,
                     "tokens": sorted(_text_surface.tokenize_affidavit_text(fact_text)),
                     "candidate_status": candidate_status,
-                    "review_status": str(review_row.get("latest_review_status") or "").strip() or None,
+                    "review_status": str(
+                        review_row.get("latest_review_status") or ""
+                    ).strip()
+                    or None,
                     "reason_codes": _reason_codes(review_row),
                     "is_contested": _is_contested(review_row, candidate_status),
                     "is_abstained": _is_abstained(review_row, candidate_status),
-                    "statement_ids": list(fact.get("statement_ids", [])) if isinstance(fact.get("statement_ids"), list) else [],
-                    "excerpt_ids": list(fact.get("excerpt_ids", [])) if isinstance(fact.get("excerpt_ids"), list) else [],
-                    "source_ids": list(fact.get("source_ids", [])) if isinstance(fact.get("source_ids"), list) else [],
-                    "review_row": dict(review_row) if isinstance(review_row, Mapping) else {},
+                    "statement_ids": list(fact.get("statement_ids", []))
+                    if isinstance(fact.get("statement_ids"), list)
+                    else [],
+                    "excerpt_ids": list(fact.get("excerpt_ids", []))
+                    if isinstance(fact.get("excerpt_ids"), list)
+                    else [],
+                    "source_ids": list(fact.get("source_ids", []))
+                    if isinstance(fact.get("source_ids"), list)
+                    else [],
+                    "review_row": dict(review_row)
+                    if isinstance(review_row, Mapping)
+                    else {},
                     "comparison_mode": comparison_mode,
                 }
             )
         return rows, {
             "source_contract": version,
             "source_kind": "fact_review_bundle",
-            "source_label": ((source_payload.get("run") or {}).get("source_label") if isinstance(source_payload.get("run"), Mapping) else None),
+            "source_label": (
+                (source_payload.get("run") or {}).get("source_label")
+                if isinstance(source_payload.get("run"), Mapping)
+                else None
+            ),
             "source_row_count": len(rows),
         }
 
@@ -393,7 +494,9 @@ def _extract_source_rows(source_payload: Mapping[str, Any]) -> tuple[list[dict[s
                     "tokens": sorted(_text_surface.tokenize_affidavit_text(fact_text)),
                     "candidate_status": "candidate",
                     "review_status": review_status,
-                    "reason_codes": ["review_queue"] if review_status == "review_queue" else [],
+                    "reason_codes": ["review_queue"]
+                    if review_status == "review_queue"
+                    else [],
                     "is_contested": False,
                     "is_abstained": False,
                     "statement_ids": [],
@@ -406,12 +509,20 @@ def _extract_source_rows(source_payload: Mapping[str, Any]) -> tuple[list[dict[s
         return rows, {
             "source_contract": version or fixture_kind,
             "source_kind": "au_checked_handoff_slice",
-            "source_label": ((source_payload.get("run") or {}).get("source_label") if isinstance(source_payload.get("run"), Mapping) else None),
+            "source_label": (
+                (source_payload.get("run") or {}).get("source_label")
+                if isinstance(source_payload.get("run"), Mapping)
+                else None
+            ),
             "source_row_count": len(rows),
         }
 
     if fixture_kind == "au_real_transcript_dense_substrate":
-        overlay = source_payload.get("overlay_projection") if isinstance(source_payload.get("overlay_projection"), Mapping) else {}
+        overlay = (
+            source_payload.get("overlay_projection")
+            if isinstance(source_payload.get("overlay_projection"), Mapping)
+            else {}
+        )
         rows = []
         for fact in overlay.get("selected_facts", []):
             if not isinstance(fact, Mapping):
@@ -420,8 +531,14 @@ def _extract_source_rows(source_payload: Mapping[str, Any]) -> tuple[list[dict[s
             fact_text = str(fact.get("fact_text") or "").strip()
             if not fact_id or not fact_text:
                 continue
-            review_row = fact.get("review_row") if isinstance(fact.get("review_row"), Mapping) else {}
-            candidate_status = str(fact.get("candidate_status") or "candidate").strip() or "candidate"
+            review_row = (
+                fact.get("review_row")
+                if isinstance(fact.get("review_row"), Mapping)
+                else {}
+            )
+            candidate_status = (
+                str(fact.get("candidate_status") or "candidate").strip() or "candidate"
+            )
             rows.append(
                 {
                     "source_row_id": fact_id,
@@ -429,13 +546,22 @@ def _extract_source_rows(source_payload: Mapping[str, Any]) -> tuple[list[dict[s
                     "text": fact_text,
                     "tokens": sorted(_text_surface.tokenize_affidavit_text(fact_text)),
                     "candidate_status": candidate_status,
-                    "review_status": str(review_row.get("latest_review_status") or "").strip() or None,
+                    "review_status": str(
+                        review_row.get("latest_review_status") or ""
+                    ).strip()
+                    or None,
                     "reason_codes": _reason_codes(review_row),
                     "is_contested": _is_contested(review_row, candidate_status),
                     "is_abstained": _is_abstained(review_row, candidate_status),
-                    "statement_ids": list(fact.get("statement_ids", [])) if isinstance(fact.get("statement_ids"), list) else [],
-                    "excerpt_ids": list(fact.get("excerpt_ids", [])) if isinstance(fact.get("excerpt_ids"), list) else [],
-                    "source_ids": list(fact.get("source_ids", [])) if isinstance(fact.get("source_ids"), list) else [],
+                    "statement_ids": list(fact.get("statement_ids", []))
+                    if isinstance(fact.get("statement_ids"), list)
+                    else [],
+                    "excerpt_ids": list(fact.get("excerpt_ids", []))
+                    if isinstance(fact.get("excerpt_ids"), list)
+                    else [],
+                    "source_ids": list(fact.get("source_ids", []))
+                    if isinstance(fact.get("source_ids"), list)
+                    else [],
                     "review_row": dict(review_row),
                     "comparison_mode": comparison_mode,
                 }
@@ -443,7 +569,11 @@ def _extract_source_rows(source_payload: Mapping[str, Any]) -> tuple[list[dict[s
         return rows, {
             "source_contract": version or fixture_kind,
             "source_kind": "au_dense_overlay_slice",
-            "source_label": ((source_payload.get("run") or {}).get("source_label") if isinstance(source_payload.get("run"), Mapping) else None),
+            "source_label": (
+                (source_payload.get("run") or {}).get("source_label")
+                if isinstance(source_payload.get("run"), Mapping)
+                else None
+            ),
             "source_row_count": len(rows),
         }
 
@@ -488,7 +618,11 @@ def _classify_argumentative_role(
             "response_role": "dispute",
             "response_cues": ["structural:negation"],
         }
-    if structural.get("has_first_person_subject") and substantive_shared_tokens and not use_row_fallback:
+    if (
+        structural.get("has_first_person_subject")
+        and substantive_shared_tokens
+        and not use_row_fallback
+    ):
         return {
             "response_role": "admission",
             "response_cues": ["structural:first_person_subject"],
@@ -524,12 +658,18 @@ def _infer_response_packet(
         response_role=response_role,
         coverage_status=coverage_status,
         characterization_terms=_CHARACTERIZATION_TERMS,
-        justification_matches=_apply_lexical_heuristic_group(str(best_match_excerpt or "").strip(), "justification"),
+        justification_matches=_apply_lexical_heuristic_group(
+            str(best_match_excerpt or "").strip(), "justification"
+        ),
     )
 
 
-def _derive_primary_target_component(*, response: Mapping[str, Any], response_acts: list[str]) -> str:
-    return _semantics_surface.derive_primary_target_component(response=response, response_acts=response_acts)
+def _derive_primary_target_component(
+    *, response: Mapping[str, Any], response_acts: list[str]
+) -> str:
+    return _semantics_surface.derive_primary_target_component(
+        response=response, response_acts=response_acts
+    )
 
 
 def _derive_semantic_basis(
@@ -618,17 +758,29 @@ def _build_zelph_claim_state_fact(
     semantic_basis: str,
     promotion: Mapping[str, Any],
 ) -> dict[str, Any]:
-    claim_components = claim.get("components") if isinstance(claim.get("components"), Mapping) else {}
-    response_component_targets = response.get("component_targets") if isinstance(response.get("component_targets"), list) else []
+    claim_components = (
+        claim.get("components") if isinstance(claim.get("components"), Mapping) else {}
+    )
+    response_component_targets = (
+        response.get("component_targets")
+        if isinstance(response.get("component_targets"), list)
+        else []
+    )
     return {
         "fact_id": f"zelph_claim_state:{proposition_id}",
         "fact_kind": "contested_claim_state",
         "proposition_id": proposition_id,
         "best_source_row_id": best_source_row_id,
         "claim_text_span": claim.get("text_span"),
-        "claim_actor_span": claim_components.get("actor") if isinstance(claim_components, Mapping) else None,
-        "claim_time_spans": claim_components.get("time") if isinstance(claim_components, Mapping) else [],
-        "claim_characterization_spans": claim_components.get("characterization") if isinstance(claim_components, Mapping) else [],
+        "claim_actor_span": claim_components.get("actor")
+        if isinstance(claim_components, Mapping)
+        else None,
+        "claim_time_spans": claim_components.get("time")
+        if isinstance(claim_components, Mapping)
+        else [],
+        "claim_characterization_spans": claim_components.get("characterization")
+        if isinstance(claim_components, Mapping)
+        else [],
         "response_text_span": response.get("text_span"),
         "target_span": response.get("target_span"),
         "duplicate_text_span": response.get("duplicate_text_span"),
@@ -655,7 +807,8 @@ def _build_zelph_claim_state_fact(
         "justification_bindings": [
             {
                 "type": str(packet.get("type") or "").strip(),
-                "target_component": str(packet.get("target_component") or "").strip() or "predicate_text",
+                "target_component": str(packet.get("target_component") or "").strip()
+                or "predicate_text",
             }
             for packet in justifications
             if isinstance(packet, Mapping) and str(packet.get("type") or "").strip()
@@ -791,7 +944,9 @@ def _build_response_packet(
         "polarity": polarity,
         "target_span": _span_ref(proposition_text, proposition_text),
         "text_span": _span_ref(best_match_excerpt, best_match_excerpt),
-        "duplicate_text_span": _span_ref(duplicate_match_excerpt or "", duplicate_match_excerpt or ""),
+        "duplicate_text_span": _span_ref(
+            duplicate_match_excerpt or "", duplicate_match_excerpt or ""
+        ),
         "acts": list(response_acts),
         "modifiers": sorted(dict.fromkeys(modifiers)),
     }
@@ -809,13 +964,32 @@ def _build_response_component_bindings(
     response_acts: list[str],
 ) -> list[dict[str, Any]]:
     bindings: list[dict[str, Any]] = []
-    claim_components = claim.get("components") if isinstance(claim.get("components"), Mapping) else {}
-    predicate_span = claim_components.get("predicate_text") if isinstance(claim_components, Mapping) else None
-    response_span = response.get("text_span") if isinstance(response.get("text_span"), Mapping) else None
-    target_span = response.get("target_span") if isinstance(response.get("target_span"), Mapping) else None
+    claim_components = (
+        claim.get("components") if isinstance(claim.get("components"), Mapping) else {}
+    )
+    predicate_span = (
+        claim_components.get("predicate_text")
+        if isinstance(claim_components, Mapping)
+        else None
+    )
+    response_span = (
+        response.get("text_span")
+        if isinstance(response.get("text_span"), Mapping)
+        else None
+    )
+    target_span = (
+        response.get("target_span")
+        if isinstance(response.get("target_span"), Mapping)
+        else None
+    )
     speech_act = str(response.get("speech_act") or "").strip()
 
-    if predicate_span and response_span and speech_act and speech_act not in {"repeat", "frame"}:
+    if (
+        predicate_span
+        and response_span
+        and speech_act
+        and speech_act not in {"repeat", "frame"}
+    ):
         bindings.append(
             {
                 "component": "predicate_text",
@@ -826,8 +1000,16 @@ def _build_response_component_bindings(
             }
         )
 
-    characterization_spans = claim_components.get("characterization") if isinstance(claim_components, Mapping) else None
-    if isinstance(characterization_spans, list) and "deny_characterisation" in response_acts and response_span:
+    characterization_spans = (
+        claim_components.get("characterization")
+        if isinstance(claim_components, Mapping)
+        else None
+    )
+    if (
+        isinstance(characterization_spans, list)
+        and "deny_characterisation" in response_acts
+        and response_span
+    ):
         for span in characterization_spans:
             if isinstance(span, Mapping):
                 bindings.append(
@@ -839,13 +1021,17 @@ def _build_response_component_bindings(
                     }
                 )
 
-    time_spans = claim_components.get("time") if isinstance(claim_components, Mapping) else None
+    time_spans = (
+        claim_components.get("time") if isinstance(claim_components, Mapping) else None
+    )
     if isinstance(time_spans, list) and response_span:
         response_text = str(response_span.get("text") or "")
         response_hints = _extract_extraction_hints(response_text)
         response_times = response_hints.get("calendar_reference_mentions", [])
         if isinstance(response_times, list):
-            response_time_set = {str(value).strip() for value in response_times if str(value).strip()}
+            response_time_set = {
+                str(value).strip() for value in response_times if str(value).strip()
+            }
             for span in time_spans:
                 if not isinstance(span, Mapping):
                     continue
@@ -855,7 +1041,9 @@ def _build_response_component_bindings(
                             "component": "time",
                             "binding_kind": "time_alignment",
                             "claim_span": span,
-                            "response_span": _span_ref(response_text, str(span.get("text") or "")),
+                            "response_span": _span_ref(
+                                response_text, str(span.get("text") or "")
+                            ),
                         }
                     )
 
@@ -878,7 +1066,9 @@ def _build_response_component_bindings(
     return bindings
 
 
-def _score_proposition_against_source_row(proposition: Mapping[str, Any], source_row: Mapping[str, Any]) -> dict[str, Any]:
+def _score_proposition_against_source_row(
+    proposition: Mapping[str, Any], source_row: Mapping[str, Any]
+) -> dict[str, Any]:
     proposition_tokens = proposition.get("tokens", [])
     row_text = str(source_row.get("text") or "")
     comparison_mode = str(source_row.get("comparison_mode") or "").strip()
@@ -911,7 +1101,9 @@ def _score_proposition_against_source_row(proposition: Mapping[str, Any], source
                         "match_excerpt": clause,
                     }
                 )
-    candidates = segments if comparison_mode == "contested_narrative" else [row_entry, *segments]
+    candidates = (
+        segments if comparison_mode == "contested_narrative" else [row_entry, *segments]
+    )
     proposition_lower = str(proposition.get("text") or "").casefold()
     for candidate in candidates:
         role_data = _classify_argumentative_role(
@@ -931,26 +1123,40 @@ def _score_proposition_against_source_row(proposition: Mapping[str, Any], source
         excerpt_start = row_text.find(excerpt_text) if excerpt_text else -1
         candidate["excerpt_start"] = excerpt_start
         candidate["is_numbered_rebuttal_excerpt"] = bool(
-            numbered_rebuttal_start is not None and excerpt_start >= numbered_rebuttal_start >= 0
+            numbered_rebuttal_start is not None
+            and excerpt_start >= numbered_rebuttal_start >= 0
         )
         candidate["is_proposition_echo"] = bool(
             proposition_lower
             and excerpt_lower
-            and (proposition_lower in excerpt_lower or excerpt_lower in proposition_lower)
+            and (
+                proposition_lower in excerpt_lower or excerpt_lower in proposition_lower
+            )
         )
-        candidate["predicate_alignment_score"] = _matching_surface.predicate_alignment_score(
-            str(proposition.get("text") or ""),
-            str(candidate["match_excerpt"] or ""),
+        candidate["predicate_alignment_score"] = (
+            _matching_surface.predicate_alignment_score(
+                str(proposition.get("text") or ""),
+                str(candidate["match_excerpt"] or ""),
+            )
         )
         adjusted = float(candidate["score"])
         if comparison_mode == "contested_narrative" and (
-            candidate["response_role"] == "restatement_only" or candidate["is_duplicate_excerpt"]
+            candidate["response_role"] == "restatement_only"
+            or candidate["is_duplicate_excerpt"]
         ):
-            adjusted = min(adjusted, max(_PARTIAL_MATCH_THRESHOLD, _COVERED_MATCH_THRESHOLD - 0.01))
-        elif comparison_mode == "contested_narrative" and candidate["response_role"] in {"dispute", "admission", "explanation", "support_or_corroboration"} and adjusted >= _PARTIAL_MATCH_THRESHOLD:
+            adjusted = min(
+                adjusted, max(_PARTIAL_MATCH_THRESHOLD, _COVERED_MATCH_THRESHOLD - 0.01)
+            )
+        elif (
+            comparison_mode == "contested_narrative"
+            and candidate["response_role"]
+            in {"dispute", "admission", "explanation", "support_or_corroboration"}
+            and adjusted >= _PARTIAL_MATCH_THRESHOLD
+        ):
             adjusted = min(1.0, round(adjusted + 0.05, 6))
         if comparison_mode == "contested_narrative" and not (
-            candidate.get("is_proposition_echo") or candidate.get("is_duplicate_excerpt")
+            candidate.get("is_proposition_echo")
+            or candidate.get("is_duplicate_excerpt")
         ):
             adjusted = min(
                 1.0,
@@ -966,10 +1172,18 @@ def _score_proposition_against_source_row(proposition: Mapping[str, Any], source
             )
         candidate["adjusted_score"] = adjusted
 
-    row_has_proposition_echo = any(candidate.get("is_proposition_echo") for candidate in candidates)
-    if comparison_mode == "contested_narrative" and row_has_proposition_echo and numbered_rebuttal_start is not None:
+    row_has_proposition_echo = any(
+        candidate.get("is_proposition_echo") for candidate in candidates
+    )
+    if (
+        comparison_mode == "contested_narrative"
+        and row_has_proposition_echo
+        and numbered_rebuttal_start is not None
+    ):
         for candidate in candidates:
-            if candidate.get("is_proposition_echo") or candidate.get("is_duplicate_excerpt"):
+            if candidate.get("is_proposition_echo") or candidate.get(
+                "is_duplicate_excerpt"
+            ):
                 continue
             candidate_role = str(candidate.get("response_role") or "")
             current_adjusted = float(candidate.get("adjusted_score") or 0.0)
@@ -980,15 +1194,27 @@ def _score_proposition_against_source_row(proposition: Mapping[str, Any], source
                 "support_or_corroboration",
                 "procedural_frame",
             }:
-                candidate["adjusted_score"] = min(1.0, round(current_adjusted + 0.12, 6))
-            elif (
-                not candidate.get("is_numbered_rebuttal_excerpt")
-                and candidate_role in {"dispute", "admission", "explanation", "support_or_corroboration"}
-            ):
-                candidate["adjusted_score"] = round(max(0.0, current_adjusted - 0.12), 6)
+                candidate["adjusted_score"] = min(
+                    1.0, round(current_adjusted + 0.12, 6)
+                )
+            elif not candidate.get(
+                "is_numbered_rebuttal_excerpt"
+            ) and candidate_role in {
+                "dispute",
+                "admission",
+                "explanation",
+                "support_or_corroboration",
+            }:
+                candidate["adjusted_score"] = round(
+                    max(0.0, current_adjusted - 0.12), 6
+                )
     if comparison_mode == "contested_narrative" and row_has_proposition_echo:
         best_echo_adjusted_score = max(
-            (float(candidate.get("adjusted_score") or 0.0) for candidate in candidates if candidate.get("is_proposition_echo")),
+            (
+                float(candidate.get("adjusted_score") or 0.0)
+                for candidate in candidates
+                if candidate.get("is_proposition_echo")
+            ),
             default=0.0,
         )
         for candidate in candidates:
@@ -997,21 +1223,44 @@ def _score_proposition_against_source_row(proposition: Mapping[str, Any], source
                 and not candidate.get("is_duplicate_excerpt")
                 and (
                     (
-                        candidate["response_role"] in {"non_response", "procedural_frame", "restatement_only"}
-                        and _matching_surface.is_quote_rebuttal_support_excerpt(str(candidate.get("match_excerpt") or ""))
+                        candidate["response_role"]
+                        in {"non_response", "procedural_frame", "restatement_only"}
+                        and _matching_surface.is_quote_rebuttal_support_excerpt(
+                            str(candidate.get("match_excerpt") or "")
+                        )
                     )
                     or (
-                        candidate["response_role"] in {"dispute", "admission", "explanation", "support_or_corroboration", "procedural_frame"}
-                        and float(candidate.get("predicate_alignment_score") or 0.0) >= 0.5
+                        candidate["response_role"]
+                        in {
+                            "dispute",
+                            "admission",
+                            "explanation",
+                            "support_or_corroboration",
+                            "procedural_frame",
+                        }
+                        and float(candidate.get("predicate_alignment_score") or 0.0)
+                        >= 0.5
                     )
                 )
             ):
-                if candidate["response_role"] in {"non_response", "procedural_frame", "restatement_only"}:
+                if candidate["response_role"] in {
+                    "non_response",
+                    "procedural_frame",
+                    "restatement_only",
+                }:
                     candidate["response_role"] = "support_or_corroboration"
-                candidate["response_cues"] = list(candidate["response_cues"]) + ["non_echo_direct_overlap"]
+                candidate["response_cues"] = list(candidate["response_cues"]) + [
+                    "non_echo_direct_overlap"
+                ]
                 candidate["adjusted_score"] = min(
                     1.0,
-                    round(max(float(candidate["adjusted_score"]), best_echo_adjusted_score - 0.03), 6),
+                    round(
+                        max(
+                            float(candidate["adjusted_score"]),
+                            best_echo_adjusted_score - 0.03,
+                        ),
+                        6,
+                    ),
                 )
 
     return _matching_surface.arbitrate_candidate_selection(
@@ -1020,7 +1269,9 @@ def _score_proposition_against_source_row(proposition: Mapping[str, Any], source
     )
 
 
-def _classify_affidavit_match(score: float, source_row: Mapping[str, Any] | None, response_role: str | None = None) -> str:
+def _classify_affidavit_match(
+    score: float, source_row: Mapping[str, Any] | None, response_role: str | None = None
+) -> str:
     if not isinstance(source_row, Mapping) or score < _PARTIAL_MATCH_THRESHOLD:
         return "unsupported_affidavit"
     if bool(source_row.get("is_abstained")):
@@ -1064,7 +1315,10 @@ def _build_related_review_clusters(
             continue
         ranked_rows = sorted(
             rows,
-            key=lambda row: (-float(row.get("best_match_score") or 0.0), str(row.get("source_row_id") or "")),
+            key=lambda row: (
+                -float(row.get("best_match_score") or 0.0),
+                str(row.get("source_row_id") or ""),
+            ),
         )
         reason_counter: Counter[str] = Counter()
         workload_counter: Counter[str] = Counter()
@@ -1074,10 +1328,16 @@ def _build_related_review_clusters(
             raw_reason_codes = row.get("reason_codes", [])
             if not isinstance(raw_reason_codes, list):
                 continue
-            reason_counter.update(str(code).strip() for code in raw_reason_codes if str(code).strip())
+            reason_counter.update(
+                str(code).strip() for code in raw_reason_codes if str(code).strip()
+            )
             raw_workload_classes = row.get("workload_classes", [])
             if isinstance(raw_workload_classes, list):
-                workload_counter.update(str(name).strip() for name in raw_workload_classes if str(name).strip())
+                workload_counter.update(
+                    str(name).strip()
+                    for name in raw_workload_classes
+                    if str(name).strip()
+                )
             if row.get("has_transcript_timestamp_hint"):
                 extraction_hint_counter["transcript_timestamp_hint"] += 1
             if row.get("has_calendar_reference_hint"):
@@ -1089,12 +1349,18 @@ def _build_related_review_clusters(
                 candidate_anchor_counter.update(
                     str(anchor.get("anchor_kind")).strip()
                     for anchor in raw_candidate_anchors
-                    if isinstance(anchor, Mapping) and str(anchor.get("anchor_kind") or "").strip()
+                    if isinstance(anchor, Mapping)
+                    and str(anchor.get("anchor_kind") or "").strip()
                 )
         dominant_workload_class = None
         if workload_counter:
-            dominant_workload_class = sorted(workload_counter.items(), key=lambda item: (-item[1], item[0]))[0][0]
-        has_temporal_hint_cluster = extraction_hint_counter["transcript_timestamp_hint"] > 0 or extraction_hint_counter["calendar_reference_hint"] > 0
+            dominant_workload_class = sorted(
+                workload_counter.items(), key=lambda item: (-item[1], item[0])
+            )[0][0]
+        has_temporal_hint_cluster = (
+            extraction_hint_counter["transcript_timestamp_hint"] > 0
+            or extraction_hint_counter["calendar_reference_hint"] > 0
+        )
         has_event_hint_cluster = extraction_hint_counter["procedural_event_cue"] > 0
         recommended_next_action = _review_hints_surface.recommend_next_action(
             dominant_workload_class,
@@ -1111,19 +1377,29 @@ def _build_related_review_clusters(
                 "recommended_next_action": recommended_next_action,
                 "extraction_hint_rollup": [
                     {"hint_kind": hint_kind, "count": count}
-                    for hint_kind, count in sorted(extraction_hint_counter.items(), key=lambda item: (-item[1], item[0]))
+                    for hint_kind, count in sorted(
+                        extraction_hint_counter.items(),
+                        key=lambda item: (-item[1], item[0]),
+                    )
                 ],
                 "candidate_anchor_rollup": [
                     {"anchor_kind": anchor_kind, "count": count}
-                    for anchor_kind, count in sorted(candidate_anchor_counter.items(), key=lambda item: (-item[1], item[0]))
+                    for anchor_kind, count in sorted(
+                        candidate_anchor_counter.items(),
+                        key=lambda item: (-item[1], item[0]),
+                    )
                 ],
                 "reason_code_rollup": [
                     {"reason_code": reason_code, "count": count}
-                    for reason_code, count in sorted(reason_counter.items(), key=lambda item: (-item[1], item[0]))
+                    for reason_code, count in sorted(
+                        reason_counter.items(), key=lambda item: (-item[1], item[0])
+                    )
                 ],
                 "workload_class_rollup": [
                     {"workload_class": workload_class, "count": count}
-                    for workload_class, count in sorted(workload_counter.items(), key=lambda item: (-item[1], item[0]))
+                    for workload_class, count in sorted(
+                        workload_counter.items(), key=lambda item: (-item[1], item[0])
+                    )
                 ],
                 "candidate_source_rows": [
                     {
@@ -1136,12 +1412,24 @@ def _build_related_review_clusters(
                         "workload_classes": row.get("workload_classes", []),
                         "primary_workload_class": row.get("primary_workload_class"),
                         "recommended_next_action": row.get("recommended_next_action"),
-                        "has_transcript_timestamp_hint": row.get("has_transcript_timestamp_hint", False),
-                        "transcript_timestamp_windows": row.get("transcript_timestamp_windows", []),
-                        "has_calendar_reference_hint": row.get("has_calendar_reference_hint", False),
-                        "calendar_reference_mentions": row.get("calendar_reference_mentions", []),
-                        "has_procedural_event_cue": row.get("has_procedural_event_cue", False),
-                        "procedural_event_keywords": row.get("procedural_event_keywords", []),
+                        "has_transcript_timestamp_hint": row.get(
+                            "has_transcript_timestamp_hint", False
+                        ),
+                        "transcript_timestamp_windows": row.get(
+                            "transcript_timestamp_windows", []
+                        ),
+                        "has_calendar_reference_hint": row.get(
+                            "has_calendar_reference_hint", False
+                        ),
+                        "calendar_reference_mentions": row.get(
+                            "calendar_reference_mentions", []
+                        ),
+                        "has_procedural_event_cue": row.get(
+                            "has_procedural_event_cue", False
+                        ),
+                        "procedural_event_keywords": row.get(
+                            "procedural_event_keywords", []
+                        ),
                         "candidate_anchors": row.get("candidate_anchors", []),
                         "statement_ids": row.get("statement_ids", []),
                         "excerpt_ids": row.get("excerpt_ids", []),
@@ -1221,14 +1509,21 @@ def build_affidavit_coverage_review(
             if adjusted_score <= 0:
                 continue
             scored_rows.append((adjusted_score, raw_score, row, score_row))
-        scored_rows.sort(key=lambda item: (-item[0], -item[1], item[2]["source_row_id"]))
-        best_adjusted_score, best_score, best_row, best_score_row = scored_rows[0] if scored_rows else (0.0, 0.0, None, {})
+        scored_rows.sort(
+            key=lambda item: (-item[0], -item[1], item[2]["source_row_id"])
+        )
+        best_adjusted_score, best_score, best_row, best_score_row = (
+            scored_rows[0] if scored_rows else (0.0, 0.0, None, {})
+        )
         top_duplicate_adjusted_score = 0.0
         top_duplicate_score = 0.0
         top_duplicate_row = None
         top_duplicate_score_row = None
         for adjusted_score, raw_score, row, score_row in scored_rows:
-            if score_row.get("is_duplicate_excerpt") and raw_score >= _PARTIAL_MATCH_THRESHOLD:
+            if (
+                score_row.get("is_duplicate_excerpt")
+                and raw_score >= _PARTIAL_MATCH_THRESHOLD
+            ):
                 top_duplicate_adjusted_score = adjusted_score
                 top_duplicate_score = raw_score
                 top_duplicate_row = row
@@ -1255,10 +1550,14 @@ def build_affidavit_coverage_review(
                 trace_callback,
                 "duplicate_root_candidate_detected",
                 proposition_id=proposition["proposition_id"],
-                source_row_id=top_duplicate_row["source_row_id"] if isinstance(top_duplicate_row, Mapping) else None,
+                source_row_id=top_duplicate_row["source_row_id"]
+                if isinstance(top_duplicate_row, Mapping)
+                else None,
                 score=round(top_duplicate_score, 6),
                 adjusted_score=round(top_duplicate_adjusted_score, 6),
-                match_excerpt=str(top_duplicate_score_row.get("match_excerpt") or "")[:240],
+                match_excerpt=str(top_duplicate_score_row.get("match_excerpt") or "")[
+                    :240
+                ],
             )
         status = _classify_affidavit_match(
             best_adjusted_score,
@@ -1302,7 +1601,9 @@ def build_affidavit_coverage_review(
                 duplicate_match_excerpt=str(duplicate_root_excerpt or "")[:320],
                 best_response_role=best_score_row.get("response_role"),
                 response_acts=response_packet["response_acts"],
-                legal_significance_signals=response_packet["legal_significance_signals"],
+                legal_significance_signals=response_packet[
+                    "legal_significance_signals"
+                ],
                 support_status=response_packet["support_status"],
             )
         claim_packet = _build_claim_packet(str(proposition["text"]))
@@ -1313,7 +1614,9 @@ def build_affidavit_coverage_review(
             response_role=best_score_row.get("response_role"),
             response_acts=response_packet["response_acts"],
         )
-        justification_packets = _build_justification_packets(str(best_score_row.get("match_excerpt") or ""))
+        justification_packets = _build_justification_packets(
+            str(best_score_row.get("match_excerpt") or "")
+        )
         response_component_bindings = _build_response_component_bindings(
             claim=claim_packet,
             response=response_object,
@@ -1325,7 +1628,8 @@ def build_affidavit_coverage_review(
             {
                 str(binding.get("component") or "").strip()
                 for binding in response_component_bindings
-                if isinstance(binding, Mapping) and str(binding.get("component") or "").strip()
+                if isinstance(binding, Mapping)
+                and str(binding.get("component") or "").strip()
             }
         )
         claim_state = _derive_claim_state(
@@ -1339,7 +1643,9 @@ def build_affidavit_coverage_review(
             "proposition_classified",
             proposition_id=proposition["proposition_id"],
             coverage_status=status,
-            best_source_row_id=(best_row["source_row_id"] if isinstance(best_row, Mapping) else None),
+            best_source_row_id=(
+                best_row["source_row_id"] if isinstance(best_row, Mapping) else None
+            ),
             best_match_score=round(best_score, 6),
             best_adjusted_match_score=round(best_adjusted_score, 6),
             best_response_role=best_score_row.get("response_role"),
@@ -1368,7 +1674,11 @@ def build_affidavit_coverage_review(
                 semantic_basis=semantic_basis,
                 primary_target_component=primary_target_component,
                 component_targets=response_object.get("component_targets", []),
-                justification_types=[packet.get("type") for packet in justification_packets if isinstance(packet, Mapping)],
+                justification_types=[
+                    packet.get("type")
+                    for packet in justification_packets
+                    if isinstance(packet, Mapping)
+                ],
             )
         claim_root = _matching_surface.derive_claim_root_fields(
             proposition_text=str(proposition["text"]),
@@ -1377,8 +1687,12 @@ def build_affidavit_coverage_review(
         )
         semantic_candidate = build_contested_claim_candidate(
             basis=semantic_basis,
-            claim_span=claim_packet.get("text_span") if isinstance(claim_packet, Mapping) else None,
-            response_span=response_object.get("text_span") if isinstance(response_object, Mapping) else None,
+            claim_span=claim_packet.get("text_span")
+            if isinstance(claim_packet, Mapping)
+            else None,
+            response_span=response_object.get("text_span")
+            if isinstance(response_object, Mapping)
+            else None,
             speech_act=str(response_object.get("speech_act") or ""),
             polarity=str(response_object.get("polarity") or ""),
             target_component=primary_target_component,
@@ -1429,14 +1743,18 @@ def build_affidavit_coverage_review(
                 "coverage_status": status,
                 "best_match_score": best_score,
                 "best_adjusted_match_score": best_adjusted_score,
-                "best_source_row_id": best_row["source_row_id"] if isinstance(best_row, Mapping) else None,
+                "best_source_row_id": best_row["source_row_id"]
+                if isinstance(best_row, Mapping)
+                else None,
                 "best_match_basis": best_score_row.get("match_basis"),
                 "best_match_excerpt": best_score_row.get("match_excerpt"),
                 "duplicate_match_excerpt": duplicate_root_excerpt,
                 "best_response_role": best_score_row.get("response_role"),
                 "best_response_cues": best_score_row.get("response_cues", []),
                 "response_acts": response_packet["response_acts"],
-                "legal_significance_signals": response_packet["legal_significance_signals"],
+                "legal_significance_signals": response_packet[
+                    "legal_significance_signals"
+                ],
                 "support_status": response_packet["support_status"],
                 "semantic_candidate": semantic_candidate,
                 "semantic_basis": semantic_basis,
@@ -1449,7 +1767,9 @@ def build_affidavit_coverage_review(
                 "claim_root_id": claim_root.get("claim_root_id"),
                 "claim_root_text": claim_root.get("claim_root_text"),
                 "claim_root_basis": claim_root.get("claim_root_basis"),
-                "alternate_context_excerpt": claim_root.get("alternate_context_excerpt"),
+                "alternate_context_excerpt": claim_root.get(
+                    "alternate_context_excerpt"
+                ),
                 "explanation": relation["explanation"],
                 "missing_dimensions": relation["missing_dimensions"],
                 "support_direction": claim_state["support_direction"],
@@ -1465,13 +1785,17 @@ def build_affidavit_coverage_review(
         zelph_claim_state_facts.append(
             _build_zelph_claim_state_fact(
                 proposition_id=str(proposition["proposition_id"]),
-                best_source_row_id=(best_row["source_row_id"] if isinstance(best_row, Mapping) else None),
+                best_source_row_id=(
+                    best_row["source_row_id"] if isinstance(best_row, Mapping) else None
+                ),
                 claim=claim_packet,
                 response=response_object,
                 justifications=justification_packets,
                 claim_state=claim_state,
                 response_acts=response_packet["response_acts"],
-                legal_significance_signals=response_packet["legal_significance_signals"],
+                legal_significance_signals=response_packet[
+                    "legal_significance_signals"
+                ],
                 support_status=response_packet["support_status"],
                 coverage_status=status,
                 semantic_basis=semantic_basis,
@@ -1480,22 +1804,37 @@ def build_affidavit_coverage_review(
         )
         for adjusted_score, raw_score, row, score_row in scored_rows:
             source_row = source_rows_by_id[row["source_row_id"]]
-            if adjusted_score > float(source_row.get("best_adjusted_match_score") or 0.0):
+            if adjusted_score > float(
+                source_row.get("best_adjusted_match_score") or 0.0
+            ):
                 source_row["best_adjusted_match_score"] = adjusted_score
                 source_row["best_match_score"] = raw_score
-                source_row["best_affidavit_proposition_id"] = proposition["proposition_id"]
+                source_row["best_affidavit_proposition_id"] = proposition[
+                    "proposition_id"
+                ]
                 source_row["best_match_basis"] = score_row["match_basis"]
                 source_row["best_match_excerpt"] = score_row["match_excerpt"]
-                source_row["duplicate_match_excerpt"] = score_row.get("duplicate_match_excerpt")
+                source_row["duplicate_match_excerpt"] = score_row.get(
+                    "duplicate_match_excerpt"
+                )
                 source_row["best_response_role"] = score_row.get("response_role")
-                source_row["best_response_cues"] = list(score_row.get("response_cues", []))
-            is_contested_narrative = str(row.get("comparison_mode") or "").strip() == "contested_narrative"
+                source_row["best_response_cues"] = list(
+                    score_row.get("response_cues", [])
+                )
+            is_contested_narrative = (
+                str(row.get("comparison_mode") or "").strip() == "contested_narrative"
+            )
             if adjusted_score >= _COVERED_MATCH_THRESHOLD and not (
-                is_contested_narrative and score_row.get("response_role") == "restatement_only"
+                is_contested_narrative
+                and score_row.get("response_role") == "restatement_only"
             ):
-                source_row.setdefault("matched_affidavit_proposition_ids", []).append(proposition["proposition_id"])
+                source_row.setdefault("matched_affidavit_proposition_ids", []).append(
+                    proposition["proposition_id"]
+                )
             elif adjusted_score >= _PARTIAL_MATCH_THRESHOLD:
-                source_row.setdefault("related_affidavit_proposition_ids", []).append(proposition["proposition_id"])
+                source_row.setdefault("related_affidavit_proposition_ids", []).append(
+                    proposition["proposition_id"]
+                )
         now = time.monotonic()
         should_emit = (
             proposition_index == 1
@@ -1539,8 +1878,10 @@ def build_affidavit_coverage_review(
             if proposition_id not in matched_ids
         ]
         if matched_ids:
-            review_status = "covered" if not row["is_contested"] and not row["is_abstained"] else (
-                "contested_source" if row["is_contested"] else "abstained_source"
+            review_status = (
+                "covered"
+                if not row["is_contested"] and not row["is_abstained"]
+                else ("contested_source" if row["is_contested"] else "abstained_source")
             )
         elif row["is_abstained"]:
             review_status = "abstained_source"
@@ -1550,7 +1891,9 @@ def build_affidavit_coverage_review(
             review_status = "missing_review"
         extraction_hints = _extract_extraction_hints(row["text"])
         candidate_anchors = _build_candidate_anchors(extraction_hints)
-        workload_profile = _classify_workload_with_hints(row["reason_codes"], review_status, extraction_hints)
+        workload_profile = _classify_workload_with_hints(
+            row["reason_codes"], review_status, extraction_hints
+        )
         source_review_rows.append(
             {
                 "source_row_id": row["source_row_id"],
@@ -1560,9 +1903,13 @@ def build_affidavit_coverage_review(
                 "review_status": review_status,
                 "matched_affidavit_proposition_ids": matched_ids,
                 "related_affidavit_proposition_ids": related_ids,
-                "best_affidavit_proposition_id": row.get("best_affidavit_proposition_id"),
+                "best_affidavit_proposition_id": row.get(
+                    "best_affidavit_proposition_id"
+                ),
                 "best_match_score": round(float(row.get("best_match_score") or 0.0), 6),
-                "best_adjusted_match_score": round(float(row.get("best_adjusted_match_score") or 0.0), 6),
+                "best_adjusted_match_score": round(
+                    float(row.get("best_adjusted_match_score") or 0.0), 6
+                ),
                 "best_match_basis": row.get("best_match_basis"),
                 "best_match_excerpt": row.get("best_match_excerpt"),
                 "duplicate_match_excerpt": row.get("duplicate_match_excerpt"),
@@ -1572,12 +1919,24 @@ def build_affidavit_coverage_review(
                 "workload_classes": workload_profile["workload_classes"],
                 "primary_workload_class": workload_profile["primary_workload_class"],
                 "recommended_next_action": workload_profile["recommended_next_action"],
-                "has_transcript_timestamp_hint": extraction_hints["has_transcript_timestamp_hint"],
-                "transcript_timestamp_windows": extraction_hints["transcript_timestamp_windows"],
-                "has_calendar_reference_hint": extraction_hints["has_calendar_reference_hint"],
-                "calendar_reference_mentions": extraction_hints["calendar_reference_mentions"],
-                "has_procedural_event_cue": extraction_hints["has_procedural_event_cue"],
-                "procedural_event_keywords": extraction_hints["procedural_event_keywords"],
+                "has_transcript_timestamp_hint": extraction_hints[
+                    "has_transcript_timestamp_hint"
+                ],
+                "transcript_timestamp_windows": extraction_hints[
+                    "transcript_timestamp_windows"
+                ],
+                "has_calendar_reference_hint": extraction_hints[
+                    "has_calendar_reference_hint"
+                ],
+                "calendar_reference_mentions": extraction_hints[
+                    "calendar_reference_mentions"
+                ],
+                "has_procedural_event_cue": extraction_hints[
+                    "has_procedural_event_cue"
+                ],
+                "procedural_event_keywords": extraction_hints[
+                    "procedural_event_keywords"
+                ],
                 "candidate_anchors": candidate_anchors,
                 "statement_ids": row["statement_ids"],
                 "excerpt_ids": row["excerpt_ids"],
@@ -1596,54 +1955,109 @@ def build_affidavit_coverage_review(
     summary = {
         "affidavit_proposition_count": len(affidavit_rows),
         "source_row_count": len(source_review_rows),
-        "covered_count": sum(1 for row in affidavit_rows if row["coverage_status"] == "covered"),
-        "partial_count": sum(1 for row in affidavit_rows if row["coverage_status"] == "partial"),
-        "contested_affidavit_count": sum(1 for row in affidavit_rows if row["coverage_status"] == "contested_source"),
-        "abstained_affidavit_count": sum(1 for row in affidavit_rows if row["coverage_status"] == "abstained_source"),
-        "unsupported_affidavit_count": sum(1 for row in affidavit_rows if row["coverage_status"] == "unsupported_affidavit"),
-        "missing_review_count": sum(1 for row in source_review_rows if row["review_status"] == "missing_review"),
+        "covered_count": sum(
+            1 for row in affidavit_rows if row["coverage_status"] == "covered"
+        ),
+        "partial_count": sum(
+            1 for row in affidavit_rows if row["coverage_status"] == "partial"
+        ),
+        "contested_affidavit_count": sum(
+            1 for row in affidavit_rows if row["coverage_status"] == "contested_source"
+        ),
+        "abstained_affidavit_count": sum(
+            1 for row in affidavit_rows if row["coverage_status"] == "abstained_source"
+        ),
+        "unsupported_affidavit_count": sum(
+            1
+            for row in affidavit_rows
+            if row["coverage_status"] == "unsupported_affidavit"
+        ),
+        "missing_review_count": sum(
+            1 for row in source_review_rows if row["review_status"] == "missing_review"
+        ),
         "related_source_count": sum(
             1
             for row in source_review_rows
-            if row["review_status"] == "missing_review" and row["related_affidavit_proposition_ids"]
+            if row["review_status"] == "missing_review"
+            and row["related_affidavit_proposition_ids"]
         ),
-        "contested_source_count": sum(1 for row in source_review_rows if row["review_status"] == "contested_source"),
-        "abstained_source_count": sum(1 for row in source_review_rows if row["review_status"] == "abstained_source"),
-        "semantic_basis_counts": dict(Counter(str(row.get("semantic_basis") or "") for row in affidavit_rows)),
+        "contested_source_count": sum(
+            1
+            for row in source_review_rows
+            if row["review_status"] == "contested_source"
+        ),
+        "abstained_source_count": sum(
+            1
+            for row in source_review_rows
+            if row["review_status"] == "abstained_source"
+        ),
+        "semantic_basis_counts": dict(
+            Counter(str(row.get("semantic_basis") or "") for row in affidavit_rows)
+        ),
     }
     for workload_class in _WORKLOAD_CLASS_PRIORITY:
         summary[f"{workload_class}_count"] = sum(
             1
             for row in source_review_rows
-            if row["review_status"] == "missing_review" and workload_class in row["workload_classes"]
+            if row["review_status"] == "missing_review"
+            and workload_class in row["workload_classes"]
         )
     summary["transcript_timestamp_hint_count"] = sum(
-        1 for row in source_review_rows if row["review_status"] == "missing_review" and row["has_transcript_timestamp_hint"]
+        1
+        for row in source_review_rows
+        if row["review_status"] == "missing_review"
+        and row["has_transcript_timestamp_hint"]
     )
     summary["calendar_reference_hint_count"] = sum(
-        1 for row in source_review_rows if row["review_status"] == "missing_review" and row["has_calendar_reference_hint"]
+        1
+        for row in source_review_rows
+        if row["review_status"] == "missing_review"
+        and row["has_calendar_reference_hint"]
     )
     summary["procedural_event_cue_count"] = sum(
-        1 for row in source_review_rows if row["review_status"] == "missing_review" and row["has_procedural_event_cue"]
+        1
+        for row in source_review_rows
+        if row["review_status"] == "missing_review" and row["has_procedural_event_cue"]
     )
     summary["candidate_anchor_count"] = sum(
-        len(row["candidate_anchors"]) for row in source_review_rows if row["review_status"] == "missing_review"
+        len(row["candidate_anchors"])
+        for row in source_review_rows
+        if row["review_status"] == "missing_review"
     )
-    related_review_clusters = _build_related_review_clusters(affidavit_rows, source_review_rows)
-    provisional_structured_anchors = _build_provisional_structured_anchors(source_review_rows)
-    provisional_anchor_bundles = _build_provisional_anchor_bundles(provisional_structured_anchors)
+    related_review_clusters = _build_related_review_clusters(
+        affidavit_rows, source_review_rows
+    )
+    provisional_structured_anchors = _build_provisional_structured_anchors(
+        source_review_rows
+    )
+    provisional_anchor_bundles = _build_provisional_anchor_bundles(
+        provisional_structured_anchors
+    )
     summary["related_review_cluster_count"] = len(related_review_clusters)
     summary["provisional_structured_anchor_count"] = len(provisional_structured_anchors)
     summary["provisional_anchor_bundle_count"] = len(provisional_anchor_bundles)
-    coveredish = summary["covered_count"] + summary["partial_count"] + summary["contested_affidavit_count"] + summary["abstained_affidavit_count"]
-    summary["affidavit_supported_ratio"] = round(
-        coveredish / summary["affidavit_proposition_count"], 6
-    ) if summary["affidavit_proposition_count"] else 0.0
+    coveredish = (
+        summary["covered_count"]
+        + summary["partial_count"]
+        + summary["contested_affidavit_count"]
+        + summary["abstained_affidavit_count"]
+    )
+    summary["affidavit_supported_ratio"] = (
+        round(coveredish / summary["affidavit_proposition_count"], 6)
+        if summary["affidavit_proposition_count"]
+        else 0.0
+    )
     response_role_counter: Counter[str] = Counter(
         str(row.get("best_response_role") or "unknown").strip() or "unknown"
         for row in affidavit_rows
     )
-    substantive_roles = {"dispute", "admission", "explanation", "support_or_corroboration", "technical_qualification"}
+    substantive_roles = {
+        "dispute",
+        "admission",
+        "explanation",
+        "support_or_corroboration",
+        "technical_qualification",
+    }
     substantive_response_count = sum(
         1
         for row in affidavit_rows
@@ -1651,21 +2065,32 @@ def build_affidavit_coverage_review(
     )
     summary["best_response_role_counts"] = {
         role: count
-        for role, count in sorted(response_role_counter.items(), key=lambda item: item[0])
+        for role, count in sorted(
+            response_role_counter.items(), key=lambda item: item[0]
+        )
     }
     summary["substantive_response_count"] = substantive_response_count
-    summary["substantive_response_ratio"] = round(
-        substantive_response_count / summary["affidavit_proposition_count"], 6
-    ) if summary["affidavit_proposition_count"] else 0.0
+    summary["substantive_response_ratio"] = (
+        round(substantive_response_count / summary["affidavit_proposition_count"], 6)
+        if summary["affidavit_proposition_count"]
+        else 0.0
+    )
     support_status_counter: Counter[str] = Counter(
         str(row.get("support_status") or "unknown").strip() or "unknown"
         for row in affidavit_rows
     )
     summary["support_status_counts"] = {
         status: count
-        for status, count in sorted(support_status_counter.items(), key=lambda item: item[0])
+        for status, count in sorted(
+            support_status_counter.items(), key=lambda item: item[0]
+        )
     }
-    for field in ("support_direction", "conflict_state", "evidentiary_state", "operational_status"):
+    for field in (
+        "support_direction",
+        "conflict_state",
+        "evidentiary_state",
+        "operational_status",
+    ):
         counter: Counter[str] = Counter(
             str(row.get(field) or "unknown").strip() or "unknown"
             for row in affidavit_rows
@@ -1744,17 +2169,21 @@ def build_affidavit_coverage_review(
         cohort_id=ARTIFACT_VERSION,
         root_artifact_id=ARTIFACT_VERSION,
         source_family="affidavit_coverage_review",
-        recommended_view=str(payload["workflow_summary"].get("recommended_view") or "affidavit_rows"),
+        recommended_view=str(
+            payload["workflow_summary"].get("recommended_view") or "affidavit_rows"
+        ),
         queue_family="affidavit_rows",
         include_target_proposition_identity=True,
         include_proposition_relation=True,
     )
-    payload["suite_normalized_artifact"] = build_affidavit_coverage_review_normalized_artifact(
-        artifact_id=ARTIFACT_VERSION,
-        compiler_contract=payload["compiler_contract"],
-        promotion_gate=payload["promotion_gate"],
-        source_input=payload["source_input"],
-        workflow_summary=payload["workflow_summary"],
+    payload["suite_normalized_artifact"] = (
+        build_affidavit_coverage_review_normalized_artifact(
+            artifact_id=ARTIFACT_VERSION,
+            compiler_contract=payload["compiler_contract"],
+            promotion_gate=payload["promotion_gate"],
+            source_input=payload["source_input"],
+            workflow_summary=payload["workflow_summary"],
+        )
     )
     payload["reasoner_input_artifact"] = build_reasoner_input_artifact(
         source_system="SensibLaw",
@@ -1766,8 +2195,16 @@ def build_affidavit_coverage_review(
 
 
 def build_summary_markdown(payload: Mapping[str, Any]) -> str:
-    summary = payload.get("summary", {}) if isinstance(payload.get("summary"), Mapping) else {}
-    source_input = payload.get("source_input", {}) if isinstance(payload.get("source_input"), Mapping) else {}
+    summary = (
+        payload.get("summary", {})
+        if isinstance(payload.get("summary"), Mapping)
+        else {}
+    )
+    source_input = (
+        payload.get("source_input", {})
+        if isinstance(payload.get("source_input"), Mapping)
+        else {}
+    )
     lines = [
         "# Affidavit Coverage Review",
         "",
@@ -1853,7 +2290,9 @@ def build_summary_markdown(payload: Mapping[str, Any]) -> str:
             dominant_workload_class = cluster.get("dominant_workload_class")
             if dominant_workload_class:
                 lines.append(f"  Dominant workload: {dominant_workload_class}")
-            recommended_next_action = str(cluster.get("recommended_next_action") or "").strip()
+            recommended_next_action = str(
+                cluster.get("recommended_next_action") or ""
+            ).strip()
             if recommended_next_action:
                 lines.append(f"  Recommended next action: {recommended_next_action}")
             extraction_rollup = cluster.get("extraction_hint_rollup", [])
@@ -1950,7 +2389,9 @@ def write_affidavit_coverage_review(
     trace_level: str = "verbose",
 ) -> dict[str, Any]:
     if not write_artifacts and db_path is None:
-        raise ValueError("write_artifacts=False requires db_path so the review still has a persisted receiver")
+        raise ValueError(
+            "write_artifacts=False requires db_path so the review still has a persisted receiver"
+        )
     _emit_progress(
         progress_callback,
         "artifact_build_started",
@@ -1978,9 +2419,13 @@ def write_affidavit_coverage_review(
             message="Writing affidavit review files.",
             output_dir=str(output_dir),
         )
-        artifact_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        artifact_path.write_text(
+            json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
         summary_path.write_text(build_summary_markdown(payload), encoding="utf-8")
-        result.update({"artifact_path": str(artifact_path), "summary_path": str(summary_path)})
+        result.update(
+            {"artifact_path": str(artifact_path), "summary_path": str(summary_path)}
+        )
         _emit_progress(
             progress_callback,
             "artifact_write_finished",
@@ -2008,7 +2453,9 @@ def write_affidavit_coverage_review(
             db_path=str(db_path),
         )
         with sqlite3.connect(str(db_path)) as conn:
-            result["persist_summary"] = persist_contested_affidavit_review(conn, payload)
+            result["persist_summary"] = persist_contested_affidavit_review(
+                conn, payload
+            )
         _emit_progress(
             progress_callback,
             "artifact_persist_finished",
@@ -2020,22 +2467,69 @@ def write_affidavit_coverage_review(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build a bounded affidavit-coverage review artifact from a source bundle and affidavit draft.")
-    parser.add_argument("--source-json", required=True, help="Path to a fact.review.bundle.v1 JSON or AU checked handoff slice JSON.")
-    parser.add_argument("--affidavit-text", required=True, help="Path to the affidavit/declaration draft text file.")
-    parser.add_argument("--output-dir", required=True, help="Directory where JSON and summary outputs will be written.")
-    parser.add_argument("--db-path", default=None, help="Optional sqlite path for persisting a normalized contested-review receiver.")
-    parser.add_argument("--skip-artifacts", action="store_true", help="Skip bulky JSON/markdown artifact writes and persist to sqlite only.")
-    parser.add_argument("--progress", action="store_true", help="Emit progress updates to stderr.")
-    parser.add_argument("--progress-format", default="human", choices=["human", "json", "bar"], help="Progress output format.")
-    parser.add_argument("--trace", action="store_true", help="Emit detailed trace events to stderr.")
-    parser.add_argument("--trace-format", default="human", choices=["human", "json"], help="Trace output format.")
-    parser.add_argument("--trace-level", default="verbose", choices=["summary", "verbose"], help="Trace verbosity level.")
-    parser.add_argument("--log-level", default="INFO", help="Logging level for stderr output.")
+    parser = argparse.ArgumentParser(
+        description="Build a bounded affidavit-coverage review artifact from a source bundle and affidavit draft."
+    )
+    parser.add_argument(
+        "--source-json",
+        required=True,
+        help="Path to a fact.review.bundle.v1 JSON or AU checked handoff slice JSON.",
+    )
+    parser.add_argument(
+        "--affidavit-text",
+        required=True,
+        help="Path to the affidavit/declaration draft text file.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        required=True,
+        help="Directory where JSON and summary outputs will be written.",
+    )
+    parser.add_argument(
+        "--db-path",
+        default=None,
+        help="Optional sqlite path for persisting a normalized contested-review receiver.",
+    )
+    parser.add_argument(
+        "--skip-artifacts",
+        action="store_true",
+        help="Skip bulky JSON/markdown artifact writes and persist to sqlite only.",
+    )
+    parser.add_argument(
+        "--progress", action="store_true", help="Emit progress updates to stderr."
+    )
+    parser.add_argument(
+        "--progress-format",
+        default="human",
+        choices=["human", "json", "bar"],
+        help="Progress output format.",
+    )
+    parser.add_argument(
+        "--trace", action="store_true", help="Emit detailed trace events to stderr."
+    )
+    parser.add_argument(
+        "--trace-format",
+        default="human",
+        choices=["human", "json"],
+        help="Trace output format.",
+    )
+    parser.add_argument(
+        "--trace-level",
+        default="verbose",
+        choices=["summary", "verbose"],
+        help="Trace verbosity level.",
+    )
+    parser.add_argument(
+        "--log-level", default="INFO", help="Logging level for stderr output."
+    )
     args = parser.parse_args()
     configure_cli_logging(str(args.log_level))
-    progress_callback = build_progress_callback(enabled=bool(args.progress), fmt=str(args.progress_format))
-    trace_callback = build_event_callback(enabled=bool(args.trace), fmt=str(args.trace_format), label="trace")
+    progress_callback = build_progress_callback(
+        enabled=bool(args.progress), fmt=str(args.progress_format)
+    )
+    trace_callback = build_event_callback(
+        enabled=bool(args.trace), fmt=str(args.trace_format), label="trace"
+    )
 
     source_path = Path(args.source_json)
     affidavit_path = Path(args.affidavit_text)

@@ -9,7 +9,9 @@ from pathlib import Path
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run/report the deterministic GWB semantic pipeline.")
+    parser = argparse.ArgumentParser(
+        description="Run/report the deterministic GWB semantic pipeline."
+    )
     parser.add_argument("--db-path", default=".cache_local/itir.sqlite")
     sub = parser.add_subparsers(dest="cmd", required=True)
 

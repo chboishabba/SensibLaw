@@ -77,7 +77,9 @@ def test_build_timeline_readiness_report_aggregates_pages(tmp_path: Path) -> Non
         ],
     }
 
-    report = build_timeline_readiness_report(manifest, emit_page_rows=True, no_spacy=True)
+    report = build_timeline_readiness_report(
+        manifest, emit_page_rows=True, no_spacy=True
+    )
     assert report["schema_version"] == "wiki_random_timeline_readiness_report_v0_1"
     assert report["summary"]["page_count"] == 2
     assert report["summary"]["pages_with_timeline_candidates"] >= 1

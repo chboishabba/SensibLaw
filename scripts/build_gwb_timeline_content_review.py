@@ -16,12 +16,13 @@ from src.policy.gwb_timeline_content_review import build_content_review_payload
 
 LOGGER = logging.getLogger(__name__)
 
+
 def build_review_summary_markdown(payload: dict[str, Any]) -> str:
     summary = payload["summary"]
     relations = payload["reviewed_relations"]
     risky_events = payload["merge_risky_events"]
     conflict_packets = payload["conflict_packets"]
-    
+
     lines = [
         "# GWB Timeline Content Corroboration Review Summary",
         "",
@@ -37,7 +38,7 @@ def build_review_summary_markdown(payload: dict[str, Any]) -> str:
     ]
     for deg, count in sorted(summary["degree_counts"].items()):
         lines.append(f"- **{deg}**: {count}")
-        
+
     lines.extend(["", "## 1. High-confidence cross-source events", ""])
     strong_items = [r for r in relations if r["corroboration_degree"] == "strong"]
     if strong_items:
@@ -48,9 +49,11 @@ def build_review_summary_markdown(payload: dict[str, Any]) -> str:
             )
     else:
         lines.append("- No strong cross-source corroborated relations found.")
-        
+
     lines.extend(["", "## 2. Single-source events", ""])
-    single_items = [r for r in relations if r["corroboration_degree"] == "single_source"]
+    single_items = [
+        r for r in relations if r["corroboration_degree"] == "single_source"
+    ]
     if single_items:
         for item in single_items[:10]:
             lines.append(
@@ -59,11 +62,13 @@ def build_review_summary_markdown(payload: dict[str, Any]) -> str:
             )
     else:
         lines.append("- No single-source relations found.")
-        
+
     lines.extend(["", "## 3. Date/order uncertainty", ""])
     uncertain_items = [
-        r for r in relations 
-        if r.get("date_confidence") in {"relative_order_only", "document_order_only", "ingest_order_only"}
+        r
+        for r in relations
+        if r.get("date_confidence")
+        in {"relative_order_only", "document_order_only", "ingest_order_only"}
     ]
     if uncertain_items:
         for item in uncertain_items[:10]:
@@ -73,7 +78,7 @@ def build_review_summary_markdown(payload: dict[str, Any]) -> str:
             )
     else:
         lines.append("- No date or order uncertainty flagged.")
-        
+
     lines.extend(["", "## 4. Historical conflict residuals", ""])
     if conflict_packets:
         for item in conflict_packets[:10]:
@@ -84,7 +89,7 @@ def build_review_summary_markdown(payload: dict[str, Any]) -> str:
             )
     else:
         lines.append("- No historical conflict residuals detected.")
-        
+
     lines.extend(["", "## 5. Audit-block affected relations", ""])
     blocked_items = [r for r in relations if r["corroboration_degree"] == "blocked"]
     if blocked_items:
@@ -94,7 +99,7 @@ def build_review_summary_markdown(payload: dict[str, Any]) -> str:
             )
     else:
         lines.append("- No active relations affected by audit blocks.")
-        
+
     lines.extend(["", "## 6. Over-merged or under-merged event clusters", ""])
     if risky_events:
         for item in risky_events[:10]:
@@ -103,7 +108,7 @@ def build_review_summary_markdown(payload: dict[str, Any]) -> str:
             )
     else:
         lines.append("- No merge risk flags detected.")
-        
+
     lines.extend(["", "## 7. Coverage gaps", ""])
     gap_counts: dict[str, int] = {}
     for r in relations:
@@ -114,10 +119,11 @@ def build_review_summary_markdown(payload: dict[str, Any]) -> str:
             lines.append(f"- **{gap}**: {count} relations affected")
     else:
         lines.append("- No coverage gaps identified.")
-        
+
     lines.extend(["", "## 8. Recommended next human review queue", ""])
     review_queue = [
-        r for r in relations 
+        r
+        for r in relations
         if r["corroboration_degree"] in {"moderate", "weak", "conflicted"}
     ]
     if review_queue:
@@ -128,40 +134,56 @@ def build_review_summary_markdown(payload: dict[str, Any]) -> str:
             )
     else:
         lines.append("- Human review queue is empty.")
-        
+
     return "\n".join(lines) + "\n"
 
 
-def build_timeline_content_review(checkpoint_path: Path, output_dir: Path) -> dict[str, Any]:
+def build_timeline_content_review(
+    checkpoint_path: Path, output_dir: Path
+) -> dict[str, Any]:
     with open(checkpoint_path, "r", encoding="utf-8") as f:
         checkpoint_payload = json.load(f)
-        
+
     payload = build_content_review_payload(checkpoint_payload)
     markdown_text = build_review_summary_markdown(payload)
-    
+
     output_dir.mkdir(parents=True, exist_ok=True)
     json_path = output_dir / "gwb_content_corroboration_review.json"
     md_path = output_dir / "gwb_content_corroboration_review.md"
-    
-    json_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    json_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     md_path.write_text(markdown_text, encoding="utf-8")
-    
+
     LOGGER.info("Wrote GWB content corroboration review to %s", json_path)
     return {
         "json_path": str(json_path),
         "md_path": str(md_path),
-        "summary": payload["summary"]
+        "summary": payload["summary"],
     }
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build the GWB timeline content corroboration review.")
-    parser.add_argument("--checkpoint-path", required=True, help="Path to the broader GWB checkpoint JSON file.")
-    parser.add_argument("--output-dir", required=True, help="Directory to write the review artifacts to.")
+    parser = argparse.ArgumentParser(
+        description="Build the GWB timeline content corroboration review."
+    )
+    parser.add_argument(
+        "--checkpoint-path",
+        required=True,
+        help="Path to the broader GWB checkpoint JSON file.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        required=True,
+        help="Directory to write the review artifacts to.",
+    )
     args = parser.parse_args()
-    
+
     logging.basicConfig(level=logging.INFO)
-    result = build_timeline_content_review(Path(args.checkpoint_path), Path(args.output_dir))
+    result = build_timeline_content_review(
+        Path(args.checkpoint_path), Path(args.output_dir)
+    )
     print(json.dumps(result["summary"], indent=2))
     return 0
 

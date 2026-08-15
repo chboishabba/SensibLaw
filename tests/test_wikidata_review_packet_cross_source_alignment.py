@@ -65,4 +65,6 @@ def test_summary_notes_identity_disagreement() -> None:
 
     assert result["consensus_level"] == "no_consensus"
     assert result["consensus_identity"] == ""
-    assert any("No consistent entity identifier" in note for note in result["disagreements"])
+    assert any(
+        "No consistent entity identifier" in note for note in result["disagreements"]
+    )

@@ -91,10 +91,7 @@ def _factor_payloads(
                                 else None
                             ),
                             None if isinstance(value, Mapping) else str(value),
-                            str(
-                                alternative.get("authority_state")
-                                or "candidate_only"
-                            ),
+                            str(alternative.get("authority_state") or "candidate_only"),
                         ),
                         byteas=(_sha(alternative),),
                     )
@@ -141,8 +138,7 @@ def persist_pnf_graph_work_conserving(
     graph_state = (
         "locally_closed"
         if all(
-            row.get("closure_state")
-            in {"locally_closed", "closed", "not_required"}
+            row.get("closure_state") in {"locally_closed", "closed", "not_required"}
             for row in factors
         )
         else "open"

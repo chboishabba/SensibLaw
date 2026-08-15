@@ -57,9 +57,7 @@ class PausedAdmissionWorkerPool(DeterministicAdmissionWorkerPool):
         marker = Path(os.environ["SENSIBLAW_TYPED_STAGE_MARKER"])
         marker.parent.mkdir(parents=True, exist_ok=True)
         marker.touch()
-        time.sleep(
-            float(os.environ.get("SENSIBLAW_TYPED_STAGE_PAUSE_SECONDS", "600"))
-        )
+        time.sleep(float(os.environ.get("SENSIBLAW_TYPED_STAGE_PAUSE_SECONDS", "600")))
 
         def connection_factory() -> Any:
             import psycopg

@@ -157,12 +157,16 @@ def collect_canonical_story_pnf_receipts(
 
     raw_context = context or {}
     context_payload = _clean_mapping(raw_context, sensitive=False)
-    resolved_source_id = source_id or _stable_id("story-source", _minimized_source_payload(source))
+    resolved_source_id = source_id or _stable_id(
+        "story-source", _minimized_source_payload(source)
+    )
     rows = _normalize_source_rows(source, source_profile=source_profile)
     context_payload = dict(context_payload)
     existing_witnesses = raw_context.get("class_relation_witnesses", ())
     merged_witnesses: list[Any] = []
-    if isinstance(existing_witnesses, Sequence) and not isinstance(existing_witnesses, (str, bytes, bytearray)):
+    if isinstance(existing_witnesses, Sequence) and not isinstance(
+        existing_witnesses, (str, bytes, bytearray)
+    ):
         merged_witnesses.extend(existing_witnesses)
     merged_witnesses.extend(class_relation_witnesses)
     context_payload["class_relation_witnesses"] = merged_witnesses
@@ -187,7 +191,12 @@ def collect_canonical_story_pnf_receipts(
         )
 
     for index, row in enumerate(rows):
-        row_ref = str(row.get("_row_ref") or row.get("id") or row.get("event_id") or f"row:{index}")
+        row_ref = str(
+            row.get("_row_ref")
+            or row.get("id")
+            or row.get("event_id")
+            or f"row:{index}"
+        )
         row_atoms = _row_atoms(
             row,
             source_profile=source_profile,
@@ -216,7 +225,9 @@ def collect_canonical_story_pnf_receipts(
             )
 
     residuals = _residual_receipts(emissions)
-    residual_summary = {level: 0 for level in ("exact", "partial", "no_typed_meet", "contradiction")}
+    residual_summary = {
+        level: 0 for level in ("exact", "partial", "no_typed_meet", "contradiction")
+    }
     for receipt in residuals:
         residual_summary[str(receipt["residual_level"])] += 1
 
@@ -262,7 +273,9 @@ def _normalize_source_rows(source: Any, *, source_profile: str) -> list[dict[str
     if isinstance(source, Mapping):
         for key in ("rows", "events", "items", "captures", "entries", "utterances"):
             value = source.get(key)
-            if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+            if isinstance(value, Sequence) and not isinstance(
+                value, (str, bytes, bytearray)
+            ):
                 return [_row_mapping(item, index) for index, item in enumerate(value)]
         return [_row_mapping(source, 0)]
     if isinstance(source, Sequence) and not isinstance(source, (str, bytes, bytearray)):
@@ -281,9 +294,18 @@ def _conversation_rows(text: str) -> list[dict[str, Any]]:
         if match:
             actor = match.group(1).strip()
             content = match.group(2).strip()
-        rows.append({"_row_ref": f"utterance:{index}", "actor": actor, "text": content, "medium": "conversation"})
+        rows.append(
+            {
+                "_row_ref": f"utterance:{index}",
+                "actor": actor,
+                "text": content,
+                "medium": "conversation",
+            }
+        )
     if not rows and text.strip():
-        rows.append({"_row_ref": "utterance:0", "text": text.strip(), "medium": "conversation"})
+        rows.append(
+            {"_row_ref": "utterance:0", "text": text.strip(), "medium": "conversation"}
+        )
     return rows
 
 
@@ -295,7 +317,9 @@ def _row_mapping(item: Any, index: int) -> dict[str, Any]:
     return {"_row_ref": f"row:{index}", "text": str(item)}
 
 
-def _context_atoms(*, source_profile: str, source_id: str, context: Mapping[str, Any]) -> list[PredicatePNF]:
+def _context_atoms(
+    *, source_profile: str, source_id: str, context: Mapping[str, Any]
+) -> list[PredicatePNF]:
     atoms = [
         _atom(
             family="context/frame",
@@ -346,11 +370,34 @@ def _row_atoms(
     row_ref: str,
 ) -> list[PredicatePNF]:
     atoms: list[PredicatePNF] = []
-    actor = _first_text(row, "actor", "speaker", "user", "assignee", "runner", "reviewer", "recipient")
+    actor = _first_text(
+        row, "actor", "speaker", "user", "assignee", "runner", "reviewer", "recipient"
+    )
     action = _first_text(row, "action", "verb", "command", "result", "status")
-    obj = _first_text(row, "object", "target", "task", "claim", "statement", "title", "window_title", "url")
+    obj = _first_text(
+        row,
+        "object",
+        "target",
+        "task",
+        "claim",
+        "statement",
+        "title",
+        "window_title",
+        "url",
+    )
     timestamp = _first_text(row, "timestamp", "time", "date", "started_at", "ended_at")
-    text = _first_text(row, "text", "statement", "details", "note", "notes", "body", "ocr_text", "message", "excerpt")
+    text = _first_text(
+        row,
+        "text",
+        "statement",
+        "details",
+        "note",
+        "notes",
+        "body",
+        "ocr_text",
+        "message",
+        "excerpt",
+    )
 
     if actor or action or obj or timestamp:
         roles = {
@@ -428,13 +475,21 @@ def _row_atoms(
             )
         )
 
-    atoms.extend(_absence_atoms(row, source_profile=source_profile, source_id=source_id, row_ref=row_ref))
+    atoms.extend(
+        _absence_atoms(
+            row, source_profile=source_profile, source_id=source_id, row_ref=row_ref
+        )
+    )
     atoms.extend(_scope_atoms(row, source_id=source_id, row_ref=row_ref))
 
     if source_profile == "handoff_entry":
         atoms.extend(_handoff_atoms(row, source_id=source_id, row_ref=row_ref))
     if source_profile in {"observer_capture", "story_event"}:
-        atoms.extend(_observer_atoms(row, source_profile=source_profile, source_id=source_id, row_ref=row_ref))
+        atoms.extend(
+            _observer_atoms(
+                row, source_profile=source_profile, source_id=source_id, row_ref=row_ref
+            )
+        )
 
     return atoms
 
@@ -492,9 +547,14 @@ def _extract_classification_claims(
     default_subject: str | None,
 ) -> list[dict[str, str]]:
     claims: list[dict[str, str]] = []
-    default_subject = _normalize_subject(default_subject or _first_text(row, "subject", "agent", "speaker", "actor", "actor_id"))
+    default_subject = _normalize_subject(
+        default_subject
+        or _first_text(row, "subject", "agent", "speaker", "actor", "actor_id")
+    )
 
-    for value in _first_items(row, "class", "classification", "type", "theme", "classified_as"):
+    for value in _first_items(
+        row, "class", "classification", "type", "theme", "classified_as"
+    ):
         if value is not None:
             claims.append(
                 {
@@ -508,7 +568,9 @@ def _extract_classification_claims(
                 }
             )
 
-    for value in _first_items(row, "not_class", "not_classification", "not_classified_as", "excluded_class"):
+    for value in _first_items(
+        row, "not_class", "not_classification", "not_classified_as", "excluded_class"
+    ):
         if value is not None:
             claims.append(
                 {
@@ -523,21 +585,36 @@ def _extract_classification_claims(
             )
 
     class_collections = row.get("classifications")
-    if isinstance(class_collections, Sequence) and not isinstance(class_collections, (str, bytes, bytearray)):
+    if isinstance(class_collections, Sequence) and not isinstance(
+        class_collections, (str, bytes, bytearray)
+    ):
         for entry in class_collections:
             if isinstance(entry, Mapping):
                 subject = _normalize_subject(
                     str(entry.get("subject") or default_subject or "")
                 )
-                class_value = _normalize_class_label(str(entry.get("class") or entry.get("classification") or entry.get("type") or ""))
+                class_value = _normalize_class_label(
+                    str(
+                        entry.get("class")
+                        or entry.get("classification")
+                        or entry.get("type")
+                        or ""
+                    )
+                )
                 polarity = str(entry.get("polarity") or "positive").lower()
                 if class_value:
                     claims.append(
                         {
                             "subject": subject,
                             "class": class_value,
-                            "polarity": "negative" if polarity.startswith("neg") else "positive",
-                            "thread": _first_text(row, "thread", "thread_id",),
+                            "polarity": "negative"
+                            if polarity.startswith("neg")
+                            else "positive",
+                            "thread": _first_text(
+                                row,
+                                "thread",
+                                "thread_id",
+                            ),
                             "source": _first_text(row, "source", "source_id", "origin"),
                             "authority": _first_text(row, "authority", "authority_id"),
                             "sequence": _first_text(row, "sequence", "step"),
@@ -561,9 +638,17 @@ def _extract_classification_claims(
     if text:
         lower_text = text.strip().lower()
         if "classified as" in lower_text:
-            claims.extend(_claims_from_classification_pattern(text, _CLASSIFICATION_CLASSIFIED_AS_RE, default_subject))
+            claims.extend(
+                _claims_from_classification_pattern(
+                    text, _CLASSIFICATION_CLASSIFIED_AS_RE, default_subject
+                )
+            )
         if " is " in lower_text:
-            claims.extend(_claims_from_classification_pattern(text, _CLASSIFICATION_CLAIM_RE, default_subject))
+            claims.extend(
+                _claims_from_classification_pattern(
+                    text, _CLASSIFICATION_CLAIM_RE, default_subject
+                )
+            )
 
     normalized_claims: list[dict[str, str]] = []
     seen: set[tuple[str, str, str]] = set()
@@ -586,7 +671,9 @@ def _first_items(row: Mapping[str, Any], *keys: str) -> list[Any]:
     for key in keys:
         value = row.get(key)
         if value is not None:
-            if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+            if isinstance(value, Sequence) and not isinstance(
+                value, (str, bytes, bytearray)
+            ):
                 values.extend(list(value))
             else:
                 values.append(value)
@@ -600,7 +687,9 @@ def _claims_from_classification_pattern(
 ) -> list[dict[str, str]]:
     claims: list[dict[str, str]] = []
     for match in pattern.finditer(text):
-        raw_subject = _normalize_subject(str(match.group("subject") or default_subject or ""))
+        raw_subject = _normalize_subject(
+            str(match.group("subject") or default_subject or "")
+        )
         if not raw_subject:
             continue
         class_value = _normalize_class_label(match.group("class_value"))
@@ -632,7 +721,11 @@ def _classification_atom(
         predicate=predicate,
         structural_signature=structural_signature,
         roles={
-            role: TypedArg(value=str(value), entity_type=role, provenance=(f"{source_id}:{row_ref}",))
+            role: TypedArg(
+                value=str(value),
+                entity_type=role,
+                provenance=(f"{source_id}:{row_ref}",),
+            )
             for role, value in roles.items()
             if value not in (None, "")
         },
@@ -640,7 +733,10 @@ def _classification_atom(
         wrapper=WrapperState(status="classification-evidence", evidence_only=True),
         modifiers={"predicate_family": "classification/type"},
         provenance=(f"{source_id}:{row_ref}",),
-        atom_id=_stable_id("classification", {"subject": subject, "class": class_value, "polarity": polarity}),
+        atom_id=_stable_id(
+            "classification",
+            {"subject": subject, "class": class_value, "polarity": polarity},
+        ),
         domain="classification",
     )
 
@@ -697,7 +793,17 @@ def _classification_relation_metadata(status: str, *, edge_type: str) -> dict[st
         relation_type = "same"
         relation_root = "supports"
         relation_leaf = "same"
-        basis = "explicit_claim" if edge_type in {"classified_as", "not_classified_as", "claim_root_leaf", "leaf_class_projection"} else "sequence_adjacency"
+        basis = (
+            "explicit_claim"
+            if edge_type
+            in {
+                "classified_as",
+                "not_classified_as",
+                "claim_root_leaf",
+                "leaf_class_projection",
+            }
+            else "sequence_adjacency"
+        )
     elif status == "alias_equivalent":
         relation_type = "equivalent"
         relation_root = "supports"
@@ -746,7 +852,8 @@ def _classification_relation_metadata(status: str, *, edge_type: str) -> dict[st
 def build_classification_discovery_lattice(
     emission_receipts: Sequence[Mapping[str, Any]],
     *,
-    class_relation_witnesses: Sequence[Mapping[str, Any]] | tuple[Mapping[str, Any], ...] = (),
+    class_relation_witnesses: Sequence[Mapping[str, Any]]
+    | tuple[Mapping[str, Any], ...] = (),
     context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """Build a downstream classification-discovery lattice payload.
@@ -755,22 +862,30 @@ def build_classification_discovery_lattice(
     domain/class-relation metadata without modifying the core residual levels.
     """
 
-    classification_claims = _collect_classification_claims_from_emissions(emission_receipts)
+    classification_claims = _collect_classification_claims_from_emissions(
+        emission_receipts
+    )
     if not classification_claims:
         return None
 
-    witness_context = _coerce_class_relation_witnesses(class_relation_witnesses, context=context or {})
+    witness_context = _coerce_class_relation_witnesses(
+        class_relation_witnesses, context=context or {}
+    )
     aliases = _build_alias_mapping(classification_claims, witness_context)
 
     normalized_claims = [
         {
             "subject": _normalize_subject(claim["subject"]),
-            "class": _canonical_class_alias(aliases, _normalize_class_label(claim["class"])),
+            "class": _canonical_class_alias(
+                aliases, _normalize_class_label(claim["class"])
+            ),
             "polarity": claim["polarity"],
             "classification_claim_root": _classification_claim_root(
                 _canonical_class_alias(aliases, _normalize_class_label(claim["class"]))
             ),
-            "classification_leaf": _canonical_class_alias(aliases, _normalize_class_label(claim["class"])),
+            "classification_leaf": _canonical_class_alias(
+                aliases, _normalize_class_label(claim["class"])
+            ),
             "sequence": claim.get("sequence"),
             "thread": claim.get("thread"),
             "source": claim.get("source"),
@@ -791,7 +906,9 @@ def build_classification_discovery_lattice(
         subject_claims[subject].sort(
             key=lambda item: (
                 item.get("sequence") is None,
-                int(item.get("sequence")) if str(item.get("sequence") or "").isdigit() else item.get("sequence") or "",
+                int(item.get("sequence"))
+                if str(item.get("sequence") or "").isdigit()
+                else item.get("sequence") or "",
                 str(item.get("emission_id") or ""),
             )
         )
@@ -816,7 +933,10 @@ def build_classification_discovery_lattice(
     ) -> None:
         relation_metadata = _classification_relation_metadata(status, edge_type=kind)
         edge_payload: dict[str, Any] = {
-            "id": _stable_id("class-edge", {"source": source, "target": target, "kind": kind, "status": status}),
+            "id": _stable_id(
+                "class-edge",
+                {"source": source, "target": target, "kind": kind, "status": status},
+            ),
             "source": source,
             "target": target,
             "type": kind,
@@ -831,20 +951,29 @@ def build_classification_discovery_lattice(
 
     for witness in witness_context:
         witness_subject = _normalize_subject(witness.get("subject"))
-        source_class = _canonical_class_alias(aliases, _normalize_class_label(witness.get("source_class", "")))
-        target_class = _canonical_class_alias(aliases, _normalize_class_label(witness.get("target_class", "")))
+        source_class = _canonical_class_alias(
+            aliases, _normalize_class_label(witness.get("source_class", ""))
+        )
+        target_class = _canonical_class_alias(
+            aliases, _normalize_class_label(witness.get("target_class", ""))
+        )
         status = witness.get("status") or "unknown_class_relation"
         if not source_class or not target_class:
             continue
         if source_class == target_class:
             continue
-        witness_id = _stable_id("class-witness", {
-            "subject": witness_subject,
-            "source_class": source_class,
-            "target_class": target_class,
-            "status": status,
-        })
-        _add_node(witness_id, "relation_witness", f"{source_class}->{target_class}:{status}")
+        witness_id = _stable_id(
+            "class-witness",
+            {
+                "subject": witness_subject,
+                "source_class": source_class,
+                "target_class": target_class,
+                "status": status,
+            },
+        )
+        _add_node(
+            witness_id, "relation_witness", f"{source_class}->{target_class}:{status}"
+        )
         if witness_subject:
             witness_subject_node = f"subject:{witness_subject}"
             _add_node(witness_subject_node, "subject", witness_subject)
@@ -894,7 +1023,11 @@ def build_classification_discovery_lattice(
                     "relation_basis": "explicit_claim",
                 },
             )
-            role = "classified_as" if claim["polarity"] == "positive" else "not_classified_as"
+            role = (
+                "classified_as"
+                if claim["polarity"] == "positive"
+                else "not_classified_as"
+            )
             _add_edge(
                 source=subject_id,
                 target=class_node,
@@ -927,7 +1060,9 @@ def build_classification_discovery_lattice(
                     status="same",
                 )
             if claim.get("authority"):
-                authority_id = f"authority:{_normalize_subject(str(claim['authority']))}"
+                authority_id = (
+                    f"authority:{_normalize_subject(str(claim['authority']))}"
+                )
                 _add_node(authority_id, "authority", str(claim["authority"]))
                 _add_edge(
                     source=subject_id,
@@ -956,13 +1091,19 @@ def build_classification_discovery_lattice(
                     "left_emission_id": left["emission_id"],
                     "right_emission_id": right["emission_id"],
                     "left_classification_claim_root": left["classification_claim_root"],
-                    "right_classification_claim_root": right["classification_claim_root"],
+                    "right_classification_claim_root": right[
+                        "classification_claim_root"
+                    ],
                     "left_classification_leaf": left["classification_leaf"],
                     "right_classification_leaf": right["classification_leaf"],
                     "relation_basis": relation["relation_basis"],
                 },
             )
-            if status in {"cross_domain_gap", "unsupported_out_of_domain_candidate", "exclusive_contradiction"}:
+            if status in {
+                "cross_domain_gap",
+                "unsupported_out_of_domain_candidate",
+                "exclusive_contradiction",
+            }:
                 _add_edge(
                     source=f"class:{left['class']}",
                     target=f"class:{right['class']}",
@@ -974,7 +1115,9 @@ def build_classification_discovery_lattice(
                     },
                 )
 
-        class_pairs = _ordered_class_pairs([claim["class"] for claim in subject_claims[subject]])
+        class_pairs = _ordered_class_pairs(
+            [claim["class"] for claim in subject_claims[subject]]
+        )
         for left_class, right_class in class_pairs:
             left_claim = next(
                 (
@@ -1007,8 +1150,12 @@ def build_classification_discovery_lattice(
                 status=class_relation["status"],
                 metadata={
                     "subject": subject,
-                    "left_classification_claim_root": left_claim["classification_claim_root"],
-                    "right_classification_claim_root": right_claim["classification_claim_root"],
+                    "left_classification_claim_root": left_claim[
+                        "classification_claim_root"
+                    ],
+                    "right_classification_claim_root": right_claim[
+                        "classification_claim_root"
+                    ],
                     "left_classification_leaf": left_claim["classification_leaf"],
                     "right_classification_leaf": right_claim["classification_leaf"],
                     "relation_basis": class_relation["relation_basis"],
@@ -1021,11 +1168,17 @@ def build_classification_discovery_lattice(
         for left, right in _pairwise(sorted_claims):
             left_atom = left["atom"]
             right_atom = right["atom"]
-            if not isinstance(left_atom, Mapping) or not isinstance(right_atom, Mapping):
+            if not isinstance(left_atom, Mapping) or not isinstance(
+                right_atom, Mapping
+            ):
                 continue
             residual = meet_atom(left_atom, right_atom)
-            status = _residual_classification_status(left, right, residual, witness_context)
-            relation = _classification_relation_metadata(status, edge_type="residual_support")
+            status = _residual_classification_status(
+                left, right, residual, witness_context
+            )
+            relation = _classification_relation_metadata(
+                status, edge_type="residual_support"
+            )
             residual_id = _stable_id(
                 "class-residual",
                 {
@@ -1079,7 +1232,14 @@ def build_classification_discovery_lattice(
             )
 
     nodes.sort(key=lambda item: (item.get("kind"), item.get("value"), item.get("id")))
-    edges.sort(key=lambda item: (item.get("type"), item.get("source"), item.get("target"), item.get("status")))
+    edges.sort(
+        key=lambda item: (
+            item.get("type"),
+            item.get("source"),
+            item.get("target"),
+            item.get("status"),
+        )
+    )
 
     return {
         "schema": CLASSIFICATION_DISCOVERY_LATTICE_SCHEMA,
@@ -1103,15 +1263,17 @@ def _collect_classification_claims_from_emissions(
         structural_signature = str(emitted_atom.get("structural_signature") or "")
         if not structural_signature.startswith("classification:type:"):
             continue
-        if emitted_atom.get("modifiers", {}).get("predicate_family") not in {"classification/type", "classification"}:
+        if emitted_atom.get("modifiers", {}).get("predicate_family") not in {
+            "classification/type",
+            "classification",
+        }:
             continue
         roles = emitted_atom.get("roles")
         if not isinstance(roles, Mapping):
             continue
-        subject = (
-            _classification_role_value(roles.get("subject"))
-            or _classification_role_value(roles.get("agent"))
-        )
+        subject = _classification_role_value(
+            roles.get("subject")
+        ) or _classification_role_value(roles.get("agent"))
         class_value = (
             _classification_role_value(roles.get("class"))
             or _classification_role_value(roles.get("theme"))
@@ -1127,14 +1289,20 @@ def _collect_classification_claims_from_emissions(
             {
                 "subject": subject,
                 "class": _normalize_class_label(class_value),
-                "polarity": polarity if polarity in {"positive", "negative"} else "positive",
+                "polarity": polarity
+                if polarity in {"positive", "negative"}
+                else "positive",
                 "sequence": _classification_role_value(roles.get("sequence")),
                 "thread": _classification_role_value(roles.get("thread")),
                 "source": _classification_role_value(roles.get("source")),
                 "authority": _classification_role_value(roles.get("authority")),
-                "emission_id": str(receipt.get("id") or _stable_id("fallback", emitted_atom)),
+                "emission_id": str(
+                    receipt.get("id") or _stable_id("fallback", emitted_atom)
+                ),
                 "atom": emitted_atom,
-                "atom_id": _classification_role_value(emitted_atom.get("atom_id")) or _classification_role_value(roles.get("subject")) or "",
+                "atom_id": _classification_role_value(emitted_atom.get("atom_id"))
+                or _classification_role_value(roles.get("subject"))
+                or "",
             }
         )
     return claims
@@ -1158,14 +1326,27 @@ def _coerce_class_relation_witnesses(
     context = context or {}
     raw_witnesses = list(witnesses)
     context_witnesses = context.get("class_relation_witnesses")
-    if isinstance(context_witnesses, Sequence) and not isinstance(context_witnesses, (str, bytes, bytearray)):
-        raw_witnesses.extend([item for item in context_witnesses if isinstance(item, Mapping)])
+    if isinstance(context_witnesses, Sequence) and not isinstance(
+        context_witnesses, (str, bytes, bytearray)
+    ):
+        raw_witnesses.extend(
+            [item for item in context_witnesses if isinstance(item, Mapping)]
+        )
     normalised: list[dict[str, str]] = []
     seen: set[tuple[str, str, str, str]] = set()
     for item in raw_witnesses:
         if not isinstance(item, Mapping):
             continue
-        relation = str(item.get("relation") or item.get("status") or item.get("relation_status") or "").strip().lower()
+        relation = (
+            str(
+                item.get("relation")
+                or item.get("status")
+                or item.get("relation_status")
+                or ""
+            )
+            .strip()
+            .lower()
+        )
         status = _KNOWN_WITNESS_RELATIONS.get(relation, "unknown_class_relation")
         strength = str(item.get("strength") or item.get("witness_strength") or "")
         if relation == "domain_exclusion":
@@ -1265,7 +1446,13 @@ def _build_alias_mapping(
     claims: Sequence[Mapping[str, Any]],
     witnesses: list[dict[str, str]],
 ) -> dict[str, str]:
-    classes = sorted({_normalize_class_label(str(item.get("class") or "")) for item in claims if item.get("class")})
+    classes = sorted(
+        {
+            _normalize_class_label(str(item.get("class") or ""))
+            for item in claims
+            if item.get("class")
+        }
+    )
     parent = {class_value: class_value for class_value in classes}
 
     def find(value: str) -> str:
@@ -1314,9 +1501,13 @@ def _lookup_class_relation_witness(
             continue
         source = witness.get("source_class", "")
         target = witness.get("target_class", "")
-        if _class_match_for_witness(left_class, source) and _class_match_for_witness(right_class, target):
+        if _class_match_for_witness(left_class, source) and _class_match_for_witness(
+            right_class, target
+        ):
             return witness
-        if _class_match_for_witness(right_class, source) and _class_match_for_witness(left_class, target):
+        if _class_match_for_witness(right_class, source) and _class_match_for_witness(
+            left_class, target
+        ):
             return witness
     return None
 
@@ -1331,12 +1522,19 @@ def _class_pair_relation(
     right_class = _normalize_class_label(str(right.get("class") or ""))
     left_subject = _normalize_subject(str(left.get("subject") or ""))
     right_subject = _normalize_subject(str(right.get("subject") or ""))
-    if left_subject and right_subject and left_subject == right_subject and left_class == right_class:
+    if (
+        left_subject
+        and right_subject
+        and left_subject == right_subject
+        and left_class == right_class
+    ):
         left_polarity = str(left.get("polarity") or "positive")
         right_polarity = str(right.get("polarity") or "positive")
         if left_polarity == right_polarity:
             status = "same"
-            metadata = _classification_relation_metadata(status, edge_type="class_relation")
+            metadata = _classification_relation_metadata(
+                status, edge_type="class_relation"
+            )
             metadata["relation_basis"] = "explicit_claim"
             metadata["status"] = status
             return metadata
@@ -1397,11 +1595,10 @@ def _ordered_class_pairs(values: Sequence[str]) -> list[tuple[str, str]]:
     return pairs
 
 
-def _pairwise(values: Sequence[Mapping[str, Any]]) -> list[tuple[Mapping[str, Any], Mapping[str, Any]]]:
-    return [
-        (values[index], values[index + 1])
-        for index in range(len(values) - 1)
-    ]
+def _pairwise(
+    values: Sequence[Mapping[str, Any]],
+) -> list[tuple[Mapping[str, Any], Mapping[str, Any]]]:
+    return [(values[index], values[index + 1]) for index in range(len(values) - 1)]
 
 
 def _residual_classification_status(
@@ -1417,10 +1614,17 @@ def _residual_classification_status(
     if level_name == "contradiction":
         if str(left.get("class")) == str(right.get("class")):
             return "exclusive_contradiction"
-    if str(left.get("class")) == str(right.get("class")) and str(left.get("subject")) == str(right.get("subject")):
-        if str(left.get("polarity", "positive")).lower() == str(right.get("polarity", "positive")).lower():
+    if str(left.get("class")) == str(right.get("class")) and str(
+        left.get("subject")
+    ) == str(right.get("subject")):
+        if (
+            str(left.get("polarity", "positive")).lower()
+            == str(right.get("polarity", "positive")).lower()
+        ):
             return "same"
-    return _class_pair_relation_status(left, right, witness_context, _normalize_subject(str(left.get("subject") or "")))
+    return _class_pair_relation_status(
+        left, right, witness_context, _normalize_subject(str(left.get("subject") or ""))
+    )
 
 
 def render_classification_discovery_lattice_png(
@@ -1449,7 +1653,11 @@ def render_classification_discovery_lattice_png(
         node_id = str(node.get("id"))
         if not node_id:
             continue
-        graph.add_node(node_id, kind=str(node.get("kind") or "node"), value=str(node.get("value") or node_id))
+        graph.add_node(
+            node_id,
+            kind=str(node.get("kind") or "node"),
+            value=str(node.get("value") or node_id),
+        )
 
     for edge in edges:
         if not isinstance(edge, Mapping):
@@ -1457,7 +1665,12 @@ def render_classification_discovery_lattice_png(
         source = str(edge.get("source") or "")
         target = str(edge.get("target") or "")
         if source and target and source in graph.nodes and target in graph.nodes:
-            graph.add_edge(source, target, type=str(edge.get("type") or "relation"), status=str(edge.get("status") or "unknown"))
+            graph.add_edge(
+                source,
+                target,
+                type=str(edge.get("type") or "relation"),
+                status=str(edge.get("status") or "unknown"),
+            )
 
     if not graph.nodes:
         graph.add_node("empty")
@@ -1474,16 +1687,18 @@ def render_classification_discovery_lattice_png(
     }
 
     positions = nx.spring_layout(graph, seed=17_606, k=0.9)
-    plt.figure(figsize=(max(6, len(graph.nodes) * 0.7), max(4, len(graph.nodes) * 0.45)))
-    node_colors = [kind_colors.get(graph.nodes[node].get("kind", "node"), "#2d3748") for node in graph.nodes]
+    plt.figure(
+        figsize=(max(6, len(graph.nodes) * 0.7), max(4, len(graph.nodes) * 0.45))
+    )
+    node_colors = [
+        kind_colors.get(graph.nodes[node].get("kind", "node"), "#2d3748")
+        for node in graph.nodes
+    ]
     nx.draw_networkx_nodes(graph, positions, node_size=620, node_color=node_colors)
     nx.draw_networkx_labels(
         graph,
         positions,
-        {
-            node: str(graph.nodes[node].get("value") or node)
-            for node in graph.nodes
-        },
+        {node: str(graph.nodes[node].get("value") or node) for node in graph.nodes},
         font_size=8,
     )
 
@@ -1499,7 +1714,9 @@ def render_classification_discovery_lattice_png(
         else:
             edge_colors.append("#2b6cb0")
 
-    nx.draw_networkx_edges(graph, positions, arrowstyle="-|>", arrowsize=12, edge_color=edge_colors)
+    nx.draw_networkx_edges(
+        graph, positions, arrowstyle="-|>", arrowsize=12, edge_color=edge_colors
+    )
     nx.draw_networkx_edge_labels(
         graph,
         positions,
@@ -1547,7 +1764,9 @@ def _absence_atoms(
     return atoms
 
 
-def _scope_atoms(row: Mapping[str, Any], *, source_id: str, row_ref: str) -> list[PredicatePNF]:
+def _scope_atoms(
+    row: Mapping[str, Any], *, source_id: str, row_ref: str
+) -> list[PredicatePNF]:
     atoms = []
     for field in ("scope", "boundary", "privacy", "recipient_scope", "sync_policy"):
         value = _first_text(row, field)
@@ -1565,7 +1784,9 @@ def _scope_atoms(row: Mapping[str, Any], *, source_id: str, row_ref: str) -> lis
     return atoms
 
 
-def _handoff_atoms(row: Mapping[str, Any], *, source_id: str, row_ref: str) -> list[PredicatePNF]:
+def _handoff_atoms(
+    row: Mapping[str, Any], *, source_id: str, row_ref: str
+) -> list[PredicatePNF]:
     atoms = []
     recipient = _first_text(row, "recipient", "recipient_profile", "to")
     if recipient:
@@ -1579,7 +1800,12 @@ def _handoff_atoms(row: Mapping[str, Any], *, source_id: str, row_ref: str) -> l
                 status="handoff_evidence",
             )
         )
-    for field in ("redaction", "redaction_marker", "exclusion", "professional_note_boundary"):
+    for field in (
+        "redaction",
+        "redaction_marker",
+        "exclusion",
+        "professional_note_boundary",
+    ):
         value = _first_text(row, field)
         if value:
             atoms.append(
@@ -1631,7 +1857,9 @@ def _atom(
 ) -> PredicatePNF:
     predicate = f"{family}.{name}"
     normalized_roles = {
-        role: TypedArg(value=str(value), entity_type=role, provenance=(f"{source_id}:{row_ref}",))
+        role: TypedArg(
+            value=str(value), entity_type=role, provenance=(f"{source_id}:{row_ref}",)
+        )
         for role, value in roles.items()
         if value not in (None, "")
     }
@@ -1643,7 +1871,13 @@ def _atom(
         wrapper=WrapperState(status=status, evidence_only=True),
         modifiers={"predicate_family": family},
         provenance=(f"{source_id}:{row_ref}",),
-        atom_id=_stable_id("story-pnf", {"predicate": predicate, "roles": {k: v.value for k, v in normalized_roles.items()}}),
+        atom_id=_stable_id(
+            "story-pnf",
+            {
+                "predicate": predicate,
+                "roles": {k: v.value for k, v in normalized_roles.items()},
+            },
+        ),
         domain="story_pnf",
     )
 
@@ -1687,7 +1921,11 @@ def _emission_receipt(
 
 def _residual_receipts(emissions: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     receipts = []
-    atoms = [(item, item.get("emitted_atom")) for item in emissions if isinstance(item.get("emitted_atom"), Mapping)]
+    atoms = [
+        (item, item.get("emitted_atom"))
+        for item in emissions
+        if isinstance(item.get("emitted_atom"), Mapping)
+    ]
     for left_index, (left_receipt, left_atom) in enumerate(atoms):
         for right_receipt, right_atom in atoms[left_index + 1 :]:
             residual = meet_atom(left_atom, right_atom)
@@ -1731,7 +1969,9 @@ def _residual_family(left: Mapping[str, Any], right: Mapping[str, Any]) -> str:
 
 
 def _status_value(row: Mapping[str, Any], text: str | None) -> str | None:
-    direct = _first_text(row, "epistemic_status", "status", "review_status", "claim_status")
+    direct = _first_text(
+        row, "epistemic_status", "status", "review_status", "claim_status"
+    )
     if direct:
         normalized = _tokenize_status(direct)
         if normalized in _STATUS_WORDS:
@@ -1743,24 +1983,54 @@ def _status_value(row: Mapping[str, Any], text: str | None) -> str | None:
     return None
 
 
-def _claim_mode(row: Mapping[str, Any], text: str | None, source_profile: str) -> str | None:
+def _claim_mode(
+    row: Mapping[str, Any], text: str | None, source_profile: str
+) -> str | None:
     direct = _first_text(row, "claim_mode", "assertion", "finding", "allegation_status")
     if direct:
         normalized = _tokenize_status(direct)
-        if normalized in {"claimed", "denied", "alleged", "observed", "ordered", "ruled", "sourced"}:
+        if normalized in {
+            "claimed",
+            "denied",
+            "alleged",
+            "observed",
+            "ordered",
+            "ruled",
+            "sourced",
+        }:
             return normalized
-    lower = " ".join(str(value).lower() for value in (direct, text, _first_text(row, "status")) if value)
-    for mode in ("denied", "alleged", "observed", "ordered", "ruled", "sourced", "claimed"):
+    lower = " ".join(
+        str(value).lower()
+        for value in (direct, text, _first_text(row, "status"))
+        if value
+    )
+    for mode in (
+        "denied",
+        "alleged",
+        "observed",
+        "ordered",
+        "ruled",
+        "sourced",
+        "claimed",
+    ):
         if re.search(rf"\b{mode}\b", lower):
             return mode
-    if source_profile == "fact_review_item" and (_first_text(row, "statement", "claim") or text):
+    if source_profile == "fact_review_item" and (
+        _first_text(row, "statement", "claim") or text
+    ):
         return "claimed"
     return None
 
 
 def _commitment_value(row: Mapping[str, Any], text: str | None) -> str | None:
-    direct = _first_text(row, "lifecycle", "lifecycle_state", "commitment", "task_state")
-    lower = " ".join(str(value).lower() for value in (direct, text, _first_text(row, "status")) if value)
+    direct = _first_text(
+        row, "lifecycle", "lifecycle_state", "commitment", "task_state"
+    )
+    lower = " ".join(
+        str(value).lower()
+        for value in (direct, text, _first_text(row, "status"))
+        if value
+    )
     for needle, value in _COMMITMENT_WORDS.items():
         if re.search(rf"\b{re.escape(needle)}\b", lower):
             return value
@@ -1813,7 +2083,11 @@ def _clean_mapping(row: Mapping[str, Any], *, sensitive: bool) -> dict[str, Any]
         key_text = str(key)
         if sensitive and key_text.lower() in _SENSITIVE_TEXT_KEYS:
             cleaned[key_text] = _digest_payload(value)
-        elif key_text.lower() in _SENSITIVE_TEXT_KEYS and isinstance(value, str) and len(value) > 240:
+        elif (
+            key_text.lower() in _SENSITIVE_TEXT_KEYS
+            and isinstance(value, str)
+            and len(value) > 240
+        ):
             cleaned[key_text] = _digest_payload(value)
         elif isinstance(value, (str, int, float, bool)) or value is None:
             cleaned[key_text] = value
@@ -1848,7 +2122,9 @@ def _stable_id(prefix: str, payload: Any) -> str:
 
 
 def _json_bytes(payload: Any) -> bytes:
-    return json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
+    return json.dumps(
+        payload, sort_keys=True, separators=(",", ":"), default=str
+    ).encode("utf-8")
 
 
 __all__ = [

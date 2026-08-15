@@ -1,4 +1,5 @@
 """spaCy-powered named entity recognition utilities."""
+
 from __future__ import annotations
 
 import logging
@@ -17,7 +18,9 @@ REFERENCE_LABEL = "REFERENCE"
 REFERENCE_SPAN_KEY = "REFERENCE"
 NER_REFERENCE_LABELS = {"PERSON", "ORG", "LAW"}
 
-_PATTERNS_PATH = Path(__file__).resolve().parents[2] / "patterns" / "legal_patterns.jsonl"
+_PATTERNS_PATH = (
+    Path(__file__).resolve().parents[2] / "patterns" / "legal_patterns.jsonl"
+)
 
 if not Span.has_extension("reference_source"):
     Span.set_extension("reference_source", default=None)

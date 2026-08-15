@@ -126,9 +126,7 @@ class ProofTree:
             if edge.provenance.extrinsic:
                 label_parts.append(edge.provenance.extrinsic)
             label = "; ".join(label_parts)
-            lines.append(
-                f'  "{edge.source}" -> "{edge.target}" [label="{label}"];'
-            )
+            lines.append(f'  "{edge.source}" -> "{edge.target}" [label="{label}"];')
         lines.append("}")
         return "\n".join(lines)
 
@@ -176,9 +174,7 @@ def expand_proof_tree(
         return node.date is None or node.date <= as_at
 
     def edge_valid(edge: GraphEdge) -> bool:
-        return edge.type in ALLOWED_TYPES and (
-            edge.date is None or edge.date <= as_at
-        )
+        return edge.type in ALLOWED_TYPES and (edge.date is None or edge.date <= as_at)
 
     tree = ProofTree()
     visited: Set[str] = {seed}
@@ -341,9 +337,7 @@ def to_dot(nodes: Dict[str, Node], edges: Iterable[Edge]) -> str:
             attrs.append(f'receipt="{receipt}"')
         if edge.weight is not None:
             attrs.append(f'weight="{edge.weight}"')
-        lines.append(
-            f'  "{edge.source}" -> "{edge.target}" [{", ".join(attrs)}];'
-        )
+        lines.append(f'  "{edge.source}" -> "{edge.target}" [{", ".join(attrs)}];')
     lines.append("}")
     return "\n".join(lines)
 

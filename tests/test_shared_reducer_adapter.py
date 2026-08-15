@@ -11,7 +11,10 @@ from sensiblaw.interfaces.shared_reducer import (
     tokenize_canonical_detailed,
     tokenize_canonical_with_spans,
 )
-from src.text.deterministic_legal_tokenizer import tokenize_detailed, tokenize_with_spans
+from src.text.deterministic_legal_tokenizer import (
+    tokenize_detailed,
+    tokenize_with_spans,
+)
 from src.text.lexeme_index import (
     collect_lexeme_occurrences,
     collect_lexeme_occurrences_with_profile,
@@ -39,12 +42,18 @@ def test_shared_reducer_profile_receipt_is_bounded_and_stable() -> None:
 
 def test_shared_reducer_lexeme_occurrences_match_internal_function() -> None:
     text = "Civil Liability Act 2002 (NSW) s 5B and run pytest in ./SensibLaw/tests/test_lexeme_layer.py"
-    assert collect_canonical_lexeme_occurrences(text) == collect_lexeme_occurrences(text)
+    assert collect_canonical_lexeme_occurrences(text) == collect_lexeme_occurrences(
+        text
+    )
 
 
-def test_shared_reducer_lexeme_occurrences_with_profile_match_internal_function() -> None:
+def test_shared_reducer_lexeme_occurrences_with_profile_match_internal_function() -> (
+    None
+):
     text = "The United States Department of Defense cited Article 51."
-    assert collect_canonical_lexeme_occurrences_with_profile(text) == collect_lexeme_occurrences_with_profile(text)
+    assert collect_canonical_lexeme_occurrences_with_profile(
+        text
+    ) == collect_lexeme_occurrences_with_profile(text)
 
 
 def test_shared_reducer_lexeme_refs_are_bounded_and_span_anchored() -> None:
@@ -60,7 +69,9 @@ def test_shared_reducer_lexeme_refs_are_bounded_and_span_anchored() -> None:
 
 def test_shared_reducer_structure_occurrences_match_internal_function() -> None:
     text = "User: cite Civil Liability Act 2002 (NSW) s 5B.\n$ pytest SensibLaw/tests/test_lexeme_layer.py -q\n"
-    assert collect_canonical_structure_occurrences(text) == collect_structure_occurrences(text)
+    assert collect_canonical_structure_occurrences(
+        text
+    ) == collect_structure_occurrences(text)
 
 
 def test_shared_reducer_span_tokenization_matches_internal_function() -> None:
@@ -69,7 +80,9 @@ def test_shared_reducer_span_tokenization_matches_internal_function() -> None:
     assert tokenize_canonical_detailed(text) == tokenize_detailed(text)
 
 
-def test_shared_reducer_relational_bundle_is_span_anchored_and_question_shaped() -> None:
+def test_shared_reducer_relational_bundle_is_span_anchored_and_question_shaped() -> (
+    None
+):
     text = "alice:\nQ: how does crypto promise to hedge asset volatility and uncertainty in 2026"
 
     bundle = collect_canonical_relational_bundle(text)
@@ -83,10 +96,18 @@ def test_shared_reducer_relational_bundle_is_span_anchored_and_question_shaped()
         assert text[start:end] == atom["text"]
 
     relation_types = {relation["type"] for relation in bundle["relations"]}
-    assert {"predicate", "modifier", "conjunction", "temporal", "composition"} <= relation_types
+    assert {
+        "predicate",
+        "modifier",
+        "conjunction",
+        "temporal",
+        "composition",
+    } <= relation_types
     composition_relation = next(
-        relation for relation in bundle["relations"] if relation["type"] == "composition"
+        relation
+        for relation in bundle["relations"]
+        if relation["type"] == "composition"
     )
     composition_role = composition_relation["roles"][0]
     assert composition_role["value"] == "question"
-    assert text[composition_role["span_start"]:composition_role["span_end"]]
+    assert text[composition_role["span_start"] : composition_role["span_end"]]

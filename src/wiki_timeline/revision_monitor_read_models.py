@@ -12,12 +12,16 @@ def _table_columns(conn: sqlite3.Connection, table_name: str) -> list[str]:
     return [str(row[1]) for row in rows]
 
 
-def _needs_rebuild(conn: sqlite3.Connection, *, table_name: str, target_columns: list[str]) -> bool:
+def _needs_rebuild(
+    conn: sqlite3.Connection, *, table_name: str, target_columns: list[str]
+) -> bool:
     existing = _table_columns(conn, table_name)
     return bool(existing) and existing != target_columns
 
 
-def _snapshot_rows(conn: sqlite3.Connection, *, table_name: str, columns: list[str]) -> list[tuple[Any, ...]]:
+def _snapshot_rows(
+    conn: sqlite3.Connection, *, table_name: str, columns: list[str]
+) -> list[tuple[Any, ...]]:
     existing = _table_columns(conn, table_name)
     if not existing:
         return []
@@ -149,7 +153,6 @@ def ensure_read_model_schema(conn: sqlite3.Connection) -> None:
         """
     )
 
-
     rebuild_specs = [
         (
             "wiki_revision_monitor_changed_articles",
@@ -188,29 +191,53 @@ def ensure_read_model_schema(conn: sqlite3.Connection) -> None:
             ],
         ),
     ]
-    if any(_needs_rebuild(conn, table_name=table_name, target_columns=target_columns) for table_name, target_columns in rebuild_specs):
+    if any(
+        _needs_rebuild(conn, table_name=table_name, target_columns=target_columns)
+        for table_name, target_columns in rebuild_specs
+    ):
         changed_rows = _snapshot_rows(
             conn,
             table_name="wiki_revision_monitor_changed_articles",
             columns=[
-                "run_id", "article_id", "pack_id", "title", "status", "top_severity",
-                "previous_revid", "current_revid", "selected_primary_pair_id",
-                "selected_primary_pair_kind", "selected_primary_pair_score",
-                "candidate_pairs_selected", "contested_graph_available",
-                "contested_region_count", "contested_cycle_count", "graph_heat",
+                "run_id",
+                "article_id",
+                "pack_id",
+                "title",
+                "status",
+                "top_severity",
+                "previous_revid",
+                "current_revid",
+                "selected_primary_pair_id",
+                "selected_primary_pair_kind",
+                "selected_primary_pair_score",
+                "candidate_pairs_selected",
+                "contested_graph_available",
+                "contested_region_count",
+                "contested_cycle_count",
+                "graph_heat",
             ],
         )
         pair_rows = _snapshot_rows(
             conn,
             table_name="wiki_revision_monitor_selected_pairs",
             columns=[
-                "run_id", "article_id", "pair_id", "pair_kind", "pair_kinds_json",
-                "older_revid", "newer_revid", "candidate_score", "top_severity",
+                "run_id",
+                "article_id",
+                "pair_id",
+                "pair_kind",
+                "pair_kinds_json",
+                "older_revid",
+                "newer_revid",
+                "candidate_score",
+                "top_severity",
                 "top_changed_sections_json",
             ],
         )
         conn.execute("PRAGMA foreign_keys = OFF")
-        for table_name in ["wiki_revision_monitor_selected_pairs", "wiki_revision_monitor_changed_articles"]:
+        for table_name in [
+            "wiki_revision_monitor_selected_pairs",
+            "wiki_revision_monitor_changed_articles",
+        ]:
             if _table_columns(conn, table_name):
                 conn.execute(f"DROP TABLE {table_name}")
         conn.execute(
@@ -289,8 +316,16 @@ def upsert_run_summary(
     summary: Mapping[str, Any],
 ) -> None:
     counts = summary.get("counts") if isinstance(summary.get("counts"), Mapping) else {}
-    pair_counts = summary.get("candidate_pair_counts") if isinstance(summary.get("candidate_pair_counts"), Mapping) else {}
-    graph_counts = summary.get("contested_graph_counts") if isinstance(summary.get("contested_graph_counts"), Mapping) else {}
+    pair_counts = (
+        summary.get("candidate_pair_counts")
+        if isinstance(summary.get("candidate_pair_counts"), Mapping)
+        else {}
+    )
+    graph_counts = (
+        summary.get("contested_graph_counts")
+        if isinstance(summary.get("contested_graph_counts"), Mapping)
+        else {}
+    )
     conn.execute(
         """
         INSERT INTO wiki_revision_monitor_run_summaries(
@@ -348,11 +383,17 @@ def replace_changed_articles(
     pack_id: str,
     article_rows: list[Mapping[str, Any]],
 ) -> None:
-    conn.execute("DELETE FROM wiki_revision_monitor_changed_articles WHERE run_id = ?", (run_id,))
+    conn.execute(
+        "DELETE FROM wiki_revision_monitor_changed_articles WHERE run_id = ?", (run_id,)
+    )
     for row in article_rows:
         if not isinstance(row, Mapping):
             continue
-        graph_summary = row.get("contested_graph_summary") if isinstance(row.get("contested_graph_summary"), Mapping) else {}
+        graph_summary = (
+            row.get("contested_graph_summary")
+            if isinstance(row.get("contested_graph_summary"), Mapping)
+            else {}
+        )
         conn.execute(
             """
             INSERT INTO wiki_revision_monitor_changed_articles(
@@ -408,14 +449,20 @@ def replace_issue_packets(
                 article_id,
                 str(row.get("pair_id") or ""),
                 str(row.get("packet_id") or ""),
-                int(row.get("packet_order") if row.get("packet_order") is not None else index),
+                int(
+                    row.get("packet_order")
+                    if row.get("packet_order") is not None
+                    else index
+                ),
                 str(row.get("severity") or "low"),
                 row.get("summary"),
                 row.get("event_id"),
                 __import__("json").dumps(row.get("surfaces") or [], sort_keys=True),
                 json.dumps(row.get("related_entities") or [], sort_keys=True),
                 json.dumps(row.get("state_change_summary") or [], sort_keys=True),
-                json.dumps(row.get("review_context"), sort_keys=True) if row.get("review_context") is not None else None,
+                json.dumps(row.get("review_context"), sort_keys=True)
+                if row.get("review_context") is not None
+                else None,
                 json.dumps(row, sort_keys=True),
             ),
         )
@@ -471,7 +518,9 @@ def latest_run_rows(conn: sqlite3.Connection, *, pack_id: str) -> list[dict[str,
     return [dict(row) for row in rows]
 
 
-def changed_article_rows(conn: sqlite3.Connection, *, run_id: str) -> list[dict[str, Any]]:
+def changed_article_rows(
+    conn: sqlite3.Connection, *, run_id: str
+) -> list[dict[str, Any]]:
     rows = conn.execute(
         """
         SELECT article_id, pack_id, title, status, top_severity, previous_revid, current_revid,
@@ -493,7 +542,9 @@ def changed_article_rows(conn: sqlite3.Connection, *, run_id: str) -> list[dict[
     return out
 
 
-def issue_packet_rows(conn: sqlite3.Connection, *, run_id: str, article_id: str) -> list[dict[str, Any]]:
+def issue_packet_rows(
+    conn: sqlite3.Connection, *, run_id: str, article_id: str
+) -> list[dict[str, Any]]:
     rows = conn.execute(
         """
         SELECT pair_id, packet_id, packet_order, severity, summary, event_id,
@@ -511,15 +562,25 @@ def issue_packet_rows(conn: sqlite3.Connection, *, run_id: str, article_id: str)
     for row in rows:
         payload = dict(row)
         payload["surfaces"] = json.loads(payload.pop("surfaces_json") or "[]")
-        payload["related_entities"] = json.loads(payload.pop("related_entities_json") or "[]")
-        payload["state_change_summary"] = json.loads(payload.pop("state_change_summary_json") or "[]")
-        payload["review_context"] = json.loads(payload.pop("review_context_json")) if payload.get("review_context_json") else None
+        payload["related_entities"] = json.loads(
+            payload.pop("related_entities_json") or "[]"
+        )
+        payload["state_change_summary"] = json.loads(
+            payload.pop("state_change_summary_json") or "[]"
+        )
+        payload["review_context"] = (
+            json.loads(payload.pop("review_context_json"))
+            if payload.get("review_context_json")
+            else None
+        )
         payload["packet"] = json.loads(payload.pop("packet_json") or "{}")
         out.append(payload)
     return out
 
 
-def selected_pair_rows(conn: sqlite3.Connection, *, run_id: str, article_id: str) -> list[dict[str, Any]]:
+def selected_pair_rows(
+    conn: sqlite3.Connection, *, run_id: str, article_id: str
+) -> list[dict[str, Any]]:
     rows = conn.execute(
         """
         SELECT pair_id, pair_kind, pair_kinds_json, older_revid, newer_revid, candidate_score,
@@ -537,12 +598,16 @@ def selected_pair_rows(conn: sqlite3.Connection, *, run_id: str, article_id: str
     for row in rows:
         payload = dict(row)
         payload["pair_kinds"] = json.loads(payload.pop("pair_kinds_json") or "[]")
-        payload["top_changed_sections"] = json.loads(payload.pop("top_changed_sections_json") or "[]")
+        payload["top_changed_sections"] = json.loads(
+            payload.pop("top_changed_sections_json") or "[]"
+        )
         out.append(payload)
     return out
 
 
-def contested_graph_payload(conn: sqlite3.Connection, *, run_id: str, article_id: str) -> dict[str, Any] | None:
+def contested_graph_payload(
+    conn: sqlite3.Connection, *, run_id: str, article_id: str
+) -> dict[str, Any] | None:
     graph_row = conn.execute(
         """
         SELECT region_count, cycle_count, selected_pair_count, changed_event_count,
@@ -628,7 +693,11 @@ def contested_graph_payload(conn: sqlite3.Connection, *, run_id: str, article_id
         if row["epistemic_json"]
     ]
     selected_pairs = selected_pair_rows(conn, run_id=run_id, article_id=article_id)
-    hottest_region = json.loads(graph_row["hottest_region_json"]) if graph_row["hottest_region_json"] else None
+    hottest_region = (
+        json.loads(graph_row["hottest_region_json"])
+        if graph_row["hottest_region_json"]
+        else None
+    )
     summary = {
         "region_count": graph_row["region_count"],
         "selected_pair_count": graph_row["selected_pair_count"],
@@ -637,7 +706,9 @@ def contested_graph_payload(conn: sqlite3.Connection, *, run_id: str, article_id
         "cycle_count": graph_row["cycle_count"],
         "highest_severity": graph_row["highest_severity"],
         "partial": False,
-        "graph_heat": round(sum(float(region.get("graph_heat") or 0.0) for region in regions), 3),
+        "graph_heat": round(
+            sum(float(region.get("graph_heat") or 0.0) for region in regions), 3
+        ),
         "hottest_region": hottest_region,
         "top_regions": regions[:5],
         "top_cycles": cycles[:5],
@@ -660,7 +731,9 @@ def contested_graph_payload(conn: sqlite3.Connection, *, run_id: str, article_id
     }
 
 
-def summary_from_read_models(conn: sqlite3.Connection, *, run_id: str) -> dict[str, Any] | None:
+def summary_from_read_models(
+    conn: sqlite3.Connection, *, run_id: str
+) -> dict[str, Any] | None:
     run_row = conn.execute(
         """
         SELECT run_id, pack_id, started_at, completed_at, status, highest_severity,

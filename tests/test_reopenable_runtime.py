@@ -42,15 +42,17 @@ def test_h3_h6_h9_accumulate_on_same_candidate_fibre() -> None:
         SignedEvidence(key, "external", EvidenceFamily.EXTERNAL_AUTHORITY, 5),
     )
 
-    assert progressive_signed_residual(
-        evidence, EvidenceHorizon.H3_LOCAL_STRUCTURAL
-    ) == 7
-    assert progressive_signed_residual(
-        evidence, EvidenceHorizon.H6_DISCOURSE_TEMPORAL
-    ) == 5
-    assert progressive_signed_residual(
-        evidence, EvidenceHorizon.H9_EXTERNAL_AUTHORITY
-    ) == 10
+    assert (
+        progressive_signed_residual(evidence, EvidenceHorizon.H3_LOCAL_STRUCTURAL) == 7
+    )
+    assert (
+        progressive_signed_residual(evidence, EvidenceHorizon.H6_DISCOURSE_TEMPORAL)
+        == 5
+    )
+    assert (
+        progressive_signed_residual(evidence, EvidenceHorizon.H9_EXTERNAL_AUTHORITY)
+        == 10
+    )
 
     fibre = {key, candidate(11)}
     assert_same_candidate_fibre((fibre, set(fibre), frozenset(fibre)))
@@ -188,9 +190,7 @@ def test_parser_dominance_rejects_parser_slowdown() -> None:
             parser_before=stage(
                 workload="doc-1", name="spacy", elapsed=1000, work=1000
             ),
-            parser_after=stage(
-                workload="doc-1", name="spacy", elapsed=1100, work=1000
-            ),
+            parser_after=stage(workload="doc-1", name="spacy", elapsed=1100, work=1000),
             post_parser_after=stage(
                 workload="doc-1", name="post_parser_total", elapsed=10, work=10
             ),
@@ -203,9 +203,7 @@ def test_parser_dominance_requires_identical_workload() -> None:
             parser_before=stage(
                 workload="doc-1", name="spacy", elapsed=1000, work=1000
             ),
-            parser_after=stage(
-                workload="doc-2", name="spacy", elapsed=900, work=900
-            ),
+            parser_after=stage(workload="doc-2", name="spacy", elapsed=900, work=900),
             post_parser_after=stage(
                 workload="doc-2", name="post_parser_total", elapsed=90, work=80
             ),

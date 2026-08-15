@@ -3,7 +3,9 @@ from __future__ import annotations
 from typing import Any, Mapping, Sequence
 
 
-SL_TO_SB_ISO_RUN_OBSERVER_CONTRACT_VERSION = "sl.sl_to_sb_iso_run_observer_contract.v0_1"
+SL_TO_SB_ISO_RUN_OBSERVER_CONTRACT_VERSION = (
+    "sl.sl_to_sb_iso_run_observer_contract.v0_1"
+)
 SL_TO_SB_ISO_RUN_OBSERVER_KIND = "sensiblaw_iso_run_v1"
 
 
@@ -20,7 +22,9 @@ def _nonempty_strings(values: Sequence[Any]) -> list[str]:
     return seen
 
 
-def _bounded_casey_refs(values: Sequence[Mapping[str, Any]] | None) -> list[dict[str, str]]:
+def _bounded_casey_refs(
+    values: Sequence[Mapping[str, Any]] | None,
+) -> list[dict[str, str]]:
     allowed = (
         "workspace_id",
         "operation_id",
@@ -34,19 +38,25 @@ def _bounded_casey_refs(values: Sequence[Mapping[str, Any]] | None) -> list[dict
     for item in values or []:
         if not isinstance(item, Mapping):
             continue
-        normalized = {field: _text(item.get(field)) for field in allowed if _text(item.get(field))}
+        normalized = {
+            field: _text(item.get(field)) for field in allowed if _text(item.get(field))
+        }
         if normalized:
             refs.append(normalized)
     return refs
 
 
-def _bounded_output_refs(values: Sequence[Mapping[str, Any]] | None) -> list[dict[str, str]]:
+def _bounded_output_refs(
+    values: Sequence[Mapping[str, Any]] | None,
+) -> list[dict[str, str]]:
     allowed = ("artifact_id", "artifact_role", "ref_kind", "ref")
     refs: list[dict[str, str]] = []
     for item in values or []:
         if not isinstance(item, Mapping):
             continue
-        normalized = {field: _text(item.get(field)) for field in allowed if _text(item.get(field))}
+        normalized = {
+            field: _text(item.get(field)) for field in allowed if _text(item.get(field))
+        }
         if normalized:
             refs.append(normalized)
     return refs
@@ -69,7 +79,9 @@ def build_sl_to_sb_iso_run_observer_payload(
     supplied_state_date = _text(state_date)
     supplied_sb_state_id = _text(sb_state_id)
     if not supplied_state_date and not supplied_sb_state_id:
-        raise ValueError("SL->SB ISO run observer payload requires state_date or sb_state_id")
+        raise ValueError(
+            "SL->SB ISO run observer payload requires state_date or sb_state_id"
+        )
 
     context_envelope_ref = (
         suite_normalized_artifact.get("context_envelope_ref")
@@ -81,11 +93,21 @@ def build_sl_to_sb_iso_run_observer_payload(
         if isinstance(suite_normalized_artifact.get("provenance_anchor"), Mapping)
         else {}
     )
-    lineage = suite_normalized_artifact.get("lineage") if isinstance(suite_normalized_artifact.get("lineage"), Mapping) else {}
-    text_ref = suite_normalized_artifact.get("text_ref") if isinstance(suite_normalized_artifact.get("text_ref"), Mapping) else {}
+    lineage = (
+        suite_normalized_artifact.get("lineage")
+        if isinstance(suite_normalized_artifact.get("lineage"), Mapping)
+        else {}
+    )
+    text_ref = (
+        suite_normalized_artifact.get("text_ref")
+        if isinstance(suite_normalized_artifact.get("text_ref"), Mapping)
+        else {}
+    )
 
     run_id = _text(context_envelope_ref.get("envelope_id")) or artifact_id
-    source_artifact_id = _text(provenance_anchor.get("source_artifact_id")) or artifact_id
+    source_artifact_id = (
+        _text(provenance_anchor.get("source_artifact_id")) or artifact_id
+    )
     follow_obligation = (
         dict(suite_normalized_artifact.get("follow_obligation"))
         if isinstance(suite_normalized_artifact.get("follow_obligation"), Mapping)
@@ -96,7 +118,9 @@ def build_sl_to_sb_iso_run_observer_payload(
         if isinstance(suite_normalized_artifact.get("legal_follow_pressure"), Mapping)
         else None
     )
-    unresolved_pressure_status = _text(suite_normalized_artifact.get("unresolved_pressure_status")) or "none"
+    unresolved_pressure_status = (
+        _text(suite_normalized_artifact.get("unresolved_pressure_status")) or "none"
+    )
     lineage_refs = _nonempty_strings(lineage.get("upstream_artifact_ids") or [])
     source_artifact_refs = _nonempty_strings([source_artifact_id, artifact_id])
 
@@ -117,7 +141,8 @@ def build_sl_to_sb_iso_run_observer_payload(
         "output_refs": [
             {
                 "artifact_id": artifact_id,
-                "artifact_role": _text(suite_normalized_artifact.get("artifact_role")) or "derived_product",
+                "artifact_role": _text(suite_normalized_artifact.get("artifact_role"))
+                or "derived_product",
                 "ref_kind": "suite_normalized_artifact",
                 "ref": "semantic_context.suite_normalized_artifact",
             },

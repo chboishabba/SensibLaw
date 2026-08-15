@@ -69,9 +69,7 @@ _PHASE_DEPENDENCIES: Mapping[TranchePhase, tuple[TranchePhase, ...]] = {
     TranchePhase.LEGAL_ADJUNCT_PNF_COMPILATION: (
         TranchePhase.LEGAL_ADJUNCT_ACQUISITION,
     ),
-    TranchePhase.LEGAL_IR_PROJECTION: (
-        TranchePhase.LEGAL_ADJUNCT_PNF_COMPILATION,
-    ),
+    TranchePhase.LEGAL_IR_PROJECTION: (TranchePhase.LEGAL_ADJUNCT_PNF_COMPILATION,),
     TranchePhase.TYPED_RECONCILIATION: (
         TranchePhase.EXTERNAL_ACQUISITION,
         TranchePhase.LEGAL_IR_PROJECTION,

@@ -44,7 +44,9 @@ def build_openrecall_capture_id(*, source_db_path: str, source_timestamp: int) -
     )
 
 
-def build_worldmonitor_capture_id(*, source_path: str, source_file: str, source_row_id: str) -> str:
+def build_worldmonitor_capture_id(
+    *, source_path: str, source_file: str, source_row_id: str
+) -> str:
     return build_hashed_source_id(
         prefix="worldmonitor",
         raw=f"{source_path}|{source_file}|{source_row_id}",

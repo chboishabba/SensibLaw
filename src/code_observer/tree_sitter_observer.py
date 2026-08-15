@@ -29,8 +29,18 @@ def observe_paths(
     bounded_absence_target: str | None = None,
 ) -> list[dict[str, Any]]:
     root = root.resolve()
-    include_globs = include_globs or ["**/*.py", "**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx"]
-    exclude_globs = exclude_globs or ["**/__pycache__/**", "**/node_modules/**", "**/.git/**"]
+    include_globs = include_globs or [
+        "**/*.py",
+        "**/*.js",
+        "**/*.jsx",
+        "**/*.ts",
+        "**/*.tsx",
+    ]
+    exclude_globs = exclude_globs or [
+        "**/__pycache__/**",
+        "**/node_modules/**",
+        "**/.git/**",
+    ]
     files = _scan_files(root, include_globs, exclude_globs)
     commit = _git_commit(root)
     repo = root.name
@@ -63,7 +73,9 @@ def observe_paths(
             projection_boundary=projection_boundary or [],
         )
         if bounded_absence_target:
-            observed_call_count += sum(1 for row in file_rows if row.get("callee") == bounded_absence_target)
+            observed_call_count += sum(
+                1 for row in file_rows if row.get("callee") == bounded_absence_target
+            )
         rows.extend(file_rows)
     if bounded_absence_target and observed_call_count == 0:
         rows.append(
@@ -81,7 +93,11 @@ def observe_paths(
                 "line_start": 0,
                 "line_end": 0,
                 "byte_range": [0, 0],
-                "scan_scope": {**scope, "observed_call_count": 0, "target_pattern": bounded_absence_target},
+                "scan_scope": {
+                    **scope,
+                    "observed_call_count": 0,
+                    "target_pattern": bounded_absence_target,
+                },
                 "pnf_candidates": [],
                 "provenance": [
                     {
@@ -99,7 +115,9 @@ def observe_paths(
     return rows
 
 
-def _scan_files(root: Path, include_globs: list[str], exclude_globs: list[str]) -> list[Path]:
+def _scan_files(
+    root: Path, include_globs: list[str], exclude_globs: list[str]
+) -> list[Path]:
     paths: list[Path] = []
     for path in root.rglob("*"):
         if not path.is_file():
@@ -139,10 +157,22 @@ def _extract_rows(
     for captures in _query_matches(language, node):
         declaration = _first_capture(captures, "symbol.declaration")
         if declaration is not None:
-            for name in _captured_names(captures, text) or _declaration_names(declaration, text):
+            for name in _captured_names(captures, text) or _declaration_names(
+                declaration, text
+            ):
                 _append_unique(
                     rows,
-                    _row(repo, commit, rel, language, "symbol_declared", declaration, text, scan_scope, symbol=name),
+                    _row(
+                        repo,
+                        commit,
+                        rel,
+                        language,
+                        "symbol_declared",
+                        declaration,
+                        text,
+                        scan_scope,
+                        symbol=name,
+                    ),
                 )
 
         observed_import = _first_capture(captures, "import.observed")
@@ -150,20 +180,47 @@ def _extract_rows(
             module = _compact_text(observed_import, text)
             _append_unique(
                 rows,
-                _row(repo, commit, rel, language, "import_observed", observed_import, text, scan_scope, module=module),
+                _row(
+                    repo,
+                    commit,
+                    rel,
+                    language,
+                    "import_observed",
+                    observed_import,
+                    text,
+                    scan_scope,
+                    module=module,
+                ),
             )
 
         observed_call = _first_capture(captures, "call.observed")
         if observed_call is not None:
             callee_node = _first_capture(captures, "call.callee")
-            callee = _compact_text(callee_node, text) if callee_node is not None else _call_name(observed_call, text)
+            callee = (
+                _compact_text(callee_node, text)
+                if callee_node is not None
+                else _call_name(observed_call, text)
+            )
             if callee:
                 obs = "call_observed"
                 if _is_file_read_callee(callee):
                     obs = "file_read_observed"
                 if _is_file_write_callee(callee):
                     obs = "file_write_observed"
-                _append_unique(rows, _row(repo, commit, rel, language, obs, observed_call, text, scan_scope, callee=callee))
+                _append_unique(
+                    rows,
+                    _row(
+                        repo,
+                        commit,
+                        rel,
+                        language,
+                        obs,
+                        observed_call,
+                        text,
+                        scan_scope,
+                        callee=callee,
+                    ),
+                )
                 if callee.endswith("add_argument"):
                     flag = _first_string_child(observed_call, text)
                     if flag and flag.startswith("--"):
@@ -184,7 +241,8 @@ def _extract_rows(
 
         assertion = _first_capture(captures, "test.assertion")
         if assertion is not None and (
-            assertion.type in ASSERTION_NODE_TYPES or _is_test_assertion_call(assertion, text)
+            assertion.type in ASSERTION_NODE_TYPES
+            or _is_test_assertion_call(assertion, text)
         ):
             _append_unique(
                 rows,
@@ -201,18 +259,32 @@ def _extract_rows(
                 ),
             )
 
-        schema_node = _first_capture(captures, "schema.field") or _first_capture(captures, "schema.literal")
+        schema_node = _first_capture(captures, "schema.field") or _first_capture(
+            captures, "schema.literal"
+        )
         if schema_node is not None:
             value = _schema_field_name(schema_node, text)
             if value:
                 _append_unique(
                     rows,
-                    _row(repo, commit, rel, language, "schema_field_observed", schema_node, text, scan_scope, symbol=value),
+                    _row(
+                        repo,
+                        commit,
+                        rel,
+                        language,
+                        "schema_field_observed",
+                        schema_node,
+                        text,
+                        scan_scope,
+                        symbol=value,
+                    ),
                 )
 
     for current in _walk(node):
         snippet = _compact_text(current, text)
-        if projection_boundary and any(pattern in snippet for pattern in projection_boundary):
+        if projection_boundary and any(
+            pattern in snippet for pattern in projection_boundary
+        ):
             _append_unique(
                 rows,
                 _row(
@@ -267,7 +339,11 @@ def _row(
             pnf_candidate(
                 predicate,
                 f"{language}.{observation_kind}:{value}",
-                {"file": (rel, "file_path"), role_name: (value, "symbol"), "line": (str(line_start), "line_number")},
+                {
+                    "file": (rel, "file_path"),
+                    role_name: (value, "symbol"),
+                    "line": (str(line_start), "line_number"),
+                },
                 provenance,
             )
         )
@@ -287,7 +363,16 @@ def _row(
         "byte_range": byte_range,
         "scan_scope": scan_scope,
         "pnf_candidates": rows,
-        "provenance": [{"kind": "source_span", "path": rel, "line_start": line_start, "line_end": line_end, "byte_range": byte_range, "commit": commit}],
+        "provenance": [
+            {
+                "kind": "source_span",
+                "path": rel,
+                "line_start": line_start,
+                "line_end": line_end,
+                "byte_range": byte_range,
+                "commit": commit,
+            }
+        ],
         "non_authoritative": True,
     }
 
@@ -300,7 +385,9 @@ def _walk(node: Any) -> Iterable[Any]:
 
 def _query_matches(language: str, node: Any) -> Iterable[dict[str, list[Any]]]:
     query_path = files("src.code_observer").joinpath("queries", f"{language}.scm")
-    query = Query(parser_for_language(language).language, query_path.read_text(encoding="utf-8"))
+    query = Query(
+        parser_for_language(language).language, query_path.read_text(encoding="utf-8")
+    )
     cursor = QueryCursor(query)
     for _, captures in cursor.matches(node):
         yield captures
@@ -312,7 +399,11 @@ def _first_capture(captures: dict[str, list[Any]], name: str) -> Any | None:
 
 
 def _captured_names(captures: dict[str, list[Any]], text: str) -> list[str]:
-    return [_compact_text(node, text) for node in captures.get("symbol.name", []) if _compact_text(node, text)]
+    return [
+        _compact_text(node, text)
+        for node in captures.get("symbol.name", [])
+        if _compact_text(node, text)
+    ]
 
 
 def _append_unique(rows: list[dict[str, Any]], row: dict[str, Any]) -> None:
@@ -343,7 +434,10 @@ def _node_name(node: Any) -> str | None:
     if child is not None and child.text:
         return child.text.decode("utf-8", errors="replace")
     for child in node.named_children:
-        if child.type in {"identifier", "property_identifier", "type_identifier"} and child.text:
+        if (
+            child.type in {"identifier", "property_identifier", "type_identifier"}
+            and child.text
+        ):
             return child.text.decode("utf-8", errors="replace")
     return None
 
@@ -372,7 +466,9 @@ def _declaration_names(node: Any, text: str) -> list[str]:
 
 
 def _call_name(node: Any, text: str) -> str | None:
-    fn = node.child_by_field_name("function") or (node.named_children[0] if node.named_children else None)
+    fn = node.child_by_field_name("function") or (
+        node.named_children[0] if node.named_children else None
+    )
     if fn is None:
         return None
     return _compact_text(fn, text)
@@ -380,12 +476,16 @@ def _call_name(node: Any, text: str) -> str | None:
 
 def _is_file_read_callee(callee: str) -> bool:
     normalized = callee.lower()
-    return normalized in READ_CALLEES or normalized.endswith((".open", ".read_text", ".read", ".readfile", ".readfilesync"))
+    return normalized in READ_CALLEES or normalized.endswith(
+        (".open", ".read_text", ".read", ".readfile", ".readfilesync")
+    )
 
 
 def _is_file_write_callee(callee: str) -> bool:
     normalized = callee.lower()
-    return normalized in WRITE_CALLEES or normalized.endswith((".write_text", ".write", ".writefile", ".writefilesync"))
+    return normalized in WRITE_CALLEES or normalized.endswith(
+        (".write_text", ".write", ".writefile", ".writefilesync")
+    )
 
 
 def _is_test_assertion_call(node: Any, text: str) -> bool:
@@ -394,7 +494,11 @@ def _is_test_assertion_call(node: Any, text: str) -> bool:
     callee = _call_name(node, text)
     if not callee:
         return False
-    return callee in {"expect", "assert"} or callee.startswith("assert.") or ".to" in callee
+    return (
+        callee in {"expect", "assert"}
+        or callee.startswith("assert.")
+        or ".to" in callee
+    )
 
 
 def _schema_field_name(node: Any, text: str) -> str | None:
@@ -417,12 +521,17 @@ def _first_string_child(node: Any, text: str) -> str | None:
 
 
 def _compact_text(node: Any, text: str) -> str:
-    return text[int(node.start_byte): int(node.end_byte)].replace("\n", " ").strip()
+    return text[int(node.start_byte) : int(node.end_byte)].replace("\n", " ").strip()
 
 
 def _git_commit(root: Path) -> str:
     try:
-        proc = subprocess.run(["git", "-C", str(root), "rev-parse", "--short", "HEAD"], check=True, text=True, capture_output=True)
+        proc = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "--short", "HEAD"],
+            check=True,
+            text=True,
+            capture_output=True,
+        )
         return proc.stdout.strip()
     except Exception:
         return "unknown"

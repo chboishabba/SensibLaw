@@ -11,15 +11,25 @@ from pathlib import Path
 def _summarize(receipts: list) -> dict:
     by_confidence = Counter(receipt.confidence for receipt in receipts)
     by_reason = Counter(reason for receipt in receipts for reason in receipt.reasons)
-    by_speaker = Counter(receipt.inferred_speaker for receipt in receipts if receipt.inferred_speaker)
-    abstain = Counter(receipt.abstain_reason for receipt in receipts if receipt.abstained and receipt.abstain_reason)
+    by_speaker = Counter(
+        receipt.inferred_speaker for receipt in receipts if receipt.inferred_speaker
+    )
+    abstain = Counter(
+        receipt.abstain_reason
+        for receipt in receipts
+        if receipt.abstained and receipt.abstain_reason
+    )
     return {
         "unit_count": len(receipts),
         "assigned_count": sum(1 for receipt in receipts if not receipt.abstained),
         "abstained_count": sum(1 for receipt in receipts if receipt.abstained),
         "confidence_counts": dict(sorted(by_confidence.items())),
-        "reason_counts": dict(sorted(by_reason.items(), key=lambda item: (-item[1], item[0]))),
-        "abstain_reason_counts": dict(sorted(abstain.items(), key=lambda item: (-item[1], item[0]))),
+        "reason_counts": dict(
+            sorted(by_reason.items(), key=lambda item: (-item[1], item[0]))
+        ),
+        "abstain_reason_counts": dict(
+            sorted(abstain.items(), key=lambda item: (-item[1], item[0]))
+        ),
         "top_inferred_speakers": [
             {"speaker": speaker, "count": count}
             for speaker, count in by_speaker.most_common(10)
@@ -28,14 +38,21 @@ def _summarize(receipts: list) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Report deterministic speaker-inference outcomes across transcript/chat/message corpora.")
+    parser = argparse.ArgumentParser(
+        description="Report deterministic speaker-inference outcomes across transcript/chat/message corpora."
+    )
     parser.add_argument("--chat-db")
     parser.add_argument("--messenger-db")
     parser.add_argument("--run-id")
     parser.add_argument("--context-file", action="append", default=[])
     parser.add_argument("--transcript-file", action="append", default=[])
     parser.add_argument("--shell-log", action="append", default=[])
-    parser.add_argument("--known-participants", action="append", default=[], help="source_id=name1,name2,...")
+    parser.add_argument(
+        "--known-participants",
+        action="append",
+        default=[],
+        help="source_id=name1,name2,...",
+    )
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
@@ -43,7 +60,11 @@ def main() -> None:
     sensiblaw_root = repo_root / "SensibLaw"
     if str(sensiblaw_root) not in sys.path:
         sys.path.insert(0, str(sensiblaw_root))
-    from src.reporting.structure_report import load_chat_units, load_file_units, load_messenger_units  # noqa: PLC0415
+    from src.reporting.structure_report import (
+        load_chat_units,
+        load_file_units,
+        load_messenger_units,
+    )  # noqa: PLC0415
     from src.text.speaker_inference import infer_speakers  # noqa: PLC0415
 
     units = []
@@ -65,9 +86,13 @@ def main() -> None:
         if "=" not in item:
             continue
         source_id, raw_names = item.split("=", 1)
-        known_participants_by_source[source_id] = [name.strip() for name in raw_names.split(",") if name.strip()]
+        known_participants_by_source[source_id] = [
+            name.strip() for name in raw_names.split(",") if name.strip()
+        ]
 
-    receipts = infer_speakers(units, known_participants_by_source=known_participants_by_source)
+    receipts = infer_speakers(
+        units, known_participants_by_source=known_participants_by_source
+    )
     grouped: dict[str, list] = defaultdict(list)
     for receipt in receipts:
         grouped[receipt.source_id].append(receipt)

@@ -59,7 +59,9 @@ def test_hash_transform_applied_with_annotations():
 
 def test_public_domain_flag_records_annotation_without_consent():
     pages = make_pages("General text")
-    document = build_document(pages, Path("dummy.pdf"), cultural_flags=["PUBLIC_DOMAIN"])
+    document = build_document(
+        pages, Path("dummy.pdf"), cultural_flags=["PUBLIC_DOMAIN"]
+    )
 
     assert document.body == "Section 1\nGeneral text"
     assert document.metadata.cultural_consent_required is False

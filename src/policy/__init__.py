@@ -192,7 +192,10 @@ def install_execution_strategies() -> None:
 # PNF imports generic policy carriers. Installing strategies while that
 # package is still importing re-enters its binding modules; PNF calls the
 # explicit installer once its neutral exports are complete.
-if "src.pnf.binding_candidate_sets" not in sys.modules:
+if (
+    "src.pnf.binding_candidate_sets" not in sys.modules
+    and "src.runtime.durable_work_items" not in sys.modules
+):
     install_execution_strategies()
 
 

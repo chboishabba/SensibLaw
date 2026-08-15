@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter
-from typing import Iterable, List, Sequence, Tuple
+from typing import List, Sequence
 
 _TOKEN_RE = re.compile(r"\b\w+\b", re.UNICODE)
 

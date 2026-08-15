@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Callable, Iterable, List, Optional, Set, Tuple
+from typing import Callable, List, Optional, Set, Tuple
 
 import json
 from pathlib import Path
@@ -62,7 +62,9 @@ def resolve_citation(
         return None
 
     if prefer_jade:
-        return FetchPlan(source="jade", url=jade_content_ext_url(ref.key), citation=ref.key)
+        return FetchPlan(
+            source="jade", url=jade_content_ext_url(ref.key), citation=ref.key
+        )
 
     return FetchPlan(
         source="austlii",
@@ -85,7 +87,11 @@ def resolve_citation_candidates(
 
     candidates: List[FetchPlan] = []
     if prefer_jade:
-        candidates.append(FetchPlan(source="jade", url=jade_content_ext_url(ref.key), citation=ref.key))
+        candidates.append(
+            FetchPlan(
+                source="jade", url=jade_content_ext_url(ref.key), citation=ref.key
+            )
+        )
     candidates.append(
         FetchPlan(
             source="austlii",
@@ -118,7 +124,9 @@ def resolve_austlii_search_plan(
         return None
 
     adapter = search_adapter or AustLiiSearchAdapter()
-    html = adapter.search(SinoQuery(meta=vc, query=ref.raw_text, results=results, method=method))
+    html = adapter.search(
+        SinoQuery(meta=vc, query=ref.raw_text, results=results, method=method)
+    )
     hits = parse_sino_search_html(html)
     for hit in hits:
         if _hit_matches_citation(ref, hit):
@@ -175,7 +183,11 @@ def follow_citations_bounded(
                 austlii_state=austlii_state,
             )
             if not candidates:
-                reason = "already_ingested" if ref.key and store_has(ref.key) else "unresolved"
+                reason = (
+                    "already_ingested"
+                    if ref.key and store_has(ref.key)
+                    else "unresolved"
+                )
                 if unresolved is not None or unresolved_path:
                     unresolved_list.append(
                         {
@@ -209,7 +221,9 @@ def follow_citations_bounded(
                                 "offset": ref.offset,
                                 "reason": "fetch_failed",
                                 "citing_doc": parent_id,
-                                "attempted_sources": [plan.source for plan in candidates],
+                                "attempted_sources": [
+                                    plan.source for plan in candidates
+                                ],
                                 "error": str(last_error) if last_error else None,
                             }
                         )
@@ -225,7 +239,10 @@ def follow_citations_bounded(
                                 "offset": ref.offset,
                                 "reason": "search_fetch_failed",
                                 "citing_doc": parent_id,
-                                "attempted_sources": [plan.source for plan in candidates] + [search_plan.source],
+                                "attempted_sources": [
+                                    plan.source for plan in candidates
+                                ]
+                                + [search_plan.source],
                                 "error": str(exc),
                             }
                         )

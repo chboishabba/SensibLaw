@@ -246,7 +246,9 @@ def persist_streaming_semantic_artifacts(
             str(ledger["ledger_ref"]),
             int(materialized.get("proposal_count", 0)),
             _json([row.get("factor_ref") for row in materialized.get("factors") or ()]),
-            _json([row.get("residual_ref") for row in materialized.get("residuals") or ()]),
+            _json(
+                [row.get("residual_ref") for row in materialized.get("residuals") or ()]
+            ),
         ),
     )
 

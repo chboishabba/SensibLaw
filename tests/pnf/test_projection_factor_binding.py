@@ -52,9 +52,7 @@ def test_reduced_summary_projects_through_persisted_source_factor() -> None:
     assert row["metadata"]["fibre_summary_ref"] == "fibre-summary:1"
     assert row["metadata"]["semantic_coordinate_ref"] == "coordinate:1"
     assert row["metadata"]["role_bindings"]["jurisdiction"] == "AU-QLD"
-    assert row["metadata"]["projection_factor_binding"] == (
-        "persisted_source_factor"
-    )
+    assert row["metadata"]["projection_factor_binding"] == ("persisted_source_factor")
     assert "span:1" in row["metadata"]["provenance_refs"]
 
 

@@ -30,7 +30,9 @@ def _latest_bodies(store: VersionedStore) -> dict[int, str]:
 
 
 def _token_counts(store: VersionedStore) -> dict[int, int]:
-    return {doc_id: count_tokens(body) for doc_id, body in _latest_bodies(store).items()}
+    return {
+        doc_id: count_tokens(body) for doc_id, body in _latest_bodies(store).items()
+    }
 
 
 def _extract_pdf_text(path: Path, *, limit: int = 6000) -> str:
@@ -159,7 +161,9 @@ def test_following_citation_does_not_mutate_existing_tokens(tmp_path: Path) -> N
         doc_id_a = store.generate_id()
         store.add_revision(doc_id_a, Document(meta_a, body_a), meta_a.date)
 
-        hash_before = hashlib.sha256(_latest_bodies(store)[doc_id_a].encode("utf-8")).hexdigest()
+        hash_before = hashlib.sha256(
+            _latest_bodies(store)[doc_id_a].encode("utf-8")
+        ).hexdigest()
 
         # Follow citation → ingest referenced authority.
         meta_b = DocumentMetadata(
@@ -171,7 +175,9 @@ def test_following_citation_does_not_mutate_existing_tokens(tmp_path: Path) -> N
         body_b = "Followed authority full text."
         store.add_revision(store.generate_id(), Document(meta_b, body_b), meta_b.date)
 
-        hash_after = hashlib.sha256(_latest_bodies(store)[doc_id_a].encode("utf-8")).hexdigest()
+        hash_after = hashlib.sha256(
+            _latest_bodies(store)[doc_id_a].encode("utf-8")
+        ).hexdigest()
     finally:
         store.close()
 

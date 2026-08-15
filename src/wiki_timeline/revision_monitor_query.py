@@ -43,13 +43,17 @@ def manifest_pack_rows(repo_root: Path) -> list[dict[str, Any]]:
                 "scope": str(payload.get("scope") or ""),
                 "graph_enabled": bool(payload.get("graph_enabled")),
                 "manifest_path": str(manifest_path),
-                "updated_at": datetime.fromtimestamp(manifest_path.stat().st_mtime, UTC).isoformat(),
+                "updated_at": datetime.fromtimestamp(
+                    manifest_path.stat().st_mtime, UTC
+                ).isoformat(),
             }
         )
     return rows
 
 
-def normalize_pack_rows(db_rows: list[dict[str, Any]], manifest_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def normalize_pack_rows(
+    db_rows: list[dict[str, Any]], manifest_rows: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     merged: dict[str, dict[str, Any]] = {}
     for row in db_rows:
         merged[row["pack_id"]] = dict(row)
@@ -73,7 +77,13 @@ def normalize_pack_rows(db_rows: list[dict[str, Any]], manifest_rows: list[dict[
     return out
 
 
-def build_query_payload(*, db_path: Path, pack_id: str | None = None, run_id: str | None = None, article_id: str | None = None) -> dict[str, Any]:
+def build_query_payload(
+    *,
+    db_path: Path,
+    pack_id: str | None = None,
+    run_id: str | None = None,
+    article_id: str | None = None,
+) -> dict[str, Any]:
     if not db_path.exists():
         raise FileNotFoundError(f"DB not found: {db_path}")
 
@@ -81,7 +91,12 @@ def build_query_payload(*, db_path: Path, pack_id: str | None = None, run_id: st
     con = sqlite3.connect(f"file:{db_path}?mode=ro&immutable=1", uri=True)
     con.row_factory = sqlite3.Row
     try:
-        tables = {row["name"] for row in con.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall()}
+        tables = {
+            row["name"]
+            for row in con.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            ).fetchall()
+        }
         db_packs = [
             {
                 "pack_id": row["pack_id"],
@@ -133,7 +148,10 @@ def build_query_payload(*, db_path: Path, pack_id: str | None = None, run_id: st
         summary = None
         summary_source = "none"
         if selected_run:
-            if "wiki_revision_monitor_run_summaries" in tables and "wiki_revision_monitor_changed_articles" in tables:
+            if (
+                "wiki_revision_monitor_run_summaries" in tables
+                and "wiki_revision_monitor_changed_articles" in tables
+            ):
                 summary = summary_from_read_models(con, run_id=selected_run)
                 if summary is not None:
                     summary_source = "sqlite_read_model"
@@ -152,17 +170,35 @@ def build_query_payload(*, db_path: Path, pack_id: str | None = None, run_id: st
 
         graph_payload = None
         selected_graph_source = "none"
-        if selected_run and selected_article and "wiki_revision_monitor_contested_graphs" in tables:
-            graph_payload = contested_graph_payload(con, run_id=selected_run, article_id=selected_article)
+        if (
+            selected_run
+            and selected_article
+            and "wiki_revision_monitor_contested_graphs" in tables
+        ):
+            graph_payload = contested_graph_payload(
+                con, run_id=selected_run, article_id=selected_article
+            )
             if graph_payload is not None:
                 selected_graph_source = "sqlite_read_model"
 
         selected_issue_packets = []
-        if selected_run and selected_article and "wiki_revision_monitor_issue_packets" in tables:
-            selected_issue_packets = issue_packet_rows(con, run_id=selected_run, article_id=selected_article)
+        if (
+            selected_run
+            and selected_article
+            and "wiki_revision_monitor_issue_packets" in tables
+        ):
+            selected_issue_packets = issue_packet_rows(
+                con, run_id=selected_run, article_id=selected_article
+            )
         selected_pairs = []
-        if selected_run and selected_article and "wiki_revision_monitor_selected_pairs" in tables:
-            selected_pairs = selected_pair_rows(con, run_id=selected_run, article_id=selected_article)
+        if (
+            selected_run
+            and selected_article
+            and "wiki_revision_monitor_selected_pairs" in tables
+        ):
+            selected_pairs = selected_pair_rows(
+                con, run_id=selected_run, article_id=selected_article
+            )
 
         return {
             "db_path": str(db_path),

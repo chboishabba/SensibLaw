@@ -123,7 +123,9 @@ def test_object_type_claim_with_context_and_rule_materializes_witness_status() -
     assert claim["promotion_state"]["promoted"] is False
 
 
-def test_different_positive_object_types_do_not_contradict_without_exclusion_witness() -> None:
+def test_different_positive_object_types_do_not_contradict_without_exclusion_witness() -> (
+    None
+):
     one_morphism = normalize_object_type_claim(subject="6", claimed_type="1-morphism")
     dolphin = normalize_object_type_claim(subject="6", claimed_type="dolphin")
 
@@ -156,7 +158,9 @@ def test_wikidata_claim_row_preserves_claim_bundle_and_provenance() -> None:
         property="P31",
         value="Q5",
         qualifiers={"P580": "1952-03-11"},
-        references=[{"stated_in": "Q5375741", "reference_url": "https://example.test/ref"}],
+        references=[
+            {"stated_in": "Q5375741", "reference_url": "https://example.test/ref"}
+        ],
         rank="normal",
     )
 
@@ -174,7 +178,9 @@ def test_wikidata_claim_row_preserves_claim_bundle_and_provenance() -> None:
     assert row["live_edit_authority_is_false"] is True
 
 
-def test_wikidata_deprecated_rank_is_review_metadata_not_contradiction_or_promotion() -> None:
+def test_wikidata_deprecated_rank_is_review_metadata_not_contradiction_or_promotion() -> (
+    None
+):
     row = normalize_wikidata_claim_row(
         subject="Q42",
         property="P31",

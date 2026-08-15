@@ -32,7 +32,9 @@ def _load_ontology(path: Path) -> Dict[str, List[str]]:
         if not isinstance(tag, str):
             continue
         if isinstance(keywords, list):
-            entries = [kw.strip() for kw in keywords if isinstance(kw, str) and kw.strip()]
+            entries = [
+                kw.strip() for kw in keywords if isinstance(kw, str) and kw.strip()
+            ]
         else:
             entries = []
         if entries:
@@ -83,8 +85,7 @@ def tag_provision(provision: Provision) -> Dict[str, List[str]]:
                 if not (atom.role == "principle" and atom.type == "ontology")
             ]
             provision.atoms.extend(
-                Atom(type="ontology", role="principle", text=tag)
-                for tag in matched
+                Atom(type="ontology", role="principle", text=tag) for tag in matched
             )
         elif name == "cco":
             provision.customs = matched

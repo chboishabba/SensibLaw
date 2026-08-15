@@ -55,7 +55,10 @@ def test_split_affidavit_text_decomposes_semicolon_clause() -> None:
         "In mid-November 2024, there was an incident where I was waiting for my support worker to arrive; as I came down the side of the house, I could hear Johl was on the phone."
     )
 
-    assert [row["proposition_id"] for row in propositions] == ["aff-prop:p1-s1", "aff-prop:p1-s2"]
+    assert [row["proposition_id"] for row in propositions] == [
+        "aff-prop:p1-s1",
+        "aff-prop:p1-s2",
+    ]
     assert propositions[0]["tokens"]
     assert propositions[1]["tokens"]
 

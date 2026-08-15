@@ -123,7 +123,8 @@ def _require_numeric_pnf_capabilities(capabilities: Mapping[str, bool]) -> None:
 def _project_numeric_heads(
     raw_tokens: tuple[_RawToken, ...],
     token_rows_by_ref: Mapping[str, tuple[int, int, int, int]],
-    token_rows_by_span: Mapping[tuple[int, int], tuple[int, int, int, int]] | None = None,
+    token_rows_by_span: Mapping[tuple[int, int], tuple[int, int, int, int]]
+    | None = None,
 ) -> tuple[tuple[int, int, int, int], ...]:
     """Resolve dependency heads without inventing root self-loops or crossing sentences."""
 
@@ -134,7 +135,12 @@ def _project_numeric_heads(
         if previous != token_id:
             raise NumericHeadProjectionError(f"duplicate committed token span {span!r}")
     if token_rows_by_span is not None:
-        for span, (token_id, sentence_id, _start_char, _end_char) in token_rows_by_span.items():
+        for span, (
+            token_id,
+            sentence_id,
+            _start_char,
+            _end_char,
+        ) in token_rows_by_span.items():
             token_id_by_sentence_span.setdefault((sentence_id, span), token_id)
 
     updates: list[tuple[int, int, int, int]] = []
@@ -158,7 +164,9 @@ def _project_numeric_heads(
             head_token_id = token_id
             head_start_char, head_end_char = start_char, end_char
         else:
-            head_token_id = token_id_by_sentence_span.get((sentence_id, declared_head_span))
+            head_token_id = token_id_by_sentence_span.get(
+                (sentence_id, declared_head_span)
+            )
             if head_token_id is None:
                 head_token_id = token_id
                 head_start_char, head_end_char = start_char, end_char

@@ -47,7 +47,9 @@ class ExternalLookupDemand:
 
     def __post_init__(self) -> None:
         if not self.demand_ref or not self.subject_ref or not self.surface.strip():
-            raise ValueError("external lookup demand requires refs and non-empty surface")
+            raise ValueError(
+                "external lookup demand requires refs and non-empty surface"
+            )
         if self.demand_kind not in {"entity_identity", "lexical_sense"}:
             raise ValueError("unsupported external lookup demand kind")
 
@@ -61,7 +63,11 @@ class ExternalLookupDemand:
                 "surface": normalize_lookup_surface(self.surface),
                 "local_type_refs": sorted(set(self.local_type_refs)),
                 "context_terms": sorted(
-                    {normalize_lookup_surface(term) for term in self.context_terms if term}
+                    {
+                        normalize_lookup_surface(term)
+                        for term in self.context_terms
+                        if term
+                    }
                 ),
             }
         )
@@ -123,7 +129,9 @@ class ExternalCandidateAssessment:
     @property
     def combined_score(self) -> float:
         return round(
-            0.55 * self.surface_score + 0.30 * self.type_score + 0.15 * self.context_score,
+            0.55 * self.surface_score
+            + 0.30 * self.type_score
+            + 0.15 * self.context_score,
             6,
         )
 
@@ -287,14 +295,10 @@ def _context_score(demand: ExternalLookupDemand, candidate: ExternalCandidate) -
     if not demand.context_terms:
         return 0.5
     text = normalize_lookup_surface(
-        " ".join(
-            [candidate.label, candidate.description or "", *candidate.aliases]
-        )
+        " ".join([candidate.label, candidate.description or "", *candidate.aliases])
     )
     matched = sum(
-        1
-        for term in demand.context_terms
-        if normalize_lookup_surface(term) in text
+        1 for term in demand.context_terms if normalize_lookup_surface(term) in text
     )
     return round(matched / len(demand.context_terms), 6)
 
@@ -319,7 +323,11 @@ def assess_candidates(
             reasons.append("local_type_mismatch")
         elif type_score == 0.5:
             reasons.append("type_evidence_incomplete")
-        state = "compatible_candidate" if surface > 0 and type_score > 0 else "held_incompatible"
+        state = (
+            "compatible_candidate"
+            if surface > 0 and type_score > 0
+            else "held_incompatible"
+        )
         rows.append(
             ExternalCandidateAssessment(
                 candidate_ref=candidate.candidate_ref,
@@ -330,9 +338,7 @@ def assess_candidates(
                 reasons=tuple(reasons),
             )
         )
-    return tuple(
-        sorted(rows, key=lambda row: (-row.combined_score, row.candidate_ref))
-    )
+    return tuple(sorted(rows, key=lambda row: (-row.combined_score, row.candidate_ref)))
 
 
 def build_external_candidate_set(
@@ -361,7 +367,9 @@ def build_external_candidate_set(
         else "lexical_sense_unresolved"
     ]
     residuals.append(
-        "external_candidates_available" if compatible_count else "external_candidate_absent"
+        "external_candidates_available"
+        if compatible_count
+        else "external_candidate_absent"
     )
     if compatible_count > 1:
         residuals.append("external_candidate_ambiguity")
@@ -381,8 +389,12 @@ def build_external_candidate_set(
         lookup_absence=1.0,
         candidate_ambiguity=0.0,
         local_type_mismatch=0.0,
-        external_identity_unresolved=(1.0 if demand.demand_kind == "entity_identity" else 0.0),
-        lexical_sense_unresolved=(1.0 if demand.demand_kind == "lexical_sense" else 0.0),
+        external_identity_unresolved=(
+            1.0 if demand.demand_kind == "entity_identity" else 0.0
+        ),
+        lexical_sense_unresolved=(
+            1.0 if demand.demand_kind == "lexical_sense" else 0.0
+        ),
     )
     after = PressureVector(
         lookup_absence=(0.0 if compatible_count else 1.0),

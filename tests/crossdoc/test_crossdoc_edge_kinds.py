@@ -1,5 +1,4 @@
 from datetime import date
-from pathlib import Path
 
 import pytest
 
@@ -13,7 +12,9 @@ pytestmark = pytest.mark.redflag
 
 
 def _doc(body: str, refs: list[RuleReference], source_id: str) -> Document:
-    meta = DocumentMetadata(jurisdiction="NSW", citation="CIT", date=date(2024, 1, 1), provenance=source_id)
+    meta = DocumentMetadata(
+        jurisdiction="NSW", citation="CIT", date=date(2024, 1, 1), provenance=source_id
+    )
     prov = Provision(text=body, rule_atoms=[RuleAtom(references=refs)])
     return Document(metadata=meta, body=body, provisions=[prov])
 
@@ -48,12 +49,18 @@ def _doc(body: str, refs: list[RuleReference], source_id: str) -> Document:
     ],
 )
 def test_edge_kinds_positive(kind, body, ref_work, ref_section):
-    ref_src = RuleReference(work=ref_work, section=ref_section, provenance={"clause_id": "doc-new-clause-0"})
-    ref_tgt = RuleReference(work=ref_work, section=ref_section, provenance={"clause_id": "doc-old-clause-0"})
+    ref_src = RuleReference(
+        work=ref_work, section=ref_section, provenance={"clause_id": "doc-new-clause-0"}
+    )
+    ref_tgt = RuleReference(
+        work=ref_work, section=ref_section, provenance={"clause_id": "doc-old-clause-0"}
+    )
 
     documents = {
         "doc-new": _doc(body, [ref_src], source_id="doc-new"),
-        "doc-old": _doc("Section 1 must apply to all operators.", [ref_tgt], source_id="doc-old"),
+        "doc-old": _doc(
+            "Section 1 must apply to all operators.", [ref_tgt], source_id="doc-old"
+        ),
     }
     payload = build_crossdoc_topology(documents)
 
@@ -80,8 +87,12 @@ def test_edge_requires_reference_identity(body):
 
 
 def test_topology_does_not_mutate_obligation_identities():
-    ref = RuleReference(work="Old Act", section="1", provenance={"clause_id": "doc-new-clause-0"})
-    doc = _doc("The minister must repeal section 1 of the Old Act.", [ref], source_id="doc-new")
+    ref = RuleReference(
+        work="Old Act", section="1", provenance={"clause_id": "doc-new-clause-0"}
+    )
+    doc = _doc(
+        "The minister must repeal section 1 of the Old Act.", [ref], source_id="doc-new"
+    )
 
     obligations_before = extract_obligations_from_document(doc)
     ids_before = {oid.identity_hash for oid in compute_identities(obligations_before)}

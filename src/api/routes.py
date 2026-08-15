@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple
 try:  # pragma: no cover - FastAPI is optional for CLI tests
     from fastapi import APIRouter, HTTPException
 except Exception:  # pragma: no cover
+
     class HTTPException(Exception):
         def __init__(self, status_code: int, detail: str) -> None:
             self.status_code = status_code
@@ -20,21 +21,26 @@ except Exception:  # pragma: no cover
         def get(self, *args, **kwargs):
             def decorator(func):
                 return func
+
             return decorator
 
         def post(self, *args, **kwargs):
             def decorator(func):
                 return func
+
             return decorator
+
 
 try:  # pragma: no cover
     from pydantic import BaseModel, Field
 except Exception:  # pragma: no cover
+
     class BaseModel:  # minimal stub when pydantic is absent
         pass
 
     def Field(*args, **kwargs):  # type: ignore[misc]
         return None
+
 
 if __package__ and __package__.startswith("src."):
     from src.graph.models import EdgeType, LegalGraph, GraphEdge, GraphNode, NodeType
@@ -309,7 +315,9 @@ def _court_family_for(court: Optional[str]) -> Optional[str]:
     return _COURT_FAMILY.get(key, None)
 
 
-def _jurisdiction_fit(source_court: Optional[str], target_court: Optional[str]) -> float:
+def _jurisdiction_fit(
+    source_court: Optional[str], target_court: Optional[str]
+) -> float:
     source_family = _court_family_for(source_court)
     target_family = _court_family_for(target_court)
     if source_family is None or target_family is None:
@@ -380,7 +388,9 @@ def fetch_case_treatment(case_id: str) -> Dict[str, Any]:
     authorities: List[Dict[str, Any]] = []
     for edge in _graph.find_edges(target=case_id):
         relation = edge.metadata.get("relation")
-        court = _normalise_court(edge.metadata.get("court") or edge.metadata.get("jurisdiction"))
+        court = _normalise_court(
+            edge.metadata.get("court") or edge.metadata.get("jurisdiction")
+        )
         if relation is None or court is None:
             continue
 
@@ -391,7 +401,8 @@ def fetch_case_treatment(case_id: str) -> Dict[str, Any]:
         court_rank = _court_rank(court)
         jurisdiction_fit = _jurisdiction_fit(court, target_court)
         posture_fit = _posture_fit(
-            edge.metadata.get("posture") or (source_node.metadata.get("posture") if source_node else None),
+            edge.metadata.get("posture")
+            or (source_node.metadata.get("posture") if source_node else None),
             target_posture,
         )
 
@@ -565,4 +576,3 @@ __all__ = [
     "POSTURE_MATCH_BOOST",
     "POSTURE_MISMATCH_FACTOR",
 ]
-

@@ -88,9 +88,7 @@ def stage_typed_delta(
         return "stale"
 
     semantic_digest = bytes.fromhex(_semantic_output_sha256(delta))
-    receipt_digest = bytes.fromhex(
-        canonical_sha256(delta.receipt.identity_payload())
-    )
+    receipt_digest = bytes.fromhex(canonical_sha256(delta.receipt.identity_payload()))
     cursor.execute(
         """
         INSERT INTO execution.semantic_immutable_delta

@@ -90,7 +90,9 @@ class NormalizedOntologyStore:
         self.connection.commit()
 
     # ------------------------------------------------------------------
-    def upsert_legal_source(self, document: Document, *, category: Optional[str] = None) -> str:
+    def upsert_legal_source(
+        self, document: Document, *, category: Optional[str] = None
+    ) -> str:
         identifier = document.metadata.canonical_id or document.metadata.citation
         cursor = self.connection.cursor()
         cursor.execute(
@@ -98,13 +100,20 @@ class NormalizedOntologyStore:
             INSERT OR REPLACE INTO legal_sources (id, citation, jurisdiction, category)
             VALUES (?, ?, ?, ?)
             """,
-            (identifier, document.metadata.citation, document.metadata.jurisdiction, category),
+            (
+                identifier,
+                document.metadata.citation,
+                document.metadata.jurisdiction,
+                category,
+            ),
         )
         self.connection.commit()
         return identifier
 
     # ------------------------------------------------------------------
-    def upsert_actor_class(self, actor_class: str, *, description: Optional[str] = None) -> str:
+    def upsert_actor_class(
+        self, actor_class: str, *, description: Optional[str] = None
+    ) -> str:
         actor_class = actor_class.strip() or DEFAULT_ACTOR_CLASS_MAP["unknown"]
         cursor = self.connection.cursor()
         cursor.execute(
@@ -143,7 +152,9 @@ class NormalizedOntologyStore:
         return rule_id
 
     # ------------------------------------------------------------------
-    def _insert_rule_actor_classes(self, rule_id: str, actor_classes: Iterable[str]) -> None:
+    def _insert_rule_actor_classes(
+        self, rule_id: str, actor_classes: Iterable[str]
+    ) -> None:
         cursor = self.connection.cursor()
         rows = [(rule_id, actor) for actor in actor_classes]
         cursor.executemany(
@@ -168,9 +179,15 @@ class NormalizedOntologyStore:
         legal_source_id = self.upsert_legal_source(document, category=category)
         results: List[AnchorResult] = []
         for atom in rule_atoms:
-            party, role, who_text = derive_party_metadata(atom.actor or atom.who or atom.who_text or "")
-            override = actor_class_overrides.get(party) or actor_class_overrides.get(role or "")
-            actor_class = override or DEFAULT_ACTOR_CLASS_MAP.get(party, DEFAULT_ACTOR_CLASS_MAP["unknown"])
+            party, role, who_text = derive_party_metadata(
+                atom.actor or atom.who or atom.who_text or ""
+            )
+            override = actor_class_overrides.get(party) or actor_class_overrides.get(
+                role or ""
+            )
+            actor_class = override or DEFAULT_ACTOR_CLASS_MAP.get(
+                party, DEFAULT_ACTOR_CLASS_MAP["unknown"]
+            )
             rule_id = self._insert_rule_atom(atom, legal_source_id=legal_source_id)
             actor_classes = [actor_class]
             if role and role not in actor_classes:

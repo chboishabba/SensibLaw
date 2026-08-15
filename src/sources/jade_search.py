@@ -15,7 +15,9 @@ from .rate_limit import RateLimit, TokenBucketRateLimiter
 _WS_RE = re.compile(r"\s+")
 _CITE_RE = re.compile(r"\[\d{4}\]\s+[A-Z]{2,10}\s+\d+", re.IGNORECASE)
 _MNC_URL_RE = re.compile(r"/mnc/(?P<year>\d{4})/(?P<court>[A-Za-z]{2,10})/(?P<num>\d+)")
-_QUERY_MNC_RE = re.compile(r"\[?(?P<year>\d{4})\]?\s+(?P<court>[A-Za-z]{2,10})\s+(?P<num>\d+)", re.IGNORECASE)
+_QUERY_MNC_RE = re.compile(
+    r"\[?(?P<year>\d{4})\]?\s+(?P<court>[A-Za-z]{2,10})\s+(?P<num>\d+)", re.IGNORECASE
+)
 
 
 def _collapse_ws(text: str) -> str:
@@ -95,19 +97,27 @@ class _JadeSearchHTMLParser(HTMLParser):
         self._parts = []
 
 
-def parse_jade_search_html(html: str, *, base_url: str = "https://jade.io/") -> list[JadeSearchHit]:
+def parse_jade_search_html(
+    html: str, *, base_url: str = "https://jade.io/"
+) -> list[JadeSearchHit]:
     parser = _JadeSearchHTMLParser(base_url=base_url)
     parser.feed(html)
     return parser.hits
 
 
-def fallback_hit_for_query(query: str, *, base_url: str = "https://jade.barnet.com.au") -> JadeSearchHit | None:
+def fallback_hit_for_query(
+    query: str, *, base_url: str = "https://jade.barnet.com.au"
+) -> JadeSearchHit | None:
     key = normalize_mnc(query)
     if key is None:
         return None
     match = _CITE_RE.search(query)
     url_match = _QUERY_MNC_RE.search(query)
-    citation = _collapse_ws(match.group(0)) if match else f"[{key.year}] {key.court} {key.number}"
+    citation = (
+        _collapse_ws(match.group(0))
+        if match
+        else f"[{key.year}] {key.court} {key.number}"
+    )
     court_token = url_match.group("court") if url_match else key.court
     url = f"{base_url.rstrip('/')}/mnc/{key.year}/{court_token}/{key.number}"
     return JadeSearchHit(title=citation, url=url, citation=citation)

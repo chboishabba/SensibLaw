@@ -156,9 +156,12 @@ jobs:
           (ROOT / "pdfminer" / "__init__.py").touch()
           PY
           export PYTHONPATH="stubs:."
+          python -c "import src.pdf_ingest"
           pytest -q
           python -m src.cli --help
           python scripts/generate_sample_corpus.py
+          test -s data/corpus/sample_act.json
+          test -s data/corpus/sample_judgment.json
           python examples/distinguish_glj/demo.py
           python -m src.pdf_ingest --help
       - name: Test

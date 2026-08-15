@@ -26,7 +26,11 @@ def _dict(value: Any) -> dict[str, Any]:
 
 
 def _event_type(event: Mapping[str, Any]) -> str:
-    return _text(event.get("lifecycle_event_type") or event.get("event_type") or event.get("type")).casefold()
+    return _text(
+        event.get("lifecycle_event_type")
+        or event.get("event_type")
+        or event.get("type")
+    ).casefold()
 
 
 def _event_status(event: Mapping[str, Any]) -> str:
@@ -63,7 +67,9 @@ class FoldState:
         }
 
 
-def _normalized_event(raw_event: Mapping[str, Any], phase: str, position: int) -> dict[str, Any]:
+def _normalized_event(
+    raw_event: Mapping[str, Any], phase: str, position: int
+) -> dict[str, Any]:
     event = dict(raw_event)
     event.setdefault("event_id", f"{phase}:{position + 1}")
     event["phase"] = phase
@@ -84,12 +90,16 @@ def _apply_event(state: FoldState, event: Mapping[str, Any]) -> FoldState:
     if status:
         state.status = status
 
-    for slot in _list(event.get("expected_slot")) + _list(event.get("matched_expected_slots")):
+    for slot in _list(event.get("expected_slot")) + _list(
+        event.get("matched_expected_slots")
+    ):
         slot_text = _text(slot)
         if slot_text and event.get("expected_slot_matched") is not False:
             state.observed_slots.add(slot_text)
 
-    for effect in _list(event.get("task_graph_effect")) + _list(event.get("task_graph_effects")):
+    for effect in _list(event.get("task_graph_effect")) + _list(
+        event.get("task_graph_effects")
+    ):
         effect_text = _text(effect)
         if effect_text:
             state.task_graph_effects.add(effect_text)
@@ -112,7 +122,9 @@ def _apply_event(state: FoldState, event: Mapping[str, Any]) -> FoldState:
         if isinstance(successor, Mapping):
             state.successor_tasks.append(dict(successor))
 
-    identity = _text(event.get("task_identity_evidence") or event.get("identity_evidence"))
+    identity = _text(
+        event.get("task_identity_evidence") or event.get("identity_evidence")
+    )
     if identity:
         state.identity_evidence.append(identity)
 
@@ -122,7 +134,9 @@ def _apply_event(state: FoldState, event: Mapping[str, Any]) -> FoldState:
     return state
 
 
-def _fold(events: Iterable[Mapping[str, Any]], initial: FoldState | None = None) -> FoldState:
+def _fold(
+    events: Iterable[Mapping[str, Any]], initial: FoldState | None = None
+) -> FoldState:
     state = initial or FoldState()
     for event in events:
         _apply_event(state, event)
@@ -147,7 +161,9 @@ def _task_identity_residual(
     return seed_residual or "partial"
 
 
-def _lifecycle_residual(state: FoldState, missing_slots: list[str], declared: str) -> str:
+def _lifecycle_residual(
+    state: FoldState, missing_slots: list[str], declared: str
+) -> str:
     if declared:
         return declared
     if state.contradictions:
@@ -157,7 +173,9 @@ def _lifecycle_residual(state: FoldState, missing_slots: list[str], declared: st
     return "exact" if state.event_ids else "partial"
 
 
-def reconcile_task_timeline_case(raw_case: Mapping[str, Any], position: int = 0) -> dict[str, Any]:
+def reconcile_task_timeline_case(
+    raw_case: Mapping[str, Any], position: int = 0
+) -> dict[str, Any]:
     """Fold the canonical thread prefix, reinterpret the seed, then fold the suffix.
 
     The seed is an anchor rather than an assumed task origin. Prior receipts may
@@ -180,27 +198,53 @@ def reconcile_task_timeline_case(raw_case: Mapping[str, Any], position: int = 0)
     ]
 
     prior_state = _fold(prior_events)
-    seed_state = _fold([seed_event], FoldState(**{
-        "status": prior_state.status,
-        "observed_slots": set(prior_state.observed_slots),
-        "task_graph_effects": set(prior_state.task_graph_effects),
-        "successor_tasks": list(prior_state.successor_tasks),
-        "identity_evidence": list(prior_state.identity_evidence),
-        "contradictions": list(prior_state.contradictions),
-        "event_ids": list(prior_state.event_ids),
-    }))
+    seed_state = _fold(
+        [seed_event],
+        FoldState(
+            **{
+                "status": prior_state.status,
+                "observed_slots": set(prior_state.observed_slots),
+                "task_graph_effects": set(prior_state.task_graph_effects),
+                "successor_tasks": list(prior_state.successor_tasks),
+                "identity_evidence": list(prior_state.identity_evidence),
+                "contradictions": list(prior_state.contradictions),
+                "event_ids": list(prior_state.event_ids),
+            }
+        ),
+    )
     final_state = _fold(later_events, seed_state)
 
-    expected_slots = sorted({_text(slot) for slot in _list(case.get("expected_event_slots")) if _text(slot)})
-    explicit_missing = sorted({_text(slot) for slot in _list(case.get("missing_expected_slots")) if _text(slot)})
-    missing_slots = explicit_missing or [slot for slot in expected_slots if slot not in final_state.observed_slots]
+    expected_slots = sorted(
+        {_text(slot) for slot in _list(case.get("expected_event_slots")) if _text(slot)}
+    )
+    explicit_missing = sorted(
+        {
+            _text(slot)
+            for slot in _list(case.get("missing_expected_slots"))
+            if _text(slot)
+        }
+    )
+    missing_slots = explicit_missing or [
+        slot for slot in expected_slots if slot not in final_state.observed_slots
+    ]
 
-    supplied_successors = [dict(task) for task in _list(case.get("successor_tasks")) if isinstance(task, Mapping)]
-    successors = supplied_successors + [task for task in final_state.successor_tasks if task not in supplied_successors]
-    final_status = final_state.status if final_state.status != "unresolved" else _text(case.get("final_task_status") or "observed")
+    supplied_successors = [
+        dict(task)
+        for task in _list(case.get("successor_tasks"))
+        if isinstance(task, Mapping)
+    ]
+    successors = supplied_successors + [
+        task for task in final_state.successor_tasks if task not in supplied_successors
+    ]
+    final_status = (
+        final_state.status
+        if final_state.status != "unresolved"
+        else _text(case.get("final_task_status") or "observed")
+    )
 
     return {
-        "timeline_id": _text(case.get("timeline_id")) or f"archive_timeline:{position + 1}",
+        "timeline_id": _text(case.get("timeline_id"))
+        or f"archive_timeline:{position + 1}",
         "task_id": _text(case.get("task_id")) or f"task:{position + 1}",
         "task_title": _text(case.get("task_title")),
         "canonical_thread_id": _text(case.get("canonical_thread_id")),
@@ -219,7 +263,9 @@ def reconcile_task_timeline_case(raw_case: Mapping[str, Any], position: int = 0)
         "missing_expected_slots": missing_slots,
         "successor_tasks": successors,
         "split_or_merge_events": [
-            dict(event) for event in _list(case.get("split_or_merge_events")) if isinstance(event, Mapping)
+            dict(event)
+            for event in _list(case.get("split_or_merge_events"))
+            if isinstance(event, Mapping)
         ],
         "task_graph_effects": sorted(final_state.task_graph_effects),
         "final_task_status": final_status,
@@ -242,18 +288,29 @@ def build_bidirectional_task_timeline_probe(
     timeline_cases: Iterable[Mapping[str, Any]],
     source: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    timelines = [reconcile_task_timeline_case(case, index) for index, case in enumerate(timeline_cases)]
+    timelines = [
+        reconcile_task_timeline_case(case, index)
+        for index, case in enumerate(timeline_cases)
+    ]
     return {
         "schema_version": SCHEMA_VERSION,
         "source": dict(source or {}),
         "timeline_count": len(timelines),
         "timelines": timelines,
         "summary": {
-            "with_prior_evidence": sum(bool(row["prior_event_receipts"]) for row in timelines),
-            "with_later_evidence": sum(bool(row["later_event_receipts"]) for row in timelines),
+            "with_prior_evidence": sum(
+                bool(row["prior_event_receipts"]) for row in timelines
+            ),
+            "with_later_evidence": sum(
+                bool(row["later_event_receipts"]) for row in timelines
+            ),
             "with_successors": sum(bool(row["successor_tasks"]) for row in timelines),
-            "with_missing_expected_slots": sum(bool(row["missing_expected_slots"]) for row in timelines),
-            "seed_reinterpreted_with_prior_state": sum(bool(row["folded_prior_state"]["event_ids"]) for row in timelines),
+            "with_missing_expected_slots": sum(
+                bool(row["missing_expected_slots"]) for row in timelines
+            ),
+            "seed_reinterpreted_with_prior_state": sum(
+                bool(row["folded_prior_state"]["event_ids"]) for row in timelines
+            ),
         },
         "authority_boundary": {
             "archive_thread_reconciliation_only": True,

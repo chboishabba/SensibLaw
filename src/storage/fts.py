@@ -66,7 +66,12 @@ class TextIndex:
     # Index management
     # ------------------------------------------------------------------
     def index_node(
-        self, identifier: str, node_type: str, text: str, *, metadata: Optional[Dict[str, Any]] = None
+        self,
+        identifier: str,
+        node_type: str,
+        text: str,
+        *,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Add or replace a node in the search index.
 
@@ -86,7 +91,9 @@ class TextIndex:
 
         with self.conn:
             # Remove any existing entry to keep identifiers unique
-            self.conn.execute("DELETE FROM node_fts WHERE identifier = ?", (identifier,))
+            self.conn.execute(
+                "DELETE FROM node_fts WHERE identifier = ?", (identifier,)
+            )
             self.conn.execute(
                 "INSERT INTO node_fts(identifier, type, text) VALUES (?, ?, ?)",
                 (identifier, node_type, text),

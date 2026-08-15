@@ -223,7 +223,9 @@ def _first_window_bundles(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
     return [item for item in bundles if isinstance(item, Mapping)]
 
 
-def _report_for_payload(entry: Mapping[str, Any], payload: Mapping[str, Any], *, repo_root: Path) -> dict[str, Any]:
+def _report_for_payload(
+    entry: Mapping[str, Any], payload: Mapping[str, Any], *, repo_root: Path
+) -> dict[str, Any]:
     for path_str in _string_list(entry.get("source_artifacts")):
         if path_str.endswith("projection.json"):
             path = _resolve_path(path_str, repo_root=repo_root)
@@ -232,7 +234,9 @@ def _report_for_payload(entry: Mapping[str, Any], payload: Mapping[str, Any], *,
     return project_wikidata_payload(payload)
 
 
-def _clusters_from_mixed_order(entry: Mapping[str, Any], payload: Mapping[str, Any], *, repo_root: Path) -> list[dict[str, Any]]:
+def _clusters_from_mixed_order(
+    entry: Mapping[str, Any], payload: Mapping[str, Any], *, repo_root: Path
+) -> list[dict[str, Any]]:
     report = _report_for_payload(entry, payload, repo_root=repo_root)
     labels = _slice_labels(payload)
     bundles = _first_window_bundles(payload)
@@ -246,8 +250,16 @@ def _clusters_from_mixed_order(entry: Mapping[str, Any], payload: Mapping[str, A
     for node in report["windows"][0]["diagnostics"]["mixed_order_nodes"]:
         subject = str(node["qid"])
         subject_bundles = by_subject.get(subject, [])
-        p31_targets = [str(row.get("value")) for row in subject_bundles if row.get("property") == "P31" and row.get("value") is not None]
-        p279_targets = [str(row.get("value")) for row in subject_bundles if row.get("property") == "P279" and row.get("value") is not None]
+        p31_targets = [
+            str(row.get("value"))
+            for row in subject_bundles
+            if row.get("property") == "P31" and row.get("value") is not None
+        ]
+        p279_targets = [
+            str(row.get("value"))
+            for row in subject_bundles
+            if row.get("property") == "P279" and row.get("value") is not None
+        ]
         for target in p31_targets:
             clusters.append(
                 _build_cluster(
@@ -262,7 +274,10 @@ def _clusters_from_mixed_order(entry: Mapping[str, Any], payload: Mapping[str, A
                     object_label=_label(target, labels),
                     relation_label="instance of",
                     relation_variant="instance_of",
-                    evidence={"window_id": report["windows"][0]["id"], "property_pid": "P31"},
+                    evidence={
+                        "window_id": report["windows"][0]["id"],
+                        "property_pid": "P31",
+                    },
                 )
             )
         for target in p279_targets:
@@ -279,13 +294,18 @@ def _clusters_from_mixed_order(entry: Mapping[str, Any], payload: Mapping[str, A
                     object_label=_label(target, labels),
                     relation_label="subclass of",
                     relation_variant="subclass_of",
-                    evidence={"window_id": report["windows"][0]["id"], "property_pid": "P279"},
+                    evidence={
+                        "window_id": report["windows"][0]["id"],
+                        "property_pid": "P279",
+                    },
                 )
             )
     return clusters
 
 
-def _clusters_from_scc(entry: Mapping[str, Any], payload: Mapping[str, Any], *, repo_root: Path) -> list[dict[str, Any]]:
+def _clusters_from_scc(
+    entry: Mapping[str, Any], payload: Mapping[str, Any], *, repo_root: Path
+) -> list[dict[str, Any]]:
     report = _report_for_payload(entry, payload, repo_root=repo_root)
     labels = _slice_labels(payload)
     clusters: list[dict[str, Any]] = []
@@ -308,13 +328,18 @@ def _clusters_from_scc(entry: Mapping[str, Any], payload: Mapping[str, Any], *, 
                     object_label=_label(obj, labels),
                     relation_label="subclass of",
                     relation_variant="subclass_of",
-                    evidence={"window_id": report["windows"][0]["id"], "scc_id": scc["scc_id"]},
+                    evidence={
+                        "window_id": report["windows"][0]["id"],
+                        "scc_id": scc["scc_id"],
+                    },
                 )
             )
     return clusters
 
 
-def _clusters_from_qualifier_drift(entry: Mapping[str, Any], payload: Mapping[str, Any], *, repo_root: Path) -> list[dict[str, Any]]:
+def _clusters_from_qualifier_drift(
+    entry: Mapping[str, Any], payload: Mapping[str, Any], *, repo_root: Path
+) -> list[dict[str, Any]]:
     report = _report_for_payload(entry, payload, repo_root=repo_root)
     labels = _slice_labels(payload)
     clusters: list[dict[str, Any]] = []
@@ -347,7 +372,9 @@ def _clusters_from_qualifier_drift(entry: Mapping[str, Any], payload: Mapping[st
     return clusters
 
 
-def _clusters_from_entity_kind_collapse(entry: Mapping[str, Any], payload: Mapping[str, Any], *, repo_root: Path) -> list[dict[str, Any]]:
+def _clusters_from_entity_kind_collapse(
+    entry: Mapping[str, Any], payload: Mapping[str, Any], *, repo_root: Path
+) -> list[dict[str, Any]]:
     _ = repo_root
     labels = _slice_labels(payload)
     bundles = _first_window_bundles(payload)
@@ -385,7 +412,11 @@ def _clusters_from_entity_kind_collapse(entry: Mapping[str, Any], payload: Mappi
                 object_label=_label(object_qid, labels),
                 relation_label=relation_label,
                 relation_variant=relation_variant,
-                evidence={"window_id": payload["windows"][0]["id"], "property_pid": prop, "rank": bundle.get("rank", "normal")},
+                evidence={
+                    "window_id": payload["windows"][0]["id"],
+                    "property_pid": prop,
+                    "rank": bundle.get("rank", "normal"),
+                },
             )
         )
     return clusters
@@ -395,7 +426,9 @@ def _clusters_for_entry(entry: Mapping[str, Any], *, repo_root: Path) -> dict[st
     source_artifacts = _string_list(entry.get("source_artifacts"))
     json_artifacts = [path for path in source_artifacts if path.endswith(".json")]
     if not json_artifacts:
-        raise ValueError(f"hotspot pack requires at least one JSON source artifact: {entry.get('pack_id')}")
+        raise ValueError(
+            f"hotspot pack requires at least one JSON source artifact: {entry.get('pack_id')}"
+        )
     payload = _load_json(_resolve_path(json_artifacts[0], repo_root=repo_root))
     family = str(entry.get("hotspot_family") or "")
     if family == "mixed_order":
@@ -405,7 +438,9 @@ def _clusters_for_entry(entry: Mapping[str, Any], *, repo_root: Path) -> dict[st
     elif family == "qualifier_drift":
         clusters = _clusters_from_qualifier_drift(entry, payload, repo_root=repo_root)
     elif family == "entity_kind_collapse":
-        clusters = _clusters_from_entity_kind_collapse(entry, payload, repo_root=repo_root)
+        clusters = _clusters_from_entity_kind_collapse(
+            entry, payload, repo_root=repo_root
+        )
     else:
         raise ValueError(f"unsupported hotspot family for generation: {family}")
     semantic_basis = _derive_hotspot_semantic_basis(entry)
@@ -416,7 +451,9 @@ def _clusters_for_entry(entry: Mapping[str, Any], *, repo_root: Path) -> dict[st
         lane_promotion_status=str(entry.get("promotion_status") or "candidate"),
         status=str(entry.get("status") or "planned_only"),
         cluster_count=len(clusters),
-        hold_reason=str(entry["hold_reason"]) if entry.get("hold_reason") not in (None, "") else None,
+        hold_reason=str(entry["hold_reason"])
+        if entry.get("hold_reason") not in (None, "")
+        else None,
         source_artifacts=source_artifacts,
         rule_ids=[family],
     )
@@ -435,7 +472,9 @@ def _clusters_for_entry(entry: Mapping[str, Any], *, repo_root: Path) -> dict[st
         "focus_qids": _string_list(entry.get("focus_qids")),
         "focus_pids": _string_list(entry.get("focus_pids")),
         "source_artifacts": source_artifacts,
-        "candidate_cluster_families": _string_list(entry.get("candidate_cluster_families")),
+        "candidate_cluster_families": _string_list(
+            entry.get("candidate_cluster_families")
+        ),
         "cluster_count": len(clusters),
         "semantic_candidate": semantic_candidate,
         "semantic_basis": semantic_basis,
@@ -465,10 +504,14 @@ def generate_hotspot_cluster_pack(
             continue
         selected_entries.append(entry)
     if requested is not None:
-        missing = sorted(requested - {str(entry.get("pack_id") or "") for entry in selected_entries})
+        missing = sorted(
+            requested - {str(entry.get("pack_id") or "") for entry in selected_entries}
+        )
         if missing:
             raise ValueError(f"unknown hotspot pack ids: {', '.join(missing)}")
-    packs = [_clusters_for_entry(entry, repo_root=repo_root) for entry in selected_entries]
+    packs = [
+        _clusters_for_entry(entry, repo_root=repo_root) for entry in selected_entries
+    ]
     return {
         "schema_version": HOTSPOT_CLUSTER_SCHEMA_VERSION,
         "manifest_version": str(manifest_payload.get("version") or ""),

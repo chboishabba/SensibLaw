@@ -22,7 +22,9 @@ def _skip_spaces(text: str, index: int) -> int:
     return index
 
 
-def _parse_int(text: str, index: int, *, min_digits: int, max_digits: int) -> tuple[int, int] | None:
+def _parse_int(
+    text: str, index: int, *, min_digits: int, max_digits: int
+) -> tuple[int, int] | None:
     start = index
     digits = 0
     while index < len(text) and text[index].isdigit() and digits < max_digits:
@@ -118,7 +120,9 @@ def parse_message_header(line: str) -> MessageHeader | None:
             return None
         _, index = parsed
     meridiem_start = _skip_spaces(line, index)
-    if meridiem_start + 1 < len(line) and line[meridiem_start : meridiem_start + 2].casefold() in {"am", "pm"}:
+    if meridiem_start + 1 < len(line) and line[
+        meridiem_start : meridiem_start + 2
+    ].casefold() in {"am", "pm"}:
         index = meridiem_start + 2
     time_text = " ".join(line[time_start:index].replace("\u202f", " ").split())
 
@@ -161,7 +165,12 @@ def parse_time_range_header(line: str) -> TimeRangeHeader | None:
     _, index = parsed
     for expected in (":", None, ":", None, ",", None):
         if expected is None:
-            parsed = _parse_int(line, index, min_digits=2 if line[index - 1] != "," else 3, max_digits=2 if line[index - 1] != "," else 3)
+            parsed = _parse_int(
+                line,
+                index,
+                min_digits=2 if line[index - 1] != "," else 3,
+                max_digits=2 if line[index - 1] != "," else 3,
+            )
             if parsed is None:
                 return None
             _, index = parsed
@@ -185,7 +194,12 @@ def parse_time_range_header(line: str) -> TimeRangeHeader | None:
     _, index = parsed
     for expected in (":", None, ":", None, ",", None):
         if expected is None:
-            parsed = _parse_int(line, index, min_digits=2 if line[index - 1] != "," else 3, max_digits=2 if line[index - 1] != "," else 3)
+            parsed = _parse_int(
+                line,
+                index,
+                min_digits=2 if line[index - 1] != "," else 3,
+                max_digits=2 if line[index - 1] != "," else 3,
+            )
             if parsed is None:
                 return None
             _, index = parsed

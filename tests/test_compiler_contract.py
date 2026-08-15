@@ -124,7 +124,9 @@ def test_build_au_fact_review_bundle_contract() -> None:
     assert payload["promoted_outcomes"]["review_count"] == 1
     assert payload["promoted_outcomes"]["abstained_count"] == 1
     assert payload["derived_products"][0]["role"] == "fact_review_bundle"
-    assert any(row["role"] == "legal_follow_graph" for row in payload["derived_products"])
+    assert any(
+        row["role"] == "legal_follow_graph" for row in payload["derived_products"]
+    )
 
 
 def test_build_wikidata_migration_pack_contract() -> None:

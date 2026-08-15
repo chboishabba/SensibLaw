@@ -123,7 +123,9 @@ def test_a3_abstains_until_period_partition_and_member_conformance_are_observed(
     assert observed_a3["outcome"] == "matched"
 
 
-def test_family_member_hydration_allows_a3_only_with_complete_conforming_series() -> None:
+def test_family_member_hydration_allows_a3_only_with_complete_conforming_series() -> (
+    None
+):
     first = _candidate(scope="total_unscoped")
     first["candidate_id"] = "Q1|P5991|1"
     first["source_statement_id"] = "Q1$year-2023"
@@ -202,6 +204,7 @@ def test_profile_emits_one_family_geometry_assessment_for_all_members() -> None:
 
 def test_fiscal_year_p580_p582_resolves_canonical_year() -> None:
     from src.policy.climate_ghg_transformation_profile import GHGStatementSlot
+
     cand = _candidate()
     cand["claim_bundle_before"]["qualifiers"] = {
         "P580": ["2021-04-01"],
@@ -217,7 +220,10 @@ def test_h4b_when_slot_identity_state_is_unresolved() -> None:
     first["claim_bundle_before"]["value"] = "100"
     first["claim_bundle_before"]["qualifiers"] = {}
     first["model_validation"]["resolved_year"] = None
-    first["statement_family_context"]["member_statement_ids"] = ["Q1$statement-1", "Q1$statement-2"]
+    first["statement_family_context"]["member_statement_ids"] = [
+        "Q1$statement-1",
+        "Q1$statement-2",
+    ]
 
     second = deepcopy(first)
     second["candidate_id"] = "Q1|P5991|2"
@@ -232,18 +238,22 @@ def test_h4b_when_slot_identity_state_is_unresolved() -> None:
 
     inv = report["coverage"]["dependency_group_inventory"]
     assert len(inv) == 1
-    assert inv[0]["primary_obstruction"] == "H4b_provisional_duplicate_unresolved_coordinate"
+    assert (
+        inv[0]["primary_obstruction"]
+        == "H4b_provisional_duplicate_unresolved_coordinate"
+    )
     assert inv[0]["candidate_action"] == "hold_provisional_collision"
 
 
 def test_h4a_confirmed_when_year_exact() -> None:
     first = _candidate()
     first["claim_bundle_before"]["value"] = "100"
-    first["claim_bundle_before"]["qualifiers"] = {
-        "P585": ["2021-01-01"]
-    }
+    first["claim_bundle_before"]["qualifiers"] = {"P585": ["2021-01-01"]}
     first["model_validation"]["resolved_year"] = "2021"
-    first["statement_family_context"]["member_statement_ids"] = ["Q1$statement-1", "Q1$statement-2"]
+    first["statement_family_context"]["member_statement_ids"] = [
+        "Q1$statement-1",
+        "Q1$statement-2",
+    ]
 
     second = deepcopy(first)
     second["candidate_id"] = "Q1|P5991|2"
@@ -265,11 +275,12 @@ def test_h4a_confirmed_when_year_exact() -> None:
 def test_h4c_conflicting_value() -> None:
     first = _candidate()
     first["claim_bundle_before"]["value"] = "100"
-    first["claim_bundle_before"]["qualifiers"] = {
-        "P585": ["2021-01-01"]
-    }
+    first["claim_bundle_before"]["qualifiers"] = {"P585": ["2021-01-01"]}
     first["model_validation"]["resolved_year"] = "2021"
-    first["statement_family_context"]["member_statement_ids"] = ["Q1$statement-1", "Q1$statement-2"]
+    first["statement_family_context"]["member_statement_ids"] = [
+        "Q1$statement-1",
+        "Q1$statement-2",
+    ]
 
     second = deepcopy(first)
     second["candidate_id"] = "Q1|P5991|2"
@@ -293,11 +304,12 @@ def test_h4d_rank_variant() -> None:
     first = _candidate()
     first["claim_bundle_before"]["value"] = "100"
     first["claim_bundle_before"]["rank"] = "normal"
-    first["claim_bundle_before"]["qualifiers"] = {
-        "P585": ["2021-01-01"]
-    }
+    first["claim_bundle_before"]["qualifiers"] = {"P585": ["2021-01-01"]}
     first["model_validation"]["resolved_year"] = "2021"
-    first["statement_family_context"]["member_statement_ids"] = ["Q1$statement-1", "Q1$statement-2"]
+    first["statement_family_context"]["member_statement_ids"] = [
+        "Q1$statement-1",
+        "Q1$statement-2",
+    ]
 
     second = deepcopy(first)
     second["candidate_id"] = "Q1|P5991|2"
@@ -325,7 +337,10 @@ def test_fiscal_fiscal_collision_dissolves_to_f1() -> None:
         "P582": ["2022-03-31"],
     }
     first["model_validation"]["resolved_year"] = None
-    first["statement_family_context"]["member_statement_ids"] = ["Q1$statement-1", "Q1$statement-2"]
+    first["statement_family_context"]["member_statement_ids"] = [
+        "Q1$statement-1",
+        "Q1$statement-2",
+    ]
 
     second = _candidate()
     second["candidate_id"] = "Q1|P5991|2"
@@ -336,7 +351,10 @@ def test_fiscal_fiscal_collision_dissolves_to_f1() -> None:
         "P582": ["2023-03-31"],
     }
     second["model_validation"]["resolved_year"] = None
-    second["statement_family_context"]["member_statement_ids"] = ["Q1$statement-1", "Q1$statement-2"]
+    second["statement_family_context"]["member_statement_ids"] = [
+        "Q1$statement-1",
+        "Q1$statement-2",
+    ]
 
     report = build_coverage_report(
         {"candidates": [first, second]},
@@ -374,7 +392,10 @@ def test_h4b_when_conflicting_values_but_unresolved_coordinates() -> None:
 
     inv = report["coverage"]["dependency_group_inventory"]
     assert len(inv) == 1
-    assert inv[0]["primary_obstruction"] == "H4b_provisional_duplicate_unresolved_coordinate"
+    assert (
+        inv[0]["primary_obstruction"]
+        == "H4b_provisional_duplicate_unresolved_coordinate"
+    )
     assert inv[0]["candidate_action"] == "hold_provisional_collision"
 
 

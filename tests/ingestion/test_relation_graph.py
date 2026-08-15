@@ -37,12 +37,30 @@ def test_build_relation_graph_emits_actor_action_object_and_source_edges():
     )
 
     assert graph.graph_id == "gwb:nsa"
-    assert {node.node_kind for node in graph.nodes} == {"actor", "action", "object", "event", "source"}
+    assert {node.node_kind for node in graph.nodes} == {
+        "actor",
+        "action",
+        "object",
+        "event",
+        "source",
+    }
     assert [edge.to_dict() for edge in graph.edges] == [
         {"source_id": "actor:NSA", "edge_kind": "acts_in", "target_id": "ev:nsa:1"},
-        {"source_id": "ev:nsa:1", "edge_kind": "has_action", "target_id": "action:review"},
-        {"source_id": "ev:nsa:1", "edge_kind": "acts_on", "target_id": "object:surveillance authority"},
-        {"source_id": "ev:nsa:1", "edge_kind": "from_source", "target_id": "source:source:nsa:1"},
+        {
+            "source_id": "ev:nsa:1",
+            "edge_kind": "has_action",
+            "target_id": "action:review",
+        },
+        {
+            "source_id": "ev:nsa:1",
+            "edge_kind": "acts_on",
+            "target_id": "object:surveillance authority",
+        },
+        {
+            "source_id": "ev:nsa:1",
+            "edge_kind": "from_source",
+            "target_id": "source:source:nsa:1",
+        },
     ]
 
 
@@ -128,11 +146,16 @@ def test_build_relation_graph_uses_legal_review_text_refs_when_no_explicit_sourc
         source_kind="review_source_text",
     )
 
-    graph = build_relation_graph(extract["review_claim_records"], graph_id="legal-review")
+    graph = build_relation_graph(
+        extract["review_claim_records"], graph_id="legal-review"
+    )
 
     assert graph.graph_id == "legal-review"
     assert any(node.node_kind == "event" for node in graph.nodes)
-    assert any(node.node_kind == "source" and node.label == canonical.text_id for node in graph.nodes)
+    assert any(
+        node.node_kind == "source" and node.label == canonical.text_id
+        for node in graph.nodes
+    )
     assert any(edge.edge_kind == "from_source" for edge in graph.edges)
 
 
@@ -168,7 +191,9 @@ def test_build_relation_similarity_summary_reports_shared_and_distinct_features(
     assert summary["shared_features"]["source_families"] == []
     assert summary["shared_features"]["workload_classes"] == []
     assert summary["shared_features"]["support_kinds"] == []
-    assert summary["distinct_features"]["left_only"]["objects"] == ["surveillance authority"]
+    assert summary["distinct_features"]["left_only"]["objects"] == [
+        "surveillance authority"
+    ]
     assert summary["distinct_features"]["right_only"]["objects"] == []
     assert summary["provisional_readout"]["information_level"] == "semantic_rich"
 
@@ -307,8 +332,12 @@ def test_build_relation_graph_accepts_wikidata_relation_rows():
 
     assert graph.graph_id == "wikidata:migration-pack"
     assert any(node.node_kind == "actor" and node.label == "Q1" for node in graph.nodes)
-    assert any(node.node_kind == "action" and node.label == "P5991" for node in graph.nodes)
-    assert any(node.node_kind == "object" and node.label == "100" for node in graph.nodes)
+    assert any(
+        node.node_kind == "action" and node.label == "P5991" for node in graph.nodes
+    )
+    assert any(
+        node.node_kind == "object" and node.label == "100" for node in graph.nodes
+    )
     assert any(edge.edge_kind == "from_source" for edge in graph.edges)
 
 

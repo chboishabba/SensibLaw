@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, ClassVar
 
@@ -8,6 +8,7 @@ from src.text.residual_lattice import ResidualLevel
 
 
 # ── Finite ordered component types ──────────────────────────────────────────
+
 
 class ConnectednessLevel(str, Enum):
     isolated = "isolated"
@@ -203,6 +204,7 @@ EXPORT_CLASS_RANK: dict[ExportClass, int] = {
 
 # ── Helper value types ─────────────────────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class TypedRole:
     canonical_key: str | None = None
@@ -270,29 +272,34 @@ class SourceSpanRef:
 
 # ── Fragment-surface taxonomy ──────────────────────────────────────────────
 
-FRAGMENT_SURFACE_CLASSES = frozenset({
-    "cv_cell",
-    "list_entry",
-    "caption_fragment",
-    "title_range",
-    "prose_fragment",
-    "fallback",
-})
+FRAGMENT_SURFACE_CLASSES = frozenset(
+    {
+        "cv_cell",
+        "list_entry",
+        "caption_fragment",
+        "title_range",
+        "prose_fragment",
+        "fallback",
+    }
+)
 
-FRAGMENT_SUBCLASSES = frozenset({
-    "office_range",
-    "ownership_range",
-    "proclamation",
-    "education",
-    "birth_date",
-    "marriage_event",
-    "death_date",
-    "legislative_ref",
-    "generic_relation",
-})
+FRAGMENT_SUBCLASSES = frozenset(
+    {
+        "office_range",
+        "ownership_range",
+        "proclamation",
+        "education",
+        "birth_date",
+        "marriage_event",
+        "death_date",
+        "legislative_ref",
+        "generic_relation",
+    }
+)
 
 
 # ── FragmentPNF — candidate extraction receipt ─────────────────────────────
+
 
 @dataclass(frozen=True)
 class FragmentPNF:
@@ -359,6 +366,7 @@ class FragmentPNF:
 
 # ── FragmentPNFProjectionReceipt — bridge to formal PredicatePNF ───────────
 
+
 @dataclass(frozen=True)
 class FragmentPNFProjectionReceipt:
     """Records whether/how a FragmentPNF projects to PredicatePNF.
@@ -397,6 +405,7 @@ class FragmentPNFProjectionReceipt:
 
 
 # ── FragmentPNFDepthReceipt — anti-flatness check ──────────────────────────
+
 
 @dataclass(frozen=True)
 class FragmentPNFDepthReceipt:
@@ -474,23 +483,26 @@ BLOCKED_REASON_PROJECTION_MISSING = "formal_projection_missing"
 BLOCKED_REASON_REFERENTIALITY_INSUFFICIENT = "referentiality_insufficient"
 BLOCKED_REASON_REQUIRED_BRAID_DEPTH_MISSING = "required_braid_depth_missing"
 
-BLOCKED_REASONS_STABLE = frozenset({
-    BLOCKED_REASON_SOURCE_SPAN_MISSING,
-    BLOCKED_REASON_RECEIPT_MISSING,
-    BLOCKED_REASON_FRAGMENT_PNF_MISSING,
-    BLOCKED_REASON_FLAT_SHORTCUT,
-    BLOCKED_REASON_TIME_NOT_BOUND,
-    BLOCKED_REASON_PNF_NOT_CLOSED,
-    BLOCKED_REASON_LINKAGE_DEPTH_INSUFFICIENT,
-    BLOCKED_REASON_RESIDUAL_BLOCKED,
-    BLOCKED_REASON_RESIDUAL_NOT_EVALUATED,
-    BLOCKED_REASON_PROJECTION_MISSING,
-    BLOCKED_REASON_REFERENTIALITY_INSUFFICIENT,
-    BLOCKED_REASON_REQUIRED_BRAID_DEPTH_MISSING,
-})
+BLOCKED_REASONS_STABLE = frozenset(
+    {
+        BLOCKED_REASON_SOURCE_SPAN_MISSING,
+        BLOCKED_REASON_RECEIPT_MISSING,
+        BLOCKED_REASON_FRAGMENT_PNF_MISSING,
+        BLOCKED_REASON_FLAT_SHORTCUT,
+        BLOCKED_REASON_TIME_NOT_BOUND,
+        BLOCKED_REASON_PNF_NOT_CLOSED,
+        BLOCKED_REASON_LINKAGE_DEPTH_INSUFFICIENT,
+        BLOCKED_REASON_RESIDUAL_BLOCKED,
+        BLOCKED_REASON_RESIDUAL_NOT_EVALUATED,
+        BLOCKED_REASON_PROJECTION_MISSING,
+        BLOCKED_REASON_REFERENTIALITY_INSUFFICIENT,
+        BLOCKED_REASON_REQUIRED_BRAID_DEPTH_MISSING,
+    }
+)
 
 
 # ── BraidRelevanceReceipt — product of typed components, not scalar ────────
+
 
 @dataclass(frozen=True)
 class BraidRelevanceReceipt:
@@ -558,6 +570,7 @@ class BraidRelevanceReceipt:
 
 # ── ExportGateReceipt — hard-gated admissibility ───────────────────────────
 
+
 @dataclass(frozen=True)
 class ExportGateReceipt:
     """Receipt produced by the hard-gated export gate.
@@ -599,6 +612,7 @@ class ExportGateReceipt:
 
 # ── ExportLanePolicy ───────────────────────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class ExportLanePolicy:
     """Lane-specific publication/export parameters.
@@ -611,7 +625,9 @@ class ExportLanePolicy:
     min_referentiality_level: ReferentialityLevel = ReferentialityLevel.multi_family
     require_braid_node: bool = True
     require_formal_projection: bool = True
-    min_projection_basis_level: ProjectionBasisLevel = ProjectionBasisLevel.fallback_projected
+    min_projection_basis_level: ProjectionBasisLevel = (
+        ProjectionBasisLevel.fallback_projected
+    )
     min_pnf_closure_level: PNFClosureLevel = PNFClosureLevel.role_time_closed
     min_linkage_depth_level: LinkageDepthLevel = LinkageDepthLevel.braid_node
 
@@ -651,6 +667,7 @@ INTERNAL_REVIEW_LANE_POLICY = ExportLanePolicy(
 
 
 # ── Classification helpers ─────────────────────────────────────────────────
+
 
 def classify_connectedness(
     component_size: int,
@@ -776,12 +793,18 @@ def classify_export_class(
 
     if pnf_closure_level == PNFClosureLevel.open:
         reasons.append(BLOCKED_REASON_PNF_NOT_CLOSED)
-    elif PNF_CLOSURE_RANK[pnf_closure_level] < PNF_CLOSURE_RANK[policy.min_pnf_closure_level]:
+    elif (
+        PNF_CLOSURE_RANK[pnf_closure_level]
+        < PNF_CLOSURE_RANK[policy.min_pnf_closure_level]
+    ):
         reasons.append(BLOCKED_REASON_PNF_NOT_CLOSED)
 
     if linkage_depth_level == LinkageDepthLevel.flat_shortcut:
         reasons.append(BLOCKED_REASON_FLAT_SHORTCUT)
-    elif LINKAGE_DEPTH_RANK[linkage_depth_level] < LINKAGE_DEPTH_RANK[policy.min_linkage_depth_level]:
+    elif (
+        LINKAGE_DEPTH_RANK[linkage_depth_level]
+        < LINKAGE_DEPTH_RANK[policy.min_linkage_depth_level]
+    ):
         reasons.append(BLOCKED_REASON_REQUIRED_BRAID_DEPTH_MISSING)
 
     if residual_compatibility_level == ResidualCompatibilityLevel.not_evaluated:
@@ -792,10 +815,17 @@ def classify_export_class(
     ):
         reasons.append(BLOCKED_REASON_RESIDUAL_BLOCKED)
 
-    if REFERENTIALITY_RANK[referentiality_level] < REFERENTIALITY_RANK[policy.min_referentiality_level]:
+    if (
+        REFERENTIALITY_RANK[referentiality_level]
+        < REFERENTIALITY_RANK[policy.min_referentiality_level]
+    ):
         reasons.append(BLOCKED_REASON_REFERENTIALITY_INSUFFICIENT)
 
-    if policy.require_formal_projection and PROJECTION_BASIS_RANK[projection_basis_level] >= PROJECTION_BASIS_RANK[ProjectionBasisLevel.unprojectable]:
+    if (
+        policy.require_formal_projection
+        and PROJECTION_BASIS_RANK[projection_basis_level]
+        >= PROJECTION_BASIS_RANK[ProjectionBasisLevel.unprojectable]
+    ):
         reasons.append(BLOCKED_REASON_PROJECTION_MISSING)
 
     if reasons:
@@ -822,6 +852,7 @@ def classify_export_class(
 
 
 # ── Build complete braid relevance receipt ─────────────────────────────────
+
 
 def build_braid_relevance_receipt(
     *,
@@ -858,7 +889,10 @@ def build_braid_relevance_receipt(
         basis_parts.append("braid_position")
     if pb != ProjectionBasisLevel.unprojectable:
         basis_parts.append("projection_basis")
-    if rc == ResidualCompatibilityLevel.exact or rc == ResidualCompatibilityLevel.partial:
+    if (
+        rc == ResidualCompatibilityLevel.exact
+        or rc == ResidualCompatibilityLevel.partial
+    ):
         basis_parts.append("residual_compatibility")
     if ld != LinkageDepthLevel.flat_shortcut:
         basis_parts.append("linkage_depth")

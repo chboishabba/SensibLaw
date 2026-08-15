@@ -70,7 +70,9 @@ def _seed_runs_root(tmp_path: Path) -> Path:
     return runs_root
 
 
-def test_notebooklm_observer_report_summarizes_dates_notebooks_sources_and_artifacts(tmp_path: Path) -> None:
+def test_notebooklm_observer_report_summarizes_dates_notebooks_sources_and_artifacts(
+    tmp_path: Path,
+) -> None:
     runs_root = _seed_runs_root(tmp_path)
     report = build_notebooklm_observer_report(runs_root)
     assert report["summary"]["eventCount"] == 4
@@ -84,7 +86,9 @@ def test_notebooklm_observer_report_summarizes_dates_notebooks_sources_and_artif
     assert report["artifacts"][0]["title"] == "Executive Brief"
 
 
-def test_notebooklm_observer_dates_and_event_query_are_bounded_and_filterable(tmp_path: Path) -> None:
+def test_notebooklm_observer_dates_and_event_query_are_bounded_and_filterable(
+    tmp_path: Path,
+) -> None:
     runs_root = _seed_runs_root(tmp_path)
     dates = list_notebooklm_observer_dates(runs_root)
     assert dates == [
@@ -109,7 +113,9 @@ def test_notebooklm_observer_dates_and_event_query_are_bounded_and_filterable(tm
     assert "rollback" in (events[0]["sourceSummary"] or "").casefold()
 
 
-def test_load_notebooklm_units_projects_source_summaries_into_text_units(tmp_path: Path) -> None:
+def test_load_notebooklm_units_projects_source_summaries_into_text_units(
+    tmp_path: Path,
+) -> None:
     runs_root = _seed_runs_root(tmp_path)
     units = load_notebooklm_units(runs_root, limit=10)
     assert len(units) == 1

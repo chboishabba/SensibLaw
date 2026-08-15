@@ -87,9 +87,7 @@ class TypedToken:
             start_char=int(token.get("start") or 0),
             end_char=int(token.get("end") or token.get("start") or 0),
             entity_type_ref=(
-                str(token["ent_type"])
-                if token.get("ent_type") is not None
-                else None
+                str(token["ent_type"]) if token.get("ent_type") is not None else None
             ),
             whitespace_text=(
                 str(token["whitespace"])
@@ -230,7 +228,9 @@ class ImmutableJobManifest:
             input_refs=input_refs,
             coverage_requirements=coverage,
             assumptions=assumptions,
-            observation_delta_ref=str(delta.get("delta_ref") or delta.get("batch_ref") or ""),
+            observation_delta_ref=str(
+                delta.get("delta_ref") or delta.get("batch_ref") or ""
+            ),
             batch_ref=str(delta.get("batch_ref") or ""),
             sequence_no=int(delta.get("sequence_no") or 0),
             parser_contract=str(delta.get("parser_contract") or ""),
@@ -370,7 +370,9 @@ def register_kernel(
 ) -> None:
     del metadata
     if not kernel_key or worker_budget < 1:
-        raise ValueError("kernel registration requires a key and positive worker budget")
+        raise ValueError(
+            "kernel registration requires a key and positive worker budget"
+        )
     cursor.execute(
         """
         INSERT INTO execution.semantic_kernel_registration
@@ -568,7 +570,9 @@ def enqueue_canonical_closure_jobs(
     return count
 
 
-def _load_ref_values(cursor: Any, table: str, column: str, job_ref: str) -> tuple[str, ...]:
+def _load_ref_values(
+    cursor: Any, table: str, column: str, job_ref: str
+) -> tuple[str, ...]:
     cursor.execute(
         f"SELECT {column} FROM execution.{table} WHERE job_ref = %s ORDER BY ordinal",
         (job_ref,),
@@ -775,10 +779,7 @@ def _persist_receipt_refs(
         VALUES (%s, %s, %s, %s)
         ON CONFLICT DO NOTHING
         """,
-        [
-            (receipt_ref, kind, ordinal, value)
-            for ordinal, value in enumerate(values)
-        ],
+        [(receipt_ref, kind, ordinal, value) for ordinal, value in enumerate(values)],
     )
 
 
@@ -797,10 +798,7 @@ def _persist_proposal_refs(
         VALUES (%s, %s, %s, %s)
         ON CONFLICT DO NOTHING
         """,
-        [
-            (proposal_ref, kind, ordinal, value)
-            for ordinal, value in enumerate(values)
-        ],
+        [(proposal_ref, kind, ordinal, value) for ordinal, value in enumerate(values)],
     )
 
 
@@ -1151,16 +1149,14 @@ def _load_factor_proposal(cursor: Any, proposal_ref: str) -> FactorProposal:
             cursor, proposal_ref, "dependency_factor"
         ),
         residuals=_load_proposal_refs(cursor, proposal_ref, "residual"),
-        ontology_axis_refs=_load_proposal_refs(
-            cursor, proposal_ref, "ontology_axis"
-        ),
+        ontology_axis_refs=_load_proposal_refs(cursor, proposal_ref, "ontology_axis"),
         transport_refs=_load_proposal_refs(cursor, proposal_ref, "transport"),
         assumptions=_load_proposal_refs(cursor, proposal_ref, "assumption"),
-        coverage_requirements=_load_proposal_refs(
-            cursor, proposal_ref, "coverage"
-        ),
+        coverage_requirements=_load_proposal_refs(cursor, proposal_ref, "coverage"),
     )
-    if proposal.proposal_ref != proposal_ref or proposal.proposal_digest != str(row[19]):
+    if proposal.proposal_ref != proposal_ref or proposal.proposal_digest != str(
+        row[19]
+    ):
         raise ValueError("typed factor proposal identity mismatch")
     return proposal
 
@@ -1572,7 +1568,9 @@ class ProcessPostgresWorkerPool:
             except Exception:
                 break
         if any(process.exitcode not in (0, None) for process in processes):
-            errors = [receipt.get("error") for receipt in receipts if receipt.get("error")]
+            errors = [
+                receipt.get("error") for receipt in receipts if receipt.get("error")
+            ]
             detail = "; ".join(str(error) for error in errors) or (
                 "child exited without acknowledgement"
             )
@@ -1602,9 +1600,9 @@ def execute_serialized_streaming_job(
     from src.pnf.streaming_operator_executor import solve_operator_job
 
     job = manifest.to_solver_job()
-    receipt = PythonClosureExecutor(
-        {job.declaration_ref: solve_operator_job}
-    ).execute(job)
+    receipt = PythonClosureExecutor({job.declaration_ref: solve_operator_job}).execute(
+        job
+    )
     receipt = replace(
         receipt,
         job_ref=manifest.job_ref,
@@ -1642,11 +1640,14 @@ def _publication_descriptor(manifest: Mapping[str, Any]) -> PublicationDescripto
     )
     graph_ref = str(manifest.get("graph_ref") or reduction.get("graph_ref") or "")
     ledger_ref = str(ledger.get("ledger_ref") or "") or None
-    certificate_ref = str(
-        certificate.get("certificate_ref")
-        or certificate.get("fixed_point_ref")
-        or ""
-    ) or None
+    certificate_ref = (
+        str(
+            certificate.get("certificate_ref")
+            or certificate.get("fixed_point_ref")
+            or ""
+        )
+        or None
+    )
     fingerprint = manifest.get("owner_fingerprint")
     fingerprint_ref = (
         "owner-fingerprint:" + canonical_sha256(fingerprint)
@@ -1654,14 +1655,10 @@ def _publication_descriptor(manifest: Mapping[str, Any]) -> PublicationDescripto
         else None
     )
     factor_count = int(
-        reduction.get("factor_count")
-        or factor_family.get("record_count")
-        or 0
+        reduction.get("factor_count") or factor_family.get("record_count") or 0
     )
     residual_count = int(
-        reduction.get("residual_count")
-        or residual_family.get("record_count")
-        or 0
+        reduction.get("residual_count") or residual_family.get("record_count") or 0
     )
     byte_count = int(factor_family.get("byte_count") or 0) + int(
         residual_family.get("byte_count") or 0
@@ -1771,7 +1768,10 @@ class DistributedFinalizationWorker:
                         (publication_ref,),
                     )
                     existing = cursor.fetchone()
-                    if existing is not None and str(existing[0]) != descriptor.digest.hex():
+                    if (
+                        existing is not None
+                        and str(existing[0]) != descriptor.digest.hex()
+                    ):
                         raise ValueError("publication descriptor digest mismatch")
                     cursor.execute(
                         """

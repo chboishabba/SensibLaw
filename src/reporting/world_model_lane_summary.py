@@ -58,7 +58,9 @@ def build_lane_governance_snapshot(report: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(report, Mapping):
         raise ValueError("world-model lane summary requires mapping reports")
 
-    summary = report.get("summary") if isinstance(report.get("summary"), Mapping) else {}
+    summary = (
+        report.get("summary") if isinstance(report.get("summary"), Mapping) else {}
+    )
     claims = _as_list(report.get("claims"))
     lane_name = (
         _as_text(report.get("lane_id"))
@@ -73,15 +75,19 @@ def build_lane_governance_snapshot(report: Mapping[str, Any]) -> dict[str, Any]:
     can_act_count = sum(
         1
         for claim in claims
-        if _as_text((claim.get("action_policy") or {}).get("actionability")) == "can_act"
+        if _as_text((claim.get("action_policy") or {}).get("actionability"))
+        == "can_act"
     )
     can_recommend_count = sum(
         1
         for claim in claims
-        if _as_text((claim.get("action_policy") or {}).get("actionability")) == "can_recommend"
+        if _as_text((claim.get("action_policy") or {}).get("actionability"))
+        == "can_recommend"
     )
     promotion_gate = normalize_product_gate(
-        report.get("promotion_gate") if isinstance(report.get("promotion_gate"), Mapping) else None
+        report.get("promotion_gate")
+        if isinstance(report.get("promotion_gate"), Mapping)
+        else None
     )
     operator_workflow_surface = (
         report.get("operator_workflow_surface")
@@ -92,8 +98,12 @@ def build_lane_governance_snapshot(report: Mapping[str, Any]) -> dict[str, Any]:
     decision = "hold"
     if _as_text(promotion_gate.get("decision")):
         decision = _as_text(promotion_gate.get("decision"))
-    elif _as_text((operator_workflow_surface.get("summary") or {}).get("gate_decision")):
-        decision = _as_text((operator_workflow_surface.get("summary") or {}).get("gate_decision"))
+    elif _as_text(
+        (operator_workflow_surface.get("summary") or {}).get("gate_decision")
+    ):
+        decision = _as_text(
+            (operator_workflow_surface.get("summary") or {}).get("gate_decision")
+        )
     elif can_act_count > 0:
         decision = "promote"
     elif must_review_count > 0 and must_abstain_count == 0:
@@ -104,7 +114,9 @@ def build_lane_governance_snapshot(report: Mapping[str, Any]) -> dict[str, Any]:
         promotion_gate_decision=decision,
         authority_receipt_count=claim_count,
         follow_queue_open=must_review_count + must_abstain_count,
-        unresolved_pressure_status="open" if (must_review_count + must_abstain_count) else "clear",
+        unresolved_pressure_status="open"
+        if (must_review_count + must_abstain_count)
+        else "clear",
         legal_follow_pressure=_legal_follow_pressure(report),
     )
     payload = {
@@ -129,28 +141,46 @@ def build_lane_governance_snapshot(report: Mapping[str, Any]) -> dict[str, Any]:
 def build_world_model_lane_summary(
     reports: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
-    snapshots = [build_lane_governance_snapshot(report) for report in reports if isinstance(report, Mapping)]
-    total_claim_count = sum(int((snapshot.get("metrics") or {}).get("claim_count") or 0) for snapshot in snapshots)
+    snapshots = [
+        build_lane_governance_snapshot(report)
+        for report in reports
+        if isinstance(report, Mapping)
+    ]
+    total_claim_count = sum(
+        int((snapshot.get("metrics") or {}).get("claim_count") or 0)
+        for snapshot in snapshots
+    )
     total_must_review_count = sum(
-        int((snapshot.get("metrics") or {}).get("must_review_count") or 0) for snapshot in snapshots
+        int((snapshot.get("metrics") or {}).get("must_review_count") or 0)
+        for snapshot in snapshots
     )
     total_must_abstain_count = sum(
-        int((snapshot.get("metrics") or {}).get("must_abstain_count") or 0) for snapshot in snapshots
+        int((snapshot.get("metrics") or {}).get("must_abstain_count") or 0)
+        for snapshot in snapshots
     )
     total_can_act_count = sum(
-        int((snapshot.get("metrics") or {}).get("can_act_count") or 0) for snapshot in snapshots
+        int((snapshot.get("metrics") or {}).get("can_act_count") or 0)
+        for snapshot in snapshots
     )
     total_can_recommend_count = sum(
-        int((snapshot.get("metrics") or {}).get("can_recommend_count") or 0) for snapshot in snapshots
+        int((snapshot.get("metrics") or {}).get("can_recommend_count") or 0)
+        for snapshot in snapshots
     )
     gate = evaluate_multi_lane_gate(
         [
             LaneGovernanceSnapshot(
                 lane_name=_as_text(snapshot.get("lane_name")),
-                promotion_gate_decision=_as_text(snapshot.get("promotion_gate_decision")),
-                authority_receipt_count=int(snapshot.get("authority_receipt_count") or 0),
+                promotion_gate_decision=_as_text(
+                    snapshot.get("promotion_gate_decision")
+                ),
+                authority_receipt_count=int(
+                    snapshot.get("authority_receipt_count") or 0
+                ),
                 follow_queue_open=int(snapshot.get("follow_queue_open") or 0),
-                unresolved_pressure_status=_as_text(snapshot.get("unresolved_pressure_status")) or None,
+                unresolved_pressure_status=_as_text(
+                    snapshot.get("unresolved_pressure_status")
+                )
+                or None,
                 legal_follow_pressure=(
                     dict(snapshot.get("legal_follow_pressure"))
                     if isinstance(snapshot.get("legal_follow_pressure"), Mapping)

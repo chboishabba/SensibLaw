@@ -4,8 +4,16 @@ from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Sequence, Tuple
 
 from .model import CaseObservation, OutcomeLabel, normalize_observations
-from .bayes import beta_binomial_posterior, empirical_bayes_prior, beta_credible_interval
-from .gamma import empirical_bayes_gamma_prior, gamma_credible_interval, gamma_poisson_posterior
+from .bayes import (
+    beta_binomial_posterior,
+    empirical_bayes_prior,
+    beta_credible_interval,
+)
+from .gamma import (
+    empirical_bayes_gamma_prior,
+    gamma_credible_interval,
+    gamma_poisson_posterior,
+)
 from .logistic import build_sparse_binary_design, fit_ridge_logistic_map
 from .tail import lognormal_fit, lognormal_tail_prob
 
@@ -62,7 +70,9 @@ def _normalize_slice_decl(slice_decl: Dict[str, Any]) -> Dict[str, Any]:
     return norm(dict(slice_decl or {}))
 
 
-def _corpus_time_bounds(rows: Sequence[CaseObservation]) -> Tuple[str | None, str | None]:
+def _corpus_time_bounds(
+    rows: Sequence[CaseObservation],
+) -> Tuple[str | None, str | None]:
     ds = [str(r.decision_date) for r in rows if r.decision_date]
     if not ds:
         return (None, None)
@@ -70,21 +80,31 @@ def _corpus_time_bounds(rows: Sequence[CaseObservation]) -> Tuple[str | None, st
     return (ds_sorted[0], ds_sorted[-1])
 
 
-def _require_slice_decl(slice_decl: Dict[str, Any] | None, *, group_by: Sequence[str]) -> Dict[str, Any]:
+def _require_slice_decl(
+    slice_decl: Dict[str, Any] | None, *, group_by: Sequence[str]
+) -> Dict[str, Any]:
     if slice_decl is None:
-        raise SliceDeclarationError("slice declaration is required (no silent defaults)")
+        raise SliceDeclarationError(
+            "slice declaration is required (no silent defaults)"
+        )
     if not isinstance(slice_decl, dict):
         raise SliceDeclarationError("slice must be a dict")
     if "filters" not in slice_decl:
         raise SliceDeclarationError("slice.filters is required (may be empty)")
     if "time_bounds_declared" not in slice_decl:
-        raise SliceDeclarationError("slice.time_bounds_declared is required (start/end may be null)")
+        raise SliceDeclarationError(
+            "slice.time_bounds_declared is required (start/end may be null)"
+        )
     if "group_by" not in slice_decl:
-        raise SliceDeclarationError("slice.group_by is required and must match group_by")
+        raise SliceDeclarationError(
+            "slice.group_by is required and must match group_by"
+        )
     declared_gb = tuple(str(x) for x in (slice_decl.get("group_by") or ()))
     gb = tuple(str(x) for x in (group_by or ()))
     if declared_gb != gb:
-        raise SliceDeclarationError(f"slice.group_by mismatch: declared={list(declared_gb)} actual={list(gb)}")
+        raise SliceDeclarationError(
+            f"slice.group_by mismatch: declared={list(declared_gb)} actual={list(gb)}"
+        )
     return _normalize_slice_decl(slice_decl)
 
 
@@ -107,13 +127,19 @@ def aggregate_outcomes(
     if not gb:
         gb = ("jurisdiction_id", "court_id", "court_level")
 
-    if (("judge_id" in gb) or ("panel_id" in gb) or ("panel_ids" in gb)) and not allow_individuals:
-        raise IndividualStatsDisabledError("Individual-level grouping is disabled by default (allow_individuals=false).")
+    if (
+        ("judge_id" in gb) or ("panel_id" in gb) or ("panel_ids" in gb)
+    ) and not allow_individuals:
+        raise IndividualStatsDisabledError(
+            "Individual-level grouping is disabled by default (allow_individuals=false)."
+        )
 
     slice_decl = _require_slice_decl(slice, group_by=gb)
 
     rows = normalize_observations(observations)
-    counts: Dict[Tuple[str, ...], Dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    counts: Dict[Tuple[str, ...], Dict[str, int]] = defaultdict(
+        lambda: defaultdict(int)
+    )
     totals: Dict[Tuple[str, ...], int] = defaultdict(int)
 
     for obs in rows:
@@ -156,7 +182,11 @@ def aggregate_outcomes(
         "interpretation_guard": _INTERPRETATION_GUARD,
         "allow_individuals": bool(allow_individuals),
         "slice": slice_decl,
-        "corpus": {"n_total": int(len(rows)), "time_min": time_min, "time_max": time_max},
+        "corpus": {
+            "n_total": int(len(rows)),
+            "time_min": time_min,
+            "time_max": time_max,
+        },
         "group_by": list(gb),
         "groups": groups_out,
     }
@@ -186,8 +216,12 @@ def aggregate_beta_binomial(
     if not bb:
         bb = ("jurisdiction_id", "court_id", "court_level")
 
-    if (("judge_id" in gb) or ("panel_id" in gb) or ("panel_ids" in gb)) and not allow_individuals:
-        raise IndividualStatsDisabledError("Individual-level grouping is disabled by default (allow_individuals=false).")
+    if (
+        ("judge_id" in gb) or ("panel_id" in gb) or ("panel_ids" in gb)
+    ) and not allow_individuals:
+        raise IndividualStatsDisabledError(
+            "Individual-level grouping is disabled by default (allow_individuals=false)."
+        )
 
     slice_decl = _require_slice_decl(slice, group_by=gb)
 
@@ -242,7 +276,13 @@ def aggregate_beta_binomial(
                 "baseline_key": list(bk),
                 "target_outcome": tgt,
                 "data": {"n": n, "y": y},
-                "prior": {"mu": mu, "kappa": float(kappa), "alpha0": post.alpha0, "beta0": post.beta0, "baseline_n": bn},
+                "prior": {
+                    "mu": mu,
+                    "kappa": float(kappa),
+                    "alpha0": post.alpha0,
+                    "beta0": post.beta0,
+                    "baseline_n": bn,
+                },
                 "posterior": {
                     "alpha": post.alpha,
                     "beta": post.beta,
@@ -263,7 +303,11 @@ def aggregate_beta_binomial(
         "interpretation_guard": _INTERPRETATION_GUARD,
         "allow_individuals": bool(allow_individuals),
         "slice": slice_decl,
-        "corpus": {"n_total": int(len(rows)), "time_min": time_min, "time_max": time_max},
+        "corpus": {
+            "n_total": int(len(rows)),
+            "time_min": time_min,
+            "time_max": time_max,
+        },
         "group_by": list(gb),
         "baseline_by": list(bb),
         "target_outcome": tgt,
@@ -297,8 +341,12 @@ def aggregate_gamma_poisson(
     if not bb:
         bb = ("jurisdiction_id", "court_id", "court_level")
 
-    if (("judge_id" in gb) or ("panel_id" in gb) or ("panel_ids" in gb)) and not allow_individuals:
-        raise IndividualStatsDisabledError("Individual-level grouping is disabled by default (allow_individuals=false).")
+    if (
+        ("judge_id" in gb) or ("panel_id" in gb) or ("panel_ids" in gb)
+    ) and not allow_individuals:
+        raise IndividualStatsDisabledError(
+            "Individual-level grouping is disabled by default (allow_individuals=false)."
+        )
 
     slice_decl = _require_slice_decl(slice, group_by=gb)
 
@@ -360,7 +408,13 @@ def aggregate_gamma_poisson(
                 "baseline_key": list(bk),
                 "event_key": ek,
                 "data": {"E": E, "y": y},
-                "prior": {"mu": mu, "kappa": float(kappa), "alpha0": post.alpha0, "beta0": post.beta0, "baseline_E": bE},
+                "prior": {
+                    "mu": mu,
+                    "kappa": float(kappa),
+                    "alpha0": post.alpha0,
+                    "beta0": post.beta0,
+                    "baseline_E": bE,
+                },
                 "posterior": {
                     "alpha": post.alpha,
                     "beta": post.beta,
@@ -381,7 +435,11 @@ def aggregate_gamma_poisson(
         "interpretation_guard": _INTERPRETATION_GUARD,
         "allow_individuals": bool(allow_individuals),
         "slice": slice_decl,
-        "corpus": {"n_total": int(len(rows)), "time_min": time_min, "time_max": time_max},
+        "corpus": {
+            "n_total": int(len(rows)),
+            "time_min": time_min,
+            "time_max": time_max,
+        },
         "group_by": list(gb),
         "baseline_by": list(bb),
         "event_key": ek,
@@ -414,8 +472,12 @@ def aggregate_ridge_logistic_map(
     if not gb:
         gb = ("jurisdiction_id", "court_id", "court_level")
 
-    if (("judge_id" in gb) or ("panel_id" in gb) or ("panel_ids" in gb)) and not allow_individuals:
-        raise IndividualStatsDisabledError("Individual-level grouping is disabled by default (allow_individuals=false).")
+    if (
+        ("judge_id" in gb) or ("panel_id" in gb) or ("panel_ids" in gb)
+    ) and not allow_individuals:
+        raise IndividualStatsDisabledError(
+            "Individual-level grouping is disabled by default (allow_individuals=false)."
+        )
 
     slice_decl = _require_slice_decl(slice, group_by=gb)
 
@@ -442,10 +504,15 @@ def aggregate_ridge_logistic_map(
             else:
                 y = [1 if ek in set(r.predicate_keys or ()) else 0 for r in g_rows]
         else:
-            y = [1 if OutcomeLabel.canonicalize(r.outcome) == tgt_out else 0 for r in g_rows]
+            y = [
+                1 if OutcomeLabel.canonicalize(r.outcome) == tgt_out else 0
+                for r in g_rows
+            ]
 
         pred = [tuple(r.predicate_keys or ()) for r in g_rows]
-        feat_names, sparse_rows = build_sparse_binary_design(y, pred, max_features=int(max_features))
+        feat_names, sparse_rows = build_sparse_binary_design(
+            y, pred, max_features=int(max_features)
+        )
         beta, se, converged, n_iter = fit_ridge_logistic_map(
             sparse_rows,
             n_features=len(feat_names),
@@ -458,7 +525,11 @@ def aggregate_ridge_logistic_map(
             {
                 "group_by": list(gb),
                 "group_key": list(gk),
-                "target": {"kind": kind, "outcome": tgt_out if kind == "outcome" else "", "event_key": ek if kind == "predicate" else ""},
+                "target": {
+                    "kind": kind,
+                    "outcome": tgt_out if kind == "outcome" else "",
+                    "event_key": ek if kind == "predicate" else "",
+                },
                 "data": {"n": int(len(g_rows)), "y_sum": int(sum(y))},
                 "fit": {
                     "feature_names": list(feat_names),
@@ -480,7 +551,11 @@ def aggregate_ridge_logistic_map(
         "interpretation_guard": _INTERPRETATION_GUARD,
         "allow_individuals": bool(allow_individuals),
         "slice": slice_decl,
-        "corpus": {"n_total": int(len(rows)), "time_min": time_min, "time_max": time_max},
+        "corpus": {
+            "n_total": int(len(rows)),
+            "time_min": time_min,
+            "time_max": time_max,
+        },
         "group_by": list(gb),
         "groups": groups,
     }
@@ -505,8 +580,12 @@ def aggregate_lognormal_tail(
     if not gb:
         gb = ("jurisdiction_id", "court_id", "court_level")
 
-    if (("judge_id" in gb) or ("panel_id" in gb) or ("panel_ids" in gb)) and not allow_individuals:
-        raise IndividualStatsDisabledError("Individual-level grouping is disabled by default (allow_individuals=false).")
+    if (
+        ("judge_id" in gb) or ("panel_id" in gb) or ("panel_ids" in gb)
+    ) and not allow_individuals:
+        raise IndividualStatsDisabledError(
+            "Individual-level grouping is disabled by default (allow_individuals=false)."
+        )
 
     slice_decl = _require_slice_decl(slice, group_by=gb)
 
@@ -526,11 +605,22 @@ def aggregate_lognormal_tail(
         n = obs.normalized()
         if n.case_id and n.jurisdiction_id and n.court_id and n.court_level:
             norm_pairs.append((n, float(v)))
-    norm_pairs.sort(key=lambda x: (x[0].jurisdiction_id, x[0].court_id, x[0].court_level, x[0].decision_date or "", x[0].case_id, x[1]))
+    norm_pairs.sort(
+        key=lambda x: (
+            x[0].jurisdiction_id,
+            x[0].court_id,
+            x[0].court_level,
+            x[0].decision_date or "",
+            x[0].case_id,
+            x[1],
+        )
+    )
 
     # Group by group_by keys.
     by_group: Dict[Tuple[str, ...], List[float]] = defaultdict(list)
-    by_group_meta: Dict[Tuple[str, ...], Dict[str, int]] = defaultdict(lambda: {"n_total": 0, "n_nonpositive": 0})
+    by_group_meta: Dict[Tuple[str, ...], Dict[str, int]] = defaultdict(
+        lambda: {"n_total": 0, "n_nonpositive": 0}
+    )
 
     for obs, v in norm_pairs:
         gk = _group_key(obs, gb)
@@ -563,7 +653,9 @@ def aggregate_lognormal_tail(
                     "mu": float(fit.mu),
                     "sigma": float(fit.sigma),
                 },
-                "tail": None if tail_p is None else {"threshold": float(threshold), "p_gt_threshold": float(tail_p)},
+                "tail": None
+                if tail_p is None
+                else {"threshold": float(threshold), "p_gt_threshold": float(tail_p)},
             }
         )
 
@@ -575,7 +667,11 @@ def aggregate_lognormal_tail(
         "interpretation_guard": _INTERPRETATION_GUARD,
         "allow_individuals": bool(allow_individuals),
         "slice": slice_decl,
-        "corpus": {"n_total": int(len(norm_pairs)), "time_min": time_min, "time_max": time_max},
+        "corpus": {
+            "n_total": int(len(norm_pairs)),
+            "time_min": time_min,
+            "time_max": time_max,
+        },
         "group_by": list(gb),
         "groups": groups,
     }

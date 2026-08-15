@@ -8,7 +8,9 @@ from src.policy.world_model_runtime import (
 )
 
 
-def attach_receipt(artifact: Mapping[str, Any], *, profile: str = "broader_review") -> dict[str, Any]:
+def attach_receipt(
+    artifact: Mapping[str, Any], *, profile: str = "broader_review"
+) -> dict[str, Any]:
     return _attach_receipt(artifact)
 
 
@@ -16,7 +18,9 @@ def _text(value: Any) -> str:
     return str(value or "").strip()
 
 
-def build_world_model(payload_or_conn: Any, *, profile: str = "broader_review", run_id: str | None = None) -> dict[str, Any]:
+def build_world_model(
+    payload_or_conn: Any, *, profile: str = "broader_review", run_id: str | None = None
+) -> dict[str, Any]:
     if profile == "broader_review":
         return _build_world_model_from_input(payload_or_conn)
     if profile in {"semantic", "narrative_timeline"}:
@@ -48,14 +52,20 @@ def build_report(
     run_id: str | None = None,
     with_receipt: bool = False,
 ) -> dict[str, Any]:
-    report = _project_report(build_world_model(payload_or_conn, profile=profile, run_id=run_id))
+    report = _project_report(
+        build_world_model(payload_or_conn, profile=profile, run_id=run_id)
+    )
     if not with_receipt:
         return report
     return _attach_receipt(report)
 
 
-def build_semantic_report(conn: Any, *, run_id: str, with_receipt: bool = False) -> dict[str, Any]:
-    return build_report(conn, profile="narrative_timeline", run_id=run_id, with_receipt=with_receipt)
+def build_semantic_report(
+    conn: Any, *, run_id: str, with_receipt: bool = False
+) -> dict[str, Any]:
+    return build_report(
+        conn, profile="narrative_timeline", run_id=run_id, with_receipt=with_receipt
+    )
 
 
 __all__ = [

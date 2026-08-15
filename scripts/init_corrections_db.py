@@ -39,7 +39,9 @@ def create_schema(database: Path) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Initialise the corrections ledger database")
+    parser = argparse.ArgumentParser(
+        description="Initialise the corrections ledger database"
+    )
     parser.add_argument(
         "database",
         type=Path,

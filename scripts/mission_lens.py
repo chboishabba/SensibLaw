@@ -38,7 +38,9 @@ def _activity_ref_id(row: dict[str, Any]) -> str:
         "source_path": str(row.get("source_path") or ""),
         "meta": row.get("meta") if isinstance(row.get("meta"), dict) else {},
     }
-    digest = hashlib.sha1(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()[:16]
+    digest = hashlib.sha1(
+        json.dumps(payload, sort_keys=True).encode("utf-8")
+    ).hexdigest()[:16]
     return f"activity:{digest}"
 
 
@@ -46,8 +48,12 @@ def _mapping_action_id(run_id: str, activity_ref_id: str, suffix: str) -> str:
     return f"map:{_slug(run_id)}:{_slug(activity_ref_id)}:{suffix}:{time.time_ns()}"
 
 
-def _timeline_activity_rows(payload: dict[str, Any], extra_rows: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
-    timeline = payload.get("timeline") if isinstance(payload.get("timeline"), list) else []
+def _timeline_activity_rows(
+    payload: dict[str, Any], extra_rows: list[dict[str, Any]] | None = None
+) -> list[dict[str, Any]]:
+    timeline = (
+        payload.get("timeline") if isinstance(payload.get("timeline"), list) else []
+    )
     rows: list[dict[str, Any]] = []
     for idx, row in enumerate(timeline):
         if not isinstance(row, dict):
@@ -81,18 +87,34 @@ def _timeline_activity_rows(payload: dict[str, Any], extra_rows: list[dict[str, 
     return rows
 
 
-def _dashboard_totals(payload: dict[str, Any], extra_rows: list[dict[str, Any]] | None = None) -> dict[str, float]:
-    freq = payload.get("frequency_by_hour") if isinstance(payload.get("frequency_by_hour"), dict) else {}
+def _dashboard_totals(
+    payload: dict[str, Any], extra_rows: list[dict[str, Any]] | None = None
+) -> dict[str, float]:
+    freq = (
+        payload.get("frequency_by_hour")
+        if isinstance(payload.get("frequency_by_hour"), dict)
+        else {}
+    )
     totals: dict[str, float] = {}
     for lane, bins in freq.items():
         if isinstance(bins, list):
-            totals[str(lane)] = float(sum(int(v) for v in bins if isinstance(v, (int, float))))
+            totals[str(lane)] = float(
+                sum(int(v) for v in bins if isinstance(v, (int, float)))
+            )
     timeline = _timeline_activity_rows(payload, extra_rows=extra_rows)
     if not totals:
-        by_kind = Counter(str(row.get("kind") or "unknown") for row in timeline if isinstance(row, dict))
+        by_kind = Counter(
+            str(row.get("kind") or "unknown")
+            for row in timeline
+            if isinstance(row, dict)
+        )
         totals = {kind: float(count) for kind, count in by_kind.items()}
     else:
-        extra_counts = Counter(str(row.get("kind") or "unknown") for row in (extra_rows or []) if isinstance(row, dict))
+        extra_counts = Counter(
+            str(row.get("kind") or "unknown")
+            for row in (extra_rows or [])
+            if isinstance(row, dict)
+        )
         for kind, count in extra_counts.items():
             totals[str(kind)] = float(totals.get(str(kind), 0.0) + float(count))
     return totals
@@ -104,11 +126,15 @@ def _clip(value: str, limit: int = 80) -> str:
     return value[: limit - 1].rstrip() + "…"
 
 
-def _lexical_candidates(row: dict[str, Any], plan: dict[str, Any]) -> list[dict[str, Any]]:
+def _lexical_candidates(
+    row: dict[str, Any], plan: dict[str, Any]
+) -> list[dict[str, Any]]:
     field_texts = {
         "detail": str(row.get("detail") or ""),
         "sourcePath": str(row.get("sourcePath") or ""),
-        "meta": json.dumps(row.get("meta", {}), sort_keys=True) if isinstance(row.get("meta"), dict) else "",
+        "meta": json.dumps(row.get("meta", {}), sort_keys=True)
+        if isinstance(row.get("meta"), dict)
+        else "",
     }
     normalized_fields = {key: _norm(value) for key, value in field_texts.items()}
     candidates: list[dict[str, Any]] = []
@@ -117,7 +143,9 @@ def _lexical_candidates(row: dict[str, Any], plan: dict[str, Any]) -> list[dict[
         matched_term = _norm(title)
         if not matched_term:
             continue
-        matched_fields = [field for field, text in normalized_fields.items() if matched_term in text]
+        matched_fields = [
+            field for field, text in normalized_fields.items() if matched_term in text
+        ]
         if not matched_fields:
             continue
         snippets = [
@@ -138,7 +166,13 @@ def _lexical_candidates(row: dict[str, Any], plan: dict[str, Any]) -> list[dict[
                 "score": len(matched_fields),
             }
         )
-    candidates.sort(key=lambda item: (-int(item["score"]), str(item["matchedTitle"]), str(item["planNodeId"])))
+    candidates.sort(
+        key=lambda item: (
+            -int(item["score"]),
+            str(item["matchedTitle"]),
+            str(item["planNodeId"]),
+        )
+    )
     return candidates
 
 
@@ -198,7 +232,13 @@ def _match_actuals_to_plan(
     reviewed_current: list[dict[str, Any]],
     *,
     extra_rows: list[dict[str, Any]] | None = None,
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, dict[str, float]], list[dict[str, Any]], dict[str, int]]:
+) -> tuple[
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    dict[str, dict[str, float]],
+    list[dict[str, Any]],
+    dict[str, int],
+]:
     timeline = _timeline_activity_rows(payload, extra_rows=extra_rows)
     left_weights = _dashboard_totals(payload, extra_rows=extra_rows)
     node_matches: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
@@ -206,8 +246,7 @@ def _match_actuals_to_plan(
     for mapping in reviewed_mappings:
         reviewed_by_activity[str(mapping.get("activityRefId") or "")].append(mapping)
     current_by_activity = {
-        str(mapping.get("activityRefId") or ""): mapping
-        for mapping in reviewed_current
+        str(mapping.get("activityRefId") or ""): mapping for mapping in reviewed_current
     }
     activity_rows: list[dict[str, Any]] = []
     counters = {
@@ -248,16 +287,25 @@ def _match_actuals_to_plan(
             effective_plan_node_id = str(current.get("planNodeId") or "") or None
             mapping_receipts = [
                 {"kind": "current_status", "value": mapping_status},
-                {"kind": "effective_mapping_id", "value": str(current.get("mappingId") or "")},
+                {
+                    "kind": "effective_mapping_id",
+                    "value": str(current.get("mappingId") or ""),
+                },
             ]
             if current.get("note"):
-                mapping_receipts.append({"kind": "review_note", "value": str(current.get("note"))})
+                mapping_receipts.append(
+                    {"kind": "review_note", "value": str(current.get("note"))}
+                )
             for mapping in reviewed[:3]:
                 mapping_receipts.extend(mapping.get("receipts") or [])
             if mapping_status in {"linked", "reassigned"} and effective_plan_node_id:
                 node_matches[effective_plan_node_id][kind] += 1.0
                 matched_plan_node_ids.append(effective_plan_node_id)
-                counters["reviewed_linked" if mapping_status == "linked" else "reviewed_reassigned"] += 1
+                counters[
+                    "reviewed_linked"
+                    if mapping_status == "linked"
+                    else "reviewed_reassigned"
+                ] += 1
                 counters["reviewed_override_count"] += 1
             elif mapping_status == "unlinked":
                 counters["reviewed_unlinked"] += 1
@@ -307,15 +355,22 @@ def _match_actuals_to_plan(
                         },
                         {
                             "kind": "lexical_fields",
-                            "value": ",".join(str(field) for field in candidates[0]["matchedFields"]),
+                            "value": ",".join(
+                                str(field) for field in candidates[0]["matchedFields"]
+                            ),
                         },
                     ]
                     counters["lexical_linked"] += 1
                     if len(candidates) > 1:
-                        counters["lexical_ambiguous"] = counters.get("lexical_ambiguous", 0) + 1
+                        counters["lexical_ambiguous"] = (
+                            counters.get("lexical_ambiguous", 0) + 1
+                        )
                     if recommendation["recommendedAction"] == "auto_link_safe":
                         counters["recommended_safe"] += 1
-                    elif recommendation["recommendedAction"] == "review_primary_vs_alternative":
+                    elif (
+                        recommendation["recommendedAction"]
+                        == "review_primary_vs_alternative"
+                    ):
                         counters["recommended_review"] += 1
                 else:
                     mapping_status = "unmapped"
@@ -351,7 +406,9 @@ def _match_actuals_to_plan(
             "color": "#dbeafe" if kind != "unmapped" else "#fde68a",
             "tooltip": f"Observed {kind} weight {weight:.0f}",
         }
-        for kind, weight in sorted(left_weights.items(), key=lambda item: (-item[1], item[0]))
+        for kind, weight in sorted(
+            left_weights.items(), key=lambda item: (-item[1], item[0])
+        )
         if weight > 0
     ]
     if node_matches.get("unmapped", {}).get("unmapped"):
@@ -381,7 +438,9 @@ def _match_actuals_to_plan(
     return left, edges, node_matches, activity_rows, counters
 
 
-def _build_layered_graph(plan: dict[str, Any], drift_by_node: dict[str, dict[str, float]]) -> dict[str, Any]:
+def _build_layered_graph(
+    plan: dict[str, Any], drift_by_node: dict[str, dict[str, float]]
+) -> dict[str, Any]:
     layers_by_kind = {
         "mission": [],
         "phase": [],
@@ -398,7 +457,11 @@ def _build_layered_graph(plan: dict[str, Any], drift_by_node: dict[str, dict[str
         item = {
             "id": f"plan:{node['planNodeId']}",
             "label": label,
-            "color": "#dcfce7" if actual >= target and target > 0 else "#fee2e2" if target > 0 else "#e5e7eb",
+            "color": "#dcfce7"
+            if actual >= target and target > 0
+            else "#fee2e2"
+            if target > 0
+            else "#e5e7eb",
             "tooltip": json.dumps(
                 {
                     "status": node.get("status"),
@@ -411,13 +474,19 @@ def _build_layered_graph(plan: dict[str, Any], drift_by_node: dict[str, dict[str
         }
         layers_by_kind.setdefault(kind, []).append(item)
     order = ["mission", "phase", "task", "subtask", "set"]
-    layers = [{"id": kind, "title": kind.title(), "nodes": layers_by_kind.get(kind, [])} for kind in order if layers_by_kind.get(kind)]
+    layers = [
+        {"id": kind, "title": kind.title(), "nodes": layers_by_kind.get(kind, [])}
+        for kind in order
+        if layers_by_kind.get(kind)
+    ]
     edges = [
         {
             "from": f"plan:{row['fromPlanNodeId']}",
             "to": f"plan:{row['toPlanNodeId']}",
             "label": str(row.get("edgeKind") or ""),
-            "kind": "sequence" if str(row.get("edgeKind")) == "depends_on" else "context",
+            "kind": "sequence"
+            if str(row.get("edgeKind")) == "depends_on"
+            else "context",
         }
         for row in plan.get("edges", [])
     ]
@@ -425,7 +494,9 @@ def _build_layered_graph(plan: dict[str, Any], drift_by_node: dict[str, dict[str
 
 
 def _latest_run_id(conn: sqlite3.Connection) -> str | None:
-    row = conn.execute("SELECT run_id FROM mission_runs ORDER BY datetime(created_at) DESC, run_id DESC LIMIT 1").fetchone()
+    row = conn.execute(
+        "SELECT run_id FROM mission_runs ORDER BY datetime(created_at) DESC, run_id DESC LIMIT 1"
+    ).fetchone()
     return str(row["run_id"]) if row is not None else None
 
 
@@ -448,8 +519,15 @@ def build_mission_lens_report(
         load_mission_observer,
         load_mission_plan,
     )
-    from src.reporting.openrecall_import import ensure_openrecall_capture_schema, load_openrecall_activity_rows  # noqa: PLC0415
-    from sb.dashboard_store_sqlite import DashboardKey, load_best_daily_payload_for_date, load_dashboard_payload  # noqa: PLC0415
+    from src.reporting.openrecall_import import (
+        ensure_openrecall_capture_schema,
+        load_openrecall_activity_rows,
+    )  # noqa: PLC0415
+    from sb.dashboard_store_sqlite import (
+        DashboardKey,
+        load_best_daily_payload_for_date,
+        load_dashboard_payload,
+    )  # noqa: PLC0415
 
     with sqlite3.connect(str(itir_db_path)) as itir_conn:
         itir_conn.row_factory = sqlite3.Row
@@ -460,7 +538,13 @@ def build_mission_lens_report(
             return {
                 "date": date,
                 "run_id": None,
-                "mission_observer": {"summary": {}, "missions": [], "followups": [], "sb_observer_overlays": [], "unavailableReason": "No mission runs exist yet."},
+                "mission_observer": {
+                    "summary": {},
+                    "missions": [],
+                    "followups": [],
+                    "sb_observer_overlays": [],
+                    "unavailableReason": "No mission runs exist yet.",
+                },
                 "planning_graph": {"nodes": [], "edges": []},
                 "actual_allocation": {"left": [], "right": [], "edges": []},
                 "deadline_summary": [],
@@ -469,24 +553,44 @@ def build_mission_lens_report(
             }
         mission_observer = load_mission_observer(itir_conn, run_id=active_run_id)
         plan = load_mission_plan(itir_conn, run_id=active_run_id)
-        reviewed_mappings = load_mission_actual_mappings(itir_conn, run_id=active_run_id)
-        reviewed_current = load_mission_actual_mapping_current(itir_conn, run_id=active_run_id)
+        reviewed_mappings = load_mission_actual_mappings(
+            itir_conn, run_id=active_run_id
+        )
+        reviewed_current = load_mission_actual_mapping_current(
+            itir_conn, run_id=active_run_id
+        )
         openrecall_rows = load_openrecall_activity_rows(itir_conn, date=date, limit=200)
 
     dashboard = load_best_daily_payload_for_date(db_path=sb_db_path, date=date)
     if dashboard is None:
-        dashboard = (load_dashboard_payload(db_path=sb_db_path, key=DashboardKey(date=date, view="daily", scope="scoped", window_days=0)), "scoped")
+        dashboard = (
+            load_dashboard_payload(
+                db_path=sb_db_path,
+                key=DashboardKey(
+                    date=date, view="daily", scope="scoped", window_days=0
+                ),
+            ),
+            "scoped",
+        )
     payload = dashboard[0] if dashboard is not None else {}
     scope = dashboard[1] if dashboard is not None else None
-    left, actual_edges, node_matches, activity_rows, mapping_summary = _match_actuals_to_plan(
-        payload or {}, plan, reviewed_mappings, reviewed_current, extra_rows=openrecall_rows
+    left, actual_edges, node_matches, activity_rows, mapping_summary = (
+        _match_actuals_to_plan(
+            payload or {},
+            plan,
+            reviewed_mappings,
+            reviewed_current,
+            extra_rows=openrecall_rows,
+        )
     )
     right = [
         {
             "id": f"plan:{node['planNodeId']}",
             "label": f"{node['title']} ({int(node['targetWeight'])})",
             "weight": float(node["targetWeight"]),
-            "color": "#dcfce7" if str(node.get("sourceKind")) == "manual" else "#ede9fe",
+            "color": "#dcfce7"
+            if str(node.get("sourceKind")) == "manual"
+            else "#ede9fe",
             "tooltip": json.dumps(
                 {
                     "status": node.get("status"),
@@ -503,7 +607,11 @@ def build_mission_lens_report(
         actual = float(sum(node_matches.get(str(node["planNodeId"]), {}).values()))
         target = float(node.get("targetWeight") or 0.0)
         drift = actual - target
-        drift_by_node[str(node["planNodeId"])] = {"actual": actual, "target": target, "drift": drift}
+        drift_by_node[str(node["planNodeId"])] = {
+            "actual": actual,
+            "target": target,
+            "drift": drift,
+        }
         drift_summary.append(
             {
                 "planNodeId": str(node["planNodeId"]),
@@ -521,7 +629,11 @@ def build_mission_lens_report(
             **(node.get("deadline") or {}),
         }
         for node in plan.get("nodes", [])
-        if isinstance(node.get("deadline"), dict) and ((node["deadline"] or {}).get("rawPhrase") or (node["deadline"] or {}).get("dueStart"))
+        if isinstance(node.get("deadline"), dict)
+        and (
+            (node["deadline"] or {}).get("rawPhrase")
+            or (node["deadline"] or {}).get("dueStart")
+        )
     ]
     return {
         "date": date,
@@ -531,7 +643,10 @@ def build_mission_lens_report(
         "planning_graph": plan,
         "actual_allocation": {"left": left, "right": right, "edges": actual_edges},
         "deadline_summary": deadline_summary,
-        "drift_summary": sorted(drift_summary, key=lambda row: (-abs(float(row["drift"])), str(row["title"]))),
+        "drift_summary": sorted(
+            drift_summary,
+            key=lambda row: (-abs(float(row["drift"])), str(row["title"])),
+        ),
         "layered_graph": _build_layered_graph(plan, drift_by_node),
         "activity_rows": activity_rows[:80],
         "actual_mapping_summary": mapping_summary,
@@ -543,7 +658,9 @@ def build_mission_lens_report(
             "planning_edge_count": len(plan.get("edges", [])),
             "mapped_actual_edge_count": len(actual_edges),
             "deadline_count": len(deadline_summary),
-            "mission_count": int((mission_observer.get("summary") or {}).get("mission_count", 0)),
+            "mission_count": int(
+                (mission_observer.get("summary") or {}).get("mission_count", 0)
+            ),
             "reviewed_actual_mapping_count": len(reviewed_current),
             "openrecall_activity_count": len(openrecall_rows),
         },
@@ -583,7 +700,10 @@ def apply_safe_recommendations(
     repo_root = Path(__file__).resolve().parents[2]
     if str(repo_root / "SensibLaw") not in sys.path:
         sys.path.insert(0, str(repo_root / "SensibLaw"))
-    from src.gwb_us_law.semantic import ensure_gwb_semantic_schema, upsert_mission_actual_mapping  # noqa: PLC0415
+    from src.gwb_us_law.semantic import (
+        ensure_gwb_semantic_schema,
+        upsert_mission_actual_mapping,
+    )  # noqa: PLC0415
 
     applied_ids: list[str] = []
     with sqlite3.connect(str(itir_db_path)) as conn:
@@ -595,7 +715,9 @@ def apply_safe_recommendations(
             upsert_mission_actual_mapping(
                 conn,
                 run_id=run_id,
-                mapping_id=_mapping_action_id(run_id, activity_ref_id, _slug(plan_node_id)),
+                mapping_id=_mapping_action_id(
+                    run_id, activity_ref_id, _slug(plan_node_id)
+                ),
                 activity_ref_id=activity_ref_id,
                 plan_node_id=plan_node_id,
                 mapping_kind="reviewed_link",
@@ -604,8 +726,14 @@ def apply_safe_recommendations(
                 note=f"Bulk applied safe recommendation: {row.get('recommendationReason') or 'safe lexical match'}",
                 receipts=[
                     ("authoring", "mission_lens_bulk_safe"),
-                    ("recommendation_kind", str(row.get("recommendationKind") or "auto_link_safe")),
-                    ("recommendation_reason", str(row.get("recommendationReason") or "")),
+                    (
+                        "recommendation_kind",
+                        str(row.get("recommendationKind") or "auto_link_safe"),
+                    ),
+                    (
+                        "recommendation_reason",
+                        str(row.get("recommendationReason") or ""),
+                    ),
                     ("activity_ref_id", activity_ref_id),
                 ],
             )
@@ -620,7 +748,9 @@ def apply_safe_recommendations(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build or mutate the fused mission lens artifact.")
+    parser = argparse.ArgumentParser(
+        description="Build or mutate the fused mission lens artifact."
+    )
     parser.add_argument("--itir-db-path", default=".cache_local/itir.sqlite")
     parser.add_argument("--sb-db-path", default="")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -690,10 +820,18 @@ def main() -> int:
     repo_root = Path(__file__).resolve().parents[2]
     if str(repo_root / "SensibLaw") not in sys.path:
         sys.path.insert(0, str(repo_root / "SensibLaw"))
-    from src.gwb_us_law.semantic import ensure_gwb_semantic_schema, upsert_mission_actual_mapping, upsert_mission_plan_node  # noqa: PLC0415
+    from src.gwb_us_law.semantic import (
+        ensure_gwb_semantic_schema,
+        upsert_mission_actual_mapping,
+        upsert_mission_plan_node,
+    )  # noqa: PLC0415
 
     itir_db_path = Path(args.itir_db_path).expanduser().resolve()
-    sb_db_path = Path(args.sb_db_path).expanduser().resolve() if getattr(args, "sb_db_path", "") else (repo_root / "StatiBaker" / "runs" / "dashboard.sqlite")
+    sb_db_path = (
+        Path(args.sb_db_path).expanduser().resolve()
+        if getattr(args, "sb_db_path", "")
+        else (repo_root / "StatiBaker" / "runs" / "dashboard.sqlite")
+    )
     if args.cmd == "report":
         payload = build_mission_lens_report(
             itir_db_path=itir_db_path,
@@ -715,7 +853,9 @@ def main() -> int:
             payload = upsert_mission_plan_node(
                 conn,
                 run_id=str(args.run_id),
-                plan_node_id=str(args.plan_node_id or f"plan:manual:{_slug(args.title)}"),
+                plan_node_id=str(
+                    args.plan_node_id or f"plan:manual:{_slug(args.title)}"
+                ),
                 node_kind=str(args.node_kind),
                 title=str(args.title),
                 status=str(args.status),
@@ -729,7 +869,10 @@ def main() -> int:
                 certainty_kind=str(args.certainty_kind or "") or None,
                 urgency_level=str(args.urgency_level or "") or None,
                 flexibility_level=str(args.flexibility_level or "") or None,
-                receipts=[("source_kind", str(args.source_kind)), ("authoring", "mission_lens_ui")],
+                receipts=[
+                    ("source_kind", str(args.source_kind)),
+                    ("authoring", "mission_lens_ui"),
+                ],
             )
             conn.commit()
     else:
@@ -737,7 +880,12 @@ def main() -> int:
             conn.row_factory = sqlite3.Row
             ensure_gwb_semantic_schema(conn)
             if args.cmd == "add-mapping":
-                mapping_id = str(args.mapping_id or _mapping_action_id(args.run_id, args.activity_ref_id, _slug(args.plan_node_id)))
+                mapping_id = str(
+                    args.mapping_id
+                    or _mapping_action_id(
+                        args.run_id, args.activity_ref_id, _slug(args.plan_node_id)
+                    )
+                )
                 mapping_kind = str(args.mapping_kind)
                 status = str(args.status)
                 plan_node_id = str(args.plan_node_id)
@@ -747,11 +895,20 @@ def main() -> int:
                     ("activity_ref_id", str(args.activity_ref_id)),
                 ]
                 if str(args.recommendation_kind or "").strip():
-                    receipts.append(("recommendation_kind", str(args.recommendation_kind)))
+                    receipts.append(
+                        ("recommendation_kind", str(args.recommendation_kind))
+                    )
                 if str(args.recommendation_reason or "").strip():
-                    receipts.append(("recommendation_reason", str(args.recommendation_reason)))
+                    receipts.append(
+                        ("recommendation_reason", str(args.recommendation_reason))
+                    )
             elif args.cmd == "reassign-mapping":
-                mapping_id = str(args.mapping_id or _mapping_action_id(args.run_id, args.activity_ref_id, _slug(args.plan_node_id)))
+                mapping_id = str(
+                    args.mapping_id
+                    or _mapping_action_id(
+                        args.run_id, args.activity_ref_id, _slug(args.plan_node_id)
+                    )
+                )
                 mapping_kind = "reviewed_reassign"
                 status = "reassigned"
                 plan_node_id = str(args.plan_node_id)
@@ -761,7 +918,10 @@ def main() -> int:
                     ("activity_ref_id", str(args.activity_ref_id)),
                 ]
             elif args.cmd == "unlink-mapping":
-                mapping_id = str(args.mapping_id or _mapping_action_id(args.run_id, args.activity_ref_id, "unlinked"))
+                mapping_id = str(
+                    args.mapping_id
+                    or _mapping_action_id(args.run_id, args.activity_ref_id, "unlinked")
+                )
                 mapping_kind = "reviewed_unlink"
                 status = "unlinked"
                 plan_node_id = None
@@ -771,7 +931,12 @@ def main() -> int:
                     ("activity_ref_id", str(args.activity_ref_id)),
                 ]
             else:
-                mapping_id = str(args.mapping_id or _mapping_action_id(args.run_id, args.activity_ref_id, "abstained"))
+                mapping_id = str(
+                    args.mapping_id
+                    or _mapping_action_id(
+                        args.run_id, args.activity_ref_id, "abstained"
+                    )
+                )
                 mapping_kind = "reviewed_abstain"
                 status = "abstained"
                 plan_node_id = None

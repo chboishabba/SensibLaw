@@ -13,7 +13,8 @@ from src.sources.us_official import (
 
 def test_grouped_packet_contains_both_lanes() -> None:
     packet = build_grouped_official_packet(
-        [build_congress_gov_doc(), build_govinfo_doc()], packet_id="moonshot-us-official-1"
+        [build_congress_gov_doc(), build_govinfo_doc()],
+        packet_id="moonshot-us-official-1",
     )
 
     assert packet["doc_count"] == 2
@@ -53,6 +54,8 @@ def test_follow_contract_builds_requests() -> None:
     assert contract["strategy"] == "bounded_official_follow"
     assert len(contract["requests"]) == 2
     first = contract["requests"][0]
-    assert first["doc_id"].startswith("congress") or first["doc_id"].startswith("govinfo")
+    assert first["doc_id"].startswith("congress") or first["doc_id"].startswith(
+        "govinfo"
+    )
     assert first["policy_flags"]
     assert contract["adapter_constraints"]["tie_policy_flags"] is True

@@ -45,7 +45,10 @@ class _TimedEmitter:
             self.last_emit_monotonic = time.monotonic()
             return True
         now = time.monotonic()
-        if self.last_emit_monotonic == 0.0 or (now - self.last_emit_monotonic) >= self.interval_seconds:
+        if (
+            self.last_emit_monotonic == 0.0
+            or (now - self.last_emit_monotonic) >= self.interval_seconds
+        ):
             self.last_emit_monotonic = now
             return True
         return False
@@ -91,7 +94,9 @@ def _preflight_pdf_counts(
     total_chars = 0
     pdf_page_total = None
     try:
-        from src.pdf_ingest import _count_pdf_pages  # local import to keep script surface narrow
+        from src.pdf_ingest import (
+            _count_pdf_pages,
+        )  # local import to keep script surface narrow
 
         pdf_page_total = _count_pdf_pages(pdf)
     except Exception:
@@ -235,7 +240,9 @@ def _build_entry(
                 word_rate = _safe_rate(words_seen, elapsed_seconds)
                 eta_seconds = _safe_eta(totals["total_words"] - words_seen, word_rate)
                 overall_elapsed_seconds = round(time.monotonic() - batch_started_at, 3)
-                overall_word_rate = _safe_rate(overall_words_seen, overall_elapsed_seconds)
+                overall_word_rate = _safe_rate(
+                    overall_words_seen, overall_elapsed_seconds
+                )
                 overall_eta_seconds = _safe_eta(
                     overall_totals["total_words"] - overall_words_seen,
                     overall_word_rate,
@@ -264,15 +271,23 @@ def _build_entry(
                     char_count=chars_seen,
                     total_chars=totals["total_chars"],
                     elapsed_seconds=elapsed_seconds,
-                    words_per_second=round(word_rate, 3) if word_rate is not None else None,
-                    eta_seconds=round(eta_seconds, 3) if eta_seconds is not None else None,
+                    words_per_second=round(word_rate, 3)
+                    if word_rate is not None
+                    else None,
+                    eta_seconds=round(eta_seconds, 3)
+                    if eta_seconds is not None
+                    else None,
                     overall_words_seen=overall_words_seen,
                     overall_total_words=overall_totals["total_words"],
                     overall_chars_seen=overall_chars_seen,
                     overall_total_chars=overall_totals["total_chars"],
                     overall_elapsed_seconds=overall_elapsed_seconds,
-                    overall_words_per_second=round(overall_word_rate, 3) if overall_word_rate is not None else None,
-                    overall_eta_seconds=round(overall_eta_seconds, 3) if overall_eta_seconds is not None else None,
+                    overall_words_per_second=round(overall_word_rate, 3)
+                    if overall_word_rate is not None
+                    else None,
+                    overall_eta_seconds=round(overall_eta_seconds, 3)
+                    if overall_eta_seconds is not None
+                    else None,
                 )
                 last_emitted_words_seen = words_seen
             continue
@@ -328,25 +343,33 @@ def _build_entry(
         )
         sentence_progress = ""
         if details.get("total_sentences") is not None:
-            sentence_progress = (
-                f" sentences={details.get('sentences_done')}/{details.get('total_sentences')}"
-            )
+            sentence_progress = f" sentences={details.get('sentences_done')}/{details.get('total_sentences')}"
         word_progress = ""
         if details.get("total_words") is not None and work_unit != "words":
-            word_progress = f" words={details.get('words_done')}/{details.get('total_words')}"
+            word_progress = (
+                f" words={details.get('words_done')}/{details.get('total_words')}"
+            )
         work_progress = ""
         if has_work_progress:
-            work_progress = (
-                f" {work_unit}={work_completed}/{work_total}"
-            )
+            work_progress = f" {work_unit}={work_completed}/{work_total}"
         progress_text = ""
         if work_fraction_complete is not None:
-            progress_text = f" progress={round(float(work_fraction_complete) * 100, 1)}%"
+            progress_text = (
+                f" progress={round(float(work_fraction_complete) * 100, 1)}%"
+            )
         elif stage_fraction_complete is not None:
-            progress_text = f" stage_progress={round(float(stage_fraction_complete) * 100, 1)}%"
+            progress_text = (
+                f" stage_progress={round(float(stage_fraction_complete) * 100, 1)}%"
+            )
         step_text = ""
-        if not has_work_progress and details.get("completed_steps") is not None and details.get("total_steps") is not None:
-            step_text = f" step={details.get('completed_steps')}/{details.get('total_steps')}"
+        if (
+            not has_work_progress
+            and details.get("completed_steps") is not None
+            and details.get("total_steps") is not None
+        ):
+            step_text = (
+                f" step={details.get('completed_steps')}/{details.get('total_steps')}"
+            )
         _emit(
             progress_callback,
             "demo_pdf_feed_progress",

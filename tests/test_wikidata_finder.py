@@ -28,7 +28,9 @@ class _FakeResponse:
         return self._payload
 
 
-def _statement(qid: str, value_qid: str, *, time: str | None = None, reason_qid: str | None = None):
+def _statement(
+    qid: str, value_qid: str, *, time: str | None = None, reason_qid: str | None = None
+):
     qualifiers = {}
     if time is not None:
         qualifiers["P585"] = [{"datavalue": {"value": {"time": time}}}]
@@ -64,12 +66,16 @@ def _fake_requests_get(url, *, params=None, headers=None, timeout=None):
                         "bindings": [
                             {
                                 "item": {"value": "http://www.wikidata.org/entity/Q1"},
-                                "statement": {"value": "http://www.wikidata.org/entity/statement/Q1-s1"},
+                                "statement": {
+                                    "value": "http://www.wikidata.org/entity/statement/Q1-s1"
+                                },
                                 "qualifier_pid": {"value": "P585"},
                             },
                             {
                                 "item": {"value": "http://www.wikidata.org/entity/Q1"},
-                                "statement": {"value": "http://www.wikidata.org/entity/statement/Q1-s1"},
+                                "statement": {
+                                    "value": "http://www.wikidata.org/entity/statement/Q1-s1"
+                                },
                                 "qualifier_pid": {"value": "P7452"},
                             },
                         ]
@@ -83,21 +89,23 @@ def _fake_requests_get(url, *, params=None, headers=None, timeout=None):
                         "bindings": [
                             {
                                 "item": {"value": "http://www.wikidata.org/entity/Q2"},
-                                "statement": {"value": "http://www.wikidata.org/entity/statement/Q2-s1"},
+                                "statement": {
+                                    "value": "http://www.wikidata.org/entity/statement/Q2-s1"
+                                },
                                 "qualifier_pid": {"value": "P580"},
                             },
                             {
                                 "item": {"value": "http://www.wikidata.org/entity/Q2"},
-                                "statement": {"value": "http://www.wikidata.org/entity/statement/Q2-s1"},
+                                "statement": {
+                                    "value": "http://www.wikidata.org/entity/statement/Q2-s1"
+                                },
                                 "qualifier_pid": {"value": "P582"},
                             },
                         ]
                     }
                 }
             )
-        return _FakeResponse(
-            {"results": {"bindings": []}}
-        )
+        return _FakeResponse({"results": {"bindings": []}})
     if url == wikidata_mod.MEDIAWIKI_API_ENDPOINT:
         title = params["titles"]
         if title == "Q1":
@@ -168,8 +176,20 @@ def _fake_requests_get(url, *, params=None, headers=None, timeout=None):
                             "rank": "preferred",
                             "mainsnak": {"datavalue": {"value": {"id": "Qoffice"}}},
                             "qualifiers": {
-                                "P580": [{"datavalue": {"value": {"time": "+2000-01-01T00:00:00Z"}}}],
-                                "P582": [{"datavalue": {"value": {"time": "+2001-01-01T00:00:00Z"}}}],
+                                "P580": [
+                                    {
+                                        "datavalue": {
+                                            "value": {"time": "+2000-01-01T00:00:00Z"}
+                                        }
+                                    }
+                                ],
+                                "P582": [
+                                    {
+                                        "datavalue": {
+                                            "value": {"time": "+2001-01-01T00:00:00Z"}
+                                        }
+                                    }
+                                ],
                             },
                             "references": [],
                         }
@@ -188,8 +208,20 @@ def _fake_requests_get(url, *, params=None, headers=None, timeout=None):
                             "rank": "preferred",
                             "mainsnak": {"datavalue": {"value": {"id": "Qoffice"}}},
                             "qualifiers": {
-                                "P580": [{"datavalue": {"value": {"time": "+2000-01-01T00:00:00Z"}}}],
-                                "P582": [{"datavalue": {"value": {"time": "+2001-01-01T00:00:00Z"}}}],
+                                "P580": [
+                                    {
+                                        "datavalue": {
+                                            "value": {"time": "+2000-01-01T00:00:00Z"}
+                                        }
+                                    }
+                                ],
+                                "P582": [
+                                    {
+                                        "datavalue": {
+                                            "value": {"time": "+2001-01-01T00:00:00Z"}
+                                        }
+                                    }
+                                ],
                             },
                             "references": [],
                         }
@@ -213,7 +245,9 @@ def test_find_qualifier_drift_candidates_detects_real_change(monkeypatch) -> Non
     assert report["candidate_query_mode"] == "per_property_raw_rows_v1"
     assert report["candidate_count"] == 2
     assert report["confirmed_drift_cases"][0]["qid"] == "Q1"
-    assert report["confirmed_drift_cases"][0]["qualifier_drift"][0]["severity"] == "high"
+    assert (
+        report["confirmed_drift_cases"][0]["qualifier_drift"][0]["severity"] == "high"
+    )
     assert report["stable_baselines"][0]["qid"] == "Q2"
     assert report["failures"] == []
 
@@ -235,12 +269,16 @@ def test_find_qualifier_drift_candidates_emits_progress(monkeypatch) -> None:
     assert "candidate_query_finished" in stages
     assert "revision_metadata_progress" in stages
     assert "revision_compare_started" in stages
-    finished = [details for stage, details in seen if stage == "revision_compare_finished"]
+    finished = [
+        details for stage, details in seen if stage == "revision_compare_finished"
+    ]
     assert any(item.get("status") == "confirmed_drift" for item in finished)
     assert any(item.get("status") == "stable" for item in finished)
 
 
-def test_wikidata_find_qualifier_drift_cli_writes_report(tmp_path, capsys, monkeypatch) -> None:
+def test_wikidata_find_qualifier_drift_cli_writes_report(
+    tmp_path, capsys, monkeypatch
+) -> None:
     monkeypatch.setattr(wikidata_mod.requests, "get", _fake_requests_get)
     out_path = tmp_path / "qualifier_drift_finder.json"
 
@@ -270,7 +308,9 @@ def test_wikidata_find_qualifier_drift_cli_writes_report(tmp_path, capsys, monke
     assert file_payload["stable_baselines"][0]["qid"] == "Q2"
 
 
-def test_find_qualifier_drift_candidates_reports_candidate_query_failure(monkeypatch) -> None:
+def test_find_qualifier_drift_candidates_reports_candidate_query_failure(
+    monkeypatch,
+) -> None:
     def _raise_timeout(url, *, params=None, headers=None, timeout=None):
         raise requests.exceptions.ReadTimeout("timed out")
 
@@ -289,7 +329,9 @@ def test_find_qualifier_drift_candidates_reports_candidate_query_failure(monkeyp
     assert report["failures"][0]["property_pid"] == "P166"
 
 
-def test_find_qualifier_drift_candidates_allows_partial_property_success(monkeypatch) -> None:
+def test_find_qualifier_drift_candidates_allows_partial_property_success(
+    monkeypatch,
+) -> None:
     def _partial_requests_get(url, *, params=None, headers=None, timeout=None):
         if url == wikidata_mod.SPARQL_ENDPOINT:
             query = params["query"]
@@ -301,13 +343,21 @@ def test_find_qualifier_drift_candidates_allows_partial_property_success(monkeyp
                         "results": {
                             "bindings": [
                                 {
-                                    "item": {"value": "http://www.wikidata.org/entity/Q2"},
-                                    "statement": {"value": "http://www.wikidata.org/entity/statement/Q2-s1"},
+                                    "item": {
+                                        "value": "http://www.wikidata.org/entity/Q2"
+                                    },
+                                    "statement": {
+                                        "value": "http://www.wikidata.org/entity/statement/Q2-s1"
+                                    },
                                     "qualifier_pid": {"value": "P580"},
                                 },
                                 {
-                                    "item": {"value": "http://www.wikidata.org/entity/Q2"},
-                                    "statement": {"value": "http://www.wikidata.org/entity/statement/Q2-s1"},
+                                    "item": {
+                                        "value": "http://www.wikidata.org/entity/Q2"
+                                    },
+                                    "statement": {
+                                        "value": "http://www.wikidata.org/entity/statement/Q2-s1"
+                                    },
                                     "qualifier_pid": {"value": "P582"},
                                 },
                             ]
@@ -315,9 +365,13 @@ def test_find_qualifier_drift_candidates_allows_partial_property_success(monkeyp
                     }
                 )
         if url == wikidata_mod.MEDIAWIKI_API_ENDPOINT:
-            return _fake_requests_get(url, params=params, headers=headers, timeout=timeout)
+            return _fake_requests_get(
+                url, params=params, headers=headers, timeout=timeout
+            )
         if url.endswith("Q2.json?revision=110") or url.endswith("Q2.json?revision=210"):
-            return _fake_requests_get(url, params=params, headers=headers, timeout=timeout)
+            return _fake_requests_get(
+                url, params=params, headers=headers, timeout=timeout
+            )
         raise AssertionError(f"unexpected request: {url} params={params}")
 
     monkeypatch.setattr(wikidata_mod.requests, "get", _partial_requests_get)

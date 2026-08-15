@@ -10,9 +10,7 @@ def test_extract_frl_to_graph(tmp_path: Path) -> None:
             {
                 "id": "NTA1993",
                 "title": "Native Title Act 1993",
-                "sections": [
-                    {"number": "223", "title": "Definition of native title"}
-                ],
+                "sections": [{"number": "223", "title": "Definition of native title"}],
             }
         ]
     }
@@ -45,4 +43,3 @@ def test_extract_frl_to_graph(tmp_path: Path) -> None:
         graph_cmd, input=extract.stdout, capture_output=True, text=True, check=True
     )
     assert "digraph G" in graph.stdout
-

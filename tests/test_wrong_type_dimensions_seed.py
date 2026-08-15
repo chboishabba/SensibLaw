@@ -57,4 +57,6 @@ def test_wrong_type_catalog_mental_states_are_defined_in_dimension_seed() -> Non
         for wt in wrong_types:
             for state in list((wt or {}).get("mental_states") or []):
                 s = str(state or "").strip()
-                assert s in allowed_states, f"unknown mental state '{s}' in wrong_type catalog"
+                assert s in allowed_states, (
+                    f"unknown mental state '{s}' in wrong_type catalog"
+                )

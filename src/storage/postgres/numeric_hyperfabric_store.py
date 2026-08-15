@@ -14,6 +14,8 @@ import re
 from typing import Any, Mapping, Sequence
 from uuid import uuid4
 
+import psycopg
+
 from src.pnf.numeric_hyperfabric import (
     ClosureState,
     ExportKind,

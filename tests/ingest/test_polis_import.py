@@ -24,7 +24,11 @@ class FakeResponse:
 
 def test_polis_import(monkeypatch, tmp_path):
     fixture = json.loads(
-        (Path(__file__).resolve().parent.parent / "fixtures" / "polis_conversation.json").read_text()
+        (
+            Path(__file__).resolve().parent.parent
+            / "fixtures"
+            / "polis_conversation.json"
+        ).read_text()
     )
 
     def fake_get(url, timeout=30):
@@ -73,7 +77,11 @@ def test_polis_import(monkeypatch, tmp_path):
 def test_fetch_conversation_uses_cache(monkeypatch, tmp_path):
     polis._REQUEST_CACHE.clear()
     fixture = json.loads(
-        (Path(__file__).resolve().parent.parent / "fixtures" / "polis_conversation.json").read_text()
+        (
+            Path(__file__).resolve().parent.parent
+            / "fixtures"
+            / "polis_conversation.json"
+        ).read_text()
     )
 
     calls: List[str] = []
@@ -95,7 +103,11 @@ def test_fetch_conversation_uses_cache(monkeypatch, tmp_path):
 def test_fetch_conversation_retries(monkeypatch, tmp_path):
     polis._REQUEST_CACHE.clear()
     fixture = json.loads(
-        (Path(__file__).resolve().parent.parent / "fixtures" / "polis_conversation.json").read_text()
+        (
+            Path(__file__).resolve().parent.parent
+            / "fixtures"
+            / "polis_conversation.json"
+        ).read_text()
     )
 
     attempts = 0

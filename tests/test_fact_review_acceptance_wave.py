@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import inspect
 import json
-from pathlib import Path
 
 from scripts.run_fact_review_acceptance_wave import main
 from src.fact_intake import load_fact_review_acceptance_fixture_manifest
@@ -11,52 +10,92 @@ from src.fact_intake.acceptance_fixtures import _DEFAULT_MANIFEST_BY_WAVE
 from src.storage.manifest_runtime import resolve_sensiblaw_manifest_path
 
 
-def test_wave1_acceptance_fixture_manifest_lists_canonical_real_and_synthetic_fixtures() -> None:
+def test_wave1_acceptance_fixture_manifest_lists_canonical_real_and_synthetic_fixtures() -> (
+    None
+):
     manifest = load_fact_review_acceptance_fixture_manifest()
     fixture_ids = {row["fixture_id"] for row in manifest["fixtures"]}
     assert manifest["wave"] == "wave1_legal"
-    assert {"real_transcript_intake_v1", "real_au_procedural_v1", "synthetic_sparse_dates_v1"} <= fixture_ids
-    assert {row["fixture_kind"] for row in manifest["fixtures"]} == {"real", "synthetic"}
+    assert {
+        "real_transcript_intake_v1",
+        "real_au_procedural_v1",
+        "synthetic_sparse_dates_v1",
+    } <= fixture_ids
+    assert {row["fixture_kind"] for row in manifest["fixtures"]} == {
+        "real",
+        "synthetic",
+    }
 
 
 def test_wave2_acceptance_fixture_manifest_lists_balanced_fixtures() -> None:
     manifest = load_fact_review_acceptance_fixture_manifest(wave="wave2_balanced")
     fixture_ids = {row["fixture_id"] for row in manifest["fixtures"]}
     assert manifest["wave"] == "wave2_balanced"
-    assert {"real_transcript_intake_v1", "synthetic_personal_fragments_v1", "synthetic_investigative_reopen_v1"} <= fixture_ids
-    assert {row["fixture_kind"] for row in manifest["fixtures"]} == {"real", "synthetic"}
+    assert {
+        "real_transcript_intake_v1",
+        "synthetic_personal_fragments_v1",
+        "synthetic_investigative_reopen_v1",
+    } <= fixture_ids
+    assert {row["fixture_kind"] for row in manifest["fixtures"]} == {
+        "real",
+        "synthetic",
+    }
 
 
 def test_wave3_trauma_acceptance_fixture_manifest_lists_canonical_fixtures() -> None:
-    manifest = load_fact_review_acceptance_fixture_manifest(wave="wave3_trauma_advocacy")
+    manifest = load_fact_review_acceptance_fixture_manifest(
+        wave="wave3_trauma_advocacy"
+    )
     fixture_ids = {row["fixture_id"] for row in manifest["fixtures"]}
     assert manifest["wave"] == "wave3_trauma_advocacy"
-    assert {"real_transcript_fragmented_support_v1", "synthetic_trauma_fragment_cluster_v1", "synthetic_support_worker_handoff_v1"} <= fixture_ids
+    assert {
+        "real_transcript_fragmented_support_v1",
+        "synthetic_trauma_fragment_cluster_v1",
+        "synthetic_support_worker_handoff_v1",
+    } <= fixture_ids
 
 
 def test_wave3_public_knowledge_manifest_lists_canonical_fixtures() -> None:
-    manifest = load_fact_review_acceptance_fixture_manifest(wave="wave3_public_knowledge")
+    manifest = load_fact_review_acceptance_fixture_manifest(
+        wave="wave3_public_knowledge"
+    )
     fixture_ids = {row["fixture_id"] for row in manifest["fixtures"]}
     assert manifest["wave"] == "wave3_public_knowledge"
-    assert {"real_gwb_contested_public_figure_v1", "synthetic_trump_public_figure_legality_v1", "synthetic_wikidata_claim_worker_v1"} <= fixture_ids
+    assert {
+        "real_gwb_contested_public_figure_v1",
+        "synthetic_trump_public_figure_legality_v1",
+        "synthetic_wikidata_claim_worker_v1",
+    } <= fixture_ids
 
 
 def test_wave4_family_law_manifest_lists_canonical_fixtures() -> None:
     manifest = load_fact_review_acceptance_fixture_manifest(wave="wave4_family_law")
     fixture_ids = {row["fixture_id"] for row in manifest["fixtures"]}
     assert manifest["wave"] == "wave4_family_law"
-    assert {"synthetic_family_client_circumstances_v1", "synthetic_child_sensitive_context_v1", "synthetic_cross_side_handoff_v1"} <= fixture_ids
+    assert {
+        "synthetic_family_client_circumstances_v1",
+        "synthetic_child_sensitive_context_v1",
+        "synthetic_cross_side_handoff_v1",
+    } <= fixture_ids
 
 
 def test_wave4_medical_regulatory_manifest_lists_canonical_fixtures() -> None:
-    manifest = load_fact_review_acceptance_fixture_manifest(wave="wave4_medical_regulatory")
+    manifest = load_fact_review_acceptance_fixture_manifest(
+        wave="wave4_medical_regulatory"
+    )
     fixture_ids = {row["fixture_id"] for row in manifest["fixtures"]}
     assert manifest["wave"] == "wave4_medical_regulatory"
-    assert {"synthetic_medical_negligence_review_v1", "synthetic_professional_discipline_record_v1", "synthetic_regulatory_public_drift_v1"} <= fixture_ids
+    assert {
+        "synthetic_medical_negligence_review_v1",
+        "synthetic_professional_discipline_record_v1",
+        "synthetic_regulatory_public_drift_v1",
+    } <= fixture_ids
 
 
 def test_wave5_handoff_false_coherence_manifest_lists_canonical_fixtures() -> None:
-    manifest = load_fact_review_acceptance_fixture_manifest(wave="wave5_handoff_false_coherence")
+    manifest = load_fact_review_acceptance_fixture_manifest(
+        wave="wave5_handoff_false_coherence"
+    )
     fixture_ids = {row["fixture_id"] for row in manifest["fixtures"]}
     assert manifest["wave"] == "wave5_handoff_false_coherence"
     assert {
@@ -70,14 +109,18 @@ def test_wave5_handoff_false_coherence_manifest_lists_canonical_fixtures() -> No
 
 def test_default_acceptance_manifest_path_uses_shared_manifest_runtime() -> None:
     path = acceptance_fixtures.default_fact_review_fixture_manifest_path()
-    expected = resolve_sensiblaw_manifest_path("data", "fact_review", _DEFAULT_MANIFEST_BY_WAVE["wave1_legal"])
+    expected = resolve_sensiblaw_manifest_path(
+        "data", "fact_review", _DEFAULT_MANIFEST_BY_WAVE["wave1_legal"]
+    )
     assert path == expected
     source = inspect.getsource(acceptance_fixtures)
     assert "load_versioned_json_object" in source
     assert "resolve_sensiblaw_manifest_path" in source
 
 
-def test_wave1_acceptance_runner_builds_fixture_batch_and_rollup(tmp_path, capsys) -> None:
+def test_wave1_acceptance_runner_builds_fixture_batch_and_rollup(
+    tmp_path, capsys
+) -> None:
     db_path = tmp_path / "itir.sqlite"
     exit_code = main(
         [
@@ -93,12 +136,17 @@ def test_wave1_acceptance_runner_builds_fixture_batch_and_rollup(tmp_path, capsy
     assert exit_code == 0
     assert payload["wave"] == "wave1_legal"
     assert payload["fixture_count"] == 2
-    assert {row["fixture_id"] for row in payload["fixtures"]} == {"real_transcript_intake_v1", "real_au_procedural_v1"}
+    assert {row["fixture_id"] for row in payload["fixtures"]} == {
+        "real_transcript_intake_v1",
+        "real_au_procedural_v1",
+    }
     assert any(row["story_id"] == "SL-US-12" for row in payload["stories"])
     assert all("source_label" in row for row in payload["fixtures"])
 
 
-def test_wave2_acceptance_runner_builds_balanced_fixture_batch_and_rollup(tmp_path, capsys) -> None:
+def test_wave2_acceptance_runner_builds_balanced_fixture_batch_and_rollup(
+    tmp_path, capsys
+) -> None:
     db_path = tmp_path / "itir.sqlite"
     exit_code = main(
         [
@@ -116,12 +164,17 @@ def test_wave2_acceptance_runner_builds_balanced_fixture_batch_and_rollup(tmp_pa
     assert exit_code == 0
     assert payload["wave"] == "wave2_balanced"
     assert payload["fixture_count"] == 2
-    assert {row["fixture_id"] for row in payload["fixtures"]} == {"synthetic_personal_fragments_v1", "synthetic_investigative_reopen_v1"}
+    assert {row["fixture_id"] for row in payload["fixtures"]} == {
+        "synthetic_personal_fragments_v1",
+        "synthetic_investigative_reopen_v1",
+    }
     assert any(row["story_id"] == "ITIR-US-11" for row in payload["stories"])
     assert any(row["story_id"] == "ITIR-US-12" for row in payload["stories"])
 
 
-def test_wave3_trauma_acceptance_runner_builds_fixture_batch_and_rollup(tmp_path, capsys) -> None:
+def test_wave3_trauma_acceptance_runner_builds_fixture_batch_and_rollup(
+    tmp_path, capsys
+) -> None:
     db_path = tmp_path / "itir.sqlite"
     exit_code = main(
         [
@@ -138,10 +191,15 @@ def test_wave3_trauma_acceptance_runner_builds_fixture_batch_and_rollup(tmp_path
     payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert payload["wave"] == "wave3_trauma_advocacy"
-    assert {row["story_id"] for row in payload["stories"]} == {"ITIR-US-13", "ITIR-US-14"}
+    assert {row["story_id"] for row in payload["stories"]} == {
+        "ITIR-US-13",
+        "ITIR-US-14",
+    }
 
 
-def test_wave3_public_knowledge_runner_builds_fixture_batch_and_rollup(tmp_path, capsys) -> None:
+def test_wave3_public_knowledge_runner_builds_fixture_batch_and_rollup(
+    tmp_path, capsys
+) -> None:
     db_path = tmp_path / "itir.sqlite"
     exit_code = main(
         [
@@ -162,7 +220,9 @@ def test_wave3_public_knowledge_runner_builds_fixture_batch_and_rollup(tmp_path,
     assert any(row["story_id"] == "SL-US-24" for row in payload["stories"])
 
 
-def test_wave4_family_law_runner_builds_fixture_batch_and_rollup(tmp_path, capsys) -> None:
+def test_wave4_family_law_runner_builds_fixture_batch_and_rollup(
+    tmp_path, capsys
+) -> None:
     db_path = tmp_path / "itir.sqlite"
     exit_code = main(
         [
@@ -183,7 +243,9 @@ def test_wave4_family_law_runner_builds_fixture_batch_and_rollup(tmp_path, capsy
     assert any(row["story_id"] == "SL-US-28" for row in payload["stories"])
 
 
-def test_wave4_medical_regulatory_runner_builds_fixture_batch_and_rollup(tmp_path, capsys) -> None:
+def test_wave4_medical_regulatory_runner_builds_fixture_batch_and_rollup(
+    tmp_path, capsys
+) -> None:
     db_path = tmp_path / "itir.sqlite"
     exit_code = main(
         [
@@ -204,7 +266,9 @@ def test_wave4_medical_regulatory_runner_builds_fixture_batch_and_rollup(tmp_pat
     assert any(row["story_id"] == "SL-US-30" for row in payload["stories"])
 
 
-def test_wave5_handoff_false_coherence_runner_builds_fixture_batch_and_rollup(tmp_path, capsys) -> None:
+def test_wave5_handoff_false_coherence_runner_builds_fixture_batch_and_rollup(
+    tmp_path, capsys
+) -> None:
     db_path = tmp_path / "itir.sqlite"
     exit_code = main(
         [
@@ -225,7 +289,9 @@ def test_wave5_handoff_false_coherence_runner_builds_fixture_batch_and_rollup(tm
     assert any(row["story_id"] == "ITIR-US-16" for row in payload["stories"])
 
 
-def test_wave1_acceptance_runner_reports_story_outcomes_and_gap_rollups(tmp_path, capsys) -> None:
+def test_wave1_acceptance_runner_reports_story_outcomes_and_gap_rollups(
+    tmp_path, capsys
+) -> None:
     db_path = tmp_path / "itir.sqlite"
     exit_code = main(
         [
@@ -239,7 +305,9 @@ def test_wave1_acceptance_runner_reports_story_outcomes_and_gap_rollups(tmp_path
     )
     payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
-    story_rows = [story for fixture in payload["fixtures"] for story in fixture["stories"]]
+    story_rows = [
+        story for fixture in payload["fixtures"] for story in fixture["stories"]
+    ]
     assert story_rows
     assert all(story["status"] in {"pass", "partial", "fail"} for story in story_rows)
     assert all("failed_check_ids" in story for story in story_rows)
@@ -259,7 +327,9 @@ def test_wave3_public_knowledge_full_wave_is_green(tmp_path, capsys) -> None:
     payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert payload["wave"] == "wave3_public_knowledge"
-    story_rows = [story for fixture in payload["fixtures"] for story in fixture["stories"]]
+    story_rows = [
+        story for fixture in payload["fixtures"] for story in fixture["stories"]
+    ]
     assert story_rows
     assert all(story["status"] == "pass" for story in story_rows)
 
@@ -299,7 +369,9 @@ def test_ui_baseline_real_fixtures_present_and_green(tmp_path, capsys) -> None:
     for wave in _DEFAULT_MANIFEST_BY_WAVE:
         manifest = load_fact_review_acceptance_fixture_manifest(wave=wave)
         real_fixture_ids = {
-            fixture["fixture_id"] for fixture in manifest["fixtures"] if fixture.get("fixture_kind") == "real"
+            fixture["fixture_id"]
+            for fixture in manifest["fixtures"]
+            if fixture.get("fixture_kind") == "real"
         }
         if not real_fixture_ids:
             continue
@@ -317,7 +389,11 @@ def test_ui_baseline_real_fixtures_present_and_green(tmp_path, capsys) -> None:
         payload = json.loads(capsys.readouterr().out)
         assert exit_code == 0
 
-        real_fixtures = {row["fixture_id"]: row for row in payload["fixtures"] if row.get("fixture_kind") == "real"}
+        real_fixtures = {
+            row["fixture_id"]: row
+            for row in payload["fixtures"]
+            if row.get("fixture_kind") == "real"
+        }
         assert real_fixture_ids <= real_fixtures.keys()
 
         for fixture_id in real_fixture_ids:

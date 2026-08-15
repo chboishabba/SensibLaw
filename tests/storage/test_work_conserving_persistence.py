@@ -165,9 +165,7 @@ def test_store_bindings_restore_instance_surface() -> None:
         def persist_token_batches(self, *_args: object, **_kwargs: object) -> str:
             return "original"
 
-        def persist_annotation_layer(
-            self, *_args: object, **_kwargs: object
-        ) -> None:
+        def persist_annotation_layer(self, *_args: object, **_kwargs: object) -> None:
             return None
 
         def persist_annotation_layer_batches(

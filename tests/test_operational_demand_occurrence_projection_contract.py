@@ -68,9 +68,7 @@ def test_transition_demand_carries_distinct_trigger_and_target() -> None:
         for row in legal_object_rows
     )
     effective_time_rows = [
-        row
-        for row in provenance
-        if row["residual_type"] == "effective_time_unresolved"
+        row for row in provenance if row["residual_type"] == "effective_time_unresolved"
     ]
     assert any(row["occurrence_role"] == "trigger" for row in effective_time_rows)
     assert not any(row["occurrence_role"] == "target" for row in effective_time_rows)
@@ -133,12 +131,12 @@ def test_condition_attachment_uses_typed_host_not_nearby_evidence() -> None:
 
 
 def test_persistence_projects_only_exact_coordinate_provenance() -> None:
-    store_source = (
-        ROOT / "src/storage/postgres/demand_occurrence_store.py"
-    ).read_text(encoding="utf-8")
-    semantic_source = (
-        ROOT / "src/storage/postgres/semantic_store.py"
-    ).read_text(encoding="utf-8")
+    store_source = (ROOT / "src/storage/postgres/demand_occurrence_store.py").read_text(
+        encoding="utf-8"
+    )
+    semantic_source = (ROOT / "src/storage/postgres/semantic_store.py").read_text(
+        encoding="utf-8"
+    )
     migration = (
         ROOT
         / "database/postgres_migrations/137_operational_demand_occurrence_projection.sql"
@@ -157,8 +155,8 @@ def test_persistence_projects_only_exact_coordinate_provenance() -> None:
 
 
 def test_pre_provenance_completed_builds_are_not_reused() -> None:
-    source = (
-        ROOT / "src/storage/postgres/operational_build_store.py"
-    ).read_text(encoding="utf-8")
+    source = (ROOT / "src/storage/postgres/operational_build_store.py").read_text(
+        encoding="utf-8"
+    )
     assert '_OPERATION_VERSION = "v0_9"' in source
     assert "build.operation_version = %s" in source

@@ -145,7 +145,9 @@ class DocumentPersistenceRuntime:
             if self.dsn is None:
                 self.dsn = dsn
             elif self.dsn != dsn:
-                raise RuntimeError("one document persistence runtime used multiple DSNs")
+                raise RuntimeError(
+                    "one document persistence runtime used multiple DSNs"
+                )
 
     def fail(self, error: BaseException) -> None:
         with self._lock:

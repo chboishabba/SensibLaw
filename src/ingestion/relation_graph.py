@@ -79,7 +79,9 @@ def _role_texts(observation: Mapping[str, Any], *keys: str) -> set[str]:
             text = _clean_text(value)
             if text:
                 values.add(text)
-        elif isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        elif isinstance(value, Sequence) and not isinstance(
+            value, (str, bytes, bytearray)
+        ):
             for item in value:
                 if isinstance(item, str):
                     text = _clean_text(item)
@@ -207,18 +209,14 @@ def build_relation_graph(
 
 def relational_signature(graph: RelationGraph) -> dict[str, set[str]]:
     return {
-        "actor_set": {
-            node.label for node in graph.nodes if node.node_kind == "actor"
-        },
+        "actor_set": {node.label for node in graph.nodes if node.node_kind == "actor"},
         "action_set": {
             node.label for node in graph.nodes if node.node_kind == "action"
         },
         "object_set": {
             node.label for node in graph.nodes if node.node_kind == "object"
         },
-        "edge_types": {
-            edge.edge_kind for edge in graph.edges
-        },
+        "edge_types": {edge.edge_kind for edge in graph.edges},
         "edge_role_set": {
             f"{_node_kind_for_edge_end(graph, edge.source_id)}>{edge.edge_kind}>{_node_kind_for_edge_end(graph, edge.target_id)}"
             for edge in graph.edges
@@ -226,7 +224,9 @@ def relational_signature(graph: RelationGraph) -> dict[str, set[str]]:
     }
 
 
-def observation_signature(observations: Sequence[Mapping[str, Any]]) -> dict[str, set[str]]:
+def observation_signature(
+    observations: Sequence[Mapping[str, Any]],
+) -> dict[str, set[str]]:
     graph = build_relation_graph(observations)
     signature = relational_signature(graph)
     source_families: set[str] = set()
@@ -236,7 +236,9 @@ def observation_signature(observations: Sequence[Mapping[str, Any]]) -> dict[str
         if not isinstance(observation, Mapping):
             continue
         source_families |= _role_texts(observation, "source_family")
-        workload_classes |= _role_texts(observation, "primary_workload_class", "workload_classes")
+        workload_classes |= _role_texts(
+            observation, "primary_workload_class", "workload_classes"
+        )
         support_kinds |= _anchor_values(observation, "support_kind")
     signature["source_family_set"] = source_families
     signature["workload_class_set"] = workload_classes
@@ -287,32 +289,78 @@ def build_relation_similarity_summary(
         "actors": sorted(left_signature["actor_set"] & right_signature["actor_set"]),
         "actions": sorted(left_signature["action_set"] & right_signature["action_set"]),
         "objects": sorted(left_signature["object_set"] & right_signature["object_set"]),
-        "edge_types": sorted(left_signature["edge_types"] & right_signature["edge_types"]),
-        "edge_roles": sorted(left_signature["edge_role_set"] & right_signature["edge_role_set"]),
-        "source_families": sorted(left_signature["source_family_set"] & right_signature["source_family_set"]),
-        "workload_classes": sorted(left_signature["workload_class_set"] & right_signature["workload_class_set"]),
-        "support_kinds": sorted(left_signature["support_kind_set"] & right_signature["support_kind_set"]),
+        "edge_types": sorted(
+            left_signature["edge_types"] & right_signature["edge_types"]
+        ),
+        "edge_roles": sorted(
+            left_signature["edge_role_set"] & right_signature["edge_role_set"]
+        ),
+        "source_families": sorted(
+            left_signature["source_family_set"] & right_signature["source_family_set"]
+        ),
+        "workload_classes": sorted(
+            left_signature["workload_class_set"] & right_signature["workload_class_set"]
+        ),
+        "support_kinds": sorted(
+            left_signature["support_kind_set"] & right_signature["support_kind_set"]
+        ),
     }
     distinct_features = {
         "left_only": {
-            "actors": sorted(left_signature["actor_set"] - right_signature["actor_set"]),
-            "actions": sorted(left_signature["action_set"] - right_signature["action_set"]),
-            "objects": sorted(left_signature["object_set"] - right_signature["object_set"]),
-            "edge_types": sorted(left_signature["edge_types"] - right_signature["edge_types"]),
-            "edge_roles": sorted(left_signature["edge_role_set"] - right_signature["edge_role_set"]),
-            "source_families": sorted(left_signature["source_family_set"] - right_signature["source_family_set"]),
-            "workload_classes": sorted(left_signature["workload_class_set"] - right_signature["workload_class_set"]),
-            "support_kinds": sorted(left_signature["support_kind_set"] - right_signature["support_kind_set"]),
+            "actors": sorted(
+                left_signature["actor_set"] - right_signature["actor_set"]
+            ),
+            "actions": sorted(
+                left_signature["action_set"] - right_signature["action_set"]
+            ),
+            "objects": sorted(
+                left_signature["object_set"] - right_signature["object_set"]
+            ),
+            "edge_types": sorted(
+                left_signature["edge_types"] - right_signature["edge_types"]
+            ),
+            "edge_roles": sorted(
+                left_signature["edge_role_set"] - right_signature["edge_role_set"]
+            ),
+            "source_families": sorted(
+                left_signature["source_family_set"]
+                - right_signature["source_family_set"]
+            ),
+            "workload_classes": sorted(
+                left_signature["workload_class_set"]
+                - right_signature["workload_class_set"]
+            ),
+            "support_kinds": sorted(
+                left_signature["support_kind_set"] - right_signature["support_kind_set"]
+            ),
         },
         "right_only": {
-            "actors": sorted(right_signature["actor_set"] - left_signature["actor_set"]),
-            "actions": sorted(right_signature["action_set"] - left_signature["action_set"]),
-            "objects": sorted(right_signature["object_set"] - left_signature["object_set"]),
-            "edge_types": sorted(right_signature["edge_types"] - left_signature["edge_types"]),
-            "edge_roles": sorted(right_signature["edge_role_set"] - left_signature["edge_role_set"]),
-            "source_families": sorted(right_signature["source_family_set"] - left_signature["source_family_set"]),
-            "workload_classes": sorted(right_signature["workload_class_set"] - left_signature["workload_class_set"]),
-            "support_kinds": sorted(right_signature["support_kind_set"] - left_signature["support_kind_set"]),
+            "actors": sorted(
+                right_signature["actor_set"] - left_signature["actor_set"]
+            ),
+            "actions": sorted(
+                right_signature["action_set"] - left_signature["action_set"]
+            ),
+            "objects": sorted(
+                right_signature["object_set"] - left_signature["object_set"]
+            ),
+            "edge_types": sorted(
+                right_signature["edge_types"] - left_signature["edge_types"]
+            ),
+            "edge_roles": sorted(
+                right_signature["edge_role_set"] - left_signature["edge_role_set"]
+            ),
+            "source_families": sorted(
+                right_signature["source_family_set"]
+                - left_signature["source_family_set"]
+            ),
+            "workload_classes": sorted(
+                right_signature["workload_class_set"]
+                - left_signature["workload_class_set"]
+            ),
+            "support_kinds": sorted(
+                right_signature["support_kind_set"] - left_signature["support_kind_set"]
+            ),
         },
     }
     return {
@@ -402,7 +450,9 @@ def build_seed_relation_clusters(
         for item in comparison["candidate_graphs"]
     }
 
-    adjacency: dict[str, set[str]] = {candidate_id: set() for candidate_id in candidate_ids}
+    adjacency: dict[str, set[str]] = {
+        candidate_id: set() for candidate_id in candidate_ids
+    }
     for item in comparison["pairwise_comparisons"]:
         if item["provisional_readout"]["comparison_band"] != "near_equivalent":
             continue
@@ -433,10 +483,12 @@ def build_seed_relation_clusters(
             cluster_kind = "singleton_candidate"
         clusters.append(
             {
-                "cluster_id": f"cluster:{seed_id}:{len(clusters)+1:02d}",
+                "cluster_id": f"cluster:{seed_id}:{len(clusters) + 1:02d}",
                 "cluster_kind": cluster_kind,
                 "member_source_row_ids": members,
-                "member_source_families": [families.get(member, "") for member in members],
+                "member_source_families": [
+                    families.get(member, "") for member in members
+                ],
                 "provisional_readout": {
                     "comparison_band": "near_equivalent" if size > 1 else "distinct",
                     "information_level": _cluster_information_level(
@@ -475,14 +527,17 @@ def build_provisional_invariant_readout(
         ]
         if matching_comparisons:
             similarity = round(
-                sum(item["similarity"] for item in matching_comparisons) / len(matching_comparisons),
+                sum(item["similarity"] for item in matching_comparisons)
+                / len(matching_comparisons),
                 6,
             )
         else:
             similarity = 1.0
         invariants.append(
             {
-                "provisional_invariant_id": cluster["cluster_id"].replace("cluster:", "invariant:", 1),
+                "provisional_invariant_id": cluster["cluster_id"].replace(
+                    "cluster:", "invariant:", 1
+                ),
                 "seed_id": seed_id,
                 "member_source_row_ids": cluster["member_source_row_ids"],
                 "member_source_families": cluster["member_source_families"],
@@ -491,7 +546,9 @@ def build_provisional_invariant_readout(
                 "status": "provisional_invariant",
                 "provisional_readout": {
                     "comparison_band": "near_equivalent",
-                    "information_level": cluster["provisional_readout"]["information_level"],
+                    "information_level": cluster["provisional_readout"][
+                        "information_level"
+                    ],
                 },
             }
         )

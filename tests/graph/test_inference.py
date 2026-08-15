@@ -76,14 +76,18 @@ def test_legal_graph_to_triples_includes_external_refs_when_opted_in() -> None:
         GraphNode(
             type=NodeType.CONCEPT,
             identifier="concept-1",
-            metadata={"external_refs": [{"provider": "wikidata", "external_id": "Q42"}]},
+            metadata={
+                "external_refs": [{"provider": "wikidata", "external_id": "Q42"}]
+            },
         )
     )
     graph.add_node(
         GraphNode(
             type=NodeType.PERSON,
             identifier="actor-1",
-            metadata={"external_refs": [{"provider": "orcid", "external_id": "0000-0002"}]},
+            metadata={
+                "external_refs": [{"provider": "orcid", "external_id": "0000-0002"}]
+            },
         )
     )
 
@@ -132,7 +136,9 @@ def test_train_transe_and_score_predictions(monkeypatch: pytest.MonkeyPatch) -> 
         provisions=["prov-1"],
         relation=EdgeType.APPLIES.value,
     )
-    assert scores == [RawPrediction(case_id="case-1", provision_id="prov-1", score=0.875)]
+    assert scores == [
+        RawPrediction(case_id="case-1", provision_id="prov-1", score=0.875)
+    ]
 
 
 @pytest.mark.parametrize(
@@ -227,7 +233,9 @@ def test_prediction_persistence_roundtrip(tmp_path: Path) -> None:
     )
 
     persist_predictions_sqlite(prediction_set, sqlite_path)
-    loaded_sqlite = load_predictions_sqlite(sqlite_path, relation=EdgeType.APPLIES.value)
+    loaded_sqlite = load_predictions_sqlite(
+        sqlite_path, relation=EdgeType.APPLIES.value
+    )
     assert loaded_sqlite == PredictionSet(
         relation=EdgeType.APPLIES.value,
         generated_at="2024-01-01T00:00:00Z",

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Mapping, Sequence
+from typing import Mapping
 
 from src.sources.parliamentary_transcript_source_unit import (
     ClauseIR,

@@ -13,7 +13,9 @@ class CheckResult(TypedDict):
     details: List[str]
 
 
-def check_event(event: Dict[str, Any]) -> CheckResult:  # pragma: no cover - interface stub
+def check_event(
+    event: Dict[str, Any],
+) -> CheckResult:  # pragma: no cover - interface stub
     """Check an event against the configured rules.
 
     Parameters

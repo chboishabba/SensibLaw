@@ -28,7 +28,9 @@ def _load_messenger_units(db_path: Path, run_id: str | None) -> tuple[str | None
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Report tokenizer/compression + structure stats for the isolated Messenger test DB.")
+    parser = argparse.ArgumentParser(
+        description="Report tokenizer/compression + structure stats for the isolated Messenger test DB."
+    )
     parser.add_argument("--db-path", default=".cache_local/itir_messenger_test.sqlite")
     parser.add_argument("--run-id")
     parser.add_argument("--top-n", type=int, default=15)
@@ -77,10 +79,16 @@ def main() -> None:
         "run_id": resolved_run_id,
         "message_count": report["unit_count"],
         "filter_counts": {str(row["reason"]): int(row["count"]) for row in filter_rows},
-        "source_namespace": None if run_row is None else str(run_row["source_namespace"]),
+        "source_namespace": None
+        if run_row is None
+        else str(run_row["source_namespace"]),
         "source_class": None if run_row is None else str(run_row["source_class"]),
-        "retention_policy": None if run_row is None else str(run_row["retention_policy"]),
-        "redaction_policy": None if run_row is None else str(run_row["redaction_policy"]),
+        "retention_policy": None
+        if run_row is None
+        else str(run_row["retention_policy"]),
+        "redaction_policy": None
+        if run_row is None
+        else str(run_row["redaction_policy"]),
         "sample_limit": None if run_row is None else int(run_row["sample_limit"]),
         **report,
     }

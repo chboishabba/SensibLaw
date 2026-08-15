@@ -36,7 +36,9 @@ def utc_now_iso() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def receipt(kind: str, target_id: str, evidence_ids: list[str], payload: dict[str, Any]) -> dict[str, Any]:
+def receipt(
+    kind: str, target_id: str, evidence_ids: list[str], payload: dict[str, Any]
+) -> dict[str, Any]:
     body = {
         "kind": kind,
         "target_id": target_id,

@@ -6,7 +6,7 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, Iterable
 
-ASSET_DIR = Path(__file__).with_suffix('').parent / 'assets'
+ASSET_DIR = Path(__file__).with_suffix("").parent / "assets"
 
 
 def _load_pack(pack_path: Path) -> Dict[str, Any]:
@@ -121,5 +121,6 @@ def generate_site(seed: str, out_dir: Path, pack_path: Path | None = None) -> No
     _write_assets(out_dir / "assets")
     _write_verify_script(out_dir)
     _write_docker_files(out_dir)
+
 
 __all__ = ["generate_site"]

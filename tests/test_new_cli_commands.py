@@ -1,7 +1,5 @@
 import json
 import subprocess
-import json
-import subprocess
 
 
 def run_cli(*args: str) -> str:

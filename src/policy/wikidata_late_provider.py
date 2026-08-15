@@ -10,6 +10,7 @@ entity namespace. A Zelph/HF snapshot and a live endpoint may both return Q408;
 that remains one Wikidata coordinate while ``source_ref``/``source_epoch`` record
 where and when the fact was observed.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -86,7 +87,9 @@ class WikidataTransport(Protocol):
 class WikidataLateProvider:
     provider_id = WIKIDATA_PROVIDER_ID
 
-    def __init__(self, transport: WikidataTransport, *, candidate_limit: int = 8) -> None:
+    def __init__(
+        self, transport: WikidataTransport, *, candidate_limit: int = 8
+    ) -> None:
         if candidate_limit < 1 or candidate_limit > 64:
             raise ValueError("candidate_limit must be in 1..64")
         self.transport = transport
@@ -95,15 +98,18 @@ class WikidataLateProvider:
     def fetch_batch(self, requests: Sequence[ExternalRequest]) -> ExternalBatchResult:
         request_tuple = tuple(requests)
         discovery = tuple(
-            request for request in request_tuple
+            request
+            for request in request_tuple
             if request.request_kind is ExternalRequestKind.CANDIDATE_DISCOVERY
         )
         enrichment = tuple(
-            request for request in request_tuple
+            request
+            for request in request_tuple
             if request.request_kind is ExternalRequestKind.PROPERTY_ENRICHMENT
         )
         identity = tuple(
-            request for request in request_tuple
+            request
+            for request in request_tuple
             if request.request_kind is ExternalRequestKind.IDENTITY_ALIGNMENT
         )
 
@@ -113,9 +119,18 @@ class WikidataLateProvider:
         # Freshness is part of the semantic request.  Group by floor so labels
         # with a strict current-data requirement do not force every other label
         # in the microbatch through the live tier.
-        for floor in sorted({request.minimum_source_epoch for request in discovery}, key=lambda x: -1 if x is None else x):
-            group = tuple(request for request in discovery if request.minimum_source_epoch == floor)
-            labels = tuple(sorted({request.label_text for request in group if request.label_text}))
+        for floor in sorted(
+            {request.minimum_source_epoch for request in discovery},
+            key=lambda x: -1 if x is None else x,
+        ):
+            group = tuple(
+                request
+                for request in discovery
+                if request.minimum_source_epoch == floor
+            )
+            labels = tuple(
+                sorted({request.label_text for request in group if request.label_text})
+            )
             search_batch = WikidataSearchBatch({}, 0)
             if labels:
                 search_batch = self.transport.search_entities(
@@ -131,7 +146,9 @@ class WikidataLateProvider:
                         error_ref="wikidata:missing-search-label",
                     )
                     continue
-                candidates = search_batch.candidates_by_label.get(request.label_text, ())
+                candidates = search_batch.candidates_by_label.get(
+                    request.label_text, ()
+                )
                 results[request.request_id] = ExternalRequestResult(
                     request.request_id,
                     discovered_candidates=tuple(
@@ -145,14 +162,28 @@ class WikidataLateProvider:
                     ),
                 )
 
-        for floor in sorted({request.minimum_source_epoch for request in enrichment}, key=lambda x: -1 if x is None else x):
-            group = tuple(request for request in enrichment if request.minimum_source_epoch == floor)
-            keys = tuple(sorted({
-                (int(request.provider_subject_numeric_id), int(request.provider_property_numeric_id))
-                for request in group
-                if request.provider_subject_numeric_id is not None
-                and request.provider_property_numeric_id is not None
-            }))
+        for floor in sorted(
+            {request.minimum_source_epoch for request in enrichment},
+            key=lambda x: -1 if x is None else x,
+        ):
+            group = tuple(
+                request
+                for request in enrichment
+                if request.minimum_source_epoch == floor
+            )
+            keys = tuple(
+                sorted(
+                    {
+                        (
+                            int(request.provider_subject_numeric_id),
+                            int(request.provider_property_numeric_id),
+                        )
+                        for request in group
+                        if request.provider_subject_numeric_id is not None
+                        and request.provider_property_numeric_id is not None
+                    }
+                )
+            )
             property_batch = WikidataPropertyBatch({}, 0)
             if keys:
                 property_batch = self.transport.fetch_properties(
@@ -161,13 +192,19 @@ class WikidataLateProvider:
                 )
                 provider_calls += property_batch.provider_call_count
             for request in group:
-                if request.provider_subject_numeric_id is None or request.provider_property_numeric_id is None:
+                if (
+                    request.provider_subject_numeric_id is None
+                    or request.provider_property_numeric_id is None
+                ):
                     results[request.request_id] = ExternalRequestResult(
                         request.request_id,
                         error_ref="wikidata:missing-Q-or-P-coordinate",
                     )
                     continue
-                key = (request.provider_subject_numeric_id, request.provider_property_numeric_id)
+                key = (
+                    request.provider_subject_numeric_id,
+                    request.provider_property_numeric_id,
+                )
                 facts = property_batch.facts_by_key.get(key, ())
                 results[request.request_id] = ExternalRequestResult(
                     request.request_id,
@@ -188,7 +225,9 @@ class WikidataLateProvider:
     @staticmethod
     def _external_evidence(fact: WikidataPropertyFact) -> ExternalEvidence:
         if not fact.source_ref.strip():
-            raise ValueError("Wikidata property fact requires non-empty acquisition source_ref")
+            raise ValueError(
+                "Wikidata property fact requires non-empty acquisition source_ref"
+            )
         if fact.source_epoch is not None and fact.source_epoch <= 0:
             raise ValueError("Wikidata property fact source epoch must be positive")
         canonical = [
@@ -198,10 +237,16 @@ class WikidataLateProvider:
             str(int(fact.value_kind)).encode("ascii"),
             str(fact.value_qid if fact.value_qid is not None else "").encode("utf-8"),
             str(fact.value_text if fact.value_text is not None else "").encode("utf-8"),
-            str(fact.value_numeric if fact.value_numeric is not None else "").encode("utf-8"),
-            str(fact.entity_revision if fact.entity_revision is not None else "").encode("ascii"),
+            str(fact.value_numeric if fact.value_numeric is not None else "").encode(
+                "utf-8"
+            ),
+            str(
+                fact.entity_revision if fact.entity_revision is not None else ""
+            ).encode("ascii"),
             fact.source_ref.encode("utf-8"),
-            str(fact.source_epoch if fact.source_epoch is not None else "").encode("ascii"),
+            str(fact.source_epoch if fact.source_epoch is not None else "").encode(
+                "ascii"
+            ),
         ]
         digest = sha256(b"\x00".join(canonical)).digest()
         common = {

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -16,9 +15,18 @@ def test_apply_numeric_projection_normalizes_event_and_step_numeric_objects() ->
             {
                 "event_id": "ev:1",
                 "text": "Example event",
-                "anchor": {"year": 2001, "month": 1, "day": 2, "precision": "day", "kind": "mention", "text": "2001-01-02"},
+                "anchor": {
+                    "year": 2001,
+                    "month": 1,
+                    "day": 2,
+                    "precision": "day",
+                    "kind": "mention",
+                    "text": "2001-01-02",
+                },
                 "numeric_objects": ["per cent", "$5 million", "US$5 million"],
-                "steps": [{"action": "said", "numeric_objects": ["A$1,000", "1,000aud"]}],
+                "steps": [
+                    {"action": "said", "numeric_objects": ["A$1,000", "1,000aud"]}
+                ],
             }
         ]
     }
@@ -32,9 +40,14 @@ def test_apply_numeric_projection_normalizes_event_and_step_numeric_objects() ->
     assert event["numeric_mentions"] == [{"key": "5e6|usd", "label": "5 million usd"}]
 
 
-def test_query_wiki_timeline_aoo_db_raw_applies_numeric_projection(tmp_path: Path) -> None:
+def test_query_wiki_timeline_aoo_db_raw_applies_numeric_projection(
+    tmp_path: Path,
+) -> None:
     timeline_path = tmp_path / "wiki_timeline_hca_s942025_aoo.json"
-    timeline_path.write_text(json.dumps({"snapshot": {"title": "x"}, "events": []}, sort_keys=True), encoding="utf-8")
+    timeline_path.write_text(
+        json.dumps({"snapshot": {"title": "x"}, "events": []}, sort_keys=True),
+        encoding="utf-8",
+    )
     db_path = tmp_path / "itir.sqlite"
 
     payload = {
@@ -44,14 +57,28 @@ def test_query_wiki_timeline_aoo_db_raw_applies_numeric_projection(tmp_path: Pat
         "events": [
             {
                 "event_id": "ev:1",
-                "anchor": {"year": 2001, "month": 9, "day": 11, "precision": "day", "kind": "mention", "text": "September 11, 2001"},
+                "anchor": {
+                    "year": 2001,
+                    "month": 9,
+                    "day": 11,
+                    "precision": "day",
+                    "kind": "mention",
+                    "text": "September 11, 2001",
+                },
                 "section": "Narrative",
                 "text": "Example event",
                 "party": "party-a",
                 "actors": [],
                 "objects": [],
                 "numeric_objects": ["per cent", "$5 million"],
-                "steps": [{"action": "said", "subjects": ["Alice"], "objects": ["Budget"], "numeric_objects": ["A$1,000"]}],
+                "steps": [
+                    {
+                        "action": "said",
+                        "subjects": ["Alice"],
+                        "objects": ["Budget"],
+                        "numeric_objects": ["A$1,000"],
+                    }
+                ],
                 "links": [],
             }
         ],
@@ -82,14 +109,22 @@ def test_query_wiki_timeline_aoo_db_raw_applies_numeric_projection(tmp_path: Pat
 
     assert proc.returncode == 0
     parsed = json.loads(proc.stdout)
-    assert sorted(parsed["events"][0]["numeric_objects"]) == ["5 million usd", "percent"]
+    assert sorted(parsed["events"][0]["numeric_objects"]) == [
+        "5 million usd",
+        "percent",
+    ]
     assert parsed["events"][0]["steps"][0]["numeric_objects"] == ["1,000 aud"]
     assert parsed["events"][0]["numeric_mentions"][0]["key"] == "5e6|usd"
 
 
-def test_query_wiki_timeline_aoo_db_rel_path_envelope_uses_python_suffix_policy(tmp_path: Path) -> None:
+def test_query_wiki_timeline_aoo_db_rel_path_envelope_uses_python_suffix_policy(
+    tmp_path: Path,
+) -> None:
     timeline_path = tmp_path / "wiki_timeline_hca_s942025_aoo.json"
-    timeline_path.write_text(json.dumps({"snapshot": {"title": "x"}, "events": []}, sort_keys=True), encoding="utf-8")
+    timeline_path.write_text(
+        json.dumps({"snapshot": {"title": "x"}, "events": []}, sort_keys=True),
+        encoding="utf-8",
+    )
     db_path = tmp_path / "itir.sqlite"
 
     payload = {
@@ -125,5 +160,8 @@ def test_query_wiki_timeline_aoo_db_rel_path_envelope_uses_python_suffix_policy(
     assert proc.returncode == 0
     parsed = json.loads(proc.stdout)
     assert parsed["timeline_suffix"] == "wiki_timeline_hca_s942025_aoo.json"
-    assert parsed["rel_path"] == "SensibLaw/.cache_local/wiki_timeline_hca_s942025_aoo.json"
+    assert (
+        parsed["rel_path"]
+        == "SensibLaw/.cache_local/wiki_timeline_hca_s942025_aoo.json"
+    )
     assert parsed["payload"]["root_actor"]["label"] == "Root"

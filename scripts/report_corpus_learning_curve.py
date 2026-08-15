@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Report token-normalised corpus learning and cumulative scale curves."""
+
 from __future__ import annotations
 
 import argparse
@@ -36,7 +37,9 @@ class CumulativeScalePoint:
     tokens_per_second: float | None
 
 
-def collect(cursor: Any, workload_ref: str | None) -> tuple[tuple[LearningPoint, ...], tuple[CumulativeScalePoint, ...]]:
+def collect(
+    cursor: Any, workload_ref: str | None
+) -> tuple[tuple[LearningPoint, ...], tuple[CumulativeScalePoint, ...]]:
     where = "WHERE workload_ref=%s" if workload_ref else ""
     params = (workload_ref,) if workload_ref else ()
     cursor.execute(
@@ -60,8 +63,12 @@ def collect(cursor: Any, workload_ref: str | None) -> tuple[tuple[LearningPoint,
             token_count=int(row[3]),
             total_work_per_token=float(row[4]),
             unresolved_work_per_token=float(row[5]),
-            previous_unresolved_work_per_token=float(row[6]) if row[6] is not None else None,
-            unresolved_work_per_token_nonincreasing=bool(row[7]) if row[7] is not None else None,
+            previous_unresolved_work_per_token=float(row[6])
+            if row[6] is not None
+            else None,
+            unresolved_work_per_token_nonincreasing=bool(row[7])
+            if row[7] is not None
+            else None,
             reused_lexical_units=int(row[8]),
             reused_entity_units=int(row[9]),
             reused_external_units=int(row[10]),
@@ -109,10 +116,16 @@ def main() -> int:
     with psycopg.connect(args.database_url) as connection:
         with connection.cursor() as cursor:
             learning, cumulative = collect(cursor, args.workload_ref)
-    print(json.dumps({
-        "learning_curve": [asdict(point) for point in learning],
-        "cumulative_scale_curve": [asdict(point) for point in cumulative],
-    }, indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            {
+                "learning_curve": [asdict(point) for point in learning],
+                "cumulative_scale_curve": [asdict(point) for point in cumulative],
+            },
+            indent=2,
+            sort_keys=True,
+        )
+    )
     return 0
 
 

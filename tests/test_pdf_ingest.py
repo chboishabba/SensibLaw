@@ -8,6 +8,7 @@ from typing import Iterable, Sequence
 
 from src.text.compression_stats import compute_compression_stats
 
+
 def _make_text_container(text: str) -> types.SimpleNamespace:
     return types.SimpleNamespace(get_text=lambda text=text: text)
 
@@ -151,9 +152,10 @@ def test_iter_process_pdf_emits_compression_stats(tmp_path):
     canonical_text = build_payload["canonical_text"]
     parsed_envelope = build_payload["parsed_envelope"]
     assert document.metadata.compression_stats
-    assert document.metadata.compression_stats == compute_compression_stats(
-        document.body
-    ).to_dict()
+    assert (
+        document.metadata.compression_stats
+        == compute_compression_stats(document.body).to_dict()
+    )
     assert canonical_text["media_type"] == "text"
     assert canonical_text["text_id"].startswith("sample:text:")
     assert canonical_text["text"] == document.body

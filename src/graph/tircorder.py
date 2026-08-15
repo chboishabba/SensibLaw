@@ -22,8 +22,8 @@ def _require_node(graph: LegalGraph, identifier: str, expected: NodeType) -> Gra
         raise MissingNodeError(f"Node '{identifier}' is not present in the graph.")
     if node.type != expected:
         raise NodeTypeMismatchError(
-            "Expected node '%s' to be of type '%s' but found '%s'" %
-            (identifier, expected.value, node.type.value)
+            "Expected node '%s' to be of type '%s' but found '%s'"
+            % (identifier, expected.value, node.type.value)
         )
     return node
 

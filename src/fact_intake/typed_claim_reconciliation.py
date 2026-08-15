@@ -387,16 +387,22 @@ def _reduce_proposition_like(
     *,
     evidence_state: str,
 ) -> dict[str, Any]:
-    same_subject = _normalized(left, "subject") and _normalized(left, "subject") == _normalized(
+    same_subject = _normalized(left, "subject") and _normalized(
+        left, "subject"
+    ) == _normalized(
         right,
         "subject",
     )
-    same_predicate = _normalized(left, "predicate") and _normalized(left, "predicate") == _normalized(
+    same_predicate = _normalized(left, "predicate") and _normalized(
+        left, "predicate"
+    ) == _normalized(
         right,
         "predicate",
     )
     same_object = _normalized(left, "object") == _normalized(right, "object")
-    same_text = _normalized(left, "text") and _normalized(left, "text") == _normalized(right, "text")
+    same_text = _normalized(left, "text") and _normalized(left, "text") == _normalized(
+        right, "text"
+    )
     opposite_polarity = str(left.get("polarity")) != str(right.get("polarity"))
     if same_subject and same_predicate and same_object and opposite_polarity:
         return build_typed_relation(
@@ -406,7 +412,9 @@ def _reduce_proposition_like(
             evidence_state=evidence_state,
             reason="The proposition and response share subject/action/object with opposite polarity.",
         )
-    if (same_text or (same_subject and same_predicate and same_object)) and not opposite_polarity:
+    if (
+        same_text or (same_subject and same_predicate and same_object)
+    ) and not opposite_polarity:
         return build_typed_relation(
             "exact_support",
             left=left,

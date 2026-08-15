@@ -4,7 +4,7 @@ import json
 import zlib
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Tuple
+from typing import Iterable
 
 from src.citations.normalize import CitationKey, normalize_mnc
 from src.ingestion.citation_follow import extract_citations
@@ -83,7 +83,9 @@ def compute_research_health(db_path: Path) -> ResearchHealth:
         store.close()
 
     doc_count = len(rows)
-    size_mb = round(db_path.stat().st_size / (1024 * 1024), 2) if db_path.exists() else 0.0
+    size_mb = (
+        round(db_path.stat().st_size / (1024 * 1024), 2) if db_path.exists() else 0.0
+    )
 
     if doc_count == 0:
         return ResearchHealth(
@@ -124,12 +126,21 @@ def compute_research_health(db_path: Path) -> ResearchHealth:
             citations_unresolved += 1
 
     citations_per_doc_mean = round(citations_total / doc_count, 2) if doc_count else 0.0
-    unresolved_percent = round((citations_unresolved / citations_total * 100), 2) if citations_total else 0.0
+    unresolved_percent = (
+        round((citations_unresolved / citations_total * 100), 2)
+        if citations_total
+        else 0.0
+    )
     db_delta_mb_per_doc_mean = round(size_mb / doc_count, 2) if doc_count else 0.0
     compression_ratio_mean = round(
-        (sum(compression_ratios) / len(compression_ratios)) if compression_ratios else 0.0, 2
+        (sum(compression_ratios) / len(compression_ratios))
+        if compression_ratios
+        else 0.0,
+        2,
     )
-    tokens_per_document_mean = round((token_totals / doc_count), 2) if doc_count else 0.0
+    tokens_per_document_mean = (
+        round((token_totals / doc_count), 2) if doc_count else 0.0
+    )
 
     # Depth tracking isn’t persisted; report 0 when none, otherwise the minimal informative value.
     max_citation_depth = 1 if citations_total else 0

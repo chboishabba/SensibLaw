@@ -1,7 +1,16 @@
 """Model classes used throughout the project."""
 
-from .action_policy import ACTION_POLICY_SCHEMA_VERSION, ActionPolicyRecord, build_action_policy_record
-from .convergence import CONVERGENCE_SCHEMA_VERSION, ConvergenceRecord, SourceUnit, build_convergence_record
+from .action_policy import (
+    ACTION_POLICY_SCHEMA_VERSION,
+    ActionPolicyRecord,
+    build_action_policy_record,
+)
+from .convergence import (
+    CONVERGENCE_SCHEMA_VERSION,
+    ConvergenceRecord,
+    SourceUnit,
+    build_convergence_record,
+)
 from .conflict import CONFLICT_SCHEMA_VERSION, ConflictSet, build_conflict_set
 from .attribution_claims import Attribution, ExtractionRecord, SourceEntity
 from .document import Document, DocumentMetadata
@@ -39,7 +48,13 @@ from .proposition_relation import (
 from .temporal import TEMPORAL_SCHEMA_VERSION, TemporalEnvelope, build_temporal_envelope
 from .provision import Provision
 from .sentence import Sentence
-from .numeric_claims import Magnitude, QuantifiedClaim, RangeClaim, RatioClaim, NumericSurface
+from .numeric_claims import (
+    Magnitude,
+    QuantifiedClaim,
+    RangeClaim,
+    RatioClaim,
+    NumericSurface,
+)
 from .text_span import TextSpan
 
 __all__ = [

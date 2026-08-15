@@ -27,12 +27,20 @@ _V1_METRIC_IDS = (
 
 def _as_node_list(graph_payload: Mapping[str, Any] | None) -> list[Mapping[str, Any]]:
     nodes = graph_payload.get("nodes") if isinstance(graph_payload, Mapping) else []
-    return [row for row in nodes if isinstance(row, Mapping)] if isinstance(nodes, list) else []
+    return (
+        [row for row in nodes if isinstance(row, Mapping)]
+        if isinstance(nodes, list)
+        else []
+    )
 
 
 def _as_edge_list(graph_payload: Mapping[str, Any] | None) -> list[Mapping[str, Any]]:
     edges = graph_payload.get("edges") if isinstance(graph_payload, Mapping) else []
-    return [row for row in edges if isinstance(row, Mapping)] if isinstance(edges, list) else []
+    return (
+        [row for row in edges if isinstance(row, Mapping)]
+        if isinstance(edges, list)
+        else []
+    )
 
 
 def _round(value: float) -> float:
@@ -119,20 +127,30 @@ def build_graph_cone_diagnostics(
         if str(row.get("id") or "").strip()
     }
     seed_kind_set = {str(kind).strip() for kind in seed_node_kinds if str(kind).strip()}
-    allowed_edge_set = {str(kind).strip() for kind in allowed_edge_types if str(kind).strip()}
+    allowed_edge_set = {
+        str(kind).strip() for kind in allowed_edge_types if str(kind).strip()
+    }
     if not seed_kind_set:
         raise ValueError("seed_node_kinds must not be empty")
     if not allowed_edge_set:
         raise ValueError("allowed_edge_types must not be empty")
 
-    seed_set = sorted(node_id for node_id, kind in node_kinds.items() if kind in seed_kind_set)
+    seed_set = sorted(
+        node_id for node_id, kind in node_kinds.items() if kind in seed_kind_set
+    )
     adjacency: dict[str, list[tuple[str, str]]] = defaultdict(list)
     all_outgoing_edges: dict[str, list[tuple[str, str]]] = defaultdict(list)
     for edge in edges:
         source = str(edge.get("source") or "").strip()
         target = str(edge.get("target") or "").strip()
         kind = str(edge.get("kind") or "").strip()
-        if not source or not target or source not in node_ids or target not in node_ids or not kind:
+        if (
+            not source
+            or not target
+            or source not in node_ids
+            or target not in node_ids
+            or not kind
+        ):
             continue
         all_outgoing_edges[source].append((target, kind))
         if kind in allowed_edge_set:
@@ -152,10 +170,14 @@ def build_graph_cone_diagnostics(
         depth = visited_depth[current]
         outgoing = all_outgoing_edges.get(current, [])
         encountered_edges += len(outgoing)
-        encountered_disallowed += sum(1 for _, kind in outgoing if kind not in allowed_edge_set)
+        encountered_disallowed += sum(
+            1 for _, kind in outgoing if kind not in allowed_edge_set
+        )
         if depth >= max_depth:
             continue
-        for target, kind in sorted(adjacency.get(current, []), key=lambda row: (row[1], row[0])):
+        for target, kind in sorted(
+            adjacency.get(current, []), key=lambda row: (row[1], row[0])
+        ):
             traversed_edges.add((current, target, kind))
             if target in visited_depth:
                 continue
@@ -170,13 +192,19 @@ def build_graph_cone_diagnostics(
         "allowed_edge_types": sorted(allowed_edge_set),
         "max_depth": max_depth,
         "depth_reached": max(width_counter, default=0),
-        "width_by_depth": {str(depth): width_counter[depth] for depth in sorted(width_counter)},
+        "width_by_depth": {
+            str(depth): width_counter[depth] for depth in sorted(width_counter)
+        },
         "seed_coverage": {
             "valid_seed_count": len(seed_set),
             "missing_seed_count": 0,
         },
-        "selectivity": _round(len(traversed_edges) / total_encountered) if total_encountered else 0.0,
-        "leakage": _round(encountered_disallowed / total_encountered) if total_encountered else 0.0,
+        "selectivity": _round(len(traversed_edges) / total_encountered)
+        if total_encountered
+        else 0.0,
+        "leakage": _round(encountered_disallowed / total_encountered)
+        if total_encountered
+        else 0.0,
     }
 
 
@@ -256,16 +284,32 @@ def build_graph_revision_stability(
     baseline_cone = _mapping(baseline.get("cone"))
     candidate_cone = _mapping(candidate.get("cone"))
 
-    same_registry_id = _string(baseline_registry.get("registry_id")) == _string(candidate_registry.get("registry_id"))
-    same_registry_version = _string(baseline_registry.get("registry_version")) == _string(candidate_registry.get("registry_version"))
-    same_schema_version = _string(baseline.get("schema_version")) == _string(candidate.get("schema_version"))
-    same_substrate_kind = _string(baseline_scope.get("substrate_kind")) == _string(candidate_scope.get("substrate_kind"))
-    same_projection_role = _string(baseline_scope.get("projection_role")) == _string(candidate_scope.get("projection_role"))
-    same_source_lane = _string(baseline_scope.get("source_lane")) == _string(candidate_scope.get("source_lane"))
-    same_allowed_edge_types = sorted(baseline_cone.get("allowed_edge_types") or []) == sorted(candidate_cone.get("allowed_edge_types") or [])
+    same_registry_id = _string(baseline_registry.get("registry_id")) == _string(
+        candidate_registry.get("registry_id")
+    )
+    same_registry_version = _string(
+        baseline_registry.get("registry_version")
+    ) == _string(candidate_registry.get("registry_version"))
+    same_schema_version = _string(baseline.get("schema_version")) == _string(
+        candidate.get("schema_version")
+    )
+    same_substrate_kind = _string(baseline_scope.get("substrate_kind")) == _string(
+        candidate_scope.get("substrate_kind")
+    )
+    same_projection_role = _string(baseline_scope.get("projection_role")) == _string(
+        candidate_scope.get("projection_role")
+    )
+    same_source_lane = _string(baseline_scope.get("source_lane")) == _string(
+        candidate_scope.get("source_lane")
+    )
+    same_allowed_edge_types = sorted(
+        baseline_cone.get("allowed_edge_types") or []
+    ) == sorted(candidate_cone.get("allowed_edge_types") or [])
     same_max_depth = baseline_cone.get("max_depth") == candidate_cone.get("max_depth")
     cone_present_in_both = bool(baseline_cone) and bool(candidate_cone)
-    seed_set_changed = sorted(baseline_cone.get("seed_set") or []) != sorted(candidate_cone.get("seed_set") or [])
+    seed_set_changed = sorted(baseline_cone.get("seed_set") or []) != sorted(
+        candidate_cone.get("seed_set") or []
+    )
 
     rejection_reasons: list[str] = []
     if not same_schema_version:
@@ -292,9 +336,17 @@ def build_graph_revision_stability(
         "schema_version": GRAPH_REVISION_STABILITY_SCHEMA_VERSION,
         "diagnostic_kind": "deterministic_revision_pair_metrics",
         "comparison_scope": {
-            "substrate_kind": _string(candidate_scope.get("substrate_kind") or baseline_scope.get("substrate_kind")),
-            "projection_role": _string(candidate_scope.get("projection_role") or baseline_scope.get("projection_role")),
-            "source_lane": _string(candidate_scope.get("source_lane") or baseline_scope.get("source_lane")),
+            "substrate_kind": _string(
+                candidate_scope.get("substrate_kind")
+                or baseline_scope.get("substrate_kind")
+            ),
+            "projection_role": _string(
+                candidate_scope.get("projection_role")
+                or baseline_scope.get("projection_role")
+            ),
+            "source_lane": _string(
+                candidate_scope.get("source_lane") or baseline_scope.get("source_lane")
+            ),
             "comparison_basis": "explicit_graph_diagnostics_pair",
             "replay_basis": "explicit_graph_diagnostics_pair",
         },
@@ -302,8 +354,12 @@ def build_graph_revision_stability(
             "admissible": admissible,
             "baseline_graph_version": _string(baseline_scope.get("graph_version")),
             "candidate_graph_version": _string(candidate_scope.get("graph_version")),
-            "baseline_source_artifact_id": _string(baseline_scope.get("source_artifact_id")),
-            "candidate_source_artifact_id": _string(candidate_scope.get("source_artifact_id")),
+            "baseline_source_artifact_id": _string(
+                baseline_scope.get("source_artifact_id")
+            ),
+            "candidate_source_artifact_id": _string(
+                candidate_scope.get("source_artifact_id")
+            ),
             "same_schema_version": _bool(same_schema_version),
             "same_registry_id": _bool(same_registry_id),
             "same_registry_version": _bool(same_registry_version),
@@ -347,20 +403,40 @@ def build_graph_revision_stability(
     candidate_metrics = _mapping(candidate.get("metrics"))
     baseline_width = _mapping(baseline_cone.get("width_by_depth"))
     candidate_width = _mapping(candidate_cone.get("width_by_depth"))
-    all_depths = sorted({*baseline_width.keys(), *candidate_width.keys()}, key=lambda depth: int(depth))
+    all_depths = sorted(
+        {*baseline_width.keys(), *candidate_width.keys()}, key=lambda depth: int(depth)
+    )
 
     result["deltas"] = {
-        "node_count_delta": int(candidate_metrics.get("node_count") or 0) - int(baseline_metrics.get("node_count") or 0),
-        "edge_count_delta": int(candidate_metrics.get("edge_count") or 0) - int(baseline_metrics.get("edge_count") or 0),
-        "component_count_delta": int(candidate_metrics.get("component_count") or 0) - int(baseline_metrics.get("component_count") or 0),
-        "giant_component_ratio_delta": _round((candidate_metrics.get("giant_component_ratio") or 0.0) - (baseline_metrics.get("giant_component_ratio") or 0.0)),
-        "branching_factor_delta": _round((candidate_metrics.get("branching_factor") or 0.0) - (baseline_metrics.get("branching_factor") or 0.0)),
-        "depth_reached_delta": int(candidate_cone.get("depth_reached") or 0) - int(baseline_cone.get("depth_reached") or 0),
-        "selectivity_delta": _round((candidate_cone.get("selectivity") or 0.0) - (baseline_cone.get("selectivity") or 0.0)),
-        "leakage_delta": _round((candidate_cone.get("leakage") or 0.0) - (baseline_cone.get("leakage") or 0.0)),
-        "seed_count_delta": len(candidate_cone.get("seed_set") or []) - len(baseline_cone.get("seed_set") or []),
+        "node_count_delta": int(candidate_metrics.get("node_count") or 0)
+        - int(baseline_metrics.get("node_count") or 0),
+        "edge_count_delta": int(candidate_metrics.get("edge_count") or 0)
+        - int(baseline_metrics.get("edge_count") or 0),
+        "component_count_delta": int(candidate_metrics.get("component_count") or 0)
+        - int(baseline_metrics.get("component_count") or 0),
+        "giant_component_ratio_delta": _round(
+            (candidate_metrics.get("giant_component_ratio") or 0.0)
+            - (baseline_metrics.get("giant_component_ratio") or 0.0)
+        ),
+        "branching_factor_delta": _round(
+            (candidate_metrics.get("branching_factor") or 0.0)
+            - (baseline_metrics.get("branching_factor") or 0.0)
+        ),
+        "depth_reached_delta": int(candidate_cone.get("depth_reached") or 0)
+        - int(baseline_cone.get("depth_reached") or 0),
+        "selectivity_delta": _round(
+            (candidate_cone.get("selectivity") or 0.0)
+            - (baseline_cone.get("selectivity") or 0.0)
+        ),
+        "leakage_delta": _round(
+            (candidate_cone.get("leakage") or 0.0)
+            - (baseline_cone.get("leakage") or 0.0)
+        ),
+        "seed_count_delta": len(candidate_cone.get("seed_set") or [])
+        - len(baseline_cone.get("seed_set") or []),
         "width_delta_by_depth": {
-            depth: int(candidate_width.get(depth) or 0) - int(baseline_width.get(depth) or 0)
+            depth: int(candidate_width.get(depth) or 0)
+            - int(baseline_width.get(depth) or 0)
             for depth in all_depths
         },
     }

@@ -38,9 +38,17 @@ def packet_header(
     return header
 
 
-def ensure_receipt_kinds(receipts: Sequence[Mapping[str, Any]], *, required_kinds: Iterable[str]) -> None:
+def ensure_receipt_kinds(
+    receipts: Sequence[Mapping[str, Any]], *, required_kinds: Iterable[str]
+) -> None:
     required = {str(kind) for kind in required_kinds if str(kind).strip()}
-    present = {str(receipt.get("kind") or "") for receipt in receipts if isinstance(receipt, Mapping)}
+    present = {
+        str(receipt.get("kind") or "")
+        for receipt in receipts
+        if isinstance(receipt, Mapping)
+    }
     missing = required - present
     if missing:
-        raise ValueError(f"missing provenance receipt kinds: {', '.join(sorted(missing))}")
+        raise ValueError(
+            f"missing provenance receipt kinds: {', '.join(sorted(missing))}"
+        )

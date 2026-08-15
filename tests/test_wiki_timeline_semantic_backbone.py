@@ -67,7 +67,11 @@ def test_synset_mapper_is_pinned_by_wordnet_version_when_enabled() -> None:
     except RuntimeError as e:
         msg = str(e)
         # Could also be "wordnet_unavailable" in minimal environments; that's acceptable.
-        assert "wordnet_version_pin_mismatch" in msg or "wordnet_unavailable" in msg or "wordnet_version_unknown" in msg
+        assert (
+            "wordnet_version_pin_mismatch" in msg
+            or "wordnet_unavailable" in msg
+            or "wordnet_version_unknown" in msg
+        )
 
 
 def test_babelnet_synset_tiebreak_is_deterministic() -> None:

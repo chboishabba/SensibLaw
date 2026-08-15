@@ -152,9 +152,10 @@ def test_reference_binding_mini_persists_nonempty_and_zero_member_sets() -> None
             "eventuality_reference",
             "proposition_reference",
         }
-        assert report_binding["accessible_candidates"] >= report_binding[
-            "candidate_members"
-        ]
+        assert (
+            report_binding["accessible_candidates"]
+            >= report_binding["candidate_members"]
+        )
         assert report_binding["compatibility_retention_rate"] is not None
         assert report_demands["demands"] == len(first.demand_refs)
         assert report_demands["open_demands"] == len(first.demand_refs)
@@ -223,8 +224,9 @@ def test_reference_binding_mini_persists_nonempty_and_zero_member_sets() -> None
         assert second_report["execution_metrics"]["occurrence_states"] == {
             "reused_compilation": 5
         }
-        assert second_report["execution_metrics"][
-            "document_compilation_builds"
-        ] == first_report["execution_metrics"]["document_compilation_builds"]
+        assert (
+            second_report["execution_metrics"]["document_compilation_builds"]
+            == first_report["execution_metrics"]["document_compilation_builds"]
+        )
     finally:
         store.close()

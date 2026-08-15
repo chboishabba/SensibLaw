@@ -22,7 +22,9 @@ def test_revision_monitor_read_models_round_trip() -> None:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("CREATE TABLE wiki_revision_monitor_packs (pack_id TEXT PRIMARY KEY)")
-    conn.execute("CREATE TABLE wiki_revision_monitor_runs (run_id TEXT PRIMARY KEY, pack_id TEXT NOT NULL REFERENCES wiki_revision_monitor_packs(pack_id) ON DELETE CASCADE)")
+    conn.execute(
+        "CREATE TABLE wiki_revision_monitor_runs (run_id TEXT PRIMARY KEY, pack_id TEXT NOT NULL REFERENCES wiki_revision_monitor_packs(pack_id) ON DELETE CASCADE)"
+    )
     conn.execute(
         """
         CREATE TABLE wiki_revision_monitor_articles (
@@ -93,7 +95,9 @@ def test_revision_monitor_read_models_round_trip() -> None:
     )
     ensure_read_model_schema(conn)
     conn.execute("INSERT INTO wiki_revision_monitor_packs(pack_id) VALUES('pack_one')")
-    conn.execute("INSERT INTO wiki_revision_monitor_runs(run_id, pack_id) VALUES('run:pack_one:2026-03-31T00:00:00Z:abc', 'pack_one')")
+    conn.execute(
+        "INSERT INTO wiki_revision_monitor_runs(run_id, pack_id) VALUES('run:pack_one:2026-03-31T00:00:00Z:abc', 'pack_one')"
+    )
     conn.executemany(
         "INSERT INTO wiki_revision_monitor_articles(article_id, pack_id) VALUES(?, 'pack_one')",
         [("article_1",), ("article_2",)],
@@ -108,9 +112,20 @@ def test_revision_monitor_read_models_round_trip() -> None:
         status="ok",
         summary={
             "highest_severity": "high",
-            "counts": {"changed": 2, "error": 0, "unchanged": 0, "baseline_initialized": 0, "no_candidate_delta": 0},
+            "counts": {
+                "changed": 2,
+                "error": 0,
+                "unchanged": 0,
+                "baseline_initialized": 0,
+                "no_candidate_delta": 0,
+            },
             "candidate_pair_counts": {"considered": 4, "selected": 2, "reported": 2},
-            "contested_graph_counts": {"articles_with_graphs": 1, "graphs_built": 1, "regions_detected": 3, "cycles_detected": 1},
+            "contested_graph_counts": {
+                "articles_with_graphs": 1,
+                "graphs_built": 1,
+                "regions_detected": 3,
+                "cycles_detected": 1,
+            },
         },
     )
     replace_changed_articles(
@@ -135,14 +150,20 @@ def test_revision_monitor_read_models_round_trip() -> None:
                 "selected_primary_pair_score": 9.5,
                 "candidate_pairs_selected": 2,
                 "contested_graph_available": True,
-                "contested_graph_summary": {"region_count": 3, "cycle_count": 1, "graph_heat": 7.5},
+                "contested_graph_summary": {
+                    "region_count": 3,
+                    "cycle_count": 1,
+                    "graph_heat": 7.5,
+                },
             },
         ],
     )
 
     latest = latest_run_rows(conn, pack_id="pack_one")
     changed = changed_article_rows(conn, run_id="run:pack_one:2026-03-31T00:00:00Z:abc")
-    summary = summary_from_read_models(conn, run_id="run:pack_one:2026-03-31T00:00:00Z:abc")
+    summary = summary_from_read_models(
+        conn, run_id="run:pack_one:2026-03-31T00:00:00Z:abc"
+    )
 
     assert latest[0]["highest_severity"] == "high"
     assert changed[0]["article_id"] == "article_1"
@@ -152,7 +173,9 @@ def test_revision_monitor_read_models_round_trip() -> None:
     assert summary is not None
     assert summary["pack_id"] == "pack_one"
     assert summary["counts"]["changed"] == 2
-    assert summary["pack_triage"]["top_changed_articles"][0]["article_id"] == "article_1"
+    assert (
+        summary["pack_triage"]["top_changed_articles"][0]["article_id"] == "article_1"
+    )
     assert "report_path" not in summary["pack_triage"]["top_changed_articles"][0]
 
 
@@ -161,7 +184,9 @@ def test_revision_monitor_issue_packet_rows_round_trip() -> None:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("CREATE TABLE wiki_revision_monitor_packs (pack_id TEXT PRIMARY KEY)")
-    conn.execute("CREATE TABLE wiki_revision_monitor_runs (run_id TEXT PRIMARY KEY, pack_id TEXT NOT NULL REFERENCES wiki_revision_monitor_packs(pack_id) ON DELETE CASCADE)")
+    conn.execute(
+        "CREATE TABLE wiki_revision_monitor_runs (run_id TEXT PRIMARY KEY, pack_id TEXT NOT NULL REFERENCES wiki_revision_monitor_packs(pack_id) ON DELETE CASCADE)"
+    )
     conn.execute(
         """
         CREATE TABLE wiki_revision_monitor_articles (
@@ -172,8 +197,12 @@ def test_revision_monitor_issue_packet_rows_round_trip() -> None:
     )
     ensure_read_model_schema(conn)
     conn.execute("INSERT INTO wiki_revision_monitor_packs(pack_id) VALUES('pack_one')")
-    conn.execute("INSERT INTO wiki_revision_monitor_runs(run_id, pack_id) VALUES('run:pack_one:2026-03-31T00:00:00Z:abc', 'pack_one')")
-    conn.execute("INSERT INTO wiki_revision_monitor_articles(article_id, pack_id) VALUES('article_1', 'pack_one')")
+    conn.execute(
+        "INSERT INTO wiki_revision_monitor_runs(run_id, pack_id) VALUES('run:pack_one:2026-03-31T00:00:00Z:abc', 'pack_one')"
+    )
+    conn.execute(
+        "INSERT INTO wiki_revision_monitor_articles(article_id, pack_id) VALUES('article_1', 'pack_one')"
+    )
 
     replace_issue_packets(
         conn,
@@ -194,7 +223,9 @@ def test_revision_monitor_issue_packet_rows_round_trip() -> None:
             }
         ],
     )
-    rows = issue_packet_rows(conn, run_id="run:pack_one:2026-03-31T00:00:00Z:abc", article_id="article_1")
+    rows = issue_packet_rows(
+        conn, run_id="run:pack_one:2026-03-31T00:00:00Z:abc", article_id="article_1"
+    )
     assert rows[0]["packet_id"] == "packet:1"
     assert rows[0]["severity"] == "high"
     assert rows[0]["review_context"]["curated"]["curated_qids"] == ["Q1"]
@@ -205,7 +236,9 @@ def test_revision_monitor_selected_pair_rows_round_trip() -> None:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("CREATE TABLE wiki_revision_monitor_packs (pack_id TEXT PRIMARY KEY)")
-    conn.execute("CREATE TABLE wiki_revision_monitor_runs (run_id TEXT PRIMARY KEY, pack_id TEXT NOT NULL REFERENCES wiki_revision_monitor_packs(pack_id) ON DELETE CASCADE)")
+    conn.execute(
+        "CREATE TABLE wiki_revision_monitor_runs (run_id TEXT PRIMARY KEY, pack_id TEXT NOT NULL REFERENCES wiki_revision_monitor_packs(pack_id) ON DELETE CASCADE)"
+    )
     conn.execute(
         """
         CREATE TABLE wiki_revision_monitor_articles (
@@ -216,8 +249,12 @@ def test_revision_monitor_selected_pair_rows_round_trip() -> None:
     )
     ensure_read_model_schema(conn)
     conn.execute("INSERT INTO wiki_revision_monitor_packs(pack_id) VALUES('pack_one')")
-    conn.execute("INSERT INTO wiki_revision_monitor_runs(run_id, pack_id) VALUES('run:pack_one:2026-03-31T00:00:00Z:abc', 'pack_one')")
-    conn.execute("INSERT INTO wiki_revision_monitor_articles(article_id, pack_id) VALUES('article_1', 'pack_one')")
+    conn.execute(
+        "INSERT INTO wiki_revision_monitor_runs(run_id, pack_id) VALUES('run:pack_one:2026-03-31T00:00:00Z:abc', 'pack_one')"
+    )
+    conn.execute(
+        "INSERT INTO wiki_revision_monitor_articles(article_id, pack_id) VALUES('article_1', 'pack_one')"
+    )
 
     replace_selected_pairs(
         conn,
@@ -236,7 +273,9 @@ def test_revision_monitor_selected_pair_rows_round_trip() -> None:
             }
         ],
     )
-    rows = selected_pair_rows(conn, run_id="run:pack_one:2026-03-31T00:00:00Z:abc", article_id="article_1")
+    rows = selected_pair_rows(
+        conn, run_id="run:pack_one:2026-03-31T00:00:00Z:abc", article_id="article_1"
+    )
     assert rows[0]["pair_id"] == "pair:1"
     assert rows[0]["pair_kind"] == "largest_delta_in_window"
     assert rows[0]["top_changed_sections"][0]["section"] == "History"
@@ -248,7 +287,9 @@ def test_revision_monitor_contested_graph_payload_from_sqlite() -> None:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("CREATE TABLE wiki_revision_monitor_packs (pack_id TEXT PRIMARY KEY)")
-    conn.execute("CREATE TABLE wiki_revision_monitor_runs (run_id TEXT PRIMARY KEY, pack_id TEXT NOT NULL REFERENCES wiki_revision_monitor_packs(pack_id) ON DELETE CASCADE)")
+    conn.execute(
+        "CREATE TABLE wiki_revision_monitor_runs (run_id TEXT PRIMARY KEY, pack_id TEXT NOT NULL REFERENCES wiki_revision_monitor_packs(pack_id) ON DELETE CASCADE)"
+    )
     conn.execute(
         """
         CREATE TABLE wiki_revision_monitor_articles (
@@ -325,7 +366,9 @@ def test_revision_monitor_contested_graph_payload_from_sqlite() -> None:
     )
     ensure_read_model_schema(conn)
     conn.execute("INSERT INTO wiki_revision_monitor_packs(pack_id) VALUES('pack_one')")
-    conn.execute("INSERT INTO wiki_revision_monitor_runs(run_id, pack_id) VALUES('run:pack_one:2026-03-31T00:00:00Z:abc', 'pack_one')")
+    conn.execute(
+        "INSERT INTO wiki_revision_monitor_runs(run_id, pack_id) VALUES('run:pack_one:2026-03-31T00:00:00Z:abc', 'pack_one')"
+    )
     conn.execute(
         """
         INSERT INTO wiki_revision_monitor_articles(
@@ -392,7 +435,12 @@ def test_revision_monitor_contested_graph_payload_from_sqlite() -> None:
           run_id, article_id, event_id, event_json
         ) VALUES(?,?,?,?)
         """,
-        ("run:pack_one:2026-03-31T00:00:00Z:abc", "article_1", "ev:1", '{"event_id":"ev:1"}'),
+        (
+            "run:pack_one:2026-03-31T00:00:00Z:abc",
+            "article_1",
+            "ev:1",
+            '{"event_id":"ev:1"}',
+        ),
     )
     conn.execute(
         """
@@ -400,7 +448,12 @@ def test_revision_monitor_contested_graph_payload_from_sqlite() -> None:
           run_id, article_id, epistemic_id, epistemic_json
         ) VALUES(?,?,?,?)
         """,
-        ("run:pack_one:2026-03-31T00:00:00Z:abc", "article_1", "epi:1", '{"epistemic_id":"epi:1","event_id":"ev:1"}'),
+        (
+            "run:pack_one:2026-03-31T00:00:00Z:abc",
+            "article_1",
+            "epi:1",
+            '{"epistemic_id":"epi:1","event_id":"ev:1"}',
+        ),
     )
     replace_selected_pairs(
         conn,
@@ -419,7 +472,9 @@ def test_revision_monitor_contested_graph_payload_from_sqlite() -> None:
             }
         ],
     )
-    payload = contested_graph_payload(conn, run_id="run:pack_one:2026-03-31T00:00:00Z:abc", article_id="article_1")
+    payload = contested_graph_payload(
+        conn, run_id="run:pack_one:2026-03-31T00:00:00Z:abc", article_id="article_1"
+    )
     assert payload is not None
     assert payload["article"]["article_id"] == "article_1"
     assert payload["selected_pairs"][0]["pair_id"] == "pair:1"
@@ -435,8 +490,12 @@ def test_ensure_read_model_schema_rebuilds_dead_path_columns() -> None:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("CREATE TABLE wiki_revision_monitor_packs (pack_id TEXT PRIMARY KEY)")
-    conn.execute("CREATE TABLE wiki_revision_monitor_runs (run_id TEXT PRIMARY KEY, pack_id TEXT NOT NULL REFERENCES wiki_revision_monitor_packs(pack_id) ON DELETE CASCADE)")
-    conn.execute("CREATE TABLE wiki_revision_monitor_articles (article_id TEXT PRIMARY KEY, pack_id TEXT NOT NULL REFERENCES wiki_revision_monitor_packs(pack_id) ON DELETE CASCADE)")
+    conn.execute(
+        "CREATE TABLE wiki_revision_monitor_runs (run_id TEXT PRIMARY KEY, pack_id TEXT NOT NULL REFERENCES wiki_revision_monitor_packs(pack_id) ON DELETE CASCADE)"
+    )
+    conn.execute(
+        "CREATE TABLE wiki_revision_monitor_articles (article_id TEXT PRIMARY KEY, pack_id TEXT NOT NULL REFERENCES wiki_revision_monitor_packs(pack_id) ON DELETE CASCADE)"
+    )
     conn.execute(
         """
         CREATE TABLE wiki_revision_monitor_changed_articles (
@@ -481,8 +540,18 @@ def test_ensure_read_model_schema_rebuilds_dead_path_columns() -> None:
         """
     )
     ensure_read_model_schema(conn)
-    changed_cols = {row[1] for row in conn.execute("PRAGMA table_info(wiki_revision_monitor_changed_articles)").fetchall()}
-    pair_cols = {row[1] for row in conn.execute("PRAGMA table_info(wiki_revision_monitor_selected_pairs)").fetchall()}
+    changed_cols = {
+        row[1]
+        for row in conn.execute(
+            "PRAGMA table_info(wiki_revision_monitor_changed_articles)"
+        ).fetchall()
+    }
+    pair_cols = {
+        row[1]
+        for row in conn.execute(
+            "PRAGMA table_info(wiki_revision_monitor_selected_pairs)"
+        ).fetchall()
+    }
     assert "report_path" not in changed_cols
     assert "contested_graph_path" not in changed_cols
     assert "pair_report_path" not in pair_cols

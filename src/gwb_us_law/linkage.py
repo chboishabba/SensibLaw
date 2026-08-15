@@ -3,10 +3,10 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from collections import Counter, defaultdict
+from collections import Counter
 from pathlib import Path
 import sqlite3
-from typing import Any, Iterable, Mapping
+from typing import Any, Mapping
 
 from src.wiki_timeline.sqlite_store import load_run_payload_from_normalized
 
@@ -37,7 +37,11 @@ def _resolve_db_path(db_path: str | Path | None = None) -> Path:
 
 
 def _stable_sha256(payload: object) -> str:
-    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")).hexdigest()
+    return hashlib.sha256(
+        json.dumps(
+            payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True
+        ).encode("utf-8")
+    ).hexdigest()
 
 
 def ensure_gwb_us_law_schema(conn: sqlite3.Connection) -> None:
@@ -127,9 +131,13 @@ def ensure_gwb_us_law_schema(conn: sqlite3.Connection) -> None:
     )
 
 
-def import_gwb_us_law_seed_payload(conn: sqlite3.Connection, payload: Mapping[str, Any]) -> dict[str, Any]:
+def import_gwb_us_law_seed_payload(
+    conn: sqlite3.Connection, payload: Mapping[str, Any]
+) -> dict[str, Any]:
     ensure_gwb_us_law_schema(conn)
-    metadata = payload.get("metadata") if isinstance(payload.get("metadata"), Mapping) else {}
+    metadata = (
+        payload.get("metadata") if isinstance(payload.get("metadata"), Mapping) else {}
+    )
     import_name = str(metadata.get("name") or "").strip()
     if not import_name:
         raise ValueError("payload.metadata.name is required")
@@ -146,15 +154,37 @@ def import_gwb_us_law_seed_payload(conn: sqlite3.Connection, payload: Mapping[st
         """,
         (import_name, source_sha256, generated_at, notes),
     )
-    seed_ids = [str(item.get("seed_id") or "").strip() for item in items if isinstance(item, Mapping) and str(item.get("seed_id") or "").strip()]
+    seed_ids = [
+        str(item.get("seed_id") or "").strip()
+        for item in items
+        if isinstance(item, Mapping) and str(item.get("seed_id") or "").strip()
+    ]
     if seed_ids:
         placeholders = ",".join("?" for _ in seed_ids)
-        conn.execute(f"DELETE FROM gwb_us_law_linkage_match_receipts WHERE seed_id IN ({placeholders})", seed_ids)
-        conn.execute(f"DELETE FROM gwb_us_law_linkage_matches WHERE seed_id IN ({placeholders})", seed_ids)
-        conn.execute(f"DELETE FROM gwb_us_law_linkage_seed_authorities WHERE seed_id IN ({placeholders})", seed_ids)
-        conn.execute(f"DELETE FROM gwb_us_law_linkage_seed_refs WHERE seed_id IN ({placeholders})", seed_ids)
-        conn.execute(f"DELETE FROM gwb_us_law_linkage_seed_cues WHERE seed_id IN ({placeholders})", seed_ids)
-        conn.execute(f"DELETE FROM gwb_us_law_linkage_seeds WHERE seed_id IN ({placeholders})", seed_ids)
+        conn.execute(
+            f"DELETE FROM gwb_us_law_linkage_match_receipts WHERE seed_id IN ({placeholders})",
+            seed_ids,
+        )
+        conn.execute(
+            f"DELETE FROM gwb_us_law_linkage_matches WHERE seed_id IN ({placeholders})",
+            seed_ids,
+        )
+        conn.execute(
+            f"DELETE FROM gwb_us_law_linkage_seed_authorities WHERE seed_id IN ({placeholders})",
+            seed_ids,
+        )
+        conn.execute(
+            f"DELETE FROM gwb_us_law_linkage_seed_refs WHERE seed_id IN ({placeholders})",
+            seed_ids,
+        )
+        conn.execute(
+            f"DELETE FROM gwb_us_law_linkage_seed_cues WHERE seed_id IN ({placeholders})",
+            seed_ids,
+        )
+        conn.execute(
+            f"DELETE FROM gwb_us_law_linkage_seeds WHERE seed_id IN ({placeholders})",
+            seed_ids,
+        )
     imported = 0
     for item in items:
         if not isinstance(item, Mapping):
@@ -164,7 +194,9 @@ def import_gwb_us_law_seed_payload(conn: sqlite3.Connection, payload: Mapping[st
         linkage_kind = str(item.get("linkage_kind") or "").strip()
         if not seed_id or not action_summary or not linkage_kind:
             continue
-        lane_tags = item.get("lane_tags") if isinstance(item.get("lane_tags"), list) else []
+        lane_tags = (
+            item.get("lane_tags") if isinstance(item.get("lane_tags"), list) else []
+        )
         conn.execute(
             """
             INSERT INTO gwb_us_law_linkage_seeds(
@@ -178,10 +210,17 @@ def import_gwb_us_law_seed_payload(conn: sqlite3.Connection, payload: Mapping[st
                 linkage_kind,
                 str(item.get("notes") or "").strip() or None,
                 str(item.get("review_status") or "").strip() or None,
-                json.dumps([str(tag) for tag in lane_tags], ensure_ascii=True, sort_keys=True),
+                json.dumps(
+                    [str(tag) for tag in lane_tags], ensure_ascii=True, sort_keys=True
+                ),
             ),
         )
-        for idx, title in enumerate(item.get("authority_titles") if isinstance(item.get("authority_titles"), list) else [], start=1):
+        for idx, title in enumerate(
+            item.get("authority_titles")
+            if isinstance(item.get("authority_titles"), list)
+            else [],
+            start=1,
+        ):
             authority_title = str(title).strip()
             if authority_title:
                 conn.execute(
@@ -192,19 +231,29 @@ def import_gwb_us_law_seed_payload(conn: sqlite3.Connection, payload: Mapping[st
             (
                 (str(field_name[:-1]), field_name)
                 for field_name, value in item.items()
-                if isinstance(field_name, str) and field_name.endswith("_refs") and isinstance(value, list)
+                if isinstance(field_name, str)
+                and field_name.endswith("_refs")
+                and isinstance(value, list)
             ),
             key=lambda item: item[1],
         )
         for ref_kind, field_name in ref_fields:
-            for idx, ref in enumerate(item.get(field_name) if isinstance(item.get(field_name), list) else [], start=1):
+            for idx, ref in enumerate(
+                item.get(field_name) if isinstance(item.get(field_name), list) else [],
+                start=1,
+            ):
                 canonical_ref = str(ref).strip()
                 if canonical_ref:
                     conn.execute(
                         "INSERT INTO gwb_us_law_linkage_seed_refs(seed_id, ref_order, ref_kind, canonical_ref) VALUES (?,?,?,?)",
                         (seed_id, idx, ref_kind, canonical_ref),
                     )
-        for idx, cue in enumerate(item.get("provenance_cues") if isinstance(item.get("provenance_cues"), list) else [], start=1):
+        for idx, cue in enumerate(
+            item.get("provenance_cues")
+            if isinstance(item.get("provenance_cues"), list)
+            else [],
+            start=1,
+        ):
             cue_text = str(cue).strip()
             if cue_text:
                 conn.execute(
@@ -212,10 +261,16 @@ def import_gwb_us_law_seed_payload(conn: sqlite3.Connection, payload: Mapping[st
                     (seed_id, idx, cue_text),
                 )
         imported += 1
-    return {"import_name": import_name, "seed_count": imported, "source_sha256": source_sha256}
+    return {
+        "import_name": import_name,
+        "seed_count": imported,
+        "source_sha256": source_sha256,
+    }
 
 
-def _pick_best_run_for_timeline_suffix(conn: sqlite3.Connection, suffix: str) -> str | None:
+def _pick_best_run_for_timeline_suffix(
+    conn: sqlite3.Connection, suffix: str
+) -> str | None:
     row = conn.execute(
         """
         SELECT run_id
@@ -251,6 +306,7 @@ def _bridge_aliases_for_ref(conn: sqlite3.Connection, canonical_ref: str) -> lis
 
 def _collect_event_strings(event: Mapping[str, Any]) -> list[str]:
     out: list[str] = []
+
     def walk(value: Any) -> None:
         if isinstance(value, str):
             txt = value.strip()
@@ -262,6 +318,7 @@ def _collect_event_strings(event: Mapping[str, Any]) -> list[str]:
         elif isinstance(value, list):
             for inner in value:
                 walk(inner)
+
     walk(event)
     deduped: list[str] = []
     seen: set[str] = set()
@@ -274,7 +331,13 @@ def _collect_event_strings(event: Mapping[str, Any]) -> list[str]:
     return deduped
 
 
-def _compute_match(authorities: list[str], refs: list[tuple[str, str]], cues: list[str], event: Mapping[str, Any], ref_aliases: Mapping[str, list[str]]) -> tuple[int, list[tuple[str, str]]]:
+def _compute_match(
+    authorities: list[str],
+    refs: list[tuple[str, str]],
+    cues: list[str],
+    event: Mapping[str, Any],
+    ref_aliases: Mapping[str, list[str]],
+) -> tuple[int, list[tuple[str, str]]]:
     haystacks = _collect_event_strings(event)
     score = 0
     receipts: list[tuple[str, str]] = []
@@ -307,7 +370,9 @@ def _compute_match(authorities: list[str], refs: list[tuple[str, str]], cues: li
                 receipts.append(("provenance_cue", cue))
     if strong_cue_hits:
         score += strong_cue_hits
-    non_cue_signal = any(kind == "authority_title" or _is_reference_receipt(kind) for kind, _ in receipts)
+    non_cue_signal = any(
+        kind == "authority_title" or _is_reference_receipt(kind) for kind, _ in receipts
+    )
     if broad_cue_hits and not non_cue_signal and not strong_cue_hits:
         score += 1
     elif broad_cue_hits and non_cue_signal:
@@ -321,7 +386,10 @@ def _confidence_from_score(score: int, receipts: list[tuple[str, str]]) -> str:
         return "high"
     if score >= 4 and (
         "authority_title" in kinds
-        or ("provenance_cue" in kinds and any(_is_reference_receipt(kind) for kind in kinds))
+        or (
+            "provenance_cue" in kinds
+            and any(_is_reference_receipt(kind) for kind in kinds)
+        )
         or sum(1 for kind in kinds if _is_reference_receipt(kind)) >= 2
     ):
         return "medium"
@@ -329,7 +397,10 @@ def _confidence_from_score(score: int, receipts: list[tuple[str, str]]) -> str:
         "provenance_cue" in kinds
         or "authority_title" in kinds
         or "provenance_cue_broad" in kinds
-        or ("provenance_cue_broad" in kinds and any(_is_reference_receipt(kind) for kind in kinds))
+        or (
+            "provenance_cue_broad" in kinds
+            and any(_is_reference_receipt(kind) for kind in kinds)
+        )
         or sum(1 for kind in kinds if _is_reference_receipt(kind)) >= 2
     ):
         return "low"
@@ -350,7 +421,9 @@ def run_gwb_us_law_linkage(
         raise ValueError(f"no wiki timeline run found for suffix {timeline_suffix}")
     payload = load_run_payload_from_normalized(conn, active_run_id)
     if not payload:
-        raise ValueError(f"unable to load normalized payload for run_id={active_run_id}")
+        raise ValueError(
+            f"unable to load normalized payload for run_id={active_run_id}"
+        )
     seed_rows = conn.execute(
         "SELECT seed_id, action_summary, linkage_kind, lane_tags_json FROM gwb_us_law_linkage_seeds ORDER BY seed_id"
     ).fetchall()
@@ -392,9 +465,17 @@ def run_gwb_us_law_linkage(
                 "provenance_cues": cues,
             }
         )
-    ref_aliases = {canonical_ref: _bridge_aliases_for_ref(conn, canonical_ref) for canonical_ref in sorted(all_refs)}
-    conn.execute("DELETE FROM gwb_us_law_linkage_match_receipts WHERE run_id = ?", (active_run_id,))
-    conn.execute("DELETE FROM gwb_us_law_linkage_matches WHERE run_id = ?", (active_run_id,))
+    ref_aliases = {
+        canonical_ref: _bridge_aliases_for_ref(conn, canonical_ref)
+        for canonical_ref in sorted(all_refs)
+    }
+    conn.execute(
+        "DELETE FROM gwb_us_law_linkage_match_receipts WHERE run_id = ?",
+        (active_run_id,),
+    )
+    conn.execute(
+        "DELETE FROM gwb_us_law_linkage_matches WHERE run_id = ?", (active_run_id,)
+    )
     matched_event_count = 0
     ambiguous_event_count = 0
     per_seed_counts: Counter[str] = Counter()
@@ -407,7 +488,13 @@ def run_gwb_us_law_linkage(
             continue
         candidates: list[tuple[dict[str, Any], int, list[tuple[str, str]], str]] = []
         for seed in seeds:
-            score, receipts = _compute_match(seed["authority_titles"], seed["refs"], seed["provenance_cues"], event, ref_aliases)
+            score, receipts = _compute_match(
+                seed["authority_titles"],
+                seed["refs"],
+                seed["provenance_cues"],
+                event,
+                ref_aliases,
+            )
             if score <= 0:
                 continue
             confidence = _confidence_from_score(score, receipts)
@@ -425,7 +512,13 @@ def run_gwb_us_law_linkage(
             if promotable[0][3] != "abstain":
                 matched_event_count += 1
         for seed, score, receipts, confidence in candidates:
-            matched = 1 if score == top_score and len(promotable) == 1 and confidence != "abstain" else 0
+            matched = (
+                1
+                if score == top_score
+                and len(promotable) == 1
+                and confidence != "abstain"
+                else 0
+            )
             if matched:
                 per_seed_counts[seed["seed_id"]] += 1
             elif confidence != "abstain" and score == top_score:
@@ -435,15 +528,32 @@ def run_gwb_us_law_linkage(
                 INSERT INTO gwb_us_law_linkage_matches(run_id, event_id, seed_id, confidence, matched, score, ambiguity_group)
                 VALUES (?,?,?,?,?,?,?)
                 """,
-                (active_run_id, event_id, seed["seed_id"], confidence, matched, score, ambiguity_group),
+                (
+                    active_run_id,
+                    event_id,
+                    seed["seed_id"],
+                    confidence,
+                    matched,
+                    score,
+                    ambiguity_group,
+                ),
             )
-            for receipt_order, (reason_kind, reason_value) in enumerate(receipts, start=1):
+            for receipt_order, (reason_kind, reason_value) in enumerate(
+                receipts, start=1
+            ):
                 conn.execute(
                     """
                     INSERT INTO gwb_us_law_linkage_match_receipts(run_id, event_id, seed_id, receipt_order, reason_kind, reason_value)
                     VALUES (?,?,?,?,?,?)
                     """,
-                    (active_run_id, event_id, seed["seed_id"], receipt_order, reason_kind, reason_value),
+                    (
+                        active_run_id,
+                        event_id,
+                        seed["seed_id"],
+                        receipt_order,
+                        reason_kind,
+                        reason_value,
+                    ),
                 )
     return {
         "run_id": active_run_id,
@@ -454,7 +564,9 @@ def run_gwb_us_law_linkage(
     }
 
 
-def build_gwb_us_law_linkage_report(conn: sqlite3.Connection, *, run_id: str) -> dict[str, Any]:
+def build_gwb_us_law_linkage_report(
+    conn: sqlite3.Connection, *, run_id: str
+) -> dict[str, Any]:
     ensure_gwb_us_law_schema(conn)
     match_rows = conn.execute(
         """
@@ -470,7 +582,9 @@ def build_gwb_us_law_linkage_report(conn: sqlite3.Connection, *, run_id: str) ->
     payload = load_run_payload_from_normalized(conn, run_id) or {}
     event_map = {
         str(event.get("event_id")): event
-        for event in (payload.get("events") if isinstance(payload.get("events"), list) else [])
+        for event in (
+            payload.get("events") if isinstance(payload.get("events"), list) else []
+        )
         if isinstance(event, Mapping) and event.get("event_id")
     }
     per_seed: dict[str, dict[str, Any]] = {}
@@ -552,14 +666,20 @@ def build_gwb_us_law_linkage_report(conn: sqlite3.Connection, *, run_id: str) ->
             )
     all_seed_ids = [
         str(row["seed_id"])
-        for row in conn.execute("SELECT seed_id FROM gwb_us_law_linkage_seeds ORDER BY seed_id").fetchall()
+        for row in conn.execute(
+            "SELECT seed_id FROM gwb_us_law_linkage_seeds ORDER BY seed_id"
+        ).fetchall()
     ]
     unmatched_seeds = [seed_id for seed_id in all_seed_ids if seed_id not in per_seed]
     for bucket in per_seed.values():
         bucket["confidence_counts"] = dict(sorted(bucket["confidence_counts"].items()))
-        bucket["events"].sort(key=lambda row: (-int(row["matched"]), -int(row["score"]), row["event_id"]))
+        bucket["events"].sort(
+            key=lambda row: (-int(row["matched"]), -int(row["score"]), row["event_id"])
+        )
     for bucket in per_event.values():
-        bucket["matches"].sort(key=lambda row: (-int(row["matched"]), -int(row["score"]), row["seed_id"]))
+        bucket["matches"].sort(
+            key=lambda row: (-int(row["matched"]), -int(row["score"]), row["seed_id"])
+        )
     ambiguous_unique = []
     seen_ambiguity: set[tuple[str, str]] = set()
     for row in ambiguous:

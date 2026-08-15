@@ -203,7 +203,9 @@ def _priority_report() -> dict[str, object]:
 
 
 def test_build_au_legal_follow_graph_is_derived_and_challengeable() -> None:
-    graph = build_au_legal_follow_graph(_semantic_report(), source_events=[{"event_id": "ev-1", "section": "Appeal"}])
+    graph = build_au_legal_follow_graph(
+        _semantic_report(), source_events=[{"event_id": "ev-1", "section": "Appeal"}]
+    )
 
     assert graph["version"] == LEGAL_FOLLOW_GRAPH_VERSION
     assert graph["derived_only"] is True
@@ -219,24 +221,41 @@ def test_build_au_legal_follow_graph_is_derived_and_challengeable() -> None:
     assert graph["summary"]["supporting_legislation_count"] >= 1
 
     kinds = {node["kind"] for node in graph["nodes"]}
-    assert {"event", "authority_title", "case_ref", "supporting_legislation", "citation", "authority_receipt"} <= kinds
+    assert {
+        "event",
+        "authority_title",
+        "case_ref",
+        "supporting_legislation",
+        "citation",
+        "authority_receipt",
+    } <= kinds
 
     edge_kinds = {edge["kind"] for edge in graph["edges"]}
-    assert {"mentions_authority_title", "mentions_supporting_legislation", "mentions_citation"} <= edge_kinds
+    assert {
+        "mentions_authority_title",
+        "mentions_supporting_legislation",
+        "mentions_citation",
+    } <= edge_kinds
     assert "linked_authority_receipt" in edge_kinds
     assert "supported_by_authority_receipt" in edge_kinds
     assert "resolved_citation" in edge_kinds
     assert "supports_supporting_legislation" in edge_kinds
 
 
-def test_build_au_legal_follow_graph_keeps_legal_refs_visible_without_truth_or_prediction_claims() -> None:
+def test_build_au_legal_follow_graph_keeps_legal_refs_visible_without_truth_or_prediction_claims() -> (
+    None
+):
     graph = build_au_legal_follow_graph(_semantic_report())
 
-    supporting_nodes = [node for node in graph["nodes"] if node["kind"] == "supporting_legislation"]
+    supporting_nodes = [
+        node for node in graph["nodes"] if node["kind"] == "supporting_legislation"
+    ]
     case_ref_nodes = [node for node in graph["nodes"] if node["kind"] == "case_ref"]
     assert supporting_nodes
     assert case_ref_nodes
-    assert any("civil liability act 2002" in node["label"].lower() for node in supporting_nodes)
+    assert any(
+        "civil liability act 2002" in node["label"].lower() for node in supporting_nodes
+    )
     assert any("native title" in node["label"].lower() for node in supporting_nodes)
     assert any("house v the king" in node["label"].lower() for node in case_ref_nodes)
 
@@ -251,59 +270,94 @@ def test_build_au_legal_follow_graph_keeps_legal_refs_visible_without_truth_or_p
         assert "verdict" not in node["metadata"]
 
 
-def test_build_au_legal_follow_graph_merges_richer_receipt_and_citation_metadata() -> None:
+def test_build_au_legal_follow_graph_merges_richer_receipt_and_citation_metadata() -> (
+    None
+):
     graph = build_au_legal_follow_graph(_semantic_report())
 
     supporting_node = next(
-        node for node in graph["nodes"] if node["id"] == "supporting_legislation:act_ref_civil_liability_act_2002_nsw"
+        node
+        for node in graph["nodes"]
+        if node["id"] == "supporting_legislation:act_ref_civil_liability_act_2002_nsw"
     )
     assert supporting_node["metadata"]["reference_class"] == "supporting_legislation"
     assert supporting_node["metadata"]["ref_kind"] == "act_ref"
-    assert supporting_node["metadata"]["source_title"] == "Civil Liability Act 2002 (NSW)"
+    assert (
+        supporting_node["metadata"]["source_title"] == "Civil Liability Act 2002 (NSW)"
+    )
     assert supporting_node["metadata"]["jurisdiction_hint"] == "NSW"
     assert supporting_node["metadata"]["instrument_kind"] == "act"
     assert "supporting_legislation_roles" in supporting_node["metadata"]
-    assert "enabling_legislation" in supporting_node["metadata"]["supporting_legislation_roles"]
+    assert (
+        "enabling_legislation"
+        in supporting_node["metadata"]["supporting_legislation_roles"]
+    )
 
-    citation_node = next(node for node in graph["nodes"] if node["id"] == "citation:1936__hca_40")
+    citation_node = next(
+        node for node in graph["nodes"] if node["id"] == "citation:1936__hca_40"
+    )
     assert citation_node["metadata"]["neutral_citation"] == "[1936] HCA 40"
     assert citation_node["metadata"]["court_hint"] == "HCA"
     assert citation_node["metadata"]["year_hint"] == 1936
 
-    receipt_node = next(node for node in graph["nodes"] if node["kind"] == "authority_receipt")
+    receipt_node = next(
+        node for node in graph["nodes"] if node["kind"] == "authority_receipt"
+    )
     assert receipt_node["metadata"]["selected_paragraph_numbers"] == [1, 2]
     assert receipt_node["metadata"]["linked_event_sections"] == ["Appeal"]
 
-    support_edge = next(edge for edge in graph["edges"] if edge["kind"] == "supports_supporting_legislation")
+    support_edge = next(
+        edge
+        for edge in graph["edges"]
+        if edge["kind"] == "supports_supporting_legislation"
+    )
     assert support_edge["metadata"]["reference_class"] == "supporting_legislation"
     assert support_edge["metadata"]["ref_kind"] == "act_ref"
     assert support_edge["metadata"]["jurisdiction_hint"] == "NSW"
     assert support_edge["metadata"]["instrument_kind"] == "act"
 
-    citation_edge = next(edge for edge in graph["edges"] if edge["kind"] == "resolved_citation")
+    citation_edge = next(
+        edge for edge in graph["edges"] if edge["kind"] == "resolved_citation"
+    )
     assert citation_edge["metadata"]["court_hint"] == "HCA"
     assert citation_edge["metadata"]["year_hint"] == 1936
 
 
-def test_build_au_legal_follow_graph_aggregates_attachment_provenance_on_shared_nodes() -> None:
-    graph = build_au_legal_follow_graph(_semantic_report(), source_events=[{"event_id": "ev-1", "section": "Appeal"}])
+def test_build_au_legal_follow_graph_aggregates_attachment_provenance_on_shared_nodes() -> (
+    None
+):
+    graph = build_au_legal_follow_graph(
+        _semantic_report(), source_events=[{"event_id": "ev-1", "section": "Appeal"}]
+    )
 
-    title_node = next(node for node in graph["nodes"] if node["id"] == "authority_title:house_v_the_king")
+    title_node = next(
+        node
+        for node in graph["nodes"]
+        if node["id"] == "authority_title:house_v_the_king"
+    )
     assert title_node["metadata"]["supporting_receipt_ids"] == ["ingest:1"]
 
     supporting_node = next(
-        node for node in graph["nodes"] if node["id"] == "supporting_legislation:act_ref_civil_liability_act_2002_nsw"
+        node
+        for node in graph["nodes"]
+        if node["id"] == "supporting_legislation:act_ref_civil_liability_act_2002_nsw"
     )
     assert supporting_node["metadata"]["supporting_receipt_ids"] == ["ingest:1"]
     assert supporting_node["metadata"]["supporting_authority_kinds"] == ["austlii"]
 
-    citation_node = next(node for node in graph["nodes"] if node["id"] == "citation:1936__hca_40")
+    citation_node = next(
+        node for node in graph["nodes"] if node["id"] == "citation:1936__hca_40"
+    )
     assert citation_node["metadata"]["supporting_receipt_ids"] == ["ingest:1"]
     assert citation_node["metadata"]["supporting_authority_kinds"] == ["austlii"]
 
-    followup_citation_node = next(node for node in graph["nodes"] if node["id"] == "citation:1992__hca_23")
+    followup_citation_node = next(
+        node for node in graph["nodes"] if node["id"] == "citation:1992__hca_23"
+    )
     assert followup_citation_node["metadata"]["supporting_event_ids"] == ["ev-2"]
-    assert followup_citation_node["metadata"]["supporting_event_sections"] == ["Support legislation"]
+    assert followup_citation_node["metadata"]["supporting_event_sections"] == [
+        "Support legislation"
+    ]
     assert graph["summary"]["supporting_receipt_count"] >= 1
     assert graph["summary"]["supporting_authority_kind_counts"].get("austlii") >= 1
     assert graph["summary"]["reference_kind_counts"].get("supporting_legislation") >= 1
@@ -313,10 +367,20 @@ def test_build_au_legal_follow_graph_aggregates_attachment_provenance_on_shared_
     assert graph["summary"]["instrument_kind_counts"].get("act") >= 1
     assert graph["summary"]["citation_court_hint_counts"].get("HCA") >= 1
     assert graph["summary"]["citation_year_counts"].get("1936") >= 1
-    assert graph["summary"]["edge_kind_counts"].get("supports_supporting_legislation") >= 1
-    assert graph["summary"]["edge_reference_class_counts"].get("supporting_legislation") >= 1
+    assert (
+        graph["summary"]["edge_kind_counts"].get("supports_supporting_legislation") >= 1
+    )
+    assert (
+        graph["summary"]["edge_reference_class_counts"].get("supporting_legislation")
+        >= 1
+    )
     assert graph["summary"]["edge_ref_kind_counts"].get("act_ref") >= 1
-    assert graph["summary"]["supporting_legislation_role_counts"].get("enabling_legislation") >= 1
+    assert (
+        graph["summary"]["supporting_legislation_role_counts"].get(
+            "enabling_legislation"
+        )
+        >= 1
+    )
 
 
 def test_operator_view_exposes_parliamentary_control() -> None:
@@ -363,7 +427,9 @@ def test_build_au_legal_follow_graph_derives_uk_follow_target() -> None:
     }
 
     graph = build_au_legal_follow_graph(report)
-    derived_nodes = [node for node in graph["nodes"] if node["kind"] == "derived_follow_target"]
+    derived_nodes = [
+        node for node in graph["nodes"] if node["kind"] == "derived_follow_target"
+    ]
     assert len(derived_nodes) == 1
     derived_node = derived_nodes[0]
     assert derived_node["label"] == "UK/British legal follow target"
@@ -371,9 +437,14 @@ def test_build_au_legal_follow_graph_derives_uk_follow_target() -> None:
         "authority_receipt:uk_1",
         "citation:1984_ukhl_3",
     }
-    assert set(derived_node["metadata"]["supporting_fields"]) == {"label", "resolved_url"}
+    assert set(derived_node["metadata"]["supporting_fields"]) == {
+        "label",
+        "resolved_url",
+    }
 
-    edge = next(edge for edge in graph["edges"] if edge["kind"] == "suggests_uk_follow_target")
+    edge = next(
+        edge for edge in graph["edges"] if edge["kind"] == "suggests_uk_follow_target"
+    )
     assert edge["source"] == "authority_receipt:uk_1"
     assert edge["target"] == derived_node["id"]
     assert set(edge["metadata"]["derived_reason_fields"]) == {"label", "resolved_url"}
@@ -383,7 +454,9 @@ def test_build_au_legal_follow_graph_derives_uk_follow_target() -> None:
     assert graph["pressure"]["value"] == "high"
 
 
-def test_build_au_legal_follow_graph_reuses_promoted_legal_claims_from_latent_graph(tmp_path: Path) -> None:
+def test_build_au_legal_follow_graph_reuses_promoted_legal_claims_from_latent_graph(
+    tmp_path: Path,
+) -> None:
     au_report = _build_au_report(tmp_path)
     records = extract_promoted_records_from_report(system_id="au_hca", report=au_report)
     latent_graph = build_latent_promoted_graph(
@@ -404,19 +477,31 @@ def test_build_au_legal_follow_graph_reuses_promoted_legal_claims_from_latent_gr
     )
 
     promoted_claim_nodes = [
-        node for node in graph["nodes"]
+        node
+        for node in graph["nodes"]
         if node["kind"] == "legal_claim"
         and node["metadata"].get("semantic_basis") == "promoted_anchor"
     ]
     assert promoted_claim_nodes
     assert graph["summary"]["legal_claim_count"] == len(promoted_claim_nodes)
-    assert all(node["metadata"]["canonical_promotion_status"] == "promoted_true" for node in promoted_claim_nodes)
+    assert all(
+        node["metadata"]["canonical_promotion_status"] == "promoted_true"
+        for node in promoted_claim_nodes
+    )
     assert all(node["metadata"]["promoted_record_ref"] for node in promoted_claim_nodes)
     assert any(edge["kind"] == "states_legal_claim" for edge in graph["edges"])
-    claim_edges = [edge for edge in graph["edges"] if edge["kind"].startswith("asserts_")]
+    claim_edges = [
+        edge for edge in graph["edges"] if edge["kind"].startswith("asserts_")
+    ]
     assert claim_edges
-    assert all(edge["metadata"]["edge_admissibility"]["version"] == "sl.legal_edge_admissibility.v1" for edge in claim_edges)
-    assert all("decision" in edge["metadata"]["edge_admissibility"] for edge in claim_edges)
+    assert all(
+        edge["metadata"]["edge_admissibility"]["version"]
+        == "sl.legal_edge_admissibility.v1"
+        for edge in claim_edges
+    )
+    assert all(
+        "decision" in edge["metadata"]["edge_admissibility"] for edge in claim_edges
+    )
 
 
 def test_build_au_legal_follow_graph_summarizes_assert_edge_admissibility() -> None:
@@ -427,7 +512,9 @@ def test_build_au_legal_follow_graph_summarizes_assert_edge_admissibility() -> N
     assert graph["summary"]["assert_edge_admissibility_review_count"] == 1
 
 
-def test_build_au_legal_follow_graph_attaches_edge_admissibility_to_supported_relation_candidates() -> None:
+def test_build_au_legal_follow_graph_attaches_edge_admissibility_to_supported_relation_candidates() -> (
+    None
+):
     graph = build_au_legal_follow_graph(
         {
             "per_event": [
@@ -459,7 +546,9 @@ def test_build_au_legal_follow_graph_attaches_edge_admissibility_to_supported_re
         }
     )
 
-    claim_edge = next(edge for edge in graph["edges"] if edge["kind"] == "asserts_applied")
+    claim_edge = next(
+        edge for edge in graph["edges"] if edge["kind"] == "asserts_applied"
+    )
     admissibility = claim_edge["metadata"]["edge_admissibility"]
 
     assert admissibility["version"] == "sl.legal_edge_admissibility.v1"
@@ -469,7 +558,9 @@ def test_build_au_legal_follow_graph_attaches_edge_admissibility_to_supported_re
     assert admissibility["checks"]["shared_support_linkage_present"] is True
 
 
-def test_build_au_legal_follow_operator_view_exposes_edge_admissibility_queue_and_details() -> None:
+def test_build_au_legal_follow_operator_view_exposes_edge_admissibility_queue_and_details() -> (
+    None
+):
     graph = build_au_legal_follow_graph(_admissibility_report())
     view = build_au_legal_follow_operator_view(graph)
 
@@ -482,13 +573,23 @@ def test_build_au_legal_follow_operator_view_exposes_edge_admissibility_queue_an
     assert queue_row["edge_kind"] == "asserts_applied"
     assert "source_endpoint_audit" in queue_row["reasons"]
 
-    legal_claim_packet = next(item for item in view["queue"] if item["subtitle"] == "legal_claim_follow")
-    assert any(row["label"] == "Edge admissibility" for row in legal_claim_packet["detail_rows"])
-    assert any(row["label"] == "Edge admissibility reasons" for row in legal_claim_packet["detail_rows"])
+    legal_claim_packet = next(
+        item for item in view["queue"] if item["subtitle"] == "legal_claim_follow"
+    )
+    assert any(
+        row["label"] == "Edge admissibility"
+        for row in legal_claim_packet["detail_rows"]
+    )
+    assert any(
+        row["label"] == "Edge admissibility reasons"
+        for row in legal_claim_packet["detail_rows"]
+    )
     assert "edge_admissibility_rows" in legal_claim_packet
 
 
-def test_build_au_legal_follow_operator_view_prioritizes_legal_claim_packets_by_admissibility_pressure() -> None:
+def test_build_au_legal_follow_operator_view_prioritizes_legal_claim_packets_by_admissibility_pressure() -> (
+    None
+):
     graph = build_au_legal_follow_graph(_priority_report())
     view = build_au_legal_follow_operator_view(graph)
 

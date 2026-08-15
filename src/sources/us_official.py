@@ -88,7 +88,9 @@ def build_grouped_official_packet(
 def build_follow_contract(docs: Iterable[OfficialDocMetadata]) -> dict[str, object]:
     doc_list = list(docs)
     if not doc_list:
-        raise ValueError("Follow contract requires at least one document metadata entry")
+        raise ValueError(
+            "Follow contract requires at least one document metadata entry"
+        )
     requests = []
     for meta in doc_list:
         _validate_metadata(meta)

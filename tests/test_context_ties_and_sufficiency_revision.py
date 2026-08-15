@@ -4,7 +4,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-M095 = ROOT / "database/postgres_migrations/095_context_ties_and_sufficiency_revision.sql"
+M095 = (
+    ROOT / "database/postgres_migrations/095_context_ties_and_sufficiency_revision.sql"
+)
 STORE = ROOT / "src/storage/postgres/consumer_sufficient_runtime_store.py"
 
 
@@ -39,11 +41,17 @@ def test_sufficiency_uses_latest_active_revision_and_policy_safe_kind() -> None:
 def test_sufficiency_recorder_is_append_only() -> None:
     sql = _sql()
     recorder = sql.split(
-        "CREATE OR REPLACE FUNCTION execution.record_numeric_pnf_consumer_sufficiency", 1
+        "CREATE OR REPLACE FUNCTION execution.record_numeric_pnf_consumer_sufficiency",
+        1,
     )[1].split("$$;", 1)[0]
-    assert "INSERT INTO execution.semantic_pnf_consumer_sufficiency_certificate" in recorder
+    assert (
+        "INSERT INTO execution.semantic_pnf_consumer_sufficiency_certificate"
+        in recorder
+    )
     assert "ON CONFLICT" not in recorder
-    assert "UPDATE execution.semantic_pnf_consumer_sufficiency_certificate" not in recorder
+    assert (
+        "UPDATE execution.semantic_pnf_consumer_sufficiency_certificate" not in recorder
+    )
 
 
 def test_python_gateway_uses_append_only_sql_recorder() -> None:

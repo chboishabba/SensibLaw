@@ -47,13 +47,20 @@ def _invalid_payload() -> dict:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Emit DA51Trace -> TraceVector -> envelope")
+    parser = argparse.ArgumentParser(
+        description="Emit DA51Trace -> TraceVector -> envelope"
+    )
     parser.add_argument(
         "--json",
         default=None,
         help="JSON object representing DA51Trace payload",
     )
-    parser.add_argument("--json-file", type=Path, default=None, help="Path to JSON file containing DA51Trace payload")
+    parser.add_argument(
+        "--json-file",
+        type=Path,
+        default=None,
+        help="Path to JSON file containing DA51Trace payload",
+    )
     parser.add_argument(
         "--invalid",
         action="store_true",

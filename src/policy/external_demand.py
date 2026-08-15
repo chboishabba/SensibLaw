@@ -4,6 +4,7 @@ The PostgreSQL planner has already reduced consumer-specific H9 residuals to
 unique provider requests and probed local caches before requests reach this
 boundary. Parsing and ordinary PNF construction never call providers here.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -90,13 +91,22 @@ class ExternalEvidence:
             raise ValueError("external evidence source epoch must be positive")
         populated = sum(
             value is not None
-            for value in (self.value_provider_numeric_id, self.value_text, self.value_numeric)
+            for value in (
+                self.value_provider_numeric_id,
+                self.value_text,
+                self.value_numeric,
+            )
         )
         if populated != 1:
             raise ValueError("external evidence must contain exactly one typed value")
         if self.value_kind is ExternalValueKind.WORLD_ENTITY:
-            if self.value_provider_numeric_id is None or self.value_provider_numeric_id <= 0:
-                raise ValueError("world-entity evidence requires positive provider entity id")
+            if (
+                self.value_provider_numeric_id is None
+                or self.value_provider_numeric_id <= 0
+            ):
+                raise ValueError(
+                    "world-entity evidence requires positive provider entity id"
+                )
             if self.value_symbol_kind is not None:
                 raise ValueError("world-entity evidence cannot carry symbol kind")
         elif self.value_kind is ExternalValueKind.SYMBOL:
@@ -119,7 +129,9 @@ class ExternalRequestResult:
 
     def __post_init__(self) -> None:
         if self.error_ref is not None and (self.discovered_candidates or self.evidence):
-            raise ValueError("failed external result cannot also carry successful payload")
+            raise ValueError(
+                "failed external result cannot also carry successful payload"
+            )
         if self.error_ref is None and not self.retryable:
             raise ValueError("retryable flag is meaningful only for failed results")
 
@@ -151,7 +163,9 @@ class ExternalBatchReceipt:
 class ExternalProvider(Protocol):
     provider_id: int
 
-    def fetch_batch(self, requests: Sequence[ExternalRequest]) -> ExternalBatchResult: ...
+    def fetch_batch(
+        self, requests: Sequence[ExternalRequest]
+    ) -> ExternalBatchResult: ...
 
 
 class ExternalDemandStore(Protocol):
@@ -166,7 +180,9 @@ class ExternalDemandStore(Protocol):
         candidates: Sequence[DiscoveredWorldCandidate],
     ) -> None: ...
 
-    def record_external_evidence(self, *, request_id: int, evidence: ExternalEvidence) -> int: ...
+    def record_external_evidence(
+        self, *, request_id: int, evidence: ExternalEvidence
+    ) -> int: ...
 
     def complete_external_request(
         self, request_id: int, leased_minimum_source_epoch: int | None
@@ -204,7 +220,9 @@ def execute_external_provider_batch(
     if len(returned) != len(set(returned)):
         raise ValueError("provider returned duplicate request results")
     if set(returned) != expected:
-        raise ValueError("provider batch must return exactly one result for every leased request")
+        raise ValueError(
+            "provider batch must return exactly one result for every leased request"
+        )
 
     request_by_id = {request.request_id: request for request in requests}
     completed = failed = 0
@@ -220,33 +238,48 @@ def execute_external_provider_batch(
         request = request_by_id[result.request_id]
         if request.request_kind is ExternalRequestKind.CANDIDATE_DISCOVERY:
             if not request.label_text:
-                raise ValueError("candidate-discovery request is missing boundary label text")
+                raise ValueError(
+                    "candidate-discovery request is missing boundary label text"
+                )
             for candidate in result.discovered_candidates:
-                if (
-                    request.minimum_source_epoch is not None
-                    and (candidate.source_epoch is None or candidate.source_epoch < request.minimum_source_epoch)
+                if request.minimum_source_epoch is not None and (
+                    candidate.source_epoch is None
+                    or candidate.source_epoch < request.minimum_source_epoch
                 ):
-                    raise ValueError("provider returned candidate evidence older than request freshness floor")
+                    raise ValueError(
+                        "provider returned candidate evidence older than request freshness floor"
+                    )
             store.record_external_discovery_candidates(
                 request=request,
                 candidates=result.discovered_candidates,
             )
         else:
             for evidence in result.evidence:
-                if request.provider_subject_numeric_id != evidence.provider_subject_numeric_id:
-                    raise ValueError("provider returned evidence for an unrequested subject")
+                if (
+                    request.provider_subject_numeric_id
+                    != evidence.provider_subject_numeric_id
+                ):
+                    raise ValueError(
+                        "provider returned evidence for an unrequested subject"
+                    )
                 if (
                     request.provider_property_numeric_id is not None
                     and evidence.provider_property_numeric_id
                     != request.provider_property_numeric_id
                 ):
-                    raise ValueError("provider returned evidence for an unrequested property")
-                if (
-                    request.minimum_source_epoch is not None
-                    and (evidence.source_epoch is None or evidence.source_epoch < request.minimum_source_epoch)
+                    raise ValueError(
+                        "provider returned evidence for an unrequested property"
+                    )
+                if request.minimum_source_epoch is not None and (
+                    evidence.source_epoch is None
+                    or evidence.source_epoch < request.minimum_source_epoch
                 ):
-                    raise ValueError("provider returned property evidence older than request freshness floor")
-                store.record_external_evidence(request_id=result.request_id, evidence=evidence)
+                    raise ValueError(
+                        "provider returned property evidence older than request freshness floor"
+                    )
+                store.record_external_evidence(
+                    request_id=result.request_id, evidence=evidence
+                )
 
         # Completion is the lease/freshness commit point.  If another consumer
         # strengthened or relaxed the shared contract while this batch was in

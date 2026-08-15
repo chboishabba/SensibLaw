@@ -36,7 +36,12 @@ def test_group_contested_response_units_blocks_duplicate_headings() -> None:
         "The respondent pushed me on the back deck.\n"
     )
     response_units = [
-        TextUnit(unit_id="u1", source_id="doc", source_type="google_doc", text="Summary of Response"),
+        TextUnit(
+            unit_id="u1",
+            source_id="doc",
+            source_type="google_doc",
+            text="Summary of Response",
+        ),
         TextUnit(
             unit_id="u2",
             source_id="doc",

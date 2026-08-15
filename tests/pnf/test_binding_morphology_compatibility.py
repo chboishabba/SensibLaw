@@ -169,7 +169,5 @@ def test_missing_candidate_number_retains_candidate_without_fabrication() -> Non
     candidate_set = artifacts["binding_candidate_sets"][0]
 
     assert candidate_set["member_count"] == 1
-    assert candidate_set["members"][0]["candidate_factor_ref"] == (
-        "factor:engineers"
-    )
+    assert candidate_set["members"][0]["candidate_factor_ref"] == ("factor:engineers")
     assert candidate_set["exclusion_summaries"] == []

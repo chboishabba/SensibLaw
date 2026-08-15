@@ -82,8 +82,7 @@ def compute_source_normalization_metrics(
         fallback_visible = bool(entry.get("visible_in_fallback"))
         follow_ready = bool(entry.get("follow_ready"))
         translation_flag = bool(
-            entry.get("translation_aligned")
-            or entry.get("translation_alignment_score")
+            entry.get("translation_aligned") or entry.get("translation_alignment_score")
         )
 
         contract_yes += contract

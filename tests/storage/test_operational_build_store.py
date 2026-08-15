@@ -117,12 +117,15 @@ def test_missing_build_is_not_confused_with_zero_demand_build() -> None:
     )
 
     zero_demands = Cursor(rows=[("build:test",), []])
-    assert load_completed_operational_build(
-        zero_demands,
-        document_ref="document:test",
-        compiler_contract_ref="postgres-semantic-compiler:v0_8",
-        build_key_sha256="00" * 32,
-    ) == ()
+    assert (
+        load_completed_operational_build(
+            zero_demands,
+            document_ref="document:test",
+            compiler_contract_ref="postgres-semantic-compiler:v0_8",
+            build_key_sha256="00" * 32,
+        )
+        == ()
+    )
 
 
 def test_persisted_build_links_all_demands() -> None:
