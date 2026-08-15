@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import inspect
+
+from src.policy import operational_corpus_compilation
+from src.policy import postgres_corpus_compilation
 from src.policy import streaming_spacy_parser_execution as execution
 
 
@@ -48,3 +52,17 @@ def test_numeric_production_default_can_be_disabled_explicitly(monkeypatch) -> N
         },
         supplied_kwargs={},
     ) == execution.COMPATIBILITY_REPLAY_STRATEGY
+
+
+def test_wrapped_strategy_arguments_are_keyword_only() -> None:
+    """The wrapper can distinguish omission from an explicit compatibility request."""
+
+    compile_parameter = inspect.signature(
+        operational_corpus_compilation.compile_document_operational
+    ).parameters["execution_strategy_ref"]
+    persist_parameter = inspect.signature(
+        postgres_corpus_compilation.persist_document_compilation
+    ).parameters["execution_strategy_ref"]
+
+    assert compile_parameter.kind is inspect.Parameter.KEYWORD_ONLY
+    assert persist_parameter.kind is inspect.Parameter.KEYWORD_ONLY
