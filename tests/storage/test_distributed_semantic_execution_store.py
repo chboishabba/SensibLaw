@@ -203,10 +203,13 @@ def test_fixed_point_counts_include_unadmitted_deltas() -> None:
     counts = store.fixed_point_counts(cursor, document_ref="document:1")
 
     assert counts["unadmitted_deltas"] == 2
-    assert store.document_fixed(
-        FakeCursor(fetchone_rows=[(0, 0), (0, 0, 0), (0,)]),
-        document_ref="document:1",
-    ) is True
+    assert (
+        store.document_fixed(
+            FakeCursor(fetchone_rows=[(0, 0), (0, 0, 0), (0,)]),
+            document_ref="document:1",
+        )
+        is True
+    )
 
 
 def test_publication_commits_only_expected_staged_digest() -> None:
@@ -227,6 +230,7 @@ def test_publication_commits_only_expected_staged_digest() -> None:
         expected_digest="22" * 32,
     )
 
-    assert "state_ref = 'staged'" in cursor.executions[0][0]
+    assert "VALUES (%s, %s, %s, %s, 'staged', %s)" in cursor.executions[0][0]
     assert "state_ref = 'committed'" in cursor.executions[1][0]
+    assert "state_ref = 'staged'" in cursor.executions[1][0]
     assert "publication_digest = %s" in cursor.executions[1][0]

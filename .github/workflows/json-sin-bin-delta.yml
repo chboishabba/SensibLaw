@@ -29,14 +29,22 @@ jobs:
         run: |
           git rev-parse HEAD
           git rev-parse 'origin/${{ github.base_ref }}'
+      - name: Use provisioned self-hosted environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          ci_venv="${SENSIBLAW_CI_VENV:-/home/c/Documents/code/ITIR-suite/.venv}"
+          test -x "${ci_venv}/bin/python"
+          "${ci_venv}/bin/python" -VV
+          printf 'SENSIBLAW_CI_PYTHON=%s\n' "${ci_venv}/bin/python" >> "${GITHUB_ENV}"
       - name: Reject new JSON findings
         run: |
-          uv run python scripts/check_new_json_findings.py \
+          "${SENSIBLAW_CI_PYTHON}" scripts/check_new_json_findings.py \
             --base-ref 'origin/${{ github.base_ref }}'
       - name: Enforce zero authority findings
         run: |
           mkdir -p .tmp/json-sin-bin
-          uv run python scripts/audit_json_sin_bin.py \
+          "${SENSIBLAW_CI_PYTHON}" scripts/audit_json_sin_bin.py \
             --write .tmp/json-sin-bin/JSON_SIN_BIN.md \
             --check-authority
       - uses: actions/upload-artifact@v4

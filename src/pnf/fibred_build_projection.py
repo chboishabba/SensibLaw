@@ -42,8 +42,7 @@ def _proposal_from_mapping(row: Mapping[str, Any]) -> FactorProposal:
         scope_ref=str(row.get("scope_ref") or "document-global"),
         statement_role=str(row.get("statement_role") or "main"),
         coordinate_kind=str(row.get("coordinate_kind") or "object"),
-        semantic_coordinate_ref=str(row.get("semantic_coordinate_ref") or "")
-        or None,
+        semantic_coordinate_ref=str(row.get("semantic_coordinate_ref") or "") or None,
         fibre_kind=str(row.get("fibre_kind") or "hypothesis"),
         derivation_role=str(row.get("derivation_role") or "support"),
         producer_scope=str(row.get("producer_scope") or "integrated"),
@@ -52,9 +51,7 @@ def _proposal_from_mapping(row: Mapping[str, Any]) -> FactorProposal:
         transport_refs=tuple(row.get("transport_refs") or ()),
         support_state=str(row.get("support_state") or "candidate"),
         confidence=(
-            float(row["confidence"])
-            if row.get("confidence") is not None
-            else None
+            float(row["confidence"]) if row.get("confidence") is not None else None
         ),
         assumptions=tuple(row.get("assumptions") or ()),
         coverage_requirements=tuple(row.get("coverage_requirements") or ()),
@@ -236,8 +233,7 @@ def project_fibred_semantic_build(
                     for ref in receipt.get("input_refs") or ()
                 ),
                 output_element_refs=tuple(
-                    content_to_element_ref[row.proposal_ref]
-                    for row in output_proposals
+                    content_to_element_ref[row.proposal_ref] for row in output_proposals
                 ),
                 sub_executor_ref=str(receipt.get("backend_ref") or ""),
                 rule_set_revision=str(receipt.get("rule_set_revision") or ""),
@@ -294,9 +290,7 @@ def project_fibred_semantic_build(
         coordinates=tuple(coordinates[key] for key in sorted(coordinates)),
         elements=tuple(sorted(elements, key=lambda row: row.element_ref)),
         transports=tuple(sorted(transports, key=lambda row: row.transport_ref)),
-        derivations=tuple(
-            sorted(derivations, key=lambda row: row.derivation_ref)
-        ),
+        derivations=tuple(sorted(derivations, key=lambda row: row.derivation_ref)),
         ontology_axes=tuple(sorted(axes, key=lambda row: row.axis_ref)),
         axis_obligations=tuple(
             sorted(axis_obligations, key=lambda row: row.obligation_ref)

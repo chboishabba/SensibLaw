@@ -133,8 +133,10 @@ class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
         original_root = self._finalization_root
         self._finalization_root = None
         try:
-            reduction = LivenessBoundedStreamingSemanticOwner._materialize_reduction_now(
-                self, generation
+            reduction = (
+                LivenessBoundedStreamingSemanticOwner._materialize_reduction_now(
+                    self, generation
+                )
             )
         finally:
             self._finalization_root = original_root
@@ -199,10 +201,7 @@ class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
             ),
             (
                 "coverage_notices",
-                (
-                    self._coverage_notices[key]
-                    for key in sorted(self._coverage_notices)
-                ),
+                (self._coverage_notices[key] for key in sorted(self._coverage_notices)),
             ),
             ("proposals", (self._proposals[key] for key in sorted(self._proposals))),
             ("solver_jobs", (jobs[key] for key in sorted(jobs))),
@@ -355,9 +354,7 @@ class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
             "solver_receipts": manifests["solver_receipts"],
             "state_deltas": manifests["state_deltas"],
             "materialized_reduction": reduction_manifest,
-            "region_boundary_summaries": manifests[
-                "region_boundary_summaries"
-            ],
+            "region_boundary_summaries": manifests["region_boundary_summaries"],
             "family_manifests": manifests,
             "pending_job_refs": [],
             "in_flight_job_refs": [],
@@ -384,9 +381,7 @@ class ReferenceBackedFinalizationOwner(FinalizationHardenedOwner):
             phase="isolated_serializer_started",
         )
         self._begin_phase(FinalizationPhase.SERIALIZE_CLOSURE_RECEIPT, total=1)
-        hard_mib = int(
-            os.environ.get("SENSIBLAW_STAGE_SERIALIZATION_HARD_MIB", "3072")
-        )
+        hard_mib = int(os.environ.get("SENSIBLAW_STAGE_SERIALIZATION_HARD_MIB", "3072"))
         serializer_report = run_isolated_reference_serializer(
             spec_path=spec_path,
             output_path=output_path,

@@ -22,9 +22,7 @@ from src.policy.algebra.revision_identity import factor_revision_ref
 from src.policy.carriers.canonical import canonical_sha256
 
 
-STREAMING_REDUCTION_PROJECTION_CONTRACT = (
-    "streaming-reduction-pnf-projection:v0_3"
-)
+STREAMING_REDUCTION_PROJECTION_CONTRACT = "streaming-reduction-pnf-projection:v0_3"
 
 
 def _materialized_factor_ref(
@@ -56,16 +54,13 @@ def _factor_from_reduction(
             alternative_ref=f"{factor_ref}:proposal:{index}",
             value={
                 "predicate_ref": str(
-                    (row.get("candidate_payload") or {}).get("predicate_ref")
-                    or ""
+                    (row.get("candidate_payload") or {}).get("predicate_ref") or ""
                 ),
                 "semantic_coordinate_ref": str(
                     row.get("semantic_coordinate_ref") or ""
                 ),
                 "fibre_kind": str(row.get("fibre_kind") or "hypothesis"),
-                "derivation_role": str(
-                    row.get("derivation_role") or "support"
-                ),
+                "derivation_role": str(row.get("derivation_role") or "support"),
                 "support_state": str(row.get("support_state") or "candidate"),
                 "confidence": row.get("confidence"),
                 "role_bindings": dict(row.get("role_bindings") or {}),
@@ -81,15 +76,9 @@ def _factor_from_reduction(
                         str(row.get("operation_contract") or ""),
                         str(row.get("declaration_revision") or ""),
                         *(str(ref) for ref in row.get("source_span_refs") or ()),
-                        *(
-                            str(ref)
-                            for ref in row.get("input_observation_refs") or ()
-                        ),
+                        *(str(ref) for ref in row.get("input_observation_refs") or ()),
                         *(str(ref) for ref in row.get("transport_refs") or ()),
-                        *(
-                            str(ref)
-                            for ref in row.get("ontology_axis_refs") or ()
-                        ),
+                        *(str(ref) for ref in row.get("ontology_axis_refs") or ()),
                     }
                     - {""}
                 )
@@ -97,9 +86,7 @@ def _factor_from_reduction(
         )
         for index, row in enumerate(proposal_rows)
     )
-    residuals = tuple(
-        sorted(str(value) for value in reduced.get("residuals") or ())
-    )
+    residuals = tuple(sorted(str(value) for value in reduced.get("residuals") or ()))
     provenance_refs = tuple(
         sorted(
             {
@@ -129,9 +116,7 @@ def _factor_from_reduction(
                 reduced.get("semantic_coordinate_ref") or ""
             ),
             "fibre_kind": str(reduced.get("fibre_kind") or "hypothesis"),
-            "structural_signature_ref": str(
-                reduced.get("structural_signature") or ""
-            ),
+            "structural_signature_ref": str(reduced.get("structural_signature") or ""),
             "role_bindings": role_bindings,
             "qualifier_state": qualifier_state,
             "proposal_refs": proposal_refs,
@@ -159,8 +144,7 @@ def _is_operator_proposal(row: Mapping[str, Any]) -> bool:
     operation_contract = str(row.get("operation_contract") or "")
     producer_contract = str(row.get("producer_contract") or "")
     return operation_contract == OPERATOR_COMPOSITION_CONTRACT or (
-        not operation_contract
-        and producer_contract == OPERATOR_COMPOSITION_CONTRACT
+        not operation_contract and producer_contract == OPERATOR_COMPOSITION_CONTRACT
     )
 
 
@@ -225,9 +209,7 @@ def project_streaming_reduction(
         )
         result, admission = _admit_factor(result, factor)
         factors.append(factor)
-        admissions.append(
-            {"factor_ref": factor.factor_ref, "admission": admission}
-        )
+        admissions.append({"factor_ref": factor.factor_ref, "admission": admission})
     receipt_identity = {
         "contract_ref": STREAMING_REDUCTION_PROJECTION_CONTRACT,
         "input_graph_ref": graph.graph_ref,
@@ -235,17 +217,10 @@ def project_streaming_reduction(
         "factor_refs": [row.factor_ref for row in factors],
         "admissions": admissions,
         "fibre_summary_refs": sorted(
-            {
-                str(row.metadata.get("fibre_summary_ref") or "")
-                for row in factors
-            }
-            - {""}
+            {str(row.metadata.get("fibre_summary_ref") or "") for row in factors} - {""}
         ),
         "semantic_coordinate_refs": sorted(
-            {
-                str(row.metadata.get("semantic_coordinate_ref") or "")
-                for row in factors
-            }
+            {str(row.metadata.get("semantic_coordinate_ref") or "") for row in factors}
             - {""}
         ),
     }
@@ -257,9 +232,7 @@ def project_streaming_reduction(
         "factor_count": len(factors),
         "source_factor_count": reader.family_count("factors"),
         "source_proposal_count": reader.family_count("proposals"),
-        "added_factor_count": sum(
-            row["admission"] == "added" for row in admissions
-        ),
+        "added_factor_count": sum(row["admission"] == "added" for row in admissions),
         "replaced_factor_count": sum(
             row["admission"] == "replaced" for row in admissions
         ),

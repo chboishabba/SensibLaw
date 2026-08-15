@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
+import pickle
 
 from src.policy import parallel_typing_tail as tail
+from src.policy import no_json_checkpoint_execution as binary_policy
 from src.policy.parallel_semantic_execution import SemanticExecutionContext
 from src.policy.progress_observability_execution import (
     PROGRESS_ENVELOPE_SCHEMA_VERSION,
@@ -63,10 +64,12 @@ def test_universal_envelope_is_logged_and_persisted(
     assert envelope["wait_reason"] == "worker_results"
     assert envelope["active_workers"] == 2
     assert envelope["checkpoint_bytes_written"] == 4096
-    latest = json.loads((tmp_path / "progress" / "latest.json").read_text())
+    latest = pickle.loads((tmp_path / "progress" / "latest.pkl").read_bytes())
     assert latest == envelope
-    events = (tmp_path / "progress" / "events.jsonl").read_text().splitlines()
-    assert json.loads(events[-1]) == envelope
+    framed = (tmp_path / "progress" / "events.bin").read_bytes()
+    frame_size = int.from_bytes(framed[:8], "big")
+    assert pickle.loads(framed[8 : 8 + frame_size]) == envelope
+    assert len(framed) == 8 + frame_size
     captured = capsys.readouterr()  # type: ignore[attr-defined]
     assert "SENSIBLAW_PROGRESS" in captured.err
     assert "typing_parent_waiting" in captured.err
@@ -96,7 +99,9 @@ def test_parent_rolls_up_leaf_completion_and_checkpoint_reuse(
     assert "typing_parent_aggregation_started" in phases
     assert phases[-1] == "typing_parent_aggregation_completed"
     leaf_events = [
-        row for row in context.kernel_timeline if row["phase"] == "typing_leaf_completed"
+        row
+        for row in context.kernel_timeline
+        if row["phase"] == "typing_leaf_completed"
     ]
     assert [row["counts"]["leaves_completed"] for row in leaf_events] == [1, 2, 3]
     assert all(row["counts"]["leaves_total"] == 3 for row in leaf_events)
@@ -120,3 +125,35 @@ def test_parent_rolls_up_leaf_completion_and_checkpoint_reuse(
     assert started["counts"]["leaves_completed"] == 3
     assert started["counts"]["leaves_total"] == 3
     assert started["counts"]["leaves_reused"] == 3
+
+
+def test_batched_progress_persistence_flushes_one_durable_frame_batch(
+    tmp_path: Path, monkeypatch: object
+) -> None:
+    monkeypatch.setenv("SENSIBLAW_PROGRESS_PERSISTENCE_MODE", "batched")  # type: ignore[attr-defined]
+    monkeypatch.setenv("SENSIBLAW_PROGRESS_BATCH_EVENTS", "64")  # type: ignore[attr-defined]
+    context = _context(tmp_path)
+
+    context.sample(
+        "local_typing_diagnostics:test", phase="running", counts={"completed": 1}
+    )
+
+    assert not (tmp_path / "progress" / "events.bin").exists()
+    binary_policy._flush_progress(tmp_path)
+    events = (tmp_path / "progress" / "events.bin").read_bytes()
+    frame_size = int.from_bytes(events[:8], "big")
+    assert frame_size == len(events) - 8
+    assert pickle.loads(events[8:])["stage"] == "local_typing_diagnostics:test"
+
+
+def test_disabled_progress_persistence_keeps_console_only_mode(
+    tmp_path: Path, monkeypatch: object
+) -> None:
+    monkeypatch.setenv("SENSIBLAW_PROGRESS_PERSISTENCE_MODE", "disabled")  # type: ignore[attr-defined]
+    context = _context(tmp_path)
+
+    context.sample(
+        "local_typing_diagnostics:test", phase="running", counts={"completed": 1}
+    )
+
+    assert not (tmp_path / "progress").exists()

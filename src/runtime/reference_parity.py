@@ -60,8 +60,7 @@ def reference_semantic_surface(build: Mapping[str, Any]) -> dict[str, Any]:
     }
     return {
         **surface,
-        "surface_ref": "reference-semantic-surface:"
-        + canonical_sha256(surface),
+        "surface_ref": "reference-semantic-surface:" + canonical_sha256(surface),
     }
 
 

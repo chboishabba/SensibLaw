@@ -1568,6 +1568,51 @@ def install_parallel_semantic_execution() -> bool:
         started = monotonic_ns()
         result = original_admit_proposals(self, batch, stage=stage)
         if context is not None and result.accepted_proposal_refs:
+            if not context.reconstructing_owner:
+                context.sample(
+                    "owner_proposal_admission",
+                    phase="started",
+                    counts={
+                        "proposal_count": len(batch),
+                        "accepted_proposal_count": len(
+                            result.accepted_proposal_refs
+                        ),
+                    },
+                    details={
+                        "stage": stage,
+                        "current_work_key": f"proposal-batch:{stage}",
+                    },
+                )
+            artifact_ref: str | None = None
+            artifact_started = monotonic_ns()
+            if not context.reconstructing_owner:
+                # Content addressing can walk a large proposal batch.  Keep
+                # that physical work outside the shared telemetry/state lock;
+                # otherwise every worker appears blocked while the owner
+                # hashes an immutable replay artifact.
+                artifact_ref = _write_replay_artifact(
+                    context,
+                    artifact_kind="proposal_batch",
+                    value={
+                        "stage": stage,
+                        "proposals": [row.to_dict() for row in batch],
+                    },
+                )
+                context.sample(
+                    "owner_proposal_replay_artifact",
+                    phase="completed",
+                    counts={
+                        "proposal_count": len(batch),
+                        "accepted_proposal_count": len(
+                            result.accepted_proposal_refs
+                        ),
+                    },
+                    details={
+                        "stage": stage,
+                        "artifact_ref": artifact_ref,
+                    },
+                    elapsed_ns=monotonic_ns() - artifact_started,
+                )
             with context.lock:
                 counter_key = (
                     "reconstructed_proposals_admitted"
@@ -1577,15 +1622,7 @@ def install_parallel_semantic_execution() -> bool:
                 context.closure_counters[counter_key] += len(
                     result.accepted_proposal_refs
                 )
-                if not context.reconstructing_owner:
-                    artifact_ref = _write_replay_artifact(
-                        context,
-                        artifact_kind="proposal_batch",
-                        value={
-                            "stage": stage,
-                            "proposals": [row.to_dict() for row in batch],
-                        },
-                    )
+                if artifact_ref is not None:
                     _append_replay_event(
                         context,
                         artifact_kind="proposal_batch",

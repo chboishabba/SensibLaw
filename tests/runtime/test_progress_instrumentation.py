@@ -25,7 +25,9 @@ def test_phase_recorder_emits_durable_timing_and_reuse_events(tmp_path) -> None:
             processed_tokens=12,
             worker="document-1",
         )
-        phase.advance(subject_ref="document:b", reused=False, details={"worker": "document-2"})
+        phase.advance(
+            subject_ref="document:b", reused=False, details={"worker": "document-2"}
+        )
 
     payload = recorder.to_dict()
     assert payload["schema_version"] == "sl.phase_ledger.v0_1"
@@ -48,7 +50,7 @@ def test_phase_recorder_emits_durable_timing_and_reuse_events(tmp_path) -> None:
     lines = [json.loads(line) for line in stream.getvalue().splitlines()]
     assert lines[0]["state"] == "started"
     assert lines[-1]["state"] == "completed"
-    assert all(row["schema_version"] == "sl.progress_event.v0_4" for row in lines)
+    assert all(row["schema_version"] == "sl.progress_event.v0_5" for row in lines)
 
 
 def test_failed_phase_records_error_without_hiding_exception() -> None:
@@ -71,10 +73,26 @@ def test_phase_heartbeat_reports_estimate_while_no_units_finish() -> None:
         phase.advance(subject_ref="document:a")
         sleep(0.003)
 
-    heartbeat = next(event for event in recorder.events if event["state"] == "heartbeat")
+    heartbeat = next(
+        event for event in recorder.events if event["state"] == "heartbeat"
+    )
     assert heartbeat["completed"] == 1
     assert heartbeat["estimated_remaining_ms"] >= 0
     assert "active_stage" not in heartbeat
+
+
+def test_active_stage_reports_whole_run_estimate() -> None:
+    recorder = PhaseRecorder(stream=StringIO(), json_lines=True)
+    with recorder.phase("document_compile", total=3, heartbeat_seconds=None) as phase:
+        phase.advance(subject_ref="document:a")
+        with phase.stage(
+            "parser", measures={"tokens": {"completed": 50, "total": 100}}
+        ):
+            sleep(0.001)
+            phase.observe(measures={"tokens": 75})
+            event = recorder.events[-1]
+            assert event["estimated_run_remaining_ms"] >= 0
+            assert event["estimated_run_completion_at"]
 
 
 def test_outer_heartbeat_reports_active_context_without_inner_stage() -> None:
@@ -119,7 +137,9 @@ def test_last_completion_label_never_becomes_active_stage() -> None:
         phase.advance(message="coordinate_validation")
         phase.heartbeat()
 
-    heartbeat = next(event for event in recorder.events if event["state"] == "heartbeat")
+    heartbeat = next(
+        event for event in recorder.events if event["state"] == "heartbeat"
+    )
     assert heartbeat["completed"] == 1
     assert "active_stage" not in heartbeat
     assert heartbeat.get("message") != "coordinate_validation"
@@ -224,7 +244,13 @@ def test_stage_context_open_observe_and_close() -> None:
             )
 
     states = [event["state"] for event in recorder.events]
-    assert states == ["started", "stage_started", "running", "stage_completed", "completed"]
+    assert states == [
+        "started",
+        "stage_started",
+        "running",
+        "stage_completed",
+        "completed",
+    ]
     assert recorder.events[2]["active_stage"] == "parser_annotation"
     assert recorder.events[2]["measures"]["fibres"]["total"] == 2
     assert recorder.events[3]["completed"] == 1

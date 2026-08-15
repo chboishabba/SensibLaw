@@ -23,8 +23,20 @@ PARENT_DEATH_CONTRACT = "linux-pdeathsig:v1"
 BINARY_ARTIFACT_CONTRACT = "python-pickle:5"
 
 
+def _canonical_sha256(value: object) -> str:
+    from src.policy.carriers.canonical import canonical_sha256
+
+    return canonical_sha256(value)
+
+
+def _canonical_fields_sha256(*values: object) -> str:
+    from src.policy.carriers.canonical import canonical_fields_sha256
+
+    return canonical_fields_sha256(*values)
+
+
 def _digest(value: object) -> bytes:
-    return bytes.fromhex(canonical_sha256(value))
+    return bytes.fromhex(_canonical_sha256(value))
 
 
 def _connect(database_url: str) -> Any:
@@ -55,11 +67,11 @@ class DurableWorkSpec:
 
     @property
     def input_sha256(self) -> str:
-        return canonical_sha256(dict(self.input_manifest))
+        return _canonical_sha256(dict(self.input_manifest))
 
     @property
     def stage_instance_ref(self) -> str:
-        return "stage-instance:" + canonical_fields_sha256(
+        return "stage-instance:" + _canonical_fields_sha256(
             self.run_ref,
             self.document_ref,
             self.stage_contract_ref,
@@ -69,7 +81,7 @@ class DurableWorkSpec:
 
     @property
     def work_ref(self) -> str:
-        return "work-item:" + canonical_fields_sha256(
+        return "work-item:" + _canonical_fields_sha256(
             self.run_ref,
             self.document_ref,
             self.stage_contract_ref,
@@ -151,7 +163,7 @@ def register_work_items(specs: Iterable[DurableWorkSpec]) -> int:
                             ),
                         )
                         stage_digest = bytes.fromhex(
-                            canonical_fields_sha256(
+                            _canonical_fields_sha256(
                                 spec.run_ref,
                                 spec.document_ref,
                                 spec.stage_contract_ref,
@@ -303,7 +315,7 @@ def _write_artifact(
 ) -> tuple[Path, bytes, bytes, int]:
     encoded = pickle.dumps(value, protocol=5)
     content_digest = hashlib.sha256(encoded).digest()
-    output_digest = bytes.fromhex(canonical_sha256(value))
+    output_digest = bytes.fromhex(_canonical_sha256(value))
     path = _artifact_path(spec, content_digest.hex())
     path.parent.mkdir(parents=True, exist_ok=True)
     if not path.exists():
@@ -347,7 +359,7 @@ def _receipt_row(
     admission_state: str,
 ) -> tuple[str, bytes]:
     spec = lease.spec
-    receipt_ref = "work-receipt:" + canonical_fields_sha256(
+    receipt_ref = "work-receipt:" + _canonical_fields_sha256(
         DURABLE_WORK_CONTRACT,
         spec.work_ref,
         lease.attempt_ref,
@@ -361,7 +373,7 @@ def _receipt_row(
         admission_state,
     )
     digest = bytes.fromhex(
-        canonical_fields_sha256(
+        _canonical_fields_sha256(
             receipt_ref,
             spec.work_ref,
             lease.attempt_ref,
@@ -386,7 +398,7 @@ def complete_leased_work(
 ) -> dict[str, Any]:
     spec = lease.spec
     path, content_digest, output_digest, byte_count = _write_artifact(spec, value)
-    artifact_ref = "artifact-segment:" + canonical_fields_sha256(
+    artifact_ref = "artifact-segment:" + _canonical_fields_sha256(
         spec.work_ref,
         content_digest,
         BINARY_ARTIFACT_CONTRACT,
@@ -531,7 +543,7 @@ def complete_leased_work(
                     cursor, spec.stage_instance_ref
                 )
                 cursor_digest = bytes.fromhex(
-                    canonical_fields_sha256(
+                    _canonical_fields_sha256(
                         spec.stage_instance_ref,
                         contiguous,
                         completed,
@@ -624,7 +636,7 @@ def load_completed_work(spec: DurableWorkSpec) -> Any | None:
     if hashlib.sha256(encoded).hexdigest() != str(expected_content):
         raise RuntimeError("durable binary artifact content digest mismatch")
     value = pickle.loads(encoded)
-    if canonical_sha256(value) != str(expected_output):
+    if _canonical_sha256(value) != str(expected_output):
         raise RuntimeError("durable binary artifact semantic digest mismatch")
     return value
 
@@ -735,14 +747,3 @@ __all__ = [
     "recover_expired_work",
     "register_work_items",
 ]
-
-
-def __getattr__(name: str) -> Any:
-    if name in {"canonical_sha256", "canonical_fields_sha256"}:
-        from src.policy.carriers.canonical import (
-            canonical_fields_sha256,
-            canonical_sha256,
-        )
-
-        return locals()[name]
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

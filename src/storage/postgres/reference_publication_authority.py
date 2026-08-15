@@ -29,9 +29,7 @@ def commit_reference_publication_authority(
     family_manifests = dict(streaming_build.get("family_manifests") or {})
     jobs = dict(family_manifests.get("solver_jobs") or {})
     residuals = dict(family_manifests.get("residuals") or {})
-    accepted_job_set_digest = str(
-        jobs.get("ordered_digest") or canonical_sha256([])
-    )
+    accepted_job_set_digest = str(jobs.get("ordered_digest") or canonical_sha256([]))
     unresolved_demand_digest = str(
         residuals.get("ordered_digest") or canonical_sha256([])
     )
@@ -66,9 +64,7 @@ def commit_reference_publication_authority(
             family: {
                 "record_count": int((descriptor or {}).get("record_count") or 0),
                 "byte_count": int((descriptor or {}).get("byte_count") or 0),
-                "ordered_digest": str(
-                    (descriptor or {}).get("ordered_digest") or ""
-                ),
+                "ordered_digest": str((descriptor or {}).get("ordered_digest") or ""),
             }
             for family, descriptor in sorted(family_manifests.items())
             if isinstance(descriptor, Mapping)

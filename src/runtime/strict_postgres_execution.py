@@ -12,17 +12,16 @@ from dataclasses import dataclass
 import os
 from typing import Any, Callable, Iterable, Mapping, Protocol
 
-from src.policy.carriers.canonical import canonical_fields_sha256
-from src.pnf.streaming_fixed_point import SolverReceipt
-from src.runtime.coordinator_lease_guard import (
-    CoordinatorLeaseGuard,
-    CoordinatorLeaseLost,
-)
-from src.storage.postgres.distributed_semantic_execution import ImmutableJobManifest
-
-
 AUTHORITY_BACKEND = "postgresql"
 STRICT_EXECUTION_CONTRACT = "postgresql-typed-leased-exact-execution:v2"
+
+
+def _canonical_fields_sha256(*values: Any) -> str:
+    """Resolve canonical hashing after the policy package is initialized."""
+
+    from src.policy.carriers.canonical import canonical_fields_sha256
+
+    return canonical_fields_sha256(*values)
 
 
 def _execution_module() -> Any:
@@ -46,6 +45,18 @@ class StrictExecutionError(RuntimeError):
         self.kernel_key = kernel_key
         suffix = f" ({diagnostic_path})" if diagnostic_path else ""
         super().__init__(reason + suffix)
+
+
+# These imports must follow ``StrictExecutionError``.  Importing the PNF
+# package installs policy strategies, one of which imports this module again.
+from src.pnf.streaming_fixed_point import SolverReceipt  # noqa: E402
+from src.runtime.coordinator_lease_guard import (  # noqa: E402
+    CoordinatorLeaseGuard,
+    CoordinatorLeaseLost,
+)
+from src.storage.postgres.distributed_semantic_execution import (  # noqa: E402
+    ImmutableJobManifest,
+)
 
 
 class StrictWorkerPool(Protocol):
@@ -165,9 +176,7 @@ class PostgresExecutionContext:
             fixed_point_zero_change_round=(
                 int(row[10]) if row[10] is not None else None
             ),
-            fixed_point_owner_revision=(
-                int(row[11]) if row[11] is not None else None
-            ),
+            fixed_point_owner_revision=(int(row[11]) if row[11] is not None else None),
             fixed_point_sha256=str(row[12]) if row[12] else None,
         )
 
@@ -219,7 +228,7 @@ def assert_strict_context(context: PostgresExecutionContext) -> None:
             "strict_fixed_point_revision_mismatch",
             kernel_key="strict.closure_gate",
         )
-    expected_digest = canonical_fields_sha256(
+    expected_digest = _canonical_fields_sha256(
         context.run_ref,
         context.document_ref,
         context.fixed_point_round_count,
@@ -392,7 +401,7 @@ class PostgresLeasedExecution:
         state: str,
     ) -> bytes:
         return bytes.fromhex(
-            canonical_fields_sha256(
+            _canonical_fields_sha256(
                 self.run_ref,
                 self.document_ref,
                 round_ordinal,
@@ -595,7 +604,7 @@ class PostgresLeasedExecution:
                             state="fixed_point" if fixed_point else "committed",
                         )
                         if fixed_point:
-                            digest_hex = canonical_fields_sha256(
+                            digest_hex = _canonical_fields_sha256(
                                 self.run_ref,
                                 self.document_ref,
                                 round_ordinal,
@@ -635,9 +644,7 @@ class PostgresLeasedExecution:
                                 },
                             )
                             coordinator.assert_current()
-                            receipts["replayed"] = (
-                                current_revision - starting_revision
-                            )
+                            receipts["replayed"] = current_revision - starting_revision
                             receipts["round_count"] = round_ordinal
                             return receipts
             raise StrictExecutionError(

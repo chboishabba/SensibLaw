@@ -41,9 +41,7 @@ def test_reader_rejects_tampered_binary_family_before_decode(
     encoded = bytearray(path.read_bytes())
     encoded[-1] ^= 0x01
     path.write_bytes(encoded)
-    reader = StreamingBuildReader(
-        {"family_manifests": {"proposals": descriptor}}
-    )
+    reader = StreamingBuildReader({"family_manifests": {"proposals": descriptor}})
 
     decode_called = False
 

@@ -63,13 +63,19 @@ def _extract_git_tree(ref: str, destination: Path) -> None:
     root.mkdir()
     with tarfile.open(tar_path, mode="r:") as stream:
         # Git archive paths come from a trusted repository tree. Refuse links
-        # nevertheless so a malformed history cannot escape the temp root.
+        # from extraction so a malformed history cannot escape the temp root.
+        # A tracked symlink is not source authority for this scanner and does
+        # not need to be materialized to compare the base tree.
+        extractable: list[tarfile.TarInfo] = []
         for member in stream.getmembers():
-            if member.issym() or member.islnk() or member.name.startswith("/"):
+            if member.issym() or member.islnk():
+                continue
+            if member.name.startswith("/"):
                 raise ValueError(f"unsafe archive member: {member.name}")
             resolved = (root / member.name).resolve()
             resolved.relative_to(root.resolve())
-        stream.extractall(root, filter="data")
+            extractable.append(member)
+        stream.extractall(root, members=extractable, filter="data")
 
 
 def main() -> int:
@@ -96,8 +102,7 @@ def main() -> int:
     )
     for finding in introduced:
         print(
-            f"{finding.path}: {finding.category}: "
-            f"{finding.symbol}: {finding.snippet}"
+            f"{finding.path}: {finding.category}: {finding.symbol}: {finding.snippet}"
         )
     return 1
 

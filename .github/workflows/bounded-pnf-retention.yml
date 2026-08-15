@@ -18,11 +18,13 @@ on:
       - "scripts/run_exact_0008_calibration.py"
       - "scripts/run_exact_0008_parallel_acceptance.py"
       - "scripts/run_post_closure_probe.py"
+      - "scripts/benchmark_owner_handoff_bookkeeping.py"
       - "scripts/normalize_exact_0008_baseline.py"
       - "tests/pnf/**"
       - "tests/policy/**"
       - "tests/runtime/**"
       - "tests/storage/**"
+      - "tests/test_owner_handoff_performance_contract.py"
       - "docs/bounded_document_execution.md"
       - "docs/distributed_semantic_execution.md"
       - "docs/hierarchical_graph_execution.md"
@@ -50,18 +52,20 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install environment
+      - name: Use provisioned self-hosted environment
+        shell: bash
         run: |
-          python -m pip install --upgrade pip uv
-          uv sync --frozen --extra test --extra dev
+          set -euo pipefail
+          ci_venv="${SENSIBLAW_CI_VENV:-/home/c/Documents/code/ITIR-suite/.venv}"
+          test -x "${ci_venv}/bin/python"
+          "${ci_venv}/bin/python" -VV
+          "${ci_venv}/bin/python" -m ruff --version
+          "${ci_venv}/bin/python" -m pytest --version
+          printf 'SENSIBLAW_CI_PYTHON=%s\n' "${ci_venv}/bin/python" >> "${GITHUB_ENV}"
 
       - name: Lint bounded and distributed execution surfaces
         run: |
-          uv run ruff check \
+          "${SENSIBLAW_CI_PYTHON}" -m ruff check \
             src/pnf/__init__.py \
             src/pnf/bounded_streaming_owner.py \
             src/pnf/fibred_build_projection.py \
@@ -80,6 +84,8 @@ jobs:
             src/policy/stage_budget_execution.py \
             src/policy/semantic_receipt_enrichment.py \
             src/policy/manifest_stream_validation.py \
+            src/policy/owner_handoff_batch_performance.py \
+            src/policy/owner_handoff_performance.py \
             src/runtime/checkpoint_retention.py \
             src/runtime/distributed_semantic_worker.py \
             src/runtime/reference_parity.py \
@@ -94,6 +100,7 @@ jobs:
             scripts/run_exact_0008_parallel_acceptance.py \
             scripts/run_post_closure_probe.py \
             scripts/normalize_exact_0008_baseline.py \
+            scripts/benchmark_owner_handoff_bookkeeping.py \
             tests/pnf/test_streaming_build_reader.py \
             tests/policy/test_closure_liveness_execution.py \
             tests/policy/test_progress_observability_execution.py \
@@ -104,11 +111,12 @@ jobs:
             tests/runtime/test_reference_receipt.py \
             tests/runtime/test_stage_memory_budget.py \
             tests/storage/test_distributed_semantic_execution_store.py \
-            tests/storage/test_reference_publication_authority.py
+            tests/storage/test_reference_publication_authority.py \
+            tests/test_owner_handoff_performance_contract.py
 
       - name: Check formatting
         run: |
-          uv run ruff format --check \
+          "${SENSIBLAW_CI_PYTHON}" -m ruff format --check \
             src/pnf/fibred_build_projection.py \
             src/pnf/streaming_build_reader.py \
             src/pnf/streaming_reduction_projection.py \
@@ -117,6 +125,8 @@ jobs:
             src/policy/closure_finalization_hardening.py \
             src/policy/reference_backed_finalization.py \
             src/policy/fibred_operational_corpus_compilation.py \
+            src/policy/owner_handoff_batch_performance.py \
+            src/policy/owner_handoff_performance.py \
             src/policy/progress_observability_execution.py \
             src/policy/stage_budget_execution.py \
             src/policy/semantic_receipt_enrichment.py \
@@ -131,6 +141,7 @@ jobs:
             src/storage/postgres/reference_streaming_semantic_store.py \
             scripts/run_exact_0008_parallel_acceptance.py \
             scripts/run_post_closure_probe.py \
+            scripts/benchmark_owner_handoff_bookkeeping.py \
             tests/pnf/test_streaming_build_reader.py \
             tests/policy/test_closure_liveness_execution.py \
             tests/policy/test_progress_observability_execution.py \
@@ -141,11 +152,12 @@ jobs:
             tests/runtime/test_reference_receipt.py \
             tests/runtime/test_stage_memory_budget.py \
             tests/storage/test_distributed_semantic_execution_store.py \
-            tests/storage/test_reference_publication_authority.py
+            tests/storage/test_reference_publication_authority.py \
+            tests/test_owner_handoff_performance_contract.py
 
       - name: Run bounded and distributed execution regressions
         run: |
-          uv run pytest --maxfail=1 -q \
+          "${SENSIBLAW_CI_PYTHON}" -m pytest --maxfail=1 -q \
             tests/runtime/test_document_execution_policy.py \
             tests/runtime/test_bounded_document_scheduler.py \
             tests/runtime/test_hierarchical_graph_execution.py \
@@ -176,25 +188,30 @@ jobs:
             tests/policy/test_operational_corpus_compilation.py \
             tests/policy/test_fibred_operational_corpus_compilation.py \
             tests/storage/test_distributed_semantic_execution_store.py \
-            tests/storage/test_reference_publication_authority.py
+            tests/storage/test_reference_publication_authority.py \
+            tests/test_owner_handoff_performance_contract.py
 
       - name: Validate migration and formal protocol surfaces
         run: |
-          python - <<'PY'
+          "${SENSIBLAW_CI_PYTHON}" - <<'PY'
           from pathlib import Path
 
           migration = Path("database/postgres_migrations/026_distributed_semantic_execution.sql").read_text()
           for table in (
+              "semantic_run",
               "semantic_owner_stream",
-              "semantic_job",
+              "semantic_closure_job",
+              "semantic_job_attempt",
+              "semantic_immutable_delta",
               "semantic_delta_admission",
-              "semantic_graph_manifest",
               "semantic_finalization_checkpoint",
-              "semantic_fixed_point_receipt",
               "semantic_execution_receipt",
-              "publication_build",
+              "semantic_publication",
+              "semantic_kernel_registration",
+              "semantic_owner_revision_history",
+              "semantic_lifecycle_event",
           ):
-              assert table in migration
+              assert f"CREATE TABLE IF NOT EXISTS execution.{table}" in migration
 
           worker = Path("src/storage/postgres/distributed_semantic_execution_store.py").read_text()
           assert "FOR UPDATE SKIP LOCKED" in worker

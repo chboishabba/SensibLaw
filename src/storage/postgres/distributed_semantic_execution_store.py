@@ -856,9 +856,7 @@ class DistributedSemanticExecutionStore:
         if cursor.rowcount != 1:
             raise RuntimeError("publication was not in the expected staged state")
 
-    def fixed_point_counts(
-        self, cursor: Any, *, document_ref: str
-    ) -> dict[str, int]:
+    def fixed_point_counts(self, cursor: Any, *, document_ref: str) -> dict[str, int]:
         cursor.execute(
             """
             SELECT

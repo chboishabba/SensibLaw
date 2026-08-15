@@ -120,9 +120,7 @@ def _universal_envelope(
             detail_values.get("checkpoint_bytes_reused") or 0
         ),
         "queue_count": int(
-            count_values.get("queue_count")
-            or count_values.get("pending_jobs")
-            or 0
+            count_values.get("queue_count") or count_values.get("pending_jobs") or 0
         ),
         "in_flight_count": int(
             count_values.get("in_flight_count")
@@ -136,9 +134,7 @@ def _universal_envelope(
         "rss_bytes": int(resource_row.get("rss_bytes") or 0),
         "pss_bytes": int(resource_row.get("pss_bytes") or 0),
         "uss_bytes": int(resource_row.get("uss_bytes") or 0),
-        "retained_object_delta": int(
-            detail_values.get("retained_object_delta") or 0
-        ),
+        "retained_object_delta": int(detail_values.get("retained_object_delta") or 0),
         "elapsed_ns": elapsed_ns,
         "counts": dict(sorted(count_values.items())),
         "details": detail_values,
