@@ -20,6 +20,12 @@ from typing import Any
 from src.runtime.execution_resource_ledger import compare_ownership_reports
 
 
+def _cpu_default(cap: int) -> int:
+    """Use available CPU without turning a reference calibration unbounded."""
+
+    return max(1, min(int(os.cpu_count() or 1), cap))
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -29,10 +35,10 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--ledger-root", type=Path, required=True)
     parser.add_argument("--tranche", choices=("GWB", "AU", "BREXIT"), default="GWB")
-    parser.add_argument("--closure-workers", type=int, default=1)
-    parser.add_argument("--owner-partitions", type=int, default=1)
-    parser.add_argument("--parser-workers", type=int, default=1)
-    parser.add_argument("--worker-budget", type=int, default=1)
+    parser.add_argument("--closure-workers", type=int, default=_cpu_default(4))
+    parser.add_argument("--owner-partitions", type=int, default=8)
+    parser.add_argument("--parser-workers", type=int, default=_cpu_default(2))
+    parser.add_argument("--worker-budget", type=int, default=_cpu_default(4))
     return parser.parse_args()
 
 
