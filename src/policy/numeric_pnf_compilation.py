@@ -33,6 +33,13 @@ from src.storage.postgres.streaming_spacy_execution import (
 
 
 NUMERIC_PNF_COMPILER_CONTRACT = "numeric-pnf-hyperfabric-compiler:v1"
+_NUMERIC_TIMING_FIELDS = (
+    "spacy_parser_work_ns",
+    "post_parser_worker_work_ns",
+    "post_parser_coordinator_ns",
+    "post_parser_work_ns",
+    "timing_basis",
+)
 
 
 def _artifact_root(
@@ -213,6 +220,12 @@ def compile_numeric_pnf_document(
             overlap_chars=parser_overlap_chars,
         ),
     )
+    parser_receipt = dict(carrier["parser_receipt"])
+    timing_details = {
+        key: parser_receipt[key]
+        for key in _NUMERIC_TIMING_FIELDS
+        if key in parser_receipt
+    }
     graph_ref, demand_refs, authority_metadata = _authority_refs(
         database_url,
         run_ref=run_ref,
@@ -225,6 +238,7 @@ def compile_numeric_pnf_document(
             details={
                 "graph_ref": graph_ref,
                 "demand_count": len(demand_refs),
+                **timing_details,
                 **authority_metadata,
             },
         )
@@ -236,7 +250,8 @@ def compile_numeric_pnf_document(
             "authority": "normalisation_only",
         },
         "build_key_sha256": build_key_sha256,
-        "parser_receipt": dict(carrier["parser_receipt"]),
+        "parser_receipt": parser_receipt,
+        "numeric_execution_timing": timing_details,
         "numeric_pnf_authority": {
             "compiler_contract_ref": NUMERIC_PNF_COMPILER_CONTRACT,
             "parser_execution_contract_ref": STREAMING_SPACY_CONTRACT,
