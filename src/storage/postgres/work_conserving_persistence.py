@@ -9,7 +9,7 @@ the caller's existing document savepoint. Staged rows never publish a document.
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import Iterator
+from typing import Any, Iterator
 
 from src.storage.postgres import (
     work_conserving_binding_persistence as binding_persistence,
@@ -85,6 +85,19 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
 
     install_work_conserving_stage_hot_path()
 
+    original_completed_build = compiler.persist_completed_operational_build
+
+    def persist_completed_build_after_flush(cursor: Any, **kwargs: Any) -> None:
+        # A completed-build receipt is semantic publication evidence, not merely
+        # another row in the transaction. Make its statement order truthful:
+        # every buffered graph/resolution/binding authority row is already
+        # present before the build is declared complete. The surrounding
+        # savepoint still provides the original all-or-nothing document commit.
+        flush_binding_batch(cursor)
+        flush_resolution_batch(cursor)
+        flush_graph_batch(cursor)
+        original_completed_build(cursor, **kwargs)
+
     # Manifest graph, resolution and binding streams arrive in small verified
     # chunks. Their identities are available immediately, but physical authority
     # need only precede the first SQL consumer. Bounded super-batches retain the
@@ -98,6 +111,7 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
         "persist_binding_candidate_sets": persist_binding_batched,
         "_persist_streamed_candidate_builds": persist_streamed_candidate_builds_batched,
         "_persist_streamed_candidate_links": persist_streamed_candidate_links_batched,
+        "persist_completed_operational_build": persist_completed_build_after_flush,
     }
     helper_modules = (
         graph_persistence,
@@ -119,9 +133,8 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
         module._complete_stage = observable_complete_stage
     try:
         yield
-        # Some documents have no later consumer to force a flush. Complete the
-        # pending execution carriers while the ordered authority savepoint is
-        # still active. Each lower layer flushes its required parent first.
+        # A graph/resolution-only compatibility path that doesn't publish a
+        # completed-build receipt still gets an ordered final flush here.
         flush_binding_batch()
         flush_resolution_batch()
         flush_graph_batch()
