@@ -103,11 +103,11 @@ def _kernel_seconds(receipt: Mapping[str, Any], prefix: str) -> float:
     return total / 1_000_000_000
 
 
-def _metrics(path: Path) -> dict[str, int]:
+def _metrics(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
     value = pickle.loads(path.read_bytes())
-    return {str(key): int(item) for key, item in dict(value).items()}
+    return dict(value) if isinstance(value, Mapping) else {}
 
 
 def _command(
@@ -180,12 +180,14 @@ def _run_case(
     )
     if reference_receipt is not None:
         command.extend(("--reference-semantic-receipt", str(reference_receipt)))
+    persistence_metrics_path = run_root / "persistence-metrics.pkl"
     environment = os.environ.copy()
     environment.update(
         {
             "SENSIBLAW_PROGRESS_PERSISTENCE_MODE": mode,
             "SENSIBLAW_PROGRESS_BATCH_EVENTS": str(batch_events),
             "SENSIBLAW_PROGRESS_BATCH_SECONDS": str(batch_seconds),
+            "SENSIBLAW_PERSISTENCE_METRICS_PATH": str(persistence_metrics_path),
             "PYTHONUNBUFFERED": "1",
         }
     )
@@ -226,7 +228,8 @@ def _run_case(
         / "acceptance-receipt.json"
     )
     strict = _mapping(strict_path) if strict_path.exists() else {}
-    metrics = _metrics(semantic_root / "progress" / "metrics.pkl")
+    progress_metrics = _metrics(semantic_root / "progress" / "metrics.pkl")
+    persistence_metrics = _metrics(persistence_metrics_path)
     closure_audit = dict(receipt.get("closure_audit") or {})
     owner_reduction = {
         key: closure_audit.get(key)
@@ -261,7 +264,10 @@ def _run_case(
         "resources": dict(strict.get("resources") or {}),
         "process_execution": dict(strict.get("process_execution") or {}),
         "owner_reduction": owner_reduction,
-        "persistence": metrics,
+        "persistence": {
+            "progress": progress_metrics,
+            "work_conserving": persistence_metrics,
+        },
         "semantic_receipt": str(receipt_path) if receipt_path else None,
         "semantic_surface_digest": canonical_stream_digest(surface)
         if surface
@@ -270,6 +276,7 @@ def _run_case(
             "run_root": str(run_root),
             "stdout": str(stdout_path),
             "stderr": str(stderr_path),
+            "persistence_metrics": str(persistence_metrics_path),
         },
     }
 
