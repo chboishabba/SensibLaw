@@ -135,6 +135,62 @@ def _metrics(path: Path) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
 
+def _numeric_work_timing(progress_path: Path) -> dict[str, Any]:
+    """Extract already-recorded numeric work timing from the durable phase ledger.
+
+    The values are aggregate process-active work. They are useful for resource
+    efficiency comparisons but are deliberately not projected into
+    ``kernel_seconds`` because concurrent worker work is not an exclusive wall
+    stage and therefore cannot establish the parser-dominance wall-time target.
+    """
+
+    if not progress_path.exists():
+        return {
+            "timing_basis": None,
+            "spacy_parser_work_seconds": None,
+            "post_parser_work_seconds": None,
+            "post_parser_to_spacy_work_ratio": None,
+            "evidence_path": str(progress_path),
+        }
+    payload = _mapping(progress_path)
+    selected: Mapping[str, Any] | None = None
+    for event in payload.get("events") or ():
+        if not isinstance(event, Mapping):
+            continue
+        details = event.get("details")
+        if not isinstance(details, Mapping):
+            continue
+        if "spacy_parser_work_ns" in details and "post_parser_work_ns" in details:
+            selected = details
+    if selected is None:
+        return {
+            "timing_basis": None,
+            "spacy_parser_work_seconds": None,
+            "post_parser_work_seconds": None,
+            "post_parser_to_spacy_work_ratio": None,
+            "evidence_path": str(progress_path),
+        }
+    parser_ns = int(selected.get("spacy_parser_work_ns") or 0)
+    post_ns = int(selected.get("post_parser_work_ns") or 0)
+    return {
+        "timing_basis": selected.get("timing_basis"),
+        "spacy_parser_work_seconds": parser_ns / 1_000_000_000,
+        "post_parser_worker_work_seconds": int(
+            selected.get("post_parser_worker_work_ns") or 0
+        )
+        / 1_000_000_000,
+        "post_parser_coordinator_seconds": int(
+            selected.get("post_parser_coordinator_ns") or 0
+        )
+        / 1_000_000_000,
+        "post_parser_work_seconds": post_ns / 1_000_000_000,
+        "post_parser_to_spacy_work_ratio": (
+            post_ns / parser_ns if parser_ns > 0 else None
+        ),
+        "evidence_path": str(progress_path),
+    }
+
+
 def _command(
     *,
     case: DocumentCase,
@@ -259,6 +315,10 @@ def _run_case(
     strict = _mapping(strict_path) if strict_path.exists() else {}
     progress_metrics = _metrics(semantic_root / "progress" / "metrics.pkl")
     persistence_metrics = _metrics(persistence_metrics_path)
+    compile_progress_path = (
+        run_root / "output" / tranche.lower() / "local_pnf_compile_progress.json"
+    )
+    numeric_work_timing = _numeric_work_timing(compile_progress_path)
     closure_audit = dict(receipt.get("closure_audit") or {})
     owner_reduction = {
         key: closure_audit.get(key)
@@ -286,12 +346,13 @@ def _run_case(
         "returncode": completed.returncode,
         "completed": receipt.get("state") == "completed",
         "wall_seconds": wall_ns / 1_000_000_000,
-        # Only explicitly measured kernels belong here. Do not infer a parser
-        # time or a total post-parser time by subtracting from wall clock.
+        # Only explicitly measured, exclusive kernel timings belong here. The
+        # process-active parser/post-parser work projection is separate below.
         "kernel_seconds": {
             "local_typing": _kernel_seconds(receipt, "local_typing_diagnostics:"),
             "closure": _kernel_seconds(receipt, "streaming_closure:"),
         },
+        "numeric_work_timing": numeric_work_timing,
         "resources": dict(strict.get("resources") or {}),
         "process_execution": _process_execution(
             strict_path=strict_path, strict_receipt=strict
@@ -310,6 +371,7 @@ def _run_case(
             "stdout": str(stdout_path),
             "stderr": str(stderr_path),
             "persistence_metrics": str(persistence_metrics_path),
+            "compile_progress": str(compile_progress_path),
         },
     }
 
