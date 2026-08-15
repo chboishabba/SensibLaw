@@ -103,6 +103,7 @@ def install_execution_strategies() -> None:
         from .closure_finalization_hardening import (
             install_closure_finalization_hardening,
         )
+        from .closure_hot_path_execution import install_closure_hot_path_execution
         from .closure_liveness_execution import (
             install_closure_liveness_execution,
         )
@@ -160,6 +161,11 @@ def install_execution_strategies() -> None:
         # handlers are CPU-bound. Install process-backed bounded leaves after
         # telemetry so their outputs retain the same resource receipts.
         install_parallel_typing_tail()
+        # The bounded executor captured its closure function before the process
+        # wrapper existed. Rebind that hot path, select a CPU-aware default width,
+        # and coalesce dependency-free full-fibre reductions while immutable
+        # closure jobs remain in flight.
+        install_closure_hot_path_execution()
         # Parent stages must expose child completion while leaves are running,
         # name waits, and persist the same universal envelope emitted to logs.
         install_progress_observability_execution()
