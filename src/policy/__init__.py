@@ -124,9 +124,11 @@ def install_execution_strategies() -> None:
         from .progress_observability_execution import (
             install_progress_observability_execution,
         )
+        from .reduction_hot_path_execution import install_reduction_hot_path_execution
         from .reference_backed_finalization import (
             install_reference_backed_finalization,
         )
+        from .scheduler_hot_path_execution import install_scheduler_hot_path_execution
         from .semantic_receipt_enrichment import (
             install_semantic_receipt_enrichment,
         )
@@ -161,6 +163,12 @@ def install_execution_strategies() -> None:
         # handlers are CPU-bound. Install process-backed bounded leaves after
         # telemetry so their outputs retain the same resource receipts.
         install_parallel_typing_tail()
+        # Replace the reducer's linear scan over prior compatibility groups with
+        # an exact first-match bitset lookup before the bounded hot path starts.
+        install_reduction_hot_path_execution()
+        # Keep the scheduler's canonical order key, but maintain its ready
+        # frontier incrementally rather than repeatedly sorting the whole deque.
+        install_scheduler_hot_path_execution()
         # The bounded executor captured its closure function before the process
         # wrapper existed. Rebind that hot path, select a CPU-aware default width,
         # and coalesce dependency-free full-fibre reductions while immutable
