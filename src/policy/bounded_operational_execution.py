@@ -290,6 +290,34 @@ def bounded_streaming_semantic_build(
     max_pending_jobs = 0
     max_in_flight_jobs = 0
 
+    def report_base_progress(
+        *,
+        kernel: str,
+        factor_batch_size: int = 0,
+        proposal_batch_size: int = 0,
+        projection_elapsed_ns: int = 0,
+        admission_elapsed_ns: int = 0,
+        reduction_elapsed_ns: int = 0,
+    ) -> None:
+        if progress_observer is None:
+            return
+        progress_observer(
+            {
+                "deltas_admitted": admitted_delta_count,
+                "base_batches_completed": base_admission_batches,
+                "base_factors_seen": len(base_proposals),
+                "base_proposals_admitted": len(base_proposals),
+                "base_factor_batch_size": factor_batch_size,
+                "base_proposal_batch_size": proposal_batch_size,
+                "base_projection_elapsed_ns": projection_elapsed_ns,
+                "base_admission_elapsed_ns": admission_elapsed_ns,
+                "base_reduction_elapsed_ns": reduction_elapsed_ns,
+                "pending_jobs": len(owner._pending_jobs),
+                "in_flight_jobs": len(owner._in_flight_jobs),
+                "current_kernel": kernel,
+            }
+        )
+
     def sample_resources(
         queued_bytes: int,
         pending_jobs: int,
@@ -446,7 +474,10 @@ def bounded_streaming_semantic_build(
                 except StopIteration:
                     factor_batch = ()
                 if factor_batch:
-                    base_started = monotonic_ns()
+                    report_base_progress(
+                        kernel="base_proposal_projection_started",
+                        factor_batch_size=len(factor_batch),
+                    )
                     projection_started = monotonic_ns()
                     proposals = tuple(
                         operational._base_proposal_from_factor(
@@ -456,11 +487,19 @@ def bounded_streaming_semantic_build(
                         )
                         for factor in factor_batch
                     )
-                    base_projection_elapsed_ns += monotonic_ns() - projection_started
+                    projection_elapsed = monotonic_ns() - projection_started
+                    base_projection_elapsed_ns += projection_elapsed
                     base_proposals.extend(proposals)
+                    report_base_progress(
+                        kernel="base_proposal_projection_completed",
+                        factor_batch_size=len(factor_batch),
+                        proposal_batch_size=len(proposals),
+                        projection_elapsed_ns=projection_elapsed,
+                    )
                     admission_started = monotonic_ns()
                     owner.admit_proposals(proposals, stage="base")
-                    base_admission_elapsed_ns += monotonic_ns() - admission_started
+                    admission_elapsed = monotonic_ns() - admission_started
+                    base_admission_elapsed_ns += admission_elapsed
                     owner.reduce_dirty_groups()
                     base_reduction = owner.materialized_reduction
                     base_admission_batches += 1
@@ -472,7 +511,16 @@ def bounded_streaming_semantic_build(
                             for row in proposals
                         ),
                     )
-                    base_reduction_elapsed_ns += monotonic_ns() - base_started
+                    reduction_elapsed = monotonic_ns() - admission_started - admission_elapsed
+                    base_reduction_elapsed_ns += reduction_elapsed
+                    report_base_progress(
+                        kernel="base_proposal_admission_completed",
+                        factor_batch_size=len(factor_batch),
+                        proposal_batch_size=len(proposals),
+                        projection_elapsed_ns=projection_elapsed,
+                        admission_elapsed_ns=admission_elapsed,
+                        reduction_elapsed_ns=reduction_elapsed,
+                    )
                     if replay_contract is not None:
                         replay_contract.checkpoint_owner(owner)
                     if progress_observer is not None:
@@ -564,7 +612,10 @@ def bounded_streaming_semantic_build(
     # A document may contain more base factors than activation batches.  They
     # remain bounded owner admissions, never a preflight tuple reduction.
     for factor_batch in base_batches:
-        base_started = monotonic_ns()
+        report_base_progress(
+            kernel="base_proposal_projection_started",
+            factor_batch_size=len(factor_batch),
+        )
         projection_started = monotonic_ns()
         proposals = tuple(
             operational._base_proposal_from_factor(
@@ -574,11 +625,19 @@ def bounded_streaming_semantic_build(
             )
             for factor in factor_batch
         )
-        base_projection_elapsed_ns += monotonic_ns() - projection_started
+        projection_elapsed = monotonic_ns() - projection_started
+        base_projection_elapsed_ns += projection_elapsed
         base_proposals.extend(proposals)
+        report_base_progress(
+            kernel="base_proposal_projection_completed",
+            factor_batch_size=len(factor_batch),
+            proposal_batch_size=len(proposals),
+            projection_elapsed_ns=projection_elapsed,
+        )
         admission_started = monotonic_ns()
         owner.admit_proposals(proposals, stage="base")
-        base_admission_elapsed_ns += monotonic_ns() - admission_started
+        admission_elapsed = monotonic_ns() - admission_started
+        base_admission_elapsed_ns += admission_elapsed
         owner.reduce_dirty_groups()
         base_reduction = owner.materialized_reduction
         base_admission_batches += 1
@@ -590,7 +649,16 @@ def bounded_streaming_semantic_build(
                 for row in proposals
             ),
         )
-        base_reduction_elapsed_ns += monotonic_ns() - base_started
+        reduction_elapsed = monotonic_ns() - admission_started - admission_elapsed
+        base_reduction_elapsed_ns += reduction_elapsed
+        report_base_progress(
+            kernel="base_proposal_admission_completed",
+            factor_batch_size=len(factor_batch),
+            proposal_batch_size=len(proposals),
+            projection_elapsed_ns=projection_elapsed,
+            admission_elapsed_ns=admission_elapsed,
+            reduction_elapsed_ns=reduction_elapsed,
+        )
         if replay_contract is not None:
             replay_contract.checkpoint_owner(owner)
 

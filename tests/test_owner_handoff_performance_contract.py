@@ -141,3 +141,17 @@ def test_source_contract_removes_duplicate_recorded_delta_index() -> None:
     assert 'payload.pop("recorded_delta_refs", None)' in batch
     assert "install_owner_handoff_batch_performance()" in policy_init
     assert "current closure handoff checkpoint identity mismatch" in batch
+
+
+def test_proposal_artifact_hashing_is_outside_context_lock() -> None:
+    source = Path("src/policy/parallel_semantic_execution.py").read_text(
+        encoding="utf-8"
+    )
+    start = source.index("def admit_proposals_wrapper(")
+    end = source.index("    def admit_receipt_wrapper(", start)
+    wrapper = source[start:end]
+    assert wrapper.index("artifact_ref: str | None") < wrapper.index(
+        "with context.lock:"
+    )
+    lock_body = wrapper[wrapper.index("with context.lock:") :]
+    assert "_write_replay_artifact(" not in lock_body
