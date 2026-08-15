@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "database/postgres_migrations/061_work_conserving_document_persistence.sql"
+      - "database/postgres_migrations/138_drop_unused_persistence_stage_document_index.sql"
       - "src/storage/postgres/work_conserving_*.py"
       - "src/storage/postgres/pipelined_document_cursor.py"
       - "src/storage/postgres/reusable_persistence_connections.py"
@@ -16,6 +17,7 @@ on:
       - "tests/storage/test_work_conserving_token_identity.py"
       - "tests/test_persistence_hot_path_execution.py"
       - "tests/test_persistence_stage_cleanup_contract.py"
+      - "tests/test_persistence_superbatch_execution.py"
       - "tests/policy/test_work_conserving_ordered_compilation.py"
       - "docs/architecture/WORK_CONSERVING_POSTGRES_PERSISTENCE.md"
       - ".github/workflows/work-conserving-postgres-persistence-pr.yml"
@@ -24,6 +26,7 @@ on:
       - "agent/repair-corpus-progress-stage-lifecycle"
     paths:
       - "database/postgres_migrations/061_work_conserving_document_persistence.sql"
+      - "database/postgres_migrations/138_drop_unused_persistence_stage_document_index.sql"
       - "src/storage/postgres/work_conserving_*.py"
       - "src/storage/postgres/pipelined_document_cursor.py"
       - "src/storage/postgres/reusable_persistence_connections.py"
@@ -36,6 +39,7 @@ on:
       - "tests/storage/test_work_conserving_token_identity.py"
       - "tests/test_persistence_hot_path_execution.py"
       - "tests/test_persistence_stage_cleanup_contract.py"
+      - "tests/test_persistence_superbatch_execution.py"
       - "tests/policy/test_work_conserving_ordered_compilation.py"
       - "docs/architecture/WORK_CONSERVING_POSTGRES_PERSISTENCE.md"
       - ".github/workflows/work-conserving-postgres-persistence-pr.yml"
@@ -80,6 +84,8 @@ jobs:
             src/storage/postgres/work_conserving_stage.py \
             src/storage/postgres/work_conserving_stage_hot_path.py \
             src/storage/postgres/work_conserving_copy_observability.py \
+            src/storage/postgres/work_conserving_graph_batching.py \
+            src/storage/postgres/work_conserving_resolution_batching.py \
             src/storage/postgres/pipelined_document_cursor.py \
             src/storage/postgres/reusable_persistence_connections.py \
             src/storage/postgres/stage_copy_codec.py \
@@ -96,6 +102,7 @@ jobs:
             tests/storage/test_work_conserving_token_identity.py \
             tests/test_persistence_hot_path_execution.py \
             tests/test_persistence_stage_cleanup_contract.py \
+            tests/test_persistence_superbatch_execution.py \
             tests/policy/test_work_conserving_ordered_compilation.py
 
       - name: Ruff
@@ -104,6 +111,8 @@ jobs:
             src/storage/postgres/work_conserving_stage.py \
             src/storage/postgres/work_conserving_stage_hot_path.py \
             src/storage/postgres/work_conserving_copy_observability.py \
+            src/storage/postgres/work_conserving_graph_batching.py \
+            src/storage/postgres/work_conserving_resolution_batching.py \
             src/storage/postgres/pipelined_document_cursor.py \
             src/storage/postgres/reusable_persistence_connections.py \
             src/storage/postgres/stage_copy_codec.py \
@@ -120,6 +129,7 @@ jobs:
             tests/storage/test_work_conserving_token_identity.py \
             tests/test_persistence_hot_path_execution.py \
             tests/test_persistence_stage_cleanup_contract.py \
+            tests/test_persistence_superbatch_execution.py \
             tests/policy/test_work_conserving_ordered_compilation.py
 
       - name: Apply migrations
@@ -132,4 +142,5 @@ jobs:
             tests/storage/test_work_conserving_token_identity.py \
             tests/test_persistence_hot_path_execution.py \
             tests/test_persistence_stage_cleanup_contract.py \
+            tests/test_persistence_superbatch_execution.py \
             tests/policy/test_work_conserving_ordered_compilation.py
