@@ -57,7 +57,8 @@ def _claim_budget_at_document_savepoint(store: Any, runtime: Any) -> Iterator[No
         body_finished = transaction_started
         pipeline_finished = transaction_started
         cursor_metrics: dict[str, int] = {}
-        succeeded = False
+        body_succeeded = False
+        committed = False
         try:
             with original_savepoint() as cursor:
                 body_started = monotonic_ns()
@@ -65,17 +66,19 @@ def _claim_budget_at_document_savepoint(store: Any, runtime: Any) -> Iterator[No
                 try:
                     with pipelined:
                         yield pipelined
-                    succeeded = True
+                    body_succeeded = True
                 finally:
                     body_finished = monotonic_ns()
                     cursor_metrics = pipelined.publication_metrics
                 pipeline_finished = monotonic_ns()
+            committed = body_succeeded
         finally:
             transaction_finished = monotonic_ns()
             _record_publication_transaction(
                 runtime,
                 {
-                    "succeeded": int(succeeded),
+                    "body_succeeded": int(body_succeeded),
+                    "committed": int(committed),
                     "transaction_total_ns": transaction_finished
                     - transaction_started,
                     "body_ns": max(0, body_finished - body_started),
@@ -137,11 +140,29 @@ def _publication_summary(runtime: Any) -> dict[str, Any]:
         )
     }
     summed["transaction_count"] = len(rows)
-    summed["successful_transaction_count"] = sum(
-        int(row.get("succeeded", 0)) for row in rows
+    summed["body_success_count"] = sum(
+        int(row.get("body_succeeded", 0)) for row in rows
+    )
+    summed["committed_transaction_count"] = sum(
+        int(row.get("committed", 0)) for row in rows
     )
     summed["transactions"] = list(rows)
     return summed
+
+
+def _superbatch_summary(runtime: Any) -> dict[str, int]:
+    return {
+        "graph_flushes": int(getattr(runtime, "graph_superbatches_flushed", 0)),
+        "graph_payloads": int(getattr(runtime, "graph_superbatch_payloads", 0)),
+        "resolution_flushes": int(
+            getattr(runtime, "resolution_superbatches_flushed", 0)
+        ),
+        "resolution_payloads": int(
+            getattr(runtime, "resolution_superbatch_payloads", 0)
+        ),
+        "binding_flushes": int(getattr(runtime, "binding_superbatches_flushed", 0)),
+        "binding_payloads": int(getattr(runtime, "binding_superbatch_payloads", 0)),
+    }
 
 
 def persist_document_compilation_work_conserving(**kwargs: Any) -> tuple[str, ...]:
@@ -185,6 +206,7 @@ def persist_document_compilation_work_conserving(**kwargs: Any) -> tuple[str, ..
         "build_key_sha256": build_key_sha256,
         "executor_wall_ns": executor_wall_ns,
         "publication": _publication_summary(runtime),
+        "superbatches": _superbatch_summary(runtime),
         **summarize_document_persistence(runtime),
     }
     _write_persistence_metrics(metrics)
@@ -198,6 +220,11 @@ def persist_document_compilation_work_conserving(**kwargs: Any) -> tuple[str, ..
                 "stage_count": int(metrics.get("stage_count") or 0),
                 "publication_transactions": int(
                     metrics["publication"].get("transaction_count") or 0
+                ),
+                "superbatch_flushes": sum(
+                    int(value)
+                    for key, value in metrics["superbatches"].items()
+                    if key.endswith("_flushes")
                 ),
             },
             details=metrics,
