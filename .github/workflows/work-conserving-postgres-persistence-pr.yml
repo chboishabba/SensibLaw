@@ -86,6 +86,7 @@ jobs:
             src/storage/postgres/work_conserving_copy_observability.py \
             src/storage/postgres/work_conserving_graph_batching.py \
             src/storage/postgres/work_conserving_resolution_batching.py \
+            src/storage/postgres/work_conserving_binding_batching.py \
             src/storage/postgres/pipelined_document_cursor.py \
             src/storage/postgres/reusable_persistence_connections.py \
             src/storage/postgres/stage_copy_codec.py \
@@ -113,6 +114,7 @@ jobs:
             src/storage/postgres/work_conserving_copy_observability.py \
             src/storage/postgres/work_conserving_graph_batching.py \
             src/storage/postgres/work_conserving_resolution_batching.py \
+            src/storage/postgres/work_conserving_binding_batching.py \
             src/storage/postgres/pipelined_document_cursor.py \
             src/storage/postgres/reusable_persistence_connections.py \
             src/storage/postgres/stage_copy_codec.py \
