@@ -53,6 +53,7 @@ from src.pnf.streaming_fixed_point import SolverReceipt  # noqa: E402
 from src.runtime.coordinator_lease_guard import (  # noqa: E402
     CoordinatorLeaseGuard,
     CoordinatorLeaseLost,
+    coordinator_lease_seconds,
 )
 from src.storage.postgres.distributed_semantic_execution import (  # noqa: E402
     ImmutableJobManifest,

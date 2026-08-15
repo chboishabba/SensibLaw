@@ -464,7 +464,11 @@ def main() -> int:
             args.database_url, _database_name = provision_local_postgres(
                 admin_url=args.database_url,
                 migration_root=ROOT / "database" / "postgres_migrations",
-                run_ref=f"{args.tranche.lower()}-{args.acceptance_root.name}",
+                run_ref=(
+                    f"{args.tranche.lower()}-"
+                    f"{args.acceptance_root.parent.name}-"
+                    f"{args.acceptance_root.name}"
+                ),
             )
         except Exception as error:
             provisioning_error = str(error)

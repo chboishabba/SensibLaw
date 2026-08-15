@@ -113,6 +113,7 @@ def _metrics(path: Path) -> dict[str, int]:
 def _command(
     *,
     case: DocumentCase,
+    mode: str,
     run_root: Path,
     database_url: str,
     postgres_mode: str,
@@ -120,6 +121,7 @@ def _command(
     strict_exact: bool,
     owner_partitions: int,
 ) -> list[str]:
+    acceptance_root = run_root / "acceptance" / f"{case.label}-{mode}"
     command = [
         sys.executable,
         str(ROOT / "scripts" / "run_exact_0008_parallel_acceptance.py"),
@@ -132,7 +134,7 @@ def _command(
         "--output-root",
         str(run_root / "output"),
         "--acceptance-root",
-        str(run_root / "acceptance"),
+        str(acceptance_root),
         "--semantic-checkpoint-root",
         str(run_root / "semantic-checkpoints"),
         "--owner-partitions",
@@ -168,6 +170,7 @@ def _run_case(
     run_root.mkdir(parents=True)
     command = _command(
         case=case,
+        mode=mode,
         run_root=run_root,
         database_url=database_url,
         postgres_mode=postgres_mode,
@@ -215,9 +218,29 @@ def _run_case(
     semantic_root = run_root / "semantic-checkpoints"
     receipt_path = _find_semantic_receipt(semantic_root)
     receipt = _typed(receipt_path) if receipt_path is not None else {}
-    strict_path = run_root / "acceptance" / "strict" / "acceptance-receipt.json"
+    strict_path = (
+        run_root
+        / "acceptance"
+        / f"{case.label}-{mode}"
+        / "strict"
+        / "acceptance-receipt.json"
+    )
     strict = _mapping(strict_path) if strict_path.exists() else {}
     metrics = _metrics(semantic_root / "progress" / "metrics.pkl")
+    closure_audit = dict(receipt.get("closure_audit") or {})
+    owner_reduction = {
+        key: closure_audit.get(key)
+        for key in (
+            "jobs_completed",
+            "proposals_emitted",
+            "materialized_factors",
+            "proposals_examined_per_emitted",
+            "factor_scans_per_changed_factor",
+            "handoff_compact_checkpoints",
+            "handoff_compact_checkpoint_ns",
+            "handoff_checkpoint_replay_rows_serialized",
+        )
+    }
     surface = (
         semantic_surface_from_execution_receipt(receipt)
         if receipt.get("state") == "completed"
@@ -236,6 +259,8 @@ def _run_case(
             "closure": _kernel_seconds(receipt, "streaming_closure:"),
         },
         "resources": dict(strict.get("resources") or {}),
+        "process_execution": dict(strict.get("process_execution") or {}),
+        "owner_reduction": owner_reduction,
         "persistence": metrics,
         "semantic_receipt": str(receipt_path) if receipt_path else None,
         "semantic_surface_digest": canonical_stream_digest(surface)
@@ -334,7 +359,7 @@ def main() -> int:
     report_path = output_root / "benchmark-report.pkl"
     report_path.write_bytes(pickle.dumps(report, protocol=5))
     print(pformat(report, sort_dicts=True))
-    return 0 if all(row["returncode"] == 0 for row in rows) else 1
+    return 0 if all(row["completed"] for row in rows) else 1
 
 
 if __name__ == "__main__":
