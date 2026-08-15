@@ -148,9 +148,17 @@ def _durable_pool() -> ProcessPoolExecutor | None:
             )
             tail._POOL_WORKERS = workers
         elif tail._POOL_WORKERS != workers:
-            raise ValueError(
-                "semantic process worker count changed during one document"
+            # A prior focused test or completed document may have left the
+            # shared pool idle under a different explicit width.  Recycle it
+            # at the next activation boundary; once this pool is returned, its
+            # width remains fixed for the current document.
+            tail.shutdown_semantic_process_pool()
+            tail._POOL = ProcessPoolExecutor(
+                max_workers=workers,
+                mp_context=multiprocessing.get_context("spawn"),
+                initializer=linux_parent_death_initializer,
             )
+            tail._POOL_WORKERS = workers
         return tail._POOL
 
 

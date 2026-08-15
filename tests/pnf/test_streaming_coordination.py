@@ -9,7 +9,6 @@ from src.pnf.streaming_coordination import (
 )
 from src.pnf.streaming_fixed_point import (
     ObservationDelta,
-    OwnerKey,
     PythonClosureExecutor,
     SolverJob,
     StreamingDeclaration,

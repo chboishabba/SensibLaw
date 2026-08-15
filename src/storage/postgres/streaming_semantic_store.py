@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping
 
 from src.policy.carriers.canonical import canonical_sha256
 
