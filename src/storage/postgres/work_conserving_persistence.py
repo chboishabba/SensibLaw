@@ -21,6 +21,9 @@ from src.storage.postgres import (
 from src.storage.postgres import (
     work_conserving_resolution_persistence as resolution_persistence,
 )
+from src.storage.postgres.verified_candidate_link_cache import (
+    install_verified_candidate_link_cache,
+)
 from src.storage.postgres.work_conserving_binding_batching import (
     flush_binding_batch,
     persist_binding_batched,
@@ -86,6 +89,7 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
     install_work_conserving_stage_hot_path()
 
     original_completed_build = compiler.persist_completed_operational_build
+    original_descriptor_family = compiler._iter_descriptor_family
 
     def persist_completed_build_after_flush(cursor: Any, **kwargs: Any) -> None:
         # A completed-build receipt is semantic publication evidence, not merely
@@ -127,6 +131,10 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
     original_stage_partition = stage._stage_partition
     for name, replacement in replacements.items():
         setattr(compiler, name, replacement)
+    # The first complete manifest pass remains verified by the canonical reader.
+    # Cache only candidate-link coordinates so the later narrow replay does not
+    # reopen and rehash the same rich refinement/meet/demand descriptors.
+    install_verified_candidate_link_cache(compiler)
     stage._stage_partition = observable_stage_partition
     for module in helper_modules:
         module._stage_payloads = observable_stage_payloads
@@ -139,6 +147,7 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
         flush_resolution_batch()
         flush_graph_batch()
     finally:
+        compiler._iter_descriptor_family = original_descriptor_family
         for module, originals in helper_originals.items():
             module._stage_payloads, module._complete_stage = originals
         stage._stage_partition = original_stage_partition
