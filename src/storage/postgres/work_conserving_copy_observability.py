@@ -15,6 +15,23 @@ from src.storage.postgres.reusable_persistence_connections import (
 from src.storage.postgres.stage_copy_codec import write_stage_rows
 
 
+def _enabled(name: str, default: bool = False) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _backend_pid(connection: Any, cursor: Any) -> int:
+    # psycopg exposes the backend PID on ConnectionInfo. Keep a query fallback
+    # for compatibility test doubles/older adapters without that attribute.
+    value = getattr(getattr(connection, "info", None), "backend_pid", None)
+    if value is not None:
+        return int(value)
+    cursor.execute("SELECT pg_backend_pid()")
+    return int(cursor.fetchone()[0])
+
+
 def _record_lane_started(
     *,
     dsn: str,
@@ -87,18 +104,23 @@ def observable_stage_partition(
     lane_ref: str,
     partition_no: int,
     rows: Sequence[tuple[Any, ...]],
+    byte_count: int | None = None,
 ) -> dict[str, Any]:
-    """COPY one partition while exposing its backend PID before work begins."""
+    """COPY one partition with bounded, optional diagnostic telemetry."""
 
     started_ns = monotonic_ns()
     before = resource.getrusage(resource.RUSAGE_THREAD)
     backend_pid: int | None = None
-    byte_count = sum(stage._estimate_row_bytes(row) for row in rows)
+    if byte_count is None:
+        byte_count = (
+            sum(stage._estimate_row_bytes(row) for row in rows)
+            if _enabled("SENSIBLAW_PERSISTENCE_BYTE_TELEMETRY")
+            else 0
+        )
     try:
         with transactional_persistence_connection(dsn) as connection:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT pg_backend_pid()")
-                backend_pid = int(cursor.fetchone()[0])
+                backend_pid = _backend_pid(connection, cursor)
                 _record_lane_started(
                     dsn=dsn,
                     stage_ref=stage_ref,
@@ -109,16 +131,19 @@ def observable_stage_partition(
                     byte_count=byte_count,
                 )
                 write_stage_rows(cursor, stage._COPY_SQL, rows)
-                cursor.execute(
-                    """
-                    SELECT wait_event_type, wait_event
-                    FROM pg_stat_activity
-                    WHERE pid = pg_backend_pid()
-                    """
-                )
-                wait_row = cursor.fetchone()
-                wait_type = wait_row[0] if wait_row is not None else None
-                wait_event = wait_row[1] if wait_row is not None else None
+                wait_type = None
+                wait_event = None
+                if _enabled("SENSIBLAW_PERSISTENCE_WAIT_EVENT_PROBES"):
+                    cursor.execute(
+                        """
+                        SELECT wait_event_type, wait_event
+                        FROM pg_stat_activity
+                        WHERE pid = pg_backend_pid()
+                        """
+                    )
+                    wait_row = cursor.fetchone()
+                    wait_type = wait_row[0] if wait_row is not None else None
+                    wait_event = wait_row[1] if wait_row is not None else None
                 after = resource.getrusage(resource.RUSAGE_THREAD)
                 elapsed_ms = max(0, (monotonic_ns() - started_ns) // 1_000_000)
                 user_ms = max(0, int((after.ru_utime - before.ru_utime) * 1000))
@@ -187,8 +212,7 @@ def observable_stage_payloads(
         payloads=payloads,
     )
     dsn = str(cursor.connection.info.dsn)
-    cursor.execute("SELECT pg_backend_pid()")
-    backend_pid = int(cursor.fetchone()[0])
+    backend_pid = _backend_pid(cursor.connection, cursor)
     with persistence_telemetry_cursor(dsn) as telemetry:
         telemetry.execute(
             """
@@ -230,9 +254,6 @@ def observable_complete_stage(
         stage_ref=stage_ref,
         statement_count=statement_count,
     )
-    # In pipeline mode all merge statements for this family may still be queued.
-    # The external telemetry connection must not report completion before those
-    # statements (and the published run marker) have actually executed.
     sync = getattr(cursor, "sync", None)
     if callable(sync):
         sync()
