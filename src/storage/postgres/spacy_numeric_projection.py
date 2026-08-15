@@ -670,15 +670,18 @@ def commit_numeric_doc(
                     rows=token_rows,
                 )
 
+                raw_token_refs = [raw.token_ref for raw in raw_tokens]
                 cursor.execute(
                     """
                     SELECT token_ref, token_id, sentence_id, start_char, end_char
                       FROM execution.semantic_parser_token
-                     WHERE run_ref = %s
+                     WHERE token_ref = ANY(%s)
+                       AND run_ref = %s
                        AND document_ref = %s
                        AND representation_version = 2
                     """,
                     (
+                        raw_token_refs,
                         partition.run_ref,
                         partition.document_ref,
                     ),
@@ -686,15 +689,6 @@ def commit_numeric_doc(
                 fetched_tokens = cursor.fetchall()
                 token_rows_by_ref = {
                     str(token_ref): (
-                        int(token_id),
-                        int(sentence_id),
-                        int(start_char),
-                        int(end_char),
-                    )
-                    for token_ref, token_id, sentence_id, start_char, end_char in fetched_tokens
-                }
-                token_rows_by_span = {
-                    (int(start_char), int(end_char)): (
                         int(token_id),
                         int(sentence_id),
                         int(start_char),
@@ -710,9 +704,7 @@ def commit_numeric_doc(
                            head_end_char = %s
                       WHERE token_id = %s
                     """,
-                    _project_numeric_heads(
-                        raw_tokens, token_rows_by_ref, token_rows_by_span
-                    ),
+                    _project_numeric_heads(raw_tokens, token_rows_by_ref),
                 )
 
                 entity_rows = [
