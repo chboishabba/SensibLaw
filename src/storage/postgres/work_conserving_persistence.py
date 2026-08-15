@@ -11,6 +11,9 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import Any, Iterator
 
+from src.policy.carrier_orchestration_hot_path import (
+    activate_carrier_orchestration_hot_path,
+)
 from src.storage.postgres import (
     work_conserving_binding_persistence as binding_persistence,
 )
@@ -140,8 +143,9 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
         module._stage_payloads = observable_stage_payloads
         module._complete_stage = observable_complete_stage
     try:
-        yield
-        flush_pending_batches()
+        with activate_carrier_orchestration_hot_path():
+            yield
+            flush_pending_batches()
     finally:
         compiler._iter_descriptor_family = original_descriptor_family
         compiler._descriptor_metadata = original_descriptor_metadata
