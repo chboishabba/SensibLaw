@@ -9,14 +9,31 @@ existing pure computation into the process that actually performs it.
 
 from __future__ import annotations
 
+import json
+import os
+from pathlib import Path
 from typing import Any
 
 
 _EXECUTOR: Any | None = None
 
 
-def execute_operator_solver_receipt(job: Any) -> Any:
-    """Return the canonical ``SolverReceipt`` for one immutable operator job."""
+def _persist_receipt(path_raw: str, receipt: Any) -> None:
+    path = Path(path_raw)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + f".{os.getpid()}.tmp")
+    temporary.write_text(
+        json.dumps(receipt.to_dict(), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    temporary.replace(path)
+
+
+def execute_operator_solver_receipt(
+    job: Any,
+    receipt_path: str | None = None,
+) -> Any:
+    """Return and optionally durably checkpoint the canonical ``SolverReceipt``."""
 
     global _EXECUTOR
     if _EXECUTOR is None:
@@ -29,7 +46,10 @@ def execute_operator_solver_receipt(job: Any) -> Any:
         _EXECUTOR = PythonClosureExecutor(
             {STREAMING_OPERATOR_DECLARATION_REF: solve_operator_job}
         )
-    return _EXECUTOR.execute(job)
+    receipt = _EXECUTOR.execute(job)
+    if receipt_path:
+        _persist_receipt(receipt_path, receipt)
+    return receipt
 
 
 __all__ = ["execute_operator_solver_receipt"]
