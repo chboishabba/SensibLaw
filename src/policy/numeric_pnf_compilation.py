@@ -1,7 +1,7 @@
 """Strict numeric PNF document compilation and publication.
 
 The strict path never reconstructs the legacy document-sized parser mapping,
-mention carrier, factor graph, or artifact bundle.  Parsing commits numeric
+mention carrier, factor graph, or artifact bundle. Parsing commits numeric
 observations exactly once, sentence/region PNF closure runs over those rows, and
 publication records the closed document interface plus its residual demands.
 """
@@ -14,6 +14,9 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from src.policy.corpus_compilation import DocumentCompilation
+from src.storage.postgres.numeric_reuse_measurement import (
+    record_numeric_compiler_reuse_measurement,
+)
 from src.storage.postgres.operational_build_store import (
     load_completed_operational_build,
     persist_completed_operational_build,
@@ -257,6 +260,23 @@ def compile_numeric_pnf_document(
     )
 
 
+def _record_controlled_reuse(
+    *,
+    database_url: str,
+    run_ref: str,
+    document_ref: str,
+    canonical_text_sha256: str,
+    build_key_sha256: str,
+) -> int:
+    return record_numeric_compiler_reuse_measurement(
+        database_url=database_url,
+        run_ref=run_ref,
+        document_ref=document_ref,
+        canonical_text_sha256=canonical_text_sha256,
+        compiler_config_sha256=build_key_sha256,
+    )
+
+
 def persist_numeric_pnf_document(
     *,
     store: Any,
@@ -294,6 +314,16 @@ def persist_numeric_pnf_document(
                 relative_path=relative_path,
                 document_ref=document_ref,
                 state="reused_numeric_pnf",
+            )
+            # The performance receipt is rebuildable observability. Record it
+            # after the source/PNF authority already exists, without changing
+            # the cached semantic build identity.
+            _record_controlled_reuse(
+                database_url=database_url,
+                run_ref=run_ref,
+                document_ref=document_ref,
+                canonical_text_sha256=canonical_text_sha256,
+                build_key_sha256=build_key_sha256,
             )
             return cached
         store.persist_source_document(
@@ -354,6 +384,14 @@ def persist_numeric_pnf_document(
             document_ref=document_ref,
             state="compiled_numeric_pnf",
         )
+
+    measurement_id = _record_controlled_reuse(
+        database_url=database_url,
+        run_ref=run_ref,
+        document_ref=document_ref,
+        canonical_text_sha256=canonical_text_sha256,
+        build_key_sha256=build_key_sha256,
+    )
     if progress is not None and hasattr(progress, "finish"):
         progress.finish(
             state="completed",
@@ -362,6 +400,7 @@ def persist_numeric_pnf_document(
                 "build_key_sha256": build_key_sha256,
                 "graph_ref": graph_ref,
                 "demand_ref_count": len(demand_refs),
+                "controlled_reuse_measurement_id": measurement_id,
             },
         )
     return demand_refs
