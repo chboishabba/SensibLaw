@@ -11,6 +11,7 @@ from time import monotonic_ns
 from typing import Any, Callable, Mapping
 
 from src.runtime.durable_work_items import linux_parent_death_initializer
+from src.runtime.numeric_observability import numeric_authority_counts_enabled
 from src.storage.postgres.numeric_adjacent_reconciliation import (
     drain_adjacent_reconciliation,
 )
@@ -383,11 +384,6 @@ def run_streaming_spacy_execution(
         run_ref=run_ref,
         document_ref=document_ref,
     )
-    counts = hyperfabric_counts(
-        database_url,
-        run_ref=run_ref,
-        document_ref=document_ref,
-    )
     summary = execution_summary(
         database_url,
         run_ref=run_ref,
@@ -397,7 +393,7 @@ def run_streaming_spacy_execution(
     )
     if summary.coverage_state != "complete":
         raise RuntimeError("parser document coverage did not close")
-    parser_receipt = {
+    parser_receipt: dict[str, Any] = {
         "backend_ref": "parser:spacy:numeric-postgresql",
         "parser_contract_ref": parser_contract_ref,
         "execution_contract_ref": STREAMING_SPACY_CONTRACT,
@@ -414,12 +410,24 @@ def run_streaming_spacy_execution(
         "pnf_visible_index_rows": final_lookup_rows,
         "pnf_sentence_adjacent_pairs": sentence_pair_count,
         "pnf_paragraph_adjacent_pairs": paragraph_pair_count,
-        "pnf_region_count": counts["regions"],
-        "pnf_factor_count": counts["factors"],
-        "pnf_object_count": counts["objects"],
-        "pnf_demand_count": counts["demands"],
+        "pnf_diagnostic_counts_measured": False,
         "authority": "postgresql_numeric_parser_and_pnf_hyperfabric",
     }
+    if numeric_authority_counts_enabled():
+        counts = hyperfabric_counts(
+            database_url,
+            run_ref=run_ref,
+            document_ref=document_ref,
+        )
+        parser_receipt.update(
+            {
+                "pnf_region_count": counts["regions"],
+                "pnf_factor_count": counts["factors"],
+                "pnf_object_count": counts["objects"],
+                "pnf_demand_count": counts["demands"],
+                "pnf_diagnostic_counts_measured": True,
+            }
+        )
     return PostgresSentenceCarrier(
         database_url=database_url,
         canonical_text=canonical_text,
