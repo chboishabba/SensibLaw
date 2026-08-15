@@ -21,6 +21,9 @@ from src.storage.postgres import (
 from src.storage.postgres import (
     work_conserving_resolution_persistence as resolution_persistence,
 )
+from src.storage.postgres.manifest_metadata_hot_path import (
+    install_descriptor_metadata_hot_path,
+)
 from src.storage.postgres.verified_candidate_link_cache import (
     install_verified_candidate_link_cache,
 )
@@ -90,6 +93,7 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
 
     original_completed_build = compiler.persist_completed_operational_build
     original_descriptor_family = compiler._iter_descriptor_family
+    original_descriptor_metadata = compiler._descriptor_metadata
 
     def persist_completed_build_after_flush(cursor: Any, **kwargs: Any) -> None:
         # A completed-build receipt is semantic publication evidence, not merely
@@ -102,11 +106,6 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
         flush_graph_batch(cursor)
         original_completed_build(cursor, **kwargs)
 
-    # Manifest graph, resolution and binding streams arrive in small verified
-    # chunks. Their identities are available immediately, but physical authority
-    # need only precede the first SQL consumer. Bounded super-batches retain the
-    # exact graph -> resolution -> binding order while collapsing repeated stage
-    # setup/completeness/telemetry/merge cycles.
     replacements = {
         "persist_licensed_spans": persist_licensed_spans_work_conserving,
         "persist_pnf_graph": persist_pnf_graph_batched,
@@ -131,23 +130,23 @@ def activate_work_conserving_postgres_bindings() -> Iterator[None]:
     original_stage_partition = stage._stage_partition
     for name, replacement in replacements.items():
         setattr(compiler, name, replacement)
-    # The first complete manifest pass remains verified by the canonical reader.
-    # Cache only candidate-link coordinates so the later narrow replay does not
-    # reopen and rehash the same rich refinement/meet/demand descriptors.
+    # First-pass descriptor verification remains canonical. Reuse only narrow
+    # candidate-link coordinates on later link replay, and obtain primitive PNF
+    # scalar metadata directly from the immutable in-process source when present.
     install_verified_candidate_link_cache(compiler)
+    install_descriptor_metadata_hot_path(compiler)
     stage._stage_partition = observable_stage_partition
     for module in helper_modules:
         module._stage_payloads = observable_stage_payloads
         module._complete_stage = observable_complete_stage
     try:
         yield
-        # A graph/resolution-only compatibility path that doesn't publish a
-        # completed-build receipt still gets an ordered final flush here.
         flush_binding_batch()
         flush_resolution_batch()
         flush_graph_batch()
     finally:
         compiler._iter_descriptor_family = original_descriptor_family
+        compiler._descriptor_metadata = original_descriptor_metadata
         for module, originals in helper_originals.items():
             module._stage_payloads, module._complete_stage = originals
         stage._stage_partition = original_stage_partition
