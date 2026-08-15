@@ -6,6 +6,9 @@ import pytest
 
 from src.policy import artifact_projection
 from src.policy import carrier_orchestration_hot_path as hot
+from src.policy.algebra.revision_identity import factor_revision_payload, factor_revision_ref
+from src.storage.postgres.work_conserving_graph_persistence import _factor_revision_digest
+from src.storage.postgres.work_conserving_stage import _sha
 
 
 def _sealed_example() -> tuple[dict[str, Any], Any]:
@@ -182,3 +185,17 @@ def test_factor_revision_memo_does_not_alias_equal_distinct_mappings() -> None:
 
     assert memoized(left) != memoized(right)
     assert calls == 2
+
+
+def test_factor_revision_ref_digest_is_exact_persisted_sha() -> None:
+    factor = {
+        "factor_ref": "factor:1",
+        "factor_type": "norm",
+        "closure_state": "closed",
+        "metadata": {"source": "test"},
+        "alternatives": (),
+        "residuals": (),
+    }
+    revision_ref = factor_revision_ref(factor)
+
+    assert _factor_revision_digest(revision_ref) == _sha(factor_revision_payload(factor))
