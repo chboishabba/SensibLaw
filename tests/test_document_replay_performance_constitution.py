@@ -1,22 +1,14 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 from pathlib import Path
 
+from scripts import benchmark_document_replay as benchmark
 from src.runtime.performance_constitution import assess_replay_run
 
 
 ROOT = Path(__file__).resolve().parents[1]
 BENCHMARK = ROOT / "scripts/benchmark_document_replay.py"
-
-
-def _benchmark_module():
-    spec = importlib.util.spec_from_file_location("benchmark_document_replay", BENCHMARK)
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
 
 
 def test_replay_benchmark_embeds_performance_constitution() -> None:
@@ -66,7 +58,6 @@ def test_replay_assessment_never_uses_wall_subtraction_for_parser_time() -> None
 
 
 def test_numeric_work_timing_extracts_latest_durable_progress_event(tmp_path) -> None:
-    module = _benchmark_module()
     path = tmp_path / "local_pnf_compile_progress.json"
     path.write_text(
         json.dumps(
@@ -95,7 +86,7 @@ def test_numeric_work_timing_extracts_latest_durable_progress_event(tmp_path) ->
         ),
         encoding="utf-8",
     )
-    observed = module._numeric_work_timing(path)
+    observed = benchmark._numeric_work_timing(path)
     assert observed["spacy_parser_work_seconds"] == 8.0
     assert observed["post_parser_worker_work_seconds"] == 0.4
     assert observed["post_parser_coordinator_seconds"] == 0.2
@@ -106,8 +97,7 @@ def test_numeric_work_timing_extracts_latest_durable_progress_event(tmp_path) ->
 
 
 def test_numeric_work_timing_missing_ledger_is_unknown_not_zero(tmp_path) -> None:
-    module = _benchmark_module()
-    observed = module._numeric_work_timing(tmp_path / "missing.json")
+    observed = benchmark._numeric_work_timing(tmp_path / "missing.json")
     assert observed["spacy_parser_work_seconds"] is None
     assert observed["post_parser_work_seconds"] is None
     assert observed["post_parser_to_spacy_work_ratio"] is None
