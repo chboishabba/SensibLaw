@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from hashlib import sha256
-
 from src.storage.postgres.numeric_incremental_runtime_store import (
     NumericIncrementalRuntimeStore,
 )
@@ -26,22 +24,6 @@ def _sha256_hex_bytes(value: str, field: str) -> bytes:
     return decoded
 
 
-def _controlled_workload_digest(*, canonical_text_sha256: str) -> bytes:
-    authority_digest = _sha256_hex_bytes(
-        canonical_text_sha256, "canonical_text_sha256"
-    )
-    payload = (
-        b"PNF-WORKLOAD-V1\x00"
-        + authority_digest
-        + b"\x00"
-        + NUMERIC_COMPILER_CONSUMER_REF.encode("utf-8")
-        + b"\x00"
-        + NUMERIC_COMPILER_QUERY_REF.encode("utf-8")
-        + b"\x00"
-    )
-    return sha256(payload).digest()
-
-
 def record_numeric_compiler_reuse_measurement(
     *,
     database_url: str,
@@ -53,17 +35,23 @@ def record_numeric_compiler_reuse_measurement(
     """Record one controlled strict-compiler observation.
 
     Run/document integer ids are PostgreSQL-local coordinates and are looked up
-    from the stable refs.  Workload and compiler-configuration identity are kept
+    from the stable refs. Workload and compiler-configuration identity are kept
     separate so repeated source work under a changed compiler cannot be used to
     claim a learning non-increase theorem.
     """
 
-    workload_digest = _controlled_workload_digest(
-        canonical_text_sha256=canonical_text_sha256
+    authority_digest = _sha256_hex_bytes(
+        canonical_text_sha256, "canonical_text_sha256"
     )
     config_digest = _sha256_hex_bytes(
         compiler_config_sha256, "compiler_config_sha256"
     )
+    workload_digest = NumericIncrementalRuntimeStore.controlled_workload_digest(
+        authority_digest=authority_digest,
+        consumer_ref=NUMERIC_COMPILER_CONSUMER_REF,
+        query_ref=NUMERIC_COMPILER_QUERY_REF,
+    )
+
     connection = connect(database_url)
     try:
         with connection.cursor() as cursor:
