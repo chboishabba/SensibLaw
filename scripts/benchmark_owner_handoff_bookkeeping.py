@@ -10,9 +10,9 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
-import json
 import os
 from pathlib import Path
+import sys
 from tempfile import TemporaryDirectory
 from threading import Lock
 from time import monotonic_ns
@@ -20,8 +20,12 @@ from time import monotonic_ns
 # Importing src.policy normally installs the full execution strategy stack.  This
 # probe needs only the physical journal function.
 os.environ.setdefault("SENSIBLAW_BOUNDED_DOCUMENT_EXECUTION", "0")
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from src.policy.owner_handoff_performance import _append_journal_event  # noqa: E402
+from src.policy.carriers.canonical import canonical_bytes  # noqa: E402
 
 
 class _Context:
@@ -46,18 +50,15 @@ def _legacy(events: int) -> tuple[int, int]:
         activation["proposal_batch_artifact_refs"] = tuple(refs)
         replay = list(activation.get("replay_events") or ())
         copied_rows += len(replay)
-        replay.append(
-            {"artifact_kind": "proposal_batch", "artifact_ref": artifact_ref}
-        )
+        replay.append({"artifact_kind": "proposal_batch", "artifact_ref": artifact_ref})
         activation["replay_events"] = tuple(replay)
         # Model the old handoff writer's repeated serialization of cumulative
         # history, without filesystem latency.
-        json.dumps(
+        canonical_bytes(
             {
                 "proposal_batch_artifact_refs": refs,
                 "replay_events": replay,
-            },
-            separators=(",", ":"),
+            }
         )
     return monotonic_ns() - started, copied_rows
 
@@ -108,7 +109,19 @@ def main() -> int:
                     "provider_io_performed": False,
                 }
             )
-    print(json.dumps({"rows": rows}, indent=2, sort_keys=True))
+    fields = (
+        "events",
+        "legacy_elapsed_ns",
+        "legacy_cumulative_rows_copied",
+        "v3_elapsed_ns",
+        "v3_journal_rows_appended",
+        "legacy_to_v3_elapsed_ratio",
+        "semantic_work_performed",
+        "provider_io_performed",
+    )
+    print("\t".join(fields))
+    for row in rows:
+        print("\t".join(str(row[field]) for field in fields))
     return 0
 
 

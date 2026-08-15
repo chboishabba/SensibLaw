@@ -158,16 +158,12 @@ def test_finalization_is_reference_backed_and_process_isolated(
     finalization_root = (
         tmp_path / "closure-finalization" / "document_phased-finalization"
     )
-    assert (finalization_root / "materialized-reduction.manifest.json").is_file()
-    assert (finalization_root / "materialized-factors.jsonl").is_file()
-    assert (finalization_root / "materialized-residuals.jsonl").is_file()
-    assert (finalization_root / "convergent-ledger.json").is_file()
-    assert (finalization_root / "fixed-point-certificate.json").is_file()
-    assert (finalization_root / "closure-reference-receipt.spec.json").is_file()
-    assert (finalization_root / "closure-receipt.json").is_file()
-    assert (
-        finalization_root / "closure-reference-serializer-report.json"
-    ).is_file()
+    assert (finalization_root / "materialized-reduction.manifest.pkl").is_file()
+    assert (finalization_root / "materialized-factors.bin").is_file()
+    assert (finalization_root / "materialized-residuals.bin").is_file()
+    assert (finalization_root / "closure-reference-receipt.spec.pkl").is_file()
+    assert (finalization_root / "closure-receipt.pkl").is_file()
+    assert (finalization_root / "closure-reference-serializer-report.pkl").is_file()
 
 
 def test_identical_replay_preserves_reference_manifest_identity(

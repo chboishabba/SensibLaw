@@ -1,53 +1,45 @@
 from __future__ import annotations
 
-import json
 import sys
 
+import pytest
+
 from scripts import run_post_closure_probe as probe
+from src.runtime.reference_receipt import atomic_write_binary
 
 
-def _write_json(path, payload) -> None:
-    path.write_text(json.dumps(payload), encoding="utf-8")
-
-
-def test_probe_uses_legacy_finalization_refs_without_loading_families(
-    monkeypatch,
+def test_probe_uses_typed_finalization_refs_without_loading_families(
+    monkeypatch: pytest.MonkeyPatch,
     tmp_path,
 ) -> None:
     checkpoint_root = tmp_path / "checkpoints"
     finalization = checkpoint_root / "closure-finalization" / "document_test"
     finalization.mkdir(parents=True)
-    _write_json(
-        finalization / "materialized-reduction.manifest.json",
+    factor_path = finalization / "materialized-factors.bin"
+    residual_path = finalization / "materialized-residuals.bin"
+    factor_path.write_bytes(b"factor-family")
+    residual_path.write_bytes(b"")
+    reduction = {
+        "owner_fingerprint": {"proposal_manifest_ref": "proposal:1"},
+        "graph_ref": "graph:1",
+        "proposal_count": 10,
+        "deduplicated_count": 0,
+        "factor_count": 2,
+        "residual_count": 0,
+        "factor_path": str(factor_path),
+        "residual_path": str(residual_path),
+    }
+    atomic_write_binary(finalization / "materialized-reduction.manifest.pkl", reduction)
+    atomic_write_binary(
+        finalization / "closure-reference-receipt.spec.pkl",
         {
-            "owner_fingerprint": {"proposal_manifest_ref": "proposal:1"},
-            "graph_ref": "graph:1",
-            "proposal_count": 10,
-            "deduplicated_count": 0,
-            "factor_count": 2,
-            "residual_count": 0,
+            "document_ref": "document:test",
+            "revision": 7,
+            "certificate_ref": "certificate:1",
+            "ledger_ref": "ledger:1",
+            "materialized_reduction": reduction,
         },
     )
-    _write_json(
-        finalization / "fixed-point-certificate.json",
-        {
-            "certificate": {
-                "document_ref": "document:test",
-                "revision": 7,
-                "certificate_ref": "certificate:1",
-                "ledger_ref": "ledger:1",
-                "materialized_graph_ref": "graph:1",
-                "local_fixed_point": "reached",
-            }
-        },
-    )
-    _write_json(finalization / "convergent-ledger.json", {"ledger_ref": "ledger:1"})
-    _write_json(finalization / "region-boundary-summaries.json", {"summaries": []})
-    (finalization / "materialized-factors.jsonl").write_text(
-        '{"factor_ref":"factor:1"}\n{"factor_ref":"factor:2"}\n',
-        encoding="utf-8",
-    )
-    (finalization / "materialized-residuals.jsonl").write_text("", encoding="utf-8")
     output = tmp_path / "probe-output"
     monkeypatch.setattr(
         sys,
@@ -67,19 +59,25 @@ def test_probe_uses_legacy_finalization_refs_without_loading_families(
 
     assert probe.main() == 0
 
-    report = json.loads(
-        (output / "post-closure-probe-report.json").read_text(encoding="utf-8")
-    )
-    receipt = json.loads(
-        (output / "post-closure-reference-receipt.json").read_text(
-            encoding="utf-8"
-        )
-    )
+    report = probe._mapping(output / "post-closure-probe-report.pkl")
+    receipt = probe._mapping(output / "post-closure-reference-receipt.pkl")
     assert report["owner_object_transferred"] is False
     assert report["full_factor_payload_loaded"] is False
     assert report["full_residual_payload_loaded"] is False
     assert report["serializer"]["reference_only"] is True
     assert receipt["materialized_reduction"]["factor_path"].endswith(
-        "materialized-factors.jsonl"
+        "materialized-factors.bin"
     )
     assert "factors" not in receipt["materialized_reduction"]
+
+
+def test_probe_rejects_legacy_text_finalization_authority(tmp_path) -> None:
+    checkpoint_root = tmp_path / "checkpoints"
+    finalization = checkpoint_root / "closure-finalization" / "document_test"
+    finalization.mkdir(parents=True)
+    (finalization / "materialized-reduction.manifest.json").write_text(
+        "{}", encoding="utf-8"
+    )
+
+    with pytest.raises(FileNotFoundError, match="legacy text checkpoints"):
+        probe._find_finalization_root(checkpoint_root)

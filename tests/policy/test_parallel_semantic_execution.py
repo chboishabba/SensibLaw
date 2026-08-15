@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import multiprocessing
-import json
+import shutil
 
 import pytest
 
@@ -29,6 +29,8 @@ from src.policy.parallel_semantic_execution import (
     _ACTIVE_CONTEXTS,
     _ACTIVE_LOCK,
     _CONTEXT,
+    _atomic_write_json,
+    _read_json,
     _solver_receipt_from_row,
     _replay_artifact_path,
     _write_replay_artifact,
@@ -358,7 +360,8 @@ def test_activation_admission_telemetry_starts_after_leaf_completion(tmp_path) -
     assert activation["owner_admission_started_immediately"] is True
     handoff = context.closure_handoff_checkpoint_path
     assert handoff is not None and handoff.exists()
-    payload = json.loads(handoff.read_text(encoding="utf-8"))
+    payload = _read_json(handoff)
+    assert payload is not None
     assert payload["admitted_batch_refs"] == [
         "batch:0",
         "batch:1",
@@ -434,16 +437,22 @@ def test_handoff_rejects_incompatible_and_corrupt_checkpoints(tmp_path) -> None:
         with _ACTIVE_LOCK:
             _ACTIVE_CONTEXTS.pop(context.document_ref, None)
 
+    handoff = context.closure_handoff_checkpoint_path
+    assert handoff is not None
+
     incompatible = _activation_context(tmp_path, 1)
     incompatible.build_key_sha256 = "different-build"
+    incompatible_handoff = incompatible.closure_handoff_checkpoint_path
+    assert incompatible_handoff is not None
+    incompatible_handoff.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(handoff, incompatible_handoff)
     with pytest.raises(ValueError, match="identity mismatch"):
         ClosureOwnerReplayContract(incompatible)
 
-    handoff = context.closure_handoff_checkpoint_path
-    assert handoff is not None
-    payload = json.loads(handoff.read_text(encoding="utf-8"))
+    payload = _read_json(handoff)
+    assert payload is not None
     payload["current_owner_revision"] = 999
-    handoff.write_text(json.dumps(payload), encoding="utf-8")
+    _atomic_write_json(handoff, payload)
     with pytest.raises(ValueError, match="identity mismatch"):
         ClosureOwnerReplayContract(_activation_context(tmp_path, 1))
 
@@ -459,7 +468,8 @@ def test_replay_artifacts_are_namespaced_by_replay_contract(tmp_path) -> None:
     )
     path = _replay_artifact_path(context, artifact_ref)
     assert path is not None and path.exists()
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = _read_json(path)
+    assert payload is not None
     assert payload["owner_identity"] == {
         "document_ref": context.document_ref,
         "source_sha256": context.source_sha256,
@@ -494,7 +504,8 @@ def test_handoff_rejects_legacy_identity_without_rewriting_it(tmp_path) -> None:
 
     handoff = context.closure_handoff_checkpoint_path
     assert handoff is not None
-    legacy = json.loads(handoff.read_text(encoding="utf-8"))
+    legacy = _read_json(handoff)
+    assert legacy is not None
     for key in (
         "handoff_schema_version",
         "handoff_contract_ref",
@@ -505,13 +516,13 @@ def test_handoff_rejects_legacy_identity_without_rewriting_it(tmp_path) -> None:
     legacy["checkpoint_ref"] = "closure-handoff:" + canonical_sha256(
         {key: value for key, value in legacy.items() if key != "checkpoint_ref"}
     )
-    handoff.write_text(json.dumps(legacy), encoding="utf-8")
-    preserved = handoff.read_text(encoding="utf-8")
+    _atomic_write_json(handoff, legacy)
+    preserved = handoff.read_bytes()
 
     with pytest.raises(ValueError, match="identity mismatch"):
         ClosureOwnerReplayContract(_activation_context(tmp_path, 1))
 
-    assert handoff.read_text(encoding="utf-8") == preserved
+    assert handoff.read_bytes() == preserved
 
 
 def test_bounded_streaming_resume_reconstructs_exact_fixed_point(

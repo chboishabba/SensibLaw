@@ -26,7 +26,9 @@ from src.runtime.semantic_parity import (  # noqa: E402
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--database-url", default=os.environ.get("DATABASE_URL"))
-    parser.add_argument("--postgres-mode", choices=("local", "existing"), default="local")
+    parser.add_argument(
+        "--postgres-mode", choices=("local", "existing"), default="local"
+    )
     parser.add_argument("--input-path", type=Path, required=True)
     parser.add_argument(
         "--output-root",
@@ -444,8 +446,12 @@ def main() -> int:
         **started,
         "state": "accepted" if accepted else "failed",
         "accepted": accepted,
-        "failure_reason": strict_receipt.get("failure_reason") if not accepted else None,
-        "diagnostic_path": strict_receipt.get("diagnostic_path") if not accepted else None,
+        "failure_reason": strict_receipt.get("failure_reason")
+        if not accepted
+        else None,
+        "diagnostic_path": strict_receipt.get("diagnostic_path")
+        if not accepted
+        else None,
         "kernel_key": strict_receipt.get("kernel_key") if not accepted else None,
         "child_returncode": completed.returncode,
         "strict_receipt": str(strict_receipt_path),

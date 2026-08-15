@@ -87,9 +87,7 @@ def _persist_notice_batch(
     )
 
 
-def _persist_proposal_batch(
-    cursor: Any, rows: tuple[Mapping[str, Any], ...]
-) -> None:
+def _persist_proposal_batch(cursor: Any, rows: tuple[Mapping[str, Any], ...]) -> None:
     cursor.executemany(
         """
         INSERT INTO pnf_factor_proposal
@@ -387,7 +385,10 @@ def persist_reference_streaming_semantic_artifacts(
             semantic_counts={"rows": completed_residual_refs},
             details={"batch_size": len(batch)},
         )
-    if factor_count != completed_factor_refs or residual_count != completed_residual_refs:
+    if (
+        factor_count != completed_factor_refs
+        or residual_count != completed_residual_refs
+    ):
         raise ValueError("authoritative and compatibility reduction counts disagree")
     counts["factors"] = factor_count
     counts["residuals"] = residual_count
@@ -475,9 +476,7 @@ def persist_reference_streaming_semantic_artifacts(
         "publication",
         phase="reference_persistence_completed",
         semantic_counts={
-            key: int(value)
-            for key, value in counts.items()
-            if isinstance(value, int)
+            key: int(value) for key, value in counts.items() if isinstance(value, int)
         },
         details={"graph_manifest_ref": manifest_ref},
     )

@@ -16,7 +16,6 @@ from .shared_text_normalization import (
     strip_enumeration_prefix,
     tokenize_canonical_text,
 )
-from .phrase_cues import extract_text_cues
 from .residual_lattice import (
     CandidateResidual,
     PredicateIndex,
@@ -122,13 +121,20 @@ _NLP_COMPAT_EXPORTS = frozenset(
         "TikaLanguageDetector",
     }
 )
+_LAZY_TEXT_EXPORTS = {
+    "extract_text_cues": ("phrase_cues", "extract_text_cues"),
+}
 
 
 def __getattr__(name: str) -> Any:
     """Lazily retain optional NLP compatibility re-exports."""
 
-    if name not in _NLP_COMPAT_EXPORTS:
+    if name in _NLP_COMPAT_EXPORTS:
+        module_name, export_name = "nlp", name
+    elif name in _LAZY_TEXT_EXPORTS:
+        module_name, export_name = _LAZY_TEXT_EXPORTS[name]
+    else:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-    value = getattr(import_module(f"{__name__}.nlp"), name)
+    value = getattr(import_module(f"{__name__}.{module_name}"), export_name)
     globals()[name] = value
     return value

@@ -101,7 +101,9 @@ class CheckpointRetentionLedger:
         try:
             target.relative_to(self.root)
         except ValueError as error:
-            raise ValueError("checkpoint path must remain below retention root") from error
+            raise ValueError(
+                "checkpoint path must remain below retention root"
+            ) from error
         artifact = CheckpointArtifact(
             path=str(target),
             retention_class=retention_class,

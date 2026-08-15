@@ -10,6 +10,8 @@ from src.runtime import stage_memory_budget as budget
 def test_stage_budget_records_soft_pressure(
     monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
+    monkeypatch.delenv("SENSIBLAW_STAGE_SERIALIZATION_SOFT_MIB", raising=False)
+    monkeypatch.delenv("SENSIBLAW_STAGE_SERIALIZATION_HARD_MIB", raising=False)
     monkeypatch.setattr(
         budget,
         "sample_process_resources",
@@ -41,6 +43,8 @@ def test_stage_budget_records_soft_pressure(
 def test_stage_budget_fails_below_global_limit(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.delenv("SENSIBLAW_STAGE_PUBLICATION_SOFT_MIB", raising=False)
+    monkeypatch.delenv("SENSIBLAW_STAGE_PUBLICATION_HARD_MIB", raising=False)
     monkeypatch.setattr(
         budget,
         "sample_process_resources",

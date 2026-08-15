@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
+import pickle
 
 from src.policy import parallel_typing_tail as tail
 from src.policy.parallel_semantic_execution import SemanticExecutionContext
@@ -63,10 +63,12 @@ def test_universal_envelope_is_logged_and_persisted(
     assert envelope["wait_reason"] == "worker_results"
     assert envelope["active_workers"] == 2
     assert envelope["checkpoint_bytes_written"] == 4096
-    latest = json.loads((tmp_path / "progress" / "latest.json").read_text())
+    latest = pickle.loads((tmp_path / "progress" / "latest.pkl").read_bytes())
     assert latest == envelope
-    events = (tmp_path / "progress" / "events.jsonl").read_text().splitlines()
-    assert json.loads(events[-1]) == envelope
+    framed = (tmp_path / "progress" / "events.bin").read_bytes()
+    frame_size = int.from_bytes(framed[:8], "big")
+    assert pickle.loads(framed[8 : 8 + frame_size]) == envelope
+    assert len(framed) == 8 + frame_size
     captured = capsys.readouterr()  # type: ignore[attr-defined]
     assert "SENSIBLAW_PROGRESS" in captured.err
     assert "typing_parent_waiting" in captured.err
@@ -96,7 +98,9 @@ def test_parent_rolls_up_leaf_completion_and_checkpoint_reuse(
     assert "typing_parent_aggregation_started" in phases
     assert phases[-1] == "typing_parent_aggregation_completed"
     leaf_events = [
-        row for row in context.kernel_timeline if row["phase"] == "typing_leaf_completed"
+        row
+        for row in context.kernel_timeline
+        if row["phase"] == "typing_leaf_completed"
     ]
     assert [row["counts"]["leaves_completed"] for row in leaf_events] == [1, 2, 3]
     assert all(row["counts"]["leaves_total"] == 3 for row in leaf_events)

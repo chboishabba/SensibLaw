@@ -48,7 +48,14 @@ def test_journal_append_is_incremental_and_does_not_retain_full_history(
     path = _journal_path(context)
     assert path is not None
     assert path.exists()
-    assert len(path.read_text(encoding="utf-8").splitlines()) == 256
+    assert path.suffix == ".bin"
+    assert not path.read_bytes().startswith(b"{")
+    events, _ = _read_journal(
+        context,
+        event_count=256,
+        final_digest=str(context.closure_activation["journal_digest"]),
+    )
+    assert len(events) == 256
 
 
 def test_journal_digest_chain_round_trips_exact_checkpoint_prefix(
@@ -108,18 +115,19 @@ def test_uncheckpointed_tail_is_dropped_before_replay_continues(
 
 
 def test_source_contract_removes_quadratic_replay_event_tuple_copy() -> None:
-    source = Path("src/policy/owner_handoff_performance.py").read_text(
-        encoding="utf-8"
-    )
+    source = Path("src/policy/owner_handoff_performance.py").read_text(encoding="utf-8")
     legacy = Path("src/policy/parallel_semantic_execution.py").read_text(
         encoding="utf-8"
     )
     policy_init = Path("src/policy/__init__.py").read_text(encoding="utf-8")
 
     assert 'events = list(activation.get("replay_events") or ())' in legacy
-    assert 'refs = list(activation.get(list_key) or ())' in legacy
+    assert "refs = list(activation.get(list_key) or ())" in legacy
     assert "parallel._append_replay_event = _append_journal_event" in source
-    assert "parallel._write_closure_handoff_checkpoint = _write_compact_checkpoint" in source
+    assert (
+        "parallel._write_closure_handoff_checkpoint = _write_compact_checkpoint"
+        in source
+    )
     assert "install_owner_handoff_performance()" in policy_init
 
 
@@ -135,8 +143,11 @@ def test_source_contract_removes_duplicate_recorded_delta_index() -> None:
     )
     policy_init = Path("src/policy/__init__.py").read_text(encoding="utf-8")
 
-    assert 'if delta.delta_ref not in owner._observation_deltas' in bounded
-    assert 'set(self.context.closure_activation.get("recorded_delta_refs") or ())' in legacy
+    assert "if delta.delta_ref not in owner._observation_deltas" in bounded
+    assert (
+        'set(self.context.closure_activation.get("recorded_delta_refs") or ())'
+        in legacy
+    )
     assert "new_deltas = tuple(deltas)" in batch
     assert 'payload.pop("recorded_delta_refs", None)' in batch
     assert "install_owner_handoff_batch_performance()" in policy_init

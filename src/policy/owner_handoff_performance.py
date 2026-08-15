@@ -13,9 +13,9 @@ the small current-frontier checkpoint.
 
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
+import struct
 from time import monotonic_ns
 from typing import Any
 
@@ -26,6 +26,18 @@ _INSTALL_MARKER = "_owner_handoff_performance_installed"
 HANDOFF_SCHEMA_VERSION = "sensiblaw.closure-handoff-state.v3"
 HANDOFF_CONTRACT = "closure-owner-replay:v3"
 JOURNAL_SCHEMA_VERSION = "sensiblaw.closure-handoff-journal-event.v1"
+_JOURNAL_MAGIC = b"SLHJ"
+_JOURNAL_HEADER = struct.Struct(">4sQBI")
+_JOURNAL_DIGEST_BYTES = 32
+_JOURNAL_MAX_REF_BYTES = 1024 * 1024
+_JOURNAL_KIND_CODES = {
+    "observation_delta": 1,
+    "observation_delta_batch": 2,
+    "proposal_batch": 3,
+    "solver_receipt": 4,
+    "dirty_reduction": 5,
+}
+_JOURNAL_CODE_KINDS = {value: key for key, value in _JOURNAL_KIND_CODES.items()}
 
 
 def _cached_ref(instance: Any, cache_name: str, compute: Any) -> str:
@@ -97,7 +109,7 @@ def _journal_path(context: Any) -> Path | None:
     root = context.closure_activation_checkpoint_root
     if root is None:
         return None
-    return root / f"handoff-events-{context.build_key_sha256}.jsonl"
+    return root / f"handoff-events-{context.build_key_sha256}.bin"
 
 
 def _journal_event_digest(
@@ -149,14 +161,37 @@ def _append_journal_event(
         artifact_ref=artifact_ref,
         prior_digest=prior_digest,
     )
-    row = {
-        "schema_version": JOURNAL_SCHEMA_VERSION,
-        "sequence_no": sequence_no,
-        "artifact_kind": artifact_kind,
-        "artifact_ref": artifact_ref,
-        "prior_digest": prior_digest,
-        "event_digest": event_digest,
-    }
+    try:
+        kind_code = _JOURNAL_KIND_CODES[artifact_kind]
+    except KeyError as error:
+        raise ValueError(
+            f"unsupported closure journal event: {artifact_kind}"
+        ) from error
+    artifact_ref_bytes = artifact_ref.encode("utf-8")
+    if not artifact_ref_bytes or len(artifact_ref_bytes) > _JOURNAL_MAX_REF_BYTES:
+        raise ValueError("closure journal artifact reference has invalid size")
+    prior_digest_bytes = (
+        bytes.fromhex(prior_digest) if prior_digest else bytes(_JOURNAL_DIGEST_BYTES)
+    )
+    event_digest_bytes = bytes.fromhex(event_digest)
+    if (
+        len(prior_digest_bytes) != _JOURNAL_DIGEST_BYTES
+        or len(event_digest_bytes) != _JOURNAL_DIGEST_BYTES
+    ):
+        raise ValueError("closure journal digest has invalid size")
+    frame = b"".join(
+        (
+            _JOURNAL_HEADER.pack(
+                _JOURNAL_MAGIC,
+                sequence_no,
+                kind_code,
+                len(artifact_ref_bytes),
+            ),
+            artifact_ref_bytes,
+            prior_digest_bytes,
+            event_digest_bytes,
+        )
+    )
     path = _journal_path(context)
     started = monotonic_ns()
     if path is not None:
@@ -164,16 +199,12 @@ def _append_journal_event(
         # One small append replaces O(history) tuple copies plus O(history)
         # checkpoint serialization. flush() matches the previous process-crash
         # durability class; optional fsync is available for stronger durability.
-        with path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(row, separators=(",", ":"), sort_keys=True) + "\n")
+        with path.open("ab") as handle:
+            handle.write(frame)
             handle.flush()
             fsync_interval = max(
                 0,
-                int(
-                    os.environ.get(
-                        "SENSIBLAW_CLOSURE_JOURNAL_FSYNC_INTERVAL", "0"
-                    )
-                ),
+                int(os.environ.get("SENSIBLAW_CLOSURE_JOURNAL_FSYNC_INTERVAL", "0")),
             )
             if fsync_interval and (sequence_no + 1) % fsync_interval == 0:
                 os.fsync(handle.fileno())
@@ -181,11 +212,12 @@ def _append_journal_event(
     activation["journal_digest"] = event_digest
     activation["last_journal_artifact_kind"] = artifact_kind
     activation["last_journal_artifact_ref"] = artifact_ref
-    with context.lock:
-        context.closure_counters["handoff_journal_events"] += 1
-        context.closure_counters["handoff_journal_append_ns"] += (
-            monotonic_ns() - started
-        )
+    # Replay admission is the serial owner authority. Several canonical owner
+    # wrappers call this function while already holding ``context.lock``; taking
+    # that non-reentrant lock again would deadlock. Keep telemetry on the same
+    # serialized admission path instead of introducing a second lock boundary.
+    context.closure_counters["handoff_journal_events"] += 1
+    context.closure_counters["handoff_journal_append_ns"] += monotonic_ns() - started
 
 
 def _read_journal(
@@ -206,29 +238,43 @@ def _read_journal(
     committed_bytes = 0
     with path.open("rb") as handle:
         while len(events) < event_count:
-            raw = handle.readline()
-            if not raw:
+            header = handle.read(_JOURNAL_HEADER.size)
+            if not header:
                 break
-            committed_bytes = handle.tell()
+            if len(header) != _JOURNAL_HEADER.size:
+                raise ValueError("closure handoff journal contains a partial header")
             try:
-                row = json.loads(raw.decode("utf-8"))
-            except (UnicodeDecodeError, TypeError, ValueError) as error:
-                raise ValueError("closure handoff journal contains invalid JSON") from error
-            sequence_no = len(events)
-            artifact_kind = str(row.get("artifact_kind") or "")
-            artifact_ref = str(row.get("artifact_ref") or "")
+                magic, stored_sequence, kind_code, ref_size = _JOURNAL_HEADER.unpack(
+                    header
+                )
+            except struct.error as error:
+                raise ValueError("closure handoff journal header is invalid") from error
             if (
-                row.get("schema_version") != JOURNAL_SCHEMA_VERSION
-                or int(row.get("sequence_no", -1)) != sequence_no
-                or str(row.get("prior_digest") or "") != prior_digest
-                or artifact_kind
-                not in {
-                    "observation_delta",
-                    "observation_delta_batch",
-                    "proposal_batch",
-                    "solver_receipt",
-                    "dirty_reduction",
-                }
+                magic != _JOURNAL_MAGIC
+                or ref_size == 0
+                or ref_size > _JOURNAL_MAX_REF_BYTES
+            ):
+                raise ValueError("closure handoff journal frame identity mismatch")
+            remainder = handle.read(ref_size + 2 * _JOURNAL_DIGEST_BYTES)
+            if len(remainder) != ref_size + 2 * _JOURNAL_DIGEST_BYTES:
+                raise ValueError("closure handoff journal contains a partial frame")
+            sequence_no = len(events)
+            artifact_kind = _JOURNAL_CODE_KINDS.get(kind_code, "")
+            try:
+                artifact_ref = remainder[:ref_size].decode("utf-8")
+            except UnicodeDecodeError as error:
+                raise ValueError(
+                    "closure handoff journal artifact reference is invalid"
+                ) from error
+            prior_bytes = remainder[ref_size : ref_size + _JOURNAL_DIGEST_BYTES]
+            event_bytes = remainder[ref_size + _JOURNAL_DIGEST_BYTES :]
+            stored_prior_digest = (
+                "" if prior_bytes == bytes(_JOURNAL_DIGEST_BYTES) else prior_bytes.hex()
+            )
+            if (
+                stored_sequence != sequence_no
+                or stored_prior_digest != prior_digest
+                or artifact_kind not in _JOURNAL_KIND_CODES
                 or not artifact_ref
             ):
                 raise ValueError("closure handoff journal identity mismatch")
@@ -238,12 +284,13 @@ def _read_journal(
                 artifact_ref=artifact_ref,
                 prior_digest=prior_digest,
             )
-            if str(row.get("event_digest") or "") != expected:
+            if event_bytes.hex() != expected:
                 raise ValueError("closure handoff journal digest mismatch")
             prior_digest = expected
             events.append(
                 {"artifact_kind": artifact_kind, "artifact_ref": artifact_ref}
             )
+            committed_bytes = handle.tell()
     if len(events) != event_count or prior_digest != final_digest:
         raise ValueError("closure handoff journal is incomplete")
     return events, committed_bytes
@@ -410,9 +457,7 @@ def install_owner_handoff_performance() -> bool:
 
     if getattr(parallel, _INSTALL_MARKER, False):
         return False
-    if not getattr(
-        operational, parallel._INSTALL_MARKER, False
-    ):
+    if not getattr(operational, parallel._INSTALL_MARKER, False):
         raise RuntimeError(
             "owner handoff performance must install after parallel semantic execution"
         )

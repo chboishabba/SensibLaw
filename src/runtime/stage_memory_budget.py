@@ -45,9 +45,7 @@ DEFAULT_STAGE_BUDGETS: Mapping[str, StageMemoryBudget] = {
     "parser_projection": StageMemoryBudget("parser_projection", 3 * GIB, 4 * GIB),
     "typing": StageMemoryBudget("typing", 4 * GIB, 5 * GIB),
     "closure": StageMemoryBudget("closure", 5 * GIB, 6 * GIB),
-    "finalization": StageMemoryBudget(
-        "finalization", 4 * GIB, 5 * GIB + 512 * MIB
-    ),
+    "finalization": StageMemoryBudget("finalization", 4 * GIB, 5 * GIB + 512 * MIB),
     "serialization": StageMemoryBudget("serialization", 2 * GIB, 3 * GIB),
     "publication": StageMemoryBudget("publication", 2 * GIB, 3 * GIB),
     "parity": StageMemoryBudget("parity", 1536 * MIB, 2560 * MIB),

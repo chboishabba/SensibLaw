@@ -190,7 +190,12 @@ class StreamingBuildReader:
                     raise ValueError(f"truncated family frame payload: {path}")
                 try:
                     value = pickle.loads(encoded)
-                except (EOFError, pickle.PickleError, AttributeError, ValueError) as error:
+                except (
+                    EOFError,
+                    pickle.PickleError,
+                    AttributeError,
+                    ValueError,
+                ) as error:
                     raise ValueError(f"family frame decode failed: {path}") from error
                 if not isinstance(value, Mapping):
                     raise ValueError(f"family row is not a mapping: {path}")

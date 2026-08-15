@@ -119,9 +119,7 @@ def serialize_reference_receipt(
         "bytes_written": bytes_written,
         "before": dict(before),
         "after": dict(after),
-        "pss_growth_bytes": max(
-            0, int(after["pss_bytes"]) - int(before["pss_bytes"])
-        ),
+        "pss_growth_bytes": max(0, int(after["pss_bytes"]) - int(before["pss_bytes"])),
         "received_owner_object": False,
         "reference_only": True,
         "text_serialization": False,
