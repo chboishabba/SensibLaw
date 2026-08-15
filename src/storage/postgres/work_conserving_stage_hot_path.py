@@ -134,6 +134,7 @@ def summarize_document_persistence(runtime: Any) -> dict[str, Any]:
         "stage_count": len(stage_refs),
         "cleanup_every_documents": _cleanup_interval(),
         "families": {},
+        "stage_index_usage": {},
     }
     if not stage_refs or runtime.dsn is None:
         return summary
@@ -164,6 +165,16 @@ def summarize_document_persistence(runtime: Any) -> dict[str, Any]:
                 (list(stage_refs),),
             )
             rows = cursor.fetchall()
+            cursor.execute(
+                """
+                SELECT indexrelname, idx_scan, idx_tup_read, idx_tup_fetch
+                FROM pg_stat_user_indexes
+                WHERE schemaname = 'execution'
+                  AND relname = 'document_persistence_stage'
+                ORDER BY indexrelname
+                """
+            )
+            index_rows = cursor.fetchall()
     families: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
         family = str(row[0])
@@ -190,6 +201,14 @@ def summarize_document_persistence(runtime: Any) -> dict[str, Any]:
     summary["authority_elapsed_ms"] = sum(
         item["authority_elapsed_ms"] for values in families.values() for item in values
     )
+    summary["stage_index_usage"] = {
+        str(row[0]): {
+            "idx_scan": int(row[1]),
+            "idx_tup_read": int(row[2]),
+            "idx_tup_fetch": int(row[3]),
+        }
+        for row in index_rows
+    }
     return summary
 
 
