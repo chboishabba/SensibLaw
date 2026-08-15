@@ -12,8 +12,10 @@ on:
       - "src/storage/postgres/verified_candidate_link_cache.py"
       - "src/storage/postgres/manifest_metadata_hot_path.py"
       - "src/storage/postgres/annotation_metadata_hot_path.py"
+      - "src/policy/carrier_orchestration_hot_path.py"
       - "src/policy/work_conserving_postgres_corpus_compilation.py"
       - "src/policy/work_conserving_ordered_compilation.py"
+      - "src/policy/manifest_stream_validation.py"
       - "scripts/run_complete_tranche_ordered.py"
       - "scripts/watch_work_conserving_persistence.py"
       - "tests/storage/test_work_conserving_persistence.py"
@@ -23,6 +25,7 @@ on:
       - "tests/test_persistence_superbatch_execution.py"
       - "tests/test_verified_candidate_link_cache.py"
       - "tests/test_manifest_metadata_hot_path.py"
+      - "tests/policy/test_carrier_orchestration_hot_path.py"
       - "tests/policy/test_work_conserving_ordered_compilation.py"
       - "docs/architecture/WORK_CONSERVING_POSTGRES_PERSISTENCE.md"
       - ".github/workflows/work-conserving-postgres-persistence-pr.yml"
@@ -39,8 +42,10 @@ on:
       - "src/storage/postgres/verified_candidate_link_cache.py"
       - "src/storage/postgres/manifest_metadata_hot_path.py"
       - "src/storage/postgres/annotation_metadata_hot_path.py"
+      - "src/policy/carrier_orchestration_hot_path.py"
       - "src/policy/work_conserving_postgres_corpus_compilation.py"
       - "src/policy/work_conserving_ordered_compilation.py"
+      - "src/policy/manifest_stream_validation.py"
       - "scripts/run_complete_tranche_ordered.py"
       - "scripts/watch_work_conserving_persistence.py"
       - "tests/storage/test_work_conserving_persistence.py"
@@ -50,6 +55,7 @@ on:
       - "tests/test_persistence_superbatch_execution.py"
       - "tests/test_verified_candidate_link_cache.py"
       - "tests/test_manifest_metadata_hot_path.py"
+      - "tests/policy/test_carrier_orchestration_hot_path.py"
       - "tests/policy/test_work_conserving_ordered_compilation.py"
       - "docs/architecture/WORK_CONSERVING_POSTGRES_PERSISTENCE.md"
       - ".github/workflows/work-conserving-postgres-persistence-pr.yml"
@@ -108,6 +114,8 @@ jobs:
             src/storage/postgres/work_conserving_resolution_persistence.py \
             src/storage/postgres/work_conserving_binding_persistence.py \
             src/storage/postgres/work_conserving_persistence.py \
+            src/policy/carrier_orchestration_hot_path.py \
+            src/policy/manifest_stream_validation.py \
             src/policy/work_conserving_postgres_corpus_compilation.py \
             src/policy/work_conserving_ordered_compilation.py \
             scripts/run_complete_tranche_ordered.py \
@@ -119,6 +127,7 @@ jobs:
             tests/test_persistence_superbatch_execution.py \
             tests/test_verified_candidate_link_cache.py \
             tests/test_manifest_metadata_hot_path.py \
+            tests/policy/test_carrier_orchestration_hot_path.py \
             tests/policy/test_work_conserving_ordered_compilation.py
 
       - name: Ruff
@@ -141,6 +150,8 @@ jobs:
             src/storage/postgres/work_conserving_resolution_persistence.py \
             src/storage/postgres/work_conserving_binding_persistence.py \
             src/storage/postgres/work_conserving_persistence.py \
+            src/policy/carrier_orchestration_hot_path.py \
+            src/policy/manifest_stream_validation.py \
             src/policy/work_conserving_postgres_corpus_compilation.py \
             src/policy/work_conserving_ordered_compilation.py \
             scripts/run_complete_tranche_ordered.py \
@@ -152,6 +163,7 @@ jobs:
             tests/test_persistence_superbatch_execution.py \
             tests/test_verified_candidate_link_cache.py \
             tests/test_manifest_metadata_hot_path.py \
+            tests/policy/test_carrier_orchestration_hot_path.py \
             tests/policy/test_work_conserving_ordered_compilation.py
 
       - name: Apply migrations
@@ -167,4 +179,5 @@ jobs:
             tests/test_persistence_superbatch_execution.py \
             tests/test_verified_candidate_link_cache.py \
             tests/test_manifest_metadata_hot_path.py \
+            tests/policy/test_carrier_orchestration_hot_path.py \
             tests/policy/test_work_conserving_ordered_compilation.py
