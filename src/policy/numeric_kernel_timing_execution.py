@@ -5,6 +5,12 @@ from __future__ import annotations
 
 _INSTALL_MARKER = "_numeric_kernel_timing_execution_installed"
 _KERNEL_FIELDS = (
+    # Existing parser receipt counts are carried alongside timing so benchmark
+    # consumers get the canonical cross-document denominator without another
+    # PostgreSQL COUNT(*) pass.
+    "token_count",
+    "sentence_count",
+    "partition_count",
     "spacy_parser_work_ns",
     "numeric_projection_worker_work_ns",
     "sentence_closure_worker_work_ns",
