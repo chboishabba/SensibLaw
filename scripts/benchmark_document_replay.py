@@ -116,6 +116,20 @@ def _process_execution(
     )
 
 
+def _strict_completed(*, strict_receipt: Mapping[str, Any]) -> bool:
+    """Accept either strict authority's receipt shape as replay completion.
+
+    Compatibility execution emits a semantic checkpoint receipt.  Numeric
+    production instead seals its publication in the strict acceptance receipt;
+    requiring a compatibility artifact would misreport a successful numeric
+    replay as incomplete.
+    """
+
+    return bool(strict_receipt.get("accepted")) and (
+        str(strict_receipt.get("state") or "") == "completed"
+    )
+
+
 def _kernel_seconds(receipt: Mapping[str, Any], prefix: str) -> float:
     total = 0
     for row in receipt.get("kernel_timeline") or ():
@@ -344,7 +358,7 @@ def _run_case(
         "input_sha256": _sha256(case.path),
         "mode": mode,
         "returncode": completed.returncode,
-        "completed": receipt.get("state") == "completed",
+        "completed": _strict_completed(strict_receipt=strict),
         "wall_seconds": wall_ns / 1_000_000_000,
         # Only explicitly measured, exclusive kernel timings belong here. The
         # process-active parser/post-parser work projection is separate below.

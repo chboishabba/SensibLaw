@@ -10,6 +10,7 @@ from scripts.benchmark_document_replay import (
     DocumentCase,
     _acceptance_ref,
     _process_execution,
+    _strict_completed,
     load_manifest,
 )
 
@@ -82,3 +83,10 @@ def test_process_execution_comes_from_exact_acceptance_comparison(
     assert _process_execution(strict_path=strict_path, strict_receipt={}) == {
         "distinct_semantic_worker_count": 2
     }
+
+
+def test_strict_numeric_acceptance_receipt_marks_replay_completed() -> None:
+    assert _strict_completed(strict_receipt={"accepted": True, "state": "completed"})
+    assert not _strict_completed(
+        strict_receipt={"accepted": False, "state": "completed"}
+    )
