@@ -2,7 +2,7 @@
 """Run exact acceptance using portable numeric publication identity.
 
 The historical exact-parallel wrapper may return non-zero solely because no
-legacy semantic checkpoint exists.  This wrapper preserves that subprocess and
+legacy semantic checkpoint exists. This wrapper preserves that subprocess and
 its strict PostgreSQL checks, but makes numeric publication authoritative:
 
 * strict publication must be accepted;
@@ -17,6 +17,7 @@ legacy artifact/projection manifest.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -26,10 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.runtime.numeric_semantic_parity import (  # noqa: E402
-    compare_numeric_receipts,
-    numeric_receipt_from_progress,
-)
+from src.runtime.numeric_semantic_parity import compare_numeric_receipts  # noqa: E402
 
 
 def _value(arguments: list[str], flag: str) -> str | None:
@@ -77,18 +75,23 @@ def main() -> int:
     )
     acceptance_raw = _value(forwarded, "--acceptance-root")
     output_root_raw = _value(forwarded, "--output-root")
-    tranche = (_value(forwarded, "--tranche") or "GWB").lower()
     if acceptance_raw is None or output_root_raw is None:
         raise SystemExit("--acceptance-root and --output-root are required")
 
     acceptance_root = Path(acceptance_raw).resolve()
-    output_root = Path(output_root_raw).resolve()
+    receipt_output = (
+        Path(output_raw).resolve()
+        if output_raw is not None
+        else acceptance_root / "numeric-semantic-receipt.json"
+    )
+    environment = os.environ.copy()
+    environment["SENSIBLAW_NUMERIC_SEMANTIC_RECEIPT_PATH"] = str(receipt_output)
     command = [
         sys.executable,
         str(ROOT / "scripts" / "run_exact_0008_parallel_acceptance.py"),
         *forwarded,
     ]
-    child = subprocess.run(command, cwd=ROOT, check=False)
+    child = subprocess.run(command, cwd=ROOT, env=environment, check=False)
 
     strict_path = acceptance_root / "strict" / "acceptance-receipt.json"
     strict = _json(strict_path) if strict_path.exists() else {}
@@ -100,16 +103,7 @@ def main() -> int:
         and publication.get("publication_authority") == "numeric_pnf"
     )
 
-    progress_path = output_root / tranche / "local_pnf_compile_progress.json"
-    current = numeric_receipt_from_progress(progress_path)
-    receipt_output = (
-        Path(output_raw).resolve()
-        if output_raw is not None
-        else acceptance_root / "numeric-semantic-receipt.json"
-    )
-    if current is not None:
-        _write(receipt_output, current)
-
+    current = _json(receipt_output) if receipt_output.exists() else None
     reference = (
         _json(Path(reference_raw).resolve()) if reference_raw is not None else None
     )
@@ -131,7 +125,7 @@ def main() -> int:
         "numeric_semantic_parity": parity,
         "reference_numeric_semantic_receipt": reference_raw,
         "strict_acceptance_receipt": str(strict_path),
-        "progress_evidence": str(progress_path),
+        "receipt_transport": str(receipt_output),
     }
     _write(acceptance_root / "numeric-replay-acceptance.json", report)
     print(json.dumps(report, indent=2, sort_keys=True))
