@@ -23,7 +23,15 @@ _KERNEL_FIELDS = (
     "post_parser_worker_work_ns",
     "post_parser_coordinator_ns",
     "post_parser_work_ns",
+    "numeric_pipeline_wall_ns",
+    "spacy_parser_wall_occupancy_ns",
+    "post_parser_wall_occupancy_ns",
+    "parser_post_overlap_ns",
+    "spacy_parser_only_wall_ns",
+    "post_parser_only_wall_ns",
+    "unclassified_orchestration_wall_ns",
     "timing_basis",
+    "wall_timing_semantics",
 )
 
 
