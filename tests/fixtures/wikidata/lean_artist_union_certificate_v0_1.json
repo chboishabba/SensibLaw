@@ -1,0 +1,22 @@
+{
+  "contract": "sensiblaw.lean_wikidata_certificate.v0_1",
+  "certificates": [
+    {
+      "request_id": "ae06ae06-2580-422a-8fc3-92aeaaca8762",
+      "module_name": "RequestProject.ClassAlgebra",
+      "theorem_name": "unionOk_sound",
+      "checker_name": "unionOk",
+      "source_snapshot": "worked-fragment:artist-painter-sculptor",
+      "subject_ref": "wd:artist",
+      "predicate_ref": "wdt:P2737",
+      "object_ref": "wd:painter|wd:sculptor",
+      "relation_kind": "union_of",
+      "source_references": [
+        "aristotle:ae06ae06-2580-422a-8fc3-92aeaaca8762",
+        "reported-by:James-Michael-DuPont:2026-08-16"
+      ],
+      "checker_accepted": true,
+      "theorem_backed": true
+    }
+  ]
+}
