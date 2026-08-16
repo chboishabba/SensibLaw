@@ -15,6 +15,7 @@ def install_numeric_head_integrity_execution() -> bool:
 
     if getattr(store, _INSTALL_MARKER, False):
         return False
+    original = store._load_sentence_tokens
 
     def load_sentence_tokens(cursor: Any, region_id: int) -> tuple[NumericToken, ...]:
         cursor.execute(
@@ -63,10 +64,8 @@ def install_numeric_head_integrity_execution() -> bool:
             for row in rows
         )
 
+    store._load_sentence_tokens_without_explicit_head_guard = original
     store._load_sentence_tokens = load_sentence_tokens
-    store._load_sentence_tokens_without_explicit_head_guard = getattr(
-        store, "_load_sentence_tokens", None
-    )
     setattr(store, _INSTALL_MARKER, True)
     return True
 
