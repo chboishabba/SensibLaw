@@ -10,6 +10,9 @@ receipt, so replay parity no longer depends on compatibility manifests.
 from __future__ import annotations
 
 from functools import wraps
+import json
+import os
+from pathlib import Path
 from typing import Any
 
 from src.storage.postgres.numeric_semantic_receipt import (
@@ -46,6 +49,33 @@ def _compute(
             )
     finally:
         connection.close()
+
+
+def _emit_acceptance_coordinate(receipt: Any) -> None:
+    """Write one tiny audit-boundary coordinate when an acceptance run asks.
+
+    This is deliberately not a semantic working representation.  The database
+    receipt remains authority; this file exists only so disposable PostgreSQL
+    runs can transport the portable digest after teardown.
+    """
+
+    raw = os.environ.get("SENSIBLAW_NUMERIC_SEMANTIC_RECEIPT_PATH")
+    if not raw:
+        return
+    path = Path(raw)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "schema_version": "sensiblaw.numeric-semantic-parity-coordinate.v1",
+        "receipt_ref": receipt.receipt_ref,
+        "receipt_sha256": receipt.receipt_sha256.hex(),
+        "identity_basis": "portable_numeric_semantic_publication_receipt:v1",
+    }
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(payload, sort_keys=True, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    temporary.replace(path)
 
 
 def install_numeric_semantic_receipt_execution() -> bool:
@@ -106,20 +136,12 @@ def install_numeric_semantic_receipt_execution() -> bool:
                         )
         finally:
             connection.close()
-        progress = kwargs.get("progress")
-        if progress is not None and hasattr(progress, "observe"):
-            progress.observe(
-                measures={"numeric_semantic_receipt": 1},
-                details={
-                    "numeric_semantic_receipt_ref": receipt.receipt_ref,
-                    "numeric_semantic_receipt_sha256": receipt.receipt_sha256.hex(),
-                },
-            )
+        _emit_acceptance_coordinate(receipt)
         return demand_refs
 
     numeric.compile_numeric_pnf_document = compile_wrapper
     numeric.persist_numeric_pnf_document = persist_wrapper
-    # streaming_spacy_parser_execution imported these names directly.  Rebind
+    # streaming_spacy_parser_execution imported these names directly. Rebind
     # its module globals so the already-installed production wrappers use the
     # receipt-bearing functions without reconstructing their signatures.
     streaming.compile_numeric_pnf_document = compile_wrapper
