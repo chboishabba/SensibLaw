@@ -52,11 +52,11 @@ def _compute(
 
 
 def _emit_acceptance_coordinate(receipt: Any) -> None:
-    """Write one tiny audit-boundary coordinate when an acceptance run asks.
+    """Write one small audit-boundary receipt when an acceptance run asks.
 
-    This is deliberately not a semantic working representation.  The database
+    This is deliberately not a semantic working representation. The database
     receipt remains authority; this file exists only so disposable PostgreSQL
-    runs can transport the portable digest after teardown.
+    runs can transport the portable hierarchy after teardown.
     """
 
     raw = os.environ.get("SENSIBLAW_NUMERIC_SEMANTIC_RECEIPT_PATH")
@@ -64,12 +64,8 @@ def _emit_acceptance_coordinate(receipt: Any) -> None:
         return
     path = Path(raw)
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload = {
-        "schema_version": "sensiblaw.numeric-semantic-parity-coordinate.v1",
-        "receipt_ref": receipt.receipt_ref,
-        "receipt_sha256": receipt.receipt_sha256.hex(),
-        "identity_basis": "portable_numeric_semantic_publication_receipt:v1",
-    }
+    payload = receipt.to_mapping()
+    payload["transport_authority"] = "audit_boundary_only"
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(
         json.dumps(payload, sort_keys=True, ensure_ascii=False) + "\n",
