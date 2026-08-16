@@ -414,24 +414,30 @@ def _load_sentence_tokens(
         (region_id,),
     )
     rows = cursor.fetchall()
-    tokens = tuple(
-        NumericToken(
-            token_id=int(row[0]),
-            orth_id=int(row[1]),
-            lemma_id=int(row[2]),
-            pos_id=int(row[3]),
-            tag_id=int(row[4]),
-            dependency_id=int(row[5]),
-            head_token_id=int(row[6] or row[0]),
-            morph_set_id=int(row[7]) if row[7] is not None else None,
-            start_char=int(row[8]),
-            end_char=int(row[9]),
+    tokens: list[NumericToken] = []
+    for row in rows:
+        if row[6] is None:
+            raise RuntimeError(
+                "numeric parser token has missing dependency head "
+                f"for sentence region {region_id}: token_id={row[0]}"
+            )
+        tokens.append(
+            NumericToken(
+                token_id=int(row[0]),
+                orth_id=int(row[1]),
+                lemma_id=int(row[2]),
+                pos_id=int(row[3]),
+                tag_id=int(row[4]),
+                dependency_id=int(row[5]),
+                head_token_id=int(row[6]),
+                morph_set_id=int(row[7]) if row[7] is not None else None,
+                start_char=int(row[8]),
+                end_char=int(row[9]),
+            )
         )
-        for row in rows
-    )
     if not tokens:
         raise RuntimeError("numeric sentence region has no typed parser tokens")
-    return tokens
+    return tuple(tokens)
 
 
 def _load_profile(cursor: Any, profile_id: int = 1) -> MdlProfile:
