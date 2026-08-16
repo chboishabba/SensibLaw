@@ -9,7 +9,8 @@ The four experiments intentionally remain distinct:
 * domain: a different same-domain source under the accumulated corpus context.
 
 This driver never treats an edited or merely similar document as semantic parity.
-Exact equality is required only for exact replay.
+Exact equality is required only for exact replay. Tokens, not documents, are the
+canonical cross-document denominator.
 """
 
 from __future__ import annotations
@@ -35,6 +36,20 @@ _FIBRE_ROOTS = (
     "residual_root_sha256",
     "export_root_sha256",
     "proof_root_sha256",
+)
+_WORK_FIELDS = (
+    "spacy_parser_work_ns",
+    "numeric_projection_worker_work_ns",
+    "sentence_closure_worker_work_ns",
+    "sentence_closure_coordinator_ns",
+    "sentence_adjacency_ns",
+    "hierarchy_work_ns",
+    "paragraph_adjacency_ns",
+    "lookup_publication_ns",
+    "summary_work_ns",
+    "post_parser_worker_work_ns",
+    "post_parser_coordinator_ns",
+    "post_parser_work_ns",
 )
 
 
@@ -93,6 +108,42 @@ def _assert_empty(database_url: str) -> None:
         )
 
 
+def _numeric_timing(progress_path: Path) -> dict[str, Any]:
+    if not progress_path.exists():
+        return {"state": "missing", "evidence_path": str(progress_path)}
+    payload = _json(progress_path)
+    selected: Mapping[str, Any] | None = None
+    for event in payload.get("events") or ():
+        if not isinstance(event, Mapping):
+            continue
+        details = event.get("details")
+        if isinstance(details, Mapping) and "spacy_parser_work_ns" in details:
+            selected = details
+    if selected is None:
+        return {"state": "unknown", "evidence_path": str(progress_path)}
+    result: dict[str, Any] = {
+        "state": "measured",
+        "evidence_path": str(progress_path),
+        "timing_basis": selected.get("timing_basis"),
+        "token_count": int(selected.get("token_count") or 0),
+        "sentence_count": int(selected.get("sentence_count") or 0),
+        "partition_count": int(selected.get("partition_count") or 0),
+    }
+    for field in _WORK_FIELDS:
+        value = int(selected.get(field) or 0)
+        result[field] = value
+        result[field.removesuffix("_ns") + "_seconds"] = value / 1_000_000_000
+    tokens = int(result["token_count"])
+    post = int(result.get("post_parser_work_ns") or 0)
+    parser = int(result.get("spacy_parser_work_ns") or 0)
+    result["post_parser_to_spacy_work_ratio"] = (
+        post / parser if parser > 0 else None
+    )
+    result["post_parser_work_ns_per_token"] = post / tokens if tokens > 0 else None
+    result["spacy_work_ns_per_token"] = parser / tokens if tokens > 0 else None
+    return result
+
+
 def _run(
     *,
     label: str,
@@ -139,6 +190,8 @@ def _run(
     report_path = acceptance_root / "numeric-replay-acceptance.json"
     report = _json(report_path) if report_path.exists() else {}
     receipt = _json(receipt_path) if receipt_path.exists() else None
+    progress_path = output_root / args.tranche.lower() / "local_pnf_compile_progress.json"
+    timing = _numeric_timing(progress_path)
     return {
         "label": label,
         "input_path": str(input_path.resolve()),
@@ -148,6 +201,13 @@ def _run(
         "numeric_semantic_parity": report.get("numeric_semantic_parity"),
         "receipt": receipt,
         "receipt_path": str(receipt_path),
+        "receipt_compute_seconds": (
+            int(receipt.get("receipt_compute_ns") or 0) / 1_000_000_000
+            if receipt is not None
+            else None
+        ),
+        "receipt_source": receipt.get("receipt_source") if receipt else None,
+        "numeric_work_timing": timing,
         "acceptance_report": str(report_path),
     }
 
@@ -186,6 +246,10 @@ def main() -> int:
     cold_receipt = cold.get("receipt") or {}
     edit_receipt = edit.get("receipt") or {}
     domain_receipt = domain.get("receipt") or {}
+    cold_timing = cold.get("numeric_work_timing") or {}
+    domain_timing = domain.get("numeric_work_timing") or {}
+    cold_work_per_token = cold_timing.get("post_parser_work_ns_per_token")
+    domain_work_per_token = domain_timing.get("post_parser_work_ns_per_token")
     report = {
         "schema_version": "sensiblaw.numeric-reuse-experiments.v1",
         "experiments": {
@@ -198,6 +262,10 @@ def main() -> int:
             exact.get("numeric_semantic_parity", {}).get("semantic_parity")
             if isinstance(exact.get("numeric_semantic_parity"), Mapping)
             else False
+        ),
+        "exact_replay_receipt_loaded_without_reconstruction": (
+            exact.get("receipt_source") == "durable_build"
+            and float(exact.get("receipt_compute_seconds") or 0) == 0.0
         ),
         "small_edit_changed_fibres": _changed_fibres(cold_receipt, edit_receipt),
         "small_edit_dependency_locality": {
@@ -213,6 +281,21 @@ def main() -> int:
             and bool(domain_receipt)
             and cold_receipt.get("receipt_sha256") != domain_receipt.get("receipt_sha256")
         ),
+        "same_domain_work_nonincrease": {
+            "state": (
+                "measured"
+                if cold_work_per_token is not None and domain_work_per_token is not None
+                else "unknown"
+            ),
+            "cold_post_parser_work_ns_per_token": cold_work_per_token,
+            "same_domain_post_parser_work_ns_per_token": domain_work_per_token,
+            "nonincrease": (
+                domain_work_per_token <= cold_work_per_token
+                if cold_work_per_token is not None and domain_work_per_token is not None
+                else None
+            ),
+            "scope": "empirical_same-domain_observation_not_universal_theorem",
+        },
     }
     _write(root / "numeric-reuse-experiments.json", report)
     print(json.dumps(report, indent=2, sort_keys=True))
@@ -222,6 +305,7 @@ def main() -> int:
         and edit.get("accepted")
         and domain.get("accepted")
         and report["exact_replay_receipt_equal"]
+        and report["exact_replay_receipt_loaded_without_reconstruction"]
     )
     return 0 if required else 1
 
