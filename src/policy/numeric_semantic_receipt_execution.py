@@ -71,6 +71,34 @@ def _compute(
     return receipt, monotonic_ns() - started
 
 
+def _existing_closed_run_ref(cursor: Any, *, document_ref: str) -> str:
+    """Locate the authority run behind a completed pre-receipt build.
+
+    A cached replay can request a fresh run_ref without creating parser/PNF rows.
+    Migration backfill must therefore use the already-closed numeric authority,
+    not the empty replay coordinate.
+    """
+
+    cursor.execute(
+        """
+        SELECT region.run_ref
+          FROM execution.semantic_pnf_region AS region
+         WHERE region.document_ref = %s
+           AND region.region_kind = 10
+           AND region.closure_state = 3
+         ORDER BY region.closed_at DESC NULLS LAST, region.region_id DESC
+         LIMIT 1
+        """,
+        (document_ref,),
+    )
+    row = cursor.fetchone()
+    if row is None:
+        raise RuntimeError(
+            "completed numeric build has no closed numeric document authority"
+        )
+    return str(row[0])
+
+
 def _emit_acceptance_coordinate(
     receipt: NumericSemanticReceipt,
     *,
@@ -145,9 +173,6 @@ def install_numeric_semantic_receipt_execution() -> bool:
 
     @wraps(original_persist)
     def persist_wrapper(*args: Any, **kwargs: Any):
-        # The original persist either reuses an existing build without compiling,
-        # or calls the wrapped compile above. Capture the fresh receipt only
-        # after that decision has been made.
         demand_refs = original_persist(*args, **kwargs)
         document_ref = str(kwargs["entry"]["document_ref"])
         parser_contract_ref = str(kwargs["context"].annotation_backend_ref)
@@ -190,12 +215,16 @@ def install_numeric_semantic_receipt_execution() -> bool:
                             cursor, build_ref=build_ref, receipt=receipt
                         )
                     else:
-                        # One-time migration bridge for builds created before
-                        # migration 140. Later replay loads the durable root.
+                        # One-time migration bridge for a completed build created
+                        # before migration 140. The new replay run owns no numeric
+                        # rows, so derive from that document's closed authority.
+                        authority_run_ref = _existing_closed_run_ref(
+                            cursor, document_ref=document_ref
+                        )
                         started = monotonic_ns()
                         receipt = compute_numeric_semantic_receipt(
                             cursor,
-                            run_ref=str(kwargs["run_ref"]),
+                            run_ref=authority_run_ref,
                             document_ref=document_ref,
                             canonical_text_sha256=str(kwargs["canonical_text_sha256"]),
                             parser_contract_ref=parser_contract_ref,
@@ -218,9 +247,6 @@ def install_numeric_semantic_receipt_execution() -> bool:
 
     numeric.compile_numeric_pnf_document = compile_wrapper
     numeric.persist_numeric_pnf_document = persist_wrapper
-    # streaming_spacy_parser_execution imported these names directly. Rebind
-    # its module globals so the already-installed production wrappers use the
-    # receipt-bearing functions without reconstructing their signatures.
     streaming.compile_numeric_pnf_document = compile_wrapper
     streaming.persist_numeric_pnf_document = persist_wrapper
     setattr(numeric, _INSTALL_MARKER, True)
