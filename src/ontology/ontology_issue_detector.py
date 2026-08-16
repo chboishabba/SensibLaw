@@ -3,6 +3,11 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any, Mapping, Sequence
 
+from src.ontology.lean_wikidata_certificate import (
+    LeanOntologyCertificate,
+    compare_external_relation,
+)
+
 
 @dataclass(frozen=True)
 class OntologyIssue:
@@ -100,6 +105,62 @@ def _issue_from_probe_row(
     )
 
 
+def _issue_from_formal_relation_comparison(row: Mapping[str, Any]) -> OntologyIssue | None:
+    raw_certificate = row.get("lean_certificate")
+    if not isinstance(raw_certificate, Mapping):
+        raise ValueError("formal relation comparison requires lean_certificate")
+    certificate = LeanOntologyCertificate.from_mapping(raw_certificate)
+    external_state = _stringify(row.get("external_state")).strip()
+    external_references = _string_list(row.get("external_references"))
+    comparison = compare_external_relation(
+        certificate,
+        external_state=external_state,
+        external_references=external_references,
+    )
+
+    # Replication is useful evidence but not an ontology issue.  Unresolved
+    # comparisons also remain non-negative: absence of an external edge or a
+    # failed/unbacked Lean checker does not manufacture contradiction.
+    if comparison.disposition != "conflicting":
+        return None
+
+    evidence_refs = tuple(
+        dict.fromkeys(
+            (
+                f"lean-request:{certificate.request_id}",
+                f"lean-theorem:{certificate.module_name}:{certificate.theorem_name}",
+                *certificate.source_references,
+                *comparison.external_references,
+            )
+        )
+    )
+    return OntologyIssue(
+        issue_id=(
+            "issue:cross-ontology:"
+            f"{certificate.subject_ref}:{certificate.predicate_ref}:{certificate.object_ref}"
+        ),
+        issue_type="cross_ontology_explicit_relation_conflict",
+        scope="wikidata_ontology",
+        subject_ids=(certificate.subject_ref, certificate.object_ref),
+        status="review_required",
+        confidence_band="high",
+        reason_codes=("formal_relation_conflict", "explicit_opposing_evidence"),
+        evidence_refs=evidence_refs,
+        details={
+            "relation_kind": certificate.relation_kind,
+            "predicate_ref": certificate.predicate_ref,
+            "lean_state": certificate.epistemic_state,
+            "external_state": comparison.external_state,
+            "checker_name": certificate.checker_name,
+            "module_name": certificate.module_name,
+            "theorem_name": certificate.theorem_name,
+            "source_snapshot": certificate.source_snapshot,
+            "truth_authority": False,
+            "edit_authority": False,
+        },
+    )
+
+
 def detect_ontology_issues(
     *,
     relation_rows: Sequence[Mapping[str, Any]] | None = None,
@@ -107,10 +168,21 @@ def detect_ontology_issues(
     source_system: str = "wikidata",
     type_probing_surface: Mapping[str, Any] | None = None,
     operator_review_surface: Mapping[str, Any] | None = None,
+    formal_relation_comparisons: Sequence[Mapping[str, Any]] | None = None,
 ) -> list[OntologyIssue]:
     del relation_rows, equivalence_clusters
     if source_system != "wikidata":
         return []
+
+    if formal_relation_comparisons is not None:
+        issues = [
+            issue
+            for row in formal_relation_comparisons
+            if isinstance(row, Mapping)
+            for issue in [_issue_from_formal_relation_comparison(row)]
+            if issue is not None
+        ]
+        return sorted(issues, key=lambda issue: issue.issue_id)
 
     if type_probing_surface is not None:
         probe_rows = type_probing_surface.get("probe_rows")
