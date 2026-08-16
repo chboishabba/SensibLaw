@@ -3,8 +3,8 @@
 The temporary carrier is execution-only.  It copies exactly the requested
 column names/types from the authority table with ``WITH NO DATA`` and therefore
 does not inherit unrelated NOT NULL/default/constraint metadata.  This avoids
-per-batch information_schema inspection and ALTER TABLE repair while preserving
-the existing COPY -> INSERT ... ON CONFLICT DO NOTHING authority semantics.
+per-batch catalog inspection and temporary-table DDL repair while preserving the
+existing COPY -> INSERT ... ON CONFLICT DO NOTHING authority semantics.
 """
 
 from __future__ import annotations
