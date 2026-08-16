@@ -17,6 +17,8 @@ from pathlib import Path
 from time import monotonic_ns
 from typing import Any
 
+from src.storage.postgres import numeric_semantic_receipt as receipt_module
+from src.storage.postgres.numeric_semantic_entity_receipt import portable_entity_leaves
 from src.storage.postgres.numeric_semantic_receipt import (
     NumericSemanticReceipt,
     compute_numeric_semantic_receipt,
@@ -37,12 +39,7 @@ def _receipt_key(
     *, document_ref: str, canonical_text_sha256: str, parser_contract_ref: str,
     build_key_sha256: str,
 ) -> tuple[str, str, str, str]:
-    return (
-        document_ref,
-        canonical_text_sha256,
-        parser_contract_ref,
-        build_key_sha256,
-    )
+    return (document_ref, canonical_text_sha256, parser_contract_ref, build_key_sha256)
 
 
 def _compute(
@@ -72,13 +69,6 @@ def _compute(
 
 
 def _existing_closed_run_ref(cursor: Any, *, document_ref: str) -> str:
-    """Locate the authority run behind a completed pre-receipt build.
-
-    A cached replay can request a fresh run_ref without creating parser/PNF rows.
-    Migration backfill must therefore use the already-closed numeric authority,
-    not the empty replay coordinate.
-    """
-
     cursor.execute(
         """
         SELECT region.run_ref
@@ -93,9 +83,7 @@ def _existing_closed_run_ref(cursor: Any, *, document_ref: str) -> str:
     )
     row = cursor.fetchone()
     if row is None:
-        raise RuntimeError(
-            "completed numeric build has no closed numeric document authority"
-        )
+        raise RuntimeError("completed numeric build has no closed numeric document authority")
     return str(row[0])
 
 
@@ -105,12 +93,6 @@ def _emit_acceptance_coordinate(
     receipt_compute_ns: int,
     receipt_source: str,
 ) -> None:
-    """Write one small audit-boundary receipt when an acceptance run asks.
-
-    Timing/source are observational transport fields only. They never enter the
-    receipt root or durable semantic identity.
-    """
-
     raw = os.environ.get("SENSIBLAW_NUMERIC_SEMANTIC_RECEIPT_PATH")
     if not raw:
         return
@@ -138,6 +120,11 @@ def install_numeric_semantic_receipt_execution() -> bool:
 
     if getattr(numeric, _INSTALL_MARKER, False):
         return False
+
+    # The base receipt builder calls this module global dynamically. Replace its
+    # original current-document-only entity helper with the portable anchor
+    # projection before any receipt can be computed.
+    receipt_module._entity_leaves = portable_entity_leaves
 
     original_compile = numeric.compile_numeric_pnf_document
     original_persist = numeric.persist_numeric_pnf_document
@@ -200,10 +187,7 @@ def install_numeric_semantic_receipt_execution() -> bool:
                 with connection.cursor() as cursor:
                     durable = load_numeric_semantic_receipt(cursor, build_ref=build_ref)
                     if durable is not None:
-                        if (
-                            receipt is not None
-                            and durable.receipt_sha256 != receipt.receipt_sha256
-                        ):
+                        if receipt is not None and durable.receipt_sha256 != receipt.receipt_sha256:
                             raise RuntimeError(
                                 "fresh numeric receipt disagrees with completed build receipt"
                             )
@@ -215,9 +199,6 @@ def install_numeric_semantic_receipt_execution() -> bool:
                             cursor, build_ref=build_ref, receipt=receipt
                         )
                     else:
-                        # One-time migration bridge for a completed build created
-                        # before migration 140. The new replay run owns no numeric
-                        # rows, so derive from that document's closed authority.
                         authority_run_ref = _existing_closed_run_ref(
                             cursor, document_ref=document_ref
                         )
