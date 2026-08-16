@@ -1,0 +1,75 @@
+{
+  "schema_version": "sensiblaw.numeric-reuse-benchmark-record.v1",
+  "recorded_on": "2026-08-16",
+  "execution_commit": "0806841035cec12472dd0b6b4e9b0bb8ae19553b",
+  "migration_terminal": "140_numeric_semantic_publication_receipt.sql",
+  "database": {
+    "provisioning": "fresh_disposable_postgresql",
+    "endpoint": "redacted"
+  },
+  "fixture": {
+    "fixture_id": "numeric_reuse_v1",
+    "manifest_sha256": "d8c1a4fae7f723b2314bc37b37306d75b405f631e4cbb51389bf3d0db1748c18",
+    "input_sha256": {
+      "cold": "f3116ba8c18fe30d73a03ec6abb400249445c76557dda5efd1f6454f6da105c3",
+      "edit": "38132fbad392a46bfc9c9492169357af7fe8ba757f1dc58d0868ab736b3e2041",
+      "domain": "4cd1c708d5970698b75aa9db6e219a47ada4c74f930c2db895374d1f29005765"
+    }
+  },
+  "configuration": {
+    "tranche": "GWB",
+    "parser_workers": 2,
+    "closure_workers": 4,
+    "owner_partitions": 8,
+    "worker_budget": 4
+  },
+  "outcomes": {
+    "cold": {
+      "accepted": true,
+      "wall_seconds": 32.096458688,
+      "receipt_source": "fresh_numeric_authority",
+      "receipt_compute_seconds": 0.107907263,
+      "receipt_sha256": "300c001c8405446664bdc9b252c7a74535b08dac4956fcf402b2af3ed7da740b",
+      "post_parser_work_ns_per_token": 10700256.860372867
+    },
+    "exact_replay": {
+      "accepted": true,
+      "wall_seconds": 1.59206635,
+      "receipt_source": "durable_build",
+      "receipt_compute_seconds": 0.0,
+      "receipt_sha256": "300c001c8405446664bdc9b252c7a74535b08dac4956fcf402b2af3ed7da740b",
+      "receipt_equal_to_cold": true,
+      "receipt_loaded_without_reconstruction": true
+    },
+    "small_edit": {
+      "accepted": true,
+      "wall_seconds": 31.321288392,
+      "receipt_sha256": "6a0f87f08eaafb1371d85265be20ed3a1b0d23723b1cfefe9d16a3d0568d0cda",
+      "changed_roots": [
+        "parser_root_sha256",
+        "object_root_sha256",
+        "factor_root_sha256",
+        "residual_root_sha256",
+        "export_root_sha256"
+      ],
+      "leaf_dependency_locality_claim": false
+    },
+    "same_domain_new_document": {
+      "accepted": true,
+      "wall_seconds": 5.275725725,
+      "receipt_sha256": "76ad48b55e1cfaf52daf4b759f789590e650fbf02c3b833fbc6ff7fc5c54608c",
+      "receipt_distinct_from_cold": true,
+      "post_parser_work_ns_per_token": 12102189.52631579,
+      "comparison_scope": "empirical_same-domain_observation_not_universal_theorem",
+      "size_caveat": "The source is substantially smaller than the cold baseline; this result does not establish work-per-token non-increase."
+    }
+  },
+  "cold_receipt_roots": {
+    "parser_root_sha256": "15761e4b5ee697b3d7ddbedd622a7de0ca040addb442eebdfb700a00826a2eb9",
+    "object_root_sha256": "d3c0efec3e818e23e83df32c0532ff919cd89224ae8bd89001f1e573224a6555",
+    "factor_root_sha256": "b0153db513e7d1495b8fbe405a11a0ae1c65bae0789fd08585c3d03d0a7c9534",
+    "residual_root_sha256": "937dce18819c70dd7dfa6c8294521f86c348a98a3cbd6c4c0042aa439f6a9814",
+    "export_root_sha256": "3076c8bf3148988eb33cd2cf536ac9d28c5f69a01fbc200f6ad4011cee877bb3",
+    "proof_root_sha256": "2fa9a492e62cd50a8a86f94edcfe568b64face015465b8eb9998f75340366d2a"
+  }
+}
