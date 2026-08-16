@@ -14,6 +14,7 @@ from functools import wraps
 import json
 import os
 from pathlib import Path
+from time import monotonic_ns
 from typing import Any
 
 from src.storage.postgres.numeric_semantic_receipt import (
@@ -28,7 +29,7 @@ from src.storage.postgres.spacy_parser_model import connect
 
 _INSTALL_MARKER = "_numeric_semantic_receipt_execution_installed"
 _FRESH_RECEIPT: ContextVar[
-    tuple[tuple[str, str, str, str], NumericSemanticReceipt] | None
+    tuple[tuple[str, str, str, str], NumericSemanticReceipt, int] | None
 ] = ContextVar("sensiblaw_fresh_numeric_semantic_receipt", default=None)
 
 
@@ -52,11 +53,12 @@ def _compute(
     canonical_text_sha256: str,
     parser_contract_ref: str,
     compiler_contract_ref: str,
-):
+) -> tuple[NumericSemanticReceipt, int]:
+    started = monotonic_ns()
     connection = connect(database_url)
     try:
         with connection.cursor() as cursor:
-            return compute_numeric_semantic_receipt(
+            receipt = compute_numeric_semantic_receipt(
                 cursor,
                 run_ref=run_ref,
                 document_ref=document_ref,
@@ -66,10 +68,20 @@ def _compute(
             )
     finally:
         connection.close()
+    return receipt, monotonic_ns() - started
 
 
-def _emit_acceptance_coordinate(receipt: NumericSemanticReceipt) -> None:
-    """Write one small audit-boundary receipt when an acceptance run asks."""
+def _emit_acceptance_coordinate(
+    receipt: NumericSemanticReceipt,
+    *,
+    receipt_compute_ns: int,
+    receipt_source: str,
+) -> None:
+    """Write one small audit-boundary receipt when an acceptance run asks.
+
+    Timing/source are observational transport fields only. They never enter the
+    receipt root or durable semantic identity.
+    """
 
     raw = os.environ.get("SENSIBLAW_NUMERIC_SEMANTIC_RECEIPT_PATH")
     if not raw:
@@ -77,7 +89,13 @@ def _emit_acceptance_coordinate(receipt: NumericSemanticReceipt) -> None:
     path = Path(raw)
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = receipt.to_mapping()
-    payload["transport_authority"] = "audit_boundary_only"
+    payload.update(
+        {
+            "transport_authority": "audit_boundary_only",
+            "receipt_compute_ns": int(receipt_compute_ns),
+            "receipt_source": receipt_source,
+        }
+    )
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(
         json.dumps(payload, sort_keys=True, ensure_ascii=False) + "\n",
@@ -99,7 +117,7 @@ def install_numeric_semantic_receipt_execution() -> bool:
     @wraps(original_compile)
     def compile_wrapper(*args: Any, **kwargs: Any):
         compilation = original_compile(*args, **kwargs)
-        receipt = _compute(
+        receipt, compute_ns = _compute(
             database_url=str(kwargs["database_url"]),
             run_ref=str(kwargs["run_ref"]),
             document_ref=str(kwargs["document_ref"]),
@@ -113,8 +131,12 @@ def install_numeric_semantic_receipt_execution() -> bool:
             parser_contract_ref=str(kwargs["parser_contract_ref"]),
             build_key_sha256=str(kwargs["build_key_sha256"]),
         )
-        _FRESH_RECEIPT.set((key, receipt))
+        _FRESH_RECEIPT.set((key, receipt, compute_ns))
         compilation.artifacts["numeric_semantic_receipt"] = receipt.to_mapping()
+        compilation.artifacts["numeric_semantic_receipt_observability"] = {
+            "receipt_compute_ns": compute_ns,
+            "receipt_source": "fresh_numeric_authority",
+        }
         authority = compilation.artifacts.get("numeric_pnf_authority")
         if isinstance(authority, dict):
             authority["semantic_receipt_ref"] = receipt.receipt_ref
@@ -124,7 +146,7 @@ def install_numeric_semantic_receipt_execution() -> bool:
     @wraps(original_persist)
     def persist_wrapper(*args: Any, **kwargs: Any):
         # The original persist either reuses an existing build without compiling,
-        # or calls the wrapped compile above.  Capture the fresh receipt only
+        # or calls the wrapped compile above. Capture the fresh receipt only
         # after that decision has been made.
         demand_refs = original_persist(*args, **kwargs)
         document_ref = str(kwargs["entry"]["document_ref"])
@@ -137,6 +159,8 @@ def install_numeric_semantic_receipt_execution() -> bool:
         )
         fresh = _FRESH_RECEIPT.get()
         receipt = fresh[1] if fresh is not None and fresh[0] == key else None
+        receipt_compute_ns = fresh[2] if fresh is not None and fresh[0] == key else 0
+        receipt_source = "fresh_numeric_authority" if receipt is not None else "durable_build"
         if fresh is not None and fresh[0] == key:
             _FRESH_RECEIPT.set(None)
 
@@ -151,9 +175,6 @@ def install_numeric_semantic_receipt_execution() -> bool:
                 with connection.cursor() as cursor:
                     durable = load_numeric_semantic_receipt(cursor, build_ref=build_ref)
                     if durable is not None:
-                        # Cached replay: the durable receipt is the authority.
-                        # Fresh compilation: equality is a fail-closed consistency
-                        # check between pre-publication calculation and stored build.
                         if (
                             receipt is not None
                             and durable.receipt_sha256 != receipt.receipt_sha256
@@ -162,14 +183,16 @@ def install_numeric_semantic_receipt_execution() -> bool:
                                 "fresh numeric receipt disagrees with completed build receipt"
                             )
                         receipt = durable
+                        if receipt_source != "fresh_numeric_authority":
+                            receipt_source = "durable_build"
                     elif receipt is not None:
                         persist_numeric_semantic_receipt(
                             cursor, build_ref=build_ref, receipt=receipt
                         )
                     else:
-                        # Compatibility with builds created before migration 140:
-                        # compute once, persist, and from then on replay is O(1)
-                        # in semantic receipt construction.
+                        # One-time migration bridge for builds created before
+                        # migration 140. Later replay loads the durable root.
+                        started = monotonic_ns()
                         receipt = compute_numeric_semantic_receipt(
                             cursor,
                             run_ref=str(kwargs["run_ref"]),
@@ -178,13 +201,19 @@ def install_numeric_semantic_receipt_execution() -> bool:
                             parser_contract_ref=parser_contract_ref,
                             compiler_contract_ref=numeric.NUMERIC_PNF_COMPILER_CONTRACT,
                         )
+                        receipt_compute_ns = monotonic_ns() - started
+                        receipt_source = "legacy_build_backfill"
                         persist_numeric_semantic_receipt(
                             cursor, build_ref=build_ref, receipt=receipt
                         )
         finally:
             connection.close()
         assert receipt is not None
-        _emit_acceptance_coordinate(receipt)
+        _emit_acceptance_coordinate(
+            receipt,
+            receipt_compute_ns=receipt_compute_ns,
+            receipt_source=receipt_source,
+        )
         return demand_refs
 
     numeric.compile_numeric_pnf_document = compile_wrapper
