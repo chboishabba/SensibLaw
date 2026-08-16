@@ -3,6 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Iterable, Mapping, Sequence
 
+from src.ontology.lean_wikidata_source_contract import (
+    ARISTOTLE_REQUEST_ID,
+    checker_contract_is_source_backed,
+)
+
 
 CONTRACT = "sensiblaw.lean_wikidata_certificate.v0_1"
 
@@ -68,13 +73,7 @@ class LeanOntologyCertificate:
 
     @property
     def epistemic_state(self) -> str:
-        """Project a positive theorem-backed checker result into evidence state.
-
-        A failed checker, missing theorem backing, or other non-positive result is
-        unresolved rather than contradicted.  This is deliberate: absence of an
-        edge in an open-world ontology is not evidence for its negation.
-        """
-
+        """Project a positive source-backed checker result into evidence state."""
         if self.checker_accepted and self.theorem_backed:
             return "supported"
         return "unresolved"
@@ -87,11 +86,33 @@ class LeanOntologyCertificate:
             raise LeanCertificateError(
                 f"relation_kind must be one of: {allowed}; got {relation_kind!r}"
             )
+
+        request_id = _required_text(row, "request_id")
+        module_name = _required_text(row, "module_name")
+        theorem_name = _required_text(row, "theorem_name")
+        checker_name = _required_text(row, "checker_name")
+        theorem_backed = _required_bool(row, "theorem_backed")
+
+        if theorem_backed:
+            if request_id != ARISTOTLE_REQUEST_ID:
+                raise LeanCertificateError(
+                    "theorem_backed certificate request_id does not match the pinned source snapshot"
+                )
+            if not checker_contract_is_source_backed(
+                relation_kind=relation_kind,
+                module_name=module_name,
+                checker_name=checker_name,
+                theorem_name=theorem_name,
+            ):
+                raise LeanCertificateError(
+                    "theorem_backed certificate does not match a checker/theorem pair in the pinned Lean source"
+                )
+
         return cls(
-            request_id=_required_text(row, "request_id"),
-            module_name=_required_text(row, "module_name"),
-            theorem_name=_required_text(row, "theorem_name"),
-            checker_name=_required_text(row, "checker_name"),
+            request_id=request_id,
+            module_name=module_name,
+            theorem_name=theorem_name,
+            checker_name=checker_name,
             source_snapshot=_required_text(row, "source_snapshot"),
             subject_ref=_required_text(row, "subject_ref"),
             predicate_ref=_required_text(row, "predicate_ref"),
@@ -101,7 +122,7 @@ class LeanOntologyCertificate:
                 row.get("source_references"), key="source_references"
             ),
             checker_accepted=_required_bool(row, "checker_accepted"),
-            theorem_backed=_required_bool(row, "theorem_backed"),
+            theorem_backed=theorem_backed,
         )
 
     def to_receipt(self) -> dict[str, Any]:
@@ -178,8 +199,7 @@ def compare_external_relation(
 
 
 def load_certificate_packet(payload: Mapping[str, Any]) -> list[LeanOntologyCertificate]:
-    """Load a deterministic certificate packet exported by a Lean-side adapter."""
-
+    """Load a deterministic certificate packet exported by the pinned Lean source."""
     if payload.get("contract") != CONTRACT:
         raise LeanCertificateError(f"unsupported certificate contract: {payload.get('contract')!r}")
     raw = payload.get("certificates")
