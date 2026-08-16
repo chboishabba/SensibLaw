@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextvars import ContextVar
 from dataclasses import dataclass
+from functools import wraps
 import inspect
 import os
 from pathlib import Path
@@ -260,6 +261,7 @@ def install_streaming_spacy_parser_execution() -> bool:
             )
         return carrier
 
+    @wraps(original_compile)
     def compile_wrapper(*args: Any, **kwargs: Any) -> Any:
         bound = compile_signature.bind_partial(*args, **kwargs)
         bound.apply_defaults()
@@ -361,6 +363,7 @@ def install_streaming_spacy_parser_execution() -> bool:
         finally:
             _CURRENT.reset(token)
 
+    @wraps(original_persist)
     def persist_wrapper(*args: Any, **kwargs: Any) -> Any:
         bound = persist_signature.bind_partial(*args, **kwargs)
         bound.apply_defaults()

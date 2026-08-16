@@ -427,6 +427,29 @@ def _verify_explicit_publication(args: argparse.Namespace) -> dict[str, Any]:
                     (list(document_refs),),
                 )
                 projections = [(str(row[0]), int(row[1])) for row in cursor.fetchall()]
+                numeric_states = {"compiled_numeric_pnf", "reused_numeric_pnf"}
+                numeric_occurrences = bool(occurrences) and all(
+                    state in numeric_states for _ref, state in occurrences
+                )
+                interfaces: list[tuple[str, int]] = []
+                if numeric_occurrences:
+                    cursor.execute(
+                        """
+                        SELECT region.document_ref, COUNT(*)
+                        FROM execution.semantic_pnf_interface AS interface
+                        JOIN execution.semantic_pnf_region AS region
+                          ON region.region_id = interface.region_id
+                        WHERE region.document_ref = ANY(%s)
+                          AND region.region_kind = 10
+                          AND region.closure_state = 3
+                        GROUP BY region.document_ref
+                        ORDER BY region.document_ref
+                        """,
+                        (list(document_refs),),
+                    )
+                    interfaces = [
+                        (str(row[0]), int(row[1])) for row in cursor.fetchall()
+                    ]
     except Exception as error:
         return {
             "state": "not_verified",
@@ -434,7 +457,7 @@ def _verify_explicit_publication(args: argparse.Namespace) -> dict[str, Any]:
         }
 
     expected_refs = sorted(document_refs)
-    verified = (
+    compatibility_publication = (
         sorted(row[0] for row in occurrences) == expected_refs
         # A content-addressed build may be reused after its immutable
         # publication already completed.  It carries the same final
@@ -447,6 +470,16 @@ def _verify_explicit_publication(args: argparse.Namespace) -> dict[str, Any]:
         and all(count > 0 and digest_valid for _ref, count, digest_valid in manifests)
         and projections == [(ref, 1) for ref in expected_refs]
     )
+    numeric_publication = (
+        sorted(row[0] for row in occurrences) == expected_refs
+        and all(
+            state in {"compiled_numeric_pnf", "reused_numeric_pnf"}
+            for _ref, state in occurrences
+        )
+        and builds == [(ref, 1) for ref in expected_refs]
+        and interfaces == [(ref, 1) for ref in expected_refs]
+    )
+    verified = compatibility_publication or numeric_publication
     return {
         "state": "verified" if verified else "not_verified",
         "corpus_ref": compilation["corpus_ref"],
@@ -455,6 +488,10 @@ def _verify_explicit_publication(args: argparse.Namespace) -> dict[str, Any]:
         "builds": builds,
         "artifact_manifests": manifests,
         "projection_manifests": projections,
+        "numeric_document_interfaces": interfaces,
+        "publication_authority": (
+            "numeric_pnf" if numeric_publication else "compatibility"
+        ),
         "expected_raw_sha256": expected_hashes,
     }
 

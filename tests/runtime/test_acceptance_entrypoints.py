@@ -171,6 +171,82 @@ def test_strict_acceptance_accepts_reused_published_compilation(
     assert result["state"] == "verified"
 
 
+def test_strict_acceptance_accepts_closed_numeric_pnf_publication(
+    monkeypatch, tmp_path: Path
+) -> None:
+    root = Path(__file__).resolve().parents[2]
+    namespace = runpy.run_path(
+        str(root / "scripts" / "run_strict_tranche_acceptance.py")
+    )
+    source = tmp_path / "source.txt"
+    source.write_text("bounded source", encoding="utf-8")
+    output = tmp_path / "output"
+    tranche_root = output / "gwb"
+    projection_root = tranche_root / "source_projection"
+    projection_root.mkdir(parents=True)
+    raw_sha256 = hashlib.sha256(source.read_bytes()).hexdigest()
+    document_ref = "document:test"
+    (projection_root / "manifest.json").write_text(
+        json.dumps({"documents": [{"raw_sha256": raw_sha256}]}),
+        encoding="utf-8",
+    )
+    (tranche_root / "local_pnf_compilation.json").write_text(
+        json.dumps({"corpus_ref": "corpus:test", "document_refs": [document_ref]}),
+        encoding="utf-8",
+    )
+
+    class Cursor:
+        def __init__(self) -> None:
+            self._rows = iter(
+                (
+                    [(document_ref, "compiled_numeric_pnf")],
+                    [(document_ref, 1)],
+                    [],
+                    [],
+                    [(document_ref, 1)],
+                )
+            )
+
+        def __enter__(self) -> "Cursor":
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def execute(self, *_args: object, **_kwargs: object) -> None:
+            return None
+
+        def fetchall(self) -> list[tuple[object, ...]]:
+            return next(self._rows)
+
+    class Connection:
+        def __enter__(self) -> "Connection":
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def cursor(self) -> Cursor:
+            return Cursor()
+
+    monkeypatch.setitem(
+        sys.modules,
+        "psycopg",
+        SimpleNamespace(connect=lambda _database_url: Connection()),
+    )
+    result = namespace["_verify_explicit_publication"](
+        Namespace(
+            input_path=(source,),
+            output_root=output,
+            tranche="GWB",
+            database_url="postgresql://test",
+        )
+    )
+
+    assert result["state"] == "verified"
+    assert result["publication_authority"] == "numeric_pnf"
+
+
 def test_exact_acceptance_requires_observed_semantic_processes() -> None:
     root = Path(__file__).resolve().parents[2]
     namespace = runpy.run_path(

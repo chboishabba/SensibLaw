@@ -26,7 +26,9 @@ from src.storage.postgres.work_conserving_stage_hot_path import (
 )
 
 
-WORK_CONSERVING_DOCUMENT_EXECUTOR_REF = "document-executor:postgres-work-conserving:v0_1"
+WORK_CONSERVING_DOCUMENT_EXECUTOR_REF = (
+    "document-executor:postgres-work-conserving:v0_1"
+)
 
 
 def _record_publication_transaction(runtime: Any, row: dict[str, int]) -> None:
@@ -82,7 +84,9 @@ def _claim_budget_at_document_savepoint(store: Any, runtime: Any) -> Iterator[No
                     "transaction_total_ns": transaction_finished - transaction_started,
                     "body_ns": max(0, body_finished - body_started),
                     "pipeline_close_ns": max(0, pipeline_finished - body_finished),
-                    "transaction_exit_ns": max(0, transaction_finished - pipeline_finished),
+                    "transaction_exit_ns": max(
+                        0, transaction_finished - pipeline_finished
+                    ),
                     **cursor_metrics,
                 },
             )
@@ -105,11 +109,20 @@ def _write_persistence_metrics(metrics: dict[str, Any]) -> None:
     temporary.replace(path)
 
 
-def _canonical_document_persistence() -> Any:
-    """Return the operational persistence authority beneath strict parser wrapping."""
+def _canonical_document_persistence(*, execution_strategy_ref: str) -> Any:
+    """Return the selected persistence authority without duplicating semantics.
+
+    Work-conserving staging remains an execution strategy for compatibility
+    replay.  Strict PostgreSQL execution must enter the installed numeric
+    persistence wrapper, which is the production semantic authority.
+    """
 
     from src.policy import postgres_corpus_compilation as postgres
 
+    if execution_strategy_ref.startswith("postgresql-") and "exact" in (
+        execution_strategy_ref
+    ):
+        return postgres.persist_document_compilation
     return getattr(
         postgres,
         "_persist_document_compilation_without_streaming_spacy",
@@ -151,8 +164,12 @@ def _superbatch_summary(runtime: Any) -> dict[str, int]:
     return {
         "graph_flushes": int(getattr(runtime, "graph_superbatches_flushed", 0)),
         "graph_payloads": int(getattr(runtime, "graph_superbatch_payloads", 0)),
-        "resolution_flushes": int(getattr(runtime, "resolution_superbatches_flushed", 0)),
-        "resolution_payloads": int(getattr(runtime, "resolution_superbatch_payloads", 0)),
+        "resolution_flushes": int(
+            getattr(runtime, "resolution_superbatches_flushed", 0)
+        ),
+        "resolution_payloads": int(
+            getattr(runtime, "resolution_superbatch_payloads", 0)
+        ),
         "binding_flushes": int(getattr(runtime, "binding_superbatches_flushed", 0)),
         "binding_payloads": int(getattr(runtime, "binding_superbatch_payloads", 0)),
         "verified_candidate_link_rows_cached": int(
@@ -194,7 +211,11 @@ def persist_document_compilation_work_conserving(**kwargs: Any) -> tuple[str, ..
                 )
                 try:
                     with activate_work_conserving_postgres_bindings():
-                        result = _canonical_document_persistence()(**kwargs)
+                        result = _canonical_document_persistence(
+                            execution_strategy_ref=str(
+                                kwargs.get("execution_strategy_ref") or ""
+                            )
+                        )(**kwargs)
                 finally:
                     store.persist_annotation_layer_batches = original_annotation_batches
     executor_wall_ns = monotonic_ns() - executor_started

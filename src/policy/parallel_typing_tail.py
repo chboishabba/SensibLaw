@@ -9,6 +9,7 @@ persistence.
 from __future__ import annotations
 
 from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
+from functools import wraps
 import json
 import multiprocessing
 import os
@@ -381,7 +382,9 @@ def _execute_leaves(
                     yield ordinal, future.result()
                     replacement = next(next_missing, None)
                     if replacement is not None:
-                        pending[executor.submit(worker, payloads[replacement])] = replacement
+                        pending[executor.submit(worker, payloads[replacement])] = (
+                            replacement
+                        )
 
         future_rows = completed_rows()
 
@@ -905,6 +908,7 @@ def install_parallel_typing_tail() -> bool:
             )
         return result["value"]
 
+    @wraps(current_compile)
     def compile_wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return current_compile(*args, **kwargs)

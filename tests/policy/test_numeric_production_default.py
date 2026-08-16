@@ -15,53 +15,66 @@ STREAMING = ROOT / "src/policy/streaming_spacy_parser_execution.py"
 def test_postgres_omitted_strategy_prefers_numeric_production(monkeypatch) -> None:
     monkeypatch.delenv("SENSIBLAW_NUMERIC_PRODUCTION_DEFAULT", raising=False)
 
-    assert execution._effective_strategy(
-        arguments={
-            "database_url": "postgresql://example/sensiblaw",
-            "execution_strategy_ref": execution.COMPATIBILITY_REPLAY_STRATEGY,
-        },
-        supplied_kwargs={},
-    ) == execution.DEFAULT_NUMERIC_PRODUCTION_STRATEGY
+    assert (
+        execution._effective_strategy(
+            arguments={
+                "database_url": "postgresql://example/sensiblaw",
+                "execution_strategy_ref": execution.COMPATIBILITY_REPLAY_STRATEGY,
+            },
+            supplied_kwargs={},
+        )
+        == execution.DEFAULT_NUMERIC_PRODUCTION_STRATEGY
+    )
 
 
 def test_explicit_compatibility_strategy_is_authoritative(monkeypatch) -> None:
     monkeypatch.delenv("SENSIBLAW_NUMERIC_PRODUCTION_DEFAULT", raising=False)
 
-    assert execution._effective_strategy(
-        arguments={"database_url": "postgresql://example/sensiblaw"},
-        supplied_kwargs={
-            "execution_strategy_ref": execution.COMPATIBILITY_REPLAY_STRATEGY
-        },
-    ) == execution.COMPATIBILITY_REPLAY_STRATEGY
+    assert (
+        execution._effective_strategy(
+            arguments={"database_url": "postgresql://example/sensiblaw"},
+            supplied_kwargs={
+                "execution_strategy_ref": execution.COMPATIBILITY_REPLAY_STRATEGY
+            },
+        )
+        == execution.COMPATIBILITY_REPLAY_STRATEGY
+    )
 
 
 def test_no_database_retains_compatibility_default(monkeypatch) -> None:
     monkeypatch.delenv("SENSIBLAW_NUMERIC_PRODUCTION_DEFAULT", raising=False)
 
-    assert execution._effective_strategy(
-        arguments={
-            "database_url": None,
-            "execution_strategy_ref": execution.COMPATIBILITY_REPLAY_STRATEGY,
-        },
-        supplied_kwargs={},
-    ) == execution.COMPATIBILITY_REPLAY_STRATEGY
+    assert (
+        execution._effective_strategy(
+            arguments={
+                "database_url": None,
+                "execution_strategy_ref": execution.COMPATIBILITY_REPLAY_STRATEGY,
+            },
+            supplied_kwargs={},
+        )
+        == execution.COMPATIBILITY_REPLAY_STRATEGY
+    )
 
 
 def test_numeric_production_default_can_be_disabled_explicitly(monkeypatch) -> None:
     monkeypatch.setenv("SENSIBLAW_NUMERIC_PRODUCTION_DEFAULT", "0")
 
-    assert execution._effective_strategy(
-        arguments={
-            "database_url": "postgresql://example/sensiblaw",
-            "execution_strategy_ref": execution.COMPATIBILITY_REPLAY_STRATEGY,
-        },
-        supplied_kwargs={},
-    ) == execution.COMPATIBILITY_REPLAY_STRATEGY
+    assert (
+        execution._effective_strategy(
+            arguments={
+                "database_url": "postgresql://example/sensiblaw",
+                "execution_strategy_ref": execution.COMPATIBILITY_REPLAY_STRATEGY,
+            },
+            supplied_kwargs={},
+        )
+        == execution.COMPATIBILITY_REPLAY_STRATEGY
+    )
 
 
 def test_wrapped_strategy_arguments_are_keyword_only() -> None:
     """The wrapper can distinguish omission from an explicit compatibility request."""
 
+    execution.install_streaming_spacy_parser_execution()
     compile_parameter = inspect.signature(
         operational_corpus_compilation.compile_document_operational
     ).parameters["execution_strategy_ref"]
@@ -81,7 +94,7 @@ def test_strict_numeric_path_fails_closed_without_postgres_authority() -> None:
     assert "if not _is_strict_strategy(strategy):" in compile_branch
     assert "return original_compile" in compile_branch
     strict_tail = compile_branch.split("if not _is_strict_strategy(strategy):", 1)[1]
-    assert 'StrictExecutionError(' in strict_tail
+    assert "StrictExecutionError(" in strict_tail
     assert '"postgresql_authority_missing"' in strict_tail
     assert "return original_compile" not in strict_tail.split("database_url =", 1)[1]
 
@@ -94,6 +107,6 @@ def test_strict_numeric_persistence_fails_closed_without_postgres_authority() ->
     assert "if not _is_strict_strategy(strategy):" in persist_branch
     assert "return original_persist" in persist_branch
     strict_tail = persist_branch.split("if not _is_strict_strategy(strategy):", 1)[1]
-    assert 'StrictExecutionError(' in strict_tail
+    assert "StrictExecutionError(" in strict_tail
     assert '"postgresql_authority_missing"' in strict_tail
     assert "return original_persist" not in strict_tail.split("database_url =", 1)[1]

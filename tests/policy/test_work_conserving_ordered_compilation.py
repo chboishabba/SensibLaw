@@ -176,7 +176,7 @@ def test_ordered_wrapper_injects_work_conserving_executor(
     assert observed["worker_budget"] == 4
 
 
-def test_work_conserving_persistence_bypasses_strict_numeric_wrapper(
+def test_work_conserving_persistence_uses_numeric_wrapper_for_strict_execution(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import src.policy.postgres_corpus_compilation as compiler
@@ -191,4 +191,15 @@ def test_work_conserving_persistence_bypasses_strict_numeric_wrapper(
         raising=False,
     )
 
-    assert _canonical_document_persistence() is canonical
+    assert (
+        _canonical_document_persistence(
+            execution_strategy_ref="local-compatibility-replay"
+        )
+        is canonical
+    )
+    assert (
+        _canonical_document_persistence(
+            execution_strategy_ref="postgresql-leased-exact-execution:v1"
+        )
+        is compiler.persist_document_compilation
+    )
