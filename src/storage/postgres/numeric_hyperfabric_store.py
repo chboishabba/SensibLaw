@@ -933,6 +933,12 @@ def drain_sentence_closure(
 ) -> int:
     if limit < 1:
         raise ValueError("numeric sentence closure limit must be positive")
+    # Imported after this module has established WorkLease.  The admission
+    # strategy uses that carrier but must not create a second closure authority.
+    from src.storage.postgres.numeric_sentence_admission import (
+        persist_sentence_closure_setwise,
+    )
+
     completed = 0
     connection = connect(database_url)
     try:
@@ -958,7 +964,7 @@ def drain_sentence_closure(
                             tokens=tokens,
                             lexicon=lexicon,
                         )
-                        _persist_sentence_closure(
+                        persist_sentence_closure_setwise(
                             cursor,
                             lease=lease,
                             closure=closure,

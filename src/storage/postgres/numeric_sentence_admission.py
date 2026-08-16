@@ -59,7 +59,7 @@ def _create_stages(cursor: Any) -> None:
             predicate_symbol_id BIGINT NOT NULL,
             temporal_state SMALLINT NOT NULL,
             modal_state SMALLINT NOT NULL,
-            support_score BIGINT NOT NULL
+            support_score DOUBLE PRECISION NOT NULL
         ) ON COMMIT DROP;
         CREATE TEMP TABLE {_FACTOR_SUPPORT_STAGE} (
             factor_ordinal INTEGER NOT NULL,
@@ -121,18 +121,13 @@ def _copy_specs(
                 )
             )
 
+    # PostgreSQL accepts one COPY FROM STDIN stream per connection.  These
+    # three bounded temp tables share a cursor, so stage them sequentially.
     with cursor.copy(
         f"""COPY {_FACTOR_STAGE}
         (ordinal, factor_digest, factor_type_symbol_id, predicate_symbol_id,
          temporal_state, modal_state, support_score) FROM STDIN"""
-    ) as factor_copy, cursor.copy(
-        f"""COPY {_FACTOR_SUPPORT_STAGE}
-        (factor_ordinal, support_ordinal, token_id) FROM STDIN"""
-    ) as support_copy, cursor.copy(
-        f"""COPY {_FACTOR_SLOT_STAGE}
-        (factor_ordinal, slot_ordinal, role_symbol_id, source_token_id,
-         resolution_state, required) FROM STDIN"""
-    ) as slot_copy:
+    ) as factor_copy:
         for factor_ordinal, spec in enumerate(closure.factors):
             factor_copy.write_row(
                 (
@@ -145,8 +140,21 @@ def _copy_specs(
                     spec.support_score,
                 )
             )
+
+    with cursor.copy(
+        f"""COPY {_FACTOR_SUPPORT_STAGE}
+        (factor_ordinal, support_ordinal, token_id) FROM STDIN"""
+    ) as support_copy:
+        for factor_ordinal, spec in enumerate(closure.factors):
             for support_ordinal, token_id in enumerate(spec.support_token_ids):
                 support_copy.write_row((factor_ordinal, support_ordinal, token_id))
+
+    with cursor.copy(
+        f"""COPY {_FACTOR_SLOT_STAGE}
+        (factor_ordinal, slot_ordinal, role_symbol_id, source_token_id,
+         resolution_state, required) FROM STDIN"""
+    ) as slot_copy:
+        for factor_ordinal, spec in enumerate(closure.factors):
             for slot_ordinal, slot in enumerate(spec.slots):
                 slot_copy.write_row(
                     (
@@ -264,12 +272,21 @@ def persist_sentence_closure_setwise(
     object_rows = tuple(cursor.fetchall())
     object_id_by_token: dict[int, int] = {}
     promoted_object_ids: list[tuple[int, int, float]] = []
-    for _ordinal, object_id, source_token_id, head_symbol_id, score, promoted in object_rows:
+    for (
+        _ordinal,
+        object_id,
+        source_token_id,
+        head_symbol_id,
+        score,
+        promoted,
+    ) in object_rows:
         # Preserve the previous Python dict semantics exactly: the final object
         # spec for a source token wins when factor slots map token -> object.
         object_id_by_token[int(source_token_id)] = int(object_id)
         if bool(promoted):
-            promoted_object_ids.append((int(object_id), int(head_symbol_id), float(score)))
+            promoted_object_ids.append(
+                (int(object_id), int(head_symbol_id), float(score))
+            )
 
     # Factors and their token support/slots are admitted in three set-wise SQL
     # statements after one COPY of the closure specification.
@@ -388,8 +405,7 @@ def persist_sentence_closure_setwise(
             int(factor_type_id) if factor_type_id is not None else None,
             int(lexical_id) if lexical_id is not None else None,
         )
-        for _ordinal, demand_id, residual_id, factor_type_id, lexical_id
-        in cursor.fetchall()
+        for _ordinal, demand_id, residual_id, factor_type_id, lexical_id in cursor.fetchall()
     ]
 
     measure = closure.measure
@@ -484,8 +500,9 @@ def persist_sentence_closure_setwise(
                 rank,
                 score,
             )
-            for rank, (object_id, head_symbol_id, score)
-            in enumerate(promoted_object_ids)
+            for rank, (object_id, head_symbol_id, score) in enumerate(
+                promoted_object_ids
+            )
         ],
     )
     cursor.executemany(
@@ -505,8 +522,9 @@ def persist_sentence_closure_setwise(
                 factor_type_id,
                 rank,
             )
-            for rank, (factor_id, factor_type_id, _predicate_id)
-            in enumerate(factor_ids)
+            for rank, (factor_id, factor_type_id, _predicate_id) in enumerate(
+                factor_ids
+            )
         ],
     )
     cursor.executemany(
@@ -528,8 +546,12 @@ def persist_sentence_closure_setwise(
                 residual_id,
                 rank,
             )
-            for rank, (demand_id, residual_id, _factor_type_id, lexical_id)
-            in enumerate(demand_ids)
+            for rank, (
+                demand_id,
+                residual_id,
+                _factor_type_id,
+                lexical_id,
+            ) in enumerate(demand_ids)
         ],
     )
 
@@ -569,7 +591,9 @@ def persist_sentence_closure_setwise(
                 ),
             )
         )
-    for rank, (demand_id, residual_id, factor_type_id, lexical_id) in enumerate(demand_ids):
+    for rank, (demand_id, residual_id, factor_type_id, lexical_id) in enumerate(
+        demand_ids
+    ):
         lookup_rows.append(
             (
                 interface_id,
