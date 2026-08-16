@@ -10,7 +10,7 @@ The north-star execution rule is:
     parse once -> compile numerically -> retain proofs -> reopen locally -> reuse
 
 Ordinary post-spaCy execution should therefore be numeric, sparse, incremental,
-and substantially cheaper than parser execution.  Compatibility/audit/export
+and substantially cheaper than parser execution. Compatibility/audit/export
 surfaces may retain richer encodings, but those encodings are not permitted to
 silently become the production semantic carrier.
 """
@@ -22,7 +22,7 @@ from enum import StrEnum
 from typing import Any, Mapping
 
 
-PERFORMANCE_CONSTITUTION_REF = "sensiblaw.performance-constitution.v0_1"
+PERFORMANCE_CONSTITUTION_REF = "sensiblaw.performance-constitution.v0_2"
 TARGET_POST_PARSER_TO_SPACY_RATIO = 0.10
 
 
@@ -65,13 +65,15 @@ def _number(value: Any) -> float | None:
 
 def _parity_state(run: Mapping[str, Any]) -> RequirementAssessment:
     parity = _mapping(run.get("parity")).get("semantic_parity")
+    if parity is None:
+        parity = _mapping(run.get("numeric_semantic_parity")).get("semantic_parity")
     if parity is True:
         return RequirementAssessment(
             "semantic_parity",
             AssessmentState.PASS,
             observed=True,
             target=True,
-            evidence="benchmark parity surface",
+            evidence="portable numeric or compatibility semantic parity surface",
         )
     if parity is False:
         return RequirementAssessment(
@@ -79,7 +81,7 @@ def _parity_state(run: Mapping[str, Any]) -> RequirementAssessment:
             AssessmentState.FAIL,
             observed=False,
             target=True,
-            evidence="benchmark parity surface",
+            evidence="portable numeric or compatibility semantic parity surface",
         )
     return RequirementAssessment(
         "semantic_parity",
@@ -92,6 +94,8 @@ def _parity_state(run: Mapping[str, Any]) -> RequirementAssessment:
 
 def _completion_state(run: Mapping[str, Any]) -> RequirementAssessment:
     completed = run.get("completed")
+    if completed is None:
+        completed = run.get("accepted")
     if completed is True:
         state = AssessmentState.PASS
     elif completed is False:
@@ -103,15 +107,46 @@ def _completion_state(run: Mapping[str, Any]) -> RequirementAssessment:
         state,
         observed=completed if isinstance(completed, bool) else None,
         target=True,
-        evidence="typed replay receipt",
+        evidence="typed replay/acceptance receipt",
     )
 
 
 def _post_parser_ratio(run: Mapping[str, Any]) -> RequirementAssessment:
+    # Preferred evidence: unioned monotonic wall intervals from the strict
+    # pipelined parser. These are measured intervals from all worker processes,
+    # not wall-total subtraction. Parser/post overlap remains present in both
+    # occupancy unions and is separately reported by the timing surface; this is
+    # deliberately conservative for the <=10% target.
+    timing = _mapping(run.get("numeric_work_timing"))
+    parser_wall_ns = _number(timing.get("spacy_parser_wall_occupancy_ns"))
+    post_wall_ns = _number(timing.get("post_parser_wall_occupancy_ns"))
+    timing_basis = str(timing.get("timing_basis") or "")
+    if (
+        parser_wall_ns is not None
+        and post_wall_ns is not None
+        and parser_wall_ns > 0
+        and "monotonic-wall-occupancy" in timing_basis
+    ):
+        ratio = post_wall_ns / parser_wall_ns
+        overlap = _number(timing.get("parser_post_overlap_ns"))
+        return RequirementAssessment(
+            "post_parser_to_spacy_ratio",
+            AssessmentState.PASS
+            if ratio <= TARGET_POST_PARSER_TO_SPACY_RATIO
+            else AssessmentState.FAIL,
+            observed=ratio,
+            target=TARGET_POST_PARSER_TO_SPACY_RATIO,
+            evidence=(
+                "explicit monotonic wall-occupancy unions; parser/post overlap "
+                f"measured separately ({int(overlap or 0)} ns)"
+            ),
+        )
+
+    # Historical non-overlapping kernel timers remain valid when explicitly
+    # supplied. We never synthesize either side by subtracting from total wall.
     kernels = _mapping(run.get("kernel_seconds"))
     parser_seconds = _number(kernels.get("spacy_parser"))
     post_parser_seconds = _number(kernels.get("post_parser"))
-
     if parser_seconds is None or post_parser_seconds is None or parser_seconds <= 0:
         return RequirementAssessment(
             "post_parser_to_spacy_ratio",
@@ -119,11 +154,10 @@ def _post_parser_ratio(run: Mapping[str, Any]) -> RequirementAssessment:
             observed=None,
             target=TARGET_POST_PARSER_TO_SPACY_RATIO,
             evidence=(
-                "requires explicit spacy_parser and post_parser kernel timings; "
-                "wall subtraction is not accepted"
+                "requires explicit monotonic wall occupancy or explicit parser/"
+                "post-parser kernel timings; wall subtraction is not accepted"
             ),
         )
-
     ratio = post_parser_seconds / parser_seconds
     return RequirementAssessment(
         "post_parser_to_spacy_ratio",
@@ -132,18 +166,12 @@ def _post_parser_ratio(run: Mapping[str, Any]) -> RequirementAssessment:
         else AssessmentState.FAIL,
         observed=ratio,
         target=TARGET_POST_PARSER_TO_SPACY_RATIO,
-        evidence="explicit kernel timings",
+        evidence="explicit non-derived kernel timings",
     )
 
 
 def assess_replay_run(run: Mapping[str, Any]) -> dict[str, Any]:
-    """Assess one replay without overclaiming absent measurements.
-
-    A single cold run can establish strict completion, semantic parity, and an
-    explicitly measured parser/post-parser ratio.  It cannot establish corpus
-    learning economy or delta-local incremental work; those require controlled
-    paired observations and are assessed separately by :func:`assess_reuse_pair`.
-    """
+    """Assess one replay without overclaiming absent measurements."""
 
     requirements = (
         _completion_state(run),
@@ -151,7 +179,9 @@ def assess_replay_run(run: Mapping[str, Any]) -> dict[str, Any]:
         _post_parser_ratio(run),
     )
     hard = tuple(
-        row for row in requirements if row.requirement_ref in {"strict_replay_completed", "semantic_parity"}
+        row
+        for row in requirements
+        if row.requirement_ref in {"strict_replay_completed", "semantic_parity"}
     )
     hard_failure = any(row.state is AssessmentState.FAIL for row in hard)
     hard_unknown = any(row.state is AssessmentState.UNKNOWN for row in hard)
@@ -185,22 +215,14 @@ def _identity(observation: Mapping[str, Any]) -> tuple[str, str] | None:
 
 
 def assess_reuse_pair(
-    before: Mapping[str, Any],
-    after: Mapping[str, Any],
+    before: Mapping[str, Any], after: Mapping[str, Any]
 ) -> dict[str, Any]:
-    """Check the controlled corpus-learning non-increase contract.
-
-    Required observation fields are ``workload_ref``, ``configuration_ref``, and
-    ``semantic_work_units``.  The comparison is deliberately unavailable when
-    workload/configuration identity is not exact; similar-looking documents are
-    not silently treated as the same controlled workload.
-    """
+    """Check the controlled corpus-learning non-increase contract."""
 
     before_identity = _identity(before)
     after_identity = _identity(after)
     before_work = _number(before.get("semantic_work_units"))
     after_work = _number(after.get("semantic_work_units"))
-
     if (
         before_identity is None
         or after_identity is None
@@ -209,13 +231,15 @@ def assess_reuse_pair(
         or after_work is None
     ):
         state = AssessmentState.UNKNOWN
-        evidence = "requires identical workload/configuration refs and measured semantic_work_units"
+        evidence = (
+            "requires identical workload/configuration refs and measured "
+            "semantic_work_units"
+        )
         non_increase = None
     else:
         non_increase = after_work <= before_work
         state = AssessmentState.PASS if non_increase else AssessmentState.FAIL
         evidence = "controlled identical workload/configuration comparison"
-
     return {
         "contract_ref": PERFORMANCE_CONSTITUTION_REF,
         "requirement_ref": "incremental_economy",
