@@ -215,9 +215,8 @@ def compare_leaf_locality(
 
     cold_groups, edit_groups = group(cold_nodes, None), group(edit_nodes, transport)
     pairs: dict[str, str] = {}
-    # Record each unresolved candidate class once.  The source-free propagation
-    # loop can revisit an unchanged ambiguity; we assess those only after it has
-    # reached a fixed point, rather than accumulating intermediate candidates.
+    # Each unresolved candidate class is counted once at the final matching
+    # fixed point. Repeated propagation attempts are not ambiguity evidence.
     ambiguous_classes: set[tuple[tuple[str, ...], tuple[str, ...]]] = set()
     for key in set(cold_groups) | set(edit_groups):
         left, right = cold_groups.get(key, ()), edit_groups.get(key, ())
@@ -226,8 +225,8 @@ def compare_leaf_locality(
         elif left and right:
             ambiguous_classes.add((tuple(sorted(left)), tuple(sorted(right))))
 
-    # Source-free leaves (exports/proofs) become identifiable once their ordered
-    # dependency structure is paired. Duplicate candidates remain indeterminate.
+    # Source-free leaves (exports/proofs) are dependency-derived. They become
+    # identifiable only after every dependency has a unique transported match.
     for _ in range(len(cold_nodes) + len(edit_nodes)):
         additions: dict[str, str] = {}
         for left_ref, left in cold_nodes.items():
@@ -303,9 +302,14 @@ def compare_leaf_locality(
         1 for right_ref in pairs.values() if _spans(edit_nodes[right_ref])
     )
 
+    def ratio(numerator: int, denominator: int) -> float | None:
+        return numerator / denominator if denominator else None
+
     def family_coverage(
         nodes: Mapping[str, Mapping[str, Any]],
         matched: Iterable[str],
+        *,
+        sourceful_only: bool,
     ) -> dict[str, dict[str, int | float | None]]:
         families = sorted({str(row.get("family")) for row in nodes.values()})
         matched_refs = set(matched)
@@ -314,18 +318,50 @@ def compare_leaf_locality(
             eligible = [
                 ref
                 for ref, row in nodes.items()
-                if str(row.get("family")) == family and _spans(row)
+                if str(row.get("family")) == family
+                and (not sourceful_only or bool(_spans(row)))
             ]
             matched_count = sum(ref in matched_refs for ref in eligible)
             result[family] = {
-                "matched_sourceful_leaf_count": matched_count,
-                "transport_eligible_sourceful_leaf_count": len(eligible),
+                "matched_leaf_count": matched_count,
+                "eligible_leaf_count": len(eligible),
                 "kappa_delta": ratio(matched_count, len(eligible)),
             }
         return result
 
-    def ratio(numerator: int, denominator: int) -> float | None:
-        return numerator / denominator if denominator else None
+    ambiguity_by_family: dict[str, int] = {}
+    ambiguity_by_multiplicity: dict[str, int] = {}
+    for left, right in ambiguous_classes:
+        families = {
+            str(cold_nodes[ref].get("family")) for ref in left if ref in cold_nodes
+        } | {
+            str(edit_nodes[ref].get("family")) for ref in right if ref in edit_nodes
+        }
+        family = next(iter(families)) if len(families) == 1 else "mixed"
+        ambiguity_by_family[family] = ambiguity_by_family.get(family, 0) + 1
+        multiplicity = f"{len(left)}x{len(right)}"
+        ambiguity_by_multiplicity[multiplicity] = (
+            ambiguity_by_multiplicity.get(multiplicity, 0) + 1
+        )
+
+    unmatched_by_family = {
+        "cold": {
+            family: sum(
+                ref not in pairs
+                for ref, row in cold_nodes.items()
+                if str(row.get("family")) == family
+            )
+            for family in sorted({str(row.get("family")) for row in cold_nodes.values()})
+        },
+        "edit": {
+            family: sum(
+                ref not in pairs.values()
+                for ref, row in edit_nodes.items()
+                if str(row.get("family")) == family
+            )
+            for family in sorted({str(row.get("family")) for row in edit_nodes.values()})
+        },
+    }
 
     return {
         "state": state,
@@ -334,6 +370,9 @@ def compare_leaf_locality(
         "matching_ambiguous_leaf_count": len(
             {ref for group in ambiguous_classes for side in group for ref in side}
         ),
+        "matching_ambiguity_by_family": ambiguity_by_family,
+        "matching_ambiguity_by_multiplicity": ambiguity_by_multiplicity,
+        "unmatched_leaf_count_by_family": unmatched_by_family,
         "matched_leaf_count": len(pairs),
         "matched_sourceful_leaf_count": {
             "cold": matched_sourceful_cold,
@@ -348,8 +387,12 @@ def compare_leaf_locality(
             "edit": ratio(matched_sourceful_edit, eligible_edit),
         },
         "transport_match_coverage_by_family": {
-            "cold": family_coverage(cold_nodes, pairs),
-            "edit": family_coverage(edit_nodes, pairs.values()),
+            "cold": family_coverage(cold_nodes, pairs, sourceful_only=True),
+            "edit": family_coverage(edit_nodes, pairs.values(), sourceful_only=True),
+        },
+        "all_leaf_match_coverage_by_family": {
+            "cold": family_coverage(cold_nodes, pairs, sourceful_only=False),
+            "edit": family_coverage(edit_nodes, pairs.values(), sourceful_only=False),
         },
         "changed_leaf_count": {"cold": len(changed_cold), "edit": len(changed_edit)},
         "reachable_leaf_count": {"cold": len(cold_closure), "edit": len(edit_closure)},
