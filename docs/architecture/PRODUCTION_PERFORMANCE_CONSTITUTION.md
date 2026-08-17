@@ -1,7 +1,7 @@
 # Production performance constitution
 
 This document fixes the optimisation priority for the production ITIR/SensibLaw
-compiler.  It is deliberately stricter than a list of possible speedups.
+compiler. It is deliberately stricter than a list of possible speedups.
 
 The north-star execution contract is:
 
@@ -14,8 +14,32 @@ parse once
 ```
 
 A change is high priority when it moves normal production execution toward that
-contract.  Making a compatibility representation faster is useful only when the
+contract. Making a compatibility representation faster is useful only when the
 compatibility representation cannot yet be removed from the critical path.
+
+## 0. Optimise the longest absolute horizons first
+
+Optimisation attention is ordered by **absolute production wall-time exposure**,
+not by percentage speedup or ease of implementation.
+
+A minutes/hours phase outranks a seconds-scale kernel while both remain on the
+critical path. A 50% improvement to a 2-second kernel does not outrank removing
+20 minutes from a compatibility, corpus, persistence, or orchestration phase.
+
+The first question for every long phase is still architectural:
+
+```text
+Does normal production need to perform this phase at all?
+```
+
+If no, remove or bypass it. If yes, reduce its work before parallelising it.
+Seconds/subsecond kernels remain worth improving, especially when they scale per
+document or per edit, but they are secondary while minutes/hours horizons exist.
+
+`src/runtime/performance_attention.py` provides the executable ranking rule and
+classifies measured phases as `hours`, `minutes`, `seconds`, or `subsecond`.
+The ranking does not claim that the full measured duration is removable; it only
+prevents optimisation attention from drifting toward diminishing-return kernels.
 
 ## 1. Highest priority: spaCy → numeric machine
 
@@ -86,9 +110,9 @@ reconstruct information that was available structurally at the numeric producer.
 `docs/architecture/JSON_SIN_BIN.md` remains authoritative for the repository-wide
 policy.
 
-The current manifest digest is a legacy identity contract.  Where that exact
+The current manifest digest is a legacy identity contract. Where that exact
 identity must be preserved, one canonical JSON pass is tolerated at the explicit
-identity boundary.  It is not permission to use JSON as a semantic carrier.
+identity boundary. It is not permission to use JSON as a semantic carrier.
 
 The preferred sequence is:
 
@@ -119,7 +143,7 @@ JSON transformations in semantic execution ≈ 0
 ```
 
 JSON may still exist for explicit import/export, audit, external protocol, or a
-versioned legacy identity boundary.  Such use requires a named boundary permit,
+versioned legacy identity boundary. Such use requires a named boundary permit,
 not an implicit convenience import.
 
 ## 4. Incremental economy is non-negotiable
@@ -131,7 +155,7 @@ structure must not make the same semantic work more expensive:
 W_after <= W_before
 ```
 
-This claim is conditional on exact workload/config identity.  A cold run cannot
+This claim is conditional on exact workload/config identity. A cold run cannot
 prove it.
 
 Runtime execution should have the shape:
@@ -157,11 +181,11 @@ only H6 residual
       ↓ H9
 ```
 
-No H6 work is owed by an H3-sufficient consumer.  No H9/world work is owed by an
+No H6 work is owed by an H3-sufficient consumer. No H9/world work is owed by an
 H6-sufficient consumer.
 
 Missing evidence, cache misses, missing context, and zero-result provider probes
-are reopen/escalation conditions.  They are never semantic refutation:
+are reopen/escalation conditions. They are never semantic refutation:
 
 ```text
 absence of evidence != evidence of absence
@@ -184,7 +208,7 @@ T_post-parser <= 0.10 * T_spaCy
 This ratio may be reported only when both quantities are explicitly measured.
 Wall-time subtraction is not a parser measurement.
 
-The canonical cross-document denominator is tokens, not documents.  Benchmarks
+The canonical cross-document denominator is tokens, not documents. Benchmarks
 should report, where measurable:
 
 - tokens and tokens/s;
@@ -201,7 +225,7 @@ should report, where measurable:
 The executable single-run/paired-run assessment lives in
 `src/runtime/performance_constitution.py`.
 
-A single cold replay can prove completion and semantic parity.  It cannot prove:
+A single cold replay can prove completion and semantic parity. It cannot prove:
 
 - incremental economy;
 - delta-local recomputation;
@@ -222,7 +246,7 @@ T_same-domain-new-document
 ```
 
 The desired architecture may legitimately have a nontrivial cold compile while
-being exceptionally cheap to reopen or update.  Optimising cold execution at the
+being exceptionally cheap to reopen or update. Optimising cold execution at the
 expense of reuse/reopenability is a regression.
 
 Corpus scaling should additionally measure increasing token populations, e.g.
@@ -248,7 +272,7 @@ then native/SIMD kernels become natural for intersections, masks, prefix/delta
 decode, candidate filtering, and dependency propagation.
 
 Likewise parallelism should operate over immutable independent work fibres with
-a deterministic canonical commit.  It must not be used to hide avoidable rich
+a deterministic canonical commit. It must not be used to hide avoidable rich
 carrier work.
 
 The rule is:
@@ -260,7 +284,7 @@ then vectorise / parallelise the reduced work
 
 ## 8. Owner-wave correctness seam
 
-Different owner keys are not automatically independent.  General parallel owner
+Different owner keys are not automatically independent. General parallel owner
 reduction requires frozen-wave semantics:
 
 ```text
@@ -290,8 +314,8 @@ local proof/cache
 → live provider only for the remaining required residual
 ```
 
-A label may own many world candidates.  A prior Springfield candidate does not
-globally collapse later Springfield mentions.  Mention-local context/evidence
+A label may own many world candidates. A prior Springfield candidate does not
+globally collapse later Springfield mentions. Mention-local context/evidence
 selects or pressures a candidate fibre; preference is not identity proof.
 
 Provider/cache absence never closes negatively.
@@ -304,7 +328,7 @@ In order:
    provenance needed by downstream consumers.
 2. Numeric compiler becomes the default production path; rich operational
    compilation becomes audit/reference/compatibility.
-3. Remove remaining nonnumeric hot-path carriers.  JSON/regex/text survive only
+3. Remove remaining nonnumeric hot-path carriers. JSON/regex/text survive only
    behind explicit defended boundaries.
 4. Make H3→H6→H9 physically lazy.
 5. Make reverse-dependency recomputation delta-local and reopenable.
@@ -314,6 +338,10 @@ In order:
 8. Formalise and implement dependency-correct frozen owner waves.
 9. Apply native/SIMD kernels to the remaining measured numeric kernels.
 10. Keep H9/world work sparse, cached, context-bearing, and consumer-demanded.
+
+Within every numbered deliverable, measured minutes/hours phases outrank
+seconds/subsecond kernels until the longer phase is removed, bypassed, or shown
+not to lie on the relevant production critical path.
 
 ## 11. Decision rule for optimisation PRs
 
@@ -327,5 +355,5 @@ If the answer is yes because it is a compatibility or identity boundary, perform
 it once, preserve its receipt, and keep it out of downstream semantic execution.
 
 That is the bigger meaning of the current JSON/carrier work: the deliverable is
-not faster JSON.  It is a compiler whose normal semantic execution no longer
+not faster JSON. It is a compiler whose normal semantic execution no longer
 needs JSON.
