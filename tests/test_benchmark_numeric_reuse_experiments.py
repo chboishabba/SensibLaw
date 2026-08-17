@@ -198,3 +198,26 @@ def test_manifest_and_explicit_inputs_are_exclusive(
 
     with pytest.raises(SystemExit):
         benchmark_module._parse_args()
+
+
+def test_leaf_locality_requirement_is_opt_in(benchmark_module, monkeypatch) -> None:
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "benchmark",
+            "--database-url",
+            "postgresql://example",
+            "--cold-input",
+            "cold.txt",
+            "--edit-input",
+            "edit.txt",
+            "--domain-input",
+            "domain.txt",
+            "--output-root",
+            "out",
+            "--require-small-edit-leaf-locality",
+        ],
+    )
+
+    assert benchmark_module._parse_args().require_small_edit_leaf_locality
