@@ -4,16 +4,18 @@ BEGIN;
 --
 -- Document closure already triggers a full ancestor rebuild (migration 043),
 -- while the current numeric hierarchy planner also requests the same rebuild
--- immediately afterwards.  Keep both semantic call boundaries: generic callers
+-- immediately afterwards. Keep both semantic call boundaries: generic callers
 -- may rely on the trigger, and the planner may explicitly demand the projection.
--- Avoid repeating the recursive work when the source parent relation is exact.
+-- Avoid repeating recursive work when the source parent relation is exactly
+-- unchanged.
 --
--- The fingerprint is execution-local cache state only.  It uses DB-local
--- interface ids because it never participates in portable semantic identity.
+-- Store the exact ordered parent relation rather than a hash. This state is a
+-- DB-local execution cache only, never portable semantic identity, so exact
+-- string equality is both simpler and stronger than a cryptographic digest.
 CREATE TABLE IF NOT EXISTS execution.semantic_pnf_document_ancestor_projection_state (
     run_ref TEXT NOT NULL,
     document_ref TEXT NOT NULL,
-    parent_relation_sha256 BYTEA NOT NULL CHECK (octet_length(parent_relation_sha256) = 32),
+    parent_relation TEXT NOT NULL,
     interface_count BIGINT NOT NULL CHECK (interface_count >= 0),
     rebuilt_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (run_ref, document_ref)
@@ -28,44 +30,37 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
     rebuilt_count BIGINT := 0;
-    current_parent_digest BYTEA;
-    previous_parent_digest BYTEA;
+    current_parent_relation TEXT;
+    previous_parent_relation TEXT;
     previous_interface_count BIGINT;
 BEGIN
-    -- Ordered decimal integer pairs with ':' and ',' separators are injective
-    -- for positive interface ids and the '-' NULL sentinel.  The digest is only
-    -- an execution freshness key; semantic receipts never consume it.
-    SELECT digest(
-               convert_to(
-                   COALESCE(
-                       string_agg(
-                           interface.interface_id::TEXT || ':' ||
-                           COALESCE(interface.parent_interface_id::TEXT, '-'),
-                           ',' ORDER BY interface.interface_id
-                       ),
-                       ''
-                   ),
-                   'UTF8'
+    -- Decimal positive ids plus ':' and ',' separators and the '-' NULL sentinel
+    -- give an exact ordered serialization of the physical parent relation.
+    SELECT COALESCE(
+               string_agg(
+                   interface.interface_id::TEXT || ':' ||
+                   COALESCE(interface.parent_interface_id::TEXT, '-'),
+                   ',' ORDER BY interface.interface_id
                ),
-               'sha256'
+               ''
            ),
            count(*)
-      INTO current_parent_digest, rebuilt_count
+      INTO current_parent_relation, rebuilt_count
       FROM execution.semantic_pnf_interface AS interface
       JOIN execution.semantic_pnf_region AS region
         ON region.region_id = interface.region_id
      WHERE region.run_ref = selected_run_ref
        AND region.document_ref = selected_document_ref;
 
-    SELECT state.parent_relation_sha256,
+    SELECT state.parent_relation,
            state.interface_count
-      INTO previous_parent_digest,
+      INTO previous_parent_relation,
            previous_interface_count
       FROM execution.semantic_pnf_document_ancestor_projection_state AS state
      WHERE state.run_ref = selected_run_ref
        AND state.document_ref = selected_document_ref;
 
-    IF previous_parent_digest = current_parent_digest
+    IF previous_parent_relation = current_parent_relation
        AND previous_interface_count = rebuilt_count THEN
         RETURN rebuilt_count;
     END IF;
@@ -176,17 +171,17 @@ BEGIN
         distance = EXCLUDED.distance;
 
     INSERT INTO execution.semantic_pnf_document_ancestor_projection_state
-        (run_ref, document_ref, parent_relation_sha256,
+        (run_ref, document_ref, parent_relation,
          interface_count, rebuilt_at)
     VALUES (
         selected_run_ref,
         selected_document_ref,
-        current_parent_digest,
+        current_parent_relation,
         rebuilt_count,
         CURRENT_TIMESTAMP
     )
     ON CONFLICT (run_ref, document_ref) DO UPDATE SET
-        parent_relation_sha256 = EXCLUDED.parent_relation_sha256,
+        parent_relation = EXCLUDED.parent_relation,
         interface_count = EXCLUDED.interface_count,
         rebuilt_at = EXCLUDED.rebuilt_at;
 
