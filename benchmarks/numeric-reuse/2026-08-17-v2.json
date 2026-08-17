@@ -1,0 +1,50 @@
+{
+  "schema_version": "sensiblaw.numeric-reuse-benchmark-record.v1",
+  "recorded_on": "2026-08-17",
+  "execution_commit": "7c5272fa4bb956e3fe63c84e522053e233093d95",
+  "migration_terminal": "140_numeric_semantic_publication_receipt.sql",
+  "database": {
+    "provisioning": "fresh_disposable_postgresql",
+    "endpoint": "redacted"
+  },
+  "fixture": {
+    "fixture_id": "numeric_reuse_v1",
+    "manifest_sha256": "d8c1a4fae7f723b2314bc37b37306d75b405f631e4cbb51389bf3d0db1748c18"
+  },
+  "outcomes": {
+    "cold": {
+      "accepted": true,
+      "wall_seconds": 33.506060623,
+      "receipt_sha256": "300c001c8405446664bdc9b252c7a74535b08dac4956fcf402b2af3ed7da740b"
+    },
+    "exact_replay": {
+      "accepted": true,
+      "wall_seconds": 1.806734405,
+      "receipt_equal_to_cold": true,
+      "receipt_loaded_without_reconstruction": true
+    },
+    "small_edit": {
+      "accepted": true,
+      "wall_seconds": 34.066136283,
+      "locality": {
+        "state": "indeterminate",
+        "claim_made": false,
+        "matching_ambiguity_count": 965,
+        "changed_leaf_count": {
+          "cold": 1253,
+          "edit": 1256
+        },
+        "outside_closure_leaf_count": {
+          "cold": 1227,
+          "edit": 1230
+        },
+        "reason": "non-unique source anchors are not guessed through"
+      }
+    },
+    "same_domain_new_document": {
+      "accepted": true,
+      "wall_seconds": 5.150405397,
+      "size_caveat": "Token-normalised empirical evidence only; this smaller source does not establish work-per-token non-increase."
+    }
+  }
+}
