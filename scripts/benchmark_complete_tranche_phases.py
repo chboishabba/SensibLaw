@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Run one complete tranche while durably timing its phase checkpoints."""
+"""Run one complete tranche while durably timing every phase receipt."""
 
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import os
 from pathlib import Path
-import subprocess
 import sys
 import tempfile
-from time import monotonic_ns, sleep, time_ns
+from time import monotonic_ns, time_ns
 from typing import Any, Mapping
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,14 +18,6 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.runtime.complete_tranche_phase_timing import CompleteTranchePhaseTimer
-
-
-def _read_state(path: Path) -> dict[str, Any] | None:
-    try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except (FileNotFoundError, json.JSONDecodeError, OSError):
-        return None
-    return dict(value) if isinstance(value, Mapping) else None
 
 
 def _write(path: Path, payload: Mapping[str, Any]) -> None:
@@ -54,64 +46,101 @@ def _parse_args() -> tuple[argparse.Namespace, list[str]]:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tranche", required=True, choices=("GWB", "AU", "BREXIT"))
     parser.add_argument("--output-root", type=Path, required=True)
-    parser.add_argument("--poll-ms", type=int, default=100)
     args, passthrough = parser.parse_known_args()
-    if args.poll_ms < 10:
-        parser.error("--poll-ms must be >= 10")
     return args, passthrough
+
+
+def _load_runner():
+    path = ROOT / "scripts/run_complete_tranche.py"
+    spec = importlib.util.spec_from_file_location("_sensiblaw_timed_complete_tranche", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load complete tranche runner: {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def main() -> int:
     args, passthrough = _parse_args()
     output_root = args.output_root.resolve()
-    tranche_root = output_root / args.tranche.lower()
-    state_path = tranche_root / "tranche_run_state.json"
-    timing_path = tranche_root / "complete_tranche_phase_timings.json"
-
-    timer = CompleteTranchePhaseTimer()
-    timer.prime(
-        _read_state(state_path), epoch_ns=time_ns(), monotonic_ns=monotonic_ns()
+    timing_path = (
+        output_root
+        / args.tranche.lower()
+        / "complete_tranche_phase_timings.json"
     )
-    command = [
-        sys.executable,
-        str(ROOT / "scripts/run_complete_tranche.py"),
-        "--tranche",
-        args.tranche,
-        "--output-root",
-        str(output_root),
-        *passthrough,
-    ]
-    process = subprocess.Popen(command, cwd=ROOT)
-    returncode: int | None = None
-    try:
-        while returncode is None:
-            state = _read_state(state_path)
-            if state is not None:
-                changed = timer.observe(
-                    state, epoch_ns=time_ns(), monotonic_ns=monotonic_ns()
-                )
-                if changed is not None:
-                    _write(
-                        timing_path,
-                        timer.report(tranche=args.tranche, process_returncode=None),
-                    )
-            returncode = process.poll()
-            if returncode is None:
-                sleep(args.poll_ms / 1000)
-    finally:
-        if returncode is None:
-            returncode = process.wait()
-        state = _read_state(state_path)
-        if state is not None:
-            timer.observe(state, epoch_ns=time_ns(), monotonic_ns=monotonic_ns())
+    timer = CompleteTranchePhaseTimer()
+    timer.prime(None, epoch_ns=time_ns(), monotonic_ns=monotonic_ns())
+    runner = _load_runner()
+    original_phase_receipt = runner.PhaseReceipt
+    original_load_checkpoint = runner._load_phase_checkpoint
+    suppress_observation = False
+
+    def persist(returncode: int | None) -> None:
         _write(
             timing_path,
             timer.report(tranche=args.tranche, process_returncode=returncode),
         )
 
-    report = timer.report(tranche=args.tranche, process_returncode=returncode)
-    print(json.dumps(report, indent=2, sort_keys=True))
-    return int(returncode)
+    class TimedPhaseReceipt(original_phase_receipt):
+        """Drop-in PhaseReceipt that observes completion but not receipt identity."""
+
+        def __init__(self, phase, state, input_refs, output_refs, detail):
+            super().__init__(phase, state, input_refs, output_refs, detail)
+            if suppress_observation:
+                return
+            synthetic_state = {
+                "last_phase": phase.name,
+                "last_receipt_ref": self.receipt_ref,
+                "phases": {
+                    phase.name: {
+                        "phase_ref": phase.phase_ref,
+                        "state": state,
+                        "detail": dict(detail),
+                    }
+                },
+            }
+            timer.observe(
+                synthetic_state,
+                epoch_ns=time_ns(),
+                monotonic_ns=monotonic_ns(),
+            )
+            persist(None)
+
+    def load_checkpoint_without_charging_reuse(*load_args, **load_kwargs):
+        nonlocal suppress_observation
+        previous = suppress_observation
+        suppress_observation = True
+        try:
+            return original_load_checkpoint(*load_args, **load_kwargs)
+        finally:
+            suppress_observation = previous
+
+    runner.PhaseReceipt = TimedPhaseReceipt
+    runner._load_phase_checkpoint = load_checkpoint_without_charging_reuse
+
+    saved_argv = sys.argv
+    returncode = 1
+    try:
+        sys.argv = [
+            str(ROOT / "scripts/run_complete_tranche.py"),
+            "--tranche",
+            args.tranche,
+            "--output-root",
+            str(output_root),
+            *passthrough,
+        ]
+        returncode = int(runner.main())
+        return returncode
+    finally:
+        sys.argv = saved_argv
+        persist(returncode)
+        print(
+            json.dumps(
+                timer.report(tranche=args.tranche, process_returncode=returncode),
+                indent=2,
+                sort_keys=True,
+            )
+        )
 
 
 if __name__ == "__main__":
