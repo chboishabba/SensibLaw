@@ -86,7 +86,6 @@ def project_numeric_semantic_leaf_audit(
             "occurrence_key": occurrence_key or shape,
         }
 
-    # ------------------------------------------------------------------ objects
     cursor.execute(
         """
         SELECT object.object_id, token.start_char, token.end_char
@@ -129,9 +128,7 @@ def project_numeric_semantic_leaf_audit(
         (run_ref, document_ref),
     )
     object_kind: dict[int, bytes | None] = {}
-    object_support_shape: dict[int, list[tuple[Any, ...]]] = {
-        key: [] for key in objects
-    }
+    object_support_shape: dict[int, list[tuple[Any, ...]]] = {key: [] for key in objects}
     for object_id, kind_digest, ordinal, lemma_digest, dependency_digest in cursor.fetchall():
         key = int(object_id)
         object_kind[key] = _bytes(kind_digest)
@@ -153,7 +150,6 @@ def project_numeric_semantic_leaf_audit(
             ),
         )
 
-    # ------------------------------------------------------------------ factors
     cursor.execute(
         """
         SELECT factor.factor_id, token.start_char, token.end_char, edge.object_id
@@ -221,12 +217,10 @@ def project_numeric_semantic_leaf_audit(
             ),
         )
 
-    # ---------------------------------------------------------------- residuals
-    # Demand occurrence identity is producer-side.  Migration 135 records exact
-    # trigger/target/evidence token occurrences while the producer factor and
-    # typed role slots are still available.  Those coordinates are safe for
-    # correspondence; resolved_target_* and demand state are semantic outcomes
-    # and deliberately never enter the occurrence key.
+    # Demand occurrence identity is producer-side. Migration 135 records exact
+    # trigger/target/evidence token occurrences while producer structure exists.
+    # resolved_target_* and demand state remain semantic outcomes and are absent
+    # from the occurrence key.
     cursor.execute(
         """
         SELECT demand.demand_id, region.start_char, region.end_char,
@@ -361,10 +355,8 @@ def project_numeric_semantic_leaf_audit(
             ),
         )
 
-    # ------------------------------------------------------------------ exports
-    # An export is source-free.  Its occurrence identity is inherited from the
-    # uniquely transported target dependency plus the stable producer slot
-    # (export_kind,target_kind). Key/residual/rank/score remain semantic value.
+    # Source-free exports inherit occurrence identity from their uniquely paired
+    # target plus the producer slot. Key/residual/rank/score remain value.
     cursor.execute(
         """
         SELECT export.export_kind, export.target_kind, key_symbol.symbol_digest,
@@ -427,10 +419,10 @@ def project_numeric_semantic_leaf_audit(
             _shape("export-occurrence:v2", int(export_kind), int(target_kind)),
         )
 
-    # ------------------------------------------------------------------- proofs
-    # Proof occurrence identity is producer rule/slot structure plus uniquely
-    # paired premises/arguments. Epistemic state, identity-entity selection and
-    # the final proof digest remain semantic value.
+    # Reproduce the receipt proof query exactly so each returned digest remains
+    # paired with the same derivation row even though the receipt root itself is
+    # order-insensitive. Producer rule/slot structure is correspondence identity;
+    # epistemic/result state and entity selection remain semantic value.
     proof_leaves = _proof_leaves(
         cursor,
         run_ref=run_ref,
@@ -441,8 +433,10 @@ def project_numeric_semantic_leaf_audit(
     cursor.execute(
         """
         SELECT DISTINCT derivation.derivation_id, derivation.rule_ref,
-               derivation.derivation_kind, factor_type.symbol_digest,
-               predicate.symbol_digest
+               derivation.derivation_kind, derivation.derivation_state,
+               derivation.epistemic_level, derivation.authority_class,
+               factor_type.symbol_digest, predicate.symbol_digest,
+               derivation.modal_state, derivation.temporal_state
           FROM execution.semantic_pnf_factor_derivation AS derivation
           JOIN execution.semantic_pnf_factor_derivation_premise AS premise
             ON premise.derivation_id=derivation.derivation_id
@@ -462,9 +456,7 @@ def project_numeric_semantic_leaf_audit(
     proof_rows = tuple(cursor.fetchall())
     proof_ids = [int(row[0]) for row in proof_rows]
     proof_premise_shape: dict[int, list[int]] = {key: [] for key in proof_ids}
-    proof_argument_shape: dict[int, list[tuple[Any, ...]]] = {
-        key: [] for key in proof_ids
-    }
+    proof_argument_shape: dict[int, list[tuple[Any, ...]]] = {key: [] for key in proof_ids}
     proof_dependencies: dict[int, list[str]] = {key: [] for key in proof_ids}
     if proof_ids:
         cursor.execute(
@@ -497,11 +489,7 @@ def project_numeric_semantic_leaf_audit(
         for proof_id, slot, role_digest, source_object_id, local_object_id in cursor.fetchall():
             key = int(proof_id)
             proof_argument_shape[key].append(
-                (
-                    int(slot),
-                    _bytes(role_digest),
-                    local_object_id is not None,
-                )
+                (int(slot), _bytes(role_digest), local_object_id is not None)
             )
             if int(source_object_id) in objects:
                 proof_dependencies[key].append(f"object:{int(source_object_id)}")
@@ -511,14 +499,13 @@ def project_numeric_semantic_leaf_audit(
     if len(proof_rows) != len(proof_leaves):
         raise RuntimeError("proof audit row count disagrees with numeric receipt")
     for ordinal, (row, digest) in enumerate(zip(proof_rows, proof_leaves, strict=True)):
-        proof_id, rule_ref, derivation_kind, factor_type_digest, predicate_digest = row
-        proof_id = int(proof_id)
+        proof_id = int(row[0])
         producer_shape = _shape(
             "proof-occurrence:v2",
-            _tag(str(rule_ref)),
-            int(derivation_kind),
-            _bytes(factor_type_digest),
-            _bytes(predicate_digest),
+            _tag(str(row[1])),
+            int(row[2]),
+            _bytes(row[6]),
+            _bytes(row[7]),
             tuple(proof_premise_shape[proof_id]),
             tuple(proof_argument_shape[proof_id]),
         )
@@ -532,7 +519,6 @@ def project_numeric_semantic_leaf_audit(
             producer_shape,
         )
 
-    # Replace database-local references with deterministic audit-local refs.
     refs: dict[str, str] = {}
     used: dict[str, int] = {}
     for old, node in sorted(
@@ -566,9 +552,7 @@ def project_numeric_semantic_leaf_audit(
     return {
         "schema_version": "sensiblaw.numeric-semantic-leaf-audit.v1",
         "transport_authority": "audit_boundary_only",
-        "correspondence_basis": (
-            "source-edit-transport+producer-structural-occurrence:v2"
-        ),
+        "correspondence_basis": "source-edit-transport+producer-structural-occurrence:v2",
         "nodes": sorted(nodes, key=lambda node: node["ref"]),
         "parser_sentence_spans": [
             [int(start), int(end)] for start, end in cursor.fetchall()
