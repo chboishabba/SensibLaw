@@ -11,13 +11,22 @@ def _audit(nodes):
     }
 
 
-def _node(ref, family, digest, spans=(), dependencies=()):
+def _node(
+    ref,
+    family,
+    digest,
+    spans=(),
+    dependencies=(),
+    *,
+    occurrence_key="",
+):
     return {
         "ref": ref,
         "family": family,
         "digest_sha256": digest * 64,
         "source_spans": [list(span) for span in spans],
         "dependencies": list(dependencies),
+        "occurrence_key": occurrence_key,
     }
 
 
@@ -91,3 +100,73 @@ def test_ambiguous_source_alignment_is_indeterminate() -> None:
 
     assert result["state"] == "indeterminate"
     assert result["claim_made"] is False
+
+
+def test_structural_occurrence_key_resolves_same_span_multiplicity() -> None:
+    cold = _audit(
+        [
+            _node(
+                "object:a",
+                "object",
+                "a",
+                ((11, 17),),
+                occurrence_key="kind-a",
+            ),
+            _node(
+                "object:b",
+                "object",
+                "b",
+                ((11, 17),),
+                occurrence_key="kind-b",
+            ),
+        ]
+    )
+    edit = _audit(
+        [
+            _node(
+                "object:c",
+                "object",
+                "a",
+                ((10, 16),),
+                occurrence_key="kind-a",
+            ),
+            _node(
+                "object:d",
+                "object",
+                "b",
+                ((10, 16),),
+                occurrence_key="kind-b",
+            ),
+        ]
+    )
+
+    result = compare_leaf_locality(
+        cold,
+        edit,
+        cold_text="Alpha law. Stable rule.",
+        edit_text="Beta law. Stable rule.",
+    )
+
+    assert result["matching_ambiguity_count"] == 0
+    assert result["matched_leaf_count"] == 2
+    assert result["state"] == "verified"
+
+
+def test_insertion_uses_exact_character_transport_for_unchanged_suffix() -> None:
+    cold = _audit(
+        [_node("object:a", "object", "a", ((11, 17),), occurrence_key="stable")]
+    )
+    edit = _audit(
+        [_node("object:b", "object", "a", ((16, 22),), occurrence_key="stable")]
+    )
+
+    result = compare_leaf_locality(
+        cold,
+        edit,
+        cold_text="Alpha law. Stable rule.",
+        edit_text="Alpha PLUS law. Stable rule.",
+    )
+
+    assert result["matching_ambiguity_count"] == 0
+    assert result["matched_leaf_count"] == 1
+    assert result["edit_transport"]["net_character_delta"] == 5
