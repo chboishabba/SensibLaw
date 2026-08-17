@@ -100,42 +100,28 @@ def test_ambiguous_source_alignment_is_indeterminate() -> None:
 
     assert result["state"] == "indeterminate"
     assert result["claim_made"] is False
+    assert result["matching_ambiguity_by_family"] == {"object": 1}
+    assert result["matching_ambiguity_by_multiplicity"] == {"2x2": 1}
 
 
 def test_structural_occurrence_key_resolves_same_span_multiplicity() -> None:
     cold = _audit(
         [
             _node(
-                "object:a",
-                "object",
-                "a",
-                ((11, 17),),
-                occurrence_key="kind-a",
+                "object:a", "object", "a", ((11, 17),), occurrence_key="kind-a"
             ),
             _node(
-                "object:b",
-                "object",
-                "b",
-                ((11, 17),),
-                occurrence_key="kind-b",
+                "object:b", "object", "b", ((11, 17),), occurrence_key="kind-b"
             ),
         ]
     )
     edit = _audit(
         [
             _node(
-                "object:c",
-                "object",
-                "a",
-                ((10, 16),),
-                occurrence_key="kind-a",
+                "object:c", "object", "a", ((10, 16),), occurrence_key="kind-a"
             ),
             _node(
-                "object:d",
-                "object",
-                "b",
-                ((10, 16),),
-                occurrence_key="kind-b",
+                "object:d", "object", "b", ((10, 16),), occurrence_key="kind-b"
             ),
         ]
     )
@@ -171,10 +157,71 @@ def test_insertion_uses_exact_character_transport_for_unchanged_suffix() -> None
     assert result["matched_leaf_count"] == 1
     assert result["edit_transport"]["net_character_delta"] == 5
     assert result["transport_match_coverage_by_family"]["cold"]["object"] == {
-        "matched_sourceful_leaf_count": 1,
-        "transport_eligible_sourceful_leaf_count": 1,
+        "matched_leaf_count": 1,
+        "eligible_leaf_count": 1,
         "kappa_delta": 1.0,
     }
+
+
+def test_source_free_identity_propagates_from_dependency_and_slot() -> None:
+    cold = _audit(
+        [
+            _node("object:a", "object", "a", ((11, 17),), occurrence_key="stable"),
+            _node(
+                "export:a",
+                "export",
+                "b",
+                (),
+                ("object:a",),
+                occurrence_key="export-slot:1",
+            ),
+            _node(
+                "proof:a",
+                "proof",
+                "c",
+                (),
+                ("object:a",),
+                occurrence_key="proof-rule:r",
+            ),
+        ]
+    )
+    edit = _audit(
+        [
+            _node("object:b", "object", "a", ((10, 16),), occurrence_key="stable"),
+            _node(
+                "export:b",
+                "export",
+                "d",
+                (),
+                ("object:b",),
+                occurrence_key="export-slot:1",
+            ),
+            _node(
+                "proof:b",
+                "proof",
+                "e",
+                (),
+                ("object:b",),
+                occurrence_key="proof-rule:r",
+            ),
+        ]
+    )
+
+    result = compare_leaf_locality(
+        cold,
+        edit,
+        cold_text="Alpha law. Stable rule.",
+        edit_text="Beta law. Stable rule.",
+    )
+
+    assert result["matching_ambiguity_count"] == 0
+    assert result["matched_leaf_count"] == 3
+    assert result["all_leaf_match_coverage_by_family"]["cold"]["export"][
+        "kappa_delta"
+    ] == 1.0
+    assert result["all_leaf_match_coverage_by_family"]["cold"]["proof"][
+        "kappa_delta"
+    ] == 1.0
 
 
 def test_repeated_source_free_ambiguity_is_counted_once() -> None:
@@ -202,3 +249,5 @@ def test_repeated_source_free_ambiguity_is_counted_once() -> None:
     assert result["state"] == "indeterminate"
     assert result["matching_ambiguity_count"] == 1
     assert result["matching_ambiguous_leaf_count"] == 3
+    assert result["matching_ambiguity_by_family"] == {"export": 1}
+    assert result["matching_ambiguity_by_multiplicity"] == {"1x2": 1}
