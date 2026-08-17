@@ -278,6 +278,12 @@ def compare_leaf_locality(
 
     eligible_cold = sum(1 for row in cold_nodes.values() if _spans(row))
     eligible_edit = sum(1 for row in edit_nodes.values() if _spans(row))
+    matched_sourceful_cold = sum(
+        1 for left_ref in pairs if _spans(cold_nodes[left_ref])
+    )
+    matched_sourceful_edit = sum(
+        1 for right_ref in pairs.values() if _spans(edit_nodes[right_ref])
+    )
 
     def ratio(numerator: int, denominator: int) -> float | None:
         return numerator / denominator if denominator else None
@@ -288,13 +294,17 @@ def compare_leaf_locality(
         "matching_ambiguity_count": ambiguous_groups,
         "matching_ambiguous_leaf_count": ambiguous_leaves,
         "matched_leaf_count": len(pairs),
+        "matched_sourceful_leaf_count": {
+            "cold": matched_sourceful_cold,
+            "edit": matched_sourceful_edit,
+        },
         "transport_eligible_leaf_count": {
             "cold": eligible_cold,
             "edit": eligible_edit,
         },
         "transport_match_coverage": {
-            "cold": ratio(len(pairs), eligible_cold),
-            "edit": ratio(len(pairs), eligible_edit),
+            "cold": ratio(matched_sourceful_cold, eligible_cold),
+            "edit": ratio(matched_sourceful_edit, eligible_edit),
         },
         "changed_leaf_count": {"cold": len(changed_cold), "edit": len(changed_edit)},
         "reachable_leaf_count": {"cold": len(cold_closure), "edit": len(edit_closure)},
