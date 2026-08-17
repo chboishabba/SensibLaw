@@ -5,9 +5,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 from time import monotonic_ns, sleep, time_ns
 from typing import Any, Mapping
 
@@ -28,9 +30,24 @@ def _read_state(path: Path) -> dict[str, Any] | None:
 
 def _write(path: Path, payload: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temp = path.with_suffix(path.suffix + ".tmp")
-    temp.write_text(json.dumps(dict(payload), indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    with tempfile.NamedTemporaryFile(
+        "w",
+        encoding="utf-8",
+        dir=path.parent,
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        delete=False,
+    ) as handle:
+        handle.write(json.dumps(dict(payload), indent=2, sort_keys=True) + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+        temp = Path(handle.name)
     temp.replace(path)
+    parent_fd = os.open(path.parent, os.O_RDONLY)
+    try:
+        os.fsync(parent_fd)
+    finally:
+        os.close(parent_fd)
 
 
 def _parse_args() -> tuple[argparse.Namespace, list[str]]:
@@ -52,7 +69,9 @@ def main() -> int:
     timing_path = tranche_root / "complete_tranche_phase_timings.json"
 
     timer = CompleteTranchePhaseTimer()
-    timer.prime(_read_state(state_path), epoch_ns=time_ns(), monotonic_ns=monotonic_ns())
+    timer.prime(
+        _read_state(state_path), epoch_ns=time_ns(), monotonic_ns=monotonic_ns()
+    )
     command = [
         sys.executable,
         str(ROOT / "scripts/run_complete_tranche.py"),
