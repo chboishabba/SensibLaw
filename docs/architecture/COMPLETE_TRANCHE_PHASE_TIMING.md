@@ -3,16 +3,21 @@
 The 12k numeric fixture is a kernel benchmark. It cannot identify the dominant
 minutes/hours phase of a complete source-to-checkpoint ingest.
 
-`scripts/benchmark_complete_tranche_phases.py` runs one existing complete tranche
-and observes its already-durable `tranche_run_state.json` checkpoints. The
-semantic runner is not reimplemented or wrapped phase-by-phase. Consecutive
-checkpoint arrivals delimit the wall interval required to reach the newly
-completed phase.
+`scripts/benchmark_complete_tranche_phases.py` executes the existing tranche
+runner in-process and interposes only on `PhaseReceipt` construction. A receipt
+is constructed immediately after its phase work, so consecutive receipt
+completions delimit the wall interval spent reaching each phase. The semantic
+runner and semantic receipt identity are unchanged.
+
+This is stronger than polling `tranche_run_state.json`: even two very fast phases
+completed between filesystem polls are observed separately. Checkpoint reloads
+are explicitly suppressed, so already-completed work on a resumed run is not
+charged as new phase execution.
 
 The observer writes `complete_tranche_phase_timings.json` after every newly
-observed checkpoint using fsync + atomic replace + parent-directory fsync. A
-failed or interrupted tranche therefore retains timings for all completed
-phases.
+completed phase using fsync + atomic replace + parent-directory fsync. A failed
+or interrupted tranche therefore retains timings for all receipts constructed
+before the failure.
 
 The timing report records, where the phase receipt exposes them:
 
@@ -44,8 +49,8 @@ Arguments not owned by the timing wrapper are passed through to
 `run_complete_tranche.py`.
 
 For a genuinely fresh full-ingest measurement, use a fresh output root. On a
-resumed run the observer primes itself from the existing checkpoint and charges
-only newly completed work; already-completed phases are not falsely timed again.
+resumed run, checkpoint-loaded `PhaseReceipt` objects are not charged as newly
+executed phases.
 
 This is execution observability only. Timing values never participate in phase
 receipt identity or semantic authority.
