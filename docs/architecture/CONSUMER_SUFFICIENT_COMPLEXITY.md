@@ -88,6 +88,39 @@ Binary-lifting rows are the subset whose distance is `2^p`; typed ancestors are
 the nearest ancestor for each region kind.  Both are inserted set-wise.  The
 semantic parent relation and return-count contract are unchanged.
 
+### Intermediate hierarchy ancestry is deferred
+
+`_close_parent_interface()` assigns each newly created paragraph/adaptive parent
+to its child interfaces and historically rebuilt every affected child ancestor
+path plus the new parent path immediately.  The hierarchy planner itself does
+not consume those transient projections while parent assignment is still in
+flux.
+
+Migration 143 therefore lets targeted ancestor refreshes return before writes
+while the document region remains open.  The document-close trigger remains the
+authoritative first full projection boundary.  Adjacent pair interfaces are
+created after document closure, so their targeted ancestor refresh remains live.
+
+This is the formal consumer-sufficiency rule applied physically:
+
+```text
+no consumer yet -> do not maintain a derived carrier yet.
+```
+
+### Duplicate full ancestor rebuilds are content-addressed
+
+Document closure already triggers `rebuild_pnf_document_ancestors`, and the
+numeric hierarchy planner also requests the same rebuild immediately after
+closing the document.  Migration 144 preserves both call boundaries but stores
+an execution-only SHA-256 freshness key over the exact ordered
+`(interface_id,parent_interface_id)` relation.  If the relation and interface
+count are unchanged, a repeat request returns before DELETE/recursive work.  Any
+parent/interface change invalidates the key and rebuilds the complete projection.
+
+The fingerprint deliberately uses database-local ids because it is only a
+physical projection-cache key.  It is not portable semantic identity and is not
+consumed by receipts.
+
 ### Owner reduction
 
 The bounded streaming owner may repeatedly invoke the canonical reducer over the
@@ -125,9 +158,38 @@ a changed-interface/delta refresh for the second boundary, not deletion of one
 of the two semantic phases.  That optimization remains gated on an explicit
 changed-interface certificate.
 
+## Historical hour-scale paths and production reachability
+
+The historical rich compiler exposed two major hour-scale families: local typing
+diagnostics and rich PostgreSQL persistence.  The strict numeric compiler no
+longer requires either carrier.  It runs `run_streaming_spacy_execution`, writes
+the numeric hyperfabric as it is constructed, and its outer publication step
+persists only source/build/occurrence authority plus optional controlled
+observability.
+
+The compatibility implementations remain intentionally available for parity,
+audit and migration work.  This distinction matters because the historical
+`run_complete_tranche.py` CLI explicitly selects `local-compatibility-replay`
+unless `--strict-exact` is supplied, overriding the repository-wide PostgreSQL
+numeric-production default.
+
+Production entrypoints now fail on the safe side of that old CLI contract:
+
+- `scripts/run_complete_tranche_production.py` injects `--strict-exact`;
+- `scripts/benchmark_complete_tranche_phases.py` also defaults to strict numeric
+  and requires explicit `--compatibility-replay` to benchmark the historical
+  path.
+
+Thus an ordinary production/full-tranche timing run cannot silently resurrect
+the old document-sized typing and compatibility-persistence work simply because
+the strict flag was forgotten.  The historical runner is retained as a
+compatibility surface rather than silently changing a parity/migration CLI in
+place.
+
 ## Empirical boundary
 
-These structural changes are designed to remove repeated work before another
-large ingest, but they are not themselves wall-time measurements.  The durable
-complete-tranche phase timer remains the empirical authority for deciding which
-minutes/hours phase dominates after the migrations are applied.
+These structural changes remove demonstrably redundant or non-production work
+before another large ingest, but they are not themselves wall-time measurements.
+The durable complete-tranche phase timer remains the empirical authority for
+deciding which minutes/hours phase dominates after migrations 141--144 are
+applied and the strict numeric production entrypoint is used.
