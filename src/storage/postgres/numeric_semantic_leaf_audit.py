@@ -2,8 +2,9 @@
 
 The projection is intentionally ephemeral: it is a benchmark inspection aid,
 not a replacement for the portable publication receipt or a persistence model.
-Structural occurrence keys deliberately exclude the semantic leaf digest so
-cross-version correspondence can be tested independently of semantic equality.
+Structural occurrence keys deliberately exclude the semantic leaf digest and
+resolution state so cross-version correspondence can be tested independently of
+semantic equality.
 """
 
 from __future__ import annotations
@@ -169,7 +170,7 @@ def project_numeric_semantic_leaf_audit(
     cursor.execute(
         """
         SELECT factor.factor_id, factor_type.symbol_digest, predicate.symbol_digest,
-               edge.slot_ordinal, role.symbol_digest, edge.resolution_state, edge.required
+               edge.slot_ordinal, role.symbol_digest, edge.required
           FROM execution.semantic_pnf_factor AS factor
           JOIN execution.semantic_pnf_region AS region ON region.region_id=factor.region_id
           JOIN execution.semantic_symbol AS factor_type ON factor_type.symbol_id=factor.factor_type_symbol_id
@@ -183,13 +184,11 @@ def project_numeric_semantic_leaf_audit(
     )
     factor_head: dict[int, tuple[bytes | None, bytes | None]] = {}
     factor_roles: dict[int, list[tuple[Any, ...]]] = {key: [] for key in factors}
-    for factor_id, factor_type, predicate, slot, role, resolution, required in cursor.fetchall():
+    for factor_id, factor_type, predicate, slot, role, required in cursor.fetchall():
         key = int(factor_id)
         factor_head[key] = (_bytes(factor_type), _bytes(predicate))
         if slot is not None:
-            factor_roles[key].append(
-                (int(slot), _bytes(role), int(resolution), bool(required))
-            )
+            factor_roles[key].append((int(slot), _bytes(role), bool(required)))
     for factor_id, digest in factors.items():
         add(
             "factor",
