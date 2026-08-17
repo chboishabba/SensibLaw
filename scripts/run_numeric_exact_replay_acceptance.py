@@ -70,8 +70,9 @@ def main() -> int:
     forwarded, reference_raw = _remove_pair(
         forwarded, "--reference-numeric-semantic-receipt"
     )
-    forwarded, output_raw = _remove_pair(
-        forwarded, "--numeric-semantic-receipt-output"
+    forwarded, output_raw = _remove_pair(forwarded, "--numeric-semantic-receipt-output")
+    forwarded, leaf_audit_raw = _remove_pair(
+        forwarded, "--numeric-semantic-leaf-audit-output"
     )
     acceptance_raw = _value(forwarded, "--acceptance-root")
     output_root_raw = _value(forwarded, "--output-root")
@@ -86,6 +87,10 @@ def main() -> int:
     )
     environment = os.environ.copy()
     environment["SENSIBLAW_NUMERIC_SEMANTIC_RECEIPT_PATH"] = str(receipt_output)
+    if leaf_audit_raw is not None:
+        environment["SENSIBLAW_NUMERIC_SEMANTIC_LEAF_AUDIT_PATH"] = str(
+            Path(leaf_audit_raw).resolve()
+        )
     command = [
         sys.executable,
         str(ROOT / "scripts" / "run_exact_0008_parallel_acceptance.py"),
@@ -107,12 +112,20 @@ def main() -> int:
     reference = (
         _json(Path(reference_raw).resolve()) if reference_raw is not None else None
     )
-    parity = compare_numeric_receipts(reference, current) if reference else {
-        "semantic_parity": None,
-        "state": "baseline_numeric_receipt_recorded" if current else "numeric_receipt_missing",
-    }
-    accepted = numeric_publication and current is not None and (
-        reference is None or parity.get("semantic_parity") is True
+    parity = (
+        compare_numeric_receipts(reference, current)
+        if reference
+        else {
+            "semantic_parity": None,
+            "state": "baseline_numeric_receipt_recorded"
+            if current
+            else "numeric_receipt_missing",
+        }
+    )
+    accepted = (
+        numeric_publication
+        and current is not None
+        and (reference is None or parity.get("semantic_parity") is True)
     )
     report = {
         "schema_version": "sensiblaw.numeric-exact-replay-acceptance.v1",
@@ -126,6 +139,7 @@ def main() -> int:
         "reference_numeric_semantic_receipt": reference_raw,
         "strict_acceptance_receipt": str(strict_path),
         "receipt_transport": str(receipt_output),
+        "leaf_audit_transport": leaf_audit_raw,
     }
     _write(acceptance_root / "numeric-replay-acceptance.json", report)
     print(json.dumps(report, indent=2, sort_keys=True))

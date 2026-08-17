@@ -25,6 +25,9 @@ from src.storage.postgres.numeric_semantic_receipt import (
     load_numeric_semantic_receipt,
     persist_numeric_semantic_receipt,
 )
+from src.storage.postgres.numeric_semantic_leaf_audit import (
+    project_numeric_semantic_leaf_audit,
+)
 from src.storage.postgres.operational_build_store import operational_build_ref
 from src.storage.postgres.spacy_parser_model import connect
 
@@ -36,7 +39,10 @@ _FRESH_RECEIPT: ContextVar[
 
 
 def _receipt_key(
-    *, document_ref: str, canonical_text_sha256: str, parser_contract_ref: str,
+    *,
+    document_ref: str,
+    canonical_text_sha256: str,
+    parser_contract_ref: str,
     build_key_sha256: str,
 ) -> tuple[str, str, str, str]:
     return (document_ref, canonical_text_sha256, parser_contract_ref, build_key_sha256)
@@ -83,7 +89,9 @@ def _existing_closed_run_ref(cursor: Any, *, document_ref: str) -> str:
     )
     row = cursor.fetchone()
     if row is None:
-        raise RuntimeError("completed numeric build has no closed numeric document authority")
+        raise RuntimeError(
+            "completed numeric build has no closed numeric document authority"
+        )
     return str(row[0])
 
 
@@ -106,6 +114,30 @@ def _emit_acceptance_coordinate(
             "receipt_source": receipt_source,
         }
     )
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(payload, sort_keys=True, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    temporary.replace(path)
+
+
+def _emit_leaf_audit(*, database_url: str, run_ref: str, document_ref: str) -> None:
+    """Emit optional benchmark-only leaf provenance after fresh authority work."""
+
+    raw = os.environ.get("SENSIBLAW_NUMERIC_SEMANTIC_LEAF_AUDIT_PATH")
+    if not raw:
+        return
+    connection = connect(database_url)
+    try:
+        with connection.cursor() as cursor:
+            payload = project_numeric_semantic_leaf_audit(
+                cursor, run_ref=run_ref, document_ref=document_ref
+            )
+    finally:
+        connection.close()
+    path = Path(raw)
+    path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(
         json.dumps(payload, sort_keys=True, ensure_ascii=False) + "\n",
@@ -156,6 +188,11 @@ def install_numeric_semantic_receipt_execution() -> bool:
         if isinstance(authority, dict):
             authority["semantic_receipt_ref"] = receipt.receipt_ref
             authority["semantic_receipt_sha256"] = receipt.receipt_sha256.hex()
+        _emit_leaf_audit(
+            database_url=str(kwargs["database_url"]),
+            run_ref=str(kwargs["run_ref"]),
+            document_ref=str(kwargs["document_ref"]),
+        )
         return compilation
 
     @wraps(original_persist)
@@ -172,7 +209,9 @@ def install_numeric_semantic_receipt_execution() -> bool:
         fresh = _FRESH_RECEIPT.get()
         receipt = fresh[1] if fresh is not None and fresh[0] == key else None
         receipt_compute_ns = fresh[2] if fresh is not None and fresh[0] == key else 0
-        receipt_source = "fresh_numeric_authority" if receipt is not None else "durable_build"
+        receipt_source = (
+            "fresh_numeric_authority" if receipt is not None else "durable_build"
+        )
         if fresh is not None and fresh[0] == key:
             _FRESH_RECEIPT.set(None)
 
@@ -187,7 +226,10 @@ def install_numeric_semantic_receipt_execution() -> bool:
                 with connection.cursor() as cursor:
                     durable = load_numeric_semantic_receipt(cursor, build_ref=build_ref)
                     if durable is not None:
-                        if receipt is not None and durable.receipt_sha256 != receipt.receipt_sha256:
+                        if (
+                            receipt is not None
+                            and durable.receipt_sha256 != receipt.receipt_sha256
+                        ):
                             raise RuntimeError(
                                 "fresh numeric receipt disagrees with completed build receipt"
                             )

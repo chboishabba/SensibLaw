@@ -136,7 +136,7 @@ def test_explicit_input_workflow_does_not_require_a_fixture(
         path.write_text(f"{name} source", encoding="utf-8")
     calls: list[tuple[str, Path]] = []
 
-    def fake_run(label, input_path, root, args, reference=None):
+    def fake_run(label, input_path, root, args, reference=None, leaf_audit=False):
         calls.append((label, input_path))
         receipt = {"receipt_sha256": label, "receipt_compute_ns": 0}
         return {

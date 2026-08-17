@@ -17,6 +17,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from src.runtime.numeric_semantic_leaf_locality import compare_leaf_locality
+
 _FIBRE_ROOTS = (
     "parser_root_sha256",
     "object_root_sha256",
@@ -125,6 +127,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--owner-partitions", type=int, default=8)
     parser.add_argument("--worker-budget", type=int, default=4)
     parser.add_argument("--require-empty-receipt-table", action="store_true")
+    parser.add_argument("--require-small-edit-leaf-locality", action="store_true")
     args = parser.parse_args()
     if not args.database_url:
         parser.error("--database-url or DATABASE_URL is required")
@@ -192,9 +195,11 @@ def _run(
     root: Path,
     args: argparse.Namespace,
     reference: Path | None = None,
+    leaf_audit: bool = False,
 ) -> dict[str, Any]:
     output_root, acceptance_root = root / label / "output", root / label / "acceptance"
     receipt_path = acceptance_root / "numeric-semantic-receipt.json"
+    leaf_audit_path = acceptance_root / "numeric-semantic-leaf-audit.json"
     command = [
         sys.executable,
         str(ROOT / "scripts/run_numeric_exact_replay_acceptance.py"),
@@ -224,11 +229,14 @@ def _run(
     ]
     if reference is not None:
         command.extend(("--reference-numeric-semantic-receipt", str(reference)))
+    if leaf_audit:
+        command.extend(("--numeric-semantic-leaf-audit-output", str(leaf_audit_path)))
     started = monotonic_ns()
     completed = subprocess.run(command, cwd=ROOT, check=False)
     report_path = acceptance_root / "numeric-replay-acceptance.json"
     report = _json(report_path) if report_path.exists() else {}
     receipt = _json(receipt_path) if receipt_path.exists() else None
+    audit = _json(leaf_audit_path) if leaf_audit_path.exists() else None
     progress_path = (
         output_root / args.tranche.lower() / "local_pnf_compile_progress.json"
     )
@@ -242,6 +250,8 @@ def _run(
         "numeric_semantic_parity": report.get("numeric_semantic_parity"),
         "receipt": receipt,
         "receipt_path": str(receipt_path),
+        "leaf_audit": audit,
+        "leaf_audit_path": str(leaf_audit_path),
         "receipt_compute_seconds": int(receipt.get("receipt_compute_ns") or 0)
         / 1_000_000_000
         if receipt
@@ -269,9 +279,9 @@ def main() -> int:
     root.mkdir(parents=True, exist_ok=True)
     if args.require_empty_receipt_table:
         _assert_empty(args.database_url)
-    cold = _run("cold", inputs["cold"], root, args)
+    cold = _run("cold", inputs["cold"], root, args, leaf_audit=True)
     exact = _run("exact-replay", inputs["cold"], root, args, Path(cold["receipt_path"]))
-    edit = _run("small-edit", inputs["edit"], root, args)
+    edit = _run("small-edit", inputs["edit"], root, args, leaf_audit=True)
     domain = _run("same-domain-new-document", inputs["domain"], root, args)
     cold_receipt, edit_receipt, domain_receipt = (
         item.get("receipt") or {} for item in (cold, edit, domain)
@@ -283,6 +293,19 @@ def main() -> int:
         "post_parser_work_ns_per_token"
     )
     parity = exact.get("numeric_semantic_parity")
+    try:
+        locality = compare_leaf_locality(
+            cold.get("leaf_audit") or {},
+            edit.get("leaf_audit") or {},
+            cold_text=inputs["cold"].read_text(encoding="utf-8"),
+            edit_text=inputs["edit"].read_text(encoding="utf-8"),
+        )
+    except (OSError, ValueError) as error:
+        locality = {
+            "state": "indeterminate",
+            "claim_made": False,
+            "reason": str(error),
+        }
     report = {
         "schema_version": "sensiblaw.numeric-reuse-experiments.v1",
         "fixture": {
@@ -311,10 +334,7 @@ def main() -> int:
             for name in _FIBRE_ROOTS
             if cold_receipt.get(name) != edit_receipt.get(name)
         ],
-        "small_edit_dependency_locality": {
-            "state": "requires_leaf_dependency_closure_evidence",
-            "claim_made": False,
-        },
+        "small_edit_dependency_locality": locality,
         "same_domain_receipt_distinct": bool(
             cold_receipt
             and domain_receipt
@@ -335,20 +355,19 @@ def main() -> int:
     }
     _write(root / "numeric-reuse-experiments.json", report)
     print(json.dumps(report, indent=2, sort_keys=True))
-    return (
-        0
-        if all(
-            (
-                cold["accepted"],
-                exact["accepted"],
-                edit["accepted"],
-                domain["accepted"],
-                report["exact_replay_receipt_equal"],
-                report["exact_replay_receipt_loaded_without_reconstruction"],
-            )
+    accepted = all(
+        (
+            cold["accepted"],
+            exact["accepted"],
+            edit["accepted"],
+            domain["accepted"],
+            report["exact_replay_receipt_equal"],
+            report["exact_replay_receipt_loaded_without_reconstruction"],
         )
-        else 1
     )
+    if args.require_small_edit_leaf_locality:
+        accepted = accepted and locality.get("state") == "verified"
+    return 0 if accepted else 1
 
 
 if __name__ == "__main__":
