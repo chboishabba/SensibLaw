@@ -2,6 +2,8 @@
 
 The projection is intentionally ephemeral: it is a benchmark inspection aid,
 not a replacement for the portable publication receipt or a persistence model.
+Structural occurrence keys deliberately exclude the semantic leaf digest so
+cross-version correspondence can be tested independently of semantic equality.
 """
 
 from __future__ import annotations
@@ -32,13 +34,19 @@ def _shape(*values: Any) -> str:
     return sha256(repr(values).encode("utf-8")).hexdigest()
 
 
+def _bytes(value: Any) -> bytes | None:
+    return bytes(value) if value is not None else None
+
+
 def project_numeric_semantic_leaf_audit(
     cursor: Any, *, run_ref: str, document_ref: str
 ) -> dict[str, Any]:
     """Project receipt leaves and their direct provenance/dependency edges.
 
-    Database ids are used only while reading the authority.  The returned node
-    references are digest-derived, audit-local coordinates.
+    Database ids are used only while reading the authority. The returned node
+    references are digest-derived, audit-local coordinates. `occurrence_key`
+    contains stable structural/provenance shape only; semantic value remains in
+    `digest_sha256` and is compared only after correspondence is established.
     """
 
     objects = _object_leaves(cursor, run_ref=run_ref, document_ref=document_ref)
@@ -55,7 +63,13 @@ def project_numeric_semantic_leaf_audit(
     raw: dict[str, dict[str, Any]] = {}
 
     def add(
-        family: str, local_id: int, digest: bytes, spans=(), dependencies=(), shape=""
+        family: str,
+        local_id: int,
+        digest: bytes,
+        spans=(),
+        dependencies=(),
+        shape="",
+        occurrence_key="",
     ):
         raw[f"{family}:{local_id}"] = {
             "family": family,
@@ -67,6 +81,7 @@ def project_numeric_semantic_leaf_audit(
                 if value in raw or value.startswith(("object:", "factor:", "residual:"))
             ],
             "shape": shape,
+            "occurrence_key": occurrence_key or shape,
         }
 
     cursor.execute(
@@ -85,6 +100,37 @@ def project_numeric_semantic_leaf_audit(
     for object_id, start, end in cursor.fetchall():
         if start is not None:
             object_spans[int(object_id)].append((int(start), int(end)))
+
+    # Structural object identity is independent of promotion scores/state and of
+    # the final receipt digest. Ordered support role plus parser lemma/dependency
+    # symbols distinguish repeated same-span objects without using DB-local ids.
+    cursor.execute(
+        """
+        SELECT object.object_id, object_kind.symbol_digest,
+               support.ordinal, lemma.symbol_digest, dependency.symbol_digest
+          FROM execution.semantic_pnf_object AS object
+          JOIN execution.semantic_pnf_region AS region ON region.region_id=object.region_id
+          JOIN execution.semantic_symbol AS object_kind ON object_kind.symbol_id=object.object_kind_symbol_id
+          LEFT JOIN execution.semantic_pnf_object_token_support AS support ON support.object_id=object.object_id
+          LEFT JOIN execution.semantic_parser_token AS token ON token.token_id=support.token_id
+          LEFT JOIN execution.semantic_symbol AS lemma ON lemma.symbol_id=token.lemma_symbol_id
+          LEFT JOIN execution.semantic_symbol AS dependency ON dependency.symbol_id=token.dependency_symbol_id
+         WHERE region.run_ref=%s AND region.document_ref=%s
+         ORDER BY object.object_id, support.ordinal, token.start_char, token.end_char
+        """,
+        (run_ref, document_ref),
+    )
+    object_kind: dict[int, bytes | None] = {}
+    object_support_shape: dict[int, list[tuple[Any, ...]]] = {
+        key: [] for key in objects
+    }
+    for object_id, kind_digest, ordinal, lemma_digest, dependency_digest in cursor.fetchall():
+        key = int(object_id)
+        object_kind[key] = _bytes(kind_digest)
+        if ordinal is not None:
+            object_support_shape[key].append(
+                (int(ordinal), _bytes(lemma_digest), _bytes(dependency_digest))
+            )
     for object_id, digest in objects.items():
         add(
             "object",
@@ -92,6 +138,11 @@ def project_numeric_semantic_leaf_audit(
             digest,
             object_spans[object_id],
             shape=_shape("object", len(object_spans[object_id])),
+            occurrence_key=_shape(
+                "object-occurrence:v1",
+                object_kind.get(object_id),
+                tuple(object_support_shape[object_id]),
+            ),
         )
 
     cursor.execute(
@@ -114,6 +165,31 @@ def project_numeric_semantic_leaf_audit(
             factor_spans[factor_id].append((int(start), int(end)))
         if object_id is not None:
             factor_dependencies[factor_id].add(f"object:{int(object_id)}")
+
+    cursor.execute(
+        """
+        SELECT factor.factor_id, factor_type.symbol_digest, predicate.symbol_digest,
+               edge.slot_ordinal, role.symbol_digest, edge.resolution_state, edge.required
+          FROM execution.semantic_pnf_factor AS factor
+          JOIN execution.semantic_pnf_region AS region ON region.region_id=factor.region_id
+          JOIN execution.semantic_symbol AS factor_type ON factor_type.symbol_id=factor.factor_type_symbol_id
+          JOIN execution.semantic_symbol AS predicate ON predicate.symbol_id=factor.predicate_symbol_id
+          LEFT JOIN execution.semantic_pnf_hyperedge AS edge ON edge.factor_id=factor.factor_id
+          LEFT JOIN execution.semantic_symbol AS role ON role.symbol_id=edge.role_symbol_id
+         WHERE region.run_ref=%s AND region.document_ref=%s
+         ORDER BY factor.factor_id, edge.slot_ordinal
+        """,
+        (run_ref, document_ref),
+    )
+    factor_head: dict[int, tuple[bytes | None, bytes | None]] = {}
+    factor_roles: dict[int, list[tuple[Any, ...]]] = {key: [] for key in factors}
+    for factor_id, factor_type, predicate, slot, role, resolution, required in cursor.fetchall():
+        key = int(factor_id)
+        factor_head[key] = (_bytes(factor_type), _bytes(predicate))
+        if slot is not None:
+            factor_roles[key].append(
+                (int(slot), _bytes(role), int(resolution), bool(required))
+            )
     for factor_id, digest in factors.items():
         add(
             "factor",
@@ -125,6 +201,11 @@ def project_numeric_semantic_leaf_audit(
                 "factor",
                 len(factor_spans[factor_id]),
                 len(factor_dependencies[factor_id]),
+            ),
+            _shape(
+                "factor-occurrence:v1",
+                factor_head.get(factor_id),
+                tuple(factor_roles[factor_id]),
             ),
         )
 
@@ -157,13 +238,20 @@ def project_numeric_semantic_leaf_audit(
             }.get(int(target_kind))
             if family:
                 dependencies.append(f"{family}:{int(target_id)}")
+        residual_shape = _shape("residual", source_object_id is not None, target_kind)
         add(
             "residual",
             int(demand_id),
             demands[int(demand_id)],
             ((int(start), int(end)),),
             dependencies,
-            _shape("residual", source_object_id is not None, target_kind),
+            residual_shape,
+            _shape(
+                "residual-occurrence:v1",
+                source_object_id is not None,
+                int(target_kind) if target_kind is not None else None,
+                len(dependencies),
+            ),
         )
 
     cursor.execute(
@@ -210,18 +298,20 @@ def project_numeric_semantic_leaf_audit(
             float(score),
             target,
         )
+        export_shape = _shape("export", export_kind, target_kind, key, residual, rank)
         add(
             "export",
             ordinal,
             digest,
             (),
             (f"{family}:{int(target_id)}",),
-            _shape("export", export_kind, target_kind, key, residual, rank),
+            export_shape,
+            export_shape,
         )
 
-    # Proof leaves are exact receipt leaves.  Their factor/object dependencies
-    # are projected where available; entity identity remains part of the exact
-    # digest and is not reinterpreted by this audit layer.
+    # Proof leaves are exact receipt leaves. Their factor/object dependencies are
+    # projected where available; entity identity remains part of the exact digest
+    # and is not reinterpreted by this audit layer.
     proof_leaves = _proof_leaves(
         cursor,
         run_ref=run_ref,
@@ -261,13 +351,15 @@ def project_numeric_semantic_leaf_audit(
                 dependencies.append(f"factor:{int(value)}")
             elif str(family) == "object" and int(value) in objects:
                 dependencies.append(f"object:{int(value)}")
+        proof_shape = _shape("proof", len(dependencies))
         add(
             "proof",
             ordinal,
             digest,
             (),
             dependencies,
-            _shape("proof", len(dependencies)),
+            proof_shape,
+            proof_shape,
         )
 
     # Replace database-local references with deterministic audit-local refs.
@@ -289,6 +381,7 @@ def project_numeric_semantic_leaf_audit(
                 "family": node["family"],
                 "digest_sha256": node["digest_sha256"],
                 "shape": node["shape"],
+                "occurrence_key": node["occurrence_key"],
                 "source_spans": [list(span) for span in node["source_spans"]],
                 "dependencies": sorted(
                     refs[value] for value in node["dependencies"] if value in refs
@@ -302,6 +395,7 @@ def project_numeric_semantic_leaf_audit(
     return {
         "schema_version": "sensiblaw.numeric-semantic-leaf-audit.v1",
         "transport_authority": "audit_boundary_only",
+        "correspondence_basis": "source-edit-transport+structural-occurrence:v1",
         "nodes": sorted(nodes, key=lambda node: node["ref"]),
         "parser_sentence_spans": [
             [int(start), int(end)] for start, end in cursor.fetchall()
