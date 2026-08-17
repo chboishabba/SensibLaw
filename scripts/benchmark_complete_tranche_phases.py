@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Run one complete tranche while durably timing every phase receipt."""
+"""Run one complete tranche while durably timing every phase receipt.
+
+The timing harness is a production-performance entrypoint.  It therefore runs
+the strict numeric PostgreSQL path by default even though the historical tranche
+runner retains an explicit compatibility mode for parity/migration work.
+Compatibility replay must be requested here with ``--compatibility-replay``.
+"""
 
 from __future__ import annotations
 
@@ -46,6 +52,14 @@ def _parse_args() -> tuple[argparse.Namespace, list[str]]:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tranche", required=True, choices=("GWB", "AU", "BREXIT"))
     parser.add_argument("--output-root", type=Path, required=True)
+    parser.add_argument(
+        "--compatibility-replay",
+        action="store_true",
+        help=(
+            "Explicitly benchmark the historical local-compatibility replay path. "
+            "The default is strict numeric PostgreSQL production."
+        ),
+    )
     args, passthrough = parser.parse_known_args()
     return args, passthrough
 
@@ -60,8 +74,34 @@ def _load_runner():
     return module
 
 
+def _runner_strategy_args(
+    *, compatibility_replay: bool, passthrough: list[str]
+) -> list[str]:
+    """Return an explicit execution-mode argument for the underlying runner.
+
+    ``run_complete_tranche.py`` predates the repository-wide PostgreSQL numeric
+    production default and still interprets omission of ``--strict-exact`` as a
+    compatibility request.  Never let that historical CLI default silently
+    contaminate a production-performance measurement.
+    """
+
+    if compatibility_replay:
+        if "--strict-exact" in passthrough:
+            raise ValueError(
+                "--compatibility-replay and --strict-exact are mutually exclusive"
+            )
+        return list(passthrough)
+    if "--strict-exact" in passthrough:
+        return list(passthrough)
+    return ["--strict-exact", *passthrough]
+
+
 def main() -> int:
     args, passthrough = _parse_args()
+    runner_args = _runner_strategy_args(
+        compatibility_replay=args.compatibility_replay,
+        passthrough=passthrough,
+    )
     output_root = args.output_root.resolve()
     timing_path = (
         output_root
@@ -76,10 +116,13 @@ def main() -> int:
     suppress_observation = False
 
     def persist(returncode: int | None) -> None:
-        _write(
-            timing_path,
-            timer.report(tranche=args.tranche, process_returncode=returncode),
+        report = timer.report(tranche=args.tranche, process_returncode=returncode)
+        report["execution_mode"] = (
+            "local-compatibility-replay"
+            if args.compatibility_replay
+            else "strict-numeric-postgresql"
         )
+        _write(timing_path, report)
 
     class TimedPhaseReceipt(original_phase_receipt):
         """Drop-in PhaseReceipt that observes completion but not receipt identity."""
@@ -127,20 +170,20 @@ def main() -> int:
             args.tranche,
             "--output-root",
             str(output_root),
-            *passthrough,
+            *runner_args,
         ]
         returncode = int(runner.main())
         return returncode
     finally:
         sys.argv = saved_argv
         persist(returncode)
-        print(
-            json.dumps(
-                timer.report(tranche=args.tranche, process_returncode=returncode),
-                indent=2,
-                sort_keys=True,
-            )
+        report = timer.report(tranche=args.tranche, process_returncode=returncode)
+        report["execution_mode"] = (
+            "local-compatibility-replay"
+            if args.compatibility_replay
+            else "strict-numeric-postgresql"
         )
+        print(json.dumps(report, indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":
