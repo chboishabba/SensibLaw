@@ -1,14 +1,15 @@
-"""Durable wall-time observation for the complete tranche checkpoint stream.
+"""Durable wall-time observation for complete-tranche phase completion.
 
-The complete tranche runner already writes ``tranche_run_state.json`` atomically
-immediately after each completed phase.  This module treats those checkpoints as
-an execution-observation boundary: consecutive checkpoint arrivals delimit the
-wall interval spent reaching the newly completed phase.
+The semantic runner remains authoritative for phase execution and receipts. This
+module accepts monotone phase-completion snapshots and turns consecutive
+completions into wall intervals. The benchmark wrapper feeds it synchronously
+from ``PhaseReceipt`` construction, so every completed phase is observed even
+when several phases finish faster than a filesystem polling interval.
 
-The timing ledger is deliberately outside semantic receipts.  It can rank
+The timing ledger is deliberately outside semantic receipts. It can rank
 minutes/hours work without making elapsed time part of semantic identity, and it
-survives a failed or interrupted tranche because callers can persist the report
-after every observed checkpoint.
+can be persisted after every completed phase so a later failure does not erase
+prior timing evidence.
 """
 
 from __future__ import annotations
@@ -50,7 +51,7 @@ def _optional_nonnegative_int(detail: Mapping[str, Any], *keys: str) -> int | No
 
 
 class CompleteTranchePhaseTimer:
-    """Observe monotone tranche checkpoints without changing the tranche runner."""
+    """Observe monotone phase completions without changing semantic execution."""
 
     def __init__(self) -> None:
         self._last_fingerprint: tuple[str, str | None] | None = None
@@ -65,7 +66,7 @@ class CompleteTranchePhaseTimer:
         epoch_ns: int,
         monotonic_ns: int,
     ) -> None:
-        """Establish the pre-run checkpoint without charging old completed work."""
+        """Establish a pre-run boundary without charging old completed work."""
 
         if state:
             phase = state.get("last_phase")
@@ -148,7 +149,7 @@ class CompleteTranchePhaseTimer:
             "schema_version": "sensiblaw.complete-tranche-phase-timing.v1",
             "tranche": tranche,
             "measurement_semantics": (
-                "checkpoint-to-checkpoint wall intervals; semantic receipts exclude timing"
+                "phase-completion wall intervals; semantic receipts exclude timing"
             ),
             "process_returncode": process_returncode,
             "completed_phase_count": len(self._intervals),
