@@ -125,7 +125,13 @@ def project_numeric_semantic_leaf_audit(
     object_support_shape: dict[int, list[tuple[Any, ...]]] = {
         key: [] for key in objects
     }
-    for object_id, kind_digest, ordinal, lemma_digest, dependency_digest in cursor.fetchall():
+    for (
+        object_id,
+        kind_digest,
+        ordinal,
+        lemma_digest,
+        dependency_digest,
+    ) in cursor.fetchall():
         key = int(object_id)
         object_kind[key] = _bytes(kind_digest)
         if ordinal is not None:
@@ -227,8 +233,11 @@ def project_numeric_semantic_leaf_audit(
         target_id,
     ) in cursor.fetchall():
         dependencies: list[str] = []
+        source_object_occurrence_key = None
         if source_object_id is not None:
-            dependencies.append(f"object:{int(source_object_id)}")
+            source_ref = f"object:{int(source_object_id)}"
+            dependencies.append(source_ref)
+            source_object_occurrence_key = raw.get(source_ref, {}).get("occurrence_key")
         if target_kind is not None and target_id is not None:
             family = {
                 int(TargetKind.OBJECT): "object",
@@ -247,7 +256,11 @@ def project_numeric_semantic_leaf_audit(
             residual_shape,
             _shape(
                 "residual-occurrence:v1",
-                source_object_id is not None,
+                # The stable source-object occurrence is structural provenance;
+                # unlike the database-local id, it safely distinguishes
+                # simultaneous residuals over one source region.  Resolution
+                # state/target deliberately remain excluded.
+                source_object_occurrence_key,
                 int(target_kind) if target_kind is not None else None,
                 len(dependencies),
             ),

@@ -170,3 +170,35 @@ def test_insertion_uses_exact_character_transport_for_unchanged_suffix() -> None
     assert result["matching_ambiguity_count"] == 0
     assert result["matched_leaf_count"] == 1
     assert result["edit_transport"]["net_character_delta"] == 5
+    assert result["transport_match_coverage_by_family"]["cold"]["object"] == {
+        "matched_sourceful_leaf_count": 1,
+        "transport_eligible_sourceful_leaf_count": 1,
+        "kappa_delta": 1.0,
+    }
+
+
+def test_repeated_source_free_ambiguity_is_counted_once() -> None:
+    cold = _audit(
+        [
+            _node("object:a", "object", "a", ((11, 17),), occurrence_key="stable"),
+            _node("export:a", "export", "a", (), ("object:a",)),
+        ]
+    )
+    edit = _audit(
+        [
+            _node("object:b", "object", "a", ((10, 16),), occurrence_key="stable"),
+            _node("export:b", "export", "a", (), ("object:b",)),
+            _node("export:c", "export", "a", (), ("object:b",)),
+        ]
+    )
+
+    result = compare_leaf_locality(
+        cold,
+        edit,
+        cold_text="Alpha law. Stable rule.",
+        edit_text="Beta law. Stable rule.",
+    )
+
+    assert result["state"] == "indeterminate"
+    assert result["matching_ambiguity_count"] == 1
+    assert result["matching_ambiguous_leaf_count"] == 3

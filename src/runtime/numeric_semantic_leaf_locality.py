@@ -215,15 +215,16 @@ def compare_leaf_locality(
 
     cold_groups, edit_groups = group(cold_nodes, None), group(edit_nodes, transport)
     pairs: dict[str, str] = {}
-    ambiguous_groups = 0
-    ambiguous_leaves = 0
+    # Record each unresolved candidate class once.  The source-free propagation
+    # loop can revisit an unchanged ambiguity; we assess those only after it has
+    # reached a fixed point, rather than accumulating intermediate candidates.
+    ambiguous_classes: set[tuple[tuple[str, ...], tuple[str, ...]]] = set()
     for key in set(cold_groups) | set(edit_groups):
         left, right = cold_groups.get(key, ()), edit_groups.get(key, ())
         if len(left) == len(right) == 1:
             pairs[left[0]] = right[0]
         elif left and right:
-            ambiguous_groups += 1
-            ambiguous_leaves += max(len(left), len(right))
+            ambiguous_classes.add((tuple(sorted(left)), tuple(sorted(right))))
 
     # Source-free leaves (exports/proofs) become identifiable once their ordered
     # dependency structure is paired. Duplicate candidates remain indeterminate.
@@ -248,12 +249,29 @@ def compare_leaf_locality(
             ]
             if len(candidates) == 1:
                 additions[left_ref] = candidates[0]
-            elif len(candidates) > 1:
-                ambiguous_groups += 1
-                ambiguous_leaves += len(candidates)
         if not additions:
             break
         pairs.update(additions)
+
+    for left_ref, left in cold_nodes.items():
+        if left_ref in pairs or _spans(left):
+            continue
+        left_dependencies = tuple(
+            pairs.get(str(ref)) for ref in left.get("dependencies") or ()
+        )
+        if any(value is None for value in left_dependencies):
+            continue
+        candidates = [
+            right_ref
+            for right_ref, right in edit_nodes.items()
+            if right_ref not in pairs.values()
+            and not _spans(right)
+            and right.get("family") == left.get("family")
+            and _occurrence_discriminator(right) == _occurrence_discriminator(left)
+            and tuple(right.get("dependencies") or ()) == left_dependencies
+        ]
+        if len(candidates) > 1:
+            ambiguous_classes.add(((left_ref,), tuple(sorted(candidates))))
 
     changed_cold = {ref for ref in cold_nodes if ref not in pairs}
     changed_edit = {ref for ref in edit_nodes if ref not in pairs.values()}
@@ -270,7 +288,7 @@ def compare_leaf_locality(
     )
     state = (
         "indeterminate"
-        if ambiguous_groups
+        if ambiguous_classes
         else "verified"
         if not outside_cold and not outside_edit
         else "violated"
@@ -285,14 +303,37 @@ def compare_leaf_locality(
         1 for right_ref in pairs.values() if _spans(edit_nodes[right_ref])
     )
 
+    def family_coverage(
+        nodes: Mapping[str, Mapping[str, Any]],
+        matched: Iterable[str],
+    ) -> dict[str, dict[str, int | float | None]]:
+        families = sorted({str(row.get("family")) for row in nodes.values()})
+        matched_refs = set(matched)
+        result: dict[str, dict[str, int | float | None]] = {}
+        for family in families:
+            eligible = [
+                ref
+                for ref, row in nodes.items()
+                if str(row.get("family")) == family and _spans(row)
+            ]
+            matched_count = sum(ref in matched_refs for ref in eligible)
+            result[family] = {
+                "matched_sourceful_leaf_count": matched_count,
+                "transport_eligible_sourceful_leaf_count": len(eligible),
+                "kappa_delta": ratio(matched_count, len(eligible)),
+            }
+        return result
+
     def ratio(numerator: int, denominator: int) -> float | None:
         return numerator / denominator if denominator else None
 
     return {
         "state": state,
         "claim_made": state == "verified",
-        "matching_ambiguity_count": ambiguous_groups,
-        "matching_ambiguous_leaf_count": ambiguous_leaves,
+        "matching_ambiguity_count": len(ambiguous_classes),
+        "matching_ambiguous_leaf_count": len(
+            {ref for group in ambiguous_classes for side in group for ref in side}
+        ),
         "matched_leaf_count": len(pairs),
         "matched_sourceful_leaf_count": {
             "cold": matched_sourceful_cold,
@@ -305,6 +346,10 @@ def compare_leaf_locality(
         "transport_match_coverage": {
             "cold": ratio(matched_sourceful_cold, eligible_cold),
             "edit": ratio(matched_sourceful_edit, eligible_edit),
+        },
+        "transport_match_coverage_by_family": {
+            "cold": family_coverage(cold_nodes, pairs),
+            "edit": family_coverage(edit_nodes, pairs.values()),
         },
         "changed_leaf_count": {"cold": len(changed_cold), "edit": len(changed_edit)},
         "reachable_leaf_count": {"cold": len(cold_closure), "edit": len(edit_closure)},
