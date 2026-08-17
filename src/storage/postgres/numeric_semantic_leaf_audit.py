@@ -15,9 +15,9 @@ from typing import Any
 from src.pnf.numeric_hyperfabric import TargetKind, numeric_digest
 from src.storage.postgres.numeric_semantic_receipt import (
     _demand_leaves,
+    _entity_leaves,
     _factor_leaves,
     _object_leaves,
-    _proof_leaves,
 )
 
 
@@ -86,6 +86,7 @@ def project_numeric_semantic_leaf_audit(
             "occurrence_key": occurrence_key or shape,
         }
 
+    # Objects: stable kind plus ordered parser support, independent of promotion.
     cursor.execute(
         """
         SELECT object.object_id, token.start_char, token.end_char
@@ -104,7 +105,6 @@ def project_numeric_semantic_leaf_audit(
     for object_id, start, end in cursor.fetchall():
         if start is not None:
             object_spans[int(object_id)].append((int(start), int(end)))
-
     cursor.execute(
         """
         SELECT object.object_id, object_kind.symbol_digest,
@@ -150,6 +150,7 @@ def project_numeric_semantic_leaf_audit(
             ),
         )
 
+    # Factors: predicate/type plus producer role slots, excluding resolution state.
     cursor.execute(
         """
         SELECT factor.factor_id, token.start_char, token.end_char, edge.object_id
@@ -174,7 +175,6 @@ def project_numeric_semantic_leaf_audit(
             factor_spans[factor_id].append((int(start), int(end)))
         if object_id is not None:
             factor_dependencies[factor_id].add(f"object:{int(object_id)}")
-
     cursor.execute(
         """
         SELECT factor.factor_id, factor_type.symbol_digest, predicate.symbol_digest,
@@ -217,10 +217,9 @@ def project_numeric_semantic_leaf_audit(
             ),
         )
 
-    # Demand occurrence identity is producer-side. Migration 135 records exact
-    # trigger/target/evidence token occurrences while producer structure exists.
-    # resolved_target_* and demand state remain semantic outcomes and are absent
-    # from the occurrence key.
+    # Residuals: migration-135 producer occurrence provenance plus the demand
+    # specification that existed before resolution. resolved_target_* is retained
+    # only as a dependency edge for closure propagation, never identity.
     cursor.execute(
         """
         SELECT demand.demand_id, region.start_char, region.end_char,
@@ -300,7 +299,6 @@ def project_numeric_semantic_leaf_audit(
                     occurrence_object_key,
                 )
             )
-
     for row in demand_rows:
         (
             demand_id,
@@ -355,8 +353,8 @@ def project_numeric_semantic_leaf_audit(
             ),
         )
 
-    # Source-free exports inherit occurrence identity from their uniquely paired
-    # target plus the producer slot. Key/residual/rank/score remain value.
+    # Source-free exports inherit identity from the paired target dependency plus
+    # producer slot. Key/residual/rank/score remain semantic value.
     cursor.execute(
         """
         SELECT export.export_kind, export.target_kind, key_symbol.symbol_digest,
@@ -419,17 +417,9 @@ def project_numeric_semantic_leaf_audit(
             _shape("export-occurrence:v2", int(export_kind), int(target_kind)),
         )
 
-    # Reproduce the receipt proof query exactly so each returned digest remains
-    # paired with the same derivation row even though the receipt root itself is
-    # order-insensitive. Producer rule/slot structure is correspondence identity;
-    # epistemic/result state and entity selection remain semantic value.
-    proof_leaves = _proof_leaves(
-        cursor,
-        run_ref=run_ref,
-        document_ref=document_ref,
-        object_leaves=objects,
-        factor_leaves=factors,
-    )
+    # Proof values are rebuilt exactly by derivation id instead of zipping two
+    # unordered query results. Correspondence uses producer rule/slot structure
+    # plus paired dependencies, while proof semantic state remains in the digest.
     cursor.execute(
         """
         SELECT DISTINCT derivation.derivation_id, derivation.rule_ref,
@@ -455,9 +445,11 @@ def project_numeric_semantic_leaf_audit(
     )
     proof_rows = tuple(cursor.fetchall())
     proof_ids = [int(row[0]) for row in proof_rows]
-    proof_premise_shape: dict[int, list[int]] = {key: [] for key in proof_ids}
-    proof_argument_shape: dict[int, list[tuple[Any, ...]]] = {key: [] for key in proof_ids}
+    premise_values: dict[int, list[tuple[int, bytes]]] = {key: [] for key in proof_ids}
+    premise_ordinals: dict[int, list[int]] = {key: [] for key in proof_ids}
+    argument_rows: dict[int, list[tuple[Any, ...]]] = {key: [] for key in proof_ids}
     proof_dependencies: dict[int, list[str]] = {key: [] for key in proof_ids}
+    entity_ids: set[int] = set()
     if proof_ids:
         cursor.execute(
             """
@@ -470,14 +462,17 @@ def project_numeric_semantic_leaf_audit(
         )
         for proof_id, premise_ordinal, factor_id in cursor.fetchall():
             key = int(proof_id)
-            proof_premise_shape[key].append(int(premise_ordinal))
-            if int(factor_id) in factors:
-                proof_dependencies[key].append(f"factor:{int(factor_id)}")
+            factor_leaf = factors.get(int(factor_id))
+            if factor_leaf is None:
+                raise RuntimeError("derivation premise lies outside audit scope")
+            premise_values[key].append((int(premise_ordinal), factor_leaf))
+            premise_ordinals[key].append(int(premise_ordinal))
+            proof_dependencies[key].append(f"factor:{int(factor_id)}")
         cursor.execute(
             """
             SELECT argument.derivation_id, argument.slot_ordinal,
                    role.symbol_digest, argument.source_object_id,
-                   argument.local_object_id
+                   argument.local_object_id, argument.identity_entity_id
               FROM execution.semantic_pnf_factor_derivation_argument AS argument
               JOIN execution.semantic_symbol AS role
                 ON role.symbol_id=argument.role_symbol_id
@@ -486,28 +481,67 @@ def project_numeric_semantic_leaf_audit(
             """,
             (proof_ids,),
         )
-        for proof_id, slot, role_digest, source_object_id, local_object_id in cursor.fetchall():
-            key = int(proof_id)
-            proof_argument_shape[key].append(
-                (int(slot), _bytes(role_digest), local_object_id is not None)
-            )
+        for row in cursor.fetchall():
+            key = int(row[0])
+            argument_rows[key].append(tuple(row[1:]))
+            source_object_id, local_object_id, identity_entity_id = row[3], row[4], row[5]
             if int(source_object_id) in objects:
                 proof_dependencies[key].append(f"object:{int(source_object_id)}")
             if local_object_id is not None and int(local_object_id) in objects:
                 proof_dependencies[key].append(f"object:{int(local_object_id)}")
-
-    if len(proof_rows) != len(proof_leaves):
-        raise RuntimeError("proof audit row count disagrees with numeric receipt")
-    for ordinal, (row, digest) in enumerate(zip(proof_rows, proof_leaves, strict=True)):
+            if identity_entity_id is not None:
+                entity_ids.add(int(identity_entity_id))
+    entities = _entity_leaves(cursor, entity_ids, object_leaves=objects)
+    for ordinal, row in enumerate(proof_rows):
         proof_id = int(row[0])
+        semantic_arguments: list[tuple[Any, ...]] = []
+        producer_arguments: list[tuple[Any, ...]] = []
+        for (
+            slot,
+            role_digest,
+            source_object_id,
+            local_object_id,
+            identity_entity_id,
+        ) in argument_rows[proof_id]:
+            source = objects.get(int(source_object_id))
+            local = (
+                objects.get(int(local_object_id))
+                if local_object_id is not None
+                else None
+            )
+            entity = (
+                entities.get(int(identity_entity_id))
+                if identity_entity_id is not None
+                else None
+            )
+            if source is None or (local_object_id is not None and local is None):
+                raise RuntimeError("derivation argument lies outside audit scope")
+            semantic_arguments.append(
+                (int(slot), _bytes(role_digest), source, local, entity)
+            )
+            producer_arguments.append(
+                (int(slot), _bytes(role_digest), local_object_id is not None)
+            )
+        digest = numeric_digest(
+            _tag("proof-derivation:v1"),
+            _tag(str(row[1])),
+            int(row[2]),
+            int(row[3]),
+            int(row[4]),
+            int(row[5]) if row[5] is not None else None,
+            _bytes(row[6]),
+            _bytes(row[7]),
+            int(row[8]),
+            int(row[9]),
+            tuple(premise_values[proof_id]),
+            tuple(semantic_arguments),
+        )
         producer_shape = _shape(
             "proof-occurrence:v2",
             _tag(str(row[1])),
             int(row[2]),
-            _bytes(row[6]),
-            _bytes(row[7]),
-            tuple(proof_premise_shape[proof_id]),
-            tuple(proof_argument_shape[proof_id]),
+            tuple(premise_ordinals[proof_id]),
+            tuple(producer_arguments),
         )
         add(
             "proof",
