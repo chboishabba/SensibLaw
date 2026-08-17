@@ -107,19 +107,20 @@ This is the formal consumer-sufficiency rule applied physically:
 no consumer yet -> do not maintain a derived carrier yet.
 ```
 
-### Duplicate full ancestor rebuilds are content-addressed
+### Duplicate full ancestor rebuilds use exact freshness state
 
 Document closure already triggers `rebuild_pnf_document_ancestors`, and the
 numeric hierarchy planner also requests the same rebuild immediately after
 closing the document.  Migration 144 preserves both call boundaries but stores
-an execution-only SHA-256 freshness key over the exact ordered
-`(interface_id,parent_interface_id)` relation.  If the relation and interface
-count are unchanged, a repeat request returns before DELETE/recursive work.  Any
-parent/interface change invalidates the key and rebuilds the complete projection.
+the exact ordered `(interface_id,parent_interface_id)` relation plus interface
+count as DB-local execution freshness state.  If those values are unchanged, a
+repeat request returns before DELETE/recursive work.  Any parent/interface
+change invalidates the state and rebuilds the complete projection.
 
-The fingerprint deliberately uses database-local ids because it is only a
-physical projection-cache key.  It is not portable semantic identity and is not
-consumed by receipts.
+The state deliberately uses database-local ids because it is only a physical
+projection-cache key.  It is exact content equality rather than a cryptographic
+hash, so it requires no extension and introduces no collision-based stale-cache
+case.  It is not portable semantic identity and is not consumed by receipts.
 
 ### Owner reduction
 
