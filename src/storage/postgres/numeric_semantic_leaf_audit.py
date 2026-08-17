@@ -3,8 +3,8 @@
 The projection is intentionally ephemeral: it is a benchmark inspection aid,
 not a replacement for the portable publication receipt or a persistence model.
 Structural occurrence keys deliberately exclude the semantic leaf digest and
-resolution state so cross-version correspondence can be tested independently of
-semantic equality.
+post-resolution state so cross-version correspondence can be established before
+semantic equality is tested.
 """
 
 from __future__ import annotations
@@ -45,9 +45,9 @@ def project_numeric_semantic_leaf_audit(
     """Project receipt leaves and their direct provenance/dependency edges.
 
     Database ids are used only while reading the authority. The returned node
-    references are digest-derived, audit-local coordinates. `occurrence_key`
-    contains stable structural/provenance shape only; semantic value remains in
-    `digest_sha256` and is compared only after correspondence is established.
+    references are digest-derived, audit-local coordinates. ``occurrence_key``
+    contains producer-side structure only; semantic value remains in
+    ``digest_sha256`` and is compared only after correspondence is established.
     """
 
     objects = _object_leaves(cursor, run_ref=run_ref, document_ref=document_ref)
@@ -71,7 +71,7 @@ def project_numeric_semantic_leaf_audit(
         dependencies=(),
         shape="",
         occurrence_key="",
-    ):
+    ) -> None:
         raw[f"{family}:{local_id}"] = {
             "family": family,
             "digest_sha256": _hex(digest),
@@ -79,20 +79,24 @@ def project_numeric_semantic_leaf_audit(
             "dependencies": [
                 value
                 for value in dependencies
-                if value in raw or value.startswith(("object:", "factor:", "residual:"))
+                if value in raw
+                or value.startswith(("object:", "factor:", "residual:"))
             ],
             "shape": shape,
             "occurrence_key": occurrence_key or shape,
         }
 
+    # ------------------------------------------------------------------ objects
     cursor.execute(
         """
         SELECT object.object_id, token.start_char, token.end_char
           FROM execution.semantic_pnf_object AS object
           LEFT JOIN execution.semantic_pnf_object_token_support AS support
-            ON support.object_id = object.object_id
-          LEFT JOIN execution.semantic_parser_token AS token ON token.token_id = support.token_id
-          JOIN execution.semantic_pnf_region AS region ON region.region_id = object.region_id
+            ON support.object_id=object.object_id
+          LEFT JOIN execution.semantic_parser_token AS token
+            ON token.token_id=support.token_id
+          JOIN execution.semantic_pnf_region AS region
+            ON region.region_id=object.region_id
          WHERE region.run_ref=%s AND region.document_ref=%s
         """,
         (run_ref, document_ref),
@@ -102,20 +106,23 @@ def project_numeric_semantic_leaf_audit(
         if start is not None:
             object_spans[int(object_id)].append((int(start), int(end)))
 
-    # Structural object identity is independent of promotion scores/state and of
-    # the final receipt digest. Ordered support role plus parser lemma/dependency
-    # symbols distinguish repeated same-span objects without using DB-local ids.
     cursor.execute(
         """
         SELECT object.object_id, object_kind.symbol_digest,
                support.ordinal, lemma.symbol_digest, dependency.symbol_digest
           FROM execution.semantic_pnf_object AS object
-          JOIN execution.semantic_pnf_region AS region ON region.region_id=object.region_id
-          JOIN execution.semantic_symbol AS object_kind ON object_kind.symbol_id=object.object_kind_symbol_id
-          LEFT JOIN execution.semantic_pnf_object_token_support AS support ON support.object_id=object.object_id
-          LEFT JOIN execution.semantic_parser_token AS token ON token.token_id=support.token_id
-          LEFT JOIN execution.semantic_symbol AS lemma ON lemma.symbol_id=token.lemma_symbol_id
-          LEFT JOIN execution.semantic_symbol AS dependency ON dependency.symbol_id=token.dependency_symbol_id
+          JOIN execution.semantic_pnf_region AS region
+            ON region.region_id=object.region_id
+          JOIN execution.semantic_symbol AS object_kind
+            ON object_kind.symbol_id=object.object_kind_symbol_id
+          LEFT JOIN execution.semantic_pnf_object_token_support AS support
+            ON support.object_id=object.object_id
+          LEFT JOIN execution.semantic_parser_token AS token
+            ON token.token_id=support.token_id
+          LEFT JOIN execution.semantic_symbol AS lemma
+            ON lemma.symbol_id=token.lemma_symbol_id
+          LEFT JOIN execution.semantic_symbol AS dependency
+            ON dependency.symbol_id=token.dependency_symbol_id
          WHERE region.run_ref=%s AND region.document_ref=%s
          ORDER BY object.object_id, support.ordinal, token.start_char, token.end_char
         """,
@@ -125,13 +132,7 @@ def project_numeric_semantic_leaf_audit(
     object_support_shape: dict[int, list[tuple[Any, ...]]] = {
         key: [] for key in objects
     }
-    for (
-        object_id,
-        kind_digest,
-        ordinal,
-        lemma_digest,
-        dependency_digest,
-    ) in cursor.fetchall():
+    for object_id, kind_digest, ordinal, lemma_digest, dependency_digest in cursor.fetchall():
         key = int(object_id)
         object_kind[key] = _bytes(kind_digest)
         if ordinal is not None:
@@ -152,14 +153,19 @@ def project_numeric_semantic_leaf_audit(
             ),
         )
 
+    # ------------------------------------------------------------------ factors
     cursor.execute(
         """
         SELECT factor.factor_id, token.start_char, token.end_char, edge.object_id
           FROM execution.semantic_pnf_factor AS factor
-          JOIN execution.semantic_pnf_region AS region ON region.region_id=factor.region_id
-          LEFT JOIN execution.semantic_pnf_factor_token_support AS support ON support.factor_id=factor.factor_id
-          LEFT JOIN execution.semantic_parser_token AS token ON token.token_id=support.token_id
-          LEFT JOIN execution.semantic_pnf_hyperedge AS edge ON edge.factor_id=factor.factor_id
+          JOIN execution.semantic_pnf_region AS region
+            ON region.region_id=factor.region_id
+          LEFT JOIN execution.semantic_pnf_factor_token_support AS support
+            ON support.factor_id=factor.factor_id
+          LEFT JOIN execution.semantic_parser_token AS token
+            ON token.token_id=support.token_id
+          LEFT JOIN execution.semantic_pnf_hyperedge AS edge
+            ON edge.factor_id=factor.factor_id
          WHERE region.run_ref=%s AND region.document_ref=%s
         """,
         (run_ref, document_ref),
@@ -178,11 +184,16 @@ def project_numeric_semantic_leaf_audit(
         SELECT factor.factor_id, factor_type.symbol_digest, predicate.symbol_digest,
                edge.slot_ordinal, role.symbol_digest, edge.required
           FROM execution.semantic_pnf_factor AS factor
-          JOIN execution.semantic_pnf_region AS region ON region.region_id=factor.region_id
-          JOIN execution.semantic_symbol AS factor_type ON factor_type.symbol_id=factor.factor_type_symbol_id
-          JOIN execution.semantic_symbol AS predicate ON predicate.symbol_id=factor.predicate_symbol_id
-          LEFT JOIN execution.semantic_pnf_hyperedge AS edge ON edge.factor_id=factor.factor_id
-          LEFT JOIN execution.semantic_symbol AS role ON role.symbol_id=edge.role_symbol_id
+          JOIN execution.semantic_pnf_region AS region
+            ON region.region_id=factor.region_id
+          JOIN execution.semantic_symbol AS factor_type
+            ON factor_type.symbol_id=factor.factor_type_symbol_id
+          JOIN execution.semantic_symbol AS predicate
+            ON predicate.symbol_id=factor.predicate_symbol_id
+          LEFT JOIN execution.semantic_pnf_hyperedge AS edge
+            ON edge.factor_id=factor.factor_id
+          LEFT JOIN execution.semantic_symbol AS role
+            ON role.symbol_id=edge.role_symbol_id
          WHERE region.run_ref=%s AND region.document_ref=%s
          ORDER BY factor.factor_id, edge.slot_ordinal
         """,
@@ -202,11 +213,7 @@ def project_numeric_semantic_leaf_audit(
             digest,
             factor_spans[factor_id],
             factor_dependencies[factor_id],
-            _shape(
-                "factor",
-                len(factor_spans[factor_id]),
-                len(factor_dependencies[factor_id]),
-            ),
+            _shape("factor", len(factor_spans[factor_id]), len(factor_dependencies[factor_id])),
             _shape(
                 "factor-occurrence:v1",
                 factor_head.get(factor_id),
@@ -214,68 +221,168 @@ def project_numeric_semantic_leaf_audit(
             ),
         )
 
+    # ---------------------------------------------------------------- residuals
+    # Demand occurrence identity is producer-side.  Migration 135 records exact
+    # trigger/target/evidence token occurrences while the producer factor and
+    # typed role slots are still available.  Those coordinates are safe for
+    # correspondence; resolved_target_* and demand state are semantic outcomes
+    # and deliberately never enter the occurrence key.
     cursor.execute(
         """
         SELECT demand.demand_id, region.start_char, region.end_char,
-               demand.source_object_id, demand.resolved_target_kind, demand.resolved_target_id
+               demand.source_object_id, demand.expected_target_kind,
+               expected_factor.symbol_digest, expected_object.symbol_digest,
+               lexical.symbol_digest, role.symbol_digest, residual.symbol_digest,
+               demand.resolved_target_kind, demand.resolved_target_id
           FROM execution.semantic_pnf_demand AS demand
-          JOIN execution.semantic_pnf_region AS region ON region.region_id=demand.source_region_id
+          JOIN execution.semantic_pnf_region AS region
+            ON region.region_id=demand.source_region_id
+          LEFT JOIN execution.semantic_symbol AS expected_factor
+            ON expected_factor.symbol_id=demand.expected_factor_type_symbol_id
+          LEFT JOIN execution.semantic_symbol AS expected_object
+            ON expected_object.symbol_id=demand.expected_object_kind_symbol_id
+          LEFT JOIN execution.semantic_symbol AS lexical
+            ON lexical.symbol_id=demand.lexical_symbol_id
+          LEFT JOIN execution.semantic_symbol AS role
+            ON role.symbol_id=demand.role_symbol_id
+          LEFT JOIN execution.semantic_symbol AS residual
+            ON residual.symbol_id=demand.residual_type_symbol_id
          WHERE region.run_ref=%s AND region.document_ref=%s
         """,
         (run_ref, document_ref),
     )
-    for (
-        demand_id,
-        start,
-        end,
-        source_object_id,
-        target_kind,
-        target_id,
-    ) in cursor.fetchall():
+    demand_rows = tuple(cursor.fetchall())
+    demand_ids = [int(row[0]) for row in demand_rows]
+    provenance: dict[int, list[tuple[Any, ...]]] = {key: [] for key in demand_ids}
+    if demand_ids:
+        cursor.execute(
+            """
+            SELECT provenance.demand_id, provenance.occurrence_role,
+                   provenance.ordinal,
+                   token.start_char-region.start_char,
+                   token.end_char-region.start_char,
+                   lemma.symbol_digest, dependency.symbol_digest,
+                   provenance.object_id
+              FROM execution.semantic_pnf_demand_occurrence_provenance AS provenance
+              JOIN execution.semantic_pnf_demand AS demand
+                ON demand.demand_id=provenance.demand_id
+              JOIN execution.semantic_pnf_region AS region
+                ON region.region_id=demand.source_region_id
+              JOIN execution.semantic_parser_token AS token
+                ON token.token_id=provenance.token_id
+              LEFT JOIN execution.semantic_symbol AS lemma
+                ON lemma.symbol_id=token.lemma_symbol_id
+              LEFT JOIN execution.semantic_symbol AS dependency
+                ON dependency.symbol_id=token.dependency_symbol_id
+             WHERE provenance.demand_id=ANY(%s)
+             ORDER BY provenance.demand_id, provenance.occurrence_role,
+                      provenance.ordinal, token.start_char, token.end_char
+            """,
+            (demand_ids,),
+        )
+        for (
+            demand_id,
+            occurrence_role,
+            occurrence_ordinal,
+            relative_start,
+            relative_end,
+            lemma_digest,
+            dependency_digest,
+            occurrence_object_id,
+        ) in cursor.fetchall():
+            occurrence_object_key = None
+            if occurrence_object_id is not None:
+                occurrence_object_key = raw.get(
+                    f"object:{int(occurrence_object_id)}", {}
+                ).get("occurrence_key")
+            provenance[int(demand_id)].append(
+                (
+                    int(occurrence_role),
+                    int(occurrence_ordinal),
+                    int(relative_start),
+                    int(relative_end),
+                    _bytes(lemma_digest),
+                    _bytes(dependency_digest),
+                    occurrence_object_key,
+                )
+            )
+
+    for row in demand_rows:
+        (
+            demand_id,
+            start,
+            end,
+            source_object_id,
+            expected_target_kind,
+            expected_factor_digest,
+            expected_object_digest,
+            lexical_digest,
+            role_digest,
+            residual_digest,
+            resolved_target_kind,
+            resolved_target_id,
+        ) = row
+        demand_id = int(demand_id)
         dependencies: list[str] = []
         source_object_occurrence_key = None
         if source_object_id is not None:
             source_ref = f"object:{int(source_object_id)}"
             dependencies.append(source_ref)
             source_object_occurrence_key = raw.get(source_ref, {}).get("occurrence_key")
-        if target_kind is not None and target_id is not None:
+        if resolved_target_kind is not None and resolved_target_id is not None:
             family = {
                 int(TargetKind.OBJECT): "object",
                 int(TargetKind.FACTOR): "factor",
                 int(TargetKind.DEMAND): "residual",
-            }.get(int(target_kind))
+            }.get(int(resolved_target_kind))
             if family:
-                dependencies.append(f"{family}:{int(target_id)}")
-        residual_shape = _shape("residual", source_object_id is not None, target_kind)
+                dependencies.append(f"{family}:{int(resolved_target_id)}")
+        structural_head = (
+            int(expected_target_kind),
+            _bytes(expected_factor_digest),
+            _bytes(expected_object_digest),
+            _bytes(lexical_digest),
+            _bytes(role_digest),
+            _bytes(residual_digest),
+        )
+        residual_shape = _shape("residual-structural:v2", structural_head)
         add(
             "residual",
-            int(demand_id),
-            demands[int(demand_id)],
+            demand_id,
+            demands[demand_id],
             ((int(start), int(end)),),
             dependencies,
             residual_shape,
             _shape(
-                "residual-occurrence:v1",
-                # The stable source-object occurrence is structural provenance;
-                # unlike the database-local id, it safely distinguishes
-                # simultaneous residuals over one source region.  Resolution
-                # state/target deliberately remain excluded.
+                "residual-occurrence:v2",
                 source_object_occurrence_key,
-                int(target_kind) if target_kind is not None else None,
-                len(dependencies),
+                structural_head,
+                tuple(provenance[demand_id]),
             ),
         )
 
+    # ------------------------------------------------------------------ exports
+    # An export is source-free.  Its occurrence identity is inherited from the
+    # uniquely transported target dependency plus the stable producer slot
+    # (export_kind,target_kind). Key/residual/rank/score remain semantic value.
     cursor.execute(
         """
         SELECT export.export_kind, export.target_kind, key_symbol.symbol_digest,
-               residual.symbol_digest, export.rank, export.promotion_score, export.target_id
+               residual.symbol_digest, export.rank, export.promotion_score,
+               export.target_id
           FROM execution.semantic_pnf_interface_export AS export
-          JOIN execution.semantic_pnf_interface AS interface ON interface.interface_id=export.interface_id
-          JOIN execution.semantic_pnf_region AS region ON region.region_id=interface.region_id
-          LEFT JOIN execution.semantic_symbol AS key_symbol ON key_symbol.symbol_id=export.key_symbol_id
-          LEFT JOIN execution.semantic_symbol AS residual ON residual.symbol_id=export.residual_type_symbol_id
-         WHERE region.run_ref=%s AND region.document_ref=%s AND region.region_kind=10 AND region.closure_state=3
+          JOIN execution.semantic_pnf_interface AS interface
+            ON interface.interface_id=export.interface_id
+          JOIN execution.semantic_pnf_region AS region
+            ON region.region_id=interface.region_id
+          LEFT JOIN execution.semantic_symbol AS key_symbol
+            ON key_symbol.symbol_id=export.key_symbol_id
+          LEFT JOIN execution.semantic_symbol AS residual
+            ON residual.symbol_id=export.residual_type_symbol_id
+         WHERE region.run_ref=%s AND region.document_ref=%s
+           AND region.region_kind=10 AND region.closure_state=3
+         ORDER BY export.export_kind, export.target_kind, export.target_id,
+                  export.rank, key_symbol.symbol_digest, residual.symbol_digest
         """,
         (run_ref, document_ref),
     )
@@ -310,20 +417,20 @@ def project_numeric_semantic_leaf_audit(
             float(score),
             target,
         )
-        export_shape = _shape("export", export_kind, target_kind, key, residual, rank)
         add(
             "export",
             ordinal,
             digest,
             (),
             (f"{family}:{int(target_id)}",),
-            export_shape,
-            export_shape,
+            _shape("export-value-shape:v2", export_kind, target_kind, key, residual, rank),
+            _shape("export-occurrence:v2", int(export_kind), int(target_kind)),
         )
 
-    # Proof leaves are exact receipt leaves. Their factor/object dependencies are
-    # projected where available; entity identity remains part of the exact digest
-    # and is not reinterpreted by this audit layer.
+    # ------------------------------------------------------------------- proofs
+    # Proof occurrence identity is producer rule/slot structure plus uniquely
+    # paired premises/arguments. Epistemic state, identity-entity selection and
+    # the final proof digest remain semantic value.
     proof_leaves = _proof_leaves(
         cursor,
         run_ref=run_ref,
@@ -333,45 +440,96 @@ def project_numeric_semantic_leaf_audit(
     )
     cursor.execute(
         """
-        SELECT DISTINCT derivation.derivation_id
+        SELECT DISTINCT derivation.derivation_id, derivation.rule_ref,
+               derivation.derivation_kind, factor_type.symbol_digest,
+               predicate.symbol_digest
           FROM execution.semantic_pnf_factor_derivation AS derivation
-          JOIN execution.semantic_pnf_factor_derivation_premise AS premise ON premise.derivation_id=derivation.derivation_id
-          JOIN execution.semantic_pnf_factor AS factor ON factor.factor_id=premise.factor_id
-          JOIN execution.semantic_pnf_region AS region ON region.region_id=factor.region_id
-         WHERE region.run_ref=%s AND region.document_ref=%s AND derivation.derivation_state=2
-         ORDER BY derivation.derivation_id
+          JOIN execution.semantic_pnf_factor_derivation_premise AS premise
+            ON premise.derivation_id=derivation.derivation_id
+          JOIN execution.semantic_pnf_factor AS factor
+            ON factor.factor_id=premise.factor_id
+          JOIN execution.semantic_pnf_region AS region
+            ON region.region_id=factor.region_id
+          LEFT JOIN execution.semantic_symbol AS factor_type
+            ON factor_type.symbol_id=derivation.conclusion_factor_type_symbol_id
+          LEFT JOIN execution.semantic_symbol AS predicate
+            ON predicate.symbol_id=derivation.conclusion_predicate_symbol_id
+         WHERE region.run_ref=%s AND region.document_ref=%s
+           AND derivation.derivation_state=2
         """,
         (run_ref, document_ref),
     )
-    proof_ids = [int(row[0]) for row in cursor.fetchall()]
-    for ordinal, (proof_id, digest) in enumerate(
-        zip(proof_ids, proof_leaves, strict=True)
-    ):
+    proof_rows = tuple(cursor.fetchall())
+    proof_ids = [int(row[0]) for row in proof_rows]
+    proof_premise_shape: dict[int, list[int]] = {key: [] for key in proof_ids}
+    proof_argument_shape: dict[int, list[tuple[Any, ...]]] = {
+        key: [] for key in proof_ids
+    }
+    proof_dependencies: dict[int, list[str]] = {key: [] for key in proof_ids}
+    if proof_ids:
         cursor.execute(
             """
-            SELECT 'factor', factor_id FROM execution.semantic_pnf_factor_derivation_premise WHERE derivation_id=%s
-            UNION
-            SELECT 'object', source_object_id FROM execution.semantic_pnf_factor_derivation_argument WHERE derivation_id=%s
-            UNION
-            SELECT 'object', local_object_id FROM execution.semantic_pnf_factor_derivation_argument WHERE derivation_id=%s AND local_object_id IS NOT NULL
+            SELECT premise.derivation_id, premise.premise_ordinal, premise.factor_id
+              FROM execution.semantic_pnf_factor_derivation_premise AS premise
+             WHERE premise.derivation_id=ANY(%s)
+             ORDER BY premise.derivation_id, premise.premise_ordinal
             """,
-            (proof_id, proof_id, proof_id),
+            (proof_ids,),
         )
-        dependencies = []
-        for family, value in cursor.fetchall():
-            if str(family) == "factor" and int(value) in factors:
-                dependencies.append(f"factor:{int(value)}")
-            elif str(family) == "object" and int(value) in objects:
-                dependencies.append(f"object:{int(value)}")
-        proof_shape = _shape("proof", len(dependencies))
+        for proof_id, premise_ordinal, factor_id in cursor.fetchall():
+            key = int(proof_id)
+            proof_premise_shape[key].append(int(premise_ordinal))
+            if int(factor_id) in factors:
+                proof_dependencies[key].append(f"factor:{int(factor_id)}")
+        cursor.execute(
+            """
+            SELECT argument.derivation_id, argument.slot_ordinal,
+                   role.symbol_digest, argument.source_object_id,
+                   argument.local_object_id
+              FROM execution.semantic_pnf_factor_derivation_argument AS argument
+              JOIN execution.semantic_symbol AS role
+                ON role.symbol_id=argument.role_symbol_id
+             WHERE argument.derivation_id=ANY(%s)
+             ORDER BY argument.derivation_id, argument.slot_ordinal
+            """,
+            (proof_ids,),
+        )
+        for proof_id, slot, role_digest, source_object_id, local_object_id in cursor.fetchall():
+            key = int(proof_id)
+            proof_argument_shape[key].append(
+                (
+                    int(slot),
+                    _bytes(role_digest),
+                    local_object_id is not None,
+                )
+            )
+            if int(source_object_id) in objects:
+                proof_dependencies[key].append(f"object:{int(source_object_id)}")
+            if local_object_id is not None and int(local_object_id) in objects:
+                proof_dependencies[key].append(f"object:{int(local_object_id)}")
+
+    if len(proof_rows) != len(proof_leaves):
+        raise RuntimeError("proof audit row count disagrees with numeric receipt")
+    for ordinal, (row, digest) in enumerate(zip(proof_rows, proof_leaves, strict=True)):
+        proof_id, rule_ref, derivation_kind, factor_type_digest, predicate_digest = row
+        proof_id = int(proof_id)
+        producer_shape = _shape(
+            "proof-occurrence:v2",
+            _tag(str(rule_ref)),
+            int(derivation_kind),
+            _bytes(factor_type_digest),
+            _bytes(predicate_digest),
+            tuple(proof_premise_shape[proof_id]),
+            tuple(proof_argument_shape[proof_id]),
+        )
         add(
             "proof",
             ordinal,
             digest,
             (),
-            dependencies,
-            proof_shape,
-            proof_shape,
+            proof_dependencies[proof_id],
+            producer_shape,
+            producer_shape,
         )
 
     # Replace database-local references with deterministic audit-local refs.
@@ -401,13 +559,16 @@ def project_numeric_semantic_leaf_audit(
             }
         )
     cursor.execute(
-        "SELECT start_char,end_char FROM execution.semantic_parser_sentence WHERE run_ref=%s AND document_ref=%s ORDER BY start_char,end_char",
+        "SELECT start_char,end_char FROM execution.semantic_parser_sentence "
+        "WHERE run_ref=%s AND document_ref=%s ORDER BY start_char,end_char",
         (run_ref, document_ref),
     )
     return {
         "schema_version": "sensiblaw.numeric-semantic-leaf-audit.v1",
         "transport_authority": "audit_boundary_only",
-        "correspondence_basis": "source-edit-transport+structural-occurrence:v1",
+        "correspondence_basis": (
+            "source-edit-transport+producer-structural-occurrence:v2"
+        ),
         "nodes": sorted(nodes, key=lambda node: node["ref"]),
         "parser_sentence_spans": [
             [int(start), int(end)] for start, end in cursor.fetchall()
