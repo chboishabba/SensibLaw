@@ -1,16 +1,70 @@
 """Audit-only locality comparison for portable numeric semantic leaves.
 
-This module is deliberately not a receipt authority.  It compares two audit
+This module is deliberately not a receipt authority. It compares two audit
 projections emitted from the closed numeric authority and records whether the
 semantic leaves that changed are reachable from the source edit boundary.
+
+Correspondence is transport-first rather than value-first: source coordinates
+are carried through the known edit and structural occurrence keys are matched
+without using the semantic digest whose change the audit is trying to measure.
 """
 
 from __future__ import annotations
 
-from difflib import SequenceMatcher
+from dataclasses import dataclass
 from typing import Any, Iterable, Mapping
 
-from sensiblaw.interfaces import tokenize_canonical_with_spans
+
+@dataclass(frozen=True, slots=True)
+class ContiguousEditTransport:
+    """Exact coordinate transport outside one conservative changed interval.
+
+    Any two source versions admit this representation by taking their maximal
+    common prefix and suffix. Multiple disjoint edits are therefore safely
+    collapsed into one larger changed interval rather than guessed through.
+    """
+
+    before_start: int
+    before_end: int
+    after_start: int
+    after_end: int
+
+    @property
+    def delta(self) -> int:
+        return (self.after_end - self.after_start) - (
+            self.before_end - self.before_start
+        )
+
+    def after_span_to_before(self, start: int, end: int) -> tuple[int, int] | None:
+        if end <= self.after_start:
+            return start, end
+        if start >= self.after_end:
+            return start - self.delta, end - self.delta
+        return None
+
+
+def _contiguous_edit_transport(before: str, after: str) -> ContiguousEditTransport:
+    prefix = 0
+    limit = min(len(before), len(after))
+    while prefix < limit and before[prefix] == after[prefix]:
+        prefix += 1
+
+    suffix = 0
+    before_remaining = len(before) - prefix
+    after_remaining = len(after) - prefix
+    while (
+        suffix < before_remaining
+        and suffix < after_remaining
+        and before[len(before) - 1 - suffix] == after[len(after) - 1 - suffix]
+    ):
+        suffix += 1
+
+    return ContiguousEditTransport(
+        before_start=prefix,
+        before_end=len(before) - suffix,
+        after_start=prefix,
+        after_end=len(after) - suffix,
+    )
 
 
 def _nodes(value: Mapping[str, Any]) -> dict[str, Mapping[str, Any]]:
@@ -37,35 +91,13 @@ def _spans(row: Mapping[str, Any]) -> tuple[tuple[int, int], ...]:
     return tuple(result)
 
 
-def _affected_spans(
-    before: str, after: str
-) -> tuple[tuple[tuple[int, int], ...], tuple[tuple[int, int], ...], dict[int, int]]:
-    left = tokenize_canonical_with_spans(before)
-    right = tokenize_canonical_with_spans(after)
-    matcher = SequenceMatcher(
-        None,
-        [token for token, _start, _end in left],
-        [token for token, _start, _end in right],
-        autojunk=False,
+def _affected_spans_exact(
+    transport: ContiguousEditTransport,
+) -> tuple[tuple[tuple[int, int], ...], tuple[tuple[int, int], ...]]:
+    return (
+        ((transport.before_start, transport.before_end),),
+        ((transport.after_start, transport.after_end),),
     )
-    left_spans: list[tuple[int, int]] = []
-    right_spans: list[tuple[int, int]] = []
-    aligned: dict[int, int] = {}
-    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-        if tag == "equal":
-            aligned.update({index: i1 + index - j1 for index in range(j1, j2)})
-            continue
-        left_spans.extend((start, end) for _token, start, end in left[i1:i2])
-        right_spans.extend((start, end) for _token, start, end in right[j1:j2])
-        # Insertions and deletions have an empty span on one side.  The
-        # nearest token makes the containing parser sentence an edit boundary.
-        if i1 == i2 and left:
-            anchor = min(i1, len(left) - 1)
-            left_spans.append((left[anchor][1], left[anchor][2]))
-        if j1 == j2 and right:
-            anchor = min(j1, len(right) - 1)
-            right_spans.append((right[anchor][1], right[anchor][2]))
-    return tuple(left_spans), tuple(right_spans), aligned
 
 
 def _sentence_boundary(
@@ -98,17 +130,20 @@ def _overlaps(
 
 def _source_key(
     row: Mapping[str, Any],
-    tokens: list[tuple[str, int, int]],
-    to_left: Mapping[int, int] | None,
-) -> tuple[int, ...] | None:
-    ordinals: list[int] = []
-    for start, end in _spans(row):
-        for ordinal, (_token, token_start, token_end) in enumerate(tokens):
-            if start < token_end and token_start < end:
-                if to_left is not None and ordinal not in to_left:
-                    return None
-                ordinals.append(to_left[ordinal] if to_left is not None else ordinal)
-    return tuple(ordinals) if ordinals else None
+    transport: ContiguousEditTransport | None,
+) -> tuple[tuple[int, int], ...] | None:
+    spans = _spans(row)
+    if not spans:
+        return None
+    if transport is None:
+        return spans
+    mapped: list[tuple[int, int]] = []
+    for start, end in spans:
+        value = transport.after_span_to_before(start, end)
+        if value is None:
+            return None
+        mapped.append(value)
+    return tuple(mapped)
 
 
 def _seed_and_closure(
@@ -130,6 +165,13 @@ def _seed_and_closure(
     return reached
 
 
+def _occurrence_discriminator(row: Mapping[str, Any]) -> str:
+    # `occurrence_key` is produced from stable structural/provenance coordinates
+    # only. Older audit projections fall back to the coarser shape and therefore
+    # remain fail-closed when duplicates survive.
+    return str(row.get("occurrence_key") or row.get("shape") or "")
+
+
 def compare_leaf_locality(
     cold_audit: Mapping[str, Any],
     edit_audit: Mapping[str, Any],
@@ -137,7 +179,7 @@ def compare_leaf_locality(
     cold_text: str,
     edit_text: str,
 ) -> dict[str, Any]:
-    """Compare audit leaves under a deterministic source-token alignment."""
+    """Compare audit leaves under exact conservative source-edit transport."""
 
     if (
         cold_audit.get("schema_version") != "sensiblaw.numeric-semantic-leaf-audit.v1"
@@ -149,47 +191,44 @@ def compare_leaf_locality(
             "reason": "unsupported_audit_schema",
             "claim_made": False,
         }
+
     cold_nodes, edit_nodes = _nodes(cold_audit), _nodes(edit_audit)
-    cold_changed, edit_changed, edit_to_cold = _affected_spans(cold_text, edit_text)
+    transport = _contiguous_edit_transport(cold_text, edit_text)
+    cold_changed, edit_changed = _affected_spans_exact(transport)
     cold_boundary = _sentence_boundary(cold_audit, cold_changed)
     edit_boundary = _sentence_boundary(edit_audit, edit_changed)
     cold_closure = _seed_and_closure(cold_nodes, cold_boundary)
     edit_closure = _seed_and_closure(edit_nodes, edit_boundary)
-    cold_tokens, edit_tokens = (
-        tokenize_canonical_with_spans(cold_text),
-        tokenize_canonical_with_spans(edit_text),
-    )
 
     def group(
         nodes: Mapping[str, Mapping[str, Any]],
-        tokens: list[tuple[str, int, int]],
-        mapping: Mapping[int, int] | None,
-    ):
-        grouped: dict[tuple[str, tuple[int, ...]], list[str]] = {}
+        mapping: ContiguousEditTransport | None,
+    ) -> dict[tuple[str, str, tuple[tuple[int, int], ...]], list[str]]:
+        grouped: dict[tuple[str, str, tuple[tuple[int, int], ...]], list[str]] = {}
         for ref, row in nodes.items():
-            key = _source_key(row, tokens, mapping)
+            key = _source_key(row, mapping)
             if key is not None:
                 grouped.setdefault(
-                    (str(row.get("family")), str(row.get("shape") or ""), key), []
+                    (str(row.get("family")), _occurrence_discriminator(row), key), []
                 ).append(ref)
         return grouped
 
-    cold_groups, edit_groups = (
-        group(cold_nodes, cold_tokens, None),
-        group(edit_nodes, edit_tokens, edit_to_cold),
-    )
+    cold_groups, edit_groups = group(cold_nodes, None), group(edit_nodes, transport)
     pairs: dict[str, str] = {}
-    ambiguous = 0
+    ambiguous_groups = 0
+    ambiguous_leaves = 0
     for key in set(cold_groups) | set(edit_groups):
         left, right = cold_groups.get(key, ()), edit_groups.get(key, ())
         if len(left) == len(right) == 1:
             pairs[left[0]] = right[0]
         elif left and right:
-            ambiguous += 1
-    # Source-free leaves (exports/proofs) are matched once their dependency
-    # shape is already paired.  This deliberately refuses duplicate shapes.
+            ambiguous_groups += 1
+            ambiguous_leaves += max(len(left), len(right))
+
+    # Source-free leaves (exports/proofs) become identifiable once their ordered
+    # dependency structure is paired. Duplicate candidates remain indeterminate.
     for _ in range(len(cold_nodes) + len(edit_nodes)):
-        additions = {}
+        additions: dict[str, str] = {}
         for left_ref, left in cold_nodes.items():
             if left_ref in pairs or _spans(left):
                 continue
@@ -204,12 +243,14 @@ def compare_leaf_locality(
                 if right_ref not in pairs.values()
                 and not _spans(right)
                 and right.get("family") == left.get("family")
+                and _occurrence_discriminator(right) == _occurrence_discriminator(left)
                 and tuple(right.get("dependencies") or ()) == left_dependencies
             ]
             if len(candidates) == 1:
                 additions[left_ref] = candidates[0]
             elif len(candidates) > 1:
-                ambiguous += 1
+                ambiguous_groups += 1
+                ambiguous_leaves += len(candidates)
         if not additions:
             break
         pairs.update(additions)
@@ -222,23 +263,45 @@ def compare_leaf_locality(
         ):
             changed_cold.add(left_ref)
             changed_edit.add(right_ref)
+
     outside_cold, outside_edit = (
         changed_cold - cold_closure,
         changed_edit - edit_closure,
     )
     state = (
         "indeterminate"
-        if ambiguous
+        if ambiguous_groups
         else "verified"
         if not outside_cold and not outside_edit
         else "violated"
     )
+
+    eligible_cold = sum(1 for row in cold_nodes.values() if _spans(row))
+    eligible_edit = sum(1 for row in edit_nodes.values() if _spans(row))
+
+    def ratio(numerator: int, denominator: int) -> float | None:
+        return numerator / denominator if denominator else None
+
     return {
         "state": state,
         "claim_made": state == "verified",
-        "matching_ambiguity_count": ambiguous,
+        "matching_ambiguity_count": ambiguous_groups,
+        "matching_ambiguous_leaf_count": ambiguous_leaves,
+        "matched_leaf_count": len(pairs),
+        "transport_eligible_leaf_count": {
+            "cold": eligible_cold,
+            "edit": eligible_edit,
+        },
+        "transport_match_coverage": {
+            "cold": ratio(len(pairs), eligible_cold),
+            "edit": ratio(len(pairs), eligible_edit),
+        },
         "changed_leaf_count": {"cold": len(changed_cold), "edit": len(changed_edit)},
         "reachable_leaf_count": {"cold": len(cold_closure), "edit": len(edit_closure)},
+        "closure_precision_proxy": {
+            "cold": ratio(len(changed_cold & cold_closure), len(cold_closure)),
+            "edit": ratio(len(changed_edit & edit_closure), len(edit_closure)),
+        },
         "outside_closure_leaf_count": {
             "cold": len(outside_cold),
             "edit": len(outside_edit),
@@ -251,8 +314,14 @@ def compare_leaf_locality(
             "cold": len(cold_boundary),
             "edit": len(edit_boundary),
         },
+        "edit_transport": {
+            "mode": "maximal-common-prefix-suffix-contiguous-exact",
+            "before_changed_range": [transport.before_start, transport.before_end],
+            "after_changed_range": [transport.after_start, transport.after_end],
+            "net_character_delta": transport.delta,
+        },
         "scope": "fixture_and_contract_audit_not_universal_theorem_or_incremental_work_measurement",
     }
 
 
-__all__ = ["compare_leaf_locality"]
+__all__ = ["ContiguousEditTransport", "compare_leaf_locality"]
