@@ -1,20 +1,35 @@
 """Execution-only acceleration for bounded semantic closure.
 
-The semantic owner and reducers remain authoritative. This module fixes two
-physical pathologies exposed by the live GWB replay:
+The semantic owner and reducers remain authoritative. This module fixes physical
+pathologies exposed by live corpus replay while preserving semantic closure:
 
 * the bounded executor retained a stale import of ``solve_operator_job`` and
   therefore bypassed the process-backed wrapper installed by
   :mod:`parallel_typing_tail`, leaving CPU-bound stage-7 work under the GIL;
 * every completed immutable closure receipt immediately re-reduced complete
   owner fibres even while other pure jobs from the same frontier were still in
-  flight.
+  flight;
+* strict numeric sentence closure recreated and dropped five PostgreSQL temp
+  staging relations for every sentence even though those relations are purely
+  physical session-local carriers;
+* strict sentence demands were inserted set-wise and then immediately
+  reconstructed one-by-one by the generic occurrence-provenance trigger even
+  though the complete producer fibre was still available;
+* strict numeric token COPY omitted the already-determined sentence id, forcing
+  migration 042 to execute one sentence lookup per token, and the validated
+  dependency-head projection was then written back one UPDATE per token.
 
-No proposal identity, reduction rule, owner key, or final materialized graph is
-changed. Reduction coalescing is fail-closed: it is allowed only while another
-job is in flight and every currently dirty proposal has an empty
-``dependency_factor_refs`` declaration. A dependency-bearing fibre always uses
-the original eager reducer.
+No proposal identity, reduction rule, owner key, sentence digest, lease fence,
+or final materialized graph is changed. Reduction coalescing is fail-closed: it
+is allowed only while another job is in flight and every currently dirty proposal
+has an empty ``dependency_factor_refs`` declaration. A dependency-bearing fibre
+always uses the original eager reducer. Numeric sentence staging reuse retains the
+existing per-sentence transaction/failure boundary and changes only temporary
+relation lifetime. Producer-native provenance retains the generic trigger for
+non-sentence producers and projects the same strict sentence provenance from the
+already-materialized bounded producer fibre. Numeric parser enrichment supplies
+existing sentence identity and, when migration 150 is present, preserves Python
+head validation while replacing redundant row-wise writes with one set projection.
 """
 
 from __future__ import annotations
@@ -61,12 +76,21 @@ def _dirty_proposals_are_dependency_free(owner: Any) -> bool:
 
 
 def install_closure_hot_path_execution() -> bool:
-    """Install multicore closure dispatch and dependency-free reduction waves."""
+    """Install multicore closure dispatch and work-conserving closure strategies."""
 
     from src.policy import bounded_operational_execution as bounded
     from src.policy import operational_corpus_compilation as operational
     from src.policy.direct_process_closure_execution import (
         install_direct_process_closure_execution,
+    )
+    from src.policy.numeric_parser_projection_hot_path import (
+        install_numeric_parser_projection_hot_path,
+    )
+    from src.policy.producer_native_sentence_provenance import (
+        install_producer_native_sentence_provenance,
+    )
+    from src.policy.reusable_numeric_sentence_staging import (
+        install_reusable_numeric_sentence_staging,
     )
 
     if getattr(bounded, _INSTALL_MARKER, False):
@@ -131,9 +155,22 @@ def install_closure_hot_path_execution() -> bool:
 
     owner_class._index_proposal = index_proposal
     owner_class.reduce_dirty_groups = reduce_dirty_groups
+
     # The bounded scheduler no longer needs a thread whose only job is to submit
     # the same immutable work to the semantic process pool and block on it.
     install_direct_process_closure_execution()
+    # Resolve the finite sentence-ref fibre once and include sentence_id in the
+    # existing token COPY. Migration 150, when present, also makes dependency
+    # head persistence statement-level while retaining canonical Python checks.
+    install_numeric_parser_projection_hot_path()
+    # The five sentence temp stages contain no semantic identity and are safe to
+    # reuse across sentence transactions; sentence atomicity remains unchanged.
+    install_reusable_numeric_sentence_staging()
+    # The strict producer still has the exact factor/support/slot fibre when it
+    # inserts demands. Preserve that information set-wise instead of asking the
+    # generic row trigger to reconstruct the producer independently per demand.
+    install_producer_native_sentence_provenance()
+
     setattr(bounded, _INSTALL_MARKER, True)
     return True
 
