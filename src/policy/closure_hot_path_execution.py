@@ -14,7 +14,9 @@ pathologies exposed by live corpus replay while preserving semantic closure:
   physical session-local carriers;
 * strict sentence demands were inserted set-wise and then immediately
   reconstructed one-by-one by the generic occurrence-provenance trigger even
-  though the complete producer fibre was still available.
+  though the complete producer fibre was still available;
+* strict numeric token COPY omitted the already-determined sentence id, forcing
+  migration 042 to execute one sentence lookup per token.
 
 No proposal identity, reduction rule, owner key, sentence digest, lease fence,
 or final materialized graph is changed. Reduction coalescing is fail-closed: it
@@ -24,7 +26,10 @@ bearing fibre always uses the original eager reducer. Numeric sentence staging
 reuse likewise retains the existing per-sentence transaction/failure boundary;
 it changes only temporary relation lifetime. Producer-native provenance retains
 the generic trigger for non-sentence producers and projects the same strict
-sentence provenance from the already-materialized bounded producer fibre.
+sentence provenance from the already-materialized bounded producer fibre. The
+numeric parser COPY enrichment supplies the exact existing sentence identity and
+leaves migration 042 as the compatibility/fail-closed authority for writers that
+do not provide it.
 """
 
 from __future__ import annotations
@@ -77,6 +82,9 @@ def install_closure_hot_path_execution() -> bool:
     from src.policy import operational_corpus_compilation as operational
     from src.policy.direct_process_closure_execution import (
         install_direct_process_closure_execution,
+    )
+    from src.policy.numeric_parser_projection_hot_path import (
+        install_numeric_parser_projection_hot_path,
     )
     from src.policy.producer_native_sentence_provenance import (
         install_producer_native_sentence_provenance,
@@ -150,6 +158,10 @@ def install_closure_hot_path_execution() -> bool:
     # The bounded scheduler no longer needs a thread whose only job is to submit
     # the same immutable work to the semantic process pool and block on it.
     install_direct_process_closure_execution()
+    # Numeric parser projection already has the exact sentence-ref fibre after
+    # the sentence COPY. Resolve that finite map once and include sentence_id in
+    # token COPY rows so migration 042 does not re-query it per token.
+    install_numeric_parser_projection_hot_path()
     # Strict numeric sentence closure is another closure execution lane. Its
     # five temp stages contain no semantic identity and are safe to reuse across
     # sentence transactions; keep sentence atomicity/fencing otherwise intact.
