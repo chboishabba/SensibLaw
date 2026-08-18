@@ -148,16 +148,31 @@ not licensed merely by the cost profile.  The concrete reducer uses canonical
 proposal ordering and greedy first-compatible grouping; same-owner incremental
 execution requires the stronger homomorphism proof formalized in Agda.
 
-### Global lookup refresh
+### Sparse frontier closure and root publication
 
-`refresh_pnf_visible_lookup()` is currently an alias for the global lookup
-refresh.  The hierarchy phase must perform an initial global publication because
-that refresh drives demand planning before adjacent reconciliation.  Paragraph
-adjacency then creates/updates pair-interface lookup rows, so the later final
-refresh also has semantic work to publish.  The safe optimization is therefore
-a changed-interface/delta refresh for the second boundary, not deletion of one
-of the two semantic phases.  That optimization remains gated on an explicit
-changed-interface certificate.
+Migrations 062, 068 and 071 establish sparse hierarchical frontiers with
+root-only visible/global publication. Canonical containment is therefore not
+the same topology as adjacent reconciliation: sentence/paragraph adjacency
+interfaces (kinds 2 and 4), and the parentless evidence lane (kind 9), are
+overlapping execution fibres. They retain their checked evidence through their
+own executor and are never reduced as canonical parents.
+
+Migration 145 preserves the canonical parent reducer and replaces the later
+document-wide compatibility sweep with a durable dirty carrier. Missing or
+stale canonical reduction receipts seed recovery; a changed canonical child
+can enqueue only its canonical parent. The document reducer drains that
+bottom-up closure, so fresh interfaces are not rebuilt merely because root
+publication was requested.
+
+The hierarchy phase still performs the authoritative root-visible publication
+needed before adjacency. Under the current consumer contract, paragraph
+adjacency records residual/evidence information but neither mutates canonical
+frontiers nor supplies root-consumed resolution. The later final publication
+therefore reuses the exact root-visible count and performs no database work.
+That shortcut is conditional: if the hierarchy certificate is unavailable, the
+runtime falls back to canonical publication; any future consumer of adjacency
+evidence must introduce an explicit dirtying transition before it can use the
+shortcut.
 
 ## Historical hour-scale paths and production reachability
 
@@ -192,5 +207,5 @@ place.
 These structural changes remove demonstrably redundant or non-production work
 before another large ingest, but they are not themselves wall-time measurements.
 The durable complete-tranche phase timer remains the empirical authority for
-deciding which minutes/hours phase dominates after migrations 141--144 are
+deciding which minutes/hours phase dominates after migrations 141--145 are
 applied and the strict numeric production entrypoint is used.

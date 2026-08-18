@@ -41,6 +41,12 @@ through the existing document progress ledger, while the canonical operational
 compiler remains the semantic authority. Persistent hierarchy reductions remain
 an execution follow-up rather than a second compiler path.
 
+For a production complete-tranche run, use
+`scripts/run_complete_tranche_production.py`; it always selects strict numeric
+PostgreSQL execution. The historical `scripts/run_complete_tranche.py` remains
+a compatibility/parity surface. The phase-timing harness also defaults to the
+strict path, with compatibility replay requiring an explicit opt-in.
+
 ## Public Interface Boundary
 
 The supported downstream product boundary now includes a generic bounded

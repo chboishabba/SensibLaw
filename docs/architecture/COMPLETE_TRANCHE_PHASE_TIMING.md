@@ -41,12 +41,13 @@ Example shape:
 python scripts/benchmark_complete_tranche_phases.py \
   --tranche GWB \
   --output-root /path/to/output \
-  --database-url postgresql://... \
-  --strict-exact
+  --database-url postgresql://...
 ```
 
 Arguments not owned by the timing wrapper are passed through to
-`run_complete_tranche.py`.
+`run_complete_tranche.py`. The wrapper injects `--strict-exact`; use
+`--compatibility-replay` only when intentionally benchmarking the historical
+compatibility path.
 
 For a genuinely fresh full-ingest measurement, use a fresh output root. On a
 resumed run, checkpoint-loaded `PhaseReceipt` objects are not charged as newly

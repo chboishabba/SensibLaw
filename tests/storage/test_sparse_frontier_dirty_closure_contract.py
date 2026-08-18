@@ -23,7 +23,9 @@ def test_overlapping_fibres_are_not_canonical_parent_reductions() -> None:
     assert "RETURN NEW" in trigger
 
 
-def test_document_frontier_reduction_is_seeded_only_by_missing_or_stale_receipts() -> None:
+def test_document_frontier_reduction_is_seeded_only_by_missing_or_stale_receipts() -> (
+    None
+):
     sql = MIGRATION.read_text(encoding="utf-8")
 
     reducer = sql.split(
@@ -67,3 +69,10 @@ def test_sparse_root_policy_has_no_nonroot_lookup_publication() -> None:
     assert "refresh_pnf_global_lookup_interfaces" not in source
     assert "semantic_pnf_global_lookup" not in source
     assert "connect(" not in source
+
+
+def test_superseded_changed_interface_lookup_strategies_remain_removed() -> None:
+    policy_root = ROOT / "src" / "policy"
+
+    assert not (policy_root / "changed_interface_global_lookup_execution.py").exists()
+    assert not (policy_root / "changed_interface_demand_planning_execution.py").exists()

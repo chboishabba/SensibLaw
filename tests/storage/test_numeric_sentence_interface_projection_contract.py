@@ -14,12 +14,14 @@ def test_interface_exports_and_lookups_are_stage_set_projections() -> None:
     assert "cursor.executemany" not in interface_tail
     assert "INSERT INTO execution.semantic_pnf_interface_export" in interface_tail
     assert "INSERT INTO execution.semantic_pnf_interface_lookup" in interface_tail
-    assert "FROM tmp_numeric_sentence_object AS stage" in interface_tail
-    assert "FROM tmp_numeric_sentence_factor AS stage" in interface_tail
-    assert "FROM tmp_numeric_sentence_demand AS stage" in interface_tail
+    assert "FROM {_OBJECT_STAGE} AS stage" in interface_tail
+    assert "FROM {_FACTOR_STAGE} AS stage" in interface_tail
+    assert "FROM {_DEMAND_STAGE} AS stage" in interface_tail
 
 
-def test_promoted_object_rank_is_compressed_while_other_ranks_keep_stage_order() -> None:
+def test_promoted_object_rank_is_compressed_while_other_ranks_keep_stage_order() -> (
+    None
+):
     source = SOURCE.read_text(encoding="utf-8")
 
     interface_tail = source.split("interface_id = int(cursor.fetchone()[0])", 1)[1]

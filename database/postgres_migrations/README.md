@@ -168,6 +168,20 @@
   an explicit reverse dependency on its evidence, source-region or
   source-interface numeric coordinate. Missing dependencies produce zero work,
   never negative evidence, and proof/admissibility authority is untouched.
+- `140_numeric_semantic_publication_receipt.sql` adds portable strict-numeric
+  semantic publication receipts rooted in parser/object/factor/residual/export/
+  proof content while excluding database-local execution identity.
+- `141_defer_parentless_interface_ancestor_refresh.sql` through
+  `144_content_address_document_ancestor_projection.sql` remove unnecessary
+  hierarchy-derived work: parentless interfaces avoid writes, document
+  ancestry is rebuilt set-wise, open-document ancestry is deferred until a
+  consumer boundary, and duplicate document rebuilds use exact physical
+  parent-relation freshness state.
+- `145_sparse_frontier_dirty_closure.sql` makes canonical frontier closure
+  dirty-set driven. It preserves the migration-062 canonical reducer, enqueues
+  only canonical parents after changed child frontiers, and excludes overlapping
+  adjacency/evidence interfaces (kinds 2, 4 and 9) from canonical reduction.
+  Root-visible publication remains the only global lookup authority.
 - See `docs/reopenable_runtime_architecture.md`,
   `docs/consumer_sufficient_numeric_runtime.md`,
   `docs/late_external_provider_runtime.md`, and
