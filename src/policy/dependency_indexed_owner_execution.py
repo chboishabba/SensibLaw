@@ -140,17 +140,17 @@ def install_dependency_indexed_owner_execution() -> bool:
         return proposal_ref, key
 
     def admit_observation_delta(self: Any, delta: Any):
-        before = set(self._observation_refs)
-        result = original_admit_observation_delta(self, delta)
         _ensure_dependency_index(self)
-        new_refs = self._observation_refs - before
+        new_refs = set(delta.observation_refs) - self._observation_refs
         if new_refs:
             woken: set[Any] = set()
             for observation_ref in new_refs:
                 woken.update(self._owners_by_observation_ref.get(observation_ref, ()))
             self._dirty_groups.update(woken)
             self._kernel_counts["observation_indexed_owner_wakeups"] += len(woken)
-        return result
+        # Dirtying is part of the same canonical revision transition that admits
+        # the observations; duplicate/replayed refs produce no wake-up.
+        return original_admit_observation_delta(self, delta)
 
     def reduce_dirty_groups(self: Any):
         """Reduce dirty owners and wake exactly their factor successors."""
