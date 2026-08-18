@@ -29,6 +29,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--evidence", type=Path, required=True, help="Pinned attribution evidence JSON")
     parser.add_argument("--target-report", type=Path, help="Optional disjoint-union report JSON")
     parser.add_argument("--target-spec-id", help="Disjoint-union spec_id to use for target evidence")
+    parser.add_argument(
+        "--target-report-authoritative",
+        action="store_true",
+        help="Promote the bounded target report to support/refutation for this scoped claim; use only when acquisition completeness is established",
+    )
     parser.add_argument("--output", type=Path, help="Optional attribution packet path")
     args = parser.parse_args(argv)
 
@@ -43,7 +48,9 @@ def main(argv: list[str] | None = None) -> int:
             raise SystemExit("--target-spec-id is required with --target-report")
         target_report = json.loads(args.target_report.read_text(encoding="utf-8"))
         target = target_evidence_from_disjoint_union_report(
-            target_report, spec_id=args.target_spec_id
+            target_report,
+            spec_id=args.target_spec_id,
+            bounded_result_authoritative=args.target_report_authoritative,
         )
 
     packet = build_cross_ontology_attribution(
