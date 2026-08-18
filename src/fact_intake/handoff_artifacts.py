@@ -4,7 +4,10 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
-from .personal_handoff_bundle import PERSONAL_HANDOFF_REPORT_VERSION, render_personal_handoff_summary
+from .personal_handoff_bundle import (
+    PERSONAL_HANDOFF_REPORT_VERSION,
+    render_personal_handoff_summary,
+)
 from .protected_disclosure_envelope import (
     PROTECTED_DISCLOSURE_ENVELOPE_VERSION,
     render_protected_disclosure_summary,
@@ -12,7 +15,9 @@ from .protected_disclosure_envelope import (
 from src.policy.provenance_packet_geometry import packet_header
 
 
-def resolve_handoff_artifact_metadata(report: Mapping[str, Any], *, mode: str) -> dict[str, Any]:
+def resolve_handoff_artifact_metadata(
+    report: Mapping[str, Any], *, mode: str
+) -> dict[str, Any]:
     if mode == "protected_disclosure_envelope":
         return {
             "version": PROTECTED_DISCLOSURE_ENVELOPE_VERSION,
@@ -41,8 +46,12 @@ def write_handoff_artifact(
     normalized_path = output_dir / "normalized_input.json"
     report_path = output_dir / f"{version}.json"
     summary_path = output_dir / f"{version}.summary.md"
-    normalized_path.write_text(json.dumps(dict(normalized), indent=2, sort_keys=True), encoding="utf-8")
-    report_path.write_text(json.dumps(dict(report), indent=2, sort_keys=True), encoding="utf-8")
+    normalized_path.write_text(
+        json.dumps(dict(normalized), indent=2, sort_keys=True), encoding="utf-8"
+    )
+    report_path.write_text(
+        json.dumps(dict(report), indent=2, sort_keys=True), encoding="utf-8"
+    )
     summary_path.write_text(summary, encoding="utf-8")
 
     payload: dict[str, object] = packet_header(

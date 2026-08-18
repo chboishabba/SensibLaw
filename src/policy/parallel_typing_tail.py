@@ -8,7 +8,8 @@ persistence.
 
 from __future__ import annotations
 
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
+from functools import wraps
 import json
 import multiprocessing
 import os
@@ -364,12 +365,28 @@ def _execute_leaves(
     if executor is None:
         future_rows = ((ordinal, worker(payloads[ordinal])) for ordinal in missing)
     else:
-        futures = {
-            executor.submit(worker, payloads[ordinal]): ordinal for ordinal in missing
-        }
-        future_rows = (
-            (futures[future], future.result()) for future in as_completed(futures)
-        )
+        max_in_flight = max(1, 2 * _process_workers())
+
+        def completed_rows():
+            pending: dict[Any, int] = {}
+            next_missing = iter(missing)
+            for _ in range(min(max_in_flight, len(missing))):
+                ordinal = next(next_missing, None)
+                if ordinal is None:
+                    break
+                pending[executor.submit(worker, payloads[ordinal])] = ordinal
+            while pending:
+                completed, _ = wait(pending, return_when=FIRST_COMPLETED)
+                for future in completed:
+                    ordinal = pending.pop(future)
+                    yield ordinal, future.result()
+                    replacement = next(next_missing, None)
+                    if replacement is not None:
+                        pending[executor.submit(worker, payloads[replacement])] = (
+                            replacement
+                        )
+
+        future_rows = completed_rows()
 
     newly_completed = 0
     stop_after = _integer_env("SENSIBLAW_TYPING_TAIL_STOP_AFTER_LEAVES", 0, minimum=0)
@@ -891,6 +908,7 @@ def install_parallel_typing_tail() -> bool:
             )
         return result["value"]
 
+    @wraps(current_compile)
     def compile_wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return current_compile(*args, **kwargs)

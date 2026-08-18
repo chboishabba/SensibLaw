@@ -36,4 +36,3 @@ def test_tests_run(tmp_path: Path):
     assert results["f1"]["evidence"] == ["e1"]
     assert results["f2"]["status"] == "unsatisfied"
     assert results["f2"]["evidence"] == ["e2"]
-

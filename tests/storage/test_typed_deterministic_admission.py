@@ -18,9 +18,12 @@ def test_workers_stage_results_without_allocating_owner_revisions() -> None:
     assert "resulting_revision, prior_revision" in source
     assert "NULL, NULL, NULL" in source
     assert "SET state = 'computed'" in source
-    assert "current_revision =" not in source.split(
-        "def stage_typed_delta", 1
-    )[1].split("def admit_computed_deltas", 1)[0]
+    assert (
+        "current_revision ="
+        not in source.split("def stage_typed_delta", 1)[1].split(
+            "def admit_computed_deltas", 1
+        )[0]
+    )
 
 
 def test_coordinator_admits_computed_results_in_stable_order() -> None:

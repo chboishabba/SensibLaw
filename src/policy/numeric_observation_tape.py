@@ -4,6 +4,7 @@ The codec is deliberately a physical projection only. PostgreSQL parser rows rem
 authority. Annotation-origin ids are part of the tape because parser observations and
 fallback observations are intentionally distinct authority states.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -58,7 +59,9 @@ class NumericObservationRow:
             self.morph_set_id,
         ):
             if value is not None and value < 0:
-                raise ValueError("optional numeric observation ids must be non-negative")
+                raise ValueError(
+                    "optional numeric observation ids must be non-negative"
+                )
 
 
 @dataclass(frozen=True, slots=True)
@@ -124,7 +127,9 @@ def pack_numeric_observation_tape(
     )
 
 
-def unpack_numeric_observation_tape(payload: bytes) -> tuple[NumericObservationRow, ...]:
+def unpack_numeric_observation_tape(
+    payload: bytes,
+) -> tuple[NumericObservationRow, ...]:
     if not payload.startswith(_CODEC_MAGIC):
         raise ValueError("invalid numeric observation tape magic/version")
     offset = len(_CODEC_MAGIC)
@@ -185,7 +190,9 @@ def verify_numeric_observation_tape(
     row_tuple = tuple(rows)
     decoded = unpack_numeric_observation_tape(payload)
     if decoded != row_tuple:
-        raise ValueError("packed tape does not reconstruct canonical numeric observations")
+        raise ValueError(
+            "packed tape does not reconstruct canonical numeric observations"
+        )
     return NumericObservationTapeReceipt(
         token_count=len(row_tuple),
         encoded_bytes=len(payload),

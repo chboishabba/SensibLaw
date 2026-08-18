@@ -8,7 +8,12 @@ def test_row_identity_keys_include_exact_hint_identity() -> None:
         "title": "Bush",
         "source": "dep_object",
         "resolver_hints": [
-            {"lane": "sentence_link", "kind": "exact", "title": "George W. Bush", "score": 1.0}
+            {
+                "lane": "sentence_link",
+                "kind": "exact",
+                "title": "George W. Bush",
+                "score": 1.0,
+            }
         ],
     }
     keys = ext._row_identity_keys(row)
@@ -21,7 +26,12 @@ def test_preferred_entity_label_uses_exact_hint_title() -> None:
         "title": "Bush",
         "source": "dep_object",
         "resolver_hints": [
-            {"lane": "sentence_link", "kind": "exact", "title": "George W. Bush", "score": 1.0}
+            {
+                "lane": "sentence_link",
+                "kind": "exact",
+                "title": "George W. Bush",
+                "score": 1.0,
+            }
         ],
     }
     assert ext._preferred_entity_label("Bush", row) == "George W. Bush"
@@ -38,7 +48,12 @@ def test_step_object_key_coalesces_surface_aliases_with_identity_row() -> None:
         "title": "George W. Bush",
         "source": "wikilink",
         "resolver_hints": [
-            {"lane": "sentence_link", "kind": "exact", "title": "George W. Bush", "score": 1.0}
+            {
+                "lane": "sentence_link",
+                "kind": "exact",
+                "title": "George W. Bush",
+                "score": 1.0,
+            }
         ],
     }
     object_row_by_key = {"bush": row, "george w bush": row}

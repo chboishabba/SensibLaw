@@ -43,7 +43,9 @@ def fetch_official_register(source: Dict[str, Any]) -> str:
     return "official"
 
 
-def _persist_graph(nodes: List[Dict[str, Any]], edges: List[Dict[str, Any]], path: Path) -> None:
+def _persist_graph(
+    nodes: List[Dict[str, Any]], edges: List[Dict[str, Any]], path: Path
+) -> None:
     """Persist ``nodes`` and ``edges`` into a simple SQLite schema."""
 
     conn = sqlite3.connect(path)
@@ -122,7 +124,6 @@ class SourceDispatcher:
                 results.append({"name": source["name"], "nodes": nodes, "edges": edges})
                 continue
 
-
             if source["name"].lower() == "federal register of legislation":
                 api_url = base_url.rstrip("/") + "/federalregister/json/Acts"
                 try:
@@ -134,14 +135,14 @@ class SourceDispatcher:
                     fetchers.append(fetch_official_register(source))
                 if "PDF" in formats:
                     fetchers.append(fetch_pdf(source))
-                results.append({
-                    "name": source["name"],
-                    "nodes": nodes,
-                    "edges": edges,
-                    "fetchers": fetchers,
-                })
-
-
+                results.append(
+                    {
+                        "name": source["name"],
+                        "nodes": nodes,
+                        "edges": edges,
+                        "fetchers": fetchers,
+                    }
+                )
 
                 # Even though a bespoke adapter is used, expose the generic
                 # fetcher information so that callers can inspect how the data
@@ -165,7 +166,10 @@ class SourceDispatcher:
 
                 continue
 
-            if source.get("adapter") == "hansard" or source["name"].lower() == "hansard":
+            if (
+                source.get("adapter") == "hansard"
+                or source["name"].lower() == "hansard"
+            ):
                 debates = source.get("debates", [])
                 try:
                     nodes, edges = hansard.fetch_debates(debates)

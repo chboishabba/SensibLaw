@@ -79,7 +79,10 @@ def _to_row(date_text: str, seq: int, record: dict[str, Any]) -> NotebookLMObser
         date=date_text,
         seq=seq,
         ts=str(record.get("ts") or f"{date_text}T00:00:00Z"),
-        event=str(record.get("event") or record.get("event_type") or "unknown").strip().lower() or "unknown",
+        event=str(record.get("event") or record.get("event_type") or "unknown")
+        .strip()
+        .lower()
+        or "unknown",
         notebook_id_hash=_clean_text(record.get("notebook_id_hash")),
         notebook_title=_clean_text(record.get("notebook_title")),
         note_id_hash=_clean_text(record.get("note_id_hash")),
@@ -109,7 +112,9 @@ def iter_notebooklm_observer_rows(
 ) -> list[NotebookLMObserverRow]:
     rows: list[NotebookLMObserverRow] = []
     seq = 0
-    for date_text, notes_path in _iter_date_files(runs_root, start_date=start_date, end_date=end_date):
+    for date_text, notes_path in _iter_date_files(
+        runs_root, start_date=start_date, end_date=end_date
+    ):
         with notes_path.open("r", encoding="utf-8") as handle:
             for line in handle:
                 raw = line.strip()
@@ -140,7 +145,9 @@ def list_notebooklm_observer_dates(
     start_date: str | None = None,
     end_date: str | None = None,
 ) -> list[dict[str, Any]]:
-    rows = iter_notebooklm_observer_rows(runs_root, start_date=start_date, end_date=end_date)
+    rows = iter_notebooklm_observer_rows(
+        runs_root, start_date=start_date, end_date=end_date
+    )
     grouped: dict[str, dict[str, Any]] = {}
     for row in rows:
         bucket = grouped.setdefault(
@@ -318,7 +325,9 @@ def build_notebooklm_observer_report(
             "sourceSummaryCount": sum(1 for row in rows if row.source_summary),
             "firstTs": rows[0].ts if rows else None,
             "lastTs": rows[-1].ts if rows else None,
-            "eventCounts": dict(sorted(event_counts.items(), key=lambda item: (-item[1], item[0]))),
+            "eventCounts": dict(
+                sorted(event_counts.items(), key=lambda item: (-item[1], item[0]))
+            ),
         },
         "dates": list_notebooklm_observer_dates(
             runs_root,
@@ -334,15 +343,24 @@ def build_notebooklm_observer_report(
                 }
                 for bucket in notebooks.values()
             ),
-            key=lambda row: (-int(row["eventCount"]), str(row["title"] or row["notebookIdHash"])),
+            key=lambda row: (
+                -int(row["eventCount"]),
+                str(row["title"] or row["notebookIdHash"]),
+            ),
         ),
         "sources": sorted(
             sources.values(),
-            key=lambda row: (-int(row["eventCount"]), str(row["title"] or row["noteIdHash"])),
+            key=lambda row: (
+                -int(row["eventCount"]),
+                str(row["title"] or row["noteIdHash"]),
+            ),
         ),
         "artifacts": sorted(
             artifacts.values(),
-            key=lambda row: (-int(row["eventCount"]), str(row["title"] or row["artifactIdHash"])),
+            key=lambda row: (
+                -int(row["eventCount"]),
+                str(row["title"] or row["artifactIdHash"]),
+            ),
         ),
         "recentEvents": recent_events,
     }

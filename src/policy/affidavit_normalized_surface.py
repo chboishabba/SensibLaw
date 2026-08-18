@@ -3,6 +3,7 @@
 This groups the current affidavit-local helper modules into a stable import
 surface without changing behavior or forcing immediate renames.
 """
+
 from __future__ import annotations
 
 from types import SimpleNamespace
@@ -26,7 +27,6 @@ from src.policy.affidavit_candidate_arbitration import (
 )
 from src.policy.affidavit_claim_root import (
     derive_claim_root_fields,
-    is_duplicate_response_excerpt,
     normalize_claim_root_text,
     stable_claim_root_id,
 )

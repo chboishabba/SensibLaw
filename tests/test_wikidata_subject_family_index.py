@@ -13,7 +13,9 @@ def test_resolve_subject_family_prefers_company_when_company_seed_present() -> N
     assert resolve_subject_family(["Q5", "Q4830453"]) == "company"
 
 
-def test_resolve_subject_family_returns_non_company_for_nonempty_non_company_closure() -> None:
+def test_resolve_subject_family_returns_non_company_for_nonempty_non_company_closure() -> (
+    None
+):
     assert resolve_subject_family(["Q5", "Q215627"]) == "non_company"
 
 
@@ -23,12 +25,17 @@ def test_resolve_subject_family_returns_unknown_for_empty_closure() -> None:
 
 def test_build_subject_family_index_is_deterministic_and_cache_friendly() -> None:
     payload = {
-        "Q1": {"type_closure": ["Q5", "Q4830453"], "source_revision_ids": ["rev-2", "rev-1"]},
+        "Q1": {
+            "type_closure": ["Q5", "Q4830453"],
+            "source_revision_ids": ["rev-2", "rev-1"],
+        },
         "Q2": {"closure_qids": ["Q5"], "revision_ids": ["rev-3"]},
         "Q3": {},
     }
     cache = {
-        "Q1:" + "sha256:" + hashlib.sha256("\n".join(["Q4830453", "Q5"]).encode("utf-8")).hexdigest(): {
+        "Q1:"
+        + "sha256:"
+        + hashlib.sha256("\n".join(["Q4830453", "Q5"]).encode("utf-8")).hexdigest(): {
             "subject_qid": "Q1",
             "family": "company",
             "closure_qids": ["Q4830453", "Q5"],
@@ -48,7 +55,11 @@ def test_build_subject_family_index_is_deterministic_and_cache_friendly() -> Non
         "cache_miss_count": 2,
         "cache_ready": True,
     }
-    assert [row["subject_qid"] for row in report["subject_families"]] == ["Q1", "Q2", "Q3"]
+    assert [row["subject_qid"] for row in report["subject_families"]] == [
+        "Q1",
+        "Q2",
+        "Q3",
+    ]
 
     first = report["subject_families"][0]
     assert first["family"] == "company"

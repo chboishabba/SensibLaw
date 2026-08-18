@@ -34,10 +34,18 @@ def test_build_report() -> None:
     assert report["decision"] == payload["promotion_gate"]["decision"]
     assert report["promotion_gate"] == payload["promotion_gate"]
     assert report["compiler_contract"] == payload["compiler_contract"]
-    assert report["operator_workflow_surface"]["summary"]["gate_decision"] == payload["promotion_gate"]["decision"]
-    assert report["operator_workflow_surface"]["summary"]["review_count"] == payload["compiler_contract"]["promoted_outcomes"]["review_count"]
+    assert (
+        report["operator_workflow_surface"]["summary"]["gate_decision"]
+        == payload["promotion_gate"]["decision"]
+    )
+    assert (
+        report["operator_workflow_surface"]["summary"]["review_count"]
+        == payload["compiler_contract"]["promoted_outcomes"]["review_count"]
+    )
     assert report["summary"]["claim_count"] == len(report["claims"])
-    assert report["summary"]["archive_claim_count"] == len(payload["archive_follow_rows"])
+    assert report["summary"]["archive_claim_count"] == len(
+        payload["archive_follow_rows"]
+    )
     assert report["summary"]["review_row_claim_count"] >= 1
     assert report["summary"]["must_review_count"] >= 1
     assert world_model["metadata"]["adapter_stack"] == [
@@ -46,18 +54,24 @@ def test_build_report() -> None:
     ]
 
     review_claim = next(
-        claim for claim in report["claims"] if claim["claim_id"].startswith("brexit-review:")
+        claim
+        for claim in report["claims"]
+        if claim["claim_id"].startswith("brexit-review:")
     )
     assert review_claim["nat_claim"]["state_basis"] == "brexit_artifact"
     assert review_claim["nat_claim"]["property"] == "review_status"
-    assert review_claim["convergence"]["normalized_sources"][0]["verification_status"] in {
+    assert review_claim["convergence"]["normalized_sources"][0][
+        "verification_status"
+    ] in {
         "covered",
         "missing_review",
         "review_required",
     }
 
     archive_claim = next(
-        claim for claim in report["claims"] if claim["claim_id"].startswith("brexit-archive:")
+        claim
+        for claim in report["claims"]
+        if claim["claim_id"].startswith("brexit-archive:")
     )
     assert archive_claim["nat_claim"]["property"] == "archive_follow_title"
     assert archive_claim["nat_claim"]["value"]

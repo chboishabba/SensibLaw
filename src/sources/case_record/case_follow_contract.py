@@ -31,7 +31,9 @@ class CaseRecordFollowInput:
     translation_notes: list[str]
 
 
-def normalize_case_record_follow_input(payload: Mapping[str, Any]) -> CaseRecordFollowInput:
+def normalize_case_record_follow_input(
+    payload: Mapping[str, Any],
+) -> CaseRecordFollowInput:
     return CaseRecordFollowInput(
         case_id=str(payload.get("case_id") or ""),
         court=str(payload.get("court") or ""),

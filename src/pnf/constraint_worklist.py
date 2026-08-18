@@ -39,9 +39,7 @@ class ConstraintWorkItem:
 
     @property
     def work_ref(self) -> str:
-        return "constraint-work:" + canonical_sha256(
-            self.to_dict(include_ref=False)
-        )
+        return "constraint-work:" + canonical_sha256(self.to_dict(include_ref=False))
 
     def to_dict(self, *, include_ref: bool = True) -> dict[str, Any]:
         payload: dict[str, Any] = {
@@ -138,9 +136,7 @@ def evaluate_constraint_worklist(
             declaration.target_factor_refs
         )
         for factor_ref in incident:
-            adjacency.setdefault(factor_ref, set()).add(
-                declaration.constraint_ref
-            )
+            adjacency.setdefault(factor_ref, set()).add(declaration.constraint_ref)
 
     if changed_factor_refs is None:
         changed = known_factors
@@ -153,7 +149,9 @@ def evaluate_constraint_worklist(
             for constraint_ref in adjacency.get(factor_ref, ())
         }
 
-    queue = deque((constraint_ref, 0) for constraint_ref in sorted(initial_constraint_refs))
+    queue = deque(
+        (constraint_ref, 0) for constraint_ref in sorted(initial_constraint_refs)
+    )
     queued = set(initial_constraint_refs)
     assessments: dict[str, ConstraintAssessment] = {}
     work_items: list[ConstraintWorkItem] = []

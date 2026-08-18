@@ -214,6 +214,7 @@ def test_cli_index_output(tmp_path, monkeypatch) -> None:
     fixture = _load_summary_index_fixture()
     assert generated_index == fixture
 
+
 def _load_summary_index_fixture() -> dict[str, object]:
     path = (
         Path(__file__).resolve().parent

@@ -71,11 +71,21 @@ def test_numeric_key_does_not_silently_expand_scaled_values() -> None:
 
 
 def test_infer_numeric_role_transaction_price_vs_investment() -> None:
-    assert ext._infer_numeric_role("arrange", "8.9e7|usd", "for $89 million to purchase the team") == "transaction_price"
-    assert ext._infer_numeric_role("invest", "500000|usd", "invested $500,000 himself") == "personal_investment"
+    assert (
+        ext._infer_numeric_role(
+            "arrange", "8.9e7|usd", "for $89 million to purchase the team"
+        )
+        == "transaction_price"
+    )
+    assert (
+        ext._infer_numeric_role("invest", "500000|usd", "invested $500,000 himself")
+        == "personal_investment"
+    )
 
 
-def test_extract_step_numeric_claims_aligns_multi_verb_sentence_when_parser_available() -> None:
+def test_extract_step_numeric_claims_aligns_multi_verb_sentence_when_parser_available() -> (
+    None
+):
     nlp, _, _ = ext._try_load_spacy("en_core_web_sm")
     if nlp is None:
         pytest.skip("spaCy model unavailable")
@@ -85,7 +95,11 @@ def test_extract_step_numeric_claims_aligns_multi_verb_sentence_when_parser_avai
     )
     doc = nlp(text)
     steps = [
-        {"action": "arrange", "subjects": ["George W. Bush"], "objects": ["Texas Rangers"]},
+        {
+            "action": "arrange",
+            "subjects": ["George W. Bush"],
+            "objects": ["Texas Rangers"],
+        },
         {"action": "invest", "subjects": ["George W. Bush"], "objects": []},
     ]
     claims_by_step = ext._extract_step_numeric_claims(doc, text, steps)
@@ -111,7 +125,9 @@ def test_numeric_normalized_payload_includes_parts_and_magnitude_id() -> None:
     assert str(payload.get("magnitude_id") or "").startswith("mag:")
 
 
-def test_extract_step_numeric_claims_attaches_time_anchor_and_years_when_available() -> None:
+def test_extract_step_numeric_claims_attaches_time_anchor_and_years_when_available() -> (
+    None
+):
     nlp, _, _ = ext._try_load_spacy("en_core_web_sm")
     if nlp is None:
         pytest.skip("spaCy model unavailable")
@@ -122,7 +138,14 @@ def test_extract_step_numeric_claims_attaches_time_anchor_and_years_when_availab
         doc,
         text,
         steps,
-        event_anchor={"year": 2000, "month": 9, "day": 27, "precision": "day", "kind": "mention", "text": "September 27, 2000"},
+        event_anchor={
+            "year": 2000,
+            "month": 9,
+            "day": 27,
+            "precision": "day",
+            "kind": "mention",
+            "text": "September 27, 2000",
+        },
     )
     claims = claims_by_step.get(0) or []
     assert claims
@@ -140,12 +163,24 @@ def test_extract_step_numeric_claims_emits_nearest_date_text_for_claim() -> None
         pytest.skip("spaCy model unavailable")
     text = "In May 2004, Gallup reported that 89 percent of the Republican electorate approved of Bush."
     doc = nlp(text)
-    steps = [{"action": "report", "subjects": ["Gallup"], "objects": ["Republican electorate"]}]
+    steps = [
+        {
+            "action": "report",
+            "subjects": ["Gallup"],
+            "objects": ["Republican electorate"],
+        }
+    ]
     claims_by_step = ext._extract_step_numeric_claims(
         doc,
         text,
         steps,
-        event_anchor={"year": 2004, "month": 5, "precision": "month", "kind": "derived", "text": "May 2004"},
+        event_anchor={
+            "year": 2004,
+            "month": 5,
+            "precision": "month",
+            "kind": "derived",
+            "text": "May 2004",
+        },
     )
     claims = claims_by_step.get(0) or []
     assert claims
@@ -166,12 +201,21 @@ def test_extract_step_numeric_claims_recovers_count_unit_and_quantity_target() -
         "for the 71 existing lines of stem cells."
     )
     doc = nlp(text)
-    steps = [{"action": "sign", "subjects": ["George W. Bush"], "objects": ["stem cells"]}]
+    steps = [
+        {"action": "sign", "subjects": ["George W. Bush"], "objects": ["stem cells"]}
+    ]
     claims_by_step = ext._extract_step_numeric_claims(
         doc,
         text,
         steps,
-        event_anchor={"year": 2001, "month": 8, "day": 9, "precision": "day", "kind": "mention", "text": "August 9, 2001"},
+        event_anchor={
+            "year": 2001,
+            "month": 8,
+            "day": 9,
+            "precision": "day",
+            "kind": "mention",
+            "text": "August 9, 2001",
+        },
     )
     claims = claims_by_step.get(0) or []
     assert claims
@@ -209,7 +253,9 @@ def test_extract_numeric_mentions_ignores_day_number_in_date_phrase() -> None:
     assert "2008|" not in keys
 
 
-def test_extract_numeric_span_candidates_ignores_day_number_in_month_event_phrase() -> None:
+def test_extract_numeric_span_candidates_ignores_day_number_in_month_event_phrase() -> (
+    None
+):
     nlp, _, _ = ext._try_load_spacy("en_core_web_sm")
     if nlp is None:
         pytest.skip("spaCy model unavailable")
@@ -233,8 +279,16 @@ def test_extract_step_numeric_claims_ignores_day_number_in_month_event_phrase() 
     )
     doc = nlp(text)
     steps = [
-        {"action": "outline", "subjects": ["George W. Bush"], "objects": ["September 11 attacks"]},
-        {"action": "alter", "subjects": ["his priorities"], "objects": ["September 11 attacks"]},
+        {
+            "action": "outline",
+            "subjects": ["George W. Bush"],
+            "objects": ["September 11 attacks"],
+        },
+        {
+            "action": "alter",
+            "subjects": ["his priorities"],
+            "objects": ["September 11 attacks"],
+        },
     ]
     claims_by_step = ext._extract_step_numeric_claims(doc, text, steps)
     assert all(not claims for claims in claims_by_step.values())

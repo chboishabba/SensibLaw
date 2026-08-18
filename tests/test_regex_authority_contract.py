@@ -14,12 +14,21 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_regex_derived_rows_are_lexical_hints_only() -> None:
     doc = Document(
-        DocumentMetadata(jurisdiction="AU", citation="Fixture Act", date=date(2026, 6, 5), title="Fixture Act"),
+        DocumentMetadata(
+            jurisdiction="AU",
+            citation="Fixture Act",
+            date=date(2026, 6, 5),
+            title="Fixture Act",
+        ),
         'In this Act, "Employee" means a person.\n• NOISY HEADING\nText ???',
     )
 
-    records = [item.to_lexical_hint_record() for item in build_span_role_hypotheses(doc)]
-    records.extend(item.to_lexical_hint_record() for item in build_span_signal_hypotheses(doc.body))
+    records = [
+        item.to_lexical_hint_record() for item in build_span_role_hypotheses(doc)
+    ]
+    records.extend(
+        item.to_lexical_hint_record() for item in build_span_signal_hypotheses(doc.body)
+    )
 
     assert records
     for record in records:
@@ -73,9 +82,13 @@ def _regex_pnf_offenders(paths: list[Path]) -> list[str]:
             continue
 
         for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom) and any(alias.name in forbidden_import_names for alias in node.names):
+            if isinstance(node, ast.ImportFrom) and any(
+                alias.name in forbidden_import_names for alias in node.names
+            ):
                 offenders.append(f"{path.relative_to(ROOT)} imports {node.module}")
-            if isinstance(node, ast.Import) and any(alias.name.endswith(".residual_lattice") for alias in node.names):
+            if isinstance(node, ast.Import) and any(
+                alias.name.endswith(".residual_lattice") for alias in node.names
+            ):
                 offenders.append(f"{path.relative_to(ROOT)} imports residual_lattice")
             if isinstance(node, ast.Call):
                 name = _call_name(node.func)

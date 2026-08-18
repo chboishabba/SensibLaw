@@ -19,7 +19,9 @@ def db_connection():
 
 
 def test_seed_priority_legal_systems(db_connection):
-    cursor = db_connection.execute("SELECT code, priority FROM legal_systems ORDER BY code")
+    cursor = db_connection.execute(
+        "SELECT code, priority FROM legal_systems ORDER BY code"
+    )
     systems = {row[0]: row[1] for row in cursor.fetchall()}
     expected = {
         "AU.COMMON",
@@ -155,10 +157,14 @@ def test_addresses_migrate_country_and_subdivision_links():
     connection = sqlite3.connect(":memory:")
     migration_paths = sorted(MIGRATIONS_DIR.glob("*.sql"))
     legacy_paths = [
-        path for path in migration_paths if path.name != "003_addresses_country_references.sql"
+        path
+        for path in migration_paths
+        if path.name != "003_addresses_country_references.sql"
     ]
     address_migration = [
-        path for path in migration_paths if path.name == "003_addresses_country_references.sql"
+        path
+        for path in migration_paths
+        if path.name == "003_addresses_country_references.sql"
     ]
     MigrationRunner(connection, migration_paths=legacy_paths).apply_all()
 

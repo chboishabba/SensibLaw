@@ -51,7 +51,9 @@ def _load_bridge_row(conn: sqlite3.Connection, run_id: str) -> dict[str, object]
     }
 
 
-def _coerce_record(raw: dict[str, object]) -> tuple[str, str, str, str, str, str, str, str, str]:
+def _coerce_record(
+    raw: dict[str, object],
+) -> tuple[str, str, str, str, str, str, str, str, str]:
     payload_text = raw.get("payload_json")
     if not isinstance(payload_text, str):
         raise ValueError("payload_json is not a string in bridge row")
@@ -88,8 +90,20 @@ def _coerce_record(raw: dict[str, object]) -> tuple[str, str, str, str, str, str
     )
 
 
-def _upsert_itir_run(conn: sqlite3.Connection, record: tuple[str, str, str, str, str, str, str, str, str]) -> None:
-    run_id, run_time_utc, contract, source, trace_id, artifact_path, trace_vector_json, envelope_json, payload_json = record
+def _upsert_itir_run(
+    conn: sqlite3.Connection, record: tuple[str, str, str, str, str, str, str, str, str]
+) -> None:
+    (
+        run_id,
+        run_time_utc,
+        contract,
+        source,
+        trace_id,
+        artifact_path,
+        trace_vector_json,
+        envelope_json,
+        payload_json,
+    ) = record
     conn.execute(
         """
         INSERT OR REPLACE INTO qg_unification_runs (
@@ -121,20 +135,30 @@ def _upsert_itir_run(conn: sqlite3.Connection, record: tuple[str, str, str, str,
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Consume a staged QG unification run into an ITIR-facing DB.")
-    parser.add_argument("--run-id", required=True, help="Run identifier in bridge database")
+    parser = argparse.ArgumentParser(
+        description="Consume a staged QG unification run into an ITIR-facing DB."
+    )
+    parser.add_argument(
+        "--run-id", required=True, help="Run identifier in bridge database"
+    )
     parser.add_argument(
         "--bridge-db",
         default=".cache_local/qg_unification_artifacts/qg_unification.sqlite",
         help="SQLite DB written by qg_unification_stage2_bridge.py",
     )
-    parser.add_argument("--itir-db", required=True, help="Destination SQLite DB (ITIR/SL read-model)")
+    parser.add_argument(
+        "--itir-db", required=True, help="Destination SQLite DB (ITIR/SL read-model)"
+    )
     parser.add_argument(
         "--require-artifact",
         action="store_true",
         help="Fail if the staged artifact file is missing for the selected run",
     )
-    parser.add_argument("--dry-run", action="store_true", help="Resolve and validate run, but do not write ITIR DB")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Resolve and validate run, but do not write ITIR DB",
+    )
     args = parser.parse_args(argv)
 
     bridge_db = Path(args.bridge_db).expanduser()

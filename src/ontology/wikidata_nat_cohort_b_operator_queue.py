@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from typing import Any, Mapping, Sequence
 
 
@@ -39,7 +38,9 @@ def build_nat_cohort_b_operator_queue(
     if not isinstance(operator_packets, Sequence) or isinstance(
         operator_packets, (str, bytes, bytearray)
     ):
-        raise ValueError("operator_packets must be a sequence of Cohort B operator packet objects")
+        raise ValueError(
+            "operator_packets must be a sequence of Cohort B operator packet objects"
+        )
 
     validation_errors: list[dict[str, str]] = []
     review_packets: list[Mapping[str, Any]] = []
@@ -47,7 +48,9 @@ def build_nat_cohort_b_operator_queue(
     lane_id = ""
     for idx, packet in enumerate(operator_packets):
         if not isinstance(packet, Mapping):
-            validation_errors.append({"packet_index": str(idx), "error": "packet_not_object"})
+            validation_errors.append(
+                {"packet_index": str(idx), "error": "packet_not_object"}
+            )
             continue
         packet_id = _stringify(packet.get("packet_id"))
         cohort_id = _stringify(packet.get("cohort_id"))
@@ -56,11 +59,17 @@ def build_nat_cohort_b_operator_queue(
 
         if cohort_id != "cohort_b_reconciled_non_business":
             validation_errors.append(
-                {"packet_index": str(idx), "packet_id": packet_id, "error": "packet_not_cohort_b"}
+                {
+                    "packet_index": str(idx),
+                    "packet_id": packet_id,
+                    "error": "packet_not_cohort_b",
+                }
             )
             continue
         if decision == "hold":
-            hold_packets.append({"packet_id": packet_id, "reason": "packet_decision_hold"})
+            hold_packets.append(
+                {"packet_id": packet_id, "reason": "packet_decision_hold"}
+            )
             continue
         if decision != "review":
             validation_errors.append(
@@ -96,7 +105,9 @@ def build_nat_cohort_b_operator_queue(
                     "queue_item_id": (
                         "cohort-b-queue:"
                         + hashlib.sha1(
-                            f"{packet_id}|{_stringify(row.get('row_id'))}".encode("utf-8")
+                            f"{packet_id}|{_stringify(row.get('row_id'))}".encode(
+                                "utf-8"
+                            )
                         ).hexdigest()[:12]
                     ),
                     "packet_id": packet_id,

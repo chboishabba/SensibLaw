@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Print quality-gated would-be H9 provider labels without provider I/O."""
+
 from __future__ import annotations
 
 import argparse
@@ -34,9 +35,13 @@ def main() -> int:
     connection = connect(args.database_url)
     try:
         with connection.cursor() as cursor:
-            cursor.execute("SELECT execution.refresh_numeric_pnf_parser_entity_surface_labels()")
+            cursor.execute(
+                "SELECT execution.refresh_numeric_pnf_parser_entity_surface_labels()"
+            )
             refreshed = int(cursor.fetchone()[0])
-            cursor.execute("SELECT execution.refresh_semantic_parser_entity_quality_constants()")
+            cursor.execute(
+                "SELECT execution.refresh_semantic_parser_entity_quality_constants()"
+            )
             cursor.fetchone()
 
             cursor.execute(
@@ -85,8 +90,7 @@ def main() -> int:
                     "entity_id": int(entity_id),
                     "source_object_id": int(source_object_id),
                 }
-                for demand_id, label, entity_type, entity_id, source_object_id
-                in cursor.fetchall()
+                for demand_id, label, entity_type, entity_id, source_object_id in cursor.fetchall()
             ]
 
             cursor.execute(
@@ -101,7 +105,9 @@ def main() -> int:
                     ON unique_anchor.demand_id=raw.demand_id
                 """
             )
-            raw_occurrence_demands, safe_occurrence_demands, unique_demands = cursor.fetchone()
+            raw_occurrence_demands, safe_occurrence_demands, unique_demands = (
+                cursor.fetchone()
+            )
 
             cursor.execute(
                 """
@@ -169,17 +175,25 @@ def main() -> int:
     finally:
         connection.close()
 
-    print(json.dumps({
-        "surface_labels_refreshed": refreshed,
-        "raw_parser_entity_occurrence_demands": int(raw_occurrence_demands),
-        "quality_gated_parser_entity_occurrence_demands": int(safe_occurrence_demands),
-        "unique_parser_entity_anchor_demands": int(unique_demands),
-        "admitted_external_demands": admitted,
-        "quality_summary": rejection_summary,
-        "rejected_sample": rejected_sample,
-        "sample": labels,
-        "provider_io_performed": False,
-    }, indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            {
+                "surface_labels_refreshed": refreshed,
+                "raw_parser_entity_occurrence_demands": int(raw_occurrence_demands),
+                "quality_gated_parser_entity_occurrence_demands": int(
+                    safe_occurrence_demands
+                ),
+                "unique_parser_entity_anchor_demands": int(unique_demands),
+                "admitted_external_demands": admitted,
+                "quality_summary": rejection_summary,
+                "rejected_sample": rejected_sample,
+                "sample": labels,
+                "provider_io_performed": False,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+    )
     return 0
 
 

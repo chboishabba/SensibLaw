@@ -74,7 +74,9 @@ class _SinoHTMLParser(HTMLParser):
             self._heading_buf.append(data)
 
 
-def parse_sino_search_html(html: str, *, base_url: str = "https://www.austlii.edu.au/") -> list[AustLiiSearchHit]:
+def parse_sino_search_html(
+    html: str, *, base_url: str = "https://www.austlii.edu.au/"
+) -> list[AustLiiSearchHit]:
     parser = _SinoHTMLParser(base_url=base_url)
     parser.feed(html)
     return parser.hits

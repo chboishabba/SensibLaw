@@ -170,9 +170,7 @@ def test_refinement_changes_only_named_factor():
     )
     assert refined["slots"][1] == pnf["slots"][1]
     assert (
-        receipt.to_dict()["unchanged_factor_witness"][
-            "all_other_slots_unchanged"
-        ]
+        receipt.to_dict()["unchanged_factor_witness"]["all_other_slots_unchanged"]
         is True
     )
 

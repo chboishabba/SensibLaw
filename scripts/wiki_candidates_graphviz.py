@@ -98,7 +98,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         except Exception:
             return 0
 
-    rows_sorted = sorted([r for r in rows if isinstance(r, dict)], key=_score, reverse=True)
+    rows_sorted = sorted(
+        [r for r in rows if isinstance(r, dict)], key=_score, reverse=True
+    )
 
     kept = 0
     for row in rows_sorted:
@@ -154,12 +156,14 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     lines.append("")
     lines.append("  // Evidence edges (page -> candidate)")
-    for (src, dst), w in sorted(edge_weights.items(), key=lambda x: (-x[1], x[0][0], x[0][1])):
+    for (src, dst), w in sorted(
+        edge_weights.items(), key=lambda x: (-x[1], x[0][0], x[0][1])
+    ):
         # Map weights to a small penwidth range.
         pen = 1.0 + min(3.0, float(w) - 1.0)
         lines.append(
             f"  {_dot_quote('page:' + src)} -> {_dot_quote('cand:' + dst)} "
-            f'[penwidth={pen:.1f}];'
+            f"[penwidth={pen:.1f}];"
         )
 
     lines.append("}")
@@ -169,15 +173,30 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.render_svg:
         dot = shutil.which("dot")
         if not dot:
-            print(json.dumps({"ok": True, "dot": str(args.out_dot), "svg": None, "note": "graphviz_dot_not_found"}))
+            print(
+                json.dumps(
+                    {
+                        "ok": True,
+                        "dot": str(args.out_dot),
+                        "svg": None,
+                        "note": "graphviz_dot_not_found",
+                    }
+                )
+            )
             return 0
         args.out_svg.parent.mkdir(parents=True, exist_ok=True)
-        subprocess.run([dot, "-Tsvg", str(args.out_dot), "-o", str(args.out_svg)], check=False)
+        subprocess.run(
+            [dot, "-Tsvg", str(args.out_dot), "-o", str(args.out_svg)], check=False
+        )
         rendered_svg = args.out_svg.exists() and args.out_svg.stat().st_size > 0
 
     print(
         json.dumps(
-            {"ok": True, "dot": str(args.out_dot), "svg": str(args.out_svg) if rendered_svg else None},
+            {
+                "ok": True,
+                "dot": str(args.out_dot),
+                "svg": str(args.out_svg) if rendered_svg else None,
+            },
             indent=2,
             sort_keys=True,
         )
@@ -187,4 +206,3 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

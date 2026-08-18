@@ -120,7 +120,9 @@ class MatchResult:
     unmatched_spans: Optional[list[tuple[int, int]]] = None
 
 
-def match(text: str, patterns: Iterable[str], return_unmatched: bool = False) -> MatchResult:
+def match(
+    text: str, patterns: Iterable[str], return_unmatched: bool = False
+) -> MatchResult:
     """Find occurrences of ``patterns`` within ``text``."""
 
     pattern_map = {p.lower(): p for p in patterns}
@@ -134,7 +136,9 @@ def match(text: str, patterns: Iterable[str], return_unmatched: bool = False) ->
         automaton.make_automaton()
         for end_idx, pat in automaton.iter(text.lower()):
             start_idx = end_idx - len(pat) + 1
-            matches.append(Match(pattern=pattern_map[pat], start=start_idx, end=end_idx + 1))
+            matches.append(
+                Match(pattern=pattern_map[pat], start=start_idx, end=end_idx + 1)
+            )
     else:  # fallback naive search
         lower_text = text.lower()
         for pat in lowered_patterns:
@@ -143,7 +147,9 @@ def match(text: str, patterns: Iterable[str], return_unmatched: bool = False) ->
                 idx = lower_text.find(pat, start)
                 if idx == -1:
                     break
-                matches.append(Match(pattern=pattern_map[pat], start=idx, end=idx + len(pat)))
+                matches.append(
+                    Match(pattern=pattern_map[pat], start=idx, end=idx + len(pat))
+                )
                 start = idx + 1
 
     matches.sort(key=lambda m: (m.start, m.end))
@@ -170,4 +176,3 @@ __all__ = [
     "MatchResult",
     "match",
 ]
-

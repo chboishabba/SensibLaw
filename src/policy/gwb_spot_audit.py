@@ -13,6 +13,7 @@ from src.policy.fragment_pnf import (
 
 DEFAULT_AUDIT_PATH = Path(__file__).parent / "gwb_timeline_spot_audit.json"
 
+
 def build_export_gate_receipt(
     row: dict[str, Any],
     policy: ExportLanePolicy = DEFAULT_GWB_LANE_POLICY,
@@ -113,7 +114,13 @@ def build_export_gate_receipt(
         and linkage_depth_adequate
     ):
         export_class = ExportClass.high_confidence_exportable
-    elif pnf_closed and time_bound and source_spanned and has_fragment_pnf_path and residual_not_blocked:
+    elif (
+        pnf_closed
+        and time_bound
+        and source_spanned
+        and has_fragment_pnf_path
+        and residual_not_blocked
+    ):
         export_class = ExportClass.exportable
     elif pnf_closed:
         export_class = ExportClass.reviewable
@@ -142,10 +149,10 @@ def load_spot_audit_registry(path: Path | str | None = None) -> dict[str, Any]:
         path = DEFAULT_AUDIT_PATH
     else:
         path = Path(path)
-    
+
     if not path.exists():
         return {"events": {}, "edges": {}}
-    
+
     try:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -153,29 +160,34 @@ def load_spot_audit_registry(path: Path | str | None = None) -> dict[str, Any]:
         return {"events": {}, "edges": {}}
 
 
-def save_spot_audit_registry(registry: Mapping[str, Any], path: Path | str | None = None) -> None:
+def save_spot_audit_registry(
+    registry: Mapping[str, Any], path: Path | str | None = None
+) -> None:
     if path is None:
         path = DEFAULT_AUDIT_PATH
     else:
         path = Path(path)
-        
+
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(registry, f, indent=2, ensure_ascii=False)
 
 
-def apply_spot_audit_blocks(braid_payload: dict[str, Any], registry: Mapping[str, Any]) -> dict[str, Any]:
+def apply_spot_audit_blocks(
+    braid_payload: dict[str, Any], registry: Mapping[str, Any]
+) -> dict[str, Any]:
     import copy
+
     payload = copy.deepcopy(braid_payload)
-    
+
     event_audits = registry.get("events") or {}
     edge_audits = registry.get("edges") or {}
-    
+
     blocked_events: set[str] = set()
     for event_key, audit in event_audits.items():
         if audit.get("recommended_status") == "block":
             blocked_events.add(event_key)
-            
+
     blocked_edges: set[str] = set()
     for edge_id, audit in edge_audits.items():
         if audit.get("recommended_status") == "block":
@@ -212,7 +224,11 @@ def apply_spot_audit_blocks(braid_payload: dict[str, Any], registry: Mapping[str
         edge_id = edge.get("ordering_edge_id")
         left_key = edge.get("source_event_id")
         right_key = edge.get("target_event_id")
-        if edge_id not in blocked_edges and left_key not in blocked_events and right_key not in blocked_events:
+        if (
+            edge_id not in blocked_edges
+            and left_key not in blocked_events
+            and right_key not in blocked_events
+        ):
             filtered_edges.append(edge)
     payload["ordering_edges"] = filtered_edges
 
@@ -221,28 +237,48 @@ def apply_spot_audit_blocks(braid_payload: dict[str, Any], registry: Mapping[str
 
 def is_exportable(row: dict[str, Any], threshold: float = 0.5) -> bool:
     pnf_state = row.get("pnf") or {}
-    pnf_closed = bool(row.get("pnf_status") == "canonicalized" and pnf_state.get("subject") and pnf_state.get("predicate") and pnf_state.get("object"))
-    
+    pnf_closed = bool(
+        row.get("pnf_status") == "canonicalized"
+        and pnf_state.get("subject")
+        and pnf_state.get("predicate")
+        and pnf_state.get("object")
+    )
+
     anchor = row.get("anchor") or {}
-    time_bound = bool(row.get("resolved_historical_date") or anchor.get("year") or anchor.get("start_year"))
+    time_bound = bool(
+        row.get("resolved_historical_date")
+        or anchor.get("year")
+        or anchor.get("start_year")
+    )
     source_spanned = bool(row.get("text"))
-    
+
     relevance_state = row.get("relevance") or {}
     relevance_score = relevance_state.get("score") or 0.0
-    
-    is_blocked = row.get("event_quality_status") == "rejected_noise" or row.get("recommended_status") == "block"
-    
-    return pnf_closed and time_bound and source_spanned and (relevance_score >= threshold) and not is_blocked
+
+    is_blocked = (
+        row.get("event_quality_status") == "rejected_noise"
+        or row.get("recommended_status") == "block"
+    )
+
+    return (
+        pnf_closed
+        and time_bound
+        and source_spanned
+        and (relevance_score >= threshold)
+        and not is_blocked
+    )
 
 
-def export_historical_timeline(braid_payload: dict[str, Any], registry: Mapping[str, Any]) -> dict[str, Any]:
+def export_historical_timeline(
+    braid_payload: dict[str, Any], registry: Mapping[str, Any]
+) -> dict[str, Any]:
     payload = apply_spot_audit_blocks(braid_payload, registry)
-    
+
     historical_edges = []
     for edge in payload.get("ordering_edges", []):
         if edge.get("ordering_basis") == "historical_time_order":
             historical_edges.append(edge)
-            
+
     referenced_events = set()
     for edge in historical_edges:
         referenced_events.add(edge.get("source_event_id"))
@@ -256,9 +292,21 @@ def export_historical_timeline(braid_payload: dict[str, Any], registry: Mapping[
         status = row.get("event_time_anchor_status")
         relevance_state = row.get("relevance") or {}
         relevance_status = relevance_state.get("status") or "triage"
-        
+
         is_handoff = row.get("source_family") == "checked_handoff"
-        if is_handoff or relevance_status == "timeline_candidate" or is_exportable(row) or event_key in referenced_events or status in {"resolved_historical_date", "explicit_span_date", "source_metadata_date", "candidate_span_year"}:
+        if (
+            is_handoff
+            or relevance_status == "timeline_candidate"
+            or is_exportable(row)
+            or event_key in referenced_events
+            or status
+            in {
+                "resolved_historical_date",
+                "explicit_span_date",
+                "source_metadata_date",
+                "candidate_span_year",
+            }
+        ):
             historical_events.append(row)
 
     return {
@@ -266,7 +314,13 @@ def export_historical_timeline(braid_payload: dict[str, Any], registry: Mapping[
         "source_event_rows": historical_events,
         "ordering_edges": historical_edges,
         "merged_events": [
-            m for m in payload.get("merged_events", [])
-            if any(f"{row.get('source_family')}:{row.get('event_id')}" in referenced_events for row in payload.get("source_event_rows", []) if f"{row.get('source_family')}:{row.get('event_id')}" in m.get("source_event_ids", []))
+            m
+            for m in payload.get("merged_events", [])
+            if any(
+                f"{row.get('source_family')}:{row.get('event_id')}" in referenced_events
+                for row in payload.get("source_event_rows", [])
+                if f"{row.get('source_family')}:{row.get('event_id')}"
+                in m.get("source_event_ids", [])
+            )
         ],
     }

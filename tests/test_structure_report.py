@@ -4,7 +4,11 @@ import inspect
 from pathlib import Path
 
 from src.reporting import structure_report
-from src.reporting.structure_report import TextUnit, build_structure_report, load_file_units
+from src.reporting.structure_report import (
+    TextUnit,
+    build_structure_report,
+    load_file_units,
+)
 
 
 def test_structure_report_surfaces_useful_and_interlinked_atoms():
@@ -31,10 +35,15 @@ def test_structure_report_surfaces_useful_and_interlinked_atoms():
     report = build_structure_report(units, top_n=10)
     assert report["unit_count"] == 3
     assert report["structural_token_count"] > 0
-    top_atoms = {(row["norm_text"], row["kind"]) for row in report["top_structural_atoms"]}
+    top_atoms = {
+        (row["norm_text"], row["kind"]) for row in report["top_structural_atoms"]
+    }
     assert ("act:civil_liability_act_2002_nsw", "act_ref") in top_atoms
     assert ("cmd:pytest", "command_ref") in top_atoms
-    section_atoms = {(row["norm_text"], row["kind"]) for row in report["top_structural_atoms_by_kind"]["section_ref"]}
+    section_atoms = {
+        (row["norm_text"], row["kind"])
+        for row in report["top_structural_atoms_by_kind"]["section_ref"]
+    }
     assert ("sec:5b", "section_ref") in section_atoms
     assert any(row["neighbor_count"] > 0 for row in report["top_interlinked_atoms"])
     assert any(row["utility_score"] > 0 for row in report["top_useful_atoms"])
@@ -54,7 +63,9 @@ def test_load_file_units_splits_bracketed_transcript_fixture_into_message_units(
     assert units[-1].text.startswith("[7/3/26 2:00")
 
 
-def test_load_file_units_groups_timestamp_bullet_transcript_into_sentenceish_units(tmp_path: Path) -> None:
+def test_load_file_units_groups_timestamp_bullet_transcript_into_sentenceish_units(
+    tmp_path: Path,
+) -> None:
     fixture = tmp_path / "hearing_transcript.md"
     fixture.write_text(
         "\n".join(
@@ -78,7 +89,9 @@ def test_load_file_units_groups_timestamp_bullet_transcript_into_sentenceish_uni
     assert "Civil Liability Act" in units[-1].text
 
 
-def test_load_file_units_splits_court_transcript_on_speaker_turns(tmp_path: Path) -> None:
+def test_load_file_units_splits_court_transcript_on_speaker_turns(
+    tmp_path: Path,
+) -> None:
     fixture = tmp_path / "01_Hearing.txt"
     fixture.write_text(
         "\n".join(

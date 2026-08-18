@@ -31,7 +31,9 @@ class NotebookLMActivityRow:
     provenance_source: str | None
 
 
-def _iter_date_files(runs_root: str | Path, *, start_date: str | None = None, end_date: str | None = None) -> list[tuple[str, Path]]:
+def _iter_date_files(
+    runs_root: str | Path, *, start_date: str | None = None, end_date: str | None = None
+) -> list[tuple[str, Path]]:
     return iter_dated_artifacts(
         runs_root,
         relative_path=("outputs", "notebooklm", "notebooklm_activity_normalized.jsonl"),
@@ -50,7 +52,11 @@ def _to_row(date_text: str, seq: int, record: dict[str, Any]) -> NotebookLMActiv
     provenance_source = None
     if isinstance(provenance, dict):
         provenance_source = _clean_text(provenance.get("source"))
-    note_length = record.get("note_length") if isinstance(record.get("note_length"), int) else None
+    note_length = (
+        record.get("note_length")
+        if isinstance(record.get("note_length"), int)
+        else None
+    )
     return NotebookLMActivityRow(
         date=date_text,
         seq=seq,
@@ -79,7 +85,9 @@ def iter_notebooklm_activity_rows(
 ) -> list[NotebookLMActivityRow]:
     rows: list[NotebookLMActivityRow] = []
     seq = 0
-    for date_text, target in _iter_date_files(runs_root, start_date=start_date, end_date=end_date):
+    for date_text, target in _iter_date_files(
+        runs_root, start_date=start_date, end_date=end_date
+    ):
         with target.open("r", encoding="utf-8") as handle:
             for line in handle:
                 raw = line.strip()
@@ -91,7 +99,10 @@ def iter_notebooklm_activity_rows(
                     continue
                 if not isinstance(record, dict):
                     continue
-                if str(record.get("signal") or "").strip().lower() != "notebooklm_activity":
+                if (
+                    str(record.get("signal") or "").strip().lower()
+                    != "notebooklm_activity"
+                ):
                     continue
                 if str(record.get("app") or "").strip().lower() != "notebooklm":
                     continue
@@ -110,7 +121,9 @@ def list_notebooklm_activity_dates(
     start_date: str | None = None,
     end_date: str | None = None,
 ) -> list[dict[str, Any]]:
-    rows = iter_notebooklm_activity_rows(runs_root, start_date=start_date, end_date=end_date)
+    rows = iter_notebooklm_activity_rows(
+        runs_root, start_date=start_date, end_date=end_date
+    )
     grouped: dict[str, dict[str, Any]] = {}
     for row in rows:
         bucket = grouped.setdefault(
@@ -202,7 +215,9 @@ def build_notebooklm_activity_report(
             "firstTs": value.get("firstTs"),
             "lastTs": value.get("lastTs"),
         }
-        for key, value in sorted(notebooks.items(), key=lambda item: ((item[1].get("title") or ""), item[0]))
+        for key, value in sorted(
+            notebooks.items(), key=lambda item: ((item[1].get("title") or ""), item[0])
+        )
     ]
     recent_events = [
         {
@@ -225,14 +240,20 @@ def build_notebooklm_activity_report(
     return {
         "summary": {
             "eventCount": len(rows),
-            "notebookCount": len({row.notebook_id_hash for row in rows if row.notebook_id_hash}),
-            "conversationCount": len({row.conversation_id_hash for row in rows if row.conversation_id_hash}),
+            "notebookCount": len(
+                {row.notebook_id_hash for row in rows if row.notebook_id_hash}
+            ),
+            "conversationCount": len(
+                {row.conversation_id_hash for row in rows if row.conversation_id_hash}
+            ),
             "noteCount": len({row.note_id_hash for row in rows if row.note_id_hash}),
             "eventCounts": dict(event_counts),
         },
         "notebooks": notebook_rows,
         "recentEvents": recent_events,
-        "dates": list_notebooklm_activity_dates(runs_root, start_date=start_date, end_date=end_date),
+        "dates": list_notebooklm_activity_dates(
+            runs_root, start_date=start_date, end_date=end_date
+        ),
     }
 
 
@@ -259,7 +280,13 @@ def query_notebooklm_activity_events(
         if event_filter and row.event != event_filter:
             continue
         if query:
-            haystacks = [row.notebook_title, row.note_title, row.note_preview, row.query_preview, row.answer_preview]
+            haystacks = [
+                row.notebook_title,
+                row.note_title,
+                row.note_preview,
+                row.query_preview,
+                row.answer_preview,
+            ]
             if not any(query in str(value or "").casefold() for value in haystacks):
                 continue
         out.append(
@@ -318,7 +345,9 @@ def load_notebooklm_activity_units(
         text = "\n".join(parts).strip()
         if not text:
             continue
-        unit_key = row.conversation_id_hash or row.note_id_hash or f"{row.date}:{row.seq}"
+        unit_key = (
+            row.conversation_id_hash or row.note_id_hash or f"{row.date}:{row.seq}"
+        )
         units.append(
             TextUnit(
                 unit_id=f"notebooklm-activity:{unit_key}",

@@ -30,7 +30,9 @@ def test_plain_sentence_has_no_spacey_tokens():
     # Ensure no token (other than allowed structural types) contains whitespace.
     for tok in tokens:
         if " " in tok.text:
-            assert tok.token_type in ALLOWED_SPACEY_TYPES, f"Whitespace token swallowed words: {tok}"
+            assert tok.token_type in ALLOWED_SPACEY_TYPES, (
+                f"Whitespace token swallowed words: {tok}"
+            )
 
 
 def test_structural_tokens_can_contain_spaces_only_when_expected():
@@ -38,7 +40,9 @@ def test_structural_tokens_can_contain_spaces_only_when_expected():
     tokens = tokenize_detailed(text)
     for tok in tokens:
         if " " in tok.text:
-            assert tok.token_type in ALLOWED_SPACEY_TYPES, f"Unexpected spaced token: {tok}"
+            assert tok.token_type in ALLOWED_SPACEY_TYPES, (
+                f"Unexpected spaced token: {tok}"
+            )
         # Guard against overlong word tokens that might swallow multiple words.
         if tok.token_type == TokenType.WORD:
             assert " " not in tok.text

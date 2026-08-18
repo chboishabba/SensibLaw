@@ -68,7 +68,9 @@ def _build_payload(
 def _write_artifact(payload: Mapping[str, Any], out_dir: Path) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     file_path = out_dir / f"qg_unification_run_{payload['run_id']}.json"
-    file_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    file_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"
+    )
     return file_path
 
 
@@ -124,17 +126,32 @@ def _persist_to_db(record: Mapping[str, Any], db_path: Path) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Build and persist a QG unification boundary artifact.")
+    parser = argparse.ArgumentParser(
+        description="Build and persist a QG unification boundary artifact."
+    )
     parser.add_argument(
         "--json",
         default=None,
         help="JSON object representing DA51Trace payload",
     )
-    parser.add_argument("--json-file", type=Path, default=None, help="Path to JSON file containing DA51Trace payload")
-    parser.add_argument("--out-dir", default=".cache_local/qg_unification_artifacts", help="Directory for emitted artifacts")
-    parser.add_argument("--db-path", default="", help="Optional SQLite path for tracking persisted runs")
+    parser.add_argument(
+        "--json-file",
+        type=Path,
+        default=None,
+        help="Path to JSON file containing DA51Trace payload",
+    )
+    parser.add_argument(
+        "--out-dir",
+        default=".cache_local/qg_unification_artifacts",
+        help="Directory for emitted artifacts",
+    )
+    parser.add_argument(
+        "--db-path", default="", help="Optional SQLite path for tracking persisted runs"
+    )
     parser.add_argument("--run-id", default="", help="Optional run identifier override")
-    parser.add_argument("--source", default="da51", help="Source label for the staged adapter bridge")
+    parser.add_argument(
+        "--source", default="da51", help="Source label for the staged adapter bridge"
+    )
     args = parser.parse_args(argv)
 
     payload = _default_payload()

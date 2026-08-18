@@ -89,7 +89,9 @@ def _build_candidate_anchors(candidate: Mapping[str, Any]) -> list[dict[str, str
     return anchors
 
 
-def _render_candidate_text(candidate: Mapping[str, Any], claim_bundle: Mapping[str, Any]) -> str:
+def _render_candidate_text(
+    candidate: Mapping[str, Any], claim_bundle: Mapping[str, Any]
+) -> str:
     subject = _canonicalize_literal(claim_bundle.get("subject"))
     predicate = _canonicalize_literal(claim_bundle.get("property"))
     obj = _canonicalize_literal(claim_bundle.get("value"))
@@ -110,7 +112,9 @@ def build_wikidata_relation_rows(
     source_kind: str = "wikidata_candidate_bundle",
 ) -> list[dict[str, Any]]:
     candidates = migration_pack.get("candidates")
-    if not isinstance(candidates, Sequence) or isinstance(candidates, (str, bytes, bytearray)):
+    if not isinstance(candidates, Sequence) or isinstance(
+        candidates, (str, bytes, bytearray)
+    ):
         raise ValueError("migration pack candidates must be a list")
 
     rows: list[dict[str, Any]] = []

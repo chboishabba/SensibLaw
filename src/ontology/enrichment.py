@@ -5,7 +5,7 @@ import sqlite3
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Iterable, List, Mapping, Sequence
+from typing import Iterable, Mapping, Sequence
 from urllib.parse import quote
 
 import requests
@@ -29,7 +29,9 @@ class LookupCandidate:
         return {key: value for key, value in data.items() if value is not None}
 
 
-def _wikidata_lookup(query: str, *, limit: int, timeout: float) -> list[LookupCandidate]:
+def _wikidata_lookup(
+    query: str, *, limit: int, timeout: float
+) -> list[LookupCandidate]:
     params = {
         "action": "wbsearchentities",
         "format": "json",
@@ -119,7 +121,9 @@ def batch_lookup(
     """Lookup a collection of ``queries`` across external ``providers``."""
 
     normalized_providers = [provider.lower() for provider in providers if provider]
-    results: dict[str, list[LookupCandidate]] = {provider: [] for provider in normalized_providers}
+    results: dict[str, list[LookupCandidate]] = {
+        provider: [] for provider in normalized_providers
+    }
     for provider in normalized_providers:
         lookup = PROVIDER_LOOKUPS.get(provider)
         if lookup is None:
@@ -172,7 +176,13 @@ def upsert_external_ref(
         INSERT OR IGNORE INTO {target_table} ({id_column}, provider, external_id, external_url, notes)
         VALUES (?, ?, ?, ?, ?)
         """,
-        (entity_id, provider, candidate.external_id, candidate.url, candidate.description),
+        (
+            entity_id,
+            provider,
+            candidate.external_id,
+            candidate.url,
+            candidate.description,
+        ),
     )
 
 
@@ -189,7 +199,9 @@ def serialise_candidates(
     }
 
 
-def write_candidates(payload: list[Mapping[str, object]], out_path: Path | None) -> None:
+def write_candidates(
+    payload: list[Mapping[str, object]], out_path: Path | None
+) -> None:
     serialised = json.dumps(payload, indent=2, ensure_ascii=False)
     if out_path is None:
         print(serialised)

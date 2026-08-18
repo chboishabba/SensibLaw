@@ -76,7 +76,7 @@ jobs:
         with:
           enable-cache: true
       - name: Install
-        run: uv sync --frozen
+        run: uv sync --frozen --extra test --extra dev
       - name: Static identity evidence contracts
         run: |
           uv run python -m py_compile \

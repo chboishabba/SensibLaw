@@ -7,7 +7,9 @@ import yaml
 
 
 def _load_schema():
-    return yaml.safe_load(Path("schemas/sl.cross_system_phi.contract.v1.schema.yaml").read_text())
+    return yaml.safe_load(
+        Path("schemas/sl.cross_system_phi.contract.v1.schema.yaml").read_text()
+    )
 
 
 def _load_payload():

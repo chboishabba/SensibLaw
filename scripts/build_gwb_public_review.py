@@ -37,9 +37,15 @@ try:
 except ModuleNotFoundError:
     from policy.compiler_contract import build_gwb_public_review_contract
 try:
-    from src.policy.gwb_legal_follow_graph import build_gwb_legal_follow_graph, build_gwb_legal_follow_operator_view
+    from src.policy.gwb_legal_follow_graph import (
+        build_gwb_legal_follow_graph,
+        build_gwb_legal_follow_operator_view,
+    )
 except ModuleNotFoundError:
-    from policy.gwb_legal_follow_graph import build_gwb_legal_follow_graph, build_gwb_legal_follow_operator_view
+    from policy.gwb_legal_follow_graph import (
+        build_gwb_legal_follow_graph,
+        build_gwb_legal_follow_operator_view,
+    )
 try:
     from src.policy.product_gate import build_product_gate
 except ModuleNotFoundError:
@@ -63,16 +69,27 @@ try:
 except ModuleNotFoundError:
     from policy.review_workflow_summary import build_count_priority_workflow_summary
 try:
-    from src.policy.suite_normalized_artifact import build_gwb_public_review_normalized_artifact
+    from src.policy.suite_normalized_artifact import (
+        build_gwb_public_review_normalized_artifact,
+    )
 except ModuleNotFoundError:
-    from policy.suite_normalized_artifact import build_gwb_public_review_normalized_artifact
+    from policy.suite_normalized_artifact import (
+        build_gwb_public_review_normalized_artifact,
+    )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SENSIBLAW_ROOT = REPO_ROOT / "SensibLaw"
 
 
 ARTIFACT_VERSION = "gwb_public_review_v1"
-SOURCE_SLICE_PATH = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / "gwb_public_handoff_v1" / "gwb_public_handoff_v1.slice.json"
+SOURCE_SLICE_PATH = (
+    SENSIBLAW_ROOT
+    / "tests"
+    / "fixtures"
+    / "zelph"
+    / "gwb_public_handoff_v1"
+    / "gwb_public_handoff_v1.slice.json"
+)
 DEFAULT_OUTPUT_DIR = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / ARTIFACT_VERSION
 _GWB_ANCHOR_KIND_WEIGHT = {
     "calendar_reference": 30,
@@ -107,8 +124,12 @@ def _build_review_item_rows(slice_payload: dict[str, Any]) -> list[dict[str, Any
             continue
         candidate_events = int(seed.get("candidate_event_count") or 0)
         matched_events = int(seed.get("matched_event_count") or 0)
-        events = [event for event in seed.get("events", []) or [] if isinstance(event, dict)]
-        matched_target_events = [event for event in events if bool(event.get("matched"))]
+        events = [
+            event for event in seed.get("events", []) or [] if isinstance(event, dict)
+        ]
+        matched_target_events = [
+            event for event in events if bool(event.get("matched"))
+        ]
         if len(matched_target_events) <= 1:
             if matched_events and matched_events == candidate_events:
                 coverage_status = "covered"
@@ -149,11 +170,14 @@ def _build_review_item_rows(slice_payload: dict[str, Any]) -> list[dict[str, Any
     return rows
 
 
-def _summarize_seed_coverage(review_item_rows: list[dict[str, Any]], seed_id: str) -> str | None:
+def _summarize_seed_coverage(
+    review_item_rows: list[dict[str, Any]], seed_id: str
+) -> str | None:
     statuses = {
         str(row.get("coverage_status") or "").strip()
         for row in review_item_rows
-        if str(row.get("seed_id") or "").strip() == seed_id and str(row.get("coverage_status") or "").strip()
+        if str(row.get("seed_id") or "").strip() == seed_id
+        and str(row.get("coverage_status") or "").strip()
     }
     if not statuses:
         return None
@@ -177,7 +201,11 @@ def _build_source_review_rows(slice_payload: dict[str, Any]) -> list[dict[str, A
             matched = bool(event.get("matched"))
             review_status = "covered" if matched else "missing_review"
             text = str(event.get("text") or "").strip()
-            receipts = event.get("receipts", []) if isinstance(event.get("receipts"), list) else []
+            receipts = (
+                event.get("receipts", [])
+                if isinstance(event.get("receipts"), list)
+                else []
+            )
             anchor_candidates: list[dict[str, Any]] = []
             for receipt in receipts:
                 if isinstance(receipt, dict) and receipt.get("value"):
@@ -189,7 +217,9 @@ def _build_source_review_rows(slice_payload: dict[str, Any]) -> list[dict[str, A
                         }
                     )
             anchor_candidates.extend(
-                _build_candidate_anchors_impl({"calendar_reference_mentions": _year_mentions(text)})
+                _build_candidate_anchors_impl(
+                    {"calendar_reference_mentions": _year_mentions(text)}
+                )
             )
             workload_classes = []
             if matched:
@@ -210,7 +240,9 @@ def _build_source_review_rows(slice_payload: dict[str, Any]) -> list[dict[str, A
                     "matched": matched,
                     "review_status": review_status,
                     "workload_classes": workload_classes,
-                    "primary_workload_class": workload_classes[0] if workload_classes else None,
+                    "primary_workload_class": workload_classes[0]
+                    if workload_classes
+                    else None,
                     "candidate_anchors": anchor_candidates,
                 }
             )
@@ -232,14 +264,20 @@ def _build_source_review_rows(slice_payload: dict[str, Any]) -> list[dict[str, A
                 "workload_classes": ["surface_resolution_gap"],
                 "primary_workload_class": "surface_resolution_gap",
                 "candidate_anchors": [
-                    {"anchor_kind": "surface", "anchor_label": surface_text, "anchor_value": surface_text}
+                    {
+                        "anchor_kind": "surface",
+                        "anchor_label": surface_text,
+                        "anchor_value": surface_text,
+                    }
                 ],
             }
         )
     return rows
 
 
-def _build_clusters(review_item_rows: list[dict[str, Any]], source_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _build_clusters(
+    review_item_rows: list[dict[str, Any]], source_rows: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     clusters: list[dict[str, Any]] = []
     by_seed: dict[str, list[dict[str, Any]]] = {}
     for row in source_rows:
@@ -292,21 +330,32 @@ def _rank_provisional_rows(source_rows: list[dict[str, Any]]) -> list[dict[str, 
         copied = dict(row)
         provisional_anchor_id = str(copied.pop("provisional_anchor_id", "")).strip()
         if provisional_anchor_id:
-            copied["provisional_review_id"] = provisional_anchor_id.replace("#anchor:", "#p")
+            copied["provisional_review_id"] = provisional_anchor_id.replace(
+                "#anchor:", "#p"
+            )
         rows.append(copied)
-    rows.sort(key=lambda r: (-int(r.get("priority_score") or 0), str(r.get("provisional_review_id") or "")))
+    rows.sort(
+        key=lambda r: (
+            -int(r.get("priority_score") or 0),
+            str(r.get("provisional_review_id") or ""),
+        )
+    )
     for rank, row in enumerate(rows, start=1):
         row["priority_rank"] = rank
     return rows
 
 
-def _bundle_provisional_rows(provisional_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _bundle_provisional_rows(
+    provisional_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     shared_rows: list[dict[str, Any]] = []
     for row in provisional_rows:
         copied = dict(row)
         provisional_review_id = str(copied.pop("provisional_review_id", "")).strip()
         if provisional_review_id:
-            copied["provisional_anchor_id"] = provisional_review_id.replace("#p", "#anchor:")
+            copied["provisional_anchor_id"] = provisional_review_id.replace(
+                "#p", "#anchor:"
+            )
         shared_rows.append(copied)
     bundles = _build_provisional_anchor_bundles_impl(shared_rows)
     normalized_bundles: list[dict[str, Any]] = []
@@ -317,7 +366,9 @@ def _bundle_provisional_rows(provisional_rows: list[dict[str, Any]]) -> list[dic
             copied = dict(row)
             provisional_anchor_id = str(copied.pop("provisional_anchor_id", "")).strip()
             if provisional_anchor_id:
-                copied["provisional_review_id"] = provisional_anchor_id.replace("#anchor:", "#p")
+                copied["provisional_review_id"] = provisional_anchor_id.replace(
+                    "#anchor:", "#p"
+                )
             normalized_anchor_rows.append(copied)
         normalized_bundle["anchor_rows"] = normalized_anchor_rows
         normalized_bundles.append(normalized_bundle)
@@ -325,16 +376,33 @@ def _bundle_provisional_rows(provisional_rows: list[dict[str, Any]]) -> list[dic
 
 
 def _build_summary(payload: dict[str, Any]) -> dict[str, Any]:
-    summary = payload.get("summary", {}) if isinstance(payload.get("summary"), dict) else {}
+    summary = (
+        payload.get("summary", {}) if isinstance(payload.get("summary"), dict) else {}
+    )
     return {
         "review_item_count": len(payload.get("review_item_rows", [])),
         "source_row_count": len(payload.get("source_review_rows", [])),
-        "covered_count": sum(1 for row in payload.get("source_review_rows", []) if row.get("review_status") == "covered"),
-        "missing_review_count": sum(1 for row in payload.get("source_review_rows", []) if row.get("review_status") == "missing_review"),
+        "covered_count": sum(
+            1
+            for row in payload.get("source_review_rows", [])
+            if row.get("review_status") == "covered"
+        ),
+        "missing_review_count": sum(
+            1
+            for row in payload.get("source_review_rows", [])
+            if row.get("review_status") == "missing_review"
+        ),
         "related_review_cluster_count": len(payload.get("related_review_clusters", [])),
-        "candidate_anchor_count": sum(len(row.get("candidate_anchors", [])) for row in payload.get("source_review_rows", [])),
-        "provisional_structured_anchor_count": len(payload.get("provisional_structured_anchors", [])),
-        "provisional_anchor_bundle_count": len(payload.get("provisional_anchor_bundles", [])),
+        "candidate_anchor_count": sum(
+            len(row.get("candidate_anchors", []))
+            for row in payload.get("source_review_rows", [])
+        ),
+        "provisional_structured_anchor_count": len(
+            payload.get("provisional_structured_anchors", [])
+        ),
+        "provisional_anchor_bundle_count": len(
+            payload.get("provisional_anchor_bundles", [])
+        ),
         "ambiguous_event_count": summary.get("ambiguous_event_count"),
         "selected_seed_lane_count": summary.get("selected_seed_lane_count"),
         "unresolved_surface_count": summary.get("unresolved_surface_count"),
@@ -342,20 +410,32 @@ def _build_summary(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _build_workflow_summary(payload: dict[str, Any]) -> dict[str, Any]:
-    summary = payload.get("summary", {}) if isinstance(payload.get("summary"), dict) else {}
-    operator_views = payload.get("operator_views", {}) if isinstance(payload.get("operator_views"), dict) else {}
+    summary = (
+        payload.get("summary", {}) if isinstance(payload.get("summary"), dict) else {}
+    )
+    operator_views = (
+        payload.get("operator_views", {})
+        if isinstance(payload.get("operator_views"), dict)
+        else {}
+    )
     legal_follow = (
         operator_views.get("legal_follow_graph")
         if isinstance(operator_views.get("legal_follow_graph"), dict)
         else {}
     )
     legal_follow_summary = (
-        legal_follow.get("summary") if isinstance(legal_follow.get("summary"), dict) else {}
+        legal_follow.get("summary")
+        if isinstance(legal_follow.get("summary"), dict)
+        else {}
     )
     legal_follow_queue_count = int(legal_follow_summary.get("queue_count") or 0)
     missing_review_count = int(summary.get("missing_review_count") or 0)
     provisional_bundle_count = int(summary.get("provisional_anchor_bundle_count") or 0)
-    promotion_gate = payload.get("promotion_gate") if isinstance(payload.get("promotion_gate"), dict) else {}
+    promotion_gate = (
+        payload.get("promotion_gate")
+        if isinstance(payload.get("promotion_gate"), dict)
+        else {}
+    )
 
     counts = {
         "missing_review_count": missing_review_count,
@@ -402,7 +482,9 @@ def build_gwb_public_review(
     source_review_rows = _build_source_review_rows(slice_payload)
     related_review_clusters = _build_clusters(review_item_rows, source_review_rows)
     provisional_structured_anchors = _rank_provisional_rows(source_review_rows)
-    provisional_anchor_bundles = _bundle_provisional_rows(provisional_structured_anchors)
+    provisional_anchor_bundles = _bundle_provisional_rows(
+        provisional_structured_anchors
+    )
 
     payload = {
         "version": ARTIFACT_VERSION,
@@ -418,13 +500,17 @@ def build_gwb_public_review(
         "provisional_structured_anchors": provisional_structured_anchors,
         "provisional_anchor_bundles": provisional_anchor_bundles,
     }
-    payload["summary"] = _build_summary(payload | {"summary": slice_payload.get("summary", {})})
+    payload["summary"] = _build_summary(
+        payload | {"summary": slice_payload.get("summary", {})}
+    )
     payload["legal_follow_graph"] = build_gwb_legal_follow_graph(
         review_item_rows=review_item_rows,
         source_review_rows=source_review_rows,
     )
     payload["operator_views"] = {
-        "legal_follow_graph": build_gwb_legal_follow_operator_view(payload["legal_follow_graph"])
+        "legal_follow_graph": build_gwb_legal_follow_operator_view(
+            payload["legal_follow_graph"]
+        )
     }
     payload["compiler_contract"] = build_gwb_public_review_contract(payload)
     payload["promotion_gate"] = build_product_gate(
@@ -441,7 +527,9 @@ def build_gwb_public_review(
             cohort_id=ARTIFACT_VERSION,
             root_artifact_id=ARTIFACT_VERSION,
             source_family="gwb_public_review",
-            recommended_view=str(payload["workflow_summary"].get("recommended_view") or ""),
+            recommended_view=str(
+                payload["workflow_summary"].get("recommended_view") or ""
+            ),
             queue_family="source_review_rows",
             eligible_statuses=("missing_review",),
         ),
@@ -481,21 +569,37 @@ def build_gwb_public_review(
     output_dir.mkdir(parents=True, exist_ok=True)
     artifact_path = output_dir / f"{ARTIFACT_VERSION}.json"
     summary_path = output_dir / f"{ARTIFACT_VERSION}.summary.md"
-    artifact_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    artifact_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     summary_path.write_text(build_summary_markdown(payload), encoding="utf-8")
     return {"artifact_path": str(artifact_path), "summary_path": str(summary_path)}
 
 
 def build_summary_markdown(payload: dict[str, Any]) -> str:
-    summary = payload.get("summary", {}) if isinstance(payload.get("summary"), dict) else {}
+    summary = (
+        payload.get("summary", {}) if isinstance(payload.get("summary"), dict) else {}
+    )
     graph_summary = (
         payload.get("legal_follow_graph", {}).get("summary", {})
         if isinstance(payload.get("legal_follow_graph"), dict)
         else {}
     )
-    graph_payload = payload.get("legal_follow_graph", {}) if isinstance(payload.get("legal_follow_graph"), dict) else {}
-    graph_nodes = graph_payload.get("nodes", []) if isinstance(graph_payload.get("nodes"), list) else []
-    graph_edges = graph_payload.get("edges", []) if isinstance(graph_payload.get("edges"), list) else []
+    graph_payload = (
+        payload.get("legal_follow_graph", {})
+        if isinstance(payload.get("legal_follow_graph"), dict)
+        else {}
+    )
+    graph_nodes = (
+        graph_payload.get("nodes", [])
+        if isinstance(graph_payload.get("nodes"), list)
+        else []
+    )
+    graph_edges = (
+        graph_payload.get("edges", [])
+        if isinstance(graph_payload.get("edges"), list)
+        else []
+    )
 
     def node_label(node_id: str) -> str:
         for row in graph_nodes:
@@ -554,17 +658,25 @@ def build_summary_markdown(payload: dict[str, Any]) -> str:
             lines.append(
                 f"- Support kinds: `{', '.join(f'{key}: {value}' for key, value in sorted(support_kind_counts.items()))}`"
             )
-        followed_source_cite_class_counts = graph_summary.get("followed_source_cite_class_counts", {})
-        if isinstance(followed_source_cite_class_counts, dict) and followed_source_cite_class_counts:
+        followed_source_cite_class_counts = graph_summary.get(
+            "followed_source_cite_class_counts", {}
+        )
+        if (
+            isinstance(followed_source_cite_class_counts, dict)
+            and followed_source_cite_class_counts
+        ):
             lines.append(
                 f"- Followed legal-cite classes: `{', '.join(f'{key}: {value}' for key, value in sorted(followed_source_cite_class_counts.items()))}`"
             )
         if graph_summary.get("brexit_related_follow_count"):
-            lines.append(f"- Brexit-related follows: `{graph_summary.get('brexit_related_follow_count', 0)}`")
+            lines.append(
+                f"- Brexit-related follows: `{graph_summary.get('brexit_related_follow_count', 0)}`"
+            )
         interesting_nodes = [
             row
             for row in graph_nodes
-            if str(row.get("kind") or "") in {"source_family", "linkage_kind", "support_kind", "review_status"}
+            if str(row.get("kind") or "")
+            in {"source_family", "linkage_kind", "support_kind", "review_status"}
         ]
         if interesting_nodes:
             lines.extend(["", "### Graph inspection", ""])
@@ -586,7 +698,11 @@ def build_summary_markdown(payload: dict[str, Any]) -> str:
             "",
         ]
     )
-    bundles = payload.get("provisional_anchor_bundles", []) if isinstance(payload.get("provisional_anchor_bundles"), list) else []
+    bundles = (
+        payload.get("provisional_anchor_bundles", [])
+        if isinstance(payload.get("provisional_anchor_bundles"), list)
+        else []
+    )
     for bundle in bundles[:10]:
         lines.append(
             f"- `#{bundle.get('bundle_rank')}` `{bundle.get('source_row_id')}` anchors `{bundle.get('anchor_count')}` top-score `{bundle.get('top_priority_score')}`"
@@ -595,7 +711,9 @@ def build_summary_markdown(payload: dict[str, Any]) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build the GWB public review artifact from the checked handoff slice.")
+    parser = argparse.ArgumentParser(
+        description="Build the GWB public review artifact from the checked handoff slice."
+    )
     parser.add_argument(
         "--output-dir",
         default=str(DEFAULT_OUTPUT_DIR),

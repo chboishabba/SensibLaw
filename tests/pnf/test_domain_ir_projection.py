@@ -89,9 +89,7 @@ def test_legal_projection_returns_missing_jurisdiction_demand() -> None:
 
     assert result.projection is None
     assert result.receipt.state == "blocked"
-    assert {row.demand_kind for row in result.demands} == {
-        "missing_jurisdiction"
-    }
+    assert {row.demand_kind for row in result.demands} == {"missing_jurisdiction"}
     assert result.demands[0].to_resolution_demand()["authority"] == (
         "projection_demand_only"
     )

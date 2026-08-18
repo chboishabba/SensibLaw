@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import io
 import re
-from pathlib import Path
 from typing import Any
 from typing import Mapping
 from urllib.parse import urlparse
@@ -36,13 +35,19 @@ def parse_google_public_url(url: str) -> dict[str, str]:
 def build_google_public_export_url(url: str) -> str:
     parsed = parse_google_public_url(url)
     if parsed["kind"] == "doc":
-        return f"https://docs.google.com/document/d/{parsed['doc_id']}/export?format=txt"
-    return f"https://docs.google.com/spreadsheets/d/{parsed['doc_id']}/export?format=csv"
+        return (
+            f"https://docs.google.com/document/d/{parsed['doc_id']}/export?format=txt"
+        )
+    return (
+        f"https://docs.google.com/spreadsheets/d/{parsed['doc_id']}/export?format=csv"
+    )
 
 
 def fetch_google_public_export_text(url: str, *, timeout: int = 20) -> str:
     export_url = build_google_public_export_url(url)
-    return fetch_text_url(export_url, headers={"User-Agent": _USER_AGENT}, timeout=timeout)
+    return fetch_text_url(
+        export_url, headers={"User-Agent": _USER_AGENT}, timeout=timeout
+    )
 
 
 def load_google_doc_units_from_text(text: str, *, source_id: str) -> list[TextUnit]:
@@ -66,7 +71,9 @@ def load_google_doc_units_from_url(url: str) -> list[TextUnit]:
     text = fetch_google_public_export_text(url)
     return load_google_doc_units_from_text(
         text,
-        source_id=build_google_public_source_id(kind=parsed["kind"], doc_id=parsed["doc_id"]),
+        source_id=build_google_public_source_id(
+            kind=parsed["kind"], doc_id=parsed["doc_id"]
+        ),
     )
 
 
@@ -93,14 +100,18 @@ def _row_to_text(row: Mapping[str, Any]) -> str:
     return " | ".join(parts)
 
 
-def load_google_sheet_units_from_csv_text(text: str, *, source_id: str) -> list[TextUnit]:
+def load_google_sheet_units_from_csv_text(
+    text: str, *, source_id: str
+) -> list[TextUnit]:
     reader = csv.DictReader(io.StringIO(text))
     units: list[TextUnit] = []
     for index, row in enumerate(reader, start=1):
         rendered = _row_to_text(row)
         if not rendered:
             continue
-        unit_ref = _clean_line(str(row.get("ID#1") or row.get("ID#2") or row.get("ID as is") or index)) or str(index)
+        unit_ref = _clean_line(
+            str(row.get("ID#1") or row.get("ID#2") or row.get("ID as is") or index)
+        ) or str(index)
         units.append(
             build_indexed_text_unit(
                 source_id=source_id,
@@ -119,7 +130,9 @@ def load_google_sheet_units_from_url(url: str) -> list[TextUnit]:
     text = fetch_google_public_export_text(url)
     return load_google_sheet_units_from_csv_text(
         text,
-        source_id=build_google_public_source_id(kind=parsed["kind"], doc_id=parsed["doc_id"]),
+        source_id=build_google_public_source_id(
+            kind=parsed["kind"], doc_id=parsed["doc_id"]
+        ),
     )
 
 
@@ -129,7 +142,7 @@ def extract_affidavit_text_from_doc_text(text: str) -> str:
     start = cleaned.find(marker)
     if start == -1:
         return cleaned.strip()
-    after = cleaned[start + len(marker):].strip()
+    after = cleaned[start + len(marker) :].strip()
     stop_markers = [
         "Which Allegations Can You Plausibly Deny or Explain?",
         "Summary of Response",

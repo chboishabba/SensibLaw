@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+from functools import wraps
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -110,6 +111,7 @@ def install_semantic_receipt_enrichment() -> bool:
         return False
     original = operational.compile_document_operational
 
+    @wraps(original)
     def compile_wrapper(*args: Any, **kwargs: Any) -> Any:
         result = original(*args, **kwargs)
         root = _checkpoint_root(kwargs)

@@ -2,11 +2,16 @@ from __future__ import annotations
 
 import requests
 
-from src.sources.undocs import fetch_live_undoc, mock_undoc_bundle, normalized_undoc_symbol
+from src.sources.undocs import (
+    mock_undoc_bundle,
+    normalized_undoc_symbol,
+)
 
 
 class DummyResponse:
-    def __init__(self, text: str, status_code: int = 200, url: str = "https://undocs.org") -> None:
+    def __init__(
+        self, text: str, status_code: int = 200, url: str = "https://undocs.org"
+    ) -> None:
         self.text = text
         self.status_code = status_code
         self.url = url
@@ -56,4 +61,7 @@ def test_fetch_live_undoc_success(monkeypatch) -> None:
     monkeypatch.setattr("src.sources.undocs.requests.head", success_head)
     normalized = normalized_undoc_symbol(language="en")
     assert normalized["title"] == "UN document INFCIRC/12/Rev.1"
-    assert normalized["url"] == "https://documents.un.org/api/symbol/access?s=INFCIRC/12/Rev.1&l=en&t=pdf"
+    assert (
+        normalized["url"]
+        == "https://documents.un.org/api/symbol/access?s=INFCIRC/12/Rev.1&l=en&t=pdf"
+    )

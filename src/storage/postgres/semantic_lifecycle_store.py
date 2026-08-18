@@ -38,9 +38,7 @@ def persist_semantic_lifecycle_artifacts(
     lifecycle = artifacts.get("semantic_lifecycle") or {}
     domain_build = artifacts.get("domain_ir_build") or {}
     assessments = _rows(
-        lifecycle.get("candidate_assessments")
-        if isinstance(lifecycle, Mapping)
-        else ()
+        lifecycle.get("candidate_assessments") if isinstance(lifecycle, Mapping) else ()
     )
     admissions = _rows(
         lifecycle.get("admissibility_receipts")
@@ -48,9 +46,7 @@ def persist_semantic_lifecycle_artifacts(
         else ()
     )
     resolutions = _rows(
-        lifecycle.get("resolution_receipts")
-        if isinstance(lifecycle, Mapping)
-        else ()
+        lifecycle.get("resolution_receipts") if isinstance(lifecycle, Mapping) else ()
     )
     contracts = _rows(
         domain_build.get("contracts") if isinstance(domain_build, Mapping) else ()

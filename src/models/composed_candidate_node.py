@@ -9,7 +9,9 @@ import yaml
 
 COMPOSED_CANDIDATE_NODE_SCHEMA_VERSION = "sl.composed_candidate_node.v1"
 COMPOSED_CANDIDATE_NODE_SCHEMA_PATH = (
-    Path(__file__).resolve().parents[2] / "schemas" / "sl.composed_candidate_node.v1.schema.yaml"
+    Path(__file__).resolve().parents[2]
+    / "schemas"
+    / "sl.composed_candidate_node.v1.schema.yaml"
 )
 
 
@@ -58,7 +60,9 @@ def _copy_ref_list(values: Any, *, field_name: str) -> list[dict[str, Any]]:
         kind = _as_text(value.get("kind"))
         ref_value = _as_text(value.get("value"))
         if not kind or not ref_value:
-            raise ValueError(f"{field_name}[{index}] must include non-empty kind and value")
+            raise ValueError(
+                f"{field_name}[{index}] must include non-empty kind and value"
+            )
         copied.append(_normalize_kind_value(value))
     return copied
 
@@ -101,7 +105,9 @@ class ComposedCandidateNode:
             "status": self.status,
             "support_phi_ids": list(self.support_phi_ids),
             "span_refs": [_copy_jsonish(item) for item in self.span_refs],
-            "provenance_receipts": [_copy_jsonish(item) for item in self.provenance_receipts],
+            "provenance_receipts": [
+                _copy_jsonish(item) for item in self.provenance_receipts
+            ],
             "section": self.section,
             "genre": self.genre,
         }
@@ -135,7 +141,8 @@ def build_composed_candidate_node_dict(
     if not authority_mapping:
         raise ValueError("authority_wrapper is required and must be a non-empty object")
     return ComposedCandidateNode(
-        schema_version=_as_text(schema_version) or COMPOSED_CANDIDATE_NODE_SCHEMA_VERSION,
+        schema_version=_as_text(schema_version)
+        or COMPOSED_CANDIDATE_NODE_SCHEMA_VERSION,
         kind=_as_text(kind),
         predicate_family=_as_text(predicate_family),
         slots=_copy_mapping(slots),
@@ -144,7 +151,9 @@ def build_composed_candidate_node_dict(
         status=_as_text(status),
         support_phi_ids=_copy_text_list(support_phi_ids, field_name="support_phi_ids"),
         span_refs=_copy_ref_list(span_refs, field_name="span_refs"),
-        provenance_receipts=_copy_ref_list(provenance_receipts, field_name="provenance_receipts"),
+        provenance_receipts=_copy_ref_list(
+            provenance_receipts, field_name="provenance_receipts"
+        ),
         section=_as_text(section),
         genre=_as_text(genre),
     ).as_dict()

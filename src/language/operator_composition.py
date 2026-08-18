@@ -59,7 +59,9 @@ def _children(
     token: Mapping[str, Any], sentence_tokens: Sequence[Mapping[str, Any]]
 ) -> tuple[Mapping[str, Any], ...]:
     index = int(token["index"])
-    return tuple(row for row in sentence_tokens if int(row.get("head_index", -1)) == index)
+    return tuple(
+        row for row in sentence_tokens if int(row.get("head_index", -1)) == index
+    )
 
 
 def _subject_and_object(
@@ -78,8 +80,7 @@ def _subject_and_object(
         (
             row
             for row in children
-            if str(row.get("dep") or "")
-            in {"obj", "dobj", "pobj", "attr", "oprd"}
+            if str(row.get("dep") or "") in {"obj", "dobj", "pobj", "attr", "oprd"}
         ),
         None,
     )
@@ -170,7 +171,10 @@ def compose_operator_factors(
         # Modal composition: auxiliary -> scoped predicate with polarity.
         for modal in sentence_tokens:
             modal_kind = _MODAL_LEMMAS.get(_lemma(modal))
-            if modal_kind is None or str(modal.get("dep") or "") not in {"aux", "auxpass"}:
+            if modal_kind is None or str(modal.get("dep") or "") not in {
+                "aux",
+                "auxpass",
+            }:
                 continue
             head = token_by_index.get(int(modal.get("head_index", -1)))
             if head is None:
@@ -195,7 +199,10 @@ def compose_operator_factors(
                 role_bindings["bearer"] = _token_ref(document_ref, subject)
             if object_row is not None:
                 role_bindings["object"] = _token_ref(document_ref, object_row)
-            provenance = [_token_ref(document_ref, modal), _token_ref(document_ref, head)]
+            provenance = [
+                _token_ref(document_ref, modal),
+                _token_ref(document_ref, head),
+            ]
             if negation is not None:
                 provenance.append(_token_ref(document_ref, negation))
             residuals = [
@@ -247,7 +254,11 @@ def compose_operator_factors(
                 if factor_type == "semantic.legal_exception"
                 else "legal.activation_condition_candidate"
             )
-            role_name = "exception" if factor_type == "semantic.legal_exception" else "condition"
+            role_name = (
+                "exception"
+                if factor_type == "semantic.legal_exception"
+                else "condition"
+            )
             role_bindings = {role_name: _token_ref(document_ref, clause_head)}
             if host is not None:
                 role_bindings["host"] = _token_ref(document_ref, host)
@@ -263,7 +274,10 @@ def compose_operator_factors(
                         else "signature:legal-condition:v1"
                     ),
                     role_bindings=role_bindings,
-                    qualifier_state={"marker": marker_lemma, "scope_state": "candidate"},
+                    qualifier_state={
+                        "marker": marker_lemma,
+                        "scope_state": "candidate",
+                    },
                     provenance_refs=(
                         _token_ref(document_ref, marker),
                         _token_ref(document_ref, clause_head),
@@ -284,7 +298,10 @@ def compose_operator_factors(
         # Legal-object lifecycle transitions are state-transition candidates.
         for predicate in sentence_tokens:
             transition = _TRANSITION_LEMMAS.get(_lemma(predicate))
-            if transition is None or str(predicate.get("pos") or "") not in {"VERB", "AUX"}:
+            if transition is None or str(predicate.get("pos") or "") not in {
+                "VERB",
+                "AUX",
+            }:
                 continue
             prior_state, next_state, predicate_ref = transition
             subject, object_row = _subject_and_object(predicate, sentence_tokens)
@@ -311,11 +328,19 @@ def compose_operator_factors(
                         "effective_time_unresolved",
                         "jurisdiction_unresolved",
                     ),
-                    identity_payload={"predicate": int(predicate["index"]), "transition": transition},
+                    identity_payload={
+                        "predicate": int(predicate["index"]),
+                        "transition": transition,
+                    },
                 )
             )
 
-    return tuple(sorted({row.factor_ref: row for row in factors}.values(), key=lambda row: row.factor_ref))
+    return tuple(
+        sorted(
+            {row.factor_ref: row for row in factors}.values(),
+            key=lambda row: row.factor_ref,
+        )
+    )
 
 
 __all__ = ["OPERATOR_COMPOSITION_CONTRACT", "compose_operator_factors"]

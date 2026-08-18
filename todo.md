@@ -1,5 +1,12 @@
 # SensibLaw TODO
 
+- [READY FOR MEASUREMENT 2026-08-18] The sparse-frontier readiness tranche now
+  has passing source contracts and a fresh PostgreSQL migration-through-145
+  catalog validation. Next run one representative strict-numeric complete
+  tranche with durable phase timing. Agda kernel checking of the corresponding
+  revision algebra remains a separate external gate. Do not revive the removed
+  changed-interface global-lookup/demand-planner strategy.
+
 - [IN ACCEPTANCE 2026-08-02] Finish streamed activation acceptance with the
   v2 durable closure-owner replay contract. Focused parity, forced-stop,
   incompatible-checkpoint, four-process bounded-frontier, telemetry and lint

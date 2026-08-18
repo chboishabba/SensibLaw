@@ -1,6 +1,6 @@
 import pytest
 
-from SensibLaw.src.metrics.source_normalization import (
+from src.metrics.source_normalization import (
     DEFAULT_NORMALIZATION_THRESHOLDS,
     compute_source_normalization_metrics,
     evaluate_un_adopter_readiness,

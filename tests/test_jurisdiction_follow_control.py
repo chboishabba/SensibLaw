@@ -8,7 +8,9 @@ def test_domestic_priority() -> None:
 
 
 def test_international_penalty_with_domestic() -> None:
-    score = compute_jurisdiction_fit_score(["international", "domestic"], base_score=1.5)
+    score = compute_jurisdiction_fit_score(
+        ["international", "domestic"], base_score=1.5
+    )
     assert score < 2.5
     assert score <= 1.5 + 0.2 + 1.0 - 0.3
 

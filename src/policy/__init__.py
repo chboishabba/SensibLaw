@@ -103,8 +103,12 @@ def install_execution_strategies() -> None:
         from .closure_finalization_hardening import (
             install_closure_finalization_hardening,
         )
+        from .closure_hot_path_execution import install_closure_hot_path_execution
         from .closure_liveness_execution import (
             install_closure_liveness_execution,
+        )
+        from .dependency_indexed_owner_execution import (
+            install_dependency_indexed_owner_execution,
         )
         from .indexed_projection_execution import (
             indexed_projection_enabled,
@@ -123,17 +127,30 @@ def install_execution_strategies() -> None:
         from .progress_observability_execution import (
             install_progress_observability_execution,
         )
+        from .reduction_hot_path_execution import install_reduction_hot_path_execution
         from .reference_backed_finalization import (
             install_reference_backed_finalization,
         )
+        from .scheduler_hot_path_execution import install_scheduler_hot_path_execution
         from .semantic_receipt_enrichment import (
             install_semantic_receipt_enrichment,
+        )
+        from .sparse_root_publication_execution import (
+            install_sparse_root_publication_execution,
         )
         from .stage_budget_execution import install_stage_budget_execution
 
         if indexed_projection_enabled():
             install_indexed_projection_execution()
         install_bounded_operational_execution()
+        # The bounded owner owns exact input availability. Index declared factor
+        # and observation dependencies once and wake only reverse-dependency
+        # successor owners until their local reduction fixed point is reached.
+        install_dependency_indexed_owner_execution()
+        # The sparse hierarchy publishes the canonical root once. Paragraph
+        # adjacency remains residual/evidence-only under the current contract,
+        # so the later root-global refresh is a certified no-op.
+        install_sparse_root_publication_execution()
         # Harden the existing bounded owner before wrappers capture it: global
         # materialisation is deferred across admission batches and exhausted
         # frontiers terminate with a certificate or a finite diagnostic.
@@ -160,6 +177,17 @@ def install_execution_strategies() -> None:
         # handlers are CPU-bound. Install process-backed bounded leaves after
         # telemetry so their outputs retain the same resource receipts.
         install_parallel_typing_tail()
+        # Replace the reducer's linear scan over prior compatibility groups with
+        # an exact first-match bitset lookup before the bounded hot path starts.
+        install_reduction_hot_path_execution()
+        # Keep the scheduler's canonical order key, but maintain its ready
+        # frontier incrementally rather than repeatedly sorting the whole deque.
+        install_scheduler_hot_path_execution()
+        # The bounded executor captured its closure function before the process
+        # wrapper existed. Rebind that hot path, select a CPU-aware default width,
+        # and coalesce dependency-free full-fibre reductions while immutable
+        # closure jobs remain in flight.
+        install_closure_hot_path_execution()
         # Parent stages must expose child completion while leaves are running,
         # name waits, and persist the same universal envelope emitted to logs.
         install_progress_observability_execution()
@@ -178,7 +206,10 @@ def install_execution_strategies() -> None:
 # PNF imports generic policy carriers. Installing strategies while that
 # package is still importing re-enters its binding modules; PNF calls the
 # explicit installer once its neutral exports are complete.
-if "src.pnf.binding_candidate_sets" not in sys.modules:
+if (
+    "src.pnf.binding_candidate_sets" not in sys.modules
+    and "src.runtime.durable_work_items" not in sys.modules
+):
     install_execution_strategies()
 
 

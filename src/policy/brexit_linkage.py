@@ -26,7 +26,9 @@ from src.sources.national_archives.brexit_national_archives_lane import (
     BREXIT_NATIONAL_ARCHIVES_WORLD_MODEL_SCHEMA_VERSION,
 )
 
-BREXIT_ARCHIVE_POLICY_INTENT_LINKAGE_CONTRACT_ID = "brexit_archive_policy_intent_linkage"
+BREXIT_ARCHIVE_POLICY_INTENT_LINKAGE_CONTRACT_ID = (
+    "brexit_archive_policy_intent_linkage"
+)
 
 
 def _text(value: Any) -> str:
@@ -83,16 +85,27 @@ def build_contract() -> dict[str, Any]:
     )
 
 
-def _build_brexit_archive_policy_intent_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
-    if _text(report.get("schema_version")) != BREXIT_NATIONAL_ARCHIVES_WORLD_MODEL_SCHEMA_VERSION:
-        raise ValueError("Brexit archive policy-intent linkage case requires national archives world-model report")
+def _build_brexit_archive_policy_intent_case_payload(
+    report: Mapping[str, Any],
+) -> dict[str, Any]:
+    if (
+        _text(report.get("schema_version"))
+        != BREXIT_NATIONAL_ARCHIVES_WORLD_MODEL_SCHEMA_VERSION
+    ):
+        raise ValueError(
+            "Brexit archive policy-intent linkage case requires national archives world-model report"
+        )
 
     claims = _mapping_rows(report.get("claims"))
     if not claims:
-        raise ValueError("Brexit archive policy-intent linkage case requires at least one claim")
+        raise ValueError(
+            "Brexit archive policy-intent linkage case requires at least one claim"
+        )
 
     lane_id = _text(report.get("lane_id")) or "brexit_national_archives_policy_intent"
-    artifact_id = f"{lane_id}:{int(report.get('summary', {}).get('claim_count', 0) or 0)}"
+    artifact_id = (
+        f"{lane_id}:{int(report.get('summary', {}).get('claim_count', 0) or 0)}"
+    )
     review_node_id = f"brexit_policy_intent_review_surface:{artifact_id}"
     authority_node_id = f"brexit_archive_authority_surface:{artifact_id}"
     tranche_node_id = f"workflow_tranche_anchor:{artifact_id}"
@@ -102,8 +115,16 @@ def _build_brexit_archive_policy_intent_case_payload(report: Mapping[str, Any]) 
 
     for claim in claims:
         claim_id = _text(claim.get("claim_id"))
-        canonical_form = claim.get("canonical_form") if isinstance(claim.get("canonical_form"), Mapping) else {}
-        qualifiers = canonical_form.get("qualifiers") if isinstance(canonical_form.get("qualifiers"), Mapping) else {}
+        canonical_form = (
+            claim.get("canonical_form")
+            if isinstance(claim.get("canonical_form"), Mapping)
+            else {}
+        )
+        qualifiers = (
+            canonical_form.get("qualifiers")
+            if isinstance(canonical_form.get("qualifiers"), Mapping)
+            else {}
+        )
         evidence_paths = _mapping_rows(claim.get("evidence_paths"))
         evidence = evidence_paths[0] if evidence_paths else {}
         doc_id = _text(canonical_form.get("subject")) or claim_id
@@ -124,8 +145,14 @@ def _build_brexit_archive_policy_intent_case_payload(report: Mapping[str, Any]) 
                     "doc_id": doc_id,
                     "collection": _text(qualifiers.get("collection")),
                     "anchor_date": _text(qualifiers.get("anchor_date")),
-                    "source_url": _text((canonical_form.get("references") or [{}])[0].get("source_url", [""])[0])
-                    if isinstance((canonical_form.get("references") or [{}])[0], Mapping)
+                    "source_url": _text(
+                        (canonical_form.get("references") or [{}])[0].get(
+                            "source_url", [""]
+                        )[0]
+                    )
+                    if isinstance(
+                        (canonical_form.get("references") or [{}])[0], Mapping
+                    )
                     else "",
                 },
                 target_id=document_node_id,
@@ -187,7 +214,9 @@ def _build_brexit_archive_policy_intent_case_payload(report: Mapping[str, Any]) 
                     "doc_id": doc_id,
                     "claim_id": claim_id,
                     "claim_status": _text(claim.get("status")),
-                    "actionability": _text((claim.get("action_policy") or {}).get("actionability")),
+                    "actionability": _text(
+                        (claim.get("action_policy") or {}).get("actionability")
+                    ),
                     "candidate_vs_promoted_visibility": True,
                 },
                 target_id=review_node_id,
@@ -202,7 +231,9 @@ def _build_brexit_archive_policy_intent_case_payload(report: Mapping[str, Any]) 
         )
 
     if not candidate_node_ids:
-        raise ValueError("Brexit archive policy-intent linkage case requires at least one policy candidate")
+        raise ValueError(
+            "Brexit archive policy-intent linkage case requires at least one policy candidate"
+        )
 
     fragments.append(
         build_coalescence_adapter_fragment(
@@ -211,7 +242,9 @@ def _build_brexit_archive_policy_intent_case_payload(report: Mapping[str, Any]) 
             metadata={
                 "lane_id": lane_id,
                 "claim_count": len(claims),
-                "must_review_count": int(report.get("summary", {}).get("must_review_count", 0) or 0),
+                "must_review_count": int(
+                    report.get("summary", {}).get("must_review_count", 0) or 0
+                ),
                 "candidate_vs_promoted_visibility": True,
             },
             upstream_node_ids=candidate_node_ids,
@@ -231,8 +264,12 @@ def _build_brexit_archive_policy_intent_case_payload(report: Mapping[str, Any]) 
             metadata={
                 "lane_id": lane_id,
                 "authority_roles": review_authority_roles,
-                "live_fetch_count": int(report.get("summary", {}).get("live_fetch_count", 0) or 0),
-                "archive_authority_visibility": "complete" if review_authority_roles else "partial",
+                "live_fetch_count": int(
+                    report.get("summary", {}).get("live_fetch_count", 0) or 0
+                ),
+                "archive_authority_visibility": "complete"
+                if review_authority_roles
+                else "partial",
             },
             upstream_node_ids=[review_node_id],
             edge_kind="archive_authority_projection",
@@ -250,7 +287,9 @@ def _build_brexit_archive_policy_intent_case_payload(report: Mapping[str, Any]) 
             metadata={
                 "lane_id": lane_id,
                 "claim_count": len(claims),
-                "must_review_count": int(report.get("summary", {}).get("must_review_count", 0) or 0),
+                "must_review_count": int(
+                    report.get("summary", {}).get("must_review_count", 0) or 0
+                ),
                 "authority_surface": "workflow_tranche_anchor",
             },
             upstream_node_ids=[authority_node_id],
@@ -291,7 +330,9 @@ def build_case(report: Mapping[str, Any]) -> dict[str, Any]:
             default_lane_id="brexit_national_archives_policy_intent",
             default_contract=build_contract(),
             default_contract_id=BREXIT_ARCHIVE_POLICY_INTENT_LINKAGE_CONTRACT_ID,
-            default_notes=["Brexit archive policy-intent case loaded from emitted lane receipt."],
+            default_notes=[
+                "Brexit archive policy-intent case loaded from emitted lane receipt."
+            ],
         )
         if case is not None:
             return case
@@ -302,7 +343,9 @@ def build_case(report: Mapping[str, Any]) -> dict[str, Any]:
             default_lane_id="brexit_national_archives_policy_intent",
             default_contract=build_contract(),
             default_contract_id=BREXIT_ARCHIVE_POLICY_INTENT_LINKAGE_CONTRACT_ID,
-            default_notes=["Brexit archive policy-intent case loaded from projected linkage surface."],
+            default_notes=[
+                "Brexit archive policy-intent case loaded from projected linkage surface."
+            ],
         )
         if case is not None:
             return case
@@ -315,9 +358,7 @@ def build_receipt(
     contract: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     contract_payload = (
-        dict(contract)
-        if isinstance(contract, Mapping)
-        else build_contract()
+        dict(contract) if isinstance(contract, Mapping) else build_contract()
     )
     case = require_case_from_projection_artifact(
         report,
@@ -326,7 +367,9 @@ def build_receipt(
         default_lane_id="brexit_national_archives_policy_intent",
         default_contract=contract_payload,
         default_contract_id=BREXIT_ARCHIVE_POLICY_INTENT_LINKAGE_CONTRACT_ID,
-        default_notes=["Brexit archive policy-intent case loaded from the projected linkage surface."],
+        default_notes=[
+            "Brexit archive policy-intent case loaded from the projected linkage surface."
+        ],
     )
     return build_linkage_depth_receipt(
         case=case,

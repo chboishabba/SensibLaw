@@ -14,9 +14,21 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_code_observer_cli_observe_outputs_jsonl(tmp_path: Path) -> None:
-    (tmp_path / "example.py").write_text("def main():\n    print('ok')\n", encoding="utf-8")
+    (tmp_path / "example.py").write_text(
+        "def main():\n    print('ok')\n", encoding="utf-8"
+    )
     proc = subprocess.run(
-        [sys.executable, "-m", "src.cli", "code-observer", "observe", "--root", str(tmp_path), "--include-glob", "**/*.py"],
+        [
+            sys.executable,
+            "-m",
+            "src.cli",
+            "code-observer",
+            "observe",
+            "--root",
+            str(tmp_path),
+            "--include-glob",
+            "**/*.py",
+        ],
         cwd=ROOT,
         check=True,
         text=True,
@@ -55,6 +67,10 @@ def test_code_observer_cli_observe_writes_output_file(tmp_path: Path) -> None:
     )
 
     assert proc.stdout == ""
-    rows = [json.loads(line) for line in output.read_text(encoding="utf-8").splitlines() if line.strip()]
+    rows = [
+        json.loads(line)
+        for line in output.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
     assert rows
     assert rows[0]["schema"] == "code_observation_v1"

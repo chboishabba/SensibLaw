@@ -1,6 +1,6 @@
 import pytest
 
-from SensibLaw.src.metrics.proof_quality import compute_proof_quality_metrics
+from src.metrics.proof_quality import compute_proof_quality_metrics
 
 
 def test_compute_proof_quality_metrics_derives_expected_signals():

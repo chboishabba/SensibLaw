@@ -123,7 +123,9 @@ def extraction_record_id(
     parser_version: str,
     extraction_timestamp: str,
 ) -> str:
-    return _stable_id("xrec", source_entity_id_value, parser_version, extraction_timestamp)
+    return _stable_id(
+        "xrec", source_entity_id_value, parser_version, extraction_timestamp
+    )
 
 
 def validate_attribution_chain(attributions: Sequence[Attribution]) -> None:
@@ -155,15 +157,27 @@ def validate_attribution_chain(attributions: Sequence[Attribution]) -> None:
 def authority_edges_for_attribution(attribution: Attribution) -> List[AttributionEdge]:
     node = f"attr:{attribution.id}"
     edges = [
-        AttributionEdge(src=f"claim:{attribution.claim_id}", predicate="attributed_by", dst=node),
         AttributionEdge(
-            src=node, predicate="attributed_actor", dst=f"actor:{attribution.attributed_actor_id}"
+            src=f"claim:{attribution.claim_id}", predicate="attributed_by", dst=node
         ),
-        AttributionEdge(src=node, predicate="source_entity", dst=f"source:{attribution.source_entity_id}"),
+        AttributionEdge(
+            src=node,
+            predicate="attributed_actor",
+            dst=f"actor:{attribution.attributed_actor_id}",
+        ),
+        AttributionEdge(
+            src=node,
+            predicate="source_entity",
+            dst=f"source:{attribution.source_entity_id}",
+        ),
     ]
     if attribution.reporting_actor_id:
         edges.append(
-            AttributionEdge(src=node, predicate="reporting_actor", dst=f"actor:{attribution.reporting_actor_id}")
+            AttributionEdge(
+                src=node,
+                predicate="reporting_actor",
+                dst=f"actor:{attribution.reporting_actor_id}",
+            )
         )
     if attribution.parent_attribution_id:
         edges.append(
@@ -176,12 +190,22 @@ def authority_edges_for_attribution(attribution: Attribution) -> List[Attributio
     return edges
 
 
-def authority_edges_for_extraction_record(record: ExtractionRecord) -> List[AttributionEdge]:
+def authority_edges_for_extraction_record(
+    record: ExtractionRecord,
+) -> List[AttributionEdge]:
     node = f"xrec:{record.id}"
     return [
-        AttributionEdge(src=node, predicate="source_entity", dst=f"source:{record.source_entity_id}"),
-        AttributionEdge(src=node, predicate="parser_version", dst=f"parser:{record.parser_version}"),
-        AttributionEdge(src=node, predicate="extracted_at", dst=f"time:{record.extraction_timestamp}"),
+        AttributionEdge(
+            src=node, predicate="source_entity", dst=f"source:{record.source_entity_id}"
+        ),
+        AttributionEdge(
+            src=node, predicate="parser_version", dst=f"parser:{record.parser_version}"
+        ),
+        AttributionEdge(
+            src=node,
+            predicate="extracted_at",
+            dst=f"time:{record.extraction_timestamp}",
+        ),
     ]
 
 

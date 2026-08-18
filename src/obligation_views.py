@@ -5,11 +5,8 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from src.logic_tree import LogicTree, Node, NodeType
 from src.obligations import (
-    ActorAtom,
-    ActionAtom,
     ConditionAtom,
     LifecycleTrigger,
-    ObjectAtom,
     ObligationAtom,
     ScopeAtom,
     _normalise_token_text,
@@ -34,7 +31,11 @@ def _is_numbering_token(token_norm: str) -> bool:
 
 
 def _clause_nodes(tree: LogicTree) -> List[Node]:
-    clauses = [node for node in tree.nodes if node.node_type is NodeType.CLAUSE and node.span is not None]
+    clauses = [
+        node
+        for node in tree.nodes
+        if node.node_type is NodeType.CLAUSE and node.span is not None
+    ]
     clauses.sort(key=lambda n: n.span[0] if n.span else 99_999_999)
     return clauses
 
@@ -45,7 +46,9 @@ def _source_prefix(obligation: ObligationAtom) -> str:
     return obligation.clause_id.rsplit("-clause-", 1)[0]
 
 
-def _build_clause_map(text: str, source_id: str) -> Dict[str, Tuple[Tuple[int, int], List[str]]]:
+def _build_clause_map(
+    text: str, source_id: str
+) -> Dict[str, Tuple[Tuple[int, int], List[str]]]:
     normalized = normalise(text)
     tokens = tokenise(str(normalized))
     tree = build_logic_tree(tokens, source_id=source_id)
@@ -55,7 +58,10 @@ def _build_clause_map(text: str, source_id: str) -> Dict[str, Tuple[Tuple[int, i
         clause_id = f"{source_id}-clause-{idx}"
         span = clause.span or (0, 0)
         clause_tokens = tokens[span[0] : span[1]]
-        clause_map[clause_id] = (span, [t.text if hasattr(t, "text") else str(t) for t in clause_tokens])
+        clause_map[clause_id] = (
+            span,
+            [t.text if hasattr(t, "text") else str(t) for t in clause_tokens],
+        )
     return clause_map
 
 
@@ -72,7 +78,11 @@ def _content_positions(token_texts: Sequence[str]) -> List[Optional[int]]:
     return positions
 
 
-def _content_span(abs_span: Tuple[int, int] | None, clause_span: Tuple[int, int], positions: Sequence[Optional[int]]) -> Tuple[int, int] | None:
+def _content_span(
+    abs_span: Tuple[int, int] | None,
+    clause_span: Tuple[int, int],
+    positions: Sequence[Optional[int]],
+) -> Tuple[int, int] | None:
     if abs_span is None:
         return None
     start, end = abs_span
@@ -124,7 +134,9 @@ def _atom_dict(atom, clause_span, positions):
         "text": atom.text,
         "normalized": atom.normalized,
         "span": list(atom.span) if atom.span else None,
-        "content_span": _content_span(atom.span, clause_span, positions) if atom.span else None,
+        "content_span": _content_span(atom.span, clause_span, positions)
+        if atom.span
+        else None,
         "clause_id": atom.clause_id,
     }
 
@@ -133,7 +145,9 @@ def _condition_dict(cond: ConditionAtom, clause_span, positions):
     return {
         "type": cond.type,
         "span": list(cond.span) if cond.span else None,
-        "content_span": _content_span(cond.span, clause_span, positions) if cond.span else None,
+        "content_span": _content_span(cond.span, clause_span, positions)
+        if cond.span
+        else None,
         "clause_id": cond.clause_id,
     }
 
@@ -144,7 +158,9 @@ def _scope_dict(scope: ScopeAtom, clause_span, positions):
         "text": scope.text,
         "normalized": scope.normalized,
         "span": list(scope.span) if scope.span else None,
-        "content_span": _content_span(scope.span, clause_span, positions) if scope.span else None,
+        "content_span": _content_span(scope.span, clause_span, positions)
+        if scope.span
+        else None,
         "clause_id": scope.clause_id,
     }
 
@@ -155,7 +171,9 @@ def _lifecycle_dict(trigger: LifecycleTrigger, clause_span, positions):
         "text": trigger.text,
         "normalized": trigger.normalized,
         "span": list(trigger.span) if trigger.span else None,
-        "content_span": _content_span(trigger.span, clause_span, positions) if trigger.span else None,
+        "content_span": _content_span(trigger.span, clause_span, positions)
+        if trigger.span
+        else None,
         "clause_id": trigger.clause_id,
     }
 
@@ -200,11 +218,17 @@ def query_obligations(
             continue
         if reference_id and reference_id not in ob.reference_identities:
             continue
-        if scope_category and not any(scope.category == scope_category for scope in ob.scopes):
+        if scope_category and not any(
+            scope.category == scope_category for scope in ob.scopes
+        ):
             continue
-        if scope_text and not any(scope.normalized == scope_text for scope in ob.scopes):
+        if scope_text and not any(
+            scope.normalized == scope_text for scope in ob.scopes
+        ):
             continue
-        if lifecycle_kind and not any(trigger.kind == lifecycle_kind for trigger in ob.lifecycle):
+        if lifecycle_kind and not any(
+            trigger.kind == lifecycle_kind for trigger in ob.lifecycle
+        ):
             continue
         results.append(ob)
     return results
@@ -217,7 +241,9 @@ def obligations_to_query_payload(obligations: Iterable[ObligationAtom]) -> dict:
     }
 
 
-def build_explanations(text: str, obligations: Sequence[ObligationAtom], *, source_id: Optional[str] = None) -> List[dict]:
+def build_explanations(
+    text: str, obligations: Sequence[ObligationAtom], *, source_id: Optional[str] = None
+) -> List[dict]:
     if not obligations:
         return []
     prefix = source_id or _source_prefix(obligations[0])
@@ -234,7 +260,10 @@ def build_explanations(text: str, obligations: Sequence[ObligationAtom], *, sour
 
         conditions = _sort_list(
             ob.conditions,
-            key_fn=lambda c: (c.type, _content_span(c.span, clause_span, positions) or (99_999, 99_999)),
+            key_fn=lambda c: (
+                c.type,
+                _content_span(c.span, clause_span, positions) or (99_999, 99_999),
+            ),
         )
         scopes = _sort_list(
             ob.scopes,
@@ -247,7 +276,11 @@ def build_explanations(text: str, obligations: Sequence[ObligationAtom], *, sour
         )
         lifecycle = _sort_list(
             ob.lifecycle,
-            key_fn=lambda l: (l.kind, l.normalized, _content_span(l.span, clause_span, positions) or (99_999, 99_999)),
+            key_fn=lambda l: (
+                l.kind,
+                l.normalized,
+                _content_span(l.span, clause_span, positions) or (99_999, 99_999),
+            ),
         )
 
         scope_dicts = _dedup_scopes(
@@ -268,7 +301,9 @@ def build_explanations(text: str, obligations: Sequence[ObligationAtom], *, sour
                     "actor": actor_dict,
                     "action": action_dict,
                     "object": object_dict,
-                    "conditions": [_condition_dict(c, clause_span, positions) for c in conditions],
+                    "conditions": [
+                        _condition_dict(c, clause_span, positions) for c in conditions
+                    ],
                     "scopes": scope_dicts,
                     "lifecycle": lifecycle_dicts,
                 },

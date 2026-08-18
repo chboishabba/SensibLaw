@@ -23,7 +23,11 @@ def test_apply_lexical_heuristic_group_returns_grouped_matches() -> None:
     assert set(matches) == {"consent", "authority_or_necessity", "scope_limitation"}
     assert matches["consent"][0]["rule_id"] == "justification.consent"
     assert matches["authority_or_necessity"][0]["text"].lower() == "legal matters"
-    assert matches["scope_limitation"][0]["text"].lower() in {"only to", "limited", "specific purposes"}
+    assert matches["scope_limitation"][0]["text"].lower() in {
+        "only to",
+        "limited",
+        "specific purposes",
+    }
 
 
 def test_build_justification_packets_uses_first_match_per_type() -> None:
@@ -44,8 +48,12 @@ def test_build_justification_packets_uses_first_match_per_type() -> None:
 def test_builder_wrappers_delegate_to_shared_lexical_policy() -> None:
     excerpt = "I acted with consent for specific purposes."
 
-    assert builder._apply_lexical_heuristic_group(excerpt, "justification") == apply_lexical_heuristic_group(
+    assert builder._apply_lexical_heuristic_group(
+        excerpt, "justification"
+    ) == apply_lexical_heuristic_group(
         excerpt,
         "justification",
     )
-    assert builder._build_justification_packets(excerpt) == build_justification_packets(excerpt)
+    assert builder._build_justification_packets(excerpt) == build_justification_packets(
+        excerpt
+    )

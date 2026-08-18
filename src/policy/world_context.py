@@ -3,6 +3,7 @@
 This module intentionally stops at preference evidence.  A context fit can rank or
 attach a cached candidate for one mention; it cannot create canonical world identity.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -76,10 +77,14 @@ def evaluate_context_fit(
     polarity on the same typed axis/symbol coordinate.
     """
     requirement_tuple = tuple(requirements)
-    observed_map: Mapping[tuple[int, int], set[ContextPolarity]] = _observation_map(observed)
+    observed_map: Mapping[tuple[int, int], set[ContextPolarity]] = _observation_map(
+        observed
+    )
     supporting = contradicting = unknown = 0
     for requirement in requirement_tuple:
-        polarities = observed_map.get((requirement.axis_kind, requirement.symbol_id), set())
+        polarities = observed_map.get(
+            (requirement.axis_kind, requirement.symbol_id), set()
+        )
         if requirement.polarity in polarities:
             supporting += 1
         elif ContextPolarity(-int(requirement.polarity)) in polarities:

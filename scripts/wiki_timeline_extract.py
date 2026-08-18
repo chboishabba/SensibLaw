@@ -57,7 +57,9 @@ INLINE_YEAR_RANGE_RE = re.compile(
     flags=re.IGNORECASE,
 )
 INLINE_BARE_YEAR_RE = re.compile(r"\b((?:19|20)\d{2})\b")
-INLINE_DECADE_RE = re.compile(r"\b(?:(early|mid|late)\s+)?((?:19|20)\d)0s\b", flags=re.IGNORECASE)
+INLINE_DECADE_RE = re.compile(
+    r"\b(?:(early|mid|late)\s+)?((?:19|20)\d)0s\b", flags=re.IGNORECASE
+)
 SEPT11_EVENT_RE = re.compile(
     r"\b(?:the\s+)?(?:attacks?\s+of\s+)?(?:September\s+11(?:,\s*2001)?(?:\s*,)?\s*(?:terrorist\s+)?attacks?|9/11)\b",
     flags=re.IGNORECASE,
@@ -136,7 +138,17 @@ def _wikitext_links(text: str) -> List[str]:
         title = m.group(1).strip()
         if not title:
             continue
-        if title.startswith(("Category:", "File:", "Template:", "Wikipedia:", "Help:", "Portal:", "Special:")):
+        if title.startswith(
+            (
+                "Category:",
+                "File:",
+                "Template:",
+                "Wikipedia:",
+                "Help:",
+                "Portal:",
+                "Special:",
+            )
+        ):
             continue
         if title not in out:
             out.append(title)
@@ -165,7 +177,17 @@ def _links_in_sentence(para_wikitext: str, sentence_plain: str) -> List[str]:
             title = str(wl.title).strip()
             if not title:
                 continue
-            if title.startswith(("Category:", "File:", "Template:", "Wikipedia:", "Help:", "Portal:", "Special:")):
+            if title.startswith(
+                (
+                    "Category:",
+                    "File:",
+                    "Template:",
+                    "Wikipedia:",
+                    "Help:",
+                    "Portal:",
+                    "Special:",
+                )
+            ):
                 continue
             # Surface form: piped text if present, else title.
             surface = str(wl.text).strip() if wl.text is not None else ""
@@ -209,7 +231,14 @@ def _parse_anchor(line: str) -> Optional[DateAnchor]:
             return None
         day = int(m.group(2))
         year = int(m.group(3))
-        return DateAnchor(year=year, month=month, day=day, precision="day", text=m.group(0).strip(), kind="explicit")
+        return DateAnchor(
+            year=year,
+            month=month,
+            day=day,
+            precision="day",
+            text=m.group(0).strip(),
+            kind="explicit",
+        )
 
     m = IN_MY_RE.match(line)
     if m:
@@ -218,13 +247,27 @@ def _parse_anchor(line: str) -> Optional[DateAnchor]:
         if not month:
             return None
         year = int(m.group(2))
-        return DateAnchor(year=year, month=month, day=None, precision="month", text=m.group(0).strip(), kind="explicit")
+        return DateAnchor(
+            year=year,
+            month=month,
+            day=None,
+            precision="month",
+            text=m.group(0).strip(),
+            kind="explicit",
+        )
 
     m = IN_Y_RE.match(line)
     if m:
         year = int(m.group(1))
         # Year-only anchors are weaker; still useful as timeline scaffolding.
-        return DateAnchor(year=year, month=None, day=None, precision="year", text=m.group(0).strip(), kind="weak")
+        return DateAnchor(
+            year=year,
+            month=None,
+            day=None,
+            precision="year",
+            text=m.group(0).strip(),
+            kind="weak",
+        )
 
     return None
 
@@ -266,7 +309,9 @@ def _parse_section_anchor(section: str) -> Optional[DateAnchor]:
     m = INLINE_BARE_YEAR_RE.search(s)
     if m:
         year = int(m.group(1))
-        return DateAnchor(year=year, month=None, day=None, precision="year", text=s, kind="weak")
+        return DateAnchor(
+            year=year, month=None, day=None, precision="year", text=s, kind="weak"
+        )
 
     return None
 
@@ -336,7 +381,9 @@ def _parse_inline_weak_years(line: str) -> List[DateAnchor]:
         if right < 0 or right - left > 18:
             return False
         inner = str(line[left:right]).lower()
-        return any(token in inner for token in ("born", "died", "b.", "d.")) or bool(re.search(r"(19|20)\\d{2}[^)]*(19|20)\\d{2}", inner))
+        return any(token in inner for token in ("born", "died", "b.", "d.")) or bool(
+            re.search(r"(19|20)\\d{2}[^)]*(19|20)\\d{2}", inner)
+        )
 
     out: List[DateAnchor] = []
     seen = set()
@@ -409,7 +456,9 @@ def _parse_special_event_anchors(line: str) -> List[DateAnchor]:
     return out
 
 
-def _apply_lead_anchor_preference(section: str, sentence: str, anchors: List[DateAnchor]) -> List[DateAnchor]:
+def _apply_lead_anchor_preference(
+    section: str, sentence: str, anchors: List[DateAnchor]
+) -> List[DateAnchor]:
     """Prefer service-range anchors over birth-date mention anchors in lead bio lines."""
     if str(section or "").strip() != "(lead)":
         return anchors
@@ -471,7 +520,15 @@ def _iter_section_paragraphs(wikitext: str) -> Iterable[Tuple[str, str]]:
             continue
 
         # Skip maintenance and category lines.
-        if line.startswith(("[[Category:", "{{DEFAULTSORT", "{{Short description", "{{Use mdy dates", "{{Use dmy dates")):
+        if line.startswith(
+            (
+                "[[Category:",
+                "{{DEFAULTSORT",
+                "{{Short description",
+                "{{Use mdy dates",
+                "{{Use dmy dates",
+            )
+        ):
             continue
 
         if not line.strip():
@@ -616,20 +673,30 @@ def build_timeline_payload_from_snapshot(
             anchor = _parse_anchor(s)
             if anchor:
                 anchors.append(anchor)
-            if not anchor and section_anchor is not None and not section_heading_emitted.get(section, False):
+            if (
+                not anchor
+                and section_anchor is not None
+                and not section_heading_emitted.get(section, False)
+            ):
                 if si == 0:
                     anchors.append(section_anchor)
                     section_heading_emitted[section] = True
 
             for ia in _parse_inline_anchors(s):
                 if not any(
-                    a.year == ia.year and a.month == ia.month and a.day == ia.day and a.precision == ia.precision
+                    a.year == ia.year
+                    and a.month == ia.month
+                    and a.day == ia.day
+                    and a.precision == ia.precision
                     for a in anchors
                 ):
                     anchors.append(ia)
             for yr in _parse_inline_year_range_anchors(s):
                 if not any(
-                    a.year == yr.year and a.month == yr.month and a.day == yr.day and a.precision == yr.precision
+                    a.year == yr.year
+                    and a.month == yr.month
+                    and a.day == yr.day
+                    and a.precision == yr.precision
                     for a in anchors
                 ):
                     anchors.append(yr)
@@ -639,7 +706,10 @@ def build_timeline_payload_from_snapshot(
                     break
             for sa in _parse_special_event_anchors(s):
                 if not any(
-                    a.year == sa.year and a.month == sa.month and a.day == sa.day and a.precision == sa.precision
+                    a.year == sa.year
+                    and a.month == sa.month
+                    and a.day == sa.day
+                    and a.precision == sa.precision
                     for a in anchors
                 ):
                     anchors.append(sa)
@@ -723,15 +793,27 @@ def build_timeline_payload_from_snapshot(
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    ap = argparse.ArgumentParser(description="Extract date-anchored timeline candidates from a wiki snapshot.")
-    ap.add_argument("--snapshot", type=Path, required=True, help="Path to snapshot JSON (from wiki_pull_api.py)")
+    ap = argparse.ArgumentParser(
+        description="Extract date-anchored timeline candidates from a wiki snapshot."
+    )
+    ap.add_argument(
+        "--snapshot",
+        type=Path,
+        required=True,
+        help="Path to snapshot JSON (from wiki_pull_api.py)",
+    )
     ap.add_argument(
         "--out",
         type=Path,
         default=Path("SensibLaw/.cache_local/wiki_timeline_gwb.json"),
         help="Output JSON path (gitignored).",
     )
-    ap.add_argument("--max-events", type=int, default=220, help="Max timeline candidates to emit (default: 220)")
+    ap.add_argument(
+        "--max-events",
+        type=int,
+        default=220,
+        help="Max timeline candidates to emit (default: 220)",
+    )
     ap.add_argument(
         "--section-contains",
         action="append",
@@ -743,7 +825,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     snap = _load_snapshot(args.snapshot)
     wikitext = snap.get("wikitext") or ""
     if not isinstance(wikitext, str) or not wikitext.strip():
-        raise SystemExit("snapshot has no wikitext; re-run wiki_pull_api.py without --no-wikitext")
+        raise SystemExit(
+            "snapshot has no wikitext; re-run wiki_pull_api.py without --no-wikitext"
+        )
     out = build_timeline_payload_from_snapshot(
         snap=snap,
         snapshot_path=args.snapshot,
@@ -753,7 +837,13 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(out, indent=2, sort_keys=True), encoding="utf-8")
-    print(json.dumps({"ok": True, "out": str(args.out), "events": len(out.get("events") or [])}, indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            {"ok": True, "out": str(args.out), "events": len(out.get("events") or [])},
+            indent=2,
+            sort_keys=True,
+        )
+    )
     return 0
 
 

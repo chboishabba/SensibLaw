@@ -26,7 +26,9 @@ def build_fact_intake_run(
         "kind": run_kind,
         "semantic_run_id": semantic_run_id,
         "event_ids": [str(row.get("event_id") or "") for row in per_event],
-        "source_documents": [str(row.get("sourceDocumentId") or "") for row in source_documents],
+        "source_documents": [
+            str(row.get("sourceDocumentId") or "") for row in source_documents
+        ],
     }
     return {
         "run_id": "factrun:" + sha256_payload(run_basis),
@@ -44,15 +46,20 @@ def build_source_rows(
     source_documents: list[Mapping[str, Any]],
     default_source_type: str,
     lexical_mode_for: Callable[[str], str | None],
-    extra_document_provenance: Callable[[Mapping[str, Any]], Mapping[str, Any]] | None = None,
+    extra_document_provenance: Callable[[Mapping[str, Any]], Mapping[str, Any]]
+    | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, str]]:
     sources: list[dict[str, Any]] = []
     source_map: dict[str, str] = {}
     for index, document in enumerate(source_documents, start=1):
         source_document_id = str(document.get("sourceDocumentId") or "").strip()
-        source_id = build_source_id(run_id=run_id, source_document_id=source_document_id)
+        source_id = build_source_id(
+            run_id=run_id, source_document_id=source_document_id
+        )
         source_map[source_document_id] = source_id
-        content_sha = hashlib.sha256(str(document.get("text") or "").encode("utf-8")).hexdigest()
+        content_sha = hashlib.sha256(
+            str(document.get("text") or "").encode("utf-8")
+        ).hexdigest()
         source_type = str(document.get("sourceType") or default_source_type)
         provenance: dict[str, Any] = {
             "semantic_run_id": semantic_run_id,
@@ -68,7 +75,9 @@ def build_source_rows(
                 "source_id": source_id,
                 "source_order": index,
                 "source_type": source_type,
-                "source_label": str(document.get("title") or source_document_id or f"source_{index}"),
+                "source_label": str(
+                    document.get("title") or source_document_id or f"source_{index}"
+                ),
                 "source_ref": source_document_id,
                 "content_sha256": content_sha,
                 "provenance": provenance,
@@ -110,7 +119,7 @@ def ensure_event_source_row(
             "source_id": source_id,
             "source_order": len(sources) + 1,
             "source_type": source_type,
-            "source_label": source_document_id or f"source_{len(sources)+1}",
+            "source_label": source_document_id or f"source_{len(sources) + 1}",
             "source_ref": source_document_value,
             "content_sha256": hashlib.sha256(source_text.encode("utf-8")).hexdigest(),
             "provenance": provenance,

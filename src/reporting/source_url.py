@@ -33,8 +33,14 @@ def parse_source_url(url: str | None) -> dict[str, Any] | None:
                 "canonical_url": canonical_url,
             }
         if path.startswith("/watch"):
-            canonical_url = urlunparse(("https", "www.youtube.com", "/watch", "", parsed.query, ""))
-            return {"kind": "youtube_watch", "host": "youtube.com", "canonical_url": canonical_url}
+            canonical_url = urlunparse(
+                ("https", "www.youtube.com", "/watch", "", parsed.query, "")
+            )
+            return {
+                "kind": "youtube_watch",
+                "host": "youtube.com",
+                "canonical_url": canonical_url,
+            }
 
     if normalized_host == "youtu.be":
         video_id = path.lstrip("/").split("/", 1)[0] or None
@@ -49,7 +55,9 @@ def parse_source_url(url: str | None) -> dict[str, Any] | None:
 
     if normalized_host == "chatgpt.com" and path.startswith("/c/"):
         conversation_id = path.split("/c/", 1)[1].split("/", 1)[0] or None
-        canonical_url = f"https://chatgpt.com/c/{conversation_id}" if conversation_id else raw
+        canonical_url = (
+            f"https://chatgpt.com/c/{conversation_id}" if conversation_id else raw
+        )
         return {
             "kind": "chatgpt_conversation",
             "host": "chatgpt.com",
@@ -59,7 +67,9 @@ def parse_source_url(url: str | None) -> dict[str, Any] | None:
 
     if normalized_host:
         canonical_path = path or "/"
-        canonical_url = urlunparse(("https", normalized_host, canonical_path, "", "", ""))
+        canonical_url = urlunparse(
+            ("https", normalized_host, canonical_path, "", "", "")
+        )
         return {
             "kind": "web_article",
             "host": normalized_host,

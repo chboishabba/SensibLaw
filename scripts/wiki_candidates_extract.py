@@ -67,7 +67,9 @@ class Evidence:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    ap = argparse.ArgumentParser(description="Extract ranked candidate titles from wiki snapshot JSONs.")
+    ap = argparse.ArgumentParser(
+        description="Extract ranked candidate titles from wiki snapshot JSONs."
+    )
     ap.add_argument(
         "--in",
         dest="inputs",
@@ -84,8 +86,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         default=Path("SensibLaw/.cache_local/wiki_candidates_gwb.json"),
         help="Output JSON path (gitignored by SensibLaw/.gitignore).",
     )
-    ap.add_argument("--min-count", type=int, default=1, help="Only keep titles seen >= N times.")
-    ap.add_argument("--limit", type=int, default=250, help="Max titles to emit (after ranking).")
+    ap.add_argument(
+        "--min-count", type=int, default=1, help="Only keep titles seen >= N times."
+    )
+    ap.add_argument(
+        "--limit", type=int, default=250, help="Max titles to emit (after ranking)."
+    )
     ap.add_argument(
         "--exclude-prefix",
         action="append",
@@ -146,7 +152,11 @@ def main(argv: Optional[List[str]] = None) -> int:
                     title = t.strip()
                     # Categories start with "Category:" which is in exclude_prefixes by default.
                     # Strip it for the exclusion check to properly honor --include-categories.
-                    test_title = title[len("Category:"):] if title.startswith("Category:") else title
+                    test_title = (
+                        title[len("Category:") :]
+                        if title.startswith("Category:")
+                        else title
+                    )
                     if _is_excluded_title(test_title, exclude_prefixes):
                         continue
                     title_counts[title] += 1
@@ -196,10 +206,15 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(out, indent=2, sort_keys=True), encoding="utf-8")
-    print(json.dumps({"ok": True, "out": str(args.out), "row_count": len(rows)}, indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            {"ok": True, "out": str(args.out), "row_count": len(rows)},
+            indent=2,
+            sort_keys=True,
+        )
+    )
     return 0
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

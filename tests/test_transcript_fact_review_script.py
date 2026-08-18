@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 from scripts.transcript_fact_review import main
 
 
-def test_transcript_fact_review_script_bundle_emits_review_bundle(tmp_path, capsys) -> None:
+def test_transcript_fact_review_script_bundle_emits_review_bundle(
+    tmp_path, capsys
+) -> None:
     db_path = tmp_path / "itir.sqlite"
     transcript_path = tmp_path / "hearing_transcript.txt"
     transcript_path.write_text(
@@ -37,9 +38,15 @@ def test_transcript_fact_review_script_bundle_emits_review_bundle(tmp_path, caps
     assert any(row["event_type"] == "communication" for row in payload["events"])
     assert payload["semantic_context"]["relation_candidates"]
     first_relation = payload["semantic_context"]["relation_candidates"][0]
-    assert first_relation["semantic_candidate"]["schema_version"] == "relation.semantic_candidate.v1"
+    assert (
+        first_relation["semantic_candidate"]["schema_version"]
+        == "relation.semantic_candidate.v1"
+    )
     assert first_relation["semantic_basis"] in {"structural", "heuristic"}
-    assert first_relation["canonical_promotion_status"] in {"promoted_true", "abstained"}
+    assert first_relation["canonical_promotion_status"] in {
+        "promoted_true",
+        "abstained",
+    }
 
 
 def test_transcript_fact_review_script_run_emits_summary_ids(tmp_path, capsys) -> None:

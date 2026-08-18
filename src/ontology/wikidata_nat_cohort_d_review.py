@@ -117,7 +117,9 @@ def build_wikidata_nat_cohort_d_type_probing_surface(
             continue
         split_context = packet.get("split_review_context")
         reviewer_view = packet.get("reviewer_view")
-        if not isinstance(split_context, Mapping) or not isinstance(reviewer_view, Mapping):
+        if not isinstance(split_context, Mapping) or not isinstance(
+            reviewer_view, Mapping
+        ):
             unresolved_packet_refs.append(
                 {
                     "review_entity_qid": qid,
@@ -131,16 +133,23 @@ def build_wikidata_nat_cohort_d_type_probing_surface(
                 "packet_id": _stringify(packet.get("packet_id")),
                 "split_plan_id": _stringify(split_context.get("split_plan_id")),
                 "packet_status": _stringify(split_context.get("status")),
-                "recommended_next_step": _stringify(reviewer_view.get("recommended_next_step")),
-                "uncertainty_flags": _string_list(reviewer_view.get("uncertainty_flags")),
+                "recommended_next_step": _stringify(
+                    reviewer_view.get("recommended_next_step")
+                ),
+                "uncertainty_flags": _string_list(
+                    reviewer_view.get("uncertainty_flags")
+                ),
                 "smallest_typing_check": _smallest_typing_check(packet),
-                "promotion_guard": _stringify(governance.get("promotion_guard", "hold")) or "hold",
+                "promotion_guard": _stringify(governance.get("promotion_guard", "hold"))
+                or "hold",
                 "execution_allowed": False,
                 "cohort_flags": [MISSING_INSTANCE_OF_TYPING_FLAG],
             }
         )
 
-    artifact_status = "review_only_ready" if not unresolved_packet_refs else "review_only_incomplete"
+    artifact_status = (
+        "review_only_ready" if not unresolved_packet_refs else "review_only_incomplete"
+    )
     typing_deficit_signals = [_build_probe_typing_signal(row) for row in probe_rows]
     return {
         "schema_version": WIKIDATA_NAT_COHORT_D_TYPE_PROBING_SURFACE_SCHEMA_VERSION,
@@ -153,7 +162,8 @@ def build_wikidata_nat_cohort_d_type_probing_surface(
             "automation_allowed": False,
             "can_execute_edits": False,
             "fail_closed": bool(governance.get("fail_closed", True)),
-            "promotion_guard": _stringify(governance.get("promotion_guard", "hold")) or "hold",
+            "promotion_guard": _stringify(governance.get("promotion_guard", "hold"))
+            or "hold",
         },
         "required_reviewer_checks": [
             {
@@ -321,12 +331,19 @@ def build_wikidata_nat_cohort_d_operator_review_surface(
 
     queue_rows = sorted(
         queue_rows,
-        key=lambda row: (0 if row["priority"] == "high" else 1, row["review_entity_qid"]),
+        key=lambda row: (
+            0 if row["priority"] == "high" else 1,
+            row["review_entity_qid"],
+        ),
     )
 
     unresolved_packet_refs = type_probing_surface.get("unresolved_packet_refs")
-    unresolved_count = len(unresolved_packet_refs) if isinstance(unresolved_packet_refs, list) else 0
-    readiness = "review_queue_ready" if unresolved_count == 0 else "review_queue_incomplete"
+    unresolved_count = (
+        len(unresolved_packet_refs) if isinstance(unresolved_packet_refs, list) else 0
+    )
+    readiness = (
+        "review_queue_ready" if unresolved_count == 0 else "review_queue_incomplete"
+    )
 
     return {
         "schema_version": WIKIDATA_NAT_COHORT_D_OPERATOR_REVIEW_SURFACE_SCHEMA_VERSION,
@@ -345,7 +362,8 @@ def build_wikidata_nat_cohort_d_operator_review_surface(
             "automation_allowed": False,
             "can_execute_edits": False,
             "fail_closed": bool(governance.get("fail_closed", True)),
-            "promotion_guard": _stringify(governance.get("promotion_guard", "hold")) or "hold",
+            "promotion_guard": _stringify(governance.get("promotion_guard", "hold"))
+            or "hold",
         },
         "non_claims": [
             "non_executing_operator_review_surface",
@@ -366,14 +384,18 @@ def build_wikidata_nat_cohort_d_operator_report(
         raise ValueError("operator_review_surface requires governance")
 
     high_priority_count = sum(
-        1 for row in operator_queue
+        1
+        for row in operator_queue
         if isinstance(row, Mapping) and _stringify(row.get("priority")) == "high"
     )
     medium_priority_count = sum(
-        1 for row in operator_queue
+        1
+        for row in operator_queue
         if isinstance(row, Mapping) and _stringify(row.get("priority")) == "medium"
     )
-    unresolved_packet_ref_count = int(operator_review_surface.get("unresolved_packet_ref_count", 0) or 0)
+    unresolved_packet_ref_count = int(
+        operator_review_surface.get("unresolved_packet_ref_count", 0) or 0
+    )
     readiness = _stringify(operator_review_surface.get("readiness"))
     promotion_guard = _stringify(governance.get("promotion_guard", "hold")) or "hold"
 
@@ -536,12 +558,16 @@ def build_wikidata_nat_cohort_d_review_control_index(
         summary = batch.get("summary", {})
         if not isinstance(summary, Mapping):
             summary = {}
-        batch_id = _stringify(batch.get("batch_id")).strip() or f"cohort_d_batch_{index}"
+        batch_id = (
+            _stringify(batch.get("batch_id")).strip() or f"cohort_d_batch_{index}"
+        )
         batch_case_count = int(summary.get("case_count", 0) or 0)
         batch_queue_size = int(summary.get("total_queue_size", 0) or 0)
         batch_unresolved = int(summary.get("total_unresolved_packet_ref_count", 0) or 0)
         batch_all_ready = bool(summary.get("all_cases_ready", False))
-        batch_readiness = "review_queue_ready" if batch_all_ready else "review_queue_incomplete"
+        batch_readiness = (
+            "review_queue_ready" if batch_all_ready else "review_queue_incomplete"
+        )
 
         readiness_counts[batch_readiness] += 1
         total_case_count += batch_case_count

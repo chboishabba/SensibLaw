@@ -10,7 +10,9 @@ def stable_json(value: Any) -> str:
 
 
 def slug_artifact_name(text: str) -> str:
-    out = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in str(text or "").strip())
+    out = "".join(
+        ch if ch.isalnum() or ch in "._-" else "_" for ch in str(text or "").strip()
+    )
     while "__" in out:
         out = out.replace("__", "_")
     return out.strip("._") or "artifact"
@@ -24,16 +26,25 @@ def read_json_file(path: Path | None) -> dict[str, Any] | None:
 
 def write_json_file(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
 
 
 def default_out_dir_for_pack(pack_path: Path) -> Path:
     pack = json.loads(pack_path.read_text(encoding="utf-8"))
-    pack_id = str(pack.get("pack_id") or pack_path.stem or "wiki_revision_monitor").strip()
-    return Path("SensibLaw/demo/ingest/wiki_revision_monitor") / slug_artifact_name(pack_id)
+    pack_id = str(
+        pack.get("pack_id") or pack_path.stem or "wiki_revision_monitor"
+    ).strip()
+    return Path("SensibLaw/demo/ingest/wiki_revision_monitor") / slug_artifact_name(
+        pack_id
+    )
 
 
-def revision_artifact_paths(*, out_dir: Path, article_id: str, revid: int | None) -> dict[str, Path]:
+def revision_artifact_paths(
+    *, out_dir: Path, article_id: str, revid: int | None
+) -> dict[str, Path]:
     revid_text = str(revid) if revid is not None else "none"
     base = f"{slug_artifact_name(article_id)}__revid_{revid_text}"
     return {
@@ -64,4 +75,8 @@ def pair_artifact_paths(
 
 
 def graph_artifact_path(*, out_dir: Path, article_id: str, run_id: str) -> Path:
-    return out_dir / "contested_graphs" / f"{slug_artifact_name(article_id)}__{slug_artifact_name(run_id)}.json"
+    return (
+        out_dir
+        / "contested_graphs"
+        / f"{slug_artifact_name(article_id)}__{slug_artifact_name(run_id)}.json"
+    )

@@ -35,7 +35,10 @@ DEFINITION = re.compile(
 
 
 def migration_sources() -> dict[str, str]:
-    return {path.name: path.read_text(encoding="utf-8") for path in sorted(MIGRATIONS.glob("*.sql"))}
+    return {
+        path.name: path.read_text(encoding="utf-8")
+        for path in sorted(MIGRATIONS.glob("*.sql"))
+    }
 
 
 def audit() -> tuple[set[str], dict[str, tuple[str, ...]]]:
@@ -49,7 +52,11 @@ def audit() -> tuple[set[str], dict[str, tuple[str, ...]]]:
         text = sources[filename]
         referenced.update(name.lower() for name in IDENTIFIER.findall(text))
     missing = referenced.difference(defined_by)
-    provenance = {name: tuple(defined_by[name]) for name in sorted(referenced) if name in defined_by}
+    provenance = {
+        name: tuple(defined_by[name])
+        for name in sorted(referenced)
+        if name in defined_by
+    }
     return missing, provenance
 
 

@@ -1,18 +1,43 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-M122 = (ROOT / "database/postgres_migrations/122_demand_occurrence_support.sql").read_text()
-M123 = (ROOT / "database/postgres_migrations/123_h9_entity_bearing_from_occurrence.sql").read_text()
-M124 = (ROOT / "database/postgres_migrations/124_h9_entity_label_from_occurrence.sql").read_text()
-M125 = (ROOT / "database/postgres_migrations/125_source_object_from_occurrence_support.sql").read_text()
-M126 = (ROOT / "database/postgres_migrations/126_producer_specific_occurrence_support.sql").read_text()
-M127 = (ROOT / "database/postgres_migrations/127_occurrence_projection_and_shape_audit.sql").read_text()
-M129 = (ROOT / "database/postgres_migrations/129_object_entity_occurrence_audit.sql").read_text()
-M130 = (ROOT / "database/postgres_migrations/130_parser_entity_occurrence_bridge.sql").read_text()
-M131 = (ROOT / "database/postgres_migrations/131_incremental_parser_entity_surface_labels.sql").read_text()
-M132 = (ROOT / "database/postgres_migrations/132_exact_object_entity_occurrence_audit.sql").read_text()
-M133 = (ROOT / "database/postgres_migrations/133_provider_entity_span_quality_gate.sql").read_text()
-M134 = (ROOT / "database/postgres_migrations/134_provider_entity_terminal_boundary.sql").read_text()
+M122 = (
+    ROOT / "database/postgres_migrations/122_demand_occurrence_support.sql"
+).read_text()
+M123 = (
+    ROOT / "database/postgres_migrations/123_h9_entity_bearing_from_occurrence.sql"
+).read_text()
+M124 = (
+    ROOT / "database/postgres_migrations/124_h9_entity_label_from_occurrence.sql"
+).read_text()
+M125 = (
+    ROOT / "database/postgres_migrations/125_source_object_from_occurrence_support.sql"
+).read_text()
+M126 = (
+    ROOT / "database/postgres_migrations/126_producer_specific_occurrence_support.sql"
+).read_text()
+M127 = (
+    ROOT / "database/postgres_migrations/127_occurrence_projection_and_shape_audit.sql"
+).read_text()
+M129 = (
+    ROOT / "database/postgres_migrations/129_object_entity_occurrence_audit.sql"
+).read_text()
+M130 = (
+    ROOT / "database/postgres_migrations/130_parser_entity_occurrence_bridge.sql"
+).read_text()
+M131 = (
+    ROOT
+    / "database/postgres_migrations/131_incremental_parser_entity_surface_labels.sql"
+).read_text()
+M132 = (
+    ROOT / "database/postgres_migrations/132_exact_object_entity_occurrence_audit.sql"
+).read_text()
+M133 = (
+    ROOT / "database/postgres_migrations/133_provider_entity_span_quality_gate.sql"
+).read_text()
+M134 = (
+    ROOT / "database/postgres_migrations/134_provider_entity_terminal_boundary.sql"
+).read_text()
 
 
 def test_occurrence_carrier_distinguishes_strong_and_legacy_support() -> None:
@@ -41,7 +66,9 @@ def test_role_factor_producer_uses_role_and_optional_typed_narrowing() -> None:
 
 def test_strong_refresh_preserves_legacy_kind9_rows() -> None:
     delete_clause = M126.split("-- Lexical producer", 1)[0]
-    assert "DELETE FROM execution.semantic_pnf_demand_occurrence_support" in delete_clause
+    assert (
+        "DELETE FROM execution.semantic_pnf_demand_occurrence_support" in delete_clause
+    )
     assert "support_kind IN (1,2)" in delete_clause
     assert "support_kind=9" not in delete_clause
     assert "demand.source_object_id IS NOT NULL" in M126
@@ -65,11 +92,18 @@ def test_h9_entity_views_start_from_strong_occurrence_support() -> None:
 
 
 def test_legacy_source_object_semantics_are_restored() -> None:
-    assert "CREATE OR REPLACE FUNCTION execution.resolve_numeric_pnf_demand_source_object" in M126
+    assert (
+        "CREATE OR REPLACE FUNCTION execution.resolve_numeric_pnf_demand_source_object"
+        in M126
+    )
     assert "object.region_id=demand.source_region_id" in M126
     assert "object.head_symbol_id=demand.lexical_symbol_id" in M126
-    trigger_tail = M126.split("CREATE TRIGGER semantic_pnf_demand_occurrence_support_refresh", 1)[1]
-    assert "source_object_id" not in trigger_tail.split("-- Restore 090a semantics", 1)[0]
+    trigger_tail = M126.split(
+        "CREATE TRIGGER semantic_pnf_demand_occurrence_support_refresh", 1
+    )[1]
+    assert (
+        "source_object_id" not in trigger_tail.split("-- Restore 090a semantics", 1)[0]
+    )
 
 
 def test_unique_strong_projection_has_its_own_column() -> None:
@@ -118,8 +152,12 @@ def test_provider_label_is_full_entity_surface() -> None:
 
 
 def test_local_identity_projection_cannot_authorize_provider_work() -> None:
-    bearing = M130.split("CREATE OR REPLACE VIEW execution.semantic_pnf_h9_entity_bearing_v1", 1)[1]
-    bearing = bearing.split("CREATE OR REPLACE VIEW execution.semantic_pnf_h9_entity_label_anchor_v1", 1)[0]
+    bearing = M130.split(
+        "CREATE OR REPLACE VIEW execution.semantic_pnf_h9_entity_bearing_v1", 1
+    )[1]
+    bearing = bearing.split(
+        "CREATE OR REPLACE VIEW execution.semantic_pnf_h9_entity_label_anchor_v1", 1
+    )[0]
     assert "semantic_pnf_identity_projection" not in bearing
     assert "unique_parser_entity_anchor" in bearing
     assert "attached_world_candidate" in bearing
@@ -135,7 +173,9 @@ def test_h9_requires_strong_occurrence_and_named_entity_anchor() -> None:
 def test_stale_identity_only_origins_are_withdrawn_not_deleted() -> None:
     assert "UPDATE execution.semantic_pnf_consumer_external_need_origin" in M130
     assert "SET active=FALSE" in M130
-    assert "DELETE FROM execution.semantic_pnf_consumer_external_need_origin" not in M130
+    assert (
+        "DELETE FROM execution.semantic_pnf_consumer_external_need_origin" not in M130
+    )
 
 
 def test_new_parser_entity_spans_refresh_surface_labels_incrementally() -> None:
@@ -146,7 +186,10 @@ def test_new_parser_entity_spans_refresh_surface_labels_incrementally() -> None:
 
 
 def test_exact_audit_supersedes_region_sibling_diagnostic() -> None:
-    assert "DROP VIEW IF EXISTS execution.semantic_pnf_object_entity_occurrence_audit_v1" in M132
+    assert (
+        "DROP VIEW IF EXISTS execution.semantic_pnf_object_entity_occurrence_audit_v1"
+        in M132
+    )
     assert "semantic_parser_entity_span" in M132
     assert "entity.run_ref=token.run_ref" in M132
     assert "entity.document_ref=token.document_ref" in M132
@@ -164,7 +207,9 @@ def test_raw_parser_entities_are_preserved_but_provider_spans_are_separate() -> 
 def test_provider_span_requires_exact_contiguous_token_geometry() -> None:
     assert "geometry.token_start<>geometry.start_char" in M133
     assert "geometry.token_end<>geometry.end_char" in M133
-    assert "geometry.token_count<>(geometry.last_ordinal-geometry.first_ordinal+1)" in M133
+    assert (
+        "geometry.token_count<>(geometry.last_ordinal-geometry.first_ordinal+1)" in M133
+    )
     assert "WHEN geometry.sentence_ref IS NULL THEN 10" in M133
 
 
@@ -177,9 +222,26 @@ def test_provider_span_rejects_clausal_and_oversized_ner_fragments() -> None:
 
 
 def test_provider_span_requires_world_bearing_type_and_nominal_anchor() -> None:
-    for entity_type in ("PERSON", "ORG", "GPE", "LOC", "FAC", "LAW", "EVENT", "WORK_OF_ART"):
+    for entity_type in (
+        "PERSON",
+        "ORG",
+        "GPE",
+        "LOC",
+        "FAC",
+        "LAW",
+        "EVENT",
+        "WORK_OF_ART",
+    ):
         assert f"'{entity_type}'" in M133
-    for excluded in ("DATE", "TIME", "MONEY", "CARDINAL", "ORDINAL", "PERCENT", "QUANTITY"):
+    for excluded in (
+        "DATE",
+        "TIME",
+        "MONEY",
+        "CARDINAL",
+        "ORDINAL",
+        "PERCENT",
+        "QUANTITY",
+    ):
         assert f"'{excluded}'" not in M133
     assert "WHEN geometry.nominal_token_count=0 THEN 17" in M133
 
@@ -198,10 +260,16 @@ def test_h9_parser_occurrence_consumes_only_provider_admissible_span() -> None:
     assert "semantic_pnf_demand_raw_parser_entity_occurrence_v1" in M133
 
 
-def test_quality_gate_withdraws_stale_provider_origins_without_deleting_receipts() -> None:
-    assert "UPDATE execution.semantic_pnf_consumer_external_need_origin AS origin" in M133
+def test_quality_gate_withdraws_stale_provider_origins_without_deleting_receipts() -> (
+    None
+):
+    assert (
+        "UPDATE execution.semantic_pnf_consumer_external_need_origin AS origin" in M133
+    )
     assert "SET active=FALSE" in M133
-    assert "DELETE FROM execution.semantic_pnf_consumer_external_need_origin" not in M133
+    assert (
+        "DELETE FROM execution.semantic_pnf_consumer_external_need_origin" not in M133
+    )
     assert "refresh_numeric_pnf_external_request_observer_state" in M133
 
 

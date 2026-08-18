@@ -1,9 +1,13 @@
 """Operational late-H9 Wikidata executor with Zelph/HF snapshot-first routing."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.policy.external_demand import ExternalBatchReceipt, execute_external_provider_batch
+from src.policy.external_demand import (
+    ExternalBatchReceipt,
+    execute_external_provider_batch,
+)
 from src.policy.wikidata_late_provider import WikidataLateProvider, WikidataTransport
 from src.policy.wikidata_tiered_transport import (
     TieredWikidataTransport,
@@ -11,7 +15,9 @@ from src.policy.wikidata_tiered_transport import (
     ZelphHFWikidataTransport,
     ZelphSnapshotQueryBackend,
 )
-from src.storage.postgres.external_demand_runtime_store import ExternalDemandRuntimeStore
+from src.storage.postgres.external_demand_runtime_store import (
+    ExternalDemandRuntimeStore,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,7 +75,9 @@ class LateWikidataExecutor:
             snapshot_epoch=snapshot_epoch,
             snapshot_revision=snapshot_revision,
         )
-        transport = TieredWikidataTransport(snapshot, live_transport, policy=tier_policy)
+        transport = TieredWikidataTransport(
+            snapshot, live_transport, policy=tier_policy
+        )
         return cls(database_url, transport, candidate_limit=candidate_limit)
 
     def drain_once(self, config: LateWikidataExecutionConfig) -> ExternalBatchReceipt:

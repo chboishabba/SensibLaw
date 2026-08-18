@@ -32,13 +32,16 @@ def test_brexit_archive_lane_wrapper_attaches_receipt() -> None:
     report = build_report(with_receipt=True)
 
     receipt = report["linkage_depth_receipt"]
-    assert receipt["contract"]["contract_id"] == BREXIT_ARCHIVE_POLICY_INTENT_LINKAGE_CONTRACT_ID
+    assert (
+        receipt["contract"]["contract_id"]
+        == BREXIT_ARCHIVE_POLICY_INTENT_LINKAGE_CONTRACT_ID
+    )
     assert receipt["diagnostics"]["linkage_depth_status"] == "complete"
     assert receipt["diagnostics"]["typed_path_depth"] == 6
     assert receipt["diagnostics"]["candidate_vs_promoted_visibility"] is True
-    assert receipt["diagnostics"]["visibility_requirements"]["archive_authority_visibility"]["values"] == [
-        "complete"
-    ]
+    assert receipt["diagnostics"]["visibility_requirements"][
+        "archive_authority_visibility"
+    ]["values"] == ["complete"]
 
 
 def test_brexit_archive_case_projects_adapter_geometry() -> None:
@@ -52,9 +55,7 @@ def test_brexit_archive_case_projects_adapter_geometry() -> None:
 
     assert audited["linkage_depth_status"] == "complete"
     assert audited["typed_path_depth"] == 6
-    assert {
-        node["layer"] for node in case["nodes"]
-    } >= {
+    assert {node["layer"] for node in case["nodes"]} >= {
         "source_anchor",
         "source_container",
         "parsed_form",
@@ -63,7 +64,10 @@ def test_brexit_archive_case_projects_adapter_geometry() -> None:
         "authority_surface",
         "tranche_anchor",
     }
-    assert any(node["metadata"].get("archive_authority_visibility") == "complete" for node in case["nodes"])
+    assert any(
+        node["metadata"].get("archive_authority_visibility") == "complete"
+        for node in case["nodes"]
+    )
     assert case["case_source"] == "projected_world_model_artifact"
 
 

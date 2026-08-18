@@ -19,17 +19,23 @@ def _fixture_sources() -> tuple[dict, list]:
 
 
 def _chat_argument_sources() -> tuple[dict, list]:
-    fixture_path = _SENSIBLAW_ROOT / "demo/narrative/friendlyjordies_chat_arguments.json"
+    fixture_path = (
+        _SENSIBLAW_ROOT / "demo/narrative/friendlyjordies_chat_arguments.json"
+    )
     return load_fixture_sources(fixture_path)
 
 
 def _authority_wrapper_sources() -> tuple[dict, list]:
-    fixture_path = _SENSIBLAW_ROOT / "demo/narrative/friendlyjordies_authority_wrappers.json"
+    fixture_path = (
+        _SENSIBLAW_ROOT / "demo/narrative/friendlyjordies_authority_wrappers.json"
+    )
     return load_fixture_sources(fixture_path)
 
 
 def _thread_extract_sources() -> tuple[dict, list]:
-    fixture_path = _SENSIBLAW_ROOT / "demo/narrative/friendlyjordies_thread_extract.json"
+    fixture_path = (
+        _SENSIBLAW_ROOT / "demo/narrative/friendlyjordies_thread_extract.json"
+    )
     return load_fixture_sources(fixture_path)
 
 
@@ -40,8 +46,12 @@ def test_friendlyjordies_fixture_builds_validation_report() -> None:
     assert report["summary"]["fact_count"] >= 2
     assert report["summary"]["proposition_link_count"] >= 2
     assert any(row["predicate_key"] == "happen_in" for row in report["propositions"])
-    assert any(row["predicate_key"] == "approve_after" for row in report["propositions"])
-    assert any(link["link_kind"] == "attributes_to" for link in report["proposition_links"])
+    assert any(
+        row["predicate_key"] == "approve_after" for row in report["propositions"]
+    )
+    assert any(
+        link["link_kind"] == "attributes_to" for link in report["proposition_links"]
+    )
     assert any(ref["label"] == "Court records" for ref in report["corroboration_refs"])
 
 
@@ -51,16 +61,25 @@ def test_friendlyjordies_fixture_comparison_surfaces_shared_and_disputed_rows() 
     assert comparison["summary"]["shared_proposition_count"] >= 1
     assert comparison["summary"]["disputed_proposition_count"] >= 1
     assert any(
-        row["left"]["predicate_key"] == "approve_after" and row["right"]["predicate_key"] == "begin_before"
+        row["left"]["predicate_key"] == "approve_after"
+        and row["right"]["predicate_key"] == "begin_before"
         for row in comparison["disputed_propositions"]
     )
-    assert any("FriendlyJordies" in ",".join(row["left_attributions"]) for row in comparison["link_differences"])
-    assert any("The newspaper" in ",".join(row["right_attributions"]) for row in comparison["link_differences"])
+    assert any(
+        "FriendlyJordies" in ",".join(row["left_attributions"])
+        for row in comparison["link_differences"]
+    )
+    assert any(
+        "The newspaper" in ",".join(row["right_attributions"])
+        for row in comparison["link_differences"]
+    )
     assert comparison["source_only_propositions"]["jordies_video"] == []
     assert comparison["source_only_propositions"]["newspaper_report"] == []
 
 
-def test_chat_derived_jordies_argument_fixture_extracts_multiple_argument_predicates() -> None:
+def test_chat_derived_jordies_argument_fixture_extracts_multiple_argument_predicates() -> (
+    None
+):
     _, sources = _chat_argument_sources()
     report = build_narrative_validation_report(sources[0])
     predicates = {row["predicate_key"] for row in report["propositions"]}
@@ -68,13 +87,21 @@ def test_chat_derived_jordies_argument_fixture_extracts_multiple_argument_predic
     assert "contribute_to" in predicates
     assert "use" in predicates
     assert "support" in predicates
-    support_links = [row for row in report["proposition_links"] if row["link_kind"] == "supports"]
+    support_links = [
+        row for row in report["proposition_links"] if row["link_kind"] == "supports"
+    ]
     assert any(
-        any(receipt["value"] == "block_subject_embeds_causal_subject" for receipt in row["receipts"])
+        any(
+            receipt["value"] == "block_subject_embeds_causal_subject"
+            for receipt in row["receipts"]
+        )
         for row in support_links
     )
     assert any(
-        any(receipt["value"] == "documentary_support_same_signature" for receipt in row["receipts"])
+        any(
+            receipt["value"] == "documentary_support_same_signature"
+            for receipt in row["receipts"]
+        )
         for row in support_links
     )
     for row in support_links:
@@ -97,7 +124,8 @@ def test_chat_derived_jordies_argument_fixture_surfaces_causal_dispute() -> None
         for row in comparison["disputed_propositions"]
     )
     assert any(
-        row["predicate_key"] == "govern_in" for row in comparison["source_only_propositions"]["counter_analysis"]
+        row["predicate_key"] == "govern_in"
+        for row in comparison["source_only_propositions"]["counter_analysis"]
     )
     assert any(
         row["comparison_outcome_family"] == "government_climate_policy_capacity"
@@ -107,7 +135,10 @@ def test_chat_derived_jordies_argument_fixture_surfaces_causal_dispute() -> None
     )
     assert any(
         row["link_kind"] == "undermines"
-        and any(receipt["value"] == "shared_subject_governance_family" for receipt in row["receipts"])
+        and any(
+            receipt["value"] == "shared_subject_governance_family"
+            for receipt in row["receipts"]
+        )
         for row in comparison["comparison_links"]
     )
     assert any(
@@ -120,7 +151,10 @@ def test_chat_derived_jordies_argument_fixture_surfaces_causal_dispute() -> None
     )
     assert any(
         row["link_kind"] == "undermines"
-        and any(receipt["value"] == "shared_outcome_conflicting_cause_or_predicate" for receipt in row["receipts"])
+        and any(
+            receipt["value"] == "shared_outcome_conflicting_cause_or_predicate"
+            for receipt in row["receipts"]
+        )
         for row in comparison["comparison_links"]
     )
     for row in comparison["comparison_links"]:
@@ -144,19 +178,40 @@ def test_nested_authority_wrappers_emit_separate_hold_and_assert_nodes() -> None
         row["predicate_key"] == "assert" and row["proposition_kind"] == "attribution"
         for row in report["propositions"]
     )
-    assert sum(1 for row in report["proposition_links"] if row["link_kind"] == "attributes_to") >= 4
+    assert (
+        sum(
+            1
+            for row in report["proposition_links"]
+            if row["link_kind"] == "attributes_to"
+        )
+        >= 4
+    )
 
 
-def test_nested_authority_wrappers_preserve_full_attribution_chain_in_comparison() -> None:
+def test_nested_authority_wrappers_preserve_full_attribution_chain_in_comparison() -> (
+    None
+):
     _, sources = _authority_wrapper_sources()
     comparison = build_narrative_comparison_report(sources[0], sources[1])
     block_shared = next(
-        row for row in comparison["shared_propositions"] if row["signature"] == "block||object=cprs|subject=greens"
+        row
+        for row in comparison["shared_propositions"]
+        if row["signature"] == "block||object=cprs|subject=greens"
     )
-    assert any("hold:the majority in Lepore" == value for value in block_shared["left_attributions"])
-    assert any("assert:FriendlyJordies" == value for value in block_shared["left_attributions"])
-    assert any("hold:the majority in Lepore" == value for value in block_shared["right_attributions"])
-    assert any("report:The analysis" == value for value in block_shared["right_attributions"])
+    assert any(
+        "hold:the majority in Lepore" == value
+        for value in block_shared["left_attributions"]
+    )
+    assert any(
+        "assert:FriendlyJordies" == value for value in block_shared["left_attributions"]
+    )
+    assert any(
+        "hold:the majority in Lepore" == value
+        for value in block_shared["right_attributions"]
+    )
+    assert any(
+        "report:The analysis" == value for value in block_shared["right_attributions"]
+    )
 
 
 def test_thread_extract_fixture_stays_grounded_in_real_archive_claim_family() -> None:
@@ -164,12 +219,16 @@ def test_thread_extract_fixture_stays_grounded_in_real_archive_claim_family() ->
     comparison = build_narrative_comparison_report(sources[0], sources[1])
     assert comparison["summary"]["shared_proposition_count"] >= 2
     assert any(
-        row["left"]["predicate_key"] == "contribute_to" and row["right"]["predicate_key"] == "delay"
+        row["left"]["predicate_key"] == "contribute_to"
+        and row["right"]["predicate_key"] == "delay"
         for row in comparison["disputed_propositions"]
     )
     assert any(
         row["link_kind"] == "undermines"
-        and any(receipt["value"] == "shared_subject_conflicting_outcome_family" for receipt in row["receipts"])
+        and any(
+            receipt["value"] == "shared_subject_conflicting_outcome_family"
+            for receipt in row["receipts"]
+        )
         for row in comparison["comparison_links"]
     )
     assert any(
@@ -178,7 +237,10 @@ def test_thread_extract_fixture_stays_grounded_in_real_archive_claim_family() ->
     )
     assert any(
         row["link_kind"] == "undermines"
-        and any(receipt["value"] == "shared_subject_statement_family" for receipt in row["receipts"])
+        and any(
+            receipt["value"] == "shared_subject_statement_family"
+            for receipt in row["receipts"]
+        )
         for row in comparison["comparison_links"]
     )
     assert any(
@@ -189,13 +251,18 @@ def test_thread_extract_fixture_stays_grounded_in_real_archive_claim_family() ->
     )
     assert any(
         row["link_kind"] == "undermines"
-        and any(receipt["value"] == "shared_subject_governance_family" for receipt in row["receipts"])
+        and any(
+            receipt["value"] == "shared_subject_governance_family"
+            for receipt in row["receipts"]
+        )
         for row in comparison["comparison_links"]
     )
 
 
 def test_parse_source_url_normalizes_chatgpt_and_youtube_urls() -> None:
-    assert parse_source_url("https://chatgpt.com/c/69ac40e0-0cfc-839b-b2a8-0de3019379a9?src=history_search") == {
+    assert parse_source_url(
+        "https://chatgpt.com/c/69ac40e0-0cfc-839b-b2a8-0de3019379a9?src=history_search"
+    ) == {
         "kind": "chatgpt_conversation",
         "host": "chatgpt.com",
         "conversation_id": "69ac40e0-0cfc-839b-b2a8-0de3019379a9",
@@ -209,10 +276,14 @@ def test_parse_source_url_normalizes_chatgpt_and_youtube_urls() -> None:
     }
 
 
-def test_public_artifact_validation_fails_closed_for_missing_causal_provenance() -> None:
+def test_public_artifact_validation_fails_closed_for_missing_causal_provenance() -> (
+    None
+):
     _, sources = _chat_argument_sources()
     report = build_narrative_validation_report(sources[0])
-    support_link = next(row for row in report["proposition_links"] if row["link_kind"] == "supports")
+    support_link = next(
+        row for row in report["proposition_links"] if row["link_kind"] == "supports"
+    )
     support_link.pop("counter_hypothesis_ref", None)
     try:
         ensure_claim_link_provenance_for_public_artifact(report)

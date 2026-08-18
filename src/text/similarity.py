@@ -1,4 +1,5 @@
 """Utilities for computing text similarity signatures."""
+
 from __future__ import annotations
 
 import hashlib

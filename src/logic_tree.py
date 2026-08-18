@@ -16,7 +16,12 @@ from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Sequence,
 from src.pipeline.tokens import Token as PipelineToken, TokenStream
 
 LOGIC_TREE_VERSION = "logic-tree-v1"
-_OFFSETS_DISABLED = os.getenv("LOGIC_TREE_DISABLE_OFFSETS", "").lower() in {"1", "true", "yes", "on"}
+_OFFSETS_DISABLED = os.getenv("LOGIC_TREE_DISABLE_OFFSETS", "").lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 
 
 class NodeType(str, Enum):
@@ -130,16 +135,21 @@ class LogicTree:
     - Traversal order follows edge ordering; node list order is incidental.
     """
 
-    def __init__(self, *, version: str, root_id: str, nodes: List[Node], edges: List[Edge]) -> None:
+    def __init__(
+        self, *, version: str, root_id: str, nodes: List[Node], edges: List[Edge]
+    ) -> None:
         self.version = version
         self.root_id = root_id
         self.nodes = nodes
         self.edges = edges
         self._node_index: Dict[str, Node] = {node.id: node for node in nodes}
         self._span_lookup: Dict[str, int] = {
-            node.id: node.span[0] if node.span is not None else 99_999_999 for node in nodes
+            node.id: node.span[0] if node.span is not None else 99_999_999
+            for node in nodes
         }
-        self._children: Dict[str, List[Edge]] = _build_children_map(edges, self._span_lookup)
+        self._children: Dict[str, List[Edge]] = _build_children_map(
+            edges, self._span_lookup
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -160,16 +170,16 @@ class LogicTree:
             edges=edges,
         )
 
-    def to_dot(self, *, include_tokens: bool = False, include_sequence_edges: bool = False) -> str:
+    def to_dot(
+        self, *, include_tokens: bool = False, include_sequence_edges: bool = False
+    ) -> str:
         """Return a deterministic Graphviz DOT representation of the tree.
 
         - By default, hides TOKEN nodes to emphasise structure.
         - SEQUENCE edges are rendered with constraint=false to avoid flattening layout.
         """
 
-        include_node = (
-            lambda n: include_tokens or n.node_type is not NodeType.TOKEN
-        )
+        include_node = lambda n: include_tokens or n.node_type is not NodeType.TOKEN
 
         lines = ["digraph LogicTree {", "  rankdir=TB;"]
         for node in sorted(self.nodes, key=_node_sort_key):
@@ -186,7 +196,9 @@ class LogicTree:
             attrs = " ".join(attr_parts)
             lines.append(f'  "{node.id}" [{attrs}];')
 
-        for edge in sorted(self.edges, key=lambda e: _edge_sort_key(e, self._span_lookup)):
+        for edge in sorted(
+            self.edges, key=lambda e: _edge_sort_key(e, self._span_lookup)
+        ):
             parent = self._node_index.get(edge.parent_id)
             child = self._node_index.get(edge.child_id)
             if parent is None or child is None:
@@ -197,10 +209,12 @@ class LogicTree:
             attrs: list[str] = [f'label="{edge.edge_type.value}"']
             if edge.edge_type is EdgeType.SEQUENCE:
                 if not include_sequence_edges:
-                    attrs.append('constraint=false')
+                    attrs.append("constraint=false")
                     attrs.append('style="dotted"')
                     attrs.append('color="#9ca3af"')
-            lines.append(f'  "{edge.parent_id}" -> "{edge.child_id}" [{" ".join(attrs)}];')
+            lines.append(
+                f'  "{edge.parent_id}" -> "{edge.child_id}" [{" ".join(attrs)}];'
+            )
 
         lines.append("}")
         return "\n".join(lines)
@@ -212,7 +226,9 @@ class LogicTree:
         return self._node_index[node_id]
 
 
-def _build_children_map(edges: Iterable[Edge], span_lookup: Mapping[str, int]) -> Dict[str, List[Edge]]:
+def _build_children_map(
+    edges: Iterable[Edge], span_lookup: Mapping[str, int]
+) -> Dict[str, List[Edge]]:
     children: MutableMapping[str, List[Edge]] = {}
     for edge in edges:
         children.setdefault(edge.parent_id, []).append(edge)
@@ -235,7 +251,9 @@ def _node_sort_key(node: Node) -> Tuple[int, int, str]:
     return (start, numeric_id, identifier)
 
 
-def _edge_sort_key(edge: Edge, span_lookup: Mapping[str, int]) -> Tuple[int, int, int, str]:
+def _edge_sort_key(
+    edge: Edge, span_lookup: Mapping[str, int]
+) -> Tuple[int, int, int, str]:
     order = EDGE_ORDER.get(edge.edge_type, 99)
     start = span_lookup.get(edge.child_id, 99_999_999)
     numeric_child, identifier = _id_sort_value(edge.child_id)
@@ -280,7 +298,9 @@ def prepare_logic_tree_schema(connection: sqlite3.Connection) -> None:
     connection.commit()
 
 
-def project_logic_tree_to_sqlite(tree: LogicTree, connection: sqlite3.Connection, *, doc_id: str | None = None) -> None:
+def project_logic_tree_to_sqlite(
+    tree: LogicTree, connection: sqlite3.Connection, *, doc_id: str | None = None
+) -> None:
     """Project a logic tree into SQLite, preserving child order via `ord` per parent.
 
     SQLite remains a projection only; JSON is canonical. Existing rows for the
@@ -301,7 +321,13 @@ def project_logic_tree_to_sqlite(tree: LogicTree, connection: sqlite3.Connection
     cursor.executemany(
         "INSERT INTO logic_nodes (node_id, doc_id, node_type, span_i, span_j) VALUES (?, ?, ?, ?, ?)",
         [
-            (node.id, inferred_doc_id, node.node_type.value, node.span[0] if node.span else None, node.span[1] if node.span else None)
+            (
+                node.id,
+                inferred_doc_id,
+                node.node_type.value,
+                node.span[0] if node.span else None,
+                node.span[1] if node.span else None,
+            )
             for node in tree.nodes
         ],
     )
@@ -326,7 +352,9 @@ def project_logic_tree_to_sqlite(tree: LogicTree, connection: sqlite3.Connection
     connection.commit()
 
 
-def rehydrate_logic_tree_from_sqlite(connection: sqlite3.Connection, *, doc_id: str) -> LogicTree:
+def rehydrate_logic_tree_from_sqlite(
+    connection: sqlite3.Connection, *, doc_id: str
+) -> LogicTree:
     """Rehydrate a logic tree from its SQLite projection.
 
     Restores IDs, node types, spans, and parent→child ordering via `ord`.
@@ -346,7 +374,11 @@ def rehydrate_logic_tree_from_sqlite(connection: sqlite3.Connection, *, doc_id: 
 
     nodes = []
     for node_id, node_type, span_i, span_j in node_rows:
-        span = (int(span_i), int(span_j)) if span_i is not None and span_j is not None else None
+        span = (
+            (int(span_i), int(span_j))
+            if span_i is not None and span_j is not None
+            else None
+        )
         nodes.append(
             Node(
                 id=str(node_id),
@@ -366,15 +398,23 @@ def rehydrate_logic_tree_from_sqlite(connection: sqlite3.Connection, *, doc_id: 
         (doc_id,),
     )
     edges = [
-        Edge(parent_id=str(parent_id), child_id=str(child_id), edge_type=EdgeType(str(edge_type)))
+        Edge(
+            parent_id=str(parent_id),
+            child_id=str(child_id),
+            edge_type=EdgeType(str(edge_type)),
+        )
         for parent_id, child_id, edge_type in cursor.fetchall()
     ]
 
     root_nodes = [node for node in nodes if node.node_type is NodeType.ROOT]
     if len(root_nodes) != 1:
-        raise ValueError(f"Expected exactly one ROOT for doc_id={doc_id}, found {len(root_nodes)}")
+        raise ValueError(
+            f"Expected exactly one ROOT for doc_id={doc_id}, found {len(root_nodes)}"
+        )
 
-    return LogicTree(version=LOGIC_TREE_VERSION, root_id=root_nodes[0].id, nodes=nodes, edges=edges)
+    return LogicTree(
+        version=LOGIC_TREE_VERSION, root_id=root_nodes[0].id, nodes=nodes, edges=edges
+    )
 
 
 def prepare_fts_schema(connection: sqlite3.Connection) -> None:
@@ -392,7 +432,9 @@ def prepare_fts_schema(connection: sqlite3.Connection) -> None:
     connection.commit()
 
 
-def index_tokens_for_fts(connection: sqlite3.Connection, *, doc_id: str, tokens: Sequence[Any]) -> None:
+def index_tokens_for_fts(
+    connection: sqlite3.Connection, *, doc_id: str, tokens: Sequence[Any]
+) -> None:
     """Index document text for FTS using the token texts joined once.
 
     This avoids duplicating node text; raw_text is the canonical token string for search.
@@ -402,7 +444,9 @@ def index_tokens_for_fts(connection: sqlite3.Connection, *, doc_id: str, tokens:
     raw_text = " ".join(_token_text(token) for token in tokens)
     cursor = connection.cursor()
     cursor.execute("DELETE FROM docs_fts WHERE doc_id = ?", (doc_id,))
-    cursor.execute("INSERT INTO docs_fts (doc_id, raw_text) VALUES (?, ?)", (doc_id, raw_text))
+    cursor.execute(
+        "INSERT INTO docs_fts (doc_id, raw_text) VALUES (?, ?)", (doc_id, raw_text)
+    )
     connection.commit()
 
 
@@ -420,7 +464,11 @@ def _parse_fts_offsets(offsets_value: str) -> List[Tuple[int, int]]:
 
 
 def search_fts_over_logic_tree(
-    connection: sqlite3.Connection, query: str, *, limit: int = 20, use_offsets: bool = True
+    connection: sqlite3.Connection,
+    query: str,
+    *,
+    limit: int = 20,
+    use_offsets: bool = True,
 ) -> List[Dict[str, Any]]:
     """Search FTS index and resolve hits to logic tree node IDs via span overlap.
 
@@ -462,10 +510,16 @@ def search_fts_over_logic_tree(
             spans = []
             k = len(query_tokens)
             for idx in range(len(tokens) - k + 1):
-                if [t.lower() for t in tokens[idx : idx + k]] == [t.lower() for t in query_tokens]:
+                if [t.lower() for t in tokens[idx : idx + k]] == [
+                    t.lower() for t in query_tokens
+                ]:
                     spans.append((idx, idx + k))
         tokens = raw_text.split()
-        snippets = [" ".join(tokens[start:end]) for start, end in spans if 0 <= start < len(tokens)]
+        snippets = [
+            " ".join(tokens[start:end])
+            for start, end in spans
+            if 0 <= start < len(tokens)
+        ]
         node_ids: set[str] = set()
         for start, end in spans:
             for (node_id,) in connection.execute(
@@ -497,7 +551,11 @@ def _token_text(token: Any) -> str:
 
 
 def _token_lemma(token: Any) -> str:
-    return getattr(token, "lemma", None) or getattr(token, "lemma_", None) or _token_text(token)
+    return (
+        getattr(token, "lemma", None)
+        or getattr(token, "lemma_", None)
+        or _token_text(token)
+    )
 
 
 def _token_pos(token: Any) -> str:
@@ -562,12 +620,21 @@ def _clause_spans(tokens: Sequence[Any]) -> List[Tuple[int, int]]:
     return spans
 
 
-def build(tokens: Sequence[PipelineToken] | TokenStream, *, source_id: str = "unknown") -> LogicTree:
+def build(
+    tokens: Sequence[PipelineToken] | TokenStream, *, source_id: str = "unknown"
+) -> LogicTree:
     """Build a deterministic logic tree from a token sequence."""
 
-    root_node = Node(id="n0", node_type=NodeType.ROOT, span=None, text=None, source_id=source_id)
+    root_node = Node(
+        id="n0", node_type=NodeType.ROOT, span=None, text=None, source_id=source_id
+    )
     if not tokens:
-        return LogicTree(version=LOGIC_TREE_VERSION, root_id=root_node.id, nodes=[root_node], edges=[])
+        return LogicTree(
+            version=LOGIC_TREE_VERSION,
+            root_id=root_node.id,
+            nodes=[root_node],
+            edges=[],
+        )
 
     nodes: List[Node] = [root_node]
     edges: List[Edge] = []
@@ -587,7 +654,11 @@ def build(tokens: Sequence[PipelineToken] | TokenStream, *, source_id: str = "un
             source_id=source_id,
         )
         nodes.append(clause_node)
-        edges.append(Edge(parent_id=root_node.id, child_id=clause_id, edge_type=EdgeType.SEQUENCE))
+        edges.append(
+            Edge(
+                parent_id=root_node.id, child_id=clause_id, edge_type=EdgeType.SEQUENCE
+            )
+        )
 
         for idx in range(clause_start, clause_end + 1):
             token = tokens[idx]
@@ -602,10 +673,16 @@ def build(tokens: Sequence[PipelineToken] | TokenStream, *, source_id: str = "un
             next_id += 1
             nodes.append(token_node)
             edges.append(
-                Edge(parent_id=clause_id, child_id=token_node.id, edge_type=_edge_type_for_child(node_type))
+                Edge(
+                    parent_id=clause_id,
+                    child_id=token_node.id,
+                    edge_type=_edge_type_for_child(node_type),
+                )
             )
 
-    return LogicTree(version=LOGIC_TREE_VERSION, root_id=root_node.id, nodes=nodes, edges=edges)
+    return LogicTree(
+        version=LOGIC_TREE_VERSION, root_id=root_node.id, nodes=nodes, edges=edges
+    )
 
 
 def walk_preorder(tree: LogicTree) -> Iterable[Node]:

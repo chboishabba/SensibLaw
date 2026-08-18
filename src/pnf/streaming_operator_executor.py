@@ -29,12 +29,8 @@ from src.pnf.streaming_fixed_point import (
 from src.policy.carriers.canonical import canonical_sha256
 
 
-STREAMING_OPERATOR_DECLARATION_REF = (
-    "streaming-declaration:operator-composition:v0_2"
-)
-STREAMING_OPERATOR_ADAPTER_REF = (
-    "parser-delta-adapter:operator-composition:v0_2"
-)
+STREAMING_OPERATOR_DECLARATION_REF = "streaming-declaration:operator-composition:v0_2"
+STREAMING_OPERATOR_ADAPTER_REF = "parser-delta-adapter:operator-composition:v0_2"
 
 
 def _observation_ref(
@@ -65,9 +61,7 @@ def parser_sentence_deltas(
 
     deltas: list[ObservationDelta] = []
     token_cursor = 0
-    for sentence_index, sentence in enumerate(
-        parsed_document.get("sents") or ()
-    ):
+    for sentence_index, sentence in enumerate(parsed_document.get("sents") or ()):
         tokens = tuple(dict(row) for row in sentence.get("tokens") or ())
         if not tokens:
             continue
@@ -113,9 +107,7 @@ def parser_sentence_deltas(
                 scope_ref=scope_ref,
                 sequence_no=sentence_index,
                 parser_contract=str(
-                    (parsed_document.get("parser_receipt") or {}).get(
-                        "contract_ref"
-                    )
+                    (parsed_document.get("parser_receipt") or {}).get("contract_ref")
                     or STREAMING_OPERATOR_ADAPTER_REF
                 ),
                 observation_refs=tuple(observation_refs),
@@ -188,13 +180,9 @@ def _proposal_from_factor(
         source_span_refs=tuple(
             str(ref) for ref in metadata.get("provenance_refs") or ()
         ),
-        input_observation_refs=tuple(
-            sorted(set(str(ref) for ref in observation_refs))
-        ),
+        input_observation_refs=tuple(sorted(set(str(ref) for ref in observation_refs))),
         dependency_factor_refs=(),
-        structural_signature=str(
-            metadata.get("structural_signature_ref") or ""
-        ),
+        structural_signature=str(metadata.get("structural_signature_ref") or ""),
         role_bindings=dict(metadata.get("role_bindings") or {}),
         qualifier_state=dict(metadata.get("qualifier_state") or {}),
         producer_contract=OPERATOR_COMPOSITION_CONTRACT,
@@ -206,9 +194,7 @@ def _proposal_from_factor(
             "alternatives": alternatives,
             "provenance_refs": list(provenance_refs),
         },
-        residuals=tuple(
-            str(value) for value in factor.get("residuals") or ()
-        ),
+        residuals=tuple(str(value) for value in factor.get("residuals") or ()),
         scope_ref=scope_ref,
         statement_role="main",
         coordinate_kind="object",

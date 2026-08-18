@@ -15,7 +15,9 @@ class RegulatoryGuidanceUnit:
     interpretive_note: str | None = None
 
 
-def build_regulatory_guidance_unit(input_data: RegulatoryGuidanceUnit) -> Mapping[str, object]:
+def build_regulatory_guidance_unit(
+    input_data: RegulatoryGuidanceUnit,
+) -> Mapping[str, object]:
     return {
         "source_id": input_data.source_id,
         "title": input_data.title,

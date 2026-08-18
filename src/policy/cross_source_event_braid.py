@@ -5,22 +5,15 @@ from typing import Any, Mapping, Sequence
 
 from src.policy.fragment_grammar import (
     FragmentGrammarRegistry,
-    FragmentMatch,
 )
 from src.policy.fragment_pnf import (
     ConnectednessLevel,
     DepthLevel,
     LinkageDepthLevel,
-    PNFClosureLevel,
-    ProjectionBasisLevel,
     ReferentialityLevel,
     ResidualCompatibilityLevel,
-    SourceSpanLevel,
-    SourceSpanRef,
     build_braid_relevance_receipt,
-    classify_connectedness,
     classify_pnf_closure,
-    classify_referentiality,
     classify_source_span,
     projection_basis_from_fallback,
 )
@@ -128,7 +121,11 @@ def _participant_keys(row: Mapping[str, Any]) -> set[str]:
         entity_key = _canonical_key(role.get("entity"))
         if entity_key:
             keys.add(entity_key)
-    for relation_field in ("relation_candidates", "promoted_relations", "candidate_only_relations"):
+    for relation_field in (
+        "relation_candidates",
+        "promoted_relations",
+        "candidate_only_relations",
+    ):
         for relation in _clean_mapping_rows(row.get(relation_field)):
             for side in ("subject", "object"):
                 entity_key = _canonical_key(relation.get(side))
@@ -138,11 +135,7 @@ def _participant_keys(row: Mapping[str, Any]) -> set[str]:
 
 
 def _legal_ref_keys(row: Mapping[str, Any]) -> set[str]:
-    keys = {
-        key
-        for key in _participant_keys(row)
-        if key.startswith("legal_ref:")
-    }
+    keys = {key for key in _participant_keys(row) if key.startswith("legal_ref:")}
     for mention in _clean_mapping_rows(row.get("mentions")):
         resolved_key = _canonical_key(mention.get("resolved_entity"))
         if resolved_key.startswith("legal_ref:"):
@@ -152,7 +145,11 @@ def _legal_ref_keys(row: Mapping[str, Any]) -> set[str]:
 
 def _predicate_keys(row: Mapping[str, Any]) -> set[str]:
     keys: set[str] = set()
-    for relation_field in ("relation_candidates", "promoted_relations", "candidate_only_relations"):
+    for relation_field in (
+        "relation_candidates",
+        "promoted_relations",
+        "candidate_only_relations",
+    ):
         for relation in _clean_mapping_rows(row.get(relation_field)):
             predicate_key = _text(relation.get("predicate_key"))
             if predicate_key:
@@ -170,11 +167,12 @@ def _citation_keys(row: Mapping[str, Any]) -> set[str]:
 
 def _extract_historical_time_anchor(row: Mapping[str, Any]) -> dict[str, Any]:
     import re
+
     text = _text(row.get("text")).lower()
     anchor = row.get("anchor") or {}
     anchor_text = _text(anchor.get("text"))
     anchor_year = anchor.get("year")
-    
+
     try:
         anchor_year_val = int(anchor_year) if anchor_year else None
     except (ValueError, TypeError):
@@ -186,9 +184,9 @@ def _extract_historical_time_anchor(row: Mapping[str, Any]) -> dict[str, Any]:
     source = "ingest_anchor"
     resolved_date = None
 
-    is_ingest = (anchor_year_val == 2026 or "2026" in anchor_text)
+    is_ingest = anchor_year_val == 2026 or "2026" in anchor_text
     months_pattern = r"(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)"
-    
+
     p1 = re.search(rf"\b({months_pattern})\s+(\d{{1,2}}),\s+(\d{{4}})\b", text)
     p2 = re.search(rf"\b(\d{{1,2}})\s+({months_pattern})\s+(\d{{4}})\b", text)
     p3 = re.search(r"\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b", text)
@@ -233,7 +231,7 @@ def _extract_historical_time_anchor(row: Mapping[str, Any]) -> dict[str, Any]:
         confidence = "low"
         source = "ingest_anchor"
         resolved_date = anchor_text
-        
+
     return {
         "event_time_anchor_status": status,
         "event_time_anchor_precision": precision,
@@ -246,27 +244,31 @@ def _extract_historical_time_anchor(row: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _classify_source_event(row: dict[str, Any]) -> None:
-    import re
+
     text = _text(row.get("text")).lower()
-    
+
     # 1. Frontmatter/index detection
     is_frontmatter_or_index = False
     frontmatter_keywords = {
-        "table of contents", "index", "bibliography", "preface", 
-        "appendix", "front matter", "copyright page", "title page"
+        "table of contents",
+        "index",
+        "bibliography",
+        "preface",
+        "appendix",
+        "front matter",
+        "copyright page",
+        "title page",
     }
     if any(kw in text for kw in frontmatter_keywords):
         is_frontmatter_or_index = True
     doc_title = _text(row.get("doc_title")).lower()
     if any(kw in doc_title for kw in {"frontmatter", "index", "preface"}):
         is_frontmatter_or_index = True
-        
 
-            
     # 2. Historical time anchor extraction
     anchor_info = _extract_historical_time_anchor(row)
     row.update(anchor_info)
-    
+
     anchor = row.get("anchor") or {}
     anchor_text = _text(anchor.get("text"))
     anchor_year = anchor.get("year")
@@ -274,28 +276,38 @@ def _classify_source_event(row: dict[str, Any]) -> None:
         anchor_year_val = int(anchor_year) if anchor_year else None
     except (ValueError, TypeError):
         anchor_year_val = None
-    is_ingest = (anchor_year_val == 2026 or "2026" in anchor_text)
-    
+    is_ingest = anchor_year_val == 2026 or "2026" in anchor_text
+
     has_ingest_date_only = False
     if is_ingest:
-        if anchor_info["event_time_anchor_status"] in {"candidate_span_year", "explicit_span_date"}:
+        if anchor_info["event_time_anchor_status"] in {
+            "candidate_span_year",
+            "explicit_span_date",
+        }:
             has_ingest_date_only = True
-            
+
     # 3. Fallback action detection
     is_fallback_action = False
-    fallback_verbs = {"reported", "called", "translated", "published", "described", "noted", "mentioned"}
+    fallback_verbs = {
+        "reported",
+        "called",
+        "translated",
+        "published",
+        "described",
+        "noted",
+        "mentioned",
+    }
     predicates = _predicate_keys(row)
     if any(v in fallback_verbs for v in predicates):
         is_fallback_action = True
-        
+
     # 4. Actor/object completion
     has_actors_and_objects = True
     event_roles = row.get("event_roles") or []
     relations = row.get("relation_candidates") or []
-    
+
     has_actor = any(
-        _canonical_key(role.get("entity")).startswith("actor:")
-        for role in event_roles
+        _canonical_key(role.get("entity")).startswith("actor:") for role in event_roles
     )
     has_predicate = bool(predicates)
     has_object = False
@@ -303,14 +315,17 @@ def _classify_source_event(row: dict[str, Any]) -> None:
         obj = rel.get("object") or {}
         if _canonical_key(obj) or _canonical_key(rel.get("subject")):
             has_object = True
-            
+
     if not (has_actor and has_predicate and has_object):
         has_actors_and_objects = False
 
     # 5. Temporal residual or candidate year in span
     has_conflict = anchor_info["has_conflicting_span_years"]
     candidate_time_anchor_in_span = None
-    if anchor_info["event_time_anchor_status"] in {"candidate_span_year", "explicit_span_date"}:
+    if anchor_info["event_time_anchor_status"] in {
+        "candidate_span_year",
+        "explicit_span_date",
+    }:
         if anchor_info["all_span_years"]:
             candidate_time_anchor_in_span = anchor_info["all_span_years"][0]
 
@@ -343,7 +358,7 @@ def _classify_source_event(row: dict[str, Any]) -> None:
         reasons.append("conflicting_span_years")
     if row.get("unresolved_compound"):
         reasons.append("unresolved_compound")
- 
+
     score = 1.0
     if is_frontmatter_or_index:
         score -= 0.6
@@ -364,16 +379,23 @@ def _classify_source_event(row: dict[str, Any]) -> None:
     if row.get("is_blocked_birth_event"):
         score -= 0.3
     score = max(0.0, min(1.0, round(score, 2)))
- 
+
     if is_frontmatter_or_index:
         status = "rejected_noise"
-    elif has_ingest_date_only or is_fallback_action or not (has_actor and has_predicate and has_object) or has_conflict or row.get("unresolved_compound") or row.get("is_blocked_birth_event"):
+    elif (
+        has_ingest_date_only
+        or is_fallback_action
+        or not (has_actor and has_predicate and has_object)
+        or has_conflict
+        or row.get("unresolved_compound")
+        or row.get("is_blocked_birth_event")
+    ):
         status = "weak_candidate"
     elif not has_ingest_date_only and (has_actor and has_predicate and has_object):
         status = "promotable_event"
     else:
         status = "usable_candidate"
- 
+
     row["event_quality_status"] = status
     row["event_quality_reasons"] = reasons
     row["event_quality_score"] = score
@@ -382,7 +404,12 @@ def _classify_source_event(row: dict[str, Any]) -> None:
 def clean_office_name(text: str) -> str:
     text = text.strip()
     words = text.split()
-    if words and (words[0].endswith("th") or words[0].endswith("rd") or words[0].endswith("st") or words[0].endswith("nd")):
+    if words and (
+        words[0].endswith("th")
+        or words[0].endswith("rd")
+        or words[0].endswith("st")
+        or words[0].endswith("nd")
+    ):
         prefix = words[0][:-2]
         if prefix.isdigit():
             text = " ".join(words[1:])
@@ -390,7 +417,20 @@ def clean_office_name(text: str) -> str:
 
 
 def parse_exact_date(text: str) -> str | None:
-    months = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"]
+    months = [
+        "january",
+        "february",
+        "march",
+        "april",
+        "may",
+        "june",
+        "july",
+        "august",
+        "september",
+        "october",
+        "november",
+        "december",
+    ]
     lower_text = text.lower()
     for char in [",", ".", ";", "-", "–", "—"]:
         lower_text = lower_text.replace(char, " ")
@@ -410,18 +450,31 @@ def parse_exact_date(text: str) -> str | None:
                         elif 1 <= val <= 31:
                             day = val
             if year and day:
-                return f"{year:04d}-{month_idx+1:02d}-{day:02d}"
+                return f"{year:04d}-{month_idx + 1:02d}-{day:02d}"
     return None
 
 
 def _match_office_pattern(text: str, years: list[str]) -> dict[str, Any] | None:
-    keywords = ["governor", "president", "manager", "director", "secretary", "senator", "representative", "officer", "chairman"]
+    keywords = [
+        "governor",
+        "president",
+        "manager",
+        "director",
+        "secretary",
+        "senator",
+        "representative",
+        "officer",
+        "chairman",
+    ]
     lower_text = text.lower()
     if not any(kw in lower_text for kw in keywords):
         return None
-    if any(kw in lower_text for kw in ["born", "married", "proclaimed", "graduated", "co-owned", "owned"]):
+    if any(
+        kw in lower_text
+        for kw in ["born", "married", "proclaimed", "graduated", "co-owned", "owned"]
+    ):
         return None
-        
+
     title = text
     for y in years:
         title = title.replace(y, "")
@@ -429,51 +482,63 @@ def _match_office_pattern(text: str, years: list[str]) -> dict[str, Any] | None:
         title = title.replace(char, " ")
     title = " ".join(title.split()).strip()
     title = clean_office_name(title)
-    
+
     if not title:
         return None
-        
+
     canonical_label = title
-    canonical_key = "office:" + title.lower().replace(" ", "_").replace(".", "").replace(",", "")
+    canonical_key = "office:" + title.lower().replace(" ", "_").replace(
+        ".", ""
+    ).replace(",", "")
     return {
         "predicate_key": "served_as",
-        "object": {
-            "canonical_key": canonical_key,
-            "canonical_label": canonical_label
-        },
-        "basis": "office_role_range_pattern"
+        "object": {"canonical_key": canonical_key, "canonical_label": canonical_label},
+        "basis": "office_role_range_pattern",
     }
 
 
 def _match_ownership_pattern(text: str, years: list[str]) -> dict[str, Any] | None:
     lower_text = text.lower()
-    if "co-owned" not in lower_text and "co_owned" not in lower_text and "owned" not in lower_text:
+    if (
+        "co-owned" not in lower_text
+        and "co_owned" not in lower_text
+        and "owned" not in lower_text
+    ):
         return None
-        
+
     org = text
     for y in years:
         org = org.replace(y, "")
     org_lower = org.lower()
-    for prefix in ["co-owned the", "co-owned", "co_owned the", "co_owned", "owned the", "owned"]:
+    for prefix in [
+        "co-owned the",
+        "co-owned",
+        "co_owned the",
+        "co_owned",
+        "owned the",
+        "owned",
+    ]:
         if prefix in org_lower:
             idx = org_lower.find(prefix)
-            org = org[:idx] + org[idx + len(prefix):]
+            org = org[:idx] + org[idx + len(prefix) :]
             org_lower = org.lower()
-            
+
     for char in ["-", "–", "—", ",", ";", ".", "in ", "In "]:
         org = org.replace(char, " ")
     org = " ".join(org.split()).strip()
-    
+
     if not org:
         return None
-        
+
     return {
-        "predicate_key": "co_owned" if "co-" in lower_text or "co_" in lower_text else "owned",
+        "predicate_key": "co_owned"
+        if "co-" in lower_text or "co_" in lower_text
+        else "owned",
         "object": {
             "canonical_key": f"org:{org.lower().replace(' ', '_')}",
-            "canonical_label": org
+            "canonical_label": org,
         },
-        "basis": "ownership_role_range_pattern"
+        "basis": "ownership_role_range_pattern",
     }
 
 
@@ -481,36 +546,65 @@ def _match_proclamation_pattern(text: str, years: list[str]) -> dict[str, Any] |
     lower_text = text.lower()
     if "proclaimed" not in lower_text:
         return None
-        
+
     event_name = ""
     if "to be" in lower_text:
         idx = lower_text.find("to be")
-        event_name = text[idx + 5:].strip()
+        event_name = text[idx + 5 :].strip()
     else:
         words = text.split()
         cleaned_words = []
-        months = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december", "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
+        months = [
+            "january",
+            "february",
+            "march",
+            "april",
+            "may",
+            "june",
+            "july",
+            "august",
+            "september",
+            "october",
+            "november",
+            "december",
+            "jan",
+            "feb",
+            "mar",
+            "apr",
+            "may",
+            "jun",
+            "jul",
+            "aug",
+            "sep",
+            "oct",
+            "nov",
+            "dec",
+        ]
         for w in words:
             w_clean = "".join(c for c in w if c.isalpha()).lower()
-            if w_clean in ["proclaimed", "to", "be"] or w_clean in months or w.isdigit():
+            if (
+                w_clean in ["proclaimed", "to", "be"]
+                or w_clean in months
+                or w.isdigit()
+            ):
                 continue
             cleaned_words.append(w)
         event_name = " ".join(cleaned_words)
-        
+
     for char in [",", ".", ";", "-", "–", "—"]:
         event_name = event_name.replace(char, "")
     event_name = " ".join(event_name.split()).strip()
-    
+
     if not event_name:
         return None
-        
+
     return {
         "predicate_key": "proclaimed",
         "object": {
             "canonical_key": f"event:{event_name.lower().replace(' ', '_')}",
-            "canonical_label": event_name
+            "canonical_label": event_name,
         },
-        "basis": "proclamation_pattern"
+        "basis": "proclamation_pattern",
     }
 
 
@@ -519,16 +613,16 @@ def _match_education_pattern(text: str, years: list[str]) -> dict[str, Any] | No
     edu_keywords = ["university", "college", "graduated", "yale", "harvard"]
     if not any(kw in lower_text for kw in edu_keywords):
         return None
-        
+
     school = ""
     words = text.split()
     for idx, w in enumerate(words):
         w_clean = "".join(c for c in w if c.isalnum()).lower()
         if w_clean in ["university", "college"]:
             start_idx = idx
-            while start_idx > 0 and words[start_idx-1][0].isupper():
+            while start_idx > 0 and words[start_idx - 1][0].isupper():
                 start_idx -= 1
-            school = " ".join(words[start_idx:idx+1])
+            school = " ".join(words[start_idx : idx + 1])
             break
     if not school:
         for name in ["Yale", "Harvard"]:
@@ -537,18 +631,18 @@ def _match_education_pattern(text: str, years: list[str]) -> dict[str, Any] | No
                 break
     if not school:
         school = "University"
-        
+
     for char in [",", ".", ";", "-", "–", "—"]:
         school = school.replace(char, "")
     school = " ".join(school.split()).strip()
-    
+
     return {
         "predicate_key": "graduated_from",
         "object": {
             "canonical_key": f"edu:{school.lower().replace(' ', '_')}",
-            "canonical_label": school
+            "canonical_label": school,
         },
-        "basis": "education_pattern"
+        "basis": "education_pattern",
     }
 
 
@@ -556,7 +650,7 @@ def _match_marriage_pattern(text: str, years: list[str]) -> dict[str, Any] | Non
     lower_text = text.lower()
     if "married" not in lower_text and "marriage" not in lower_text:
         return None
-        
+
     spouse = text
     for y in years:
         spouse = spouse.replace(y, "")
@@ -564,33 +658,58 @@ def _match_marriage_pattern(text: str, years: list[str]) -> dict[str, Any] | Non
     for prefix in ["married to", "married", "marriage to", "marriage"]:
         if prefix in spouse_lower:
             idx = spouse_lower.find(prefix)
-            spouse = spouse[:idx] + spouse[idx + len(prefix):]
+            spouse = spouse[:idx] + spouse[idx + len(prefix) :]
             spouse_lower = spouse.lower()
-            
+
     words = spouse.split()
     cleaned_words = []
-    months = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december", "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
+    months = [
+        "january",
+        "february",
+        "march",
+        "april",
+        "may",
+        "june",
+        "july",
+        "august",
+        "september",
+        "october",
+        "november",
+        "december",
+        "jan",
+        "feb",
+        "mar",
+        "apr",
+        "may",
+        "jun",
+        "jul",
+        "aug",
+        "sep",
+        "oct",
+        "nov",
+        "dec",
+    ]
     for w in words:
         w_clean = "".join(c for c in w if c.isalpha()).lower()
         if w_clean in months or w.isdigit():
             continue
         cleaned_words.append(w)
     spouse = " ".join(cleaned_words)
-    
+
     for char in [",", ".", ";", "-", "–", "—"]:
         spouse = spouse.replace(char, "")
     spouse = " ".join(spouse.split()).strip()
-    
+
     if not spouse:
         spouse = "Laura Welch"
-        
+
     return {
         "predicate_key": "married",
         "object": {
             "canonical_key": f"actor:{spouse.lower().replace(' ', '_')}",
-            "canonical_label": spouse
+            "canonical_label": spouse,
         },
-        "basis": "marriage_pattern"
+        "basis": "marriage_pattern",
     }
 
 
@@ -602,25 +721,28 @@ def _extract_inherited_actor(parent_row: dict[str, Any]) -> dict[str, str]:
         if key.startswith("actor:"):
             return {
                 "canonical_key": key,
-                "canonical_label": ent.get("canonical_label") or key.replace("actor:", "")
+                "canonical_label": ent.get("canonical_label")
+                or key.replace("actor:", ""),
             }
-    return {
-        "canonical_key": "actor:george_w_bush",
-        "canonical_label": "George W. Bush"
-    }
+    return {"canonical_key": "actor:george_w_bush", "canonical_label": "George W. Bush"}
 
 
 def bind_atom_pnf(row: dict[str, Any], parent_row: dict[str, Any]) -> None:
     def _get_years(s: str) -> list[str]:
         cleaned = "".join(c if c.isdigit() else " " for c in s)
         words = cleaned.split()
-        return [w for w in words if len(w) == 4 and (w.startswith("19") or w.startswith("20"))]
+        return [
+            w
+            for w in words
+            if len(w) == 4 and (w.startswith("19") or w.startswith("20"))
+        ]
 
     text = row.get("text") or ""
     registry = FragmentGrammarRegistry()
     matches = list(registry.iter_matches(text, parent_row))
 
     from src.policy.fragment_grammar import fragment_matches_to_pnfs
+
     fragment_pnfs = fragment_matches_to_pnfs(
         matches,
         parent_event_id=parent_row.get("event_id") or row.get("event_id") or "",
@@ -633,7 +755,9 @@ def bind_atom_pnf(row: dict[str, Any], parent_row: dict[str, Any]) -> None:
         subject = _extract_inherited_actor(parent_row)
 
         if best.fragment_subclass == "birth":
-            atom_subject = _extract_inherited_actor(row) if row.get("event_roles") else subject
+            atom_subject = (
+                _extract_inherited_actor(row) if row.get("event_roles") else subject
+            )
             parent_actor = _extract_inherited_actor(parent_row)
             if atom_subject["canonical_key"] != parent_actor["canonical_key"]:
                 row["is_blocked_birth_event"] = True
@@ -664,7 +788,14 @@ def bind_atom_pnf(row: dict[str, Any], parent_row: dict[str, Any]) -> None:
         }
         row["pnf_status"] = "canonicalized"
 
-        obj = {"canonical_key": best.object_role.canonical_key, "canonical_label": best.object_role.canonical_label} if best.object_role else {}
+        obj = (
+            {
+                "canonical_key": best.object_role.canonical_key,
+                "canonical_label": best.object_role.canonical_label,
+            }
+            if best.object_role
+            else {}
+        )
         rel = {
             "subject": subject,
             "predicate_key": best.predicate_spine,
@@ -674,13 +805,19 @@ def bind_atom_pnf(row: dict[str, Any], parent_row: dict[str, Any]) -> None:
         row["event_roles"] = [{"entity": subject}]
 
 
-def _build_atom_rows(frag_text: str, rels: list[dict[str, Any]], parent_row: dict[str, Any], years: list[str], is_unresolved: bool) -> list[dict[str, Any]]:
+def _build_atom_rows(
+    frag_text: str,
+    rels: list[dict[str, Any]],
+    parent_row: dict[str, Any],
+    years: list[str],
+    is_unresolved: bool,
+) -> list[dict[str, Any]]:
     parent_anchor = parent_row.get("anchor") or {}
     atom_anchor = dict(parent_anchor)
     if years:
         atom_anchor["year"] = int(years[0])
         atom_anchor["text"] = str(years[0])
-        
+
     if not rels:
         atom_row = {
             "source_family": parent_row.get("source_family"),
@@ -709,16 +846,25 @@ def _build_atom_rows(frag_text: str, rels: list[dict[str, Any]], parent_row: dic
         bind_atom_pnf(atom_row, parent_row)
         _classify_source_event(atom_row)
         return [atom_row]
-        
+
     atom_rows = []
     for rel in rels:
         roles = []
         subj_key = rel.get("subject", {}).get("canonical_key")
         if subj_key and subj_key.startswith("actor:"):
-            roles.append({"entity": {"canonical_key": subj_key, "canonical_label": rel.get("subject", {}).get("canonical_label")}})
+            roles.append(
+                {
+                    "entity": {
+                        "canonical_key": subj_key,
+                        "canonical_label": rel.get("subject", {}).get(
+                            "canonical_label"
+                        ),
+                    }
+                }
+            )
         else:
             roles = parent_row.get("event_roles") or []
-            
+
         atom_row = {
             "source_family": parent_row.get("source_family"),
             "doc_id": parent_row.get("doc_id"),
@@ -746,22 +892,28 @@ def _build_atom_rows(frag_text: str, rels: list[dict[str, Any]], parent_row: dic
         bind_atom_pnf(atom_row, parent_row)
         _classify_source_event(atom_row)
         atom_rows.append(atom_row)
-        
+
     return atom_rows
 
 
-def _recursive_atomize(text: str, parent_row: dict[str, Any], level: int = 0) -> list[dict[str, Any]]:
+def _recursive_atomize(
+    text: str, parent_row: dict[str, Any], level: int = 0
+) -> list[dict[str, Any]]:
     from sensiblaw.interfaces import (
         split_presemantic_text_segments,
         split_presemantic_text_clauses,
         split_presemantic_semicolon_clauses,
-        collect_canonical_relational_bundle
+        collect_canonical_relational_bundle,
     )
-    
+
     def _get_years(s: str) -> list[str]:
         cleaned = "".join(c if c.isdigit() else " " for c in s)
         words = cleaned.split()
-        return [w for w in words if len(w) == 4 and (w.startswith("19") or w.startswith("20"))]
+        return [
+            w
+            for w in words
+            if len(w) == 4 and (w.startswith("19") or w.startswith("20"))
+        ]
 
     text = text.strip()
     if not text:
@@ -774,21 +926,27 @@ def _recursive_atomize(text: str, parent_row: dict[str, Any], level: int = 0) ->
         for line in lines:
             for marker in ("-", "*", "•"):
                 if line.startswith(marker):
-                    line = line[len(marker):].strip()
+                    line = line[len(marker) :].strip()
                     break
-            
+
             semi_split = split_presemantic_semicolon_clauses(line)
             for part in semi_split:
-                dash_delimited = part.replace(" - ", "|||").replace(" – ", "|||").replace(" — ", "|||")
-                dash_split = [d.strip() for d in dash_delimited.split("|||") if d.strip()]
+                dash_delimited = (
+                    part.replace(" - ", "|||")
+                    .replace(" – ", "|||")
+                    .replace(" — ", "|||")
+                )
+                dash_split = [
+                    d.strip() for d in dash_delimited.split("|||") if d.strip()
+                ]
                 fragments.extend(dash_split)
-                
+
         if len(fragments) > 1:
             atoms = []
             for frag in fragments:
                 atoms.extend(_recursive_atomize(frag, parent_row, level=1))
             return atoms
-            
+
         sentences = split_presemantic_text_segments(text)
         if len(sentences) > 1:
             years_seen = []
@@ -801,7 +959,7 @@ def _recursive_atomize(text: str, parent_row: dict[str, Any], level: int = 0) ->
                 for s in sentences:
                     atoms.extend(_recursive_atomize(s, parent_row, level=1))
                 return atoms
-                
+
         return _recursive_atomize(text, parent_row, level=1)
 
     # 2. Clause splitting (Level 1)
@@ -818,53 +976,94 @@ def _recursive_atomize(text: str, parent_row: dict[str, Any], level: int = 0) ->
                 for c in clauses:
                     atoms.extend(_recursive_atomize(c, parent_row, level=2))
                 return atoms
-                
+
         return _recursive_atomize(text, parent_row, level=2)
 
     # 3. Leaf evaluation (Level 2)
     else:
         bundle = collect_canonical_relational_bundle(text)
         atoms_by_id = {atom["id"]: atom for atom in bundle.get("atoms", [])}
-        
+
         extracted_rels = []
         for rel in bundle.get("relations", []):
             if rel.get("type") == "predicate":
                 roles = rel.get("roles", [])
-                subj_atom = next((atoms_by_id[r["atom"]] for r in roles if r.get("role") == "subject" and r.get("atom")), None)
-                head_atom = next((atoms_by_id[r["atom"]] for r in roles if r.get("role") == "head" and r.get("atom")), None)
-                obj_atom = next((atoms_by_id[r["atom"]] for r in roles if r.get("role") == "object" and r.get("atom")), None)
-                
+                subj_atom = next(
+                    (
+                        atoms_by_id[r["atom"]]
+                        for r in roles
+                        if r.get("role") == "subject" and r.get("atom")
+                    ),
+                    None,
+                )
+                head_atom = next(
+                    (
+                        atoms_by_id[r["atom"]]
+                        for r in roles
+                        if r.get("role") == "head" and r.get("atom")
+                    ),
+                    None,
+                )
+                obj_atom = next(
+                    (
+                        atoms_by_id[r["atom"]]
+                        for r in roles
+                        if r.get("role") == "object" and r.get("atom")
+                    ),
+                    None,
+                )
+
                 if head_atom:
                     predicate_key = head_atom.get("lemma") or head_atom.get("text")
-                    
+
                     subject_dict = {}
                     if subj_atom:
                         subj_text = subj_atom["text"]
-                        subj_canonical = f"actor:{subj_text}" if "bush" in subj_text.lower() else subj_text
-                        subject_dict = {"canonical_key": subj_canonical, "canonical_label": subj_text}
+                        subj_canonical = (
+                            f"actor:{subj_text}"
+                            if "bush" in subj_text.lower()
+                            else subj_text
+                        )
+                        subject_dict = {
+                            "canonical_key": subj_canonical,
+                            "canonical_label": subj_text,
+                        }
                     else:
                         parent_roles = parent_row.get("event_roles") or []
-                        parent_actor = next((r.get("entity") for r in parent_roles if _canonical_key(r.get("entity")).startswith("actor:")), None)
+                        parent_actor = next(
+                            (
+                                r.get("entity")
+                                for r in parent_roles
+                                if _canonical_key(r.get("entity")).startswith("actor:")
+                            ),
+                            None,
+                        )
                         if parent_actor:
                             subject_dict = {
                                 "canonical_key": _canonical_key(parent_actor),
-                                "canonical_label": parent_actor.get("canonical_label") or _canonical_key(parent_actor).replace("actor:", "")
+                                "canonical_label": parent_actor.get("canonical_label")
+                                or _canonical_key(parent_actor).replace("actor:", ""),
                             }
-                            
+
                     object_dict = {}
                     if obj_atom:
                         obj_text = obj_atom["text"]
-                        object_dict = {"canonical_key": obj_text, "canonical_label": obj_text}
-                        
-                    extracted_rels.append({
-                        "subject": subject_dict,
-                        "predicate_key": predicate_key,
-                        "object": object_dict
-                    })
-                    
+                        object_dict = {
+                            "canonical_key": obj_text,
+                            "canonical_label": obj_text,
+                        }
+
+                    extracted_rels.append(
+                        {
+                            "subject": subject_dict,
+                            "predicate_key": predicate_key,
+                            "object": object_dict,
+                        }
+                    )
+
         years = _get_years(text)
         is_unresolved = len(set(years)) > 1
-        
+
         return _build_atom_rows(text, extracted_rels, parent_row, years, is_unresolved)
 
 
@@ -873,30 +1072,32 @@ def atomize_source_events(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for row in rows:
         event_id = row.get("event_id") or ""
         atoms = _recursive_atomize(row.get("text") or "", row, level=0)
-        
+
         if not atoms:
             bind_atom_pnf(row, row)
             _classify_source_event(row)
             atomized_rows.append(row)
             continue
-            
+
         if len(atoms) == 1 and atoms[0]["text"] == row.get("text"):
             atoms[0]["event_id"] = event_id
             atoms[0]["source_event_key"] = f"{row.get('source_family')}:{event_id}"
             atomized_rows.append(atoms[0])
             continue
-            
+
         for idx, atom in enumerate(atoms):
             atom_id = f"{event_id}:atom:{idx:04d}"
             atom["event_id"] = atom_id
             atom["parent_event_id"] = event_id
             atom["source_event_key"] = f"{row.get('source_family')}:{atom_id}"
             atomized_rows.append(atom)
-            
+
     return atomized_rows
 
 
-def _normalize_source_event_rows(source_family_runs: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+def _normalize_source_event_rows(
+    source_family_runs: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for run in source_family_runs:
         source_family = _text(run.get("source_family"))
@@ -910,8 +1111,16 @@ def _normalize_source_event_rows(source_family_runs: Sequence[Mapping[str, Any]]
                 rows.append(normalized)
             continue
 
-        timeline_payload = run.get("timeline_payload") if isinstance(run.get("timeline_payload"), Mapping) else {}
-        semantic_report = run.get("semantic_report") if isinstance(run.get("semantic_report"), Mapping) else {}
+        timeline_payload = (
+            run.get("timeline_payload")
+            if isinstance(run.get("timeline_payload"), Mapping)
+            else {}
+        )
+        semantic_report = (
+            run.get("semantic_report")
+            if isinstance(run.get("semantic_report"), Mapping)
+            else {}
+        )
         timeline_events = _clean_mapping_rows(timeline_payload.get("events"))
         semantic_per_event = {
             _text(item.get("event_id")): item
@@ -927,14 +1136,24 @@ def _normalize_source_event_rows(source_family_runs: Sequence[Mapping[str, Any]]
             source_path = _text(event.get("path"))
             source_url = _text(event.get("url"))
             doc_title = _text(event.get("title"))
-            doc_locator = source_path or source_url or doc_title or _text(event.get("source_id")) or event_id
+            doc_locator = (
+                source_path
+                or source_url
+                or doc_title
+                or _text(event.get("source_id"))
+                or event_id
+            )
             doc_counters[doc_locator] += 1
             citation_refs = [
                 {
                     "kind": _text(citation.get("kind")),
                     "text": _text(citation.get("text") or citation.get("value")),
-                    "source_id": _text(citation.get("source_id") or event.get("source_id")),
-                    "follow": list(citation.get("follow", [])) if isinstance(citation.get("follow"), list) else [],
+                    "source_id": _text(
+                        citation.get("source_id") or event.get("source_id")
+                    ),
+                    "follow": list(citation.get("follow", []))
+                    if isinstance(citation.get("follow"), list)
+                    else [],
                 }
                 for citation in _clean_mapping_rows(event.get("citations"))
             ]
@@ -952,10 +1171,18 @@ def _normalize_source_event_rows(source_family_runs: Sequence[Mapping[str, Any]]
                 "source_id": _text(event.get("source_id")),
                 "citation_refs": citation_refs,
                 "event_roles": _clean_mapping_rows(per_event.get("event_roles")),
-                "relation_candidates": _clean_mapping_rows(per_event.get("relation_candidates")),
-                "promoted_relations": _clean_mapping_rows(per_event.get("promoted_relations")),
-                "candidate_only_relations": _clean_mapping_rows(per_event.get("candidate_only_relations")),
-                "abstained_relation_candidates": _clean_mapping_rows(per_event.get("abstained_relation_candidates")),
+                "relation_candidates": _clean_mapping_rows(
+                    per_event.get("relation_candidates")
+                ),
+                "promoted_relations": _clean_mapping_rows(
+                    per_event.get("promoted_relations")
+                ),
+                "candidate_only_relations": _clean_mapping_rows(
+                    per_event.get("candidate_only_relations")
+                ),
+                "abstained_relation_candidates": _clean_mapping_rows(
+                    per_event.get("abstained_relation_candidates")
+                ),
                 "mentions": _clean_mapping_rows(per_event.get("mentions")),
             }
             _classify_source_event(row)
@@ -982,10 +1209,14 @@ def _build_link(
         "right_source_event_id": _event_key(right),
         "source_event_ids": [_event_key(left), _event_key(right)],
         "support_basis": [_text(value) for value in support_basis if _text(value)],
-        "support_event_ids": [_text(value) for value in support_event_ids if _text(value)],
+        "support_event_ids": [
+            _text(value) for value in support_event_ids if _text(value)
+        ],
         "promotion_status": promotion_status,
         "confidence_band": confidence_band,
-        "source_families": sorted({_text(left.get("source_family")), _text(right.get("source_family"))} - {""}),
+        "source_families": sorted(
+            {_text(left.get("source_family")), _text(right.get("source_family"))} - {""}
+        ),
         "features": dict(features or {}),
         "left_event_quality": {
             "status": left.get("event_quality_status"),
@@ -1000,7 +1231,9 @@ def _build_link(
     }
 
 
-def _build_cross_document_candidates(source_event_rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+def _build_cross_document_candidates(
+    source_event_rows: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
     next_id = 1
     rows = list(source_event_rows)
@@ -1028,7 +1261,11 @@ def _build_cross_document_candidates(source_event_rows: Sequence[Mapping[str, An
             raw_text_overlap = sorted(left_tokens & right_tokens)
             min_token_count = min(len(left_tokens), len(right_tokens)) or 1
             text_overlap_ratio = len(raw_text_overlap) / min_token_count
-            bounded_text_overlap = raw_text_overlap if len(raw_text_overlap) >= 4 and text_overlap_ratio >= 0.35 else []
+            bounded_text_overlap = (
+                raw_text_overlap
+                if len(raw_text_overlap) >= 4 and text_overlap_ratio >= 0.35
+                else []
+            )
 
             bases: list[str] = []
             if shared_predicates:
@@ -1054,9 +1291,10 @@ def _build_cross_document_candidates(source_event_rows: Sequence[Mapping[str, An
                 "shared_roles": shared_roles,
                 "text_overlap_tokens": bounded_text_overlap[:8],
             }
-            if (
-                shared_predicates
-                and ((shared_participants and shared_legal_refs) or len(shared_participants) >= 2 or (shared_participants and shared_citations))
+            if shared_predicates and (
+                (shared_participants and shared_legal_refs)
+                or len(shared_participants) >= 2
+                or (shared_participants and shared_citations)
             ):
                 link_type = "same_event_as"
                 promotion_status = "promoted"
@@ -1085,10 +1323,14 @@ def _build_cross_document_candidates(source_event_rows: Sequence[Mapping[str, An
                 continue
 
             is_weak_event = (
-                left.get("is_frontmatter_or_index") or right.get("is_frontmatter_or_index") or
-                left.get("has_ingest_date_only") or right.get("has_ingest_date_only") or
-                left.get("is_fallback_action") or right.get("is_fallback_action") or
-                not left.get("has_actors_and_objects") or not right.get("has_actors_and_objects")
+                left.get("is_frontmatter_or_index")
+                or right.get("is_frontmatter_or_index")
+                or left.get("has_ingest_date_only")
+                or right.get("has_ingest_date_only")
+                or left.get("is_fallback_action")
+                or right.get("is_fallback_action")
+                or not left.get("has_actors_and_objects")
+                or not right.get("has_actors_and_objects")
             )
             if is_weak_event:
                 promotion_status = "candidate"
@@ -1113,8 +1355,13 @@ def _build_cross_document_candidates(source_event_rows: Sequence[Mapping[str, An
     return candidates
 
 
-def _cluster_promoted_links(source_event_rows: Sequence[Mapping[str, Any]], promoted_links: Sequence[Mapping[str, Any]]) -> tuple[dict[str, str], list[dict[str, Any]]]:
-    parent = {_event_key(row): _event_key(row) for row in source_event_rows if _event_key(row)}
+def _cluster_promoted_links(
+    source_event_rows: Sequence[Mapping[str, Any]],
+    promoted_links: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, str], list[dict[str, Any]]]:
+    parent = {
+        _event_key(row): _event_key(row) for row in source_event_rows if _event_key(row)
+    }
 
     def find(node: str) -> str:
         while parent[node] != node:
@@ -1138,11 +1385,15 @@ def _cluster_promoted_links(source_event_rows: Sequence[Mapping[str, Any]], prom
     for node in parent:
         clusters[find(node)].append(node)
 
-    row_index = {_event_key(row): dict(row) for row in source_event_rows if _event_key(row)}
+    row_index = {
+        _event_key(row): dict(row) for row in source_event_rows if _event_key(row)
+    }
     merged_events: list[dict[str, Any]] = []
     event_to_merged_id: dict[str, str] = {}
     next_id = 1
-    for members in sorted(clusters.values(), key=lambda values: (len(values), values), reverse=True):
+    for members in sorted(
+        clusters.values(), key=lambda values: (len(values), values), reverse=True
+    ):
         if len(members) < 2:
             continue
         merged_event_id = f"merged_event:{next_id:04d}"
@@ -1150,7 +1401,8 @@ def _cluster_promoted_links(source_event_rows: Sequence[Mapping[str, Any]], prom
         support_links = [
             link
             for link in promoted_links
-            if _text(link.get("left_source_event_id")) in members and _text(link.get("right_source_event_id")) in members
+            if _text(link.get("left_source_event_id")) in members
+            and _text(link.get("right_source_event_id")) in members
         ]
         support_basis = sorted(
             {
@@ -1171,12 +1423,21 @@ def _cluster_promoted_links(source_event_rows: Sequence[Mapping[str, Any]], prom
         for member in members:
             event_to_merged_id[member] = merged_event_id
         member_events = [row_index[m] for m in members if m in row_index]
-        avg_score = round(sum(e.get("event_quality_score", 0.0) for e in member_events) / (len(member_events) or 1), 2)
-        combined_reasons = sorted(set(
-            r for e in member_events for r in e.get("event_quality_reasons", [])
-        ))
+        avg_score = round(
+            sum(e.get("event_quality_score", 0.0) for e in member_events)
+            / (len(member_events) or 1),
+            2,
+        )
+        combined_reasons = sorted(
+            set(r for e in member_events for r in e.get("event_quality_reasons", []))
+        )
         worst_status = "promotable_event"
-        status_hierarchy = ["rejected_noise", "weak_candidate", "usable_candidate", "promotable_event"]
+        status_hierarchy = [
+            "rejected_noise",
+            "weak_candidate",
+            "usable_candidate",
+            "promotable_event",
+        ]
         for status in status_hierarchy:
             if any(e.get("event_quality_status") == status for e in member_events):
                 worst_status = status
@@ -1185,9 +1446,21 @@ def _cluster_promoted_links(source_event_rows: Sequence[Mapping[str, Any]], prom
             {
                 "merged_event_id": merged_event_id,
                 "source_event_ids": members,
-                "source_families": sorted({_text(row_index[member].get("source_family")) for member in members if member in row_index}),
+                "source_families": sorted(
+                    {
+                        _text(row_index[member].get("source_family"))
+                        for member in members
+                        if member in row_index
+                    }
+                ),
                 "support_basis": support_basis,
-                "support_event_ids": sorted({event_id for link in support_links for event_id in link.get("support_event_ids", [])}),
+                "support_event_ids": sorted(
+                    {
+                        event_id
+                        for link in support_links
+                        for event_id in link.get("support_event_ids", [])
+                    }
+                ),
                 "promotion_status": "promoted",
                 "confidence_band": "high",
                 "promoted_predicates": promoted_predicates,
@@ -1199,9 +1472,14 @@ def _cluster_promoted_links(source_event_rows: Sequence[Mapping[str, Any]], prom
     return event_to_merged_id, merged_events
 
 
-def _build_ordering_edges(source_event_rows: Sequence[Mapping[str, Any]], merged_event_lookup: Mapping[str, str]) -> list[dict[str, Any]]:
+def _build_ordering_edges(
+    source_event_rows: Sequence[Mapping[str, Any]],
+    merged_event_lookup: Mapping[str, str],
+) -> list[dict[str, Any]]:
     by_doc: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    row_index = {_event_key(row): dict(row) for row in source_event_rows if _event_key(row)}
+    row_index = {
+        _event_key(row): dict(row) for row in source_event_rows if _event_key(row)
+    }
     for row in source_event_rows:
         doc_id = _text(row.get("doc_id")) or _doc_locator(row)
         if doc_id:
@@ -1212,7 +1490,9 @@ def _build_ordering_edges(source_event_rows: Sequence[Mapping[str, Any]], merged
     local_successors: dict[str, list[str]] = defaultdict(list)
     local_predecessors: dict[str, list[str]] = defaultdict(list)
     for doc_rows in by_doc.values():
-        ordered = sorted(doc_rows, key=lambda row: int(row.get("local_order_index", 0) or 0))
+        ordered = sorted(
+            doc_rows, key=lambda row: int(row.get("local_order_index", 0) or 0)
+        )
         for left, right in zip(ordered, ordered[1:]):
             left_key = _event_key(left)
             right_key = _event_key(right)
@@ -1225,10 +1505,15 @@ def _build_ordering_edges(source_event_rows: Sequence[Mapping[str, Any]], merged
             right_anchor = right.get("event_time_anchor_status")
             time_basis = "none"
             ordering_basis = "document_order"
-            
+
             left_date = left.get("resolved_historical_date")
             right_date = right.get("resolved_historical_date")
-            if left_date and right_date and left_anchor != "ingest_only" and right_anchor != "ingest_only":
+            if (
+                left_date
+                and right_date
+                and left_anchor != "ingest_only"
+                and right_anchor != "ingest_only"
+            ):
                 if left_date < right_date:
                     time_basis = "historical_time_comparison"
                     ordering_basis = "historical_time_order"
@@ -1243,7 +1528,13 @@ def _build_ordering_edges(source_event_rows: Sequence[Mapping[str, Any]], merged
                     "source_event_id": left_key,
                     "target_event_id": right_key,
                     "source_event_ids": [left_key, right_key],
-                    "source_families": sorted({_text(left.get("source_family")), _text(right.get("source_family"))} - {""}),
+                    "source_families": sorted(
+                        {
+                            _text(left.get("source_family")),
+                            _text(right.get("source_family")),
+                        }
+                        - {""}
+                    ),
                     "support_basis": ["local_document_order"],
                     "ordering_basis": ordering_basis,
                     "time_basis": time_basis,
@@ -1267,7 +1558,9 @@ def _build_ordering_edges(source_event_rows: Sequence[Mapping[str, Any]], merged
             for sibling in members:
                 if member == sibling:
                     continue
-                if _doc_locator(row_index.get(member, {})) == _doc_locator(row_index.get(sibling, {})):
+                if _doc_locator(row_index.get(member, {})) == _doc_locator(
+                    row_index.get(sibling, {})
+                ):
                     continue
                 for successor in local_successors.get(sibling, []):
                     if successor == member:
@@ -1283,10 +1576,15 @@ def _build_ordering_edges(source_event_rows: Sequence[Mapping[str, Any]], merged
                     right_anchor = right_row.get("event_time_anchor_status")
                     time_basis = "none"
                     ordering_basis = "inferred_overlap"
-                    
+
                     left_date = left_row.get("resolved_historical_date")
                     right_date = right_row.get("resolved_historical_date")
-                    if left_date and right_date and left_anchor != "ingest_only" and right_anchor != "ingest_only":
+                    if (
+                        left_date
+                        and right_date
+                        and left_anchor != "ingest_only"
+                        and right_anchor != "ingest_only"
+                    ):
                         if left_date < right_date:
                             time_basis = "historical_time_comparison"
                             ordering_basis = "historical_time_order"
@@ -1303,9 +1601,17 @@ def _build_ordering_edges(source_event_rows: Sequence[Mapping[str, Any]], merged
                             "source_event_ids": [member, sibling, successor],
                             "source_families": sorted(
                                 {
-                                    _text(row_index.get(member, {}).get("source_family")),
-                                    _text(row_index.get(sibling, {}).get("source_family")),
-                                    _text(row_index.get(successor, {}).get("source_family")),
+                                    _text(
+                                        row_index.get(member, {}).get("source_family")
+                                    ),
+                                    _text(
+                                        row_index.get(sibling, {}).get("source_family")
+                                    ),
+                                    _text(
+                                        row_index.get(successor, {}).get(
+                                            "source_family"
+                                        )
+                                    ),
                                 }
                                 - {""}
                             ),
@@ -1316,7 +1622,9 @@ def _build_ordering_edges(source_event_rows: Sequence[Mapping[str, Any]], merged
                             "promotion_status": "promoted",
                             "confidence_band": "medium",
                             "source_merged_event_id": merged_event_id,
-                            "target_merged_event_id": _text(merged_event_lookup.get(successor)),
+                            "target_merged_event_id": _text(
+                                merged_event_lookup.get(successor)
+                            ),
                         }
                     )
                     next_id += 1
@@ -1334,10 +1642,15 @@ def _build_ordering_edges(source_event_rows: Sequence[Mapping[str, Any]], merged
                     right_anchor = right_row.get("event_time_anchor_status")
                     time_basis = "none"
                     ordering_basis = "inferred_overlap"
-                    
+
                     left_date = left_row.get("resolved_historical_date")
                     right_date = right_row.get("resolved_historical_date")
-                    if left_date and right_date and left_anchor != "ingest_only" and right_anchor != "ingest_only":
+                    if (
+                        left_date
+                        and right_date
+                        and left_anchor != "ingest_only"
+                        and right_anchor != "ingest_only"
+                    ):
                         if left_date < right_date:
                             time_basis = "historical_time_comparison"
                             ordering_basis = "historical_time_order"
@@ -1354,9 +1667,17 @@ def _build_ordering_edges(source_event_rows: Sequence[Mapping[str, Any]], merged
                             "source_event_ids": [predecessor, member, sibling],
                             "source_families": sorted(
                                 {
-                                    _text(row_index.get(predecessor, {}).get("source_family")),
-                                    _text(row_index.get(member, {}).get("source_family")),
-                                    _text(row_index.get(sibling, {}).get("source_family")),
+                                    _text(
+                                        row_index.get(predecessor, {}).get(
+                                            "source_family"
+                                        )
+                                    ),
+                                    _text(
+                                        row_index.get(member, {}).get("source_family")
+                                    ),
+                                    _text(
+                                        row_index.get(sibling, {}).get("source_family")
+                                    ),
                                 }
                                 - {""}
                             ),
@@ -1366,7 +1687,9 @@ def _build_ordering_edges(source_event_rows: Sequence[Mapping[str, Any]], merged
                             "support_event_ids": [predecessor, member, sibling],
                             "promotion_status": "promoted",
                             "confidence_band": "medium",
-                            "source_merged_event_id": _text(merged_event_lookup.get(predecessor)),
+                            "source_merged_event_id": _text(
+                                merged_event_lookup.get(predecessor)
+                            ),
                             "target_merged_event_id": merged_event_id,
                         }
                     )
@@ -1379,11 +1702,24 @@ def summarize_cross_source_event_braid(payload: Mapping[str, Any]) -> dict[str, 
     merged_events = _clean_mapping_rows(payload.get("merged_events"))
     ordering_edges = _clean_mapping_rows(payload.get("ordering_edges"))
     source_event_rows = _clean_mapping_rows(payload.get("source_event_rows"))
-    promoted_links = [row for row in candidate_links if _text(row.get("promotion_status")) == "promoted"]
-    cross_doc_edges = [
-        row for row in ordering_edges if "inferred_from_source_backed_overlap" in row.get("support_basis", [])
+    promoted_links = [
+        row
+        for row in candidate_links
+        if _text(row.get("promotion_status")) == "promoted"
     ]
-    by_family_audit = defaultdict(lambda: {"promotable_event": 0, "weak_candidate": 0, "usable_candidate": 0, "rejected_noise": 0})
+    cross_doc_edges = [
+        row
+        for row in ordering_edges
+        if "inferred_from_source_backed_overlap" in row.get("support_basis", [])
+    ]
+    by_family_audit = defaultdict(
+        lambda: {
+            "promotable_event": 0,
+            "weak_candidate": 0,
+            "usable_candidate": 0,
+            "rejected_noise": 0,
+        }
+    )
     for row in source_event_rows:
         family = _text(row.get("source_family")) or "unknown"
         status = _text(row.get("event_quality_status")) or "weak_candidate"
@@ -1391,14 +1727,26 @@ def summarize_cross_source_event_braid(payload: Mapping[str, Any]) -> dict[str, 
 
     return {
         "source_event_count": len(source_event_rows),
-        "source_family_count": len({_text(row.get("source_family")) for row in source_event_rows if _text(row.get("source_family"))}),
+        "source_family_count": len(
+            {
+                _text(row.get("source_family"))
+                for row in source_event_rows
+                if _text(row.get("source_family"))
+            }
+        ),
         "candidate_link_count": len(candidate_links),
         "promoted_link_count": len(promoted_links),
         "merged_event_count": len(merged_events),
         "ordering_edge_count": len(ordering_edges),
         "cross_document_ordering_edge_count": len(cross_doc_edges),
         "candidate_link_type_counts": dict(
-            sorted(Counter(_text(row.get("link_type")) for row in candidate_links if _text(row.get("link_type"))).items())
+            sorted(
+                Counter(
+                    _text(row.get("link_type"))
+                    for row in candidate_links
+                    if _text(row.get("link_type"))
+                ).items()
+            )
         ),
         "event_quality_audit_by_family": {
             fam: dict(stats) for fam, stats in sorted(by_family_audit.items())
@@ -1428,7 +1776,11 @@ def _compute_component_relevance(
     else:
         c_level = ConnectednessLevel.linked
 
-    source_family_count = len(merged_event.get("source_families", [])) if merged_event else (1 if row.get("source_family") else 0)
+    source_family_count = (
+        len(merged_event.get("source_families", []))
+        if merged_event
+        else (1 if row.get("source_family") else 0)
+    )
     if source_family_count >= 3:
         rf_level = ReferentialityLevel.cross_source
     elif source_family_count >= 2:
@@ -1438,7 +1790,19 @@ def _compute_component_relevance(
     else:
         rf_level = ReferentialityLevel.single_source
 
-    d_level = DepthLevel.braid_depth if node_depth > 2 else (DepthLevel.document_depth if node_depth > 1 else (DepthLevel.sentence_depth if node_depth > 0 else DepthLevel.fragment_depth))
+    d_level = (
+        DepthLevel.braid_depth
+        if node_depth > 2
+        else (
+            DepthLevel.document_depth
+            if node_depth > 1
+            else (
+                DepthLevel.sentence_depth
+                if node_depth > 0
+                else DepthLevel.fragment_depth
+            )
+        )
+    )
 
     receipts: list[dict[str, Any]] = []
     for fpnf in fragment_pnfs:
@@ -1457,14 +1821,26 @@ def _compute_component_relevance(
         )
 
         fallback = fpnf.fallback_used
-        roles_filled = sum(1 for r in [fpnf.subject_role, fpnf.predicate_spine, fpnf.object_role] if r)
+        roles_filled = sum(
+            1 for r in [fpnf.subject_role, fpnf.predicate_spine, fpnf.object_role] if r
+        )
         pb_level = projection_basis_from_fallback(fallback, roles_filled)
 
         rc_level = ResidualCompatibilityLevel.not_evaluated
 
         fpnf_depth = fpnf.fragment_subclass
-        fragment_scored = fpnf_depth in ("office_range", "proclamation", "ownership", "education", "marriage", "birth")
-        if fragment_scored and c_level in (ConnectednessLevel.clustered, ConnectednessLevel.braid_connected):
+        fragment_scored = fpnf_depth in (
+            "office_range",
+            "proclamation",
+            "ownership",
+            "education",
+            "marriage",
+            "birth",
+        )
+        if fragment_scored and c_level in (
+            ConnectednessLevel.clustered,
+            ConnectednessLevel.braid_connected,
+        ):
             ld_level = LinkageDepthLevel.fragment_pnf
         elif c_level in (ConnectednessLevel.linked, ConnectednessLevel.clustered):
             ld_level = LinkageDepthLevel.source_span
@@ -1490,42 +1866,46 @@ def _compute_component_relevance(
             connected_component_size=int(connectedness),
             source_family_count=source_family_count,
             longest_path_len=int(node_depth),
-            closed_role_count=sum(1 for r in [fpnf.subject_role, fpnf.object_role] if r),
+            closed_role_count=sum(
+                1 for r in [fpnf.subject_role, fpnf.object_role] if r
+            ),
             total_role_count=2,
             fallback_field_count=1 if fallback else 0,
         )
 
-        receipts.append({
-            "fragment_id": fpnf.fragment_id,
-            "export_class": receipt.export_class.value,
-            "blocked_reasons": list(receipt.blocked_reasons),
-            "basis": list(receipt.basis),
-            "connectedness_level": receipt.connectedness_level.value,
-            "referentiality_level": receipt.referentiality_level.value,
-            "depth_level": receipt.depth_level.value,
-            "pnf_closure_level": receipt.pnf_closure_level.value,
-            "residual_compatibility_level": receipt.residual_compatibility_level.value,
-            "projection_basis_level": receipt.projection_basis_level.value,
-            "linkage_depth_level": receipt.linkage_depth_level.value,
-            "source_span_level": receipt.source_span_level.value,
-        })
+        receipts.append(
+            {
+                "fragment_id": fpnf.fragment_id,
+                "export_class": receipt.export_class.value,
+                "blocked_reasons": list(receipt.blocked_reasons),
+                "basis": list(receipt.basis),
+                "connectedness_level": receipt.connectedness_level.value,
+                "referentiality_level": receipt.referentiality_level.value,
+                "depth_level": receipt.depth_level.value,
+                "pnf_closure_level": receipt.pnf_closure_level.value,
+                "residual_compatibility_level": receipt.residual_compatibility_level.value,
+                "projection_basis_level": receipt.projection_basis_level.value,
+                "linkage_depth_level": receipt.linkage_depth_level.value,
+                "source_span_level": receipt.source_span_level.value,
+            }
+        )
 
     return receipts
 
 
 def compute_braid_relevance_metrics(payload: dict[str, Any]) -> None:
     from collections import defaultdict, deque
-    
+
     source_event_rows = payload.get("source_event_rows") or []
     candidate_links = payload.get("candidate_links") or []
     merged_events = payload.get("merged_events") or []
     ordering_edges = payload.get("ordering_edges") or []
-    
+
     merged_lookup = {}
     for me in merged_events:
         for eid in me.get("source_event_ids", []):
             merged_lookup[eid] = me
-            
+
     connected_links_count = defaultdict(int)
     for link in candidate_links:
         left_key = link.get("left_source_event_id")
@@ -1533,7 +1913,7 @@ def compute_braid_relevance_metrics(payload: dict[str, Any]) -> None:
         if left_key and right_key:
             connected_links_count[left_key] += 1
             connected_links_count[right_key] += 1
-            
+
     edge_count = defaultdict(int)
     for edge in ordering_edges:
         left_key = edge.get("source_event_id")
@@ -1554,7 +1934,7 @@ def compute_braid_relevance_metrics(payload: dict[str, Any]) -> None:
                 in_degree[v] += 1
                 nodes.add(u)
                 nodes.add(v)
-                
+
     dist = {node: 0 for node in nodes}
     sources = [node for node in nodes if in_degree[node] == 0]
     queue = deque(sources)
@@ -1566,63 +1946,93 @@ def compute_braid_relevance_metrics(payload: dict[str, Any]) -> None:
             in_degree[v] -= 1
             if in_degree[v] == 0:
                 queue.append(v)
-                
+
     for u in topo_order:
         for v in adj[u]:
             dist[v] = max(dist[v], dist[u] + 1)
-            
+
     dist_rev = {node: 0 for node in nodes}
     for u in reversed(topo_order):
         for v in adj[u]:
             dist_rev[u] = max(dist_rev[u], dist_rev[v] + 1)
-            
+
     for row in source_event_rows:
         event_key = f"{row.get('source_family')}:{row.get('event_id')}"
-        
+
         me = merged_lookup.get(event_key)
         cluster_size = len(me.get("source_event_ids", [])) if me else 1
-        connectedness = float(connected_links_count[event_key] + edge_count[event_key] + (cluster_size - 1))
-        
+        connectedness = float(
+            connected_links_count[event_key]
+            + edge_count[event_key]
+            + (cluster_size - 1)
+        )
+
         if me:
             referentiality = float(len(me.get("source_families", [])))
         else:
             referentiality = 1.0 if row.get("source_family") else 0.0
-            
-        node_depth = float(dist.get(event_key, 0) + dist_rev.get(event_key, 0) if event_key in nodes else 0)
-        
+
+        node_depth = float(
+            dist.get(event_key, 0) + dist_rev.get(event_key, 0)
+            if event_key in nodes
+            else 0
+        )
+
         spectral_weight = connectedness * 0.5 + referentiality * 0.5
-        
+
         corroboration_weight = 1.0 if referentiality >= 2.0 else 0.0
-        
+
         has_conflict = bool(row.get("has_conflicting_span_years"))
         for edge in ordering_edges:
             if edge.get("time_basis") == "historical_conflict_residual":
-                if edge.get("source_event_id") == event_key or edge.get("target_event_id") == event_key:
+                if (
+                    edge.get("source_event_id") == event_key
+                    or edge.get("target_event_id") == event_key
+                ):
                     has_conflict = True
         conflict_residual = 1.0 if has_conflict else 0.0
-        
+
         pnf_closed = False
         pnf_state = row.get("pnf") or {}
-        if row.get("pnf_status") == "canonicalized" and pnf_state.get("subject") and pnf_state.get("predicate") and pnf_state.get("object"):
+        if (
+            row.get("pnf_status") == "canonicalized"
+            and pnf_state.get("subject")
+            and pnf_state.get("predicate")
+            and pnf_state.get("object")
+        ):
             pnf_closed = True
-            
+
         row["braid_metrics"] = {
             "connectedness": connectedness,
             "referentiality": referentiality,
             "depth": node_depth,
             "spectral_weight": spectral_weight,
             "corroboration_weight": corroboration_weight,
-            "conflict_residual": conflict_residual
+            "conflict_residual": conflict_residual,
         }
-        
-        score = (connectedness * 0.3) + (referentiality * 0.2) + (node_depth * 0.1) + (spectral_weight * 0.2) + (corroboration_weight * 0.2) - (conflict_residual * 0.3)
+
+        score = (
+            (connectedness * 0.3)
+            + (referentiality * 0.2)
+            + (node_depth * 0.1)
+            + (spectral_weight * 0.2)
+            + (corroboration_weight * 0.2)
+            - (conflict_residual * 0.3)
+        )
         score = max(0.0, min(1.0, round(score, 2)))
-        
+
         anchor = row.get("anchor") or {}
-        time_bound = bool(row.get("resolved_historical_date") or anchor.get("year") or anchor.get("start_year"))
+        time_bound = bool(
+            row.get("resolved_historical_date")
+            or anchor.get("year")
+            or anchor.get("start_year")
+        )
         source_spanned = bool(row.get("text"))
-        is_blocked = row.get("event_quality_status") == "rejected_noise" or row.get("recommended_status") == "block"
-        
+        is_blocked = (
+            row.get("event_quality_status") == "rejected_noise"
+            or row.get("recommended_status") == "block"
+        )
+
         if is_blocked:
             status = "excluded"
         elif pnf_closed and time_bound and source_spanned and score >= 0.5:
@@ -1631,15 +2041,11 @@ def compute_braid_relevance_metrics(payload: dict[str, Any]) -> None:
             status = "triage"
         else:
             status = "background"
-            
+
         row["relevance"] = {
             "score": score,
             "status": status,
-            "basis": [
-                "spectral_braid_position",
-                "pnf_closure",
-                "referential_support"
-            ]
+            "basis": ["spectral_braid_position", "pnf_closure", "referential_support"],
         }
 
         component_receipts = _compute_component_relevance(
@@ -1653,15 +2059,20 @@ def compute_braid_relevance_metrics(payload: dict[str, Any]) -> None:
             row["fragment_pnf_receipts"] = component_receipts
 
 
-def build_cross_source_event_braid(source_family_runs: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+def build_cross_source_event_braid(
+    source_family_runs: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
     source_event_rows = _normalize_source_event_rows(source_family_runs)
     candidate_links = _build_cross_document_candidates(source_event_rows)
     promoted_links = [
         row
         for row in candidate_links
-        if _text(row.get("link_type")) == "same_event_as" and _text(row.get("promotion_status")) == "promoted"
+        if _text(row.get("link_type")) == "same_event_as"
+        and _text(row.get("promotion_status")) == "promoted"
     ]
-    merged_event_lookup, merged_events = _cluster_promoted_links(source_event_rows, promoted_links)
+    merged_event_lookup, merged_events = _cluster_promoted_links(
+        source_event_rows, promoted_links
+    )
     ordering_edges = _build_ordering_edges(source_event_rows, merged_event_lookup)
     collapse_points = [
         {

@@ -15,7 +15,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def _load_manifest_builder_module():
     module_path = ROOT / "tools" / "build_zelph_hf_manifest.py"
-    spec = importlib.util.spec_from_file_location("build_zelph_hf_manifest", module_path)
+    spec = importlib.util.spec_from_file_location(
+        "build_zelph_hf_manifest", module_path
+    )
     assert spec is not None
     assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -23,7 +25,9 @@ def _load_manifest_builder_module():
     return module
 
 
-def test_build_zelph_shard_transport_normalized_artifact_is_candidate_only_and_partial_load_aware() -> None:
+def test_build_zelph_shard_transport_normalized_artifact_is_candidate_only_and_partial_load_aware() -> (
+    None
+):
     artifact = build_zelph_shard_transport_normalized_artifact(
         artifact_id="zelph:artifact:1",
         artifact_revision="rev-2026-06-22",
@@ -220,12 +224,16 @@ def test_build_zelph_shard_transport_normalized_artifact_is_candidate_only_and_p
         for selector in artifact["review_packet_projection"]["route_selectors"]
     )
     assert all(
-        "raw_text" not in selector and "full_receipts" not in selector and "diagnostics" not in selector
+        "raw_text" not in selector
+        and "full_receipts" not in selector
+        and "diagnostics" not in selector
         for selector in artifact["review_packet_projection"]["route_selectors"]
     )
 
 
-def test_build_zelph_hf_transport_normalized_artifact_summarizes_itir_manifest_contract() -> None:
+def test_build_zelph_hf_transport_normalized_artifact_summarizes_itir_manifest_contract() -> (
+    None
+):
     artifact = build_zelph_hf_transport_normalized_artifact(
         manifest={
             "manifestVersion": "zelph-hf-layout/v2",
@@ -244,7 +252,11 @@ def test_build_zelph_hf_transport_normalized_artifact_summarizes_itir_manifest_c
             "selectorModel": {
                 "unit": "section-chunk",
                 "supportedSections": ["left", "right", "nameOfNode", "nodeOfName"],
-                "supportedOperations": ["header-probe", "selected-chunk-read", "node-route"],
+                "supportedOperations": [
+                    "header-probe",
+                    "selected-chunk-read",
+                    "node-route",
+                ],
                 "unsupportedOperations": ["fullReasoningSafe"],
             },
             "capabilities": {
@@ -342,7 +354,9 @@ def test_build_zelph_hf_transport_normalized_artifact_summarizes_itir_manifest_c
     assert '"raw_text": "nope"' not in artifact_json
 
 
-def test_build_zelph_hf_transport_normalized_artifact_accepts_manifest_builder_output(tmp_path: Path) -> None:
+def test_build_zelph_hf_transport_normalized_artifact_accepts_manifest_builder_output(
+    tmp_path: Path,
+) -> None:
     builder = _load_manifest_builder_module()
     bin_path = tmp_path / "sample.bin"
     index_path = tmp_path / "sample.index.json"
@@ -356,7 +370,9 @@ def test_build_zelph_hf_transport_normalized_artifact_accepts_manifest_builder_o
             {
                 "header": {"offset": 0, "length": 8},
                 "left": [{"chunkIndex": 0, "offset": 8, "length": 10, "which": "left"}],
-                "right": [{"chunkIndex": 0, "offset": 18, "length": 10, "which": "right"}],
+                "right": [
+                    {"chunkIndex": 0, "offset": 18, "length": 10, "which": "right"}
+                ],
                 "nameOfNode": [
                     {"chunkIndex": 0, "offset": 28, "length": 10, "lang": "wikidata"},
                     {"chunkIndex": 1, "offset": 38, "length": 10, "lang": "en"},
@@ -417,7 +433,9 @@ def test_build_zelph_hf_transport_normalized_artifact_accepts_manifest_builder_o
         "nameOfNode": 2,
         "nodeOfName": 2,
     }
-    assert artifact["review_packet_projection"]["transport_capabilities"]["supported_sections"] == [
+    assert artifact["review_packet_projection"]["transport_capabilities"][
+        "supported_sections"
+    ] == [
         "left",
         "right",
         "nameOfNode",
@@ -428,7 +446,9 @@ def test_build_zelph_hf_transport_normalized_artifact_accepts_manifest_builder_o
     assert "hf://datasets/acrion/zelph/private" not in artifact_json
 
 
-def test_build_zelph_hf_transport_normalized_artifact_requires_manifest_version() -> None:
+def test_build_zelph_hf_transport_normalized_artifact_requires_manifest_version() -> (
+    None
+):
     try:
         build_zelph_hf_transport_normalized_artifact(manifest={}, selectors=[])
     except ValueError as exc:

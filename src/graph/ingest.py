@@ -31,6 +31,7 @@ from src.models.document import Document
 # Basic graph primitives
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class Node:
     """Representation of a graph node."""
@@ -80,6 +81,7 @@ class Graph:
 # ---------------------------------------------------------------------------
 # Ingestion helpers
 # ---------------------------------------------------------------------------
+
 
 def _iter_cited_authorities(doc: Document) -> Iterable[str]:
     """Yield identifiers for authorities cited by ``doc``.
@@ -134,7 +136,7 @@ def ingest_document(doc: Document, graph: Graph) -> None:
 
 __all__ = ["Graph", "Node", "Edge", "ingest_document"]
 
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from .models import EdgeType, ExtrinsicNode, GraphEdge, LegalGraph, NodeType
 

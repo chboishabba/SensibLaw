@@ -22,5 +22,7 @@ def compute_state_awareness_priority(
         seen_levels.add(normalized)
         priority += STATE_LEVELS_PRIORITY.get(normalized, 0.0)
     if "federal" in seen_levels and "state" in seen_levels:
-        priority -= 0.1  # preserve federal-state separation by penalizing mixed contexts
+        priority -= (
+            0.1  # preserve federal-state separation by penalizing mixed contexts
+        )
     return max(priority, 0.0)

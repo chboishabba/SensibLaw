@@ -16,7 +16,9 @@ TEXT = (
 
 
 def _facts(*items: Fact) -> FactEnvelope:
-    return FactEnvelope(version=FACT_ENVELOPE_VERSION, issued_at=None, facts=list(items))
+    return FactEnvelope(
+        version=FACT_ENVELOPE_VERSION, issued_at=None, facts=list(items)
+    )
 
 
 def _obs():
@@ -51,7 +53,10 @@ def test_activation_requires_matching_trigger_text():
 
 def test_termination_takes_precedence():
     obligations = _obs()
-    facts = _facts(Fact(key="upon commencement", value=True), Fact(key="ceases upon revocation", value=True))
+    facts = _facts(
+        Fact(key="upon commencement", value=True),
+        Fact(key="ceases upon revocation", value=True),
+    )
     result = simulate_activation(obligations, facts)
     assert result.terminated  # termination wins
     assert result.active == []

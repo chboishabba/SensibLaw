@@ -9,7 +9,6 @@ from src.pnf.streaming_coordination import (
 )
 from src.pnf.streaming_fixed_point import (
     ObservationDelta,
-    OwnerKey,
     PythonClosureExecutor,
     SolverJob,
     StreamingDeclaration,
@@ -135,9 +134,7 @@ def test_stale_receipt_is_not_admitted_and_is_rescheduled() -> None:
     owner.offer_observation_delta(_delta("observation:new", 1))
     replacement_jobs = owner.drain_ready_jobs()
     assert replacement_jobs
-    assert all(
-        "observation:new" in job.input_refs for job in replacement_jobs
-    )
+    assert all("observation:new" in job.input_refs for job in replacement_jobs)
 
 
 def test_supersession_retracts_materialized_proposals() -> None:
@@ -171,9 +168,9 @@ def test_supersession_retracts_materialized_proposals() -> None:
     owner.reduce_dirty_groups()
 
     assert owner.materialized_reduction.factors == ()
-    assert proposal.proposal_ref in owner.coordination_to_dict()[
-        "retracted_proposal_refs"
-    ]
+    assert (
+        proposal.proposal_ref in owner.coordination_to_dict()["retracted_proposal_refs"]
+    )
 
 
 def test_hierarchical_coordinator_waits_for_boundary_discharge() -> None:

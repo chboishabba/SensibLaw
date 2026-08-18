@@ -14,9 +14,15 @@ _SENSIBLAW_ROOT = _THIS_DIR.parent
 if str(_SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(_SENSIBLAW_ROOT))
 
-from src.fact_intake.google_public_import import load_google_public_units, parse_google_public_url  # noqa: E402
+from src.fact_intake.google_public_import import (
+    load_google_public_units,
+    parse_google_public_url,
+)  # noqa: E402
 from src.fact_intake.handoff_artifacts import write_handoff_artifact  # noqa: E402
-from src.fact_intake.personal_chat_import import build_handoff_input_from_units, build_handoff_report_from_chat_json  # noqa: E402
+from src.fact_intake.personal_chat_import import (
+    build_handoff_input_from_units,
+    build_handoff_report_from_chat_json,
+)  # noqa: E402
 
 
 def build_handoff_from_google_public_artifact(
@@ -51,11 +57,17 @@ def build_handoff_from_google_public_artifact(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Build a personal handoff or protected disclosure artifact from a public Google Doc/Sheet URL.")
+    parser = argparse.ArgumentParser(
+        description="Build a personal handoff or protected disclosure artifact from a public Google Doc/Sheet URL."
+    )
     parser.add_argument("--url", required=True)
     parser.add_argument("--recipient-profile", required=True)
     parser.add_argument("--source-label", required=True)
-    parser.add_argument("--mode", choices=("personal_handoff", "protected_disclosure_envelope"), default="personal_handoff")
+    parser.add_argument(
+        "--mode",
+        choices=("personal_handoff", "protected_disclosure_envelope"),
+        default="personal_handoff",
+    )
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--notes", default=None)
     parser.add_argument("--output-dir", required=True)

@@ -19,10 +19,13 @@ from src.policy.fragment_pnf import (
 
 # ── Shared helpers ─────────────────────────────────────────────────────────
 
+
 def _get_years(s: str) -> list[str]:
     cleaned = "".join(c if c.isdigit() else " " for c in s)
     words = cleaned.split()
-    return [w for w in words if len(w) == 4 and (w.startswith("19") or w.startswith("20"))]
+    return [
+        w for w in words if len(w) == 4 and (w.startswith("19") or w.startswith("20"))
+    ]
 
 
 def _extract_inherited_actor(parent_row: dict[str, Any]) -> dict[str, str]:
@@ -33,7 +36,8 @@ def _extract_inherited_actor(parent_row: dict[str, Any]) -> dict[str, str]:
         if key.startswith("actor:"):
             return {
                 "canonical_key": key,
-                "canonical_label": ent.get("canonical_label") or key.replace("actor:", ""),
+                "canonical_label": ent.get("canonical_label")
+                or key.replace("actor:", ""),
             }
     return {"canonical_key": "actor:george_w_bush", "canonical_label": "George W. Bush"}
 
@@ -49,7 +53,9 @@ def _clean_office_name(title: str) -> str:
 
 
 def _normalize_key(prefix: str, label: str) -> str:
-    return prefix + label.lower().replace(" ", "_").replace(".", "").replace(",", "").replace("-", "_")
+    return prefix + label.lower().replace(" ", "_").replace(".", "").replace(
+        ",", ""
+    ).replace("-", "_")
 
 
 def _surface_text_hash(text: str) -> str:
@@ -57,6 +63,7 @@ def _surface_text_hash(text: str) -> str:
 
 
 # ── Fragment surface classification ────────────────────────────────────────
+
 
 def classify_fragment_surface(text: str) -> str:
     """Classify a source fragment into a surface class.
@@ -69,8 +76,17 @@ def classify_fragment_surface(text: str) -> str:
         return "fallback"
 
     # CV cells: short lines with date ranges and office/education markers
-    cv_keywords = {"governor", "president", "senator", "representative",
-                   "university", "college", "graduated", "co-owned", "owned"}
+    cv_keywords = {
+        "governor",
+        "president",
+        "senator",
+        "representative",
+        "university",
+        "college",
+        "graduated",
+        "co-owned",
+        "owned",
+    }
     years = _get_years(stripped)
 
     # Title range: short text with date range and office keyword
@@ -94,6 +110,7 @@ def classify_fragment_surface(text: str) -> str:
 
 
 # ── FragmentMatch — result from a grammar match ────────────────────────────
+
 
 @dataclass(frozen=True)
 class FragmentMatch:
@@ -139,29 +156,53 @@ class FragmentMatch:
 
 # ── Abstract base grammar ──────────────────────────────────────────────────
 
+
 class FragmentGrammar(ABC):
     grammar_id: str = ""
     fragment_subclass: str = ""
 
     @abstractmethod
-    def iter_matches(self, text: str, parent_row: dict[str, Any]) -> Iterable[FragmentMatch]:
-        ...
+    def iter_matches(
+        self, text: str, parent_row: dict[str, Any]
+    ) -> Iterable[FragmentMatch]: ...
 
 
 # ── OfficeRangeGrammar ─────────────────────────────────────────────────────
+
 
 class OfficeRangeGrammar(FragmentGrammar):
     grammar_id = "office_range_grammar_v0"
     fragment_subclass = "office_range"
 
-    def iter_matches(self, text: str, parent_row: dict[str, Any]) -> Iterable[FragmentMatch]:
+    def iter_matches(
+        self, text: str, parent_row: dict[str, Any]
+    ) -> Iterable[FragmentMatch]:
         lower_text = text.lower()
-        keywords = ["governor", "president", "manager", "director",
-                    "secretary", "senator", "representative", "officer", "chairman"]
+        keywords = [
+            "governor",
+            "president",
+            "manager",
+            "director",
+            "secretary",
+            "senator",
+            "representative",
+            "officer",
+            "chairman",
+        ]
         if not any(kw in lower_text for kw in keywords):
             return
         # Skip if it contains one of the other grammar triggers
-        if any(kw in lower_text for kw in ["born", "married", "proclaimed", "graduated", "co-owned", "owned"]):
+        if any(
+            kw in lower_text
+            for kw in [
+                "born",
+                "married",
+                "proclaimed",
+                "graduated",
+                "co-owned",
+                "owned",
+            ]
+        ):
             return
 
         years = _get_years(text)
@@ -218,11 +259,14 @@ class OfficeRangeGrammar(FragmentGrammar):
 
 # ── ProclamationGrammar ────────────────────────────────────────────────────
 
+
 class ProclamationGrammar(FragmentGrammar):
     grammar_id = "proclamation_grammar_v0"
     fragment_subclass = "proclamation"
 
-    def iter_matches(self, text: str, parent_row: dict[str, Any]) -> Iterable[FragmentMatch]:
+    def iter_matches(
+        self, text: str, parent_row: dict[str, Any]
+    ) -> Iterable[FragmentMatch]:
         lower_text = text.lower()
         if "proclaimed" not in lower_text:
             return
@@ -238,17 +282,43 @@ class ProclamationGrammar(FragmentGrammar):
         event_name = ""
         if "to be" in lower_text:
             idx = lower_text.find("to be")
-            event_name = text[idx + 5:].strip()
+            event_name = text[idx + 5 :].strip()
         else:
-            months = {"january", "february", "march", "april", "may", "june",
-                      "july", "august", "september", "october", "november",
-                      "december", "jan", "feb", "mar", "apr", "may", "jun",
-                      "jul", "aug", "sep", "oct", "nov", "dec"}
+            months = {
+                "january",
+                "february",
+                "march",
+                "april",
+                "may",
+                "june",
+                "july",
+                "august",
+                "september",
+                "october",
+                "november",
+                "december",
+                "jan",
+                "feb",
+                "mar",
+                "apr",
+                "may",
+                "jun",
+                "jul",
+                "aug",
+                "sep",
+                "oct",
+                "nov",
+                "dec",
+            }
             words = text.split()
             cleaned_words = []
             for w in words:
                 w_clean = "".join(c for c in w if c.isalpha()).lower()
-                if w_clean in {"proclaimed", "to", "be"} or w_clean in months or w.isdigit():
+                if (
+                    w_clean in {"proclaimed", "to", "be"}
+                    or w_clean in months
+                    or w.isdigit()
+                ):
                     continue
                 cleaned_words.append(w)
             event_name = " ".join(cleaned_words)
@@ -278,12 +348,29 @@ class ProclamationGrammar(FragmentGrammar):
             day_str = date_match.group(2)
             year_str = date_match.group(3)
             months_map = {
-                "january": "01", "february": "02", "march": "03", "april": "04",
-                "may": "05", "june": "06", "july": "07", "august": "08",
-                "september": "09", "october": "10", "november": "11", "december": "12",
-                "jan": "01", "feb": "02", "mar": "03", "apr": "04",
-                "jun": "06", "jul": "07", "aug": "08", "sep": "09",
-                "oct": "10", "nov": "11", "dec": "12",
+                "january": "01",
+                "february": "02",
+                "march": "03",
+                "april": "04",
+                "may": "05",
+                "june": "06",
+                "july": "07",
+                "august": "08",
+                "september": "09",
+                "october": "10",
+                "november": "11",
+                "december": "12",
+                "jan": "01",
+                "feb": "02",
+                "mar": "03",
+                "apr": "04",
+                "jun": "06",
+                "jul": "07",
+                "aug": "08",
+                "sep": "09",
+                "oct": "10",
+                "nov": "11",
+                "dec": "12",
             }
             month_num = months_map.get(month_str.lower(), "01")
             time_anchor = TimeAnchor(
@@ -312,13 +399,20 @@ class ProclamationGrammar(FragmentGrammar):
 
 # ── OwnershipGrammar ──────────────────────────────────────────────────────
 
+
 class OwnershipGrammar(FragmentGrammar):
     grammar_id = "ownership_grammar_v0"
     fragment_subclass = "ownership"
 
-    def iter_matches(self, text: str, parent_row: dict[str, Any]) -> Iterable[FragmentMatch]:
+    def iter_matches(
+        self, text: str, parent_row: dict[str, Any]
+    ) -> Iterable[FragmentMatch]:
         lower_text = text.lower()
-        if "co-owned" not in lower_text and "co_owned" not in lower_text and "owned" not in lower_text:
+        if (
+            "co-owned" not in lower_text
+            and "co_owned" not in lower_text
+            and "owned" not in lower_text
+        ):
             return
 
         years = _get_years(text)
@@ -326,10 +420,17 @@ class OwnershipGrammar(FragmentGrammar):
         for y in years:
             org = org.replace(y, "")
         org_lower = org.lower()
-        for prefix in ["co-owned the", "co-owned", "co_owned the", "co_owned", "owned the", "owned"]:
+        for prefix in [
+            "co-owned the",
+            "co-owned",
+            "co_owned the",
+            "co_owned",
+            "owned the",
+            "owned",
+        ]:
             if prefix in org_lower:
                 idx = org_lower.find(prefix)
-                org = org[:idx] + org[idx + len(prefix):]
+                org = org[:idx] + org[idx + len(prefix) :]
                 org_lower = org.lower()
 
         for char in ("-", "–", "—", ",", ";", ".", "in ", "In "):
@@ -340,11 +441,15 @@ class OwnershipGrammar(FragmentGrammar):
             return
 
         subject = _extract_inherited_actor(parent_row)
-        predicate = "co_owned" if "co-" in lower_text or "co_" in lower_text else "owned"
+        predicate = (
+            "co_owned" if "co-" in lower_text or "co_" in lower_text else "owned"
+        )
 
         time_anchor = None
         if len(years) >= 2:
-            time_anchor = TimeAnchor(start_date=years[0], end_date=years[1], precision="range")
+            time_anchor = TimeAnchor(
+                start_date=years[0], end_date=years[1], precision="range"
+            )
         elif years:
             time_anchor = TimeAnchor(start_date=years[0], precision="year")
 
@@ -370,11 +475,14 @@ class OwnershipGrammar(FragmentGrammar):
 
 # ── EducationGrammar ──────────────────────────────────────────────────────
 
+
 class EducationGrammar(FragmentGrammar):
     grammar_id = "education_grammar_v0"
     fragment_subclass = "education"
 
-    def iter_matches(self, text: str, parent_row: dict[str, Any]) -> Iterable[FragmentMatch]:
+    def iter_matches(
+        self, text: str, parent_row: dict[str, Any]
+    ) -> Iterable[FragmentMatch]:
         lower_text = text.lower()
         edu_keywords = ("university", "college", "graduated", "yale", "harvard")
         if not any(kw in lower_text for kw in edu_keywords):
@@ -389,7 +497,7 @@ class EducationGrammar(FragmentGrammar):
                 start_idx = idx
                 while start_idx > 0 and words[start_idx - 1][0].isupper():
                     start_idx -= 1
-                school = " ".join(words[start_idx:idx + 1])
+                school = " ".join(words[start_idx : idx + 1])
                 break
         if not school:
             for name in ("Yale", "Harvard"):
@@ -407,7 +515,9 @@ class EducationGrammar(FragmentGrammar):
 
         time_anchor = None
         if len(years) >= 2:
-            time_anchor = TimeAnchor(start_date=years[0], end_date=years[1], precision="range")
+            time_anchor = TimeAnchor(
+                start_date=years[0], end_date=years[1], precision="range"
+            )
         elif years:
             time_anchor = TimeAnchor(start_date=years[0], precision="year")
 
@@ -433,11 +543,14 @@ class EducationGrammar(FragmentGrammar):
 
 # ── MarriageGrammar ───────────────────────────────────────────────────────
 
+
 class MarriageGrammar(FragmentGrammar):
     grammar_id = "marriage_grammar_v0"
     fragment_subclass = "marriage"
 
-    def iter_matches(self, text: str, parent_row: dict[str, Any]) -> Iterable[FragmentMatch]:
+    def iter_matches(
+        self, text: str, parent_row: dict[str, Any]
+    ) -> Iterable[FragmentMatch]:
         lower_text = text.lower()
         if "married" not in lower_text and "marriage" not in lower_text:
             return
@@ -450,15 +563,37 @@ class MarriageGrammar(FragmentGrammar):
         for prefix in ("married to", "married", "marriage to", "marriage"):
             if prefix in spouse_lower:
                 idx = spouse_lower.find(prefix)
-                spouse = spouse[:idx] + spouse[idx + len(prefix):]
+                spouse = spouse[:idx] + spouse[idx + len(prefix) :]
                 spouse_lower = spouse.lower()
 
         words = spouse.split()
         cleaned_words = []
-        months = ("january", "february", "march", "april", "may", "june",
-                  "july", "august", "september", "october", "november",
-                  "december", "jan", "feb", "mar", "apr", "may", "jun",
-                  "jul", "aug", "sep", "oct", "nov", "dec")
+        months = (
+            "january",
+            "february",
+            "march",
+            "april",
+            "may",
+            "june",
+            "july",
+            "august",
+            "september",
+            "october",
+            "november",
+            "december",
+            "jan",
+            "feb",
+            "mar",
+            "apr",
+            "may",
+            "jun",
+            "jul",
+            "aug",
+            "sep",
+            "oct",
+            "nov",
+            "dec",
+        )
         for w in words:
             w_clean = "".join(c for c in w if c.isalpha()).lower()
             if w_clean in months or w.isdigit():
@@ -477,7 +612,9 @@ class MarriageGrammar(FragmentGrammar):
 
         time_anchor = None
         if len(years) >= 2:
-            time_anchor = TimeAnchor(start_date=years[0], end_date=years[1], precision="range")
+            time_anchor = TimeAnchor(
+                start_date=years[0], end_date=years[1], precision="range"
+            )
         elif years:
             time_anchor = TimeAnchor(start_date=years[0], precision="year")
 
@@ -503,11 +640,14 @@ class MarriageGrammar(FragmentGrammar):
 
 # ── BirthGrammar ──────────────────────────────────────────────────────────
 
+
 class BirthGrammar(FragmentGrammar):
     grammar_id = "birth_grammar_v0"
     fragment_subclass = "birth"
 
-    def iter_matches(self, text: str, parent_row: dict[str, Any]) -> Iterable[FragmentMatch]:
+    def iter_matches(
+        self, text: str, parent_row: dict[str, Any]
+    ) -> Iterable[FragmentMatch]:
         lower_text = text.lower()
         if "born" not in lower_text:
             return
@@ -516,7 +656,9 @@ class BirthGrammar(FragmentGrammar):
         time_anchor = None
         years = _get_years(text)
         if len(years) >= 2:
-            time_anchor = TimeAnchor(start_date=years[0], end_date=years[1], precision="range")
+            time_anchor = TimeAnchor(
+                start_date=years[0], end_date=years[1], precision="range"
+            )
         elif years:
             time_anchor = TimeAnchor(start_date=years[0], precision="year")
 
@@ -542,11 +684,14 @@ class BirthGrammar(FragmentGrammar):
 
 # ── FallbackGrammar ────────────────────────────────────────────────────────
 
+
 class FallbackGrammar(FragmentGrammar):
     grammar_id = "fallback_grammar_v0"
     fragment_subclass = "generic_relation"
 
-    def iter_matches(self, text: str, parent_row: dict[str, Any]) -> Iterable[FragmentMatch]:
+    def iter_matches(
+        self, text: str, parent_row: dict[str, Any]
+    ) -> Iterable[FragmentMatch]:
         from sensiblaw.interfaces import collect_canonical_relational_bundle
 
         bundle = collect_canonical_relational_bundle(text)
@@ -555,7 +700,9 @@ class FallbackGrammar(FragmentGrammar):
 
         time_anchor = None
         if len(years) >= 2:
-            time_anchor = TimeAnchor(start_date=years[0], end_date=years[1], precision="range")
+            time_anchor = TimeAnchor(
+                start_date=years[0], end_date=years[1], precision="range"
+            )
         elif years:
             time_anchor = TimeAnchor(start_date=years[0], precision="year")
 
@@ -565,18 +712,27 @@ class FallbackGrammar(FragmentGrammar):
             roles = rel.get("roles", [])
 
             head_atom = next(
-                (atoms_by_id[r["atom"]] for r in roles
-                 if r.get("role") in ("head", "predicate") and r.get("atom")),
+                (
+                    atoms_by_id[r["atom"]]
+                    for r in roles
+                    if r.get("role") in ("head", "predicate") and r.get("atom")
+                ),
                 None,
             )
             subj_atom = next(
-                (atoms_by_id[r["atom"]] for r in roles
-                 if r.get("role") == "subject" and r.get("atom")),
+                (
+                    atoms_by_id[r["atom"]]
+                    for r in roles
+                    if r.get("role") == "subject" and r.get("atom")
+                ),
                 None,
             )
             obj_atom = next(
-                (atoms_by_id[r["atom"]] for r in roles
-                 if r.get("role") == "object" and r.get("atom")),
+                (
+                    atoms_by_id[r["atom"]]
+                    for r in roles
+                    if r.get("role") == "object" and r.get("atom")
+                ),
                 None,
             )
 
@@ -628,6 +784,7 @@ class FallbackGrammar(FragmentGrammar):
 
 # ── Grammar registry ───────────────────────────────────────────────────────
 
+
 class FragmentGrammarRegistry:
     """Composite grammar registry.
 
@@ -636,15 +793,19 @@ class FragmentGrammarRegistry:
     """
 
     def __init__(self, grammars: Iterable[FragmentGrammar] | None = None):
-        self._grammars: list[FragmentGrammar] = list(grammars) if grammars is not None else [
-            OfficeRangeGrammar(),
-            ProclamationGrammar(),
-            OwnershipGrammar(),
-            EducationGrammar(),
-            MarriageGrammar(),
-            BirthGrammar(),
-            FallbackGrammar(),
-        ]
+        self._grammars: list[FragmentGrammar] = (
+            list(grammars)
+            if grammars is not None
+            else [
+                OfficeRangeGrammar(),
+                ProclamationGrammar(),
+                OwnershipGrammar(),
+                EducationGrammar(),
+                MarriageGrammar(),
+                BirthGrammar(),
+                FallbackGrammar(),
+            ]
+        )
 
     @property
     def grammars(self) -> list[FragmentGrammar]:
@@ -690,13 +851,19 @@ def fragment_matches_to_pnfs(
 ) -> list[FragmentPNF]:
     result: list[FragmentPNF] = []
     for idx, match in enumerate(matches):
-        fragment_id = f"{parent_event_id}:frag:{idx:04d}" if parent_event_id else f"frag:{idx:04d}"
-        result.append(match.to_fragment_pnf(
-            fragment_id=fragment_id,
-            parent_event_id=parent_event_id,
-            fragment_surface=fragment_surface,
-            source_span=source_span,
-        ))
+        fragment_id = (
+            f"{parent_event_id}:frag:{idx:04d}"
+            if parent_event_id
+            else f"frag:{idx:04d}"
+        )
+        result.append(
+            match.to_fragment_pnf(
+                fragment_id=fragment_id,
+                parent_event_id=parent_event_id,
+                fragment_surface=fragment_surface,
+                source_span=source_span,
+            )
+        )
     return result
 
 

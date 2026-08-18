@@ -24,7 +24,9 @@ class _FailingConnection:
         return None
 
 
-def test_text_index_raises_clear_message_when_fts_missing(monkeypatch, tmp_path) -> None:
+def test_text_index_raises_clear_message_when_fts_missing(
+    monkeypatch, tmp_path
+) -> None:
     monkeypatch.setattr(sqlite3, "connect", lambda _path: _FailingConnection())
 
     with pytest.raises(RuntimeError, match="FTS5"):

@@ -144,7 +144,10 @@ def test_build_fact_review_bundle_payload_shapes_shared_envelope() -> None:
                     "root_artifact_id": "factrun:123",
                     "lane": "transcript",
                     "source_family": "transcript_review_bundle",
-                    "identity_basis": {"basis_kind": "review_queue_row", "local_id": "fact:1"},
+                    "identity_basis": {
+                        "basis_kind": "review_queue_row",
+                        "local_id": "fact:1",
+                    },
                     "provenance": {
                         "source_kind": "review_bundle",
                         "upstream_artifact_ids": ["factrun:123", "semantic:1"],
@@ -180,11 +183,18 @@ def test_build_fact_review_bundle_payload_shapes_shared_envelope() -> None:
     assert bundle["compiler_contract"]["lane"] == "transcript"
     assert bundle["promotion_gate"]["decision"] == "audit"
     assert bundle["review_claim_records"][0]["claim_id"] == "fact:1"
-    assert bundle["review_claim_records"][0]["review_candidate"]["candidate_kind"] == "review_queue_row"
-    assert bundle["review_claim_records"][0]["review_text"]["text"] == "Transcript fact 1"
+    assert (
+        bundle["review_claim_records"][0]["review_candidate"]["candidate_kind"]
+        == "review_queue_row"
+    )
+    assert (
+        bundle["review_claim_records"][0]["review_text"]["text"] == "Transcript fact 1"
+    )
 
 
-def test_build_fact_review_bundle_payload_normalizes_compiler_contract_and_gate() -> None:
+def test_build_fact_review_bundle_payload_normalizes_compiler_contract_and_gate() -> (
+    None
+):
     bundle = build_fact_review_bundle_payload(
         fact_report={
             "run": {
@@ -234,7 +244,10 @@ def test_build_fact_review_bundle_payload_normalizes_compiler_contract_and_gate(
             "promotion_gate": {
                 "decision": " audit ",
                 "product_ref": " au_fact_review_bundle ",
-                "evidence": {"review_count": "3", "product_roles": [" operator_handoff ", ""]},
+                "evidence": {
+                    "review_count": "3",
+                    "product_roles": [" operator_handoff ", ""],
+                },
             },
         },
     )
@@ -248,7 +261,9 @@ def test_build_fact_review_bundle_payload_normalizes_compiler_contract_and_gate(
     assert bundle["promotion_gate"]["product_ref"] == "au_fact_review_bundle"
     assert bundle["promotion_gate"]["evidence"]["review_count"] == 3
     assert bundle["promotion_gate"]["evidence"]["product_roles"] == ["operator_handoff"]
-    assert bundle["semantic_context"]["compiler_contract"] == bundle["compiler_contract"]
+    assert (
+        bundle["semantic_context"]["compiler_contract"] == bundle["compiler_contract"]
+    )
     assert bundle["semantic_context"]["promotion_gate"] == bundle["promotion_gate"]
 
 
@@ -264,7 +279,9 @@ def test_build_bundle_workflow_summary_prefers_authority_follow() -> None:
                 "summary": {"queue_count": 1},
                 "queue": [{"item_id": "follow:1"}],
             },
-            "intake_triage": {"groups": {"all": [], "missing_actor": [{"fact_id": "fact:1"}]}},
+            "intake_triage": {
+                "groups": {"all": [], "missing_actor": [{"fact_id": "fact:1"}]}
+            },
         },
         promotion_gate={"decision": "audit"},
         default_fact_id="fact:1",

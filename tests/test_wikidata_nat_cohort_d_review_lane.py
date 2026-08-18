@@ -41,5 +41,7 @@ def test_cohort_d_review_surface_references_disjoint_probe_packets() -> None:
     assert len(packet_refs) == 2
     assert packet_refs[0]["review_entity_qid"] == "Q738421"
     assert packet_refs[1]["review_entity_qid"] == "Q1785637"
-    assert all(ref["packet_role"] == "cohort_d_typing_deficit_probe" for ref in packet_refs)
+    assert all(
+        ref["packet_role"] == "cohort_d_typing_deficit_probe" for ref in packet_refs
+    )
     assert "no_direct_migration_execution" in payload["non_claims"]

@@ -5,16 +5,13 @@ from src.ontology.ontology_issue_detector import detect_ontology_issues
 
 
 def _load_fixture(name: str) -> dict:
-    fixture_path = (
-        Path(__file__).resolve().parent
-        / "fixtures"
-        / "wikidata"
-        / name
-    )
+    fixture_path = Path(__file__).resolve().parent / "fixtures" / "wikidata" / name
     return json.loads(fixture_path.read_text(encoding="utf-8"))
 
 
-def test_detect_ontology_issues_from_type_probing_surface_emits_bounded_unsupported_is_a_chain_issues() -> None:
+def test_detect_ontology_issues_from_type_probing_surface_emits_bounded_unsupported_is_a_chain_issues() -> (
+    None
+):
     probe = _load_fixture("wikidata_nat_cohort_d_type_probing_surface_20260402.json")
 
     issues = detect_ontology_issues(type_probing_surface=probe)
@@ -42,7 +39,9 @@ def test_detect_ontology_issues_from_type_probing_surface_emits_bounded_unsuppor
 
 
 def test_detect_ontology_issues_from_operator_review_surface_uses_queue_shape() -> None:
-    review_surface = _load_fixture("wikidata_nat_cohort_d_operator_review_surface_20260402.json")
+    review_surface = _load_fixture(
+        "wikidata_nat_cohort_d_operator_review_surface_20260402.json"
+    )
 
     issues = detect_ontology_issues(operator_review_surface=review_surface)
 

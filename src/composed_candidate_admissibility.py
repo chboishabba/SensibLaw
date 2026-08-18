@@ -3,7 +3,9 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 try:  # Lane 1 may add this model later.
-    from src.models.composed_candidate_node import ComposedCandidateNode as _ComposedCandidateNode  # type: ignore
+    from src.models.composed_candidate_node import (
+        ComposedCandidateNode as _ComposedCandidateNode,
+    )  # type: ignore
 except Exception:  # pragma: no cover - optional integration surface
     _ComposedCandidateNode = None
 
@@ -60,9 +62,7 @@ def _mapping(value: Any) -> dict[str, Any]:
             return dict(candidate)
     if hasattr(value, "__dict__"):
         public = {
-            key: item
-            for key, item in vars(value).items()
-            if not key.startswith("_")
+            key: item for key, item in vars(value).items() if not key.startswith("_")
         }
         if public:
             return public
@@ -74,7 +74,9 @@ def _record_from_candidate(candidate: Any) -> dict[str, Any]:
     if record:
         return record
 
-    if _ComposedCandidateNode is not None and isinstance(candidate, _ComposedCandidateNode):  # pragma: no branch
+    if _ComposedCandidateNode is not None and isinstance(
+        candidate, _ComposedCandidateNode
+    ):  # pragma: no branch
         return _mapping(candidate)
 
     record = {}
@@ -131,16 +133,31 @@ def _provenance_completeness(record: Mapping[str, Any]) -> tuple[bool, list[str]
     support_phi_ids = _text_list(record.get("support_phi_ids"))
     span_refs = _text_list(record.get("span_refs"))
     receipts = record.get("provenance_receipts")
-    if not support_phi_ids or not span_refs or not isinstance(receipts, list) or not receipts:
+    if (
+        not support_phi_ids
+        or not span_refs
+        or not isinstance(receipts, list)
+        or not receipts
+    ):
         return False, ["provenance_incomplete"]
 
     receipt_maps = [_mapping(receipt) for receipt in receipts if _mapping(receipt)]
     if len(receipt_maps) != len(receipts):
         return False, ["provenance_incomplete"]
 
-    covered_phi_ids = _receipt_refs(receipt_maps, "support_phi_id", "phi_id", "source_phi_id", "support_phi_ids")
-    covered_span_refs = _receipt_refs(receipt_maps, "span_ref", "span_refs", "source_span_ref", "source_span_id")
-    covered_content_refs = _receipt_refs(receipt_maps, "content_ref", "content_refs", "source_content_ref", "source_content_refs")
+    covered_phi_ids = _receipt_refs(
+        receipt_maps, "support_phi_id", "phi_id", "source_phi_id", "support_phi_ids"
+    )
+    covered_span_refs = _receipt_refs(
+        receipt_maps, "span_ref", "span_refs", "source_span_ref", "source_span_id"
+    )
+    covered_content_refs = _receipt_refs(
+        receipt_maps,
+        "content_ref",
+        "content_refs",
+        "source_content_ref",
+        "source_content_refs",
+    )
 
     missing_phi_ids = [ref for ref in support_phi_ids if ref not in covered_phi_ids]
     missing_span_refs = [ref for ref in span_refs if ref not in covered_span_refs]
@@ -153,9 +170,13 @@ def _provenance_completeness(record: Mapping[str, Any]) -> tuple[bool, list[str]
 
     content_refs = _candidate_refs(record.get("content_refs"))
     if content_refs:
-        missing_content_refs = [ref for ref in content_refs if ref not in covered_content_refs]
+        missing_content_refs = [
+            ref for ref in content_refs if ref not in covered_content_refs
+        ]
         if missing_content_refs:
-            return False, [f"missing_content_ref:{ref}" for ref in missing_content_refs] + ["provenance_incomplete"]
+            return False, [
+                f"missing_content_ref:{ref}" for ref in missing_content_refs
+            ] + ["provenance_incomplete"]
 
     return True, []
 
@@ -165,7 +186,11 @@ def _wrapper_validity(record: Mapping[str, Any]) -> tuple[bool, list[str]]:
     if not wrapper:
         return False, ["wrapper_missing"]
 
-    wrapper_kind = _text(wrapper.get("wrapper_kind") or wrapper.get("kind") or wrapper.get("authority_kind"))
+    wrapper_kind = _text(
+        wrapper.get("wrapper_kind")
+        or wrapper.get("kind")
+        or wrapper.get("authority_kind")
+    )
     if not wrapper_kind:
         return False, ["wrapper_missing_kind"]
 
@@ -181,12 +206,18 @@ def _wrapper_validity(record: Mapping[str, Any]) -> tuple[bool, list[str]]:
     if claimed_kind and claimed_kind != candidate_kind:
         return False, ["wrapper_kind_mismatch"]
 
-    wrapper_status = _text(wrapper.get("status") or wrapper.get("decision") or wrapper.get("validity"))
+    wrapper_status = _text(
+        wrapper.get("status") or wrapper.get("decision") or wrapper.get("validity")
+    )
     if wrapper_status and wrapper_status.casefold() not in _VALID_WRAPPER_STATUSES:
         return False, [f"wrapper_status:{wrapper_status}"]
 
-    allowed_kinds = set(_text_list(wrapper.get("allowed_kinds") or wrapper.get("kinds")))
-    blocked_kinds = set(_text_list(wrapper.get("blocked_kinds") or wrapper.get("forbidden_kinds")))
+    allowed_kinds = set(
+        _text_list(wrapper.get("allowed_kinds") or wrapper.get("kinds"))
+    )
+    blocked_kinds = set(
+        _text_list(wrapper.get("blocked_kinds") or wrapper.get("forbidden_kinds"))
+    )
     if allowed_kinds and candidate_kind not in allowed_kinds:
         return False, ["wrapper_kind_not_allowed"]
     if candidate_kind in blocked_kinds:
@@ -204,10 +235,23 @@ def _slot_content_consistency(record: Mapping[str, Any]) -> tuple[bool, list[str
     slot_content_refs: set[str] = set()
     for slot_name, slot_value in slots.items():
         if isinstance(slot_value, Mapping):
-            refs = _text_list(slot_value.get("content_refs") or slot_value.get("content_ref"))
-            refs.extend(_text_list(slot_value.get("span_refs") or slot_value.get("span_ref")))
-            refs.extend(_text_list(slot_value.get("support_phi_ids") or slot_value.get("support_phi_id")))
-            if not refs and _text(slot_value.get("value")) and _text(slot_value.get("text")):
+            refs = _text_list(
+                slot_value.get("content_refs") or slot_value.get("content_ref")
+            )
+            refs.extend(
+                _text_list(slot_value.get("span_refs") or slot_value.get("span_ref"))
+            )
+            refs.extend(
+                _text_list(
+                    slot_value.get("support_phi_ids")
+                    or slot_value.get("support_phi_id")
+                )
+            )
+            if (
+                not refs
+                and _text(slot_value.get("value"))
+                and _text(slot_value.get("text"))
+            ):
                 continue
             slot_content_refs.update(refs)
             if refs and any(ref not in content_refs for ref in refs if ref):
@@ -240,10 +284,20 @@ def _section_genre_compatibility(record: Mapping[str, Any]) -> tuple[str, list[s
 
     explicit = _mapping(record.get("section_genre_compatibility"))
     if explicit:
-        status = _text(explicit.get("status") or explicit.get("decision") or explicit.get("result")).casefold()
+        status = _text(
+            explicit.get("status") or explicit.get("decision") or explicit.get("result")
+        ).casefold()
         if status in _VALID_SECTION_GENRE_STATUSES:
-            expected_section = _text(explicit.get("section") or explicit.get("allowed_section") or explicit.get("section_name"))
-            expected_genre = _text(explicit.get("genre") or explicit.get("allowed_genre") or explicit.get("genre_name"))
+            expected_section = _text(
+                explicit.get("section")
+                or explicit.get("allowed_section")
+                or explicit.get("section_name")
+            )
+            expected_genre = _text(
+                explicit.get("genre")
+                or explicit.get("allowed_genre")
+                or explicit.get("genre_name")
+            )
             if expected_section and expected_section != section:
                 return "abstain", ["section_genre_incompatible"]
             if expected_genre and expected_genre != genre:
@@ -253,11 +307,23 @@ def _section_genre_compatibility(record: Mapping[str, Any]) -> tuple[str, list[s
             return "abstain", ["section_genre_incompatible"]
 
     wrapper = _mapping(record.get("authority_wrapper"))
-    allowed_sections = set(_text_list(record.get("allowed_sections") or wrapper.get("allowed_sections")))
-    allowed_genres = set(_text_list(record.get("allowed_genres") or wrapper.get("allowed_genres")))
-    disallowed_sections = set(_text_list(record.get("disallowed_sections") or wrapper.get("disallowed_sections")))
-    disallowed_genres = set(_text_list(record.get("disallowed_genres") or wrapper.get("disallowed_genres")))
-    allowed_pairs = record.get("allowed_section_genre_pairs") or wrapper.get("allowed_section_genre_pairs")
+    allowed_sections = set(
+        _text_list(record.get("allowed_sections") or wrapper.get("allowed_sections"))
+    )
+    allowed_genres = set(
+        _text_list(record.get("allowed_genres") or wrapper.get("allowed_genres"))
+    )
+    disallowed_sections = set(
+        _text_list(
+            record.get("disallowed_sections") or wrapper.get("disallowed_sections")
+        )
+    )
+    disallowed_genres = set(
+        _text_list(record.get("disallowed_genres") or wrapper.get("disallowed_genres"))
+    )
+    allowed_pairs = record.get("allowed_section_genre_pairs") or wrapper.get(
+        "allowed_section_genre_pairs"
+    )
 
     if section in disallowed_sections or genre in disallowed_genres:
         return "abstain", ["section_genre_incompatible"]
@@ -272,7 +338,9 @@ def _section_genre_compatibility(record: Mapping[str, Any]) -> tuple[str, list[s
             pair_map = _mapping(pair)
             if not pair_map:
                 continue
-            pair_section = _text(pair_map.get("section") or pair_map.get("allowed_section"))
+            pair_section = _text(
+                pair_map.get("section") or pair_map.get("allowed_section")
+            )
             pair_genre = _text(pair_map.get("genre") or pair_map.get("allowed_genre"))
             if pair_section == section and pair_genre == genre:
                 return "promote", []
@@ -347,7 +415,8 @@ def evaluate_composed_candidate_admissibility(
                 "wrapper_valid": wrapper_ok,
                 "slot_content_consistent": slot_ok,
                 "section_genre_compatibility": section_genre_decision == "promote",
-                "accepted_constraints_contradiction_free": constraints_decision == "promote",
+                "accepted_constraints_contradiction_free": constraints_decision
+                == "promote",
             },
             "node": record,
         }
@@ -373,7 +442,8 @@ def evaluate_composed_candidate_admissibility(
             "wrapper_valid": wrapper_ok,
             "slot_content_consistent": slot_ok,
             "section_genre_compatibility": section_genre_decision == "promote",
-            "accepted_constraints_contradiction_free": constraints_decision == "promote",
+            "accepted_constraints_contradiction_free": constraints_decision
+            == "promote",
         },
         "node": record,
     }

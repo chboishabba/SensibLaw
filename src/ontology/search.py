@@ -1,4 +1,5 @@
 """Utilities for filtering ontology lookup results."""
+
 from __future__ import annotations
 
 from difflib import SequenceMatcher
@@ -8,7 +9,9 @@ from typing import Iterable, Mapping
 Candidate = Mapping[str, object]
 
 
-def _confidence_score(query: str, label: str, *, aliases: Iterable[str] | None = None) -> float:
+def _confidence_score(
+    query: str, label: str, *, aliases: Iterable[str] | None = None
+) -> float:
     """Return a similarity score between ``query`` and a candidate label.
 
     Scores are calculated using :class:`difflib.SequenceMatcher` across the

@@ -36,9 +36,7 @@ def test_compatibility_normalizer_performs_no_json_roundtrip() -> None:
         for alias in node.names
     }
     imported.update(
-        node.module or ""
-        for node in ast.walk(tree)
-        if isinstance(node, ast.ImportFrom)
+        node.module or "" for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)
     )
     assert "json" not in imported
     value = {"tuple": (1, 2), "bytes": b"abc"}

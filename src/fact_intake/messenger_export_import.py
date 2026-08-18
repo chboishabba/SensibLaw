@@ -6,8 +6,14 @@ from typing import Any, Mapping
 
 from src.reporting.source_loaders import list_message_export_json_paths
 from src.reporting.structure_report import TextUnit
-from src.reporting.source_identity import build_hashed_source_id, format_utc_iso_from_timestamp_ms
-from src.reporting.text_unit_builders import build_indexed_text_unit, build_timestamped_speaker_text
+from src.reporting.source_identity import (
+    build_hashed_source_id,
+    format_utc_iso_from_timestamp_ms,
+)
+from src.reporting.text_unit_builders import (
+    build_indexed_text_unit,
+    build_timestamped_speaker_text,
+)
 
 
 SYSTEM_MESSAGE_FRAGMENTS = (
@@ -93,7 +99,9 @@ def _split_sender_message_contamination(sender: str, message: str) -> tuple[str,
     return sender, message
 
 
-def _classify_message(*, sender: str, message: str, conversation: str, ts: str) -> str | None:
+def _classify_message(
+    *, sender: str, message: str, conversation: str, ts: str
+) -> str | None:
     if not sender or not message:
         return "missing_sender_or_message"
     if not ts:
@@ -106,7 +114,9 @@ def _classify_message(*, sender: str, message: str, conversation: str, ts: str) 
     lowered = message.casefold()
     if any(fragment in lowered for fragment in SYSTEM_MESSAGE_FRAGMENTS):
         return "system_fragment"
-    if lowered.startswith(("you sent ", "you replied to ", "you unsent ", "you missed ", "you can now ")):
+    if lowered.startswith(
+        ("you sent ", "you replied to ", "you unsent ", "you missed ", "you can now ")
+    ):
         return "system_prefix"
     if "marketplace" in lowered and "http" not in lowered and "https" not in lowered:
         return "marketplace_noise"
@@ -126,7 +136,9 @@ def _iter_export_paths(export_path: Path) -> list[Path]:
     return list_message_export_json_paths(export_path)
 
 
-def load_messenger_export_units(export_path: str | Path, *, limit: int | None = None) -> list[TextUnit]:
+def load_messenger_export_units(
+    export_path: str | Path, *, limit: int | None = None
+) -> list[TextUnit]:
     paths = _iter_export_paths(Path(export_path))
     units: list[TextUnit] = []
     for path in paths:
@@ -148,7 +160,9 @@ def load_messenger_export_units(export_path: str | Path, *, limit: int | None = 
             if not content:
                 continue
             ts = format_utc_iso_from_timestamp_ms(raw_message.get("timestamp_ms"))
-            reason = _classify_message(sender=sender, message=content, conversation=conversation, ts=ts)
+            reason = _classify_message(
+                sender=sender, message=content, conversation=conversation, ts=ts
+            )
             if reason is not None:
                 continue
             sort_key = int(raw_message.get("timestamp_ms"))
@@ -159,7 +173,9 @@ def load_messenger_export_units(export_path: str | Path, *, limit: int | None = 
                         source_id=source_id,
                         source_type="facebook_messages_archive_sample",
                         index=index,
-                        text=build_timestamped_speaker_text(ts=ts, speaker=sender, text=content),
+                        text=build_timestamped_speaker_text(
+                            ts=ts, speaker=sender, text=content
+                        ),
                     ),
                 )
             )

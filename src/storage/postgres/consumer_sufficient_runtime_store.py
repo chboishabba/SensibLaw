@@ -4,12 +4,15 @@ The global H3/H6/H9 queue remains the proof-required semantic lane. This gateway
 uses the independent consumer queue introduced by migration 094 so one consumer's
 safe early stop cannot suppress deeper work required by another consumer.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 
 from src.policy.numeric_observation_tape import NumericObservationRow
-from src.storage.postgres.numeric_incremental_runtime_store import NumericIncrementalRuntimeStore
+from src.storage.postgres.numeric_incremental_runtime_store import (
+    NumericIncrementalRuntimeStore,
+)
 from src.storage.postgres.spacy_parser_model import connect
 
 

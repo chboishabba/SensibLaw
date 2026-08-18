@@ -1,4 +1,5 @@
 """Shared affidavit reconciliation grouping helpers."""
+
 from __future__ import annotations
 
 import re
@@ -28,7 +29,9 @@ def token_overlap_similarity(left: set[str], right: set[str]) -> float:
 
 
 def build_affidavit_duplicate_candidates(affidavit_text: str) -> list[set[str]]:
-    return [set(tokens) for tokens in _build_affidavit_duplicate_candidates(affidavit_text)]
+    return [
+        set(tokens) for tokens in _build_affidavit_duplicate_candidates(affidavit_text)
+    ]
 
 
 def is_duplicate_affidavit_unit(

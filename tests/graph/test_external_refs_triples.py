@@ -29,8 +29,16 @@ def test_graph_triples_preserve_dbpedia_uris():
     )
 
     pack = legal_graph_to_triples(graph, include_external_refs=True)
-    assert ("concept:demo", "owl:sameAs", "http://dbpedia.org/resource/Westmead_Hospital") in pack.triples
-    assert ("concept:demo", "skos:exactMatch", "http://dbpedia.org/resource/Westmead_Hospital") in pack.triples
+    assert (
+        "concept:demo",
+        "owl:sameAs",
+        "http://dbpedia.org/resource/Westmead_Hospital",
+    ) in pack.triples
+    assert (
+        "concept:demo",
+        "skos:exactMatch",
+        "http://dbpedia.org/resource/Westmead_Hospital",
+    ) in pack.triples
 
 
 def test_graph_triples_canonicalize_wikidata_qids():
@@ -39,7 +47,9 @@ def test_graph_triples_canonicalize_wikidata_qids():
             "concept:demo": Node(
                 identifier="concept:demo",
                 type=NodeType.CONCEPT,
-                metadata={"external_refs": [{"provider": "wikidata", "external_id": "Q42"}]},
+                metadata={
+                    "external_refs": [{"provider": "wikidata", "external_id": "Q42"}]
+                },
             )
         },
         edges=[],
@@ -56,7 +66,11 @@ def test_graph_triples_roundtrip_au_branch_external_refs():
             "concept:au_case_mabo": Node(
                 identifier="concept:au_case_mabo",
                 type=NodeType.CONCEPT,
-                metadata={"external_refs": [{"provider": "wikidata", "external_id": "Q6729646"}]},
+                metadata={
+                    "external_refs": [
+                        {"provider": "wikidata", "external_id": "Q6729646"}
+                    ]
+                },
             ),
             "concept:au_juris_commonwealth": Node(
                 identifier="concept:au_juris_commonwealth",
@@ -64,7 +78,10 @@ def test_graph_triples_roundtrip_au_branch_external_refs():
                 metadata={
                     "external_refs": [
                         {"provider": "wikidata", "external_id": "Q408"},
-                        {"provider": "dbpedia", "external_id": "http://dbpedia.org/resource/Australia"},
+                        {
+                            "provider": "dbpedia",
+                            "external_id": "http://dbpedia.org/resource/Australia",
+                        },
                     ]
                 },
             ),
@@ -74,7 +91,10 @@ def test_graph_triples_roundtrip_au_branch_external_refs():
                 metadata={
                     "external_refs": [
                         {"provider": "wikidata", "external_id": "Q16903290"},
-                        {"provider": "dbpedia", "external_id": "http://dbpedia.org/resource/High_Court_of_Australia"},
+                        {
+                            "provider": "dbpedia",
+                            "external_id": "http://dbpedia.org/resource/High_Court_of_Australia",
+                        },
                     ]
                 },
             ),
@@ -84,10 +104,26 @@ def test_graph_triples_roundtrip_au_branch_external_refs():
 
     pack = legal_graph_to_triples(graph, include_external_refs=True)
     assert ("concept:au_case_mabo", "owl:sameAs", "wikidata:Q6729646") in pack.triples
-    assert ("concept:au_case_mabo", "skos:exactMatch", "wikidata:Q6729646") in pack.triples
-    assert ("concept:au_juris_commonwealth", "owl:sameAs", "http://dbpedia.org/resource/Australia") in pack.triples
-    assert ("concept:au_juris_commonwealth", "skos:exactMatch", "wikidata:Q408") in pack.triples
-    assert ("actor:hca", "owl:sameAs", "http://dbpedia.org/resource/High_Court_of_Australia") in pack.triples
+    assert (
+        "concept:au_case_mabo",
+        "skos:exactMatch",
+        "wikidata:Q6729646",
+    ) in pack.triples
+    assert (
+        "concept:au_juris_commonwealth",
+        "owl:sameAs",
+        "http://dbpedia.org/resource/Australia",
+    ) in pack.triples
+    assert (
+        "concept:au_juris_commonwealth",
+        "skos:exactMatch",
+        "wikidata:Q408",
+    ) in pack.triples
+    assert (
+        "actor:hca",
+        "owl:sameAs",
+        "http://dbpedia.org/resource/High_Court_of_Australia",
+    ) in pack.triples
 
 
 def test_graph_triples_roundtrip_nsw_branch_external_refs():

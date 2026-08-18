@@ -136,9 +136,7 @@ def test_strict_postgres_two_round_probe() -> None:
                 """,
                 (run_ref,),
             )
-            state, zero_round, revision, legacy_null, digest_present = (
-                cursor.fetchone()
-            )
+            state, zero_round, revision, legacy_null, digest_present = cursor.fetchone()
             assert state == "reached"
             assert int(zero_round) == int(rounds[-1][0])
             assert int(revision) == 1
@@ -209,9 +207,7 @@ def test_concurrent_jobs_admit_in_stable_order_without_recomputation() -> None:
                 """,
                 (run_ref,),
             )
-            assert cursor.fetchall() == list(
-                enumerate(expected_job_order, start=1)
-            )
+            assert cursor.fetchall() == list(enumerate(expected_job_order, start=1))
             cursor.execute(
                 """
                 SELECT count(*)

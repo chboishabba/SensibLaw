@@ -27,7 +27,11 @@ def test_live_fetch_and_local_paragraph_parse_opt_in():
         pytest.skip("Set RUN_LIVE_AUSTLII=1 to run live AustLII fetch sanity check.")
 
     adapter = AustLiiFetchAdapter()
-    fetched = adapter.fetch("https://www.austlii.edu.au/cgi-bin/viewdoc/au/cases/cth/HCA/2010/1.html")
-    paragraphs = parse_austlii_paragraphs(fetched.content.decode("utf-8", errors="replace"))
+    fetched = adapter.fetch(
+        "https://www.austlii.edu.au/cgi-bin/viewdoc/au/cases/cth/HCA/2010/1.html"
+    )
+    paragraphs = parse_austlii_paragraphs(
+        fetched.content.decode("utf-8", errors="replace")
+    )
     assert fetched.metadata["source"] == "austlii"
     assert len(paragraphs) > 0

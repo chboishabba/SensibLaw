@@ -114,10 +114,7 @@ def render_pdf(items: Iterable[dict], path: Path) -> None:
     pdf += "xref\n0 6\n0000000000 65535 f \n"
     for off in offsets:
         pdf += f"{off:010d} 00000 n \n"
-    pdf += (
-        "trailer << /Size 6 /Root 1 0 R >>\nstartxref\n"
-        f"{xref_offset}\n%%EOF"
-    )
+    pdf += f"trailer << /Size 6 /Root 1 0 R >>\nstartxref\n{xref_offset}\n%%EOF"
 
     path.write_bytes(pdf.encode("latin-1"))
 

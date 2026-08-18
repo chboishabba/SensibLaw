@@ -11,7 +11,9 @@ from src.wiki_timeline.revision_monitor_query import build_query_payload
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="Query wiki revision monitor runs and contested-region graph artifacts.")
+    ap = argparse.ArgumentParser(
+        description="Query wiki revision monitor runs and contested-region graph artifacts."
+    )
     ap.add_argument("--db-path", required=True)
     ap.add_argument("--pack-id", default=None)
     ap.add_argument("--run-id", default=None)

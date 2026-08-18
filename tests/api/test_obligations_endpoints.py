@@ -21,7 +21,9 @@ def test_query_endpoint_filters_actor():
     )
     data = routes.obligations_query(payload)
     assert data["version"] == QUERY_SCHEMA_VERSION
-    actors = [item["actor"]["normalized"] for item in data["results"] if item.get("actor")]
+    actors = [
+        item["actor"]["normalized"] for item in data["results"] if item.get("actor")
+    ]
     assert actors == ["the operator"]
 
 

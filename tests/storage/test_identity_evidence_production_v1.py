@@ -2,7 +2,9 @@ from pathlib import Path
 
 
 M077 = Path("database/postgres_migrations/077_identity_evidence_production_v1.sql")
-M078 = Path("database/postgres_migrations/078_identity_evidence_parser_sentence_alignment.sql")
+M078 = Path(
+    "database/postgres_migrations/078_identity_evidence_parser_sentence_alignment.sql"
+)
 M079 = Path("database/postgres_migrations/079_identity_evidence_admission_policy.sql")
 M080 = Path("database/postgres_migrations/080_identity_evidence_witness_provenance.sql")
 
@@ -65,9 +67,12 @@ def test_parser_witness_retraction_is_provenance_scoped() -> None:
     assert "semantic_pnf_identity_evidence_witness" in source
     assert "candidate.candidate_id = provenance.candidate_id" in source
     assert "admission.witness_id = provenance.witness_id" in source
-    assert "witness_kind IN (1, 2, 3, 4, 6)" not in source.split(
-        "-- Retract only witnesses", 1
-    )[1].split("INSERT INTO execution.semantic_pnf_canonical_entity", 1)[0]
+    assert (
+        "witness_kind IN (1, 2, 3, 4, 6)"
+        not in source.split("-- Retract only witnesses", 1)[1].split(
+            "INSERT INTO execution.semantic_pnf_canonical_entity", 1
+        )[0]
+    )
 
 
 def test_anaphora_remains_typed_demand_authority() -> None:

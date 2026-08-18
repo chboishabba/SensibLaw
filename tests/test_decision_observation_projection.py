@@ -4,7 +4,10 @@ import pytest
 
 
 def test_case_observation_projection_requires_judge_id() -> None:
-    from src.behavior_projection.decision_observation import ProjectionError, project_case_observation
+    from src.behavior_projection.decision_observation import (
+        ProjectionError,
+        project_case_observation,
+    )
     from src.judicial_behavior.model import CaseObservation
 
     c = CaseObservation(
@@ -23,7 +26,10 @@ def test_case_observation_projection_requires_judge_id() -> None:
 
 
 def test_action_observation_projection_requires_official_id() -> None:
-    from src.behavior_projection.decision_observation import ProjectionError, project_action_observation
+    from src.behavior_projection.decision_observation import (
+        ProjectionError,
+        project_action_observation,
+    )
     from src.official_behavior.action_model import ActionObservation
 
     a = ActionObservation(
@@ -77,4 +83,3 @@ def test_projection_is_deterministic_and_normalized() -> None:
     assert d1.predicate_keys == ("a", "b")
     assert d1.normative_reference_ids == ("x", "z")
     assert d1.context_keys == ("post_911",)
-

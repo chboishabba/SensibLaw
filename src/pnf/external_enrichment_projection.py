@@ -8,7 +8,9 @@ from src.ontology.external_enrichment import ExternalLookupDemand
 
 
 EXTERNAL_LOOKUP_PROJECTION_REF = "pnf-external-lookup-projection:v0_1"
-_ENTITY_FAMILIES = frozenset({"entity", "location", "organization", "person", "class", "role"})
+_ENTITY_FAMILIES = frozenset(
+    {"entity", "location", "organization", "person", "class", "role"}
+)
 
 
 def _mention_rows(artifacts: Mapping[str, Any]) -> dict[str, Mapping[str, Any]]:
@@ -80,9 +82,7 @@ def _is_entity_shaped(
     if reason in {"named_entity_shape", "alias_hint"}:
         return True
     families = {
-        ref.split(":", 1)[1]
-        for ref in type_refs
-        if ref.startswith("semantic-family:")
+        ref.split(":", 1)[1] for ref in type_refs if ref.startswith("semantic-family:")
     }
     return bool(families.intersection(_ENTITY_FAMILIES))
 
@@ -140,9 +140,12 @@ def project_external_lookup_demands(
             continue
         if not include_wiktionary:
             continue
-        if requested_facets.intersection(
-            {"local_type_unresolved", "external_identity_unresolved"}
-        ) and surface.replace("-", "").isalpha():
+        if (
+            requested_facets.intersection(
+                {"local_type_unresolved", "external_identity_unresolved"}
+            )
+            and surface.replace("-", "").isalpha()
+        ):
             projected.append(
                 ExternalLookupDemand(
                     demand_ref=demand_ref,

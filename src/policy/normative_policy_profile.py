@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.ingestion.media_adapter import CanonicalText, ParsedEnvelope, parse_canonical_text
+from src.ingestion.media_adapter import (
+    CanonicalText,
+    ParsedEnvelope,
+    parse_canonical_text,
+)
 from src.ingestion.section_parser import parse_canonical_section
 
 
@@ -16,7 +20,9 @@ def _first_text_ref(parsed_envelope: ParsedEnvelope) -> dict[str, Any]:
             "envelope_id": parsed_envelope.envelope_id,
         }
 
-    segments = parsed_envelope.parsed_segments or parsed_envelope.canonical_text.segments
+    segments = (
+        parsed_envelope.parsed_segments or parsed_envelope.canonical_text.segments
+    )
     if segments:
         return {
             "text_id": parsed_envelope.canonical_text.text_id,

@@ -142,12 +142,8 @@ def _binding_payloads(
             "generator_build_ref": build["generator_build_ref"],
             "reference_factor_revision_ref": build["reference_factor_revision_ref"],
             "document_pnf_index_ref": build.get("document_pnf_index_ref"),
-            "accessibility_declaration_ref": build[
-                "accessibility_declaration_ref"
-            ],
-            "compatibility_declaration_ref": build[
-                "compatibility_declaration_ref"
-            ],
+            "accessibility_declaration_ref": build["accessibility_declaration_ref"],
+            "compatibility_declaration_ref": build["compatibility_declaration_ref"],
             "referential_type_ref": build["referential_type_ref"],
         }
         payloads.append(

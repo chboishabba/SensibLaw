@@ -11,7 +11,10 @@ from src.wiki_timeline.sqlite_store import persist_wiki_timeline_aoo_run
 
 def test_migrate_wiki_timeline_to_itir_db(tmp_path: Path) -> None:
     timeline_path = tmp_path / "wiki_timeline_gwb.json"
-    timeline_path.write_text(json.dumps({"snapshot": {"title": "x"}, "events": []}, sort_keys=True), encoding="utf-8")
+    timeline_path.write_text(
+        json.dumps({"snapshot": {"title": "x"}, "events": []}, sort_keys=True),
+        encoding="utf-8",
+    )
     source_db = tmp_path / "wiki_timeline_aoo.sqlite"
     dest_db = tmp_path / "itir.sqlite"
 
@@ -21,7 +24,14 @@ def test_migrate_wiki_timeline_to_itir_db(tmp_path: Path) -> None:
         "events": [
             {
                 "event_id": "ev:1",
-                "anchor": {"year": 2001, "month": 9, "day": 11, "precision": "day", "kind": "mention", "text": "September 11, 2001"},
+                "anchor": {
+                    "year": 2001,
+                    "month": 9,
+                    "day": 11,
+                    "precision": "day",
+                    "kind": "mention",
+                    "text": "September 11, 2001",
+                },
                 "section": "Narrative",
                 "text": "Example event",
                 "actors": [],
@@ -55,7 +65,9 @@ def test_migrate_wiki_timeline_to_itir_db(tmp_path: Path) -> None:
         check=False,
     )
 
-    assert proc.returncode == 1  # required suffix set is incomplete in this synthetic fixture
+    assert (
+        proc.returncode == 1
+    )  # required suffix set is incomplete in this synthetic fixture
     assert dest_db.exists()
     with sqlite3.connect(dest_db) as conn:
         conn.row_factory = sqlite3.Row

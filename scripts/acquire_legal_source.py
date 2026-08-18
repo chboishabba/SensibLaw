@@ -122,7 +122,9 @@ def main() -> int:
             if hashlib.sha256(canonical_text.encode("utf-8")).hexdigest() != (
                 canonical_sha256_hex
             ):
-                raise ValueError("acquisition canonical text digest is not reproducible")
+                raise ValueError(
+                    "acquisition canonical text digest is not reproducible"
+                )
             document_ref = _operational_document_ref(
                 source_content_sha256=str(receipt.content_sha256),
                 canonical_text_sha256=canonical_sha256_hex,

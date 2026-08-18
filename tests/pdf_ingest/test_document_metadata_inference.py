@@ -37,8 +37,7 @@ def test_build_document_computes_checksum() -> None:
     document = build_document(pages, Path("act-2005-004.pdf"))
 
     expected_body = (
-        "Queensland\n"
-        "Summary Offences Act 2005 Current as at 2 September 2024 2005"
+        "Queensland\nSummary Offences Act 2005 Current as at 2 September 2024 2005"
     )
     expected_checksum = hashlib.sha256(expected_body.encode("utf-8")).hexdigest()
 
@@ -60,4 +59,3 @@ def test_build_document_without_cover_banner_defaults() -> None:
     assert document.metadata.jurisdiction == ""
     assert document.metadata.title == "Corporations Act 2001"
     assert document.metadata.date == today
-

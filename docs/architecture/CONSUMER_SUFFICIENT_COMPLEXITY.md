@@ -1,0 +1,211 @@
+# Consumer-sufficient runtime complexity
+
+Exact Kolmogorov complexity is not a runtime metric: `K(x)` is uncomputable and
+cannot be used as an empirical performance claim.  The ITIR/PNF optimization
+boundary is instead a computable structural surrogate constrained by the formal
+consumer-safety theorems.
+
+For a represented carrier `X`, use an explicitly unit-normalised operational
+cost such as
+
+```text
+Khat(X) = |nodes| + |edges| + |residuals| + |encoded units| + |boundary demands|.
+```
+
+Weights or physical units may be introduced by a benchmark, but incomparable
+units must not be silently added.  `src/runtime/semantic_complexity_audit.py`
+therefore exposes raw counts and a unit-weight reference projection rather than
+claiming a universal information measure.
+
+A smaller projection is admissible for consumer `C` only when all of the
+following are established:
+
+```text
+C(X) = C(pi(X))
+residual(X) = residual(pi(X))
+provenance(X) = provenance(pi(X))
+Khat(pi(X)) <= Khat(X).
+```
+
+A missing factorisation/provenance/residual premise is `indeterminate`; a cheap
+destructive quotient is not an optimization certificate.
+
+State complexity and transition complexity are distinct.  The preferred
+transition contract is
+
+```text
+measured work <= |active frontier| + |dependency edges touched|,
+```
+
+not repeated work over the whole document or whole accumulated owner carrier.
+`repeated_full_fibre_exposure()` makes this physical distinction explicit.  If
+one proposal reaches one owner in each of eight waves, repeatedly scanning the
+entire accumulated fibre exposes
+
+```text
+1 + 2 + ... + 8 = 36
+```
+
+proposal units while the final carrier contains only eight proposals.  This is
+an execution-cost witness, not permission to replace the reducer with an
+incremental fold.
+
+The companion Agda surfaces are:
+
+- `ConsumerSufficientComplexityExact.agda`: consumer observation, residual,
+  provenance and non-increasing operational-description requirements;
+- `OwnerFibreReductionComplexityExact.agda`: repeated full-fibre exposure,
+  independent-owner commutation, and the stronger append-homomorphism required
+  before same-owner incremental reduction;
+- `SignatureBucketReductionFactorizationExact.agda`: the proof boundary for an
+  internal cache over the reducer's exact semantic signature buckets.
+
+## Complexity findings from the current Python/PostgreSQL pass
+
+### Parentless sentence ancestor maintenance
+
+Sentence interfaces are closed before paragraph/adaptive/document parent
+interfaces exist.  The former `rebuild_pnf_interface_ancestors()` implementation
+deleted two ancestor projections before discovering `parent_interface_id IS
+NULL`.  Migration 141 moves the parent lookup ahead of those writes.  A
+parentless sentence interface now performs no ancestor-table mutation; parented
+interfaces retain the previous construction.
+
+### Document ancestor materialization
+
+The former document rebuild first deleted the whole document ancestor projection
+and then looped over every interface, invoking the per-interface builder.  That
+repeated per-interface deletes against already-cleared tables and materialized
+binary lifting one interface at a time.
+
+Migration 142 makes the relation explicit as one recursive projection
+
+```text
+(descendant interface, ancestor interface, distance).
+```
+
+Binary-lifting rows are the subset whose distance is `2^p`; typed ancestors are
+the nearest ancestor for each region kind.  Both are inserted set-wise.  The
+semantic parent relation and return-count contract are unchanged.
+
+### Intermediate hierarchy ancestry is deferred
+
+`_close_parent_interface()` assigns each newly created paragraph/adaptive parent
+to its child interfaces and historically rebuilt every affected child ancestor
+path plus the new parent path immediately.  The hierarchy planner itself does
+not consume those transient projections while parent assignment is still in
+flux.
+
+Migration 143 therefore lets targeted ancestor refreshes return before writes
+while the document region remains open.  The document-close trigger remains the
+authoritative first full projection boundary.  Adjacent pair interfaces are
+created after document closure, so their targeted ancestor refresh remains live.
+
+This is the formal consumer-sufficiency rule applied physically:
+
+```text
+no consumer yet -> do not maintain a derived carrier yet.
+```
+
+### Duplicate full ancestor rebuilds use exact freshness state
+
+Document closure already triggers `rebuild_pnf_document_ancestors`, and the
+numeric hierarchy planner also requests the same rebuild immediately after
+closing the document.  Migration 144 preserves both call boundaries but stores
+the exact ordered `(interface_id,parent_interface_id)` relation plus interface
+count as DB-local execution freshness state.  If those values are unchanged, a
+repeat request returns before DELETE/recursive work.  Any parent/interface
+change invalidates the state and rebuilds the complete projection.
+
+The state deliberately uses database-local ids because it is only a physical
+projection-cache key.  It is exact content equality rather than a cryptographic
+hash, so it requires no extension and introduces no collision-based stale-cache
+case.  It is not portable semantic identity and is not consumed by receipts.
+
+### Owner reduction
+
+The bounded streaming owner may repeatedly invoke the canonical reducer over the
+entire accumulated coarse owner fibre.  This can create triangular physical scan
+exposure across many proposal waves.  The canonical reducer itself first
+partitions by
+
+```text
+(semantic coordinate, fibre kind, factor type, structural signature)
+```
+
+and performs compatibility grouping only inside each signature bucket.
+
+However, proposal validity also depends on the global `known_dependency_refs`
+set.  A correct cache must therefore separate
+
+```text
+dependency-validity invalidation
+    -> signature-local compatibility reduction.
+```
+
+Changing the public `OwnerKey` or incrementally folding same-owner summaries is
+not licensed merely by the cost profile.  The concrete reducer uses canonical
+proposal ordering and greedy first-compatible grouping; same-owner incremental
+execution requires the stronger homomorphism proof formalized in Agda.
+
+### Sparse frontier closure and root publication
+
+Migrations 062, 068 and 071 establish sparse hierarchical frontiers with
+root-only visible/global publication. Canonical containment is therefore not
+the same topology as adjacent reconciliation: sentence/paragraph adjacency
+interfaces (kinds 2 and 4), and the parentless evidence lane (kind 9), are
+overlapping execution fibres. They retain their checked evidence through their
+own executor and are never reduced as canonical parents.
+
+Migration 145 preserves the canonical parent reducer and replaces the later
+document-wide compatibility sweep with a durable dirty carrier. Missing or
+stale canonical reduction receipts seed recovery; a changed canonical child
+can enqueue only its canonical parent. The document reducer drains that
+bottom-up closure, so fresh interfaces are not rebuilt merely because root
+publication was requested.
+
+The hierarchy phase still performs the authoritative root-visible publication
+needed before adjacency. Under the current consumer contract, paragraph
+adjacency records residual/evidence information but neither mutates canonical
+frontiers nor supplies root-consumed resolution. The later final publication
+therefore reuses the exact root-visible count and performs no database work.
+That shortcut is conditional: if the hierarchy certificate is unavailable, the
+runtime falls back to canonical publication; any future consumer of adjacency
+evidence must introduce an explicit dirtying transition before it can use the
+shortcut.
+
+## Historical hour-scale paths and production reachability
+
+The historical rich compiler exposed two major hour-scale families: local typing
+diagnostics and rich PostgreSQL persistence.  The strict numeric compiler no
+longer requires either carrier.  It runs `run_streaming_spacy_execution`, writes
+the numeric hyperfabric as it is constructed, and its outer publication step
+persists only source/build/occurrence authority plus optional controlled
+observability.
+
+The compatibility implementations remain intentionally available for parity,
+audit and migration work.  This distinction matters because the historical
+`run_complete_tranche.py` CLI explicitly selects `local-compatibility-replay`
+unless `--strict-exact` is supplied, overriding the repository-wide PostgreSQL
+numeric-production default.
+
+Production entrypoints now fail on the safe side of that old CLI contract:
+
+- `scripts/run_complete_tranche_production.py` injects `--strict-exact`;
+- `scripts/benchmark_complete_tranche_phases.py` also defaults to strict numeric
+  and requires explicit `--compatibility-replay` to benchmark the historical
+  path.
+
+Thus an ordinary production/full-tranche timing run cannot silently resurrect
+the old document-sized typing and compatibility-persistence work simply because
+the strict flag was forgotten.  The historical runner is retained as a
+compatibility surface rather than silently changing a parity/migration CLI in
+place.
+
+## Empirical boundary
+
+These structural changes remove demonstrably redundant or non-production work
+before another large ingest, but they are not themselves wall-time measurements.
+The durable complete-tranche phase timer remains the empirical authority for
+deciding which minutes/hours phase dominates after migrations 141--145 are
+applied and the strict numeric production entrypoint is used.

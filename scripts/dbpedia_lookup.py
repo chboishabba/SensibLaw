@@ -95,7 +95,7 @@ PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 
-SELECT {' '.join(select_vars)} WHERE {{
+SELECT {" ".join(select_vars)} WHERE {{
 {type_triple}  ?item rdfs:label ?label .
   FILTER (lang(?label) = "en") .
   FILTER (CONTAINS(LCASE(STR(?label)), "{term_lc}")) .
@@ -156,9 +156,17 @@ def _bindings_to_rows(payload: dict) -> List[Dict[str, Any]]:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Lookup DBpedia URIs via SPARQL label search.")
-    ap.add_argument("term", help="Search term (matched as case-insensitive substring of rdfs:label)")
-    ap.add_argument("--endpoint", default=DEFAULT_ENDPOINT, help=f"SPARQL endpoint (default: {DEFAULT_ENDPOINT})")
+    ap = argparse.ArgumentParser(
+        description="Lookup DBpedia URIs via SPARQL label search."
+    )
+    ap.add_argument(
+        "term", help="Search term (matched as case-insensitive substring of rdfs:label)"
+    )
+    ap.add_argument(
+        "--endpoint",
+        default=DEFAULT_ENDPOINT,
+        help=f"SPARQL endpoint (default: {DEFAULT_ENDPOINT})",
+    )
     ap.add_argument(
         "--method",
         default="get",
@@ -171,9 +179,17 @@ def main() -> int:
         default=None,
         help="Optional rdf:type URI filter (e.g. http://dbpedia.org/ontology/Hospital)",
     )
-    ap.add_argument("--with-abstract", action="store_true", help="Include dbo:abstract in results (slower)")
-    ap.add_argument("--with-type", action="store_true", help="Include rdf:type in results (slower)")
-    ap.add_argument("--timeout", type=int, default=30, help="HTTP timeout seconds (default: 30)")
+    ap.add_argument(
+        "--with-abstract",
+        action="store_true",
+        help="Include dbo:abstract in results (slower)",
+    )
+    ap.add_argument(
+        "--with-type", action="store_true", help="Include rdf:type in results (slower)"
+    )
+    ap.add_argument(
+        "--timeout", type=int, default=30, help="HTTP timeout seconds (default: 30)"
+    )
     ap.add_argument(
         "--cache-dir",
         default=str(Path("SensibLaw/.cache_local/dbpedia").as_posix()),
@@ -185,7 +201,9 @@ def main() -> int:
         default=7 * 24 * 3600,
         help="Cache max age seconds; 0 disables expiry (default: 7 days)",
     )
-    ap.add_argument("--no-cache", action="store_true", help="Disable cache reads/writes")
+    ap.add_argument(
+        "--no-cache", action="store_true", help="Disable cache reads/writes"
+    )
     ap.add_argument("--raw", action="store_true", help="Print raw SPARQL JSON response")
     args = ap.parse_args()
 
@@ -200,7 +218,9 @@ def main() -> int:
     cache_dir = Path(args.cache_dir)
 
     if not args.no_cache:
-        cached = _read_cache(cache_dir, cache_key, max_age_s=max(0, args.cache_max_age_s))
+        cached = _read_cache(
+            cache_dir, cache_key, max_age_s=max(0, args.cache_max_age_s)
+        )
         if cached is not None:
             print(json.dumps(cached, indent=2, sort_keys=True))
             return 0
@@ -212,7 +232,10 @@ def main() -> int:
             raw = _get_sparql_json(args.endpoint, query, timeout_s=args.timeout)
     except Exception as exc:
         print(f"error: dbpedia lookup failed: {exc}", file=sys.stderr)
-        print("hint: network/DNS must allow outbound access to dbpedia.org", file=sys.stderr)
+        print(
+            "hint: network/DNS must allow outbound access to dbpedia.org",
+            file=sys.stderr,
+        )
         return 2
 
     out: dict = {

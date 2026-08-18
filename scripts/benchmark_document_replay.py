@@ -4,15 +4,15 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
-from datetime import UTC, datetime
 import hashlib
 import os
-from pathlib import Path
 import pickle
-from pprint import pformat
 import subprocess
 import sys
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from pathlib import Path
+from pprint import pformat
 from time import monotonic_ns
 from typing import Any, Mapping
 
@@ -20,13 +20,15 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from scripts.run_exact_0008_parallel_acceptance import (  # noqa: E402
+    _json as read_report,
+)
+from src.runtime.performance_constitution import assess_replay_run  # noqa: E402
 from src.runtime.semantic_parity import (  # noqa: E402
     canonical_stream_digest,
     compare_semantic_surfaces,
     semantic_surface_from_execution_receipt,
 )
-from scripts.run_exact_0008_parallel_acceptance import _json as read_report  # noqa: E402
-
 
 SCHEMA_VERSION = "sensiblaw.document-replay-benchmark.v1"
 MODES = ("full", "batched", "disabled")
@@ -36,6 +38,15 @@ MODES = ("full", "batched", "disabled")
 class DocumentCase:
     label: str
     path: Path
+
+
+def _acceptance_ref(*, case: DocumentCase, mode: str, run_root: Path) -> str:
+    """Return a provisioning-unique acceptance reference for one replay."""
+
+    run_token = hashlib.sha256(
+        str(run_root.parents[1].resolve()).encode("utf-8")
+    ).hexdigest()[:16]
+    return f"replay-{run_token}-{case.label}-{mode}"
 
 
 def _mapping(path: Path) -> dict[str, Any]:
@@ -91,6 +102,34 @@ def _find_semantic_receipt(root: Path) -> Path | None:
     return None
 
 
+def _process_execution(
+    *, strict_path: Path, strict_receipt: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Read parallel-worker evidence from the exact acceptance comparison."""
+
+    comparison_path = strict_path.parent.parent / "parallel-acceptance-comparison.json"
+    comparison = _mapping(comparison_path) if comparison_path.exists() else {}
+    return dict(
+        comparison.get("process_execution")
+        or strict_receipt.get("process_execution")
+        or {}
+    )
+
+
+def _strict_completed(*, strict_receipt: Mapping[str, Any]) -> bool:
+    """Accept either strict authority's receipt shape as replay completion.
+
+    Compatibility execution emits a semantic checkpoint receipt.  Numeric
+    production instead seals its publication in the strict acceptance receipt;
+    requiring a compatibility artifact would misreport a successful numeric
+    replay as incomplete.
+    """
+
+    return bool(strict_receipt.get("accepted")) and (
+        str(strict_receipt.get("state") or "") == "completed"
+    )
+
+
 def _kernel_seconds(receipt: Mapping[str, Any], prefix: str) -> float:
     total = 0
     for row in receipt.get("kernel_timeline") or ():
@@ -103,16 +142,73 @@ def _kernel_seconds(receipt: Mapping[str, Any], prefix: str) -> float:
     return total / 1_000_000_000
 
 
-def _metrics(path: Path) -> dict[str, int]:
+def _metrics(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
     value = pickle.loads(path.read_bytes())
-    return {str(key): int(item) for key, item in dict(value).items()}
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _numeric_work_timing(progress_path: Path) -> dict[str, Any]:
+    """Extract already-recorded numeric work timing from the durable phase ledger.
+
+    The values are aggregate process-active work. They are useful for resource
+    efficiency comparisons but are deliberately not projected into
+    ``kernel_seconds`` because concurrent worker work is not an exclusive wall
+    stage and therefore cannot establish the parser-dominance wall-time target.
+    """
+
+    if not progress_path.exists():
+        return {
+            "timing_basis": None,
+            "spacy_parser_work_seconds": None,
+            "post_parser_work_seconds": None,
+            "post_parser_to_spacy_work_ratio": None,
+            "evidence_path": str(progress_path),
+        }
+    payload = _mapping(progress_path)
+    selected: Mapping[str, Any] | None = None
+    for event in payload.get("events") or ():
+        if not isinstance(event, Mapping):
+            continue
+        details = event.get("details")
+        if not isinstance(details, Mapping):
+            continue
+        if "spacy_parser_work_ns" in details and "post_parser_work_ns" in details:
+            selected = details
+    if selected is None:
+        return {
+            "timing_basis": None,
+            "spacy_parser_work_seconds": None,
+            "post_parser_work_seconds": None,
+            "post_parser_to_spacy_work_ratio": None,
+            "evidence_path": str(progress_path),
+        }
+    parser_ns = int(selected.get("spacy_parser_work_ns") or 0)
+    post_ns = int(selected.get("post_parser_work_ns") or 0)
+    return {
+        "timing_basis": selected.get("timing_basis"),
+        "spacy_parser_work_seconds": parser_ns / 1_000_000_000,
+        "post_parser_worker_work_seconds": int(
+            selected.get("post_parser_worker_work_ns") or 0
+        )
+        / 1_000_000_000,
+        "post_parser_coordinator_seconds": int(
+            selected.get("post_parser_coordinator_ns") or 0
+        )
+        / 1_000_000_000,
+        "post_parser_work_seconds": post_ns / 1_000_000_000,
+        "post_parser_to_spacy_work_ratio": (
+            post_ns / parser_ns if parser_ns > 0 else None
+        ),
+        "evidence_path": str(progress_path),
+    }
 
 
 def _command(
     *,
     case: DocumentCase,
+    mode: str,
     run_root: Path,
     database_url: str,
     postgres_mode: str,
@@ -120,6 +216,11 @@ def _command(
     strict_exact: bool,
     owner_partitions: int,
 ) -> list[str]:
+    acceptance_root = (
+        run_root
+        / "acceptance"
+        / _acceptance_ref(case=case, mode=mode, run_root=run_root)
+    )
     command = [
         sys.executable,
         str(ROOT / "scripts" / "run_exact_0008_parallel_acceptance.py"),
@@ -132,7 +233,7 @@ def _command(
         "--output-root",
         str(run_root / "output"),
         "--acceptance-root",
-        str(run_root / "acceptance"),
+        str(acceptance_root),
         "--semantic-checkpoint-root",
         str(run_root / "semantic-checkpoints"),
         "--owner-partitions",
@@ -168,6 +269,7 @@ def _run_case(
     run_root.mkdir(parents=True)
     command = _command(
         case=case,
+        mode=mode,
         run_root=run_root,
         database_url=database_url,
         postgres_mode=postgres_mode,
@@ -177,12 +279,14 @@ def _run_case(
     )
     if reference_receipt is not None:
         command.extend(("--reference-semantic-receipt", str(reference_receipt)))
+    persistence_metrics_path = run_root / "persistence-metrics.pkl"
     environment = os.environ.copy()
     environment.update(
         {
             "SENSIBLAW_PROGRESS_PERSISTENCE_MODE": mode,
             "SENSIBLAW_PROGRESS_BATCH_EVENTS": str(batch_events),
             "SENSIBLAW_PROGRESS_BATCH_SECONDS": str(batch_seconds),
+            "SENSIBLAW_PERSISTENCE_METRICS_PATH": str(persistence_metrics_path),
             "PYTHONUNBUFFERED": "1",
         }
     )
@@ -215,9 +319,34 @@ def _run_case(
     semantic_root = run_root / "semantic-checkpoints"
     receipt_path = _find_semantic_receipt(semantic_root)
     receipt = _typed(receipt_path) if receipt_path is not None else {}
-    strict_path = run_root / "acceptance" / "strict" / "acceptance-receipt.json"
+    strict_path = (
+        run_root
+        / "acceptance"
+        / _acceptance_ref(case=case, mode=mode, run_root=run_root)
+        / "strict"
+        / "acceptance-receipt.json"
+    )
     strict = _mapping(strict_path) if strict_path.exists() else {}
-    metrics = _metrics(semantic_root / "progress" / "metrics.pkl")
+    progress_metrics = _metrics(semantic_root / "progress" / "metrics.pkl")
+    persistence_metrics = _metrics(persistence_metrics_path)
+    compile_progress_path = (
+        run_root / "output" / tranche.lower() / "local_pnf_compile_progress.json"
+    )
+    numeric_work_timing = _numeric_work_timing(compile_progress_path)
+    closure_audit = dict(receipt.get("closure_audit") or {})
+    owner_reduction = {
+        key: closure_audit.get(key)
+        for key in (
+            "jobs_completed",
+            "proposals_emitted",
+            "materialized_factors",
+            "proposals_examined_per_emitted",
+            "factor_scans_per_changed_factor",
+            "handoff_compact_checkpoints",
+            "handoff_compact_checkpoint_ns",
+            "handoff_checkpoint_replay_rows_serialized",
+        )
+    }
     surface = (
         semantic_surface_from_execution_receipt(receipt)
         if receipt.get("state") == "completed"
@@ -229,14 +358,24 @@ def _run_case(
         "input_sha256": _sha256(case.path),
         "mode": mode,
         "returncode": completed.returncode,
-        "completed": receipt.get("state") == "completed",
+        "completed": _strict_completed(strict_receipt=strict),
         "wall_seconds": wall_ns / 1_000_000_000,
+        # Only explicitly measured, exclusive kernel timings belong here. The
+        # process-active parser/post-parser work projection is separate below.
         "kernel_seconds": {
             "local_typing": _kernel_seconds(receipt, "local_typing_diagnostics:"),
             "closure": _kernel_seconds(receipt, "streaming_closure:"),
         },
+        "numeric_work_timing": numeric_work_timing,
         "resources": dict(strict.get("resources") or {}),
-        "persistence": metrics,
+        "process_execution": _process_execution(
+            strict_path=strict_path, strict_receipt=strict
+        ),
+        "owner_reduction": owner_reduction,
+        "persistence": {
+            "progress": progress_metrics,
+            "work_conserving": persistence_metrics,
+        },
         "semantic_receipt": str(receipt_path) if receipt_path else None,
         "semantic_surface_digest": canonical_stream_digest(surface)
         if surface
@@ -245,6 +384,8 @@ def _run_case(
             "run_root": str(run_root),
             "stdout": str(stdout_path),
             "stderr": str(stderr_path),
+            "persistence_metrics": str(persistence_metrics_path),
+            "compile_progress": str(compile_progress_path),
         },
     }
 
@@ -316,6 +457,7 @@ def main() -> int:
                 )
             else:
                 row["parity"] = {"semantic_parity": None}
+            row["performance_constitution"] = assess_replay_run(row)
             rows.append(row)
     report = {
         "schema_version": SCHEMA_VERSION,
@@ -334,7 +476,7 @@ def main() -> int:
     report_path = output_root / "benchmark-report.pkl"
     report_path.write_bytes(pickle.dumps(report, protocol=5))
     print(pformat(report, sort_dicts=True))
-    return 0 if all(row["returncode"] == 0 for row in rows) else 1
+    return 0 if all(row["completed"] for row in rows) else 1
 
 
 if __name__ == "__main__":

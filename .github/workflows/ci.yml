@@ -115,16 +115,53 @@ jobs:
                   """
                   def extract_text(path):
                       return ""
+
+
+                  def extract_pages(path):
+                      return []
                   """
               ).lstrip()
+          )
+
+          (ROOT / "pdfminer" / "layout.py").write_text(
+              dedent(
+                  """
+                  class LTAnno:
+                      pass
+
+
+                  class LTChar:
+                      pass
+
+
+                  class LTTextContainer:
+                      pass
+                  """
+              ).lstrip()
+          )
+
+          (ROOT / "pdfminer" / "pdfdocument.py").write_text(
+              "class PDFDocument:\n    def __init__(self, parser):\n        self.parser = parser\n"
+          )
+          (ROOT / "pdfminer" / "pdfpage.py").write_text(
+              "class PDFPage:\n    @staticmethod\n    def create_pages(document):\n        return iter(())\n"
+          )
+          (ROOT / "pdfminer" / "pdfparser.py").write_text(
+              "class PDFParser:\n    def __init__(self, handle):\n        self.handle = handle\n"
+          )
+          (ROOT / "pdfminer" / "pdftypes.py").write_text(
+              "def resolve1(value):\n    return value\n"
           )
 
           (ROOT / "pdfminer" / "__init__.py").touch()
           PY
           export PYTHONPATH="stubs:."
+          python -c "import src.pdf_ingest"
           pytest -q
           python -m src.cli --help
           python scripts/generate_sample_corpus.py
+          test -s data/corpus/sample_act.json
+          test -s data/corpus/sample_judgment.json
           python examples/distinguish_glj/demo.py
           python -m src.pdf_ingest --help
       - name: Test

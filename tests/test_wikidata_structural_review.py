@@ -54,17 +54,27 @@ def test_build_wikidata_structural_review_artifact(tmp_path: Path) -> None:
     review_item_ids = {row["review_item_id"] for row in artifact["review_item_rows"]}
     assert "review:qualifier_baseline" in review_item_ids
     assert "review:qualifier_drift:Q100104196|P166" in review_item_ids
-    assert "review:hotspot_pack:software_entity_kind_collapse_pack_v0" in review_item_ids
+    assert (
+        "review:hotspot_pack:software_entity_kind_collapse_pack_v0" in review_item_ids
+    )
     assert "review:disjointness_case:working_fluid_contradiction" in review_item_ids
 
-    clusters = {row["review_item_id"]: row for row in artifact["related_review_clusters"]}
-    held_pack_cluster = clusters["review:hotspot_pack:software_entity_kind_collapse_pack_v0"]
+    clusters = {
+        row["review_item_id"]: row for row in artifact["related_review_clusters"]
+    }
+    held_pack_cluster = clusters[
+        "review:hotspot_pack:software_entity_kind_collapse_pack_v0"
+    ]
     assert held_pack_cluster["dominant_workload_class"] == "governance_gap"
     assert held_pack_cluster["candidate_cue_rollup"]["hold_reason"] == 1
     assert held_pack_cluster["candidate_cue_rollup"]["sample_question"] == 2
 
-    contradiction_cluster = clusters["review:disjointness_case:working_fluid_contradiction"]
-    assert contradiction_cluster["dominant_workload_class"] == "structural_contradiction"
+    contradiction_cluster = clusters[
+        "review:disjointness_case:working_fluid_contradiction"
+    ]
+    assert (
+        contradiction_cluster["dominant_workload_class"] == "structural_contradiction"
+    )
     assert contradiction_cluster["candidate_cue_rollup"]["pair_label"] == 1
     assert contradiction_cluster["candidate_cue_rollup"]["violation_counts"] == 1
 

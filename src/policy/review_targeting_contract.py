@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence
+from typing import Any, Sequence
 
 
-SEMANTIC_SEPARABILITY_ASSESSMENT_SCHEMA_VERSION = "sl.semantic_separability_assessment.v0_1"
+SEMANTIC_SEPARABILITY_ASSESSMENT_SCHEMA_VERSION = (
+    "sl.semantic_separability_assessment.v0_1"
+)
 _NORMALIZED_GWB_TARGET_SPLIT_KIND = {
     "matched_event": "event_split",
     "matched_source_family": "family_split",
@@ -115,19 +117,29 @@ def summarize_gwb_targeting_results(
     selection_basis_counts: dict[str, int] = {}
     ambiguous_seeds: list[dict[str, Any]] = []
     for result in results:
-        selection_mode_counts[result.selection_mode] = selection_mode_counts.get(result.selection_mode, 0) + 1
-        selection_basis_counts[result.selection_basis] = selection_basis_counts.get(result.selection_basis, 0) + 1
+        selection_mode_counts[result.selection_mode] = (
+            selection_mode_counts.get(result.selection_mode, 0) + 1
+        )
+        selection_basis_counts[result.selection_basis] = (
+            selection_basis_counts.get(result.selection_basis, 0) + 1
+        )
         if result.selection_mode == "multi_candidate_unresolved":
             ambiguous_seeds.append(
                 {
                     "seed_id": result.seed_id,
                     "claim_id": result.claim_id,
                     "candidate_count": result.candidate_count,
-                    "candidate_refs": [candidate.candidate_ref for candidate in result.candidate_targets],
+                    "candidate_refs": [
+                        candidate.candidate_ref
+                        for candidate in result.candidate_targets
+                    ],
                 }
             )
     ambiguous_seeds.sort(
-        key=lambda item: (-int(item.get("candidate_count") or 0), str(item.get("seed_id") or ""))
+        key=lambda item: (
+            -int(item.get("candidate_count") or 0),
+            str(item.get("seed_id") or ""),
+        )
     )
     return {
         "selection_mode_counts": selection_mode_counts,
@@ -183,12 +195,18 @@ def build_gwb_ambiguous_seed_inventory(
                 {
                     "candidate_ref": candidate.candidate_ref,
                     "candidate_kind": candidate.candidate_kind,
-                    "normalized_split_kind": normalize_gwb_target_split_kind(candidate.target_split_kind),
-                    "split_value": str(candidate.target_split_value or "").strip() or None,
-                    "text_or_label": str(candidate.target_text_or_label or "").strip() or None,
-                    "coverage_basis": str(candidate.target_coverage_basis or "").strip() or None,
+                    "normalized_split_kind": normalize_gwb_target_split_kind(
+                        candidate.target_split_kind
+                    ),
+                    "split_value": str(candidate.target_split_value or "").strip()
+                    or None,
+                    "text_or_label": str(candidate.target_text_or_label or "").strip()
+                    or None,
+                    "coverage_basis": str(candidate.target_coverage_basis or "").strip()
+                    or None,
                     "target_proposition_id": str(
-                        candidate.target_proposition_identity.get("proposition_id") or ""
+                        candidate.target_proposition_identity.get("proposition_id")
+                        or ""
                     ).strip()
                     or None,
                 }
@@ -198,14 +216,18 @@ def build_gwb_ambiguous_seed_inventory(
                 "seed_id": result.seed_id,
                 "claim_id": result.claim_id,
                 "candidate_count": result.candidate_count,
-                "candidate_refs": [candidate.candidate_ref for candidate in result.candidate_targets],
+                "candidate_refs": [
+                    candidate.candidate_ref for candidate in result.candidate_targets
+                ],
                 "candidate_kinds": candidate_kinds,
                 "relation_kinds": relation_kinds,
                 "anchor_ref_keys": anchor_ref_keys,
                 "selection_basis": result.selection_basis,
                 "selection_mode": result.selection_mode,
                 "normalized_split_kinds": split_kinds,
-                "semantic_separability": str(separability.get("assessment_status") or "").strip(),
+                "semantic_separability": str(
+                    separability.get("assessment_status") or ""
+                ).strip(),
                 "semantic_reason_codes": [
                     str(value).strip()
                     for value in separability.get("reason_codes", [])
@@ -214,7 +236,12 @@ def build_gwb_ambiguous_seed_inventory(
                 "candidate_cards": candidate_cards,
             }
         )
-    inventory.sort(key=lambda item: (-int(item.get("candidate_count") or 0), str(item.get("seed_id") or "")))
+    inventory.sort(
+        key=lambda item: (
+            -int(item.get("candidate_count") or 0),
+            str(item.get("seed_id") or ""),
+        )
+    )
     return inventory[: max(int(top_n), 0)]
 
 
@@ -233,7 +260,11 @@ def assess_gwb_semantic_separability(*, result: GWBTargetingResult) -> dict[str,
             reason_codes=("no_target",),
         ).as_dict()
 
-    candidate_refs = tuple(candidate.candidate_ref for candidate in result.candidate_targets if candidate.candidate_ref)
+    candidate_refs = tuple(
+        candidate.candidate_ref
+        for candidate in result.candidate_targets
+        if candidate.candidate_ref
+    )
     if result.candidate_count == 1:
         return SemanticSeparabilityAssessment(
             lane="gwb",

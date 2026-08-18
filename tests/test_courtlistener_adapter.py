@@ -18,7 +18,9 @@ def test_courtlistener_adapter_fetch_returns_known_statute() -> None:
 
 
 def test_courtlistener_statute_follow_builder_limits_cases() -> None:
-    artifact = build_courtlistener_statute_case_follow("statute:us:section:1983", limit=1)
+    artifact = build_courtlistener_statute_case_follow(
+        "statute:us:section:1983", limit=1
+    )
     assert artifact["artifact_role"] == "derived_product"
     assert artifact["lineage"]["upstream_artifact_ids"] == ["statute:us:section:1983"]
     assert artifact["summary"]["case_count"] == 1

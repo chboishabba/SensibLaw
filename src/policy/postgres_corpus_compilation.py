@@ -274,9 +274,14 @@ def _compile_document_postgres_worker(
                     parser_overlap_chars=int(store_kwargs["parser_overlap_chars"]),
                     parser_checkpoint_dir=store_kwargs["parser_checkpoint_dir"],
                     progress=document_progress,
-                    execution_strategy_ref=str(store_kwargs.get("execution_strategy_ref") or "local-compatibility-replay"),
+                    execution_strategy_ref=str(
+                        store_kwargs.get("execution_strategy_ref")
+                        or "local-compatibility-replay"
+                    ),
                     database_url=database_url,
-                    strict_run_ref=str(store_kwargs.get("strict_run_ref") or f"strict:{document_ref}"),
+                    strict_run_ref=str(
+                        store_kwargs.get("strict_run_ref") or f"strict:{document_ref}"
+                    ),
                 )
             return {
                 "document_ref": document_ref,
@@ -288,7 +293,11 @@ def _compile_document_postgres_worker(
                 "elapsed_ms": max(0, (monotonic_ns() - started_ns) // 1_000_000),
             }
         except (OSError, UnicodeDecodeError, ValueError, RuntimeError) as error:
-            if str(store_kwargs.get("execution_strategy_ref") or "") == "postgresql-leased-exact-execution:v1" and isinstance(error, StrictExecutionError):
+            if str(
+                store_kwargs.get("execution_strategy_ref") or ""
+            ) == "postgresql-leased-exact-execution:v1" and isinstance(
+                error, StrictExecutionError
+            ):
                 raise
             with store.transaction() as cursor:
                 failure_ref = store.persist_failure(
@@ -1976,7 +1985,10 @@ def compile_directory_postgres(
                         executor_kwargs["resource_ledger"] = resource_ledger
                     refs = document_executor(**executor_kwargs)
             except (OSError, UnicodeDecodeError, ValueError, RuntimeError) as error:
-                if execution_strategy_ref == "postgresql-leased-exact-execution:v1" and isinstance(error, StrictExecutionError):
+                if (
+                    execution_strategy_ref == "postgresql-leased-exact-execution:v1"
+                    and isinstance(error, StrictExecutionError)
+                ):
                     raise
                 with store.transaction() as cursor:
                     failure_ref = store.persist_failure(

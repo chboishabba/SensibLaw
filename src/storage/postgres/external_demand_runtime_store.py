@@ -1,4 +1,5 @@
 """PostgreSQL gateway for late, deduplicated external-provider work."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -14,7 +15,9 @@ from src.policy.external_demand import (
     ExternalRequestKind,
     ExternalValueKind,
 )
-from src.storage.postgres.consumer_sufficient_runtime_store import ConsumerSufficientRuntimeStore
+from src.storage.postgres.consumer_sufficient_runtime_store import (
+    ConsumerSufficientRuntimeStore,
+)
 from src.storage.postgres.numeric_symbol_store import intern_symbols, symbol_id
 from src.storage.postgres.spacy_parser_model import connect
 
@@ -70,11 +73,17 @@ class ConsumerWorldAxisContract:
             raise ValueError("minimum source epoch must be positive")
         if self.need_kind is ExternalNeedKind.PROPERTY_ENRICHMENT:
             if self.axis_kind is None or self.provider_property_numeric_id is None:
-                raise ValueError("property contract requires axis and provider property ids")
+                raise ValueError(
+                    "property contract requires axis and provider property ids"
+                )
             if self.provider_property_numeric_id <= 0:
                 raise ValueError("provider property id must be positive")
-        elif self.axis_kind is not None or self.provider_property_numeric_id is not None:
-            raise ValueError("discovery/identity contracts do not accept property-axis coordinates")
+        elif (
+            self.axis_kind is not None or self.provider_property_numeric_id is not None
+        ):
+            raise ValueError(
+                "discovery/identity contracts do not accept property-axis coordinates"
+            )
         selectors = (
             self.expected_target_kind,
             self.expected_factor_type_symbol_id,
@@ -84,7 +93,9 @@ class ConsumerWorldAxisContract:
             self.residual_type_symbol_id,
         )
         if all(selector is None for selector in selectors):
-            raise ValueError("consumer world-axis contract requires a numeric demand selector")
+            raise ValueError(
+                "consumer world-axis contract requires a numeric demand selector"
+            )
 
 
 class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
@@ -108,9 +119,13 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
     ) -> int:
         if need_kind is ExternalNeedKind.PROPERTY_ENRICHMENT:
             if axis_kind is None or provider_property_numeric_id is None:
-                raise ValueError("property enrichment requires axis and provider property ids")
+                raise ValueError(
+                    "property enrichment requires axis and provider property ids"
+                )
         elif axis_kind is not None or provider_property_numeric_id is not None:
-            raise ValueError("discovery/identity needs do not accept property-axis coordinates")
+            raise ValueError(
+                "discovery/identity needs do not accept property-axis coordinates"
+            )
         if minimum_source_epoch is not None and minimum_source_epoch <= 0:
             raise ValueError("minimum source epoch must be positive")
         need_id = self._scalar_function(
@@ -249,11 +264,17 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                             request_id=int(row[0]),
                             request_kind=ExternalRequestKind(int(row[1])),
                             label_text=None if row[2] is None else str(row[2]),
-                            provider_subject_numeric_id=None if row[3] is None else int(row[3]),
-                            provider_property_numeric_id=None if row[4] is None else int(row[4]),
+                            provider_subject_numeric_id=None
+                            if row[3] is None
+                            else int(row[3]),
+                            provider_property_numeric_id=None
+                            if row[4] is None
+                            else int(row[4]),
                             axis_kind=None if row[5] is None else int(row[5]),
                             request_revision=int(row[6]),
-                            minimum_source_epoch=None if row[7] is None else int(row[7]),
+                            minimum_source_epoch=None
+                            if row[7] is None
+                            else int(row[7]),
                         )
                         for row in cursor.fetchall()
                     )
@@ -291,7 +312,9 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                     provider_id = int(row[0])
                     label_symbol_id = int(row[1])
                     if str(row[2]) != request.label_text:
-                        raise ValueError("provider label boundary no longer matches planned symbol")
+                        raise ValueError(
+                            "provider label boundary no longer matches planned symbol"
+                        )
 
                     # Discovery is monotone candidate evidence. A partial or
                     # empty source response cannot erase older alternatives.
@@ -330,11 +353,15 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                             ),
                         )
                         if not bool(cursor.fetchone()[0]):
-                            raise RuntimeError("failed to persist external discovery candidate")
+                            raise RuntimeError(
+                                "failed to persist external discovery candidate"
+                            )
         finally:
             connection.close()
 
-    def record_external_evidence(self, *, request_id: int, evidence: ExternalEvidence) -> int:
+    def record_external_evidence(
+        self, *, request_id: int, evidence: ExternalEvidence
+    ) -> int:
         connection = connect(self.database_url)
         try:
             with connection.transaction():
@@ -354,16 +381,25 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                     )
                     row = cursor.fetchone()
                     if row is None or row[1] is None:
-                        raise ValueError("external evidence request has no local subject entity")
+                        raise ValueError(
+                            "external evidence request has no local subject entity"
+                        )
                     provider_id = int(row[0])
                     subject_world_entity_id = int(row[1])
                     request_property = None if row[2] is None else int(row[2])
                     request_axis = None if row[3] is None else int(row[3])
                     provider_subject_numeric_id = int(row[4])
-                    if provider_subject_numeric_id != evidence.provider_subject_numeric_id:
-                        raise ValueError("external evidence subject differs from planned request")
+                    if (
+                        provider_subject_numeric_id
+                        != evidence.provider_subject_numeric_id
+                    ):
+                        raise ValueError(
+                            "external evidence subject differs from planned request"
+                        )
                     if request_property != evidence.provider_property_numeric_id:
-                        raise ValueError("external evidence property differs from planned request")
+                        raise ValueError(
+                            "external evidence property differs from planned request"
+                        )
 
                     value_world_entity_id = value_symbol_id = value_numeric = None
                     if evidence.value_kind is ExternalValueKind.WORLD_ENTITY:
@@ -387,8 +423,12 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                         value_world_entity_id = int(cursor.fetchone()[0])
                     elif evidence.value_kind is ExternalValueKind.SYMBOL:
                         kind = SymbolKind(int(evidence.value_symbol_kind))
-                        mapping = intern_symbols(cursor, ((kind, str(evidence.value_text)),))
-                        value_symbol_id = symbol_id(mapping, kind, str(evidence.value_text))
+                        mapping = intern_symbols(
+                            cursor, ((kind, str(evidence.value_text)),)
+                        )
+                        value_symbol_id = symbol_id(
+                            mapping, kind, str(evidence.value_text)
+                        )
                     else:
                         value_numeric = int(evidence.value_numeric)
 
@@ -419,7 +459,9 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                             (external_evidence_id, evidence.source_epoch),
                         )
                         if not bool(cursor.fetchone()[0]):
-                            raise RuntimeError("external evidence source epoch conflicts with immutable receipt")
+                            raise RuntimeError(
+                                "external evidence source epoch conflicts with immutable receipt"
+                            )
                     return external_evidence_id
         finally:
             connection.close()
@@ -437,10 +479,18 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
         )
 
     def fail_external_request(self, request_id: int, error_ref: str) -> bool:
-        return bool(self._scalar_function("execution.fail_numeric_pnf_external_request", (request_id, error_ref)))
+        return bool(
+            self._scalar_function(
+                "execution.fail_numeric_pnf_external_request", (request_id, error_ref)
+            )
+        )
 
     def block_external_request(self, request_id: int, error_ref: str) -> bool:
-        return bool(self._scalar_function("execution.block_numeric_pnf_external_request", (request_id, error_ref)))
+        return bool(
+            self._scalar_function(
+                "execution.block_numeric_pnf_external_request", (request_id, error_ref)
+            )
+        )
 
     def record_external_batch_receipt(
         self,
@@ -486,8 +536,12 @@ class ExternalDemandRuntimeStore(ConsumerSufficientRuntimeStore):
                         blocked_requests=int(row[6]),
                         semantic_request_members=int(row[7]),
                         fresh_provider_calls=int(row[8]),
-                        semantic_members_per_unique_request=(None if row[9] is None else float(row[9])),
-                        requests_per_provider_call=(None if row[10] is None else float(row[10])),
+                        semantic_members_per_unique_request=(
+                            None if row[9] is None else float(row[9])
+                        ),
+                        requests_per_provider_call=(
+                            None if row[10] is None else float(row[10])
+                        ),
                     )
                     for row in cursor.fetchall()
                 )

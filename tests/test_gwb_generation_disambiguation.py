@@ -14,15 +14,22 @@ from build_gwb_zelph_handoff import _build_reports
 
 def test_father_era_bush_surface_abstains_in_corpus() -> None:
     payload = json.loads(
-        (REPO_ROOT / "SensibLaw" / "demo" / "ingest" / "gwb" / "corpus_v1" / "wiki_timeline_gwb_corpus_v1.json").read_text(
-            encoding="utf-8"
-        )
+        (
+            REPO_ROOT
+            / "SensibLaw"
+            / "demo"
+            / "ingest"
+            / "gwb"
+            / "corpus_v1"
+            / "wiki_timeline_gwb_corpus_v1.json"
+        ).read_text(encoding="utf-8")
     )
     _, semantic = _build_reports(timeline_payload=payload)
     event = next(
         row
         for row in semantic["per_event"]
-        if "his son" in str(row.get("text") or "").lower() and "iraq vote" in str(row.get("text") or "").lower()
+        if "his son" in str(row.get("text") or "").lower()
+        and "iraq vote" in str(row.get("text") or "").lower()
     )
     mentions = list(event.get("mentions", []))
     assert any(
@@ -34,6 +41,7 @@ def test_father_era_bush_surface_abstains_in_corpus() -> None:
     assert not any(
         mention["surface_text"] in {"Bush", "George Bush"}
         and mention["resolution_status"] == "resolved"
-        and (mention.get("resolved_entity") or {}).get("canonical_key") == "actor:george_w_bush"
+        and (mention.get("resolved_entity") or {}).get("canonical_key")
+        == "actor:george_w_bush"
         for mention in mentions
     )

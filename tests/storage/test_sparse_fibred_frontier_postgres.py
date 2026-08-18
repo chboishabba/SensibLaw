@@ -42,6 +42,7 @@ def test_sparse_frontier_schema_objects_are_installed() -> None:
         "semantic_pnf_frontier_resolution",
         "semantic_pnf_frontier_reduction_receipt",
         "semantic_pnf_frontier_stage_receipt",
+        "semantic_pnf_frontier_dirty",
     } <= names
 
 
@@ -61,12 +62,51 @@ def test_sparse_frontier_functions_are_installed() -> None:
         "filter_numeric_pnf_candidate_constraints",
         "index_numeric_pnf_object_exports_batch",
         "rebuild_numeric_pnf_parent_frontier",
+        "rebuild_numeric_pnf_parent_frontier_canonical",
+        "enqueue_numeric_pnf_parent_frontier",
         "reduce_numeric_pnf_interface_on_close",
         "reduce_numeric_pnf_document_frontiers",
         "refresh_pnf_global_lookup_ids",
         "refresh_pnf_visible_lookup",
         "plan_numeric_pnf_demand_candidates_ids",
     } <= names
+
+
+def test_sparse_dirty_closure_functions_preserve_current_topology() -> None:
+    assert DATABASE_URL is not None
+    connection = connect(DATABASE_URL)
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT procedure.proname, pg_get_functiondef(procedure.oid)
+                  FROM pg_proc AS procedure
+                  JOIN pg_namespace AS namespace
+                    ON namespace.oid = procedure.pronamespace
+                 WHERE namespace.nspname = 'execution'
+                   AND procedure.proname IN (
+                       'rebuild_numeric_pnf_parent_frontier',
+                       'reduce_numeric_pnf_interface_on_close',
+                       'reduce_numeric_pnf_document_frontiers'
+                   )
+                """
+            )
+            definitions = {str(name): str(source) for name, source in cursor.fetchall()}
+    finally:
+        connection.close()
+
+    assert (
+        "selected_kind IN (2, 4, 9)"
+        in definitions["rebuild_numeric_pnf_parent_frontier"]
+    )
+    assert (
+        "NEW.region_kind IN (2, 4, 9)"
+        in definitions["reduce_numeric_pnf_interface_on_close"]
+    )
+    assert (
+        "semantic_pnf_frontier_dirty"
+        in definitions["reduce_numeric_pnf_document_frontiers"]
+    )
 
 
 def test_hidden_and_row_wise_planning_triggers_are_absent() -> None:

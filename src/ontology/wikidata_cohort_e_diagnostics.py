@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
 from src.ontology.wikidata_review_packet_variant_compare import (
     compare_review_packet_variants,
@@ -46,7 +46,9 @@ def summarize_cohort_e_reports(reports: Sequence[dict[str, Any]]) -> dict[str, A
                 for axis in comparison.get("disagreements", []):
                     axis_disagreements[axis] = axis_disagreements.get(axis, 0) + 1
     return {
-        "lane_id": reports[0]["lane_id"] if reports else "wikidata_nat_cohort_e_unreconciled_instanceof",
+        "lane_id": reports[0]["lane_id"]
+        if reports
+        else "wikidata_nat_cohort_e_unreconciled_instanceof",
         "batch_size": total,
         "agreement_rows": agreement,
         "disagreement_rows": disagreement,

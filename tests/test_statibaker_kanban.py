@@ -175,7 +175,10 @@ def test_statibaker_kanban_projects_supplied_task_atoms_with_receipts() -> None:
     assert task_index["authority_boundary"]["local_json_is_canonical"] is True
     assert task_index["authority_boundary"]["kanboard_apply_requires_opt_in"] is True
     assert task_index["authority_boundary"]["kanboard_inbound_sync_enabled"] is False
-    assert task_index["authority_boundary"]["two_way_sync_without_conflict_policy"] is False
+    assert (
+        task_index["authority_boundary"]["two_way_sync_without_conflict_policy"]
+        is False
+    )
     assert task_index["authority_boundary"]["secrets_logged"] is False
     assert task_index["task_count"] == 1
     task = task_index["tasks"][0]
@@ -186,7 +189,10 @@ def test_statibaker_kanban_projects_supplied_task_atoms_with_receipts() -> None:
     assert task["evidence_refs"] == ["task_receipt:1", "task_receipt:2"]
     assert task["grounding_refs"][0]["grounded_node"] == "local:signup_flow"
     assert task["context_meet"]["residual"] == "exact"
-    assert task_index["project_context"]["schema_version"] == "sl.project_context_pnf_index.v0_1"
+    assert (
+        task_index["project_context"]["schema_version"]
+        == "sl.project_context_pnf_index.v0_1"
+    )
     assert board["schema_version"] == "sl.statibaker_kanban_projection.v0_1"
     assert board["authority_boundary"]["kanban_projection_only"] is True
     assert board["authority_boundary"]["local_json_is_canonical"] is True
@@ -284,11 +290,15 @@ def test_statibaker_kanban_holds_candidates_missing_acceptance_or_grounding() ->
     board = project_kanban(task_index)
 
     assert task_index["task_count"] == 2
-    pricing = next(task for task in task_index["tasks"] if task["object"] == "pricing wording")
+    pricing = next(
+        task for task in task_index["tasks"] if task["object"] == "pricing wording"
+    )
     assert pricing["status"] == "held"
     assert pricing["hold_reasons"] == ["missing_acceptance_criteria"]
     assert pricing["dependencies"] == ["signup flow fixed"]
-    mystery = next(task for task in task_index["tasks"] if task["object"] == "mystery integration")
+    mystery = next(
+        task for task in task_index["tasks"] if task["object"] == "mystery integration"
+    )
     assert mystery["promotion_status"] == "held_for_review"
     assert mystery["hold_reasons"] == [
         "context:no_context_entity_meet",
@@ -298,7 +308,9 @@ def test_statibaker_kanban_holds_candidates_missing_acceptance_or_grounding() ->
     assert len(board["columns"]["Held"]) == 2
 
 
-def test_statibaker_kanban_rejects_keyword_like_atoms_without_structural_transition() -> None:
+def test_statibaker_kanban_rejects_keyword_like_atoms_without_structural_transition() -> (
+    None
+):
     documents = [
         {
             "doc_id": "anti_list",
@@ -359,7 +371,12 @@ def test_statibaker_kanban_rejects_keyword_like_atoms_without_structural_transit
     ]
     assert task_index["authority_boundary"]["tasklike_is_structural"] is True
     assert task_index["authority_boundary"]["project_context_is_pnf_indexed"] is True
-    assert task_index["authority_boundary"]["keyword_presence_neither_necessary_nor_sufficient"] is True
+    assert (
+        task_index["authority_boundary"][
+            "keyword_presence_neither_necessary_nor_sufficient"
+        ]
+        is True
+    )
 
 
 def test_project_context_pnf_index_is_explicit_gamma_surface() -> None:
@@ -439,7 +456,10 @@ def test_statibaker_kanban_runs_archive_query_freetext_probe_fixture() -> None:
     expected = fixture["expected"]
     assert task_index["task_count"] == expected["task_count"]
     task = task_index["tasks"][0]
-    assert fixture["documents"][0]["segments"][0]["text"] == "What are our blockers?\nHow can we move forwards?"
+    assert (
+        fixture["documents"][0]["segments"][0]["text"]
+        == "What are our blockers?\nHow can we move forwards?"
+    )
     assert task["object"] == expected["object"]
     assert task["status"] == expected["status"]
     assert task["column"] == expected["column"]
@@ -473,7 +493,9 @@ def test_statibaker_kanban_archive_thread_timeline_probe_is_bidirectional() -> N
     assert probe["authority_boundary"]["seed_is_not_assumed_origin"] is True
     assert probe["authority_boundary"]["live_archive_query"] is False
 
-    timelines_by_title = {timeline["task_title"]: timeline for timeline in probe["timelines"]}
+    timelines_by_title = {
+        timeline["task_title"]: timeline for timeline in probe["timelines"]
+    }
     phase4 = timelines_by_title["Resolve Phase-4 readiness blockers"]
     assert phase4["prior_event_receipts"][0]["event_type"] == "prior_context"
     assert phase4["seed_role"] == "blocker_diagnosis_request"
@@ -614,7 +636,10 @@ def test_runsheet_bridge_reports_unmatched_timeline_boundary_gap() -> None:
     assert bridge["boundary_gaps"]["missing_kanban_projection"] is True
     assert bridge["boundary_gaps"]["missing_timeline_probe"] is False
     assert bridge["boundary_gaps"]["unmatched_timeline_count"] == 1
-    assert bridge["boundary_gaps"]["unmatched_timeline_receipts"][0]["timeline_id"] == "timeline:orphan"
+    assert (
+        bridge["boundary_gaps"]["unmatched_timeline_receipts"][0]["timeline_id"]
+        == "timeline:orphan"
+    )
 
 
 def test_runsheet_bridge_feeds_statibaker_kanboard_dry_run_shape() -> None:
@@ -689,7 +714,11 @@ def test_runsheet_bridge_feeds_statibaker_kanboard_dry_run_shape() -> None:
         task_memory_index=task_index,
         kanban_projection=board,
         timeline_probe=timeline_probe,
-        source={"orchestrator_id": "runner-bridge", "lane": "lane-5", "fixture": "bridge_dry_run"},
+        source={
+            "orchestrator_id": "runner-bridge",
+            "lane": "lane-5",
+            "fixture": "bridge_dry_run",
+        },
     )
 
     assert bridge["runsheet"]["items"][0]["stable_id"] == "task:1"

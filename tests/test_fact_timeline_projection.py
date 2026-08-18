@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -17,15 +16,32 @@ def test_build_fact_timeline_projection_synthesizes_and_coalesces_rows() -> None
         "events": [
             {
                 "event_id": "ev:1",
-                "anchor": {"year": 2001, "month": 1, "day": 2, "precision": "day", "text": "2001-01-02", "kind": "mention"},
+                "anchor": {
+                    "year": 2001,
+                    "month": 1,
+                    "day": 2,
+                    "precision": "day",
+                    "text": "2001-01-02",
+                    "kind": "mention",
+                },
                 "section": "Section A",
                 "text": "Event one",
                 "party": "party-a",
                 "actors": [],
                 "objects": [],
                 "steps": [
-                    {"action": "said", "subjects": ["Alice"], "objects": ["Budget"], "purpose": "Explain"},
-                    {"action": "said", "subjects": ["Alice"], "objects": ["Budget"], "purpose": "Explain"},
+                    {
+                        "action": "said",
+                        "subjects": ["Alice"],
+                        "objects": ["Budget"],
+                        "purpose": "Explain",
+                    },
+                    {
+                        "action": "said",
+                        "subjects": ["Alice"],
+                        "objects": ["Budget"],
+                        "purpose": "Explain",
+                    },
                 ],
             }
         ],
@@ -67,7 +83,10 @@ def test_build_fact_timeline_projection_synthesizes_and_coalesces_rows() -> None
 
 def test_query_wiki_timeline_aoo_db_fact_timeline_projection(tmp_path: Path) -> None:
     timeline_path = tmp_path / "wiki_timeline_hca_s942025_aoo.json"
-    timeline_path.write_text(json.dumps({"snapshot": {"title": "x"}, "events": []}, sort_keys=True), encoding="utf-8")
+    timeline_path.write_text(
+        json.dumps({"snapshot": {"title": "x"}, "events": []}, sort_keys=True),
+        encoding="utf-8",
+    )
     db_path = tmp_path / "itir.sqlite"
 
     payload = {
@@ -77,13 +96,27 @@ def test_query_wiki_timeline_aoo_db_fact_timeline_projection(tmp_path: Path) -> 
         "events": [
             {
                 "event_id": "ev:1",
-                "anchor": {"year": 2001, "month": 9, "day": 11, "precision": "day", "kind": "mention", "text": "September 11, 2001"},
+                "anchor": {
+                    "year": 2001,
+                    "month": 9,
+                    "day": 11,
+                    "precision": "day",
+                    "kind": "mention",
+                    "text": "September 11, 2001",
+                },
                 "section": "Narrative",
                 "text": "Example event",
                 "party": "party-a",
                 "actors": [],
                 "objects": [],
-                "steps": [{"action": "said", "subjects": ["Alice"], "objects": ["Budget"], "purpose": "Explain"}],
+                "steps": [
+                    {
+                        "action": "said",
+                        "subjects": ["Alice"],
+                        "objects": ["Budget"],
+                        "purpose": "Explain",
+                    }
+                ],
                 "links": [],
             }
         ],

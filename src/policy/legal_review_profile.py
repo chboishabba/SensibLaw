@@ -15,7 +15,9 @@ def _clean_text(value: Any) -> str:
     return str(value or "").strip()
 
 
-def _unit_text_ref(parsed_envelope: ParsedEnvelope, unit: CanonicalUnit) -> dict[str, Any]:
+def _unit_text_ref(
+    parsed_envelope: ParsedEnvelope, unit: CanonicalUnit
+) -> dict[str, Any]:
     return {
         "text_id": parsed_envelope.canonical_text.text_id,
         "segment_id": unit.segment_id,
@@ -52,7 +54,9 @@ def build_legal_review_extract(
             **dict(unit.anchor_refs),
             "parse_profile": parsed_envelope.parse_profile,
         }
-        claim_id = f"{parsed_envelope.canonical_text.text_id}:review_claim:{unit.unit_id}"
+        claim_id = (
+            f"{parsed_envelope.canonical_text.text_id}:review_claim:{unit.unit_id}"
+        )
         review_text = build_text_surface(
             text=text,
             source_kind=source_kind_value,
@@ -128,6 +132,8 @@ def build_legal_review_extract(
         },
         "review_claim_records": review_claim_records,
     }
+
+
 __all__ = [
     "LEGAL_REVIEW_SCHEMA_VERSION",
     "build_legal_review_extract",

@@ -229,7 +229,16 @@ def _seed_db(db_path: Path) -> None:
           article_id, pack_id, wiki, title, role, topics_json, review_context_json, article_order
         ) VALUES(?,?,?,?,?,?,?,?)
         """,
-        ("article_1", "pack_one", "enwiki", "Example Article", "baseline", "[]", "{}", 0),
+        (
+            "article_1",
+            "pack_one",
+            "enwiki",
+            "Example Article",
+            "baseline",
+            "[]",
+            "{}",
+            0,
+        ),
     )
     summary = {
         "pack_id": "pack_one",
@@ -362,7 +371,9 @@ def _seed_db(db_path: Path) -> None:
         (
             "run:pack_one:2026-03-31T00:00:00Z:abc",
             "article_1",
-            json.dumps({"summary": {"region_count": 1}, "article": {"article_id": "article_1"}}),
+            json.dumps(
+                {"summary": {"region_count": 1}, "article": {"article_id": "article_1"}}
+            ),
             1,
             0,
             0,
@@ -411,7 +422,15 @@ def _seed_db(db_path: Path) -> None:
             "region:1",
             2,
             "high",
-            json.dumps({"cycle_id": "cycle:1", "region_id": "region:1", "region_title": "History", "touch_count": 2, "highest_severity": "high"}),
+            json.dumps(
+                {
+                    "cycle_id": "cycle:1",
+                    "region_id": "region:1",
+                    "region_title": "History",
+                    "touch_count": 2,
+                    "highest_severity": "high",
+                }
+            ),
         ),
     )
     conn.execute(
@@ -427,7 +446,14 @@ def _seed_db(db_path: Path) -> None:
             "changes_event",
             "pair:1",
             "ev:1",
-            json.dumps({"edge_id": "edge:1", "edge_kind": "changes_event", "source_id": "pair:1", "target_id": "ev:1"}),
+            json.dumps(
+                {
+                    "edge_id": "edge:1",
+                    "edge_kind": "changes_event",
+                    "source_id": "pair:1",
+                    "target_id": "ev:1",
+                }
+            ),
         ),
     )
     conn.execute(
@@ -460,38 +486,56 @@ def _seed_db(db_path: Path) -> None:
     conn.close()
 
 
-def test_revision_monitor_query_reads_db_backed_summary_and_graph(tmp_path: Path) -> None:
+def test_revision_monitor_query_reads_db_backed_summary_and_graph(
+    tmp_path: Path,
+) -> None:
     repo_root = tmp_path / "repo"
     (repo_root / "SensibLaw").mkdir(parents=True)
     db_path = repo_root / "SensibLaw" / ".cache_local" / "wiki.sqlite"
     db_path.parent.mkdir(parents=True)
     _seed_db(db_path)
 
-    payload = build_query_payload(db_path=db_path, pack_id="pack_one", run_id="run:pack_one:2026-03-31T00:00:00Z:abc", article_id="article_1")
+    payload = build_query_payload(
+        db_path=db_path,
+        pack_id="pack_one",
+        run_id="run:pack_one:2026-03-31T00:00:00Z:abc",
+        article_id="article_1",
+    )
 
     assert payload["selected_pack_id"] == "pack_one"
     assert payload["selected_run_id"] == "run:pack_one:2026-03-31T00:00:00Z:abc"
     assert payload["summary"]["pack_id"] == "pack_one"
     assert payload["summary_source"] == "sqlite_read_model"
-    assert payload["latest_runs"][0]["run_id"] == "run:pack_one:2026-03-31T00:00:00Z:abc"
+    assert (
+        payload["latest_runs"][0]["run_id"] == "run:pack_one:2026-03-31T00:00:00Z:abc"
+    )
     assert payload["changed_articles"][0]["article_id"] == "article_1"
     assert "report_path" not in payload["changed_articles"][0]
     assert "contested_graph_path" not in payload["changed_articles"][0]
     assert payload["selected_pairs"][0]["pair_id"] == "pair:1"
     assert "pair_report_path" not in payload["selected_pairs"][0]
-    assert payload["selected_pairs"][0]["top_changed_sections"][0]["section"] == "History"
+    assert (
+        payload["selected_pairs"][0]["top_changed_sections"][0]["section"] == "History"
+    )
     assert payload["selected_issue_packets"][0]["packet_id"] == "packet:1"
-    assert payload["selected_issue_packets"][0]["review_context"]["curated"]["curated_qids"] == ["Q1"]
+    assert payload["selected_issue_packets"][0]["review_context"]["curated"][
+        "curated_qids"
+    ] == ["Q1"]
     assert payload["selected_graph"]["article"]["article_id"] == "article_1"
     assert payload["selected_graph_source"] == "sqlite_read_model"
     assert payload["selected_graph"]["regions"][0]["region_id"] == "region:1"
     assert payload["selected_graph"]["events"][0]["event_id"] == "ev:1"
     assert payload["selected_graph"]["epistemic_surfaces"][0]["epistemic_id"] == "epi:1"
     assert "graph_path" not in payload["selected_graph"]
-    assert "report_path" not in payload["summary"]["pack_triage"]["top_changed_articles"][0]
+    assert (
+        "report_path"
+        not in payload["summary"]["pack_triage"]["top_changed_articles"][0]
+    )
 
 
-def test_revision_monitor_query_prefers_sqlite_read_models_over_blob_columns(tmp_path: Path) -> None:
+def test_revision_monitor_query_prefers_sqlite_read_models_over_blob_columns(
+    tmp_path: Path,
+) -> None:
     repo_root = tmp_path / "repo"
     (repo_root / "SensibLaw").mkdir(parents=True)
     db_path = repo_root / "SensibLaw" / ".cache_local" / "wiki.sqlite"
@@ -502,14 +546,25 @@ def test_revision_monitor_query_prefers_sqlite_read_models_over_blob_columns(tmp
     conn.execute(
         "UPDATE wiki_revision_monitor_runs SET summary_json = ? WHERE run_id = ?",
         (
-            json.dumps({"pack_id": "pack_one", "run_id": "run:pack_one:2026-03-31T00:00:00Z:abc", "articles": [{"article_id": "wrong_article"}]}),
+            json.dumps(
+                {
+                    "pack_id": "pack_one",
+                    "run_id": "run:pack_one:2026-03-31T00:00:00Z:abc",
+                    "articles": [{"article_id": "wrong_article"}],
+                }
+            ),
             "run:pack_one:2026-03-31T00:00:00Z:abc",
         ),
     )
     conn.execute(
         "UPDATE wiki_revision_monitor_contested_graphs SET graph_json = ? WHERE run_id = ? AND article_id = ?",
         (
-            json.dumps({"article": {"article_id": "wrong_article"}, "summary": {"region_count": 999}}),
+            json.dumps(
+                {
+                    "article": {"article_id": "wrong_article"},
+                    "summary": {"region_count": 999},
+                }
+            ),
             "run:pack_one:2026-03-31T00:00:00Z:abc",
             "article_1",
         ),
@@ -517,15 +572,30 @@ def test_revision_monitor_query_prefers_sqlite_read_models_over_blob_columns(tmp
     conn.commit()
     conn.close()
 
-    payload = build_query_payload(db_path=db_path, pack_id="pack_one", run_id="run:pack_one:2026-03-31T00:00:00Z:abc", article_id="article_1")
+    payload = build_query_payload(
+        db_path=db_path,
+        pack_id="pack_one",
+        run_id="run:pack_one:2026-03-31T00:00:00Z:abc",
+        article_id="article_1",
+    )
 
     assert payload["summary_source"] == "sqlite_read_model"
-    assert payload["summary"]["pack_triage"]["top_changed_articles"][0]["article_id"] == "article_1"
+    assert (
+        payload["summary"]["pack_triage"]["top_changed_articles"][0]["article_id"]
+        == "article_1"
+    )
     assert payload["selected_graph_source"] == "sqlite_read_model"
     assert payload["selected_graph"]["article"]["article_id"] == "article_1"
 
 
 def test_query_script_imports_shared_query_owner() -> None:
-    source = (Path(__file__).resolve().parents[1] / "scripts" / "query_wiki_revision_monitor.py").read_text(encoding="utf-8")
-    assert "from src.wiki_timeline.revision_monitor_query import build_query_payload" in source
+    source = (
+        Path(__file__).resolve().parents[1]
+        / "scripts"
+        / "query_wiki_revision_monitor.py"
+    ).read_text(encoding="utf-8")
+    assert (
+        "from src.wiki_timeline.revision_monitor_query import build_query_payload"
+        in source
+    )
     assert "payload = build_query_payload(" in source

@@ -11,4 +11,3 @@ except Exception:  # ImportError if FastAPI is missing
     sample_router = None  # type: ignore
 
 __all__ = ["router", "sample_router"]
-

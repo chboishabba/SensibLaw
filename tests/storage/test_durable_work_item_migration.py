@@ -8,10 +8,7 @@ MIGRATION_032 = (
     ROOT / "database" / "postgres_migrations" / "032_typed_semantic_execution.sql"
 )
 MIGRATION_033 = (
-    ROOT
-    / "database"
-    / "postgres_migrations"
-    / "033_remove_execution_json_defaults.sql"
+    ROOT / "database" / "postgres_migrations" / "033_remove_execution_json_defaults.sql"
 )
 MIGRATION_036 = (
     ROOT
@@ -93,9 +90,12 @@ def test_execution_blob_columns_are_rejected_for_new_writes() -> None:
         assert f"ON execution.{table}" in sql
         assert f"NEW.{column} IS NOT NULL" in sql
     assert "reject_execution_blob_write" in sql
-    assert "NEW.input_manifest" not in sql.split(
-        "CREATE FUNCTION execution.reject_execution_blob_write()", 1
-    )[1].split("$$;", 1)[0]
+    assert (
+        "NEW.input_manifest"
+        not in sql.split("CREATE FUNCTION execution.reject_execution_blob_write()", 1)[
+            1
+        ].split("$$;", 1)[0]
+    )
 
 
 def test_default_removal_migration_does_not_install_polymorphic_triggers() -> None:

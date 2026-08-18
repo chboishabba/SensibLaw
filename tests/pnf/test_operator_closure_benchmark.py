@@ -78,9 +78,7 @@ def _job() -> SolverJob:
 def test_normalized_operator_lane_covers_prohibition_and_exception() -> None:
     job = _job()
     proposals = native_operator_proposals(job)
-    predicates = {
-        str(row.candidate_payload["predicate_ref"]) for row in proposals
-    }
+    predicates = {str(row.candidate_payload["predicate_ref"]) for row in proposals}
 
     assert "normative.prohibition" in predicates
     assert "legal.exception_candidate" in predicates

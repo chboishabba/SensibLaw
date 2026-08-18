@@ -44,9 +44,7 @@ def test_completed_scoped_barrier_satisfies_named_coverage_requirement() -> None
         "coverage-notice:1",
         "observation-delta:1",
     }.issubset(set(rows[0]["input_observation_refs"]))
-    assert rows[0]["candidate_payload"]["coverage_notice_refs"] == [
-        "coverage-notice:1"
-    ]
+    assert rows[0]["candidate_payload"]["coverage_notice_refs"] == ["coverage-notice:1"]
 
 
 def test_wrong_scope_notice_does_not_discharge_requirement() -> None:
@@ -139,9 +137,7 @@ def test_unsupported_and_unresolved_states_are_assessment_undetermined() -> None
 
 
 def test_contested_state_exposes_support_and_contradiction() -> None:
-    proposals = (
-        {"proposal_ref": "proposal:contested", "support_state": "contested"},
-    )
+    proposals = ({"proposal_ref": "proposal:contested", "support_state": "contested"},)
     elements = (
         {
             "element_ref": "element:support",

@@ -5,7 +5,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
-from src.ingestion.media_adapter import PdfPageMediaAdapter, TextDocumentMediaAdapter, parse_canonical_text
+from src.ingestion.media_adapter import (
+    PdfPageMediaAdapter,
+    TextDocumentMediaAdapter,
+    parse_canonical_text,
+)
 from src.ingestion.structure_graph import build_segment_graph
 from src.ingestion.structure_metrics import (
     compute_input_structure_signal,
@@ -35,7 +39,11 @@ def test_compute_structure_metrics_reports_structural_density_for_heading_docume
     }
     assert metrics.output_signal["segment_node_count"] == 4
     assert metrics.output_signal["structural_node_count"] == 2
-    assert metrics.output_signal["edge_kind_counts"] == {"contains": 4, "follows": 3, "heads": 2}
+    assert metrics.output_signal["edge_kind_counts"] == {
+        "contains": 4,
+        "follows": 3,
+        "heads": 2,
+    }
     assert metrics.fidelity == 1.0
     assert metrics.gain == 0.0
     assert metrics.graph_structuredness > 0.5

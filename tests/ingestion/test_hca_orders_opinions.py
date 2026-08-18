@@ -68,8 +68,9 @@ def test_crawl_year_extracts_orders_and_opinions():
         {"judge": "Edelman J", "opinion": "dissenting"},
     ]
 
-    simple_nodes = [n for n in nodes if n.get("type") == "case" and n["id"] == "[2020] HCA 1"]
+    simple_nodes = [
+        n for n in nodes if n.get("type") == "case" and n["id"] == "[2020] HCA 1"
+    ]
     assert simple_nodes, "expected helper node for the case"
     assert simple_nodes[0]["final_orders"] == case_node["final_orders"]
     assert simple_nodes[0]["panel_opinions"] == case_node["panel_opinions"]
-

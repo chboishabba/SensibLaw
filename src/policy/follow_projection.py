@@ -89,7 +89,8 @@ def build_follow_projection(
             projection_ref="",
             node_ref=_text(row.get("node_ref") or row.get("id")),
             node_kind=_text(row.get("node_kind") or row.get("kind")) or "candidate",
-            label=_text(row.get("label")) or _text(row.get("node_ref") or row.get("id")),
+            label=_text(row.get("label"))
+            or _text(row.get("node_ref") or row.get("id")),
             document_ref=_text(row.get("document_ref")) or _text(document_ref) or None,
             factor_revision_ref=_text(row.get("factor_revision_ref")) or None,
             domain_ir_ref=_text(row.get("domain_ir_ref")) or None,
@@ -99,14 +100,26 @@ def build_follow_projection(
         if _text(row.get("node_ref") or row.get("id"))
     ]
     node_refs = {row.node_ref for row in normalized_nodes}
-    raw_edges = [row for row in edges if _text(row.get("from_node_ref") or row.get("source") or row.get("from")) in node_refs and _text(row.get("to_node_ref") or row.get("target") or row.get("to")) in node_refs]
-    projection_ref = "follow-projection:" + canonical_sha256({
-        "document_ref": document_ref,
-        "projection_kind": projection_kind,
-        "nodes": [row.to_dict() for row in sorted(normalized_nodes, key=lambda item: item.node_ref)],
-        "edges": [dict(row) for row in raw_edges],
-        "contract": FOLLOW_PROJECTION_SCHEMA_VERSION,
-    })
+    raw_edges = [
+        row
+        for row in edges
+        if _text(row.get("from_node_ref") or row.get("source") or row.get("from"))
+        in node_refs
+        and _text(row.get("to_node_ref") or row.get("target") or row.get("to"))
+        in node_refs
+    ]
+    projection_ref = "follow-projection:" + canonical_sha256(
+        {
+            "document_ref": document_ref,
+            "projection_kind": projection_kind,
+            "nodes": [
+                row.to_dict()
+                for row in sorted(normalized_nodes, key=lambda item: item.node_ref)
+            ],
+            "edges": [dict(row) for row in raw_edges],
+            "contract": FOLLOW_PROJECTION_SCHEMA_VERSION,
+        }
+    )
     final_nodes = [
         FollowNode(**{**row.__dict__, "projection_ref": projection_ref})
         for row in normalized_nodes
@@ -116,18 +129,25 @@ def build_follow_projection(
         source = _text(row.get("from_node_ref") or row.get("source") or row.get("from"))
         target = _text(row.get("to_node_ref") or row.get("target") or row.get("to"))
         relation = _text(row.get("relation_kind") or row.get("kind")) or "follows"
-        edge_ref = _text(row.get("edge_ref") or row.get("id")) or "follow-edge:" + canonical_sha256((projection_ref, source, target, relation))
-        final_edges.append(FollowEdge(
-            projection_ref=projection_ref,
-            edge_ref=edge_ref,
-            from_node_ref=source,
-            to_node_ref=target,
-            relation_kind=relation,
-            admissibility_state=_text(row.get("admissibility_state")) or "challengeable",
-            provenance_refs=_refs(row.get("provenance_refs")),
-            evidence_refs=_refs(row.get("evidence_refs")),
-            admissibility_ground_refs=_refs(row.get("admissibility_ground_refs")),
-        ))
+        edge_ref = _text(
+            row.get("edge_ref") or row.get("id")
+        ) or "follow-edge:" + canonical_sha256(
+            (projection_ref, source, target, relation)
+        )
+        final_edges.append(
+            FollowEdge(
+                projection_ref=projection_ref,
+                edge_ref=edge_ref,
+                from_node_ref=source,
+                to_node_ref=target,
+                relation_kind=relation,
+                admissibility_state=_text(row.get("admissibility_state"))
+                or "challengeable",
+                provenance_refs=_refs(row.get("provenance_refs")),
+                evidence_refs=_refs(row.get("evidence_refs")),
+                admissibility_ground_refs=_refs(row.get("admissibility_ground_refs")),
+            )
+        )
     return {
         "schema_version": FOLLOW_PROJECTION_SCHEMA_VERSION,
         "projection_ref": projection_ref,
@@ -136,18 +156,32 @@ def build_follow_projection(
         "authority": DERIVED_ONLY_AUTHORITY,
         "promotion_allowed": False,
         "execution_allowed": False,
-        "nodes": [row.to_dict() for row in sorted(final_nodes, key=lambda item: item.node_ref)],
-        "edges": [row.to_dict() for row in sorted(final_edges, key=lambda item: item.edge_ref)],
+        "nodes": [
+            row.to_dict() for row in sorted(final_nodes, key=lambda item: item.node_ref)
+        ],
+        "edges": [
+            row.to_dict() for row in sorted(final_edges, key=lambda item: item.edge_ref)
+        ],
     }
 
 
-def project_follow_view(projection: Mapping[str, Any], *, relation_prefix: str | None = None) -> dict[str, Any]:
+def project_follow_view(
+    projection: Mapping[str, Any], *, relation_prefix: str | None = None
+) -> dict[str, Any]:
     """Create detached presentation data from relational follow rows only."""
 
-    rows = [dict(row) for row in projection.get("edges") or () if isinstance(row, Mapping)]
+    rows = [
+        dict(row) for row in projection.get("edges") or () if isinstance(row, Mapping)
+    ]
     if relation_prefix:
-        rows = [row for row in rows if _text(row.get("relation_kind")).startswith(relation_prefix)]
-    nodes = [dict(row) for row in projection.get("nodes") or () if isinstance(row, Mapping)]
+        rows = [
+            row
+            for row in rows
+            if _text(row.get("relation_kind")).startswith(relation_prefix)
+        ]
+    nodes = [
+        dict(row) for row in projection.get("nodes") or () if isinstance(row, Mapping)
+    ]
     return {
         "projection_ref": _text(projection.get("projection_ref")),
         "authority": DERIVED_ONLY_AUTHORITY,

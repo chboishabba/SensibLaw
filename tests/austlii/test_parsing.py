@@ -27,7 +27,9 @@ def test_parse_judgment(setup_client, tmp_path, monkeypatch):
     <p>2 Second point</p>
     </body></html>
     """
-    monkeypatch.setattr(client, "_get", lambda url: SimpleNamespace(content=html.encode("utf-8")))
+    monkeypatch.setattr(
+        client, "_get", lambda url: SimpleNamespace(content=html.encode("utf-8"))
+    )
     doc = client.fetch_judgment("http://example.com/judgment")
     assert doc.metadata.canonical_id == "sample-judgment"
     assert doc.metadata.provenance == "http://example.com/judgment"
@@ -51,7 +53,9 @@ def test_parse_legislation(setup_client, tmp_path, monkeypatch):
     <div>2 Section two</div>
     </body></html>
     """
-    monkeypatch.setattr(client, "_get", lambda url: SimpleNamespace(content=html.encode("utf-8")))
+    monkeypatch.setattr(
+        client, "_get", lambda url: SimpleNamespace(content=html.encode("utf-8"))
+    )
     doc = client.fetch_legislation("http://example.com/act")
     assert doc.metadata.canonical_id == "sample-act-2020"
     assert len(doc.provisions) == 2

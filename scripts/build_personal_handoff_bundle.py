@@ -21,7 +21,9 @@ from src.fact_intake.personal_handoff_bundle import (  # noqa: E402
 )
 
 
-def build_handoff_artifact(input_json_path: Path, output_dir: Path) -> dict[str, object]:
+def build_handoff_artifact(
+    input_json_path: Path, output_dir: Path
+) -> dict[str, object]:
     output_dir.mkdir(parents=True, exist_ok=True)
     input_payload = json.loads(input_json_path.read_text(encoding="utf-8"))
     report = build_personal_handoff_report(input_payload)
@@ -43,11 +45,23 @@ def build_handoff_artifact(input_json_path: Path, output_dir: Path) -> dict[str,
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Build a bounded personal day-to-escalation handoff report.")
-    parser.add_argument("--input-json", required=True, help="JSON file describing personal entries, scopes, observations, and reviews.")
-    parser.add_argument("--output-dir", required=True, help="Directory to write the handoff report into.")
+    parser = argparse.ArgumentParser(
+        description="Build a bounded personal day-to-escalation handoff report."
+    )
+    parser.add_argument(
+        "--input-json",
+        required=True,
+        help="JSON file describing personal entries, scopes, observations, and reviews.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        required=True,
+        help="Directory to write the handoff report into.",
+    )
     args = parser.parse_args(argv)
-    payload = build_handoff_artifact(Path(args.input_json).resolve(), Path(args.output_dir).resolve())
+    payload = build_handoff_artifact(
+        Path(args.input_json).resolve(), Path(args.output_dir).resolve()
+    )
     print(json.dumps(payload, indent=2, sort_keys=True))
     return 0
 

@@ -18,9 +18,6 @@ from src.storage.postgres.epistemic_factor_report import (
 from src.storage.postgres.spacy_parser_model import connect
 
 
-DEFAULT_DATABASE_URL = (
-    "postgresql://postgres@127.0.0.1:5433/sensiblaw_sparse_bench"
-)
 DEFAULT_OUTPUT = Path(
     ".tmp/exact-0008-current-20260804/trial-sparse-bench/gwb/"
     "reagan_factor_semantic_report.md"
@@ -28,7 +25,11 @@ DEFAULT_OUTPUT = Path(
 
 
 def main() -> int:
-    database_url = os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL)
+    database_url = os.environ.get("DATABASE_URL")
+    if not database_url:
+        raise SystemExit(
+            "DATABASE_URL is required; source .env or pass it in the environment"
+        )
     with connect(database_url) as connection:
         report = collect_epistemic_entity_report(
             connection,

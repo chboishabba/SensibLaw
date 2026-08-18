@@ -15,7 +15,10 @@ if str(_SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(_SENSIBLAW_ROOT))
 
 from src.fact_intake.handoff_artifacts import write_handoff_artifact  # noqa: E402
-from src.fact_intake.personal_chat_import import build_handoff_input_from_units, build_handoff_report_from_chat_json  # noqa: E402
+from src.fact_intake.personal_chat_import import (
+    build_handoff_input_from_units,
+    build_handoff_report_from_chat_json,
+)  # noqa: E402
 from src.reporting.structure_report import load_chat_units, load_messenger_units  # noqa: E402
 
 
@@ -54,12 +57,22 @@ def build_handoff_from_message_db_artifact(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Build a personal handoff or protected disclosure artifact from chat_test_db or messenger_test_db.")
-    parser.add_argument("--db-path", required=True, help="Path to chat_test_db or messenger_test_db sqlite file.")
+    parser = argparse.ArgumentParser(
+        description="Build a personal handoff or protected disclosure artifact from chat_test_db or messenger_test_db."
+    )
+    parser.add_argument(
+        "--db-path",
+        required=True,
+        help="Path to chat_test_db or messenger_test_db sqlite file.",
+    )
     parser.add_argument("--source-kind", choices=("chat", "messenger"), required=True)
     parser.add_argument("--recipient-profile", required=True)
     parser.add_argument("--source-label", required=True)
-    parser.add_argument("--mode", choices=("personal_handoff", "protected_disclosure_envelope"), default="personal_handoff")
+    parser.add_argument(
+        "--mode",
+        choices=("personal_handoff", "protected_disclosure_envelope"),
+        default="personal_handoff",
+    )
     parser.add_argument("--run-id", default=None)
     parser.add_argument("--notes", default=None)
     parser.add_argument("--output-dir", required=True)

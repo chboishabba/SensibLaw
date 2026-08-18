@@ -141,9 +141,7 @@ def tone_audit(text: str) -> ToneAuditResult:
             pattern = re.compile(rf"\b{re.escape(trigger)}\b", re.IGNORECASE)
             if pattern.search(lowered):
                 rewritten_line = pattern.sub(replacement, new_line)
-                suggestion = (
-                    f"Replace '{trigger}' with '{replacement}' to keep the tone factual."
-                )
+                suggestion = f"Replace '{trigger}' with '{replacement}' to keep the tone factual."
                 flags.append(
                     ToneFlag(
                         trigger=trigger,
@@ -240,9 +238,7 @@ def build_batna_sheet(file_data: Mapping[str, object]) -> BATNASheet:
     raw_disclosure = file_data.get("disclosure_gaps") or []
     if isinstance(raw_disclosure, str):
         disclosure_items = [
-            item.strip()
-            for item in re.split(r"[,\n;]", raw_disclosure)
-            if item.strip()
+            item.strip() for item in re.split(r"[,\n;]", raw_disclosure) if item.strip()
         ]
     else:
         disclosure_items = [str(item) for item in raw_disclosure if str(item).strip()]
@@ -273,7 +269,9 @@ def generate_cooling_off_macros(
     """Provide neutral de-escalation macros."""
 
     macros: List[str] = []
-    disclosure = [item for item in batna.disclosure_gaps if "No outstanding" not in item]
+    disclosure = [
+        item for item in batna.disclosure_gaps if "No outstanding" not in item
+    ]
     if disclosure:
         disclosure_clause = ", ".join(disclosure)
     else:
@@ -336,4 +334,3 @@ __all__ = [
     "side_by_side_diff",
     "tone_audit",
 ]
-

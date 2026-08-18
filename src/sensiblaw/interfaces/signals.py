@@ -165,7 +165,11 @@ def _make_signal(
 
 
 def _flatten_tokens(parsed: dict[str, Any]) -> list[dict[str, Any]]:
-    return [token for sentence in parsed.get("sents", ()) for token in sentence.get("tokens", ())]
+    return [
+        token
+        for sentence in parsed.get("sents", ())
+        for token in sentence.get("tokens", ())
+    ]
 
 
 def _question_like_tokens(tokens: list[dict[str, Any]]) -> list[SignalAtom]:
@@ -225,9 +229,13 @@ def _imperative_like_tokens(
         sentence_tokens = [
             token
             for token in sentence.get("tokens", ())
-            if str(token.get("text") or "").strip() and str(token.get("text") or "") not in {":", ",", ".", "!", "?"}
+            if str(token.get("text") or "").strip()
+            and str(token.get("text") or "") not in {":", ",", ".", "!", "?"}
         ]
-        if len(sentence_tokens) >= 2 and str(sentence_tokens[0].get("text") or "").casefold() in _TURN_PREFIXES:
+        if (
+            len(sentence_tokens) >= 2
+            and str(sentence_tokens[0].get("text") or "").casefold() in _TURN_PREFIXES
+        ):
             sentence_tokens = sentence_tokens[1:]
         if not sentence_tokens:
             continue
@@ -275,7 +283,11 @@ def _imperative_like_tokens(
                         label="imperative_marker",
                         value=token_lower,
                         confidence=0.85,
-                        spans=(SignalSpan(rest_start + match.start(), rest_start + match.end()),),
+                        spans=(
+                            SignalSpan(
+                                rest_start + match.start(), rest_start + match.end()
+                            ),
+                        ),
                         provenance=("surface:explicit_address_imperative",),
                         evidence=(token_text,),
                     )
@@ -358,7 +370,11 @@ def _extract_audience_signals(
     tokens = _flatten_tokens(parsed)
     atoms: list[SignalAtom] = []
     lowered_tokens = [str(token.get("text") or "").casefold() for token in tokens]
-    group_hits = [token for token in tokens if str(token.get("text") or "").casefold() in _GROUP_AUDIENCE]
+    group_hits = [
+        token
+        for token in tokens
+        if str(token.get("text") or "").casefold() in _GROUP_AUDIENCE
+    ]
     if group_hits:
         atoms.append(
             _make_signal(
@@ -366,7 +382,10 @@ def _extract_audience_signals(
                 label="group_addressable",
                 value=True,
                 confidence=0.85,
-                spans=tuple(SignalSpan(int(token["start"]), int(token["end"])) for token in group_hits),
+                spans=tuple(
+                    SignalSpan(int(token["start"]), int(token["end"]))
+                    for token in group_hits
+                ),
                 provenance=("parsed:group_audience",),
                 evidence=tuple(str(token.get("text") or "") for token in group_hits),
             )
@@ -386,7 +405,9 @@ def _extract_audience_signals(
             )
         )
 
-    has_single_recipient = any(atom.label in {"explicit_address", "second_person"} for atom in directness_atoms)
+    has_single_recipient = any(
+        atom.label in {"explicit_address", "second_person"} for atom in directness_atoms
+    )
     has_group = any(atom.label == "group_addressable" for atom in atoms)
     if has_single_recipient and not has_group:
         spans = tuple(
@@ -395,7 +416,12 @@ def _extract_audience_signals(
             if atom.label in {"explicit_address", "second_person"}
             for span in atom.spans
         )
-        evidence = tuple(item for atom in directness_atoms if atom.label in {"explicit_address", "second_person"} for item in atom.evidence)
+        evidence = tuple(
+            item
+            for atom in directness_atoms
+            if atom.label in {"explicit_address", "second_person"}
+            for item in atom.evidence
+        )
         atoms.append(
             _make_signal(
                 family="audience",
@@ -460,14 +486,22 @@ def extract_interaction_signals(
     atoms.extend(qa_atoms)
 
     directness_atoms = _extract_directness_signals(text, parsed=parsed_payload)
-    explicit_address = any(atom.label == "explicit_address" for atom in directness_atoms)
+    explicit_address = any(
+        atom.label == "explicit_address" for atom in directness_atoms
+    )
     second_person = any(atom.label == "second_person" for atom in directness_atoms)
-    question_like = any(atom.label in {"question_marker", "wh_interrogative", "aux_interrogative", "qa_turn"} for atom in atoms)
+    question_like = any(
+        atom.label
+        in {"question_marker", "wh_interrogative", "aux_interrogative", "qa_turn"}
+        for atom in atoms
+    )
     imperative_like = any(atom.label == "imperative_marker" for atom in atoms)
 
     raw = text.strip()
     lowered = raw.casefold()
-    greeting_only = lowered in _GREETING_WORDS or any(lowered.startswith(f"{value} ") for value in _GREETING_WORDS)
+    greeting_only = lowered in _GREETING_WORDS or any(
+        lowered.startswith(f"{value} ") for value in _GREETING_WORDS
+    )
 
     mode_label = "statement"
     confidence = 0.55
@@ -505,7 +539,13 @@ def extract_interaction_signals(
             evidence.append("addressed_statement")
 
     for atom in atoms:
-        if atom.label in {"question_marker", "wh_interrogative", "aux_interrogative", "imperative_marker", "qa_turn"}:
+        if atom.label in {
+            "question_marker",
+            "wh_interrogative",
+            "aux_interrogative",
+            "imperative_marker",
+            "qa_turn",
+        }:
             spans.extend(atom.spans)
     for atom in directness_atoms:
         if atom.label == "explicit_address":
@@ -531,10 +571,23 @@ def _extract_uncertainty_signals(
     directness_atoms: list[SignalAtom],
 ) -> list[SignalAtom]:
     atoms: list[SignalAtom] = []
-    question_like = any(atom.label in {"question_marker", "wh_interrogative", "aux_interrogative", "qa_turn"} for atom in interaction_atoms)
-    imperative_like = any(atom.label == "imperative_marker" for atom in interaction_atoms)
-    explicit_address = any(atom.label == "explicit_address" for atom in directness_atoms)
-    projected_modes = {atom.label for atom in interaction_atoms if atom.label in {"ambient", "statement", "interrogative", "imperative", "directed_request"}}
+    question_like = any(
+        atom.label
+        in {"question_marker", "wh_interrogative", "aux_interrogative", "qa_turn"}
+        for atom in interaction_atoms
+    )
+    imperative_like = any(
+        atom.label == "imperative_marker" for atom in interaction_atoms
+    )
+    explicit_address = any(
+        atom.label == "explicit_address" for atom in directness_atoms
+    )
+    projected_modes = {
+        atom.label
+        for atom in interaction_atoms
+        if atom.label
+        in {"ambient", "statement", "interrogative", "imperative", "directed_request"}
+    }
 
     if question_like and imperative_like and not explicit_address:
         atoms.append(
@@ -604,7 +657,11 @@ def collect_signal_state(
         )
         families["interaction"] = tuple(interaction_atoms)
 
-    if "directness" in normalized_families or "audience" in normalized_families or "uncertainty" in normalized_families:
+    if (
+        "directness" in normalized_families
+        or "audience" in normalized_families
+        or "uncertainty" in normalized_families
+    ):
         directness_atoms = _extract_directness_signals(text, parsed=parsed_payload)
         if "directness" in normalized_families:
             families["directness"] = tuple(directness_atoms)

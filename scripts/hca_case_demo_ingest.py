@@ -24,7 +24,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 
 SENSIBLAW_ROOT = Path(__file__).resolve().parents[1]
@@ -37,7 +37,9 @@ from src.pdf_ingest import process_pdf  # noqa: E402
 from src.tools.network_progress import TransferProgressReporter  # noqa: E402
 
 
-CASE_URL_DEFAULT = "https://www.hcourt.gov.au/cases-and-judgments/cases/decided/case-s942025"
+CASE_URL_DEFAULT = (
+    "https://www.hcourt.gov.au/cases-and-judgments/cases/decided/case-s942025"
+)
 
 _MONTH_TOKEN_TO_INT = {
     "jan": 1,
@@ -85,7 +87,9 @@ def _utc_now_iso() -> str:
     return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
 
 
-def _build_hca_case_snapshot(case_url: str, manifest: Dict[str, object]) -> Dict[str, object]:
+def _build_hca_case_snapshot(
+    case_url: str, manifest: Dict[str, object]
+) -> Dict[str, object]:
     rev_timestamp = str(manifest.get("generated_at") or "").strip() or None
     return {
         "title": "AA v Diocese (S94/2025)",
@@ -96,12 +100,19 @@ def _build_hca_case_snapshot(case_url: str, manifest: Dict[str, object]) -> Dict
     }
 
 
-def _build_hca_source_entity(case_url: str, snapshot: Dict[str, object]) -> Dict[str, object]:
-    title = str(snapshot.get("title") or "AA v Diocese (S94/2025)").strip() or "AA v Diocese (S94/2025)"
+def _build_hca_source_entity(
+    case_url: str, snapshot: Dict[str, object]
+) -> Dict[str, object]:
+    title = (
+        str(snapshot.get("title") or "AA v Diocese (S94/2025)").strip()
+        or "AA v Diocese (S94/2025)"
+    )
     url = str(snapshot.get("source_url") or case_url or "").strip()
     version_hash = str(snapshot.get("rev_timestamp") or "").strip()
     return {
-        "id": source_entity_id(SourceEntityType.COURT_OPINION, title, url=url, version_hash=version_hash),
+        "id": source_entity_id(
+            SourceEntityType.COURT_OPINION, title, url=url, version_hash=version_hash
+        ),
         "type": SourceEntityType.COURT_OPINION.value,
         "title": title,
         "url": url or None,
@@ -148,7 +159,9 @@ def _abs_url(base_url: str, href: str) -> str:
     return urllib.parse.urljoin(base_url, html.unescape(str(href or "").strip()))
 
 
-def _fetch(url: str, timeout: int, headers: Optional[Dict[str, str]] = None) -> Dict[str, object]:
+def _fetch(
+    url: str, timeout: int, headers: Optional[Dict[str, str]] = None
+) -> Dict[str, object]:
     req_headers = {"User-Agent": "ITIR-suite/0.1"}
     if headers:
         req_headers.update(headers)
@@ -187,7 +200,9 @@ def _fetch(url: str, timeout: int, headers: Optional[Dict[str, str]] = None) -> 
     }
 
 
-def _download(url: str, out_path: Path, timeout: int, headers: Optional[Dict[str, str]] = None) -> Dict[str, object]:
+def _download(
+    url: str, out_path: Path, timeout: int, headers: Optional[Dict[str, str]] = None
+) -> Dict[str, object]:
     fetched = _fetch(url, timeout=timeout, headers=headers)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_bytes(fetched["data"])  # type: ignore[index]
@@ -208,7 +223,9 @@ def _strip_tags(fragment: str) -> str:
 
 def _html_to_text(fragment: str) -> str:
     s = str(fragment or "")
-    s = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", s, flags=re.IGNORECASE | re.DOTALL)
+    s = re.sub(
+        r"<(script|style)[^>]*>.*?</\1>", " ", s, flags=re.IGNORECASE | re.DOTALL
+    )
     s = re.sub(r"</?(p|div|li|h[1-6]|tr|br)[^>]*>", "\n", s, flags=re.IGNORECASE)
     s = re.sub(r"<[^>]+>", " ", s)
     s = html.unescape(s)
@@ -225,7 +242,9 @@ def _score_case_doc_link(label: str, url: str) -> int:
         score += 60
     if "/sites/default/files/" in u:
         score += 10
-    if "judgment summary" in label_norm and ("judgment-summaries" in u or "case-summaries" in u):
+    if "judgment summary" in label_norm and (
+        "judgment-summaries" in u or "case-summaries" in u
+    ):
         score += 80
     if "judgment summary" in label_norm and "/judgments/" in u and ".pdf" not in u:
         score -= 60
@@ -260,7 +279,9 @@ def _pick_best_case_doc_link(label: str, links: List[str]) -> Optional[str]:
     return best_url
 
 
-def _extract_transcript_links_from_recording_page(recording_html: str, base_url: str) -> List[Dict[str, str]]:
+def _extract_transcript_links_from_recording_page(
+    recording_html: str, base_url: str
+) -> List[Dict[str, str]]:
     out: List[Dict[str, str]] = []
     seen = set()
     block = recording_html
@@ -271,7 +292,9 @@ def _extract_transcript_links_from_recording_page(recording_html: str, base_url:
     )
     if m:
         block = m.group(1)
-    for m_link in re.finditer(r'<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>', block, flags=re.IGNORECASE | re.DOTALL):
+    for m_link in re.finditer(
+        r'<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>', block, flags=re.IGNORECASE | re.DOTALL
+    ):
         href = _abs_url(base_url, m_link.group(1))
         label = _strip_tags(m_link.group(2)) or "Transcript"
         if href in seen:
@@ -288,11 +311,23 @@ def _build_doc_plan(case_url: str) -> List[Dict[str, Optional[str]]]:
         {"date": "2025-07-01", "label": "Notice of appeal", "url": None},
         {"date": "2025-07-07", "label": "Written submissions (Appellant)", "url": None},
         {"date": "2025-07-07", "label": "Chronology (Appellant)", "url": None},
-        {"date": "2025-07-18", "label": "Written submissions (Respondent)", "url": None},
+        {
+            "date": "2025-07-18",
+            "label": "Written submissions (Respondent)",
+            "url": None,
+        },
         {"date": "2025-07-23", "label": "Reply", "url": None},
         {"date": "2025-08-07", "label": "Hearing (Full Court, Canberra)", "url": None},
-        {"date": "2025-08-07", "label": "Outline of oral argument (Appellant)", "url": None},
-        {"date": "2025-08-07", "label": "Outline of oral argument (Respondent)", "url": None},
+        {
+            "date": "2025-08-07",
+            "label": "Outline of oral argument (Appellant)",
+            "url": None,
+        },
+        {
+            "date": "2025-08-07",
+            "label": "Outline of oral argument (Respondent)",
+            "url": None,
+        },
         {"date": "2026-02-11", "label": "Judgment (Judgment Summary)", "url": None},
         {
             "date": "2025-08-01",
@@ -304,7 +339,9 @@ def _build_doc_plan(case_url: str) -> List[Dict[str, Optional[str]]]:
     ]
 
 
-def _extract_case_document_rows(case_html: str, case_url: str) -> List[Dict[str, object]]:
+def _extract_case_document_rows(
+    case_html: str, case_url: str
+) -> List[Dict[str, object]]:
     out: List[Dict[str, object]] = []
     m = re.search(
         r"field--name-field-case-documents.*?<table>(?P<body>.*?)</table>",
@@ -321,7 +358,10 @@ def _extract_case_document_rows(case_html: str, case_url: str) -> List[Dict[str,
         date_text = _strip_tags(cells[0])
         col_html = cells[1]
         label_text = _strip_tags(col_html)
-        hrefs = [_abs_url(case_url, h) for h in re.findall(r'href="([^"]+)"', col_html, flags=re.IGNORECASE)]
+        hrefs = [
+            _abs_url(case_url, h)
+            for h in re.findall(r'href="([^"]+)"', col_html, flags=re.IGNORECASE)
+        ]
         out.append(
             {
                 "date": date_text,
@@ -339,7 +379,9 @@ def _extract_case_recording(case_html: str, case_url: str) -> Dict[str, Optional
     m = re.search(r'href="([^"]*/av-recording/[^"]+)"', case_html, flags=re.IGNORECASE)
     if m:
         rec_page = _abs_url(case_url, m.group(1))
-    m = re.search(r'<iframe[^>]+src="([^"]+/media/oembed\?[^"]+)"', case_html, flags=re.IGNORECASE)
+    m = re.search(
+        r'<iframe[^>]+src="([^"]+/media/oembed\?[^"]+)"', case_html, flags=re.IGNORECASE
+    )
     if m:
         oembed_url = _abs_url(case_url, m.group(1))
     return {
@@ -348,7 +390,9 @@ def _extract_case_recording(case_html: str, case_url: str) -> Dict[str, Optional
     }
 
 
-def _apply_case_page_discovery(plan: List[Dict[str, Optional[str]]], case_html: str, case_url: str) -> Dict[str, object]:
+def _apply_case_page_discovery(
+    plan: List[Dict[str, Optional[str]]], case_html: str, case_url: str
+) -> Dict[str, object]:
     rows = _extract_case_document_rows(case_html, case_url)
     rec = _extract_case_recording(case_html, case_url)
 
@@ -376,7 +420,9 @@ def _apply_case_page_discovery(plan: List[Dict[str, Optional[str]]], case_html: 
             links = matched_row.get("links") or []
             if links:
                 prev = item.get("url")
-                new_url = _pick_best_case_doc_link(label, [str(x) for x in links]) or str(links[0])
+                new_url = _pick_best_case_doc_link(
+                    label, [str(x) for x in links]
+                ) or str(links[0])
                 # Keep hearing links synced to the case documents table.
                 if prev != new_url:
                     item["url"] = new_url
@@ -407,7 +453,9 @@ def _apply_case_page_discovery(plan: List[Dict[str, Optional[str]]], case_html: 
             continue
 
         if not item.get("url"):
-            unresolved.append({"label": label, "reason": "no_link_in_case_documents_table"})
+            unresolved.append(
+                {"label": label, "reason": "no_link_in_case_documents_table"}
+            )
 
     return {
         "rows_found": len(rows),
@@ -457,7 +505,9 @@ def _extract_vimeo_id(player_url: str) -> Optional[str]:
 
 
 def _extract_vimeo_config_request_url(player_html: str) -> Optional[str]:
-    m = re.search(r"https://player\.vimeo\.com/video/\d+/config/request\?[^\"']+", player_html)
+    m = re.search(
+        r"https://player\.vimeo\.com/video/\d+/config/request\?[^\"']+", player_html
+    )
     if not m:
         return None
     raw = m.group(0)
@@ -487,7 +537,9 @@ def _collect_stream_manifest_urls(cfg: Dict[str, object]) -> List[Dict[str, str]
                 if url in seen:
                     continue
                 seen.add(url)
-                out.append({"protocol": proto, "cdn": str(cdn_name), "kind": key, "url": url})
+                out.append(
+                    {"protocol": proto, "cdn": str(cdn_name), "kind": key, "url": url}
+                )
     return out
 
 
@@ -557,7 +609,9 @@ def _extract_media(
             out_path = raw_dir / "undated_Case_recording_page.html"
             rec_dl = _download(recording_page_url, out_path, timeout=timeout)
             rec_html = out_path.read_text(encoding="utf-8", errors="replace")
-            transcript_links = _extract_transcript_links_from_recording_page(rec_html, recording_page_url)
+            transcript_links = _extract_transcript_links_from_recording_page(
+                rec_html, recording_page_url
+            )
             report["transcript_links"] = transcript_links
             transcript_pages: List[Dict[str, object]] = []
             for idx, t in enumerate(transcript_links, start=1):
@@ -566,7 +620,11 @@ def _extract_media(
                     continue
                 t_label = str(t.get("label") or f"transcript_{idx}")
                 t_ext = ".pdf" if t_url.lower().endswith(".pdf") else ".html"
-                t_path = media_dir / "transcripts" / f"{idx:02d}_{_safe_name(t_label)}{t_ext}"
+                t_path = (
+                    media_dir
+                    / "transcripts"
+                    / f"{idx:02d}_{_safe_name(t_label)}{t_ext}"
+                )
                 td = _download(
                     t_url,
                     t_path,
@@ -583,7 +641,11 @@ def _extract_media(
                 if t_ext == ".html":
                     t_html = t_path.read_text(encoding="utf-8", errors="replace")
                     text = _html_to_text(t_html)
-                    txt_path = media_dir / "transcripts" / f"{idx:02d}_{_safe_name(t_label)}.txt"
+                    txt_path = (
+                        media_dir
+                        / "transcripts"
+                        / f"{idx:02d}_{_safe_name(t_label)}.txt"
+                    )
                     txt_path.write_text(text + ("\n" if text else ""), encoding="utf-8")
                     row["text_path"] = str(txt_path)
                 transcript_pages.append(row)
@@ -593,7 +655,9 @@ def _extract_media(
                     oembed_urls.append(src)
             report["recording_page_download"] = rec_dl
         except Exception as e:  # pragma: no cover - defensive
-            report["errors"].append(f"recording_page_fetch_failed: {type(e).__name__}: {e}")
+            report["errors"].append(
+                f"recording_page_fetch_failed: {type(e).__name__}: {e}"
+            )
 
     # Also scan case page for iframe/oembed in case recording page fetch fails.
     for src in _extract_iframe_srcs(case_html, case_url):
@@ -617,7 +681,9 @@ def _extract_media(
             if found and found not in player_urls:
                 player_urls.append(found)
         except Exception as e:  # pragma: no cover - defensive
-            report["errors"].append(f"oembed_fetch_failed[{idx}]: {type(e).__name__}: {e}")
+            report["errors"].append(
+                f"oembed_fetch_failed[{idx}]: {type(e).__name__}: {e}"
+            )
     report["player_urls"] = player_urls
 
     for purl in player_urls:
@@ -646,7 +712,9 @@ def _extract_media(
             cfg = json.loads(cfg_bytes.decode("utf-8", errors="replace"))
             cfg_source = "config"
         except Exception as e:
-            report["errors"].append(f"vimeo_config_fetch_failed[{vid}]: {type(e).__name__}: {e}")
+            report["errors"].append(
+                f"vimeo_config_fetch_failed[{vid}]: {type(e).__name__}: {e}"
+            )
             try:
                 player_fetched = _fetch(
                     purl,
@@ -656,7 +724,9 @@ def _extract_media(
                         "Accept": "text/html,*/*",
                     },
                 )
-                player_html = (player_fetched["data"] or b"").decode("utf-8", errors="replace")  # type: ignore[index]
+                player_html = (player_fetched["data"] or b"").decode(
+                    "utf-8", errors="replace"
+                )  # type: ignore[index]
                 req_url = _extract_vimeo_config_request_url(player_html)
                 if not req_url:
                     raise ValueError("config_request_url_not_found")
@@ -668,10 +738,14 @@ def _extract_media(
                         "Accept": "application/json,text/plain,*/*",
                     },
                 )
-                cfg = json.loads((req_fetched["data"] or b"").decode("utf-8", errors="replace"))  # type: ignore[index]
+                cfg = json.loads(
+                    (req_fetched["data"] or b"").decode("utf-8", errors="replace")
+                )  # type: ignore[index]
                 cfg_source = "config_request"
             except Exception as e2:
-                report["errors"].append(f"vimeo_config_request_fetch_failed[{vid}]: {type(e2).__name__}: {e2}")
+                report["errors"].append(
+                    f"vimeo_config_request_fetch_failed[{vid}]: {type(e2).__name__}: {e2}"
+                )
                 continue
 
         cfg_path = media_dir / f"vimeo_{vid}_{cfg_source or 'config'}.json"
@@ -689,15 +763,23 @@ def _extract_media(
             tracks = cfg.get("text_tracks") if isinstance(cfg, dict) else []
         progressive = files.get("progressive") if isinstance(files, dict) else []
 
-        stream_manifests = _collect_stream_manifest_urls(cfg if isinstance(cfg, dict) else {})
+        stream_manifests = _collect_stream_manifest_urls(
+            cfg if isinstance(cfg, dict) else {}
+        )
         for idx, row in enumerate(stream_manifests, start=1):
             m_url = row.get("url") or ""
             if not m_url:
                 continue
             guessed_ext = ".m3u8" if str(row.get("protocol")) == "hls" else ".mpd"
-            out_manifest = media_dir / "video" / f"vimeo_{vid}_{idx:02d}_{_safe_name(str(row.get('protocol')))}_{_safe_name(str(row.get('cdn')))}_{_safe_name(str(row.get('kind')))}{guessed_ext}"
+            out_manifest = (
+                media_dir
+                / "video"
+                / f"vimeo_{vid}_{idx:02d}_{_safe_name(str(row.get('protocol')))}_{_safe_name(str(row.get('cdn')))}_{_safe_name(str(row.get('kind')))}{guessed_ext}"
+            )
             try:
-                md = _download(m_url, out_manifest, timeout=timeout, headers={"Referer": purl})
+                md = _download(
+                    m_url, out_manifest, timeout=timeout, headers={"Referer": purl}
+                )
                 cast = dict(row)
                 cast["path"] = str(out_manifest)
                 cast["bytes"] = md.get("bytes")
@@ -706,7 +788,9 @@ def _extract_media(
                 if isinstance(report_streams, list):
                     report_streams.append(cast)
             except Exception as e:
-                report["errors"].append(f"vimeo_manifest_download_failed[{vid}:{idx}]: {type(e).__name__}: {e}")
+                report["errors"].append(
+                    f"vimeo_manifest_download_failed[{vid}:{idx}]: {type(e).__name__}: {e}"
+                )
 
         if download_video and isinstance(progressive, list) and progressive:
             best = None
@@ -737,7 +821,9 @@ def _extract_media(
                         }
                     )
                 except Exception as e:
-                    report["errors"].append(f"vimeo_video_download_failed[{vid}]: {type(e).__name__}: {e}")
+                    report["errors"].append(
+                        f"vimeo_video_download_failed[{vid}]: {type(e).__name__}: {e}"
+                    )
 
         if isinstance(tracks, list):
             for t in tracks:
@@ -752,14 +838,30 @@ def _extract_media(
                     turl = urllib.parse.urljoin("https://player.vimeo.com", turl)
                 lang = str(t.get("lang") or t.get("language") or "und")
                 kind = str(t.get("kind") or "subtitles")
-                out_vtt = media_dir / "captions" / f"vimeo_{vid}_{_safe_name(lang)}_{_safe_name(kind)}.vtt"
+                out_vtt = (
+                    media_dir
+                    / "captions"
+                    / f"vimeo_{vid}_{_safe_name(lang)}_{_safe_name(kind)}.vtt"
+                )
                 try:
                     td = _download(turl, out_vtt, timeout=timeout)
                     vtt_text = out_vtt.read_text(encoding="utf-8", errors="replace")
                     segments = _parse_vtt_segments(vtt_text)
-                    seg_path = media_dir / "transcripts" / f"vimeo_{vid}_{_safe_name(lang)}.segments.json"
-                    md_path = media_dir / "transcripts" / f"vimeo_{vid}_{_safe_name(lang)}.md"
-                    seg_path.write_text(json.dumps({"video_id": vid, "lang": lang, "segments": segments}, indent=2), encoding="utf-8")
+                    seg_path = (
+                        media_dir
+                        / "transcripts"
+                        / f"vimeo_{vid}_{_safe_name(lang)}.segments.json"
+                    )
+                    md_path = (
+                        media_dir / "transcripts" / f"vimeo_{vid}_{_safe_name(lang)}.md"
+                    )
+                    seg_path.write_text(
+                        json.dumps(
+                            {"video_id": vid, "lang": lang, "segments": segments},
+                            indent=2,
+                        ),
+                        encoding="utf-8",
+                    )
                     md_lines = [f"# Transcript ({vid}, {lang})", ""]
                     for s in segments:
                         md_lines.append(f"- [{s['start']} --> {s['end']}] {s['text']}")
@@ -776,7 +878,9 @@ def _extract_media(
                         }
                     )
                 except Exception as e:
-                    report["errors"].append(f"vimeo_caption_download_failed[{vid}:{lang}]: {type(e).__name__}: {e}")
+                    report["errors"].append(
+                        f"vimeo_caption_download_failed[{vid}:{lang}]: {type(e).__name__}: {e}"
+                    )
 
     return report
 
@@ -798,7 +902,11 @@ def _resolve_dot_binary(cli_value: Optional[str]) -> Optional[str]:
         if p.exists() and p.is_file():
             return str(p)
     for cand in ("dot", "/usr/bin/dot", "/usr/local/bin/dot", "/opt/conda/bin/dot"):
-        resolved = shutil.which(cand) if cand == "dot" else (cand if Path(cand).exists() else None)
+        resolved = (
+            shutil.which(cand)
+            if cand == "dot"
+            else (cand if Path(cand).exists() else None)
+        )
         if resolved:
             return resolved
     return None
@@ -807,12 +915,20 @@ def _resolve_dot_binary(cli_value: Optional[str]) -> Optional[str]:
 def _graph_payload(graph: Graph) -> Dict[str, object]:
     nodes: List[Dict[str, object]] = []
     for node in sorted(graph.nodes.values(), key=lambda n: n.id):
-        row: Dict[str, object] = {"id": node.id, "type": node.label, "label": node.label}
+        row: Dict[str, object] = {
+            "id": node.id,
+            "type": node.label,
+            "label": node.label,
+        }
         row.update(node.properties or {})
         nodes.append(row)
     edges: List[Dict[str, object]] = []
     for edge in graph.edges:
-        row: Dict[str, object] = {"source": edge.source, "target": edge.target, "type": edge.type}
+        row: Dict[str, object] = {
+            "source": edge.source,
+            "target": edge.target,
+            "type": edge.type,
+        }
         row.update(edge.properties or {})
         edges.append(row)
     return {"nodes": nodes, "edges": edges}
@@ -823,7 +939,9 @@ def _graph_dot(graph_json: Dict[str, object]) -> str:
     lines.append("digraph case_bundle {")
     lines.append('  rankdir="LR";')
     lines.append('  graph [bgcolor="white"];')
-    lines.append('  node [shape="box", style="rounded,filled", fillcolor="#f8fafc", color="#94a3b8", fontname="Helvetica"];')
+    lines.append(
+        '  node [shape="box", style="rounded,filled", fillcolor="#f8fafc", color="#94a3b8", fontname="Helvetica"];'
+    )
     lines.append('  edge [color="#64748b", fontname="Helvetica", fontsize=10];')
     for n in graph_json.get("nodes", []):
         if not isinstance(n, dict):
@@ -850,7 +968,14 @@ def _anchor_from_date_text(date_text: Optional[str]) -> Dict[str, object]:
     raw = _collapse_ws(date_text or "")
     m = re.match(r"^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$", raw)
     if not m:
-        return {"year": 0, "month": None, "day": None, "precision": "undated", "text": raw or "undated", "kind": "date"}
+        return {
+            "year": 0,
+            "month": None,
+            "day": None,
+            "precision": "undated",
+            "text": raw or "undated",
+            "kind": "date",
+        }
     y = int(m.group(1))
     mm = int(m.group(2)) if m.group(2) else None
     dd = int(m.group(3)) if m.group(3) else None
@@ -860,7 +985,14 @@ def _anchor_from_date_text(date_text: Optional[str]) -> Dict[str, object]:
         precision = "month"
     else:
         precision = "year"
-    return {"year": y, "month": mm, "day": dd, "precision": precision, "text": raw, "kind": "date"}
+    return {
+        "year": y,
+        "month": mm,
+        "day": dd,
+        "precision": precision,
+        "text": raw,
+        "kind": "date",
+    }
 
 
 def _section_for_label(label: str) -> str:
@@ -869,7 +1001,12 @@ def _section_for_label(label: str) -> str:
         return "Hearings"
     if "judgment" in l:
         return "Judgment"
-    if "notice of appeal" in l or "written submissions" in l or "chronology" in l or l.strip() == "reply":
+    if (
+        "notice of appeal" in l
+        or "written submissions" in l
+        or "chronology" in l
+        or l.strip() == "reply"
+    ):
         return "Filings"
     if "recording" in l or "transcript" in l or "caption" in l:
         return "Recordings"
@@ -936,7 +1073,9 @@ FOLLOWER_ORDER = [
 ]
 
 
-def _citation_follow_hints(citation_text: str, source_document_json: str, source_pdf: str) -> List[Dict[str, str]]:
+def _citation_follow_hints(
+    citation_text: str, source_document_json: str, source_pdf: str
+) -> List[Dict[str, str]]:
     q = urllib.parse.quote_plus(str(citation_text or "").strip())
     hints: List[Dict[str, str]] = []
     if q:
@@ -1005,7 +1144,9 @@ def _looks_like_citation_text(text: str) -> bool:
     return False
 
 
-def _extract_citations(text: str, source_document_json: str = "", source_pdf: str = "") -> List[Dict[str, object]]:
+def _extract_citations(
+    text: str, source_document_json: str = "", source_pdf: str = ""
+) -> List[Dict[str, object]]:
     s = str(text or "")
     out: List[Dict[str, object]] = []
     seen = set()
@@ -1026,7 +1167,9 @@ def _extract_citations(text: str, source_document_json: str = "", source_pdf: st
             "kind": kind,
             "targets": _extract_ints(ctext),
             "follower_order": list(FOLLOWER_ORDER),
-            "follow": _citation_follow_hints(ctext, source_document_json=source_document_json, source_pdf=source_pdf),
+            "follow": _citation_follow_hints(
+                ctext, source_document_json=source_document_json, source_pdf=source_pdf
+            ),
         }
         if prefix:
             row["prefix"] = prefix
@@ -1220,7 +1363,9 @@ def _collect_sl_reference_rows(document_json_path: str) -> List[Dict[str, object
         if not isinstance(provision, dict):
             continue
         provision_text = str(provision.get("text") or "")
-        provision_stable_id = str(provision.get("stable_id") or provision.get("toc_id") or "").strip()
+        provision_stable_id = str(
+            provision.get("stable_id") or provision.get("toc_id") or ""
+        ).strip()
         add_rows(
             provision.get("references") or [],
             lane="provisions.references",
@@ -1333,7 +1478,10 @@ def _select_sl_references_for_sentence(
             continue
         seen.add(dedupe_key)
         ref_text = str(row.get("text") or "").strip()
-        follow_text = ref_text or f"{row.get('authority') or ''} {row.get('ref_value') or ''}".strip()
+        follow_text = (
+            ref_text
+            or f"{row.get('authority') or ''} {row.get('ref_value') or ''}".strip()
+        )
         out.append(
             {
                 "lane": str(row.get("lane") or ""),
@@ -1341,14 +1489,18 @@ def _select_sl_references_for_sentence(
                 "ref_kind": str(row.get("ref_kind") or ""),
                 "ref_value": str(row.get("ref_value") or ""),
                 "text": ref_text,
-                "source_document_json": str(source_document_json or row.get("source_document_json") or ""),
+                "source_document_json": str(
+                    source_document_json or row.get("source_document_json") or ""
+                ),
                 "source_pdf": str(source_pdf or ""),
                 "provision_stable_id": row.get("provision_stable_id"),
                 "rule_atom_stable_id": row.get("rule_atom_stable_id"),
                 "follower_order": list(FOLLOWER_ORDER),
                 "follow": _citation_follow_hints(
                     follow_text,
-                    source_document_json=str(source_document_json or row.get("source_document_json") or ""),
+                    source_document_json=str(
+                        source_document_json or row.get("source_document_json") or ""
+                    ),
                     source_pdf=str(source_pdf or ""),
                 ),
             }
@@ -1499,9 +1651,13 @@ def _token_lemmas(text: str, nlp: Optional[object] = None) -> List[str]:
             doc = nlp(s)
             out: List[str] = []
             for tok in doc:
-                if bool(getattr(tok, "is_space", False)) or bool(getattr(tok, "is_punct", False)):
+                if bool(getattr(tok, "is_space", False)) or bool(
+                    getattr(tok, "is_punct", False)
+                ):
                     continue
-                lemma = _collapse_ws(str(getattr(tok, "lemma_", "") or getattr(tok, "text", ""))).lower()
+                lemma = _collapse_ws(
+                    str(getattr(tok, "lemma_", "") or getattr(tok, "text", ""))
+                ).lower()
                 if lemma:
                     out.append(lemma)
             if out:
@@ -1538,7 +1694,12 @@ def _infer_party_from_doc_context(
             scores["appellant"] += weight
         if "respondent" in t:
             scores["respondent"] += weight
-        if "judgment" in t or "court of appeal" in t or "high court" in t or "judge" in t:
+        if (
+            "judgment" in t
+            or "court of appeal" in t
+            or "high court" in t
+            or "judge" in t
+        ):
             scores["court"] += weight * 0.75
 
     toc_rows = doc_context.get("toc_rows")
@@ -1624,7 +1785,11 @@ def _extract_temporal_anchors_from_sentence(
     if nlp is not None:
         try:
             doc = nlp(sentence_text)
-            ents = [ent for ent in getattr(doc, "ents", []) if str(getattr(ent, "label_", "")) == "DATE"]
+            ents = [
+                ent
+                for ent in getattr(doc, "ents", [])
+                if str(getattr(ent, "label_", "")) == "DATE"
+            ]
             for ent in ents:
                 year: Optional[int] = None
                 month: Optional[int] = None
@@ -1694,7 +1859,9 @@ def _extract_temporal_anchors_from_sentence(
                     continue
                 prev1 = str(doc[i - 1].text).lower() if i > 0 else ""
                 prev2 = str(doc[i - 2].text).lower() if i > 1 else ""
-                has_temporal_cue = prev1 in cue_prev or (prev2 == "at" and prev1 == "least")
+                has_temporal_cue = prev1 in cue_prev or (
+                    prev2 == "at" and prev1 == "least"
+                )
                 if not has_temporal_cue:
                     continue
                 key = (year, None, None, "year")
@@ -1720,7 +1887,8 @@ def _extract_temporal_anchors_from_sentence(
         years_with_strong_anchor = {
             int(a.get("year") or 0)
             for a in out
-            if str(a.get("precision") or "") in {"month", "day"} and int(a.get("year") or 0) > 0
+            if str(a.get("precision") or "") in {"month", "day"}
+            and int(a.get("year") or 0) > 0
         }
         if years_with_strong_anchor:
             filtered: List[Dict[str, object]] = []
@@ -1728,7 +1896,11 @@ def _extract_temporal_anchors_from_sentence(
                 year = int(a.get("year") or 0)
                 precision = str(a.get("precision") or "")
                 text = _collapse_ws(str(a.get("text") or ""))
-                if precision == "year" and year in years_with_strong_anchor and re.fullmatch(r"\d{4}", text):
+                if (
+                    precision == "year"
+                    and year in years_with_strong_anchor
+                    and re.fullmatch(r"\d{4}", text)
+                ):
                     continue
                 filtered.append(a)
             out = filtered
@@ -1741,7 +1913,9 @@ def _split_chronology_sentence(text: str, nlp: Optional[object] = None) -> List[
     s = _collapse_ws(text)
     if not s:
         return []
-    starts = [m.start(1) for m in _DATE_ROW_START_RE.finditer(s) if m and m.start(1) >= 0]
+    starts = [
+        m.start(1) for m in _DATE_ROW_START_RE.finditer(s) if m and m.start(1) >= 0
+    ]
     if len(starts) < 2 and "date event reference" not in s.lower():
         return [s]
     if len(starts) < 2:
@@ -1776,7 +1950,11 @@ def _clean_fact_objects(raw_objects: object) -> List[str]:
             continue
         if re.fullmatch(r"\d{4}", s):
             continue
-        if re.fullmatch(rf"\d{{1,2}}(?:\s*-\s*\d{{1,2}})?\s+{_MONTH_NAME_PATTERN}\s+\d{{4}}", s, flags=re.IGNORECASE):
+        if re.fullmatch(
+            rf"\d{{1,2}}(?:\s*-\s*\d{{1,2}})?\s+{_MONTH_NAME_PATTERN}\s+\d{{4}}",
+            s,
+            flags=re.IGNORECASE,
+        ):
             continue
         k = s.lower()
         if k in seen:
@@ -1807,12 +1985,20 @@ def _build_timeline_facts_for_event(
         if not isinstance(step, dict):
             continue
         action = _collapse_ws(step.get("action"))
-        subjects = sorted(set(_collapse_ws(x) for x in step.get("subjects") or [] if _collapse_ws(x)))
+        subjects = sorted(
+            set(_collapse_ws(x) for x in step.get("subjects") or [] if _collapse_ws(x))
+        )
         entity_objects_raw = step.get("entity_objects")
-        object_lane = entity_objects_raw if isinstance(entity_objects_raw, list) and entity_objects_raw else step.get("objects")
+        object_lane = (
+            entity_objects_raw
+            if isinstance(entity_objects_raw, list) and entity_objects_raw
+            else step.get("objects")
+        )
         objects = sorted(set(_clean_fact_objects(object_lane)))
         numeric_objects = sorted(set(_clean_fact_objects(step.get("numeric_objects"))))
-        modifier_objects = sorted(set(_clean_fact_objects(step.get("modifier_objects"))))
+        modifier_objects = sorted(
+            set(_clean_fact_objects(step.get("modifier_objects")))
+        )
         purpose = _collapse_ws(step.get("purpose"))
         if not action and not subjects and not objects:
             continue
@@ -1966,11 +2152,15 @@ def _build_propositions_for_event(
             "arguments": arguments,
             "receipts": [{"kind": "source", "value": "timeline_fact"}],
         }
-        if isinstance(fact.get("negation"), dict) and _clean_prop_text((fact.get("negation") or {}).get("kind")):
+        if isinstance(fact.get("negation"), dict) and _clean_prop_text(
+            (fact.get("negation") or {}).get("kind")
+        ):
             proposition["negation"] = {
                 "kind": _clean_prop_text((fact.get("negation") or {}).get("kind")),
-                "scope": _clean_prop_text((fact.get("negation") or {}).get("scope")) or "proposition",
-                "source": _clean_prop_text((fact.get("negation") or {}).get("source")) or "timeline_fact",
+                "scope": _clean_prop_text((fact.get("negation") or {}).get("scope"))
+                or "proposition",
+                "source": _clean_prop_text((fact.get("negation") or {}).get("source"))
+                or "timeline_fact",
             }
         propositions.append(proposition)
 
@@ -1989,7 +2179,9 @@ def _sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def _try_load_spacy_narrative(model: str = "en_core_web_sm") -> Tuple[Optional[object], Dict[str, object]]:
+def _try_load_spacy_narrative(
+    model: str = "en_core_web_sm",
+) -> Tuple[Optional[object], Dict[str, object]]:
     info: Dict[str, object] = {"name": "spacy", "model": model}
     try:
         import spacy  # type: ignore
@@ -2026,7 +2218,10 @@ def _sentence_split_fallback(text: str, nlp: Optional[object] = None) -> List[st
     if nlp is not None:
         try:
             doc = nlp(raw)
-            out = [_collapse_ws(str(getattr(s, "text", "") or "")) for s in getattr(doc, "sents", [])]
+            out = [
+                _collapse_ws(str(getattr(s, "text", "") or ""))
+                for s in getattr(doc, "sents", [])
+            ]
             out = [s for s in out if s]
             if out:
                 return out
@@ -2058,10 +2253,22 @@ def _is_narrative_sentence(text: str, nlp: Optional[object] = None) -> bool:
         return False
     if re.match(r"^(?:see,\s*e\.g\.|cf\.?\s)", s, flags=re.IGNORECASE):
         return False
-    if re.match(r"^(?:T\d+[.\d–-]*|CAB\s*\d+|SC\[\d+|CA\[\d+|AS\[\d+|RS\[\d+|ABFM\b)", s):
+    if re.match(
+        r"^(?:T\d+[.\d–-]*|CAB\s*\d+|SC\[\d+|CA\[\d+|AS\[\d+|RS\[\d+|ABFM\b)", s
+    ):
         return False
-    citation_marker_count = len(re.findall(r"\b(?:CAB|SC|CA|AS|RS|ABFM)\b|\bT\d+(?:\.\d+)?\b", s))
-    if citation_marker_count >= 3 and len(re.findall(r"\b(?:is|are|was|were|be|been|being|has|have|had|does|do|did)\b", lower)) <= 1:
+    citation_marker_count = len(
+        re.findall(r"\b(?:CAB|SC|CA|AS|RS|ABFM)\b|\bT\d+(?:\.\d+)?\b", s)
+    )
+    if (
+        citation_marker_count >= 3
+        and len(
+            re.findall(
+                r"\b(?:is|are|was|were|be|been|being|has|have|had|does|do|did)\b", lower
+            )
+        )
+        <= 1
+    ):
         return False
     if s.count("_") >= 6:
         return False
@@ -2077,9 +2284,15 @@ def _is_narrative_sentence(text: str, nlp: Optional[object] = None) -> bool:
             if not verbs:
                 return False
             # Reject heading/table-like rows: mostly labels/date fragments with only light auxiliary verbs.
-            nounish = sum(1 for t in toks if getattr(t, "pos_", "") in {"PROPN", "NOUN", "NUM"})
+            nounish = sum(
+                1 for t in toks if getattr(t, "pos_", "") in {"PROPN", "NOUN", "NUM"}
+            )
             if nounish / float(len(toks)) >= 0.75:
-                strong_verbs = [t for t in verbs if (getattr(t, "lemma_", "") or "").lower() not in {"be", "have"}]
+                strong_verbs = [
+                    t
+                    for t in verbs
+                    if (getattr(t, "lemma_", "") or "").lower() not in {"be", "have"}
+                ]
                 if not strong_verbs:
                     return False
         except Exception:
@@ -2095,7 +2308,9 @@ def _is_narrative_sentence(text: str, nlp: Optional[object] = None) -> bool:
     return True
 
 
-def _doc_sentences(document_json_path: Path, max_sentences: int, nlp: Optional[object] = None) -> List[str]:
+def _doc_sentences(
+    document_json_path: Path, max_sentences: int, nlp: Optional[object] = None
+) -> List[str]:
     try:
         payload = json.loads(document_json_path.read_text(encoding="utf-8"))
     except Exception:
@@ -2167,7 +2382,9 @@ def _narrative_timeline_events(
             continue
         date_text = str(row.get("date") or "").strip()
         label = str(row.get("label") or "").strip() or "Case artifact"
-        sentences = _doc_sentences(Path(doc_json), max_sentences=max_sentences_per_doc, nlp=nlp)
+        sentences = _doc_sentences(
+            Path(doc_json), max_sentences=max_sentences_per_doc, nlp=nlp
+        )
         for sentence in sentences:
             ev_id = f"narr:{seq:04d}"
             seq += 1
@@ -2196,7 +2413,14 @@ def _extract_narrative_aoo(
     snapshot: Optional[Dict[str, object]] = None,
 ) -> Dict[str, object]:
     if not timeline_events:
-        return {"ok": True, "events": [], "parser": {"kind": "wiki_timeline_aoo_extract", "skipped": "no_timeline_events"}}
+        return {
+            "ok": True,
+            "events": [],
+            "parser": {
+                "kind": "wiki_timeline_aoo_extract",
+                "skipped": "no_timeline_events",
+            },
+        }
 
     graph_dir = out_dir / "graph"
     graph_dir.mkdir(parents=True, exist_ok=True)
@@ -2206,8 +2430,12 @@ def _extract_narrative_aoo(
     timeline_payload: Dict[str, object] = {"events": timeline_events}
     if isinstance(snapshot, dict) and snapshot:
         timeline_payload["snapshot"] = snapshot
-    timeline_path.write_text(json.dumps(timeline_payload, indent=2, sort_keys=True), encoding="utf-8")
-    candidates_path.write_text(json.dumps({"candidates": []}, indent=2, sort_keys=True), encoding="utf-8")
+    timeline_path.write_text(
+        json.dumps(timeline_payload, indent=2, sort_keys=True), encoding="utf-8"
+    )
+    candidates_path.write_text(
+        json.dumps({"candidates": []}, indent=2, sort_keys=True), encoding="utf-8"
+    )
 
     cmd = [
         sys.executable,
@@ -2253,14 +2481,18 @@ def _extract_narrative_aoo(
         }
     return {
         "ok": True,
-        "events": payload.get("events") if isinstance(payload.get("events"), list) else [],
+        "events": payload.get("events")
+        if isinstance(payload.get("events"), list)
+        else [],
         "parser": payload.get("parser"),
         "timeline": str(timeline_path),
         "aoo_path": str(aoo_path),
     }
 
 
-def _build_sb_signal_payload(case_url: str, aoo_payload: Dict[str, object]) -> Dict[str, object]:
+def _build_sb_signal_payload(
+    case_url: str, aoo_payload: Dict[str, object]
+) -> Dict[str, object]:
     rows = aoo_payload.get("events")
     events = rows if isinstance(rows, list) else []
     signals: List[Dict[str, object]] = []
@@ -2268,7 +2500,11 @@ def _build_sb_signal_payload(case_url: str, aoo_payload: Dict[str, object]) -> D
         if not isinstance(ev, dict):
             continue
         steps = ev.get("steps")
-        step0 = steps[0] if isinstance(steps, list) and steps and isinstance(steps[0], dict) else {}
+        step0 = (
+            steps[0]
+            if isinstance(steps, list) and steps and isinstance(steps[0], dict)
+            else {}
+        )
         step_subjects = step0.get("subjects") if isinstance(step0, dict) else []
         step_objects = step0.get("objects") if isinstance(step0, dict) else []
         signals.append(
@@ -2281,13 +2517,19 @@ def _build_sb_signal_payload(case_url: str, aoo_payload: Dict[str, object]) -> D
                 "section": str(ev.get("section") or ""),
                 "text": str(ev.get("text") or ""),
                 "action": str(step0.get("action") or ev.get("action") or ""),
-                "subjects": list(step_subjects) if isinstance(step_subjects, list) else [],
+                "subjects": list(step_subjects)
+                if isinstance(step_subjects, list)
+                else [],
                 "objects": list(step_objects) if isinstance(step_objects, list) else [],
                 "citations": list(ev.get("citations") or []),
                 "sl_references": list(ev.get("sl_references") or []),
-                "legal_section_markers": ev.get("legal_section_markers") if isinstance(ev.get("legal_section_markers"), dict) else {},
+                "legal_section_markers": ev.get("legal_section_markers")
+                if isinstance(ev.get("legal_section_markers"), dict)
+                else {},
                 "timeline_facts": list(ev.get("timeline_facts") or []),
-                "purpose": step0.get("purpose") if isinstance(step0, dict) else ev.get("purpose"),
+                "purpose": step0.get("purpose")
+                if isinstance(step0, dict)
+                else ev.get("purpose"),
                 "warnings": list(ev.get("warnings") or []),
             }
         )
@@ -2366,9 +2608,23 @@ def _build_hca_aoo_payload(
                 "anchor": anchor,
                 "section": section,
                 "text": text,
-                "actors": [{"label": base_actor, "resolved": base_actor, "role": "subject", "source": "hca_case_ingest"}],
+                "actors": [
+                    {
+                        "label": base_actor,
+                        "resolved": base_actor,
+                        "role": "subject",
+                        "source": "hca_case_ingest",
+                    }
+                ],
                 "action": action,
-                "steps": [{"action": action, "subjects": base_subjects, "objects": [label], "purpose": purpose}],
+                "steps": [
+                    {
+                        "action": action,
+                        "subjects": base_subjects,
+                        "objects": [label],
+                        "purpose": purpose,
+                    }
+                ],
                 "chains": [],
                 "objects": objects,
                 "purpose": purpose,
@@ -2378,7 +2634,11 @@ def _build_hca_aoo_payload(
 
     # Append recording derivatives (transcripts/captions/manifests) as sentence-local event nodes.
     rec_anchor = _anchor_from_date_text("2025-08-07")
-    for row in media_report.get("transcript_pages", []) if isinstance(media_report, dict) else []:
+    for row in (
+        media_report.get("transcript_pages", [])
+        if isinstance(media_report, dict)
+        else []
+    ):
         if not isinstance(row, dict):
             continue
         label = str(row.get("label") or "Transcript").strip() or "Transcript"
@@ -2392,9 +2652,23 @@ def _build_hca_aoo_payload(
                 "anchor": rec_anchor,
                 "section": "Recordings",
                 "text": f"Transcript artifact extracted: {label}",
-                "actors": [{"label": base_actor, "resolved": base_actor, "role": "subject", "source": "hca_case_ingest"}],
+                "actors": [
+                    {
+                        "label": base_actor,
+                        "resolved": base_actor,
+                        "role": "subject",
+                        "source": "hca_case_ingest",
+                    }
+                ],
                 "action": action,
-                "steps": [{"action": action, "subjects": base_subjects, "objects": [label], "purpose": "recording_transcript_extracted"}],
+                "steps": [
+                    {
+                        "action": action,
+                        "subjects": base_subjects,
+                        "objects": [label],
+                        "purpose": "recording_transcript_extracted",
+                    }
+                ],
                 "chains": [],
                 "objects": [
                     {"title": label, "source": "hca_av_transcript"},
@@ -2405,7 +2679,9 @@ def _build_hca_aoo_payload(
             }
         )
 
-    for row in media_report.get("captions", []) if isinstance(media_report, dict) else []:
+    for row in (
+        media_report.get("captions", []) if isinstance(media_report, dict) else []
+    ):
         if not isinstance(row, dict):
             continue
         lang = str(row.get("lang") or "und")
@@ -2420,9 +2696,23 @@ def _build_hca_aoo_payload(
                 "anchor": rec_anchor,
                 "section": "Recordings",
                 "text": f"Caption track extracted: {lang}",
-                "actors": [{"label": base_actor, "resolved": base_actor, "role": "subject", "source": "hca_case_ingest"}],
+                "actors": [
+                    {
+                        "label": base_actor,
+                        "resolved": base_actor,
+                        "role": "subject",
+                        "source": "hca_case_ingest",
+                    }
+                ],
                 "action": action,
-                "steps": [{"action": action, "subjects": base_subjects, "objects": [label], "purpose": "recording_caption_extracted"}],
+                "steps": [
+                    {
+                        "action": action,
+                        "subjects": base_subjects,
+                        "objects": [label],
+                        "purpose": "recording_caption_extracted",
+                    }
+                ],
                 "chains": [],
                 "objects": [
                     {"title": label, "source": "vimeo_text_track"},
@@ -2433,7 +2723,11 @@ def _build_hca_aoo_payload(
             }
         )
 
-    for row in media_report.get("stream_manifests", []) if isinstance(media_report, dict) else []:
+    for row in (
+        media_report.get("stream_manifests", [])
+        if isinstance(media_report, dict)
+        else []
+    ):
         if not isinstance(row, dict):
             continue
         proto = str(row.get("protocol") or "stream")
@@ -2449,9 +2743,23 @@ def _build_hca_aoo_payload(
                 "anchor": rec_anchor,
                 "section": "Recordings",
                 "text": f"Streaming manifest captured: {label}",
-                "actors": [{"label": base_actor, "resolved": base_actor, "role": "subject", "source": "hca_case_ingest"}],
+                "actors": [
+                    {
+                        "label": base_actor,
+                        "resolved": base_actor,
+                        "role": "subject",
+                        "source": "hca_case_ingest",
+                    }
+                ],
                 "action": action,
-                "steps": [{"action": action, "subjects": base_subjects, "objects": [label], "purpose": "recording_stream_manifest_captured"}],
+                "steps": [
+                    {
+                        "action": action,
+                        "subjects": base_subjects,
+                        "objects": [label],
+                        "purpose": "recording_stream_manifest_captured",
+                    }
+                ],
                 "chains": [],
                 "objects": [
                     {"title": label, "source": "vimeo_stream_manifest"},
@@ -2497,7 +2805,12 @@ def _build_hca_aoo_payload(
                     source_label=label,
                     nlp=narrative_nlp,
                 )
-            party_info = party_cache.get(document_json, _infer_party_from_doc_context(doc_context={}, source_label=label, nlp=narrative_nlp))
+            party_info = party_cache.get(
+                document_json,
+                _infer_party_from_doc_context(
+                    doc_context={}, source_label=label, nlp=narrative_nlp
+                ),
+            )
             party = str(party_info.get("party") or "unknown")
 
             objects = n_ev.get("objects")
@@ -2511,7 +2824,9 @@ def _build_hca_aoo_payload(
             sl_references: List[Dict[str, object]] = []
             if document_json:
                 if document_json not in sl_reference_cache:
-                    sl_reference_cache[document_json] = _collect_sl_reference_rows(document_json)
+                    sl_reference_cache[document_json] = _collect_sl_reference_rows(
+                        document_json
+                    )
                 sl_references = _select_sl_references_for_sentence(
                     sl_reference_cache.get(document_json, []),
                     base_text,
@@ -2547,7 +2862,9 @@ def _build_hca_aoo_payload(
                 dedup_citations.append(c)
             citations = dedup_citations
 
-            doc_ctx = doc_context_cache.get(document_json, {"toc_rows": [], "metadata": {}})
+            doc_ctx = doc_context_cache.get(
+                document_json, {"toc_rows": [], "metadata": {}}
+            )
             toc_context = _select_toc_entries_for_sentence(
                 doc_ctx.get("toc_rows") if isinstance(doc_ctx, dict) else [],
                 base_text,
@@ -2571,30 +2888,38 @@ def _build_hca_aoo_payload(
                 {
                     _collapse_ws(str(r.get("provision_stable_id") or ""))
                     for r in sl_references
-                    if isinstance(r, dict) and _collapse_ws(str(r.get("provision_stable_id") or ""))
+                    if isinstance(r, dict)
+                    and _collapse_ws(str(r.get("provision_stable_id") or ""))
                 }
             )
             rule_atom_ids = sorted(
                 {
                     _collapse_ws(str(r.get("rule_atom_stable_id") or ""))
                     for r in sl_references
-                    if isinstance(r, dict) and _collapse_ws(str(r.get("rule_atom_stable_id") or ""))
+                    if isinstance(r, dict)
+                    and _collapse_ws(str(r.get("rule_atom_stable_id") or ""))
                 }
             )
 
             if label:
-                merged_objects.append({"title": label, "source": "narrative_source_label"})
+                merged_objects.append(
+                    {"title": label, "source": "narrative_source_label"}
+                )
             if source_pdf:
                 merged_objects.append({"title": source_pdf, "source": "source_pdf"})
             if document_json:
-                merged_objects.append({"title": document_json, "source": "source_document_json"})
+                merged_objects.append(
+                    {"title": document_json, "source": "source_document_json"}
+                )
 
             steps = n_ev.get("steps")
             timeline_facts = _build_timeline_facts_for_event(
                 event_id=f"ev:{event_seq:04d}",
                 sentence_text=base_text,
                 steps=steps,
-                fallback_anchor=n_ev.get("anchor") if isinstance(n_ev.get("anchor"), dict) else _anchor_from_date_text(src.get("date")),
+                fallback_anchor=n_ev.get("anchor")
+                if isinstance(n_ev.get("anchor"), dict)
+                else _anchor_from_date_text(src.get("date")),
                 party=party,
                 nlp=narrative_nlp,
             )
@@ -2626,17 +2951,25 @@ def _build_hca_aoo_payload(
                     "anchor": n_ev.get("anchor"),
                     "section": n_ev.get("section") or "Narrative",
                     "text": n_ev.get("text"),
-                    "actors": n_ev.get("actors") if isinstance(n_ev.get("actors"), list) else [],
+                    "actors": n_ev.get("actors")
+                    if isinstance(n_ev.get("actors"), list)
+                    else [],
                     "action": n_ev.get("action"),
                     "steps": steps if isinstance(steps, list) else [],
-                    "chains": n_ev.get("chains") if isinstance(n_ev.get("chains"), list) else [],
+                    "chains": n_ev.get("chains")
+                    if isinstance(n_ev.get("chains"), list)
+                    else [],
                     "objects": merged_objects,
                     "citations": citations,
                     "sl_references": sl_references,
                     "party": party,
                     "party_source": str(party_info.get("source") or ""),
-                    "party_scores": dict(party_info.get("scores") or {}) if isinstance(party_info.get("scores"), dict) else {},
-                    "party_evidence": list(party_info.get("evidence") or []) if isinstance(party_info.get("evidence"), list) else [],
+                    "party_scores": dict(party_info.get("scores") or {})
+                    if isinstance(party_info.get("scores"), dict)
+                    else {},
+                    "party_evidence": list(party_info.get("evidence") or [])
+                    if isinstance(party_info.get("evidence"), list)
+                    else [],
                     "toc_context": toc_context,
                     "legal_section_markers": {
                         "citation_prefixes": citation_prefixes,
@@ -2662,11 +2995,19 @@ def _build_hca_aoo_payload(
     events.sort(key=sort_key)
     fact_timeline.sort(
         key=lambda row: (
-            _anchor_sort_key(row.get("anchor") if isinstance(row, dict) and isinstance(row.get("anchor"), dict) else {}),
+            _anchor_sort_key(
+                row.get("anchor")
+                if isinstance(row, dict) and isinstance(row.get("anchor"), dict)
+                else {}
+            ),
             str(row.get("fact_id") or ""),
         )
     )
-    source_timeline = narr_parse.get("source_timeline") if isinstance(narr_parse.get("source_timeline"), dict) else {}
+    source_timeline = (
+        narr_parse.get("source_timeline")
+        if isinstance(narr_parse.get("source_timeline"), dict)
+        else {}
+    )
     if not source_timeline:
         source_timeline = {
             "path": str(out_dir / "graph" / "hca_case_narrative.timeline.json"),
@@ -2677,7 +3018,11 @@ def _build_hca_aoo_payload(
         source_timeline["snapshot"] = source_snapshot
 
     source_entity = _build_hca_source_entity(case_url, source_snapshot)
-    extraction_record = narr_parse.get("extraction_record") if isinstance(narr_parse.get("extraction_record"), dict) else {}
+    extraction_record = (
+        narr_parse.get("extraction_record")
+        if isinstance(narr_parse.get("extraction_record"), dict)
+        else {}
+    )
     extraction_record = {
         **extraction_record,
         "source_entity_id": source_entity["id"],
@@ -2704,7 +3049,9 @@ def _build_hca_aoo_payload(
             "lanes": ["artifact_status", "recording_artifact", "narrative_sentence"],
             "narrative": {
                 "timeline_events": len(narr_timeline),
-                "extracted_events": len(narr_rows) if isinstance(narr_rows, list) else 0,
+                "extracted_events": len(narr_rows)
+                if isinstance(narr_rows, list)
+                else 0,
                 "fact_timeline_rows": len(fact_timeline),
                 "max_sentences_per_doc": int(narrative_max_sentences_per_doc),
                 "timeline_path": narr_parse.get("timeline"),
@@ -2734,12 +3081,21 @@ def _build_hca_aoo_payload(
                     for ev in events
                     if isinstance(ev, dict)
                     and isinstance(ev.get("actors"), list)
-                    and any(str((row or {}).get("resolved") or (row or {}).get("label") or "").strip() for row in ev.get("actors") or [])
+                    and any(
+                        str(
+                            (row or {}).get("resolved")
+                            or (row or {}).get("label")
+                            or ""
+                        ).strip()
+                        for row in ev.get("actors") or []
+                    )
                 )
                 if actorful == 0:
                     base_payload["events"] = rich_events
                     if isinstance(rich_payload.get("fact_timeline"), list):
-                        base_payload["fact_timeline"] = rich_payload.get("fact_timeline")
+                        base_payload["fact_timeline"] = rich_payload.get(
+                            "fact_timeline"
+                        )
                     parser = base_payload.get("parser")
                     if isinstance(parser, dict):
                         parser["overlay"] = {
@@ -2751,7 +3107,9 @@ def _build_hca_aoo_payload(
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    ap = argparse.ArgumentParser(description="Download + ingest HCA case bundle and emit a demo graph.")
+    ap = argparse.ArgumentParser(
+        description="Download + ingest HCA case bundle and emit a demo graph."
+    )
     ap.add_argument("--case-url", default=CASE_URL_DEFAULT, help="HCA case page URL")
     ap.add_argument(
         "--out-dir",
@@ -2759,7 +3117,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         default=Path("SensibLaw/demo/ingest/hca_case_s942025"),
         help="Output demo folder",
     )
-    ap.add_argument("--timeout", type=int, default=60, help="Per-request timeout seconds")
+    ap.add_argument(
+        "--timeout", type=int, default=60, help="Per-request timeout seconds"
+    )
     ap.add_argument(
         "--dot-bin",
         default=None,
@@ -2817,7 +3177,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     case_html = ""
 
     # Fetch case page first for second-pass URL discovery.
-    case_entry = next((x for x in plan if str(x.get("label") or "").lower() == "case page"), None)
+    case_entry = next(
+        (x for x in plan if str(x.get("label") or "").lower() == "case page"), None
+    )
     if case_entry and case_entry.get("url"):
         case_url = str(case_entry.get("url"))
         case_out = raw_dir / "undated_Case_page.html"
@@ -2827,7 +3189,9 @@ def main(argv: Optional[List[str]] = None) -> int:
             downloaded_paths.append(case_out)
             case_html = case_out.read_text(encoding="utf-8", errors="replace")
             entry.update({"status": "downloaded", **dl})
-            print(f"[downloaded] Case page -> {case_out.name} ({dl.get('bytes')} bytes)")
+            print(
+                f"[downloaded] Case page -> {case_out.name} ({dl.get('bytes')} bytes)"
+            )
         except Exception as e:
             entry.update({"status": "error", "error": f"{type(e).__name__}: {e}"})
             print(f"[error] Case page: {type(e).__name__}: {e}")
@@ -2893,9 +3257,13 @@ def main(argv: Optional[List[str]] = None) -> int:
             timeout=int(args.timeout),
             download_video=not args.no_video_download,
         )
-        (media_dir / "media_report.json").write_text(json.dumps(media_report, indent=2, sort_keys=True), encoding="utf-8")
+        (media_dir / "media_report.json").write_text(
+            json.dumps(media_report, indent=2, sort_keys=True), encoding="utf-8"
+        )
 
-    (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+    (out_dir / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8"
+    )
 
     # Ingest PDFs and build graph.
     db_path = ingest_dir / "ingest.sqlite"
@@ -2906,7 +3274,9 @@ def main(argv: Optional[List[str]] = None) -> int:
             doc, stored_id = process_pdf(pdf_path, db_path=db_path)
             ingest_document(doc, graph)
             out_doc = ingest_dir / f"{_safe_name(pdf_path.stem)}.document.json"
-            out_doc.write_text(json.dumps(doc.to_dict(), indent=2, sort_keys=True), encoding="utf-8")
+            out_doc.write_text(
+                json.dumps(doc.to_dict(), indent=2, sort_keys=True), encoding="utf-8"
+            )
             ingest_rows.append(
                 {
                     "source_pdf": str(pdf_path),
@@ -2919,14 +3289,24 @@ def main(argv: Optional[List[str]] = None) -> int:
             )
             print(f"[ingested] {pdf_path.name}")
         except Exception as e:  # pragma: no cover - defensive
-            ingest_rows.append({"source_pdf": str(pdf_path), "status": "error", "error": f"{type(e).__name__}: {e}"})
+            ingest_rows.append(
+                {
+                    "source_pdf": str(pdf_path),
+                    "status": "error",
+                    "error": f"{type(e).__name__}: {e}",
+                }
+            )
             print(f"[ingest-error] {pdf_path.name}: {type(e).__name__}: {e}")
 
-    (ingest_dir / "ingest_report.json").write_text(json.dumps({"rows": ingest_rows}, indent=2, sort_keys=True), encoding="utf-8")
+    (ingest_dir / "ingest_report.json").write_text(
+        json.dumps({"rows": ingest_rows}, indent=2, sort_keys=True), encoding="utf-8"
+    )
 
     graph_json = _graph_payload(graph)
     graph_json_path = graph_dir / "case_bundle.graph.json"
-    graph_json_path.write_text(json.dumps(graph_json, indent=2, sort_keys=True), encoding="utf-8")
+    graph_json_path.write_text(
+        json.dumps(graph_json, indent=2, sort_keys=True), encoding="utf-8"
+    )
 
     dot_text = _graph_dot(graph_json)
     dot_path = graph_dir / "case_bundle.graph.dot"
@@ -2945,7 +3325,11 @@ def main(argv: Optional[List[str]] = None) -> int:
             text=True,
         )
         if proc.returncode == 0:
-            svg_status = {"status": "rendered", "path": str(svg_path), "dot_bin": dot_bin}
+            svg_status = {
+                "status": "rendered",
+                "path": str(svg_path),
+                "dot_bin": dot_bin,
+            }
         else:
             svg_status = {
                 "status": "dot_error",
@@ -2960,9 +3344,17 @@ def main(argv: Optional[List[str]] = None) -> int:
         "ok": True,
         "generated_at": _utc_now_iso(),
         "out_dir": str(out_dir),
-        "downloaded_total": len([d for d in manifest.get("documents", []) if isinstance(d, dict) and d.get("status") == "downloaded"]),
+        "downloaded_total": len(
+            [
+                d
+                for d in manifest.get("documents", [])
+                if isinstance(d, dict) and d.get("status") == "downloaded"
+            ]
+        ),
         "pdf_total": len(list(_iter_pdfs(downloaded_paths))),
-        "ingested_total": len([r for r in ingest_rows if r.get("status") == "ingested"]),
+        "ingested_total": len(
+            [r for r in ingest_rows if r.get("status") == "ingested"]
+        ),
         "graph_nodes": len(graph_json.get("nodes", [])),
         "graph_edges": len(graph_json.get("edges", [])),
         "graph_json": str(graph_json_path),
@@ -2971,9 +3363,15 @@ def main(argv: Optional[List[str]] = None) -> int:
         "manifest": str(out_dir / "manifest.json"),
         "ingest_report": str(ingest_dir / "ingest_report.json"),
         "media_report": str(media_dir / "media_report.json") if media_report else None,
-        "vimeo_players": len((media_report or {}).get("player_urls", [])) if isinstance(media_report, dict) else 0,
-        "videos_downloaded": len((media_report or {}).get("videos", [])) if isinstance(media_report, dict) else 0,
-        "captions_downloaded": len((media_report or {}).get("captions", [])) if isinstance(media_report, dict) else 0,
+        "vimeo_players": len((media_report or {}).get("player_urls", []))
+        if isinstance(media_report, dict)
+        else 0,
+        "videos_downloaded": len((media_report or {}).get("videos", []))
+        if isinstance(media_report, dict)
+        else 0,
+        "captions_downloaded": len((media_report or {}).get("captions", []))
+        if isinstance(media_report, dict)
+        else 0,
     }
 
     aoo_payload = _build_hca_aoo_payload(
@@ -2986,9 +3384,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         narrative_max_sentences_per_doc=int(args.narrative_max_sentences_per_doc),
     )
     args.aoo_out.parent.mkdir(parents=True, exist_ok=True)
-    args.aoo_out.write_text(json.dumps(aoo_payload, indent=2, sort_keys=True), encoding="utf-8")
+    args.aoo_out.write_text(
+        json.dumps(aoo_payload, indent=2, sort_keys=True), encoding="utf-8"
+    )
     summary["aoo_payload"] = str(args.aoo_out)
-    summary["aoo_events"] = len(aoo_payload.get("events", [])) if isinstance(aoo_payload, dict) else 0
+    summary["aoo_events"] = (
+        len(aoo_payload.get("events", [])) if isinstance(aoo_payload, dict) else 0
+    )
     signal_counts: Dict[str, int] = {}
     for ev in aoo_payload.get("events", []) if isinstance(aoo_payload, dict) else []:
         if not isinstance(ev, dict):
@@ -2997,14 +3399,22 @@ def main(argv: Optional[List[str]] = None) -> int:
         signal_counts[k] = int(signal_counts.get(k, 0)) + 1
     summary["aoo_signal_counts"] = signal_counts
 
-    sb_signals_out = args.sb_signals_out if args.sb_signals_out else (out_dir / "sb_signals.json")
+    sb_signals_out = (
+        args.sb_signals_out if args.sb_signals_out else (out_dir / "sb_signals.json")
+    )
     sb_payload = _build_sb_signal_payload(args.case_url, aoo_payload)
     sb_signals_out.parent.mkdir(parents=True, exist_ok=True)
-    sb_signals_out.write_text(json.dumps(sb_payload, indent=2, sort_keys=True), encoding="utf-8")
+    sb_signals_out.write_text(
+        json.dumps(sb_payload, indent=2, sort_keys=True), encoding="utf-8"
+    )
     summary["sb_signals"] = str(sb_signals_out)
-    summary["sb_signal_total"] = len(sb_payload.get("signals", [])) if isinstance(sb_payload, dict) else 0
+    summary["sb_signal_total"] = (
+        len(sb_payload.get("signals", [])) if isinstance(sb_payload, dict) else 0
+    )
 
-    (out_dir / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
+    (out_dir / "summary.json").write_text(
+        json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8"
+    )
     print(json.dumps(summary, indent=2, sort_keys=True))
     return 0
 

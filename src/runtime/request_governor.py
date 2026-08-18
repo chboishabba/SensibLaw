@@ -52,9 +52,7 @@ class RequestAttemptReceipt:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            key: value
-            for key, value in asdict(self).items()
-            if value not in (None, "")
+            key: value for key, value in asdict(self).items() if value not in (None, "")
         }
 
 

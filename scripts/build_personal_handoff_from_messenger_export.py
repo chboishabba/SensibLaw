@@ -16,7 +16,10 @@ if str(_SENSIBLAW_ROOT) not in sys.path:
 
 from src.fact_intake.handoff_artifacts import write_handoff_artifact  # noqa: E402
 from src.fact_intake.messenger_export_import import load_messenger_export_units  # noqa: E402
-from src.fact_intake.personal_chat_import import build_handoff_input_from_units, build_handoff_report_from_chat_json  # noqa: E402
+from src.fact_intake.personal_chat_import import (
+    build_handoff_input_from_units,
+    build_handoff_report_from_chat_json,
+)  # noqa: E402
 
 
 def build_handoff_from_messenger_export_artifact(
@@ -48,11 +51,21 @@ def build_handoff_from_messenger_export_artifact(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Build a personal handoff or protected disclosure artifact from Messenger/Facebook export JSON.")
-    parser.add_argument("--export-path", required=True, help="Path to a message_1.json file or a directory containing Messenger export JSON files.")
+    parser = argparse.ArgumentParser(
+        description="Build a personal handoff or protected disclosure artifact from Messenger/Facebook export JSON."
+    )
+    parser.add_argument(
+        "--export-path",
+        required=True,
+        help="Path to a message_1.json file or a directory containing Messenger export JSON files.",
+    )
     parser.add_argument("--recipient-profile", required=True)
     parser.add_argument("--source-label", required=True)
-    parser.add_argument("--mode", choices=("personal_handoff", "protected_disclosure_envelope"), default="personal_handoff")
+    parser.add_argument(
+        "--mode",
+        choices=("personal_handoff", "protected_disclosure_envelope"),
+        default="personal_handoff",
+    )
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--notes", default=None)
     parser.add_argument("--output-dir", required=True)

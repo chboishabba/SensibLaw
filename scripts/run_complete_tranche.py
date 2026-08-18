@@ -17,6 +17,7 @@ import sys
 import tempfile
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
+from urllib.parse import urlsplit, urlunsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -39,6 +40,9 @@ from src.policy.corpus_compilation import default_compiler_context  # noqa: E402
 from src.policy.postgres_corpus_compilation import (  # noqa: E402
     OPERATIONAL_COMPILER_CONTRACT,
     compile_directory_postgres,
+)
+from src.policy.work_conserving_ordered_compilation import (  # noqa: E402
+    compile_directory_postgres_work_conserving_ordered,
 )
 from src.runtime.progress import PhaseRecorder  # noqa: E402
 from src.runtime.execution_resource_ledger import (  # noqa: E402
@@ -75,6 +79,16 @@ class _CalibrationRollback(RuntimeError):
     def __init__(self, compilation: Any):
         self.compilation = compilation
         super().__init__("calibration transaction rolled back")
+
+
+def _redacted_database_target(database_url: str) -> str:
+    """Return a report-safe database target without password material."""
+
+    parsed = urlsplit(database_url)
+    username = f"{parsed.username}@" if parsed.username else ""
+    host = parsed.hostname or ""
+    port = f":{parsed.port}" if parsed.port else ""
+    return urlunsplit((parsed.scheme, f"{username}{host}{port}", parsed.path, "", ""))
 
 
 def _parse_args() -> argparse.Namespace:
@@ -485,7 +499,7 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
             "tranche": tranche,
             "profile_ref": profile.profile_ref,
             "output_dir": str(output_dir),
-            "database_url": args.database_url,
+            "database_target": _redacted_database_target(args.database_url),
         }
     )
     _save_tranche_state(tranche_state_path, tranche_state)
@@ -664,6 +678,11 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
                 else "local-compatibility-replay"
             ),
         }
+        compiler = (
+            compile_directory_postgres_work_conserving_ordered
+            if args.strict_exact
+            else compile_directory_postgres
+        )
         if args.calibration:
             # ``PostgresCompilerStore.transaction`` nests as savepoints under
             # this outer transaction, so this exercises source, partition,
@@ -671,7 +690,7 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
             # the final exception rolls every write back atomically.
             try:
                 with store.connection.transaction():
-                    calibration_compilation = compile_directory_postgres(
+                    calibration_compilation = compiler(
                         output_dir / "source_projection" / "canonical",
                         **compile_kwargs,
                     )
@@ -679,7 +698,7 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
             except _CalibrationRollback as rollback:
                 compilation = rollback.compilation
         else:
-            compilation = compile_directory_postgres(
+            compilation = compiler(
                 output_dir / "source_projection" / "canonical",
                 **compile_kwargs,
             )

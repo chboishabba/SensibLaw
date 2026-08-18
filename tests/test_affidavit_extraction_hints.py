@@ -14,16 +14,20 @@ from src.policy.affidavit_extraction_hints import (
 def test_extract_extraction_hints_collects_temporal_and_event_cues() -> None:
     hints = extract_extraction_hints(
         "On 13 November 2024 [00:01:05 -> 00:02:10] the appeal was dismissed.",
-        tokenize=lambda text: text.lower()
-        .replace("[", " ")
-        .replace("]", " ")
-        .replace("->", " ")
-        .replace(".", " ")
-        .split(),
+        tokenize=lambda text: (
+            text.lower()
+            .replace("[", " ")
+            .replace("]", " ")
+            .replace("->", " ")
+            .replace(".", " ")
+            .split()
+        ),
     )
 
     assert hints["has_transcript_timestamp_hint"] is True
-    assert hints["transcript_timestamp_windows"] == [{"start": "00:01:05", "end": "00:02:10"}]
+    assert hints["transcript_timestamp_windows"] == [
+        {"start": "00:01:05", "end": "00:02:10"}
+    ]
     assert hints["has_calendar_reference_hint"] is True
     assert "13 November 2024" in hints["calendar_reference_mentions"]
     assert hints["has_procedural_event_cue"] is True
@@ -60,7 +64,10 @@ def test_classify_workload_with_hints_promotes_event_date_action() -> None:
 
     assert profile["workload_classes"] == ["chronology_gap"]
     assert profile["primary_workload_class"] == "chronology_gap"
-    assert profile["recommended_next_action"] == "promote existing event/date cues into structured anchors"
+    assert (
+        profile["recommended_next_action"]
+        == "promote existing event/date cues into structured anchors"
+    )
 
 
 def test_build_provisional_structured_anchors_dedupes_and_ranks() -> None:
@@ -74,9 +81,21 @@ def test_build_provisional_structured_anchors_dedupes_and_ranks() -> None:
                 "recommended_next_action": "promote existing temporal cues into structured anchors",
                 "best_match_score": 0.62,
                 "candidate_anchors": [
-                    {"anchor_kind": "calendar_reference", "label": "November 2024", "anchor_value": "November 2024"},
-                    {"anchor_kind": "calendar_reference", "label": "November 2024", "anchor_value": "November 2024"},
-                    {"anchor_kind": "procedural_event_keywords", "label": "dismissed", "anchor_value": ["dismissed"]},
+                    {
+                        "anchor_kind": "calendar_reference",
+                        "label": "November 2024",
+                        "anchor_value": "November 2024",
+                    },
+                    {
+                        "anchor_kind": "calendar_reference",
+                        "label": "November 2024",
+                        "anchor_value": "November 2024",
+                    },
+                    {
+                        "anchor_kind": "procedural_event_keywords",
+                        "label": "dismissed",
+                        "anchor_value": ["dismissed"],
+                    },
                 ],
             }
         ]
@@ -96,8 +115,16 @@ def test_build_provisional_structured_anchors_can_preserve_duplicate_rows() -> N
                 "review_status": "missing_review",
                 "best_match_score": 0.62,
                 "candidate_anchors": [
-                    {"anchor_kind": "calendar_reference", "label": "November 2024", "anchor_value": "November 2024"},
-                    {"anchor_kind": "calendar_reference", "label": "November 2024", "anchor_value": "November 2024"},
+                    {
+                        "anchor_kind": "calendar_reference",
+                        "label": "November 2024",
+                        "anchor_value": "November 2024",
+                    },
+                    {
+                        "anchor_kind": "calendar_reference",
+                        "label": "November 2024",
+                        "anchor_value": "November 2024",
+                    },
                 ],
             }
         ],
@@ -155,12 +182,21 @@ def test_builder_wrappers_delegate_to_shared_extraction_hint_policy() -> None:
         procedural_event_keywords=frozenset(builder._PROCEDURAL_EVENT_KEYWORDS),
     )
     assert builder._build_candidate_anchors(
-        {"calendar_reference_mentions": ["13 November 2024"], "procedural_event_keywords": ["dismissed"]}
+        {
+            "calendar_reference_mentions": ["13 November 2024"],
+            "procedural_event_keywords": ["dismissed"],
+        }
     ) == build_candidate_anchors(
-        {"calendar_reference_mentions": ["13 November 2024"], "procedural_event_keywords": ["dismissed"]}
+        {
+            "calendar_reference_mentions": ["13 November 2024"],
+            "procedural_event_keywords": ["dismissed"],
+        }
     )
-    assert recommend_next_action(
-        "evidence_gap",
-        has_temporal_hint=False,
-        has_event_hint=False,
-    ) == "operator evidentiary review"
+    assert (
+        recommend_next_action(
+            "evidence_gap",
+            has_temporal_hint=False,
+            has_event_hint=False,
+        )
+        == "operator evidentiary review"
+    )

@@ -90,7 +90,9 @@ def load_change_review_packet(path: Path) -> dict[str, Any]:
     packet = _load_json(path)
     schema_version = packet.get("schema_version", CHANGE_REVIEW_PACKET_SCHEMA_VERSION)
     if schema_version not in SUPPORTED_PACKET_SCHEMA_VERSIONS:
-        raise ValueError(f"unsupported ChangeReviewPacket schema_version: {schema_version}")
+        raise ValueError(
+            f"unsupported ChangeReviewPacket schema_version: {schema_version}"
+        )
     return packet
 
 
@@ -100,14 +102,18 @@ def _packet_base_dir(packet_path: Path | None) -> Path:
     return packet_path.resolve().parent
 
 
-def _load_slice(packet: Mapping[str, Any], *, packet_path: Path | None = None) -> dict[str, Any]:
+def _load_slice(
+    packet: Mapping[str, Any], *, packet_path: Path | None = None
+) -> dict[str, Any]:
     inline = packet.get("bounded_slice")
     if isinstance(inline, Mapping):
         return deepcopy(dict(inline))
 
     slice_path = packet.get("bounded_slice_path") or packet.get("slice_path")
     if not isinstance(slice_path, str) or not slice_path.strip():
-        raise ValueError("ChangeReviewPacket requires bounded_slice or bounded_slice_path")
+        raise ValueError(
+            "ChangeReviewPacket requires bounded_slice or bounded_slice_path"
+        )
     path = Path(slice_path)
     if not path.is_absolute():
         path = _packet_base_dir(packet_path) / path
@@ -149,7 +155,9 @@ def _normalize_pressure_attribution(raw: Any) -> dict[str, Any]:
         component = str(key)
         if component in normalized:
             continue
-        normalized[component] = dict(value) if isinstance(value, Mapping) else {"status": value}
+        normalized[component] = (
+            dict(value) if isinstance(value, Mapping) else {"status": value}
+        )
     return normalized
 
 
@@ -168,12 +176,18 @@ def _candidate_pressure_attribution(
     packet_pressure: Mapping[str, Any],
     candidate: Mapping[str, Any],
 ) -> dict[str, Any]:
-    candidate_pressure = _normalize_pressure_attribution(candidate.get("pressure_attribution"))
+    candidate_pressure = _normalize_pressure_attribution(
+        candidate.get("pressure_attribution")
+    )
     if not packet_pressure:
         return candidate_pressure
     merged = deepcopy(dict(packet_pressure))
     for component, value in candidate_pressure.items():
-        if component in merged and isinstance(merged[component], Mapping) and isinstance(value, Mapping):
+        if (
+            component in merged
+            and isinstance(merged[component], Mapping)
+            and isinstance(value, Mapping)
+        ):
             merged[component] = dict(merged[component]) | dict(value)
         else:
             merged[component] = value
@@ -192,11 +206,21 @@ def _pressure_review_reasons(pressure_attribution: Mapping[str, Any]) -> list[st
             component_reasons.append(str(reason))
         if not component_reasons and str(value.get("status", "")).startswith("held_"):
             component_reasons.append(str(value["status"]))
-        if component == "upstream_inheritance_pressure" and value.get("status") in {"present", "reduced", "unresolved"}:
+        if component == "upstream_inheritance_pressure" and value.get("status") in {
+            "present",
+            "reduced",
+            "unresolved",
+        }:
             component_reasons.append("held_upstream_ontology_pressure")
-        if component == "sibling_shape_pressure" and value.get("status") in {"present", "unresolved"}:
+        if component == "sibling_shape_pressure" and value.get("status") in {
+            "present",
+            "unresolved",
+        }:
             component_reasons.append("held_same_depth_split_required")
-        if component == "temporal_mereology_pressure" and value.get("status") in {"present", "unresolved"}:
+        if component == "temporal_mereology_pressure" and value.get("status") in {
+            "present",
+            "unresolved",
+        }:
             component_reasons.append("held_series_mereology_required")
         reasons.extend(component_reasons)
     return sorted(set(reasons))
@@ -215,8 +239,12 @@ def _candidate_review_reasons(
     pressure_reasons = set(_pressure_review_reasons(pressure_attribution))
     review_reasons.update(pressure_reasons)
     if disposition == "held":
-        held_reasons.update(reason for reason in pressure_reasons if reason.startswith("held_"))
-        held_reasons.update(reason for reason in review_reasons if reason.startswith("held_"))
+        held_reasons.update(
+            reason for reason in pressure_reasons if reason.startswith("held_")
+        )
+        held_reasons.update(
+            reason for reason in review_reasons if reason.startswith("held_")
+        )
         if any(int(value) > 0 for value in diagnostic_delta.values()):
             held_reasons.add("held_family_regression")
         if not held_reasons:
@@ -224,8 +252,12 @@ def _candidate_review_reasons(
     return sorted(held_reasons), sorted(review_reasons)
 
 
-def _candidate_obligation(candidate: Mapping[str, Any], mutation_summary: Mapping[str, Any]) -> dict[str, Any] | None:
-    operation = str(mutation_summary.get("operation") or candidate.get("operation") or "")
+def _candidate_obligation(
+    candidate: Mapping[str, Any], mutation_summary: Mapping[str, Any]
+) -> dict[str, Any] | None:
+    operation = str(
+        mutation_summary.get("operation") or candidate.get("operation") or ""
+    )
     raw_payload = candidate.get("obligation_payload")
     payload = dict(raw_payload) if isinstance(raw_payload, Mapping) else {}
     if operation not in OBLIGATION_OPERATIONS and not payload:
@@ -261,17 +293,32 @@ def _packet_pnf_index(packet: Mapping[str, Any]) -> dict[str, Any]:
         if isinstance(value, Mapping):
             index[component] = [dict(value)]
         elif isinstance(value, list):
-            index[component] = [dict(row) if isinstance(row, Mapping) else {"status": str(row)} for row in value]
+            index[component] = [
+                dict(row) if isinstance(row, Mapping) else {"status": str(row)}
+                for row in value
+            ]
         elif value is not None:
             index[component] = [{"status": value}]
         else:
             index[component] = [{"status": "deferred_v0"}]
-    index["receipt_index"] = index["receipt_index"] + [{"status": "diagnostic_only_no_pnf_emission_receipts"}]
-    index["predicate_pnf_index"] = index["predicate_pnf_index"] + [{"status": "packet_metadata_only_no_pnf_compiler"}]
-    index["pressure_index"] = index["pressure_index"] + [{"source": "diagnostic_counts_and_pressure_attribution"}]
-    index["candidate_index"] = index["candidate_index"] + [{"source": "candidate_repairs"}]
-    index["mutation_pnf_index"] = index["mutation_pnf_index"] + [{"source": "packet_supplied_mutation_pnf"}]
-    index["disposition_index"] = index["disposition_index"] + [{"source": "change_review_disposition"}]
+    index["receipt_index"] = index["receipt_index"] + [
+        {"status": "diagnostic_only_no_pnf_emission_receipts"}
+    ]
+    index["predicate_pnf_index"] = index["predicate_pnf_index"] + [
+        {"status": "packet_metadata_only_no_pnf_compiler"}
+    ]
+    index["pressure_index"] = index["pressure_index"] + [
+        {"source": "diagnostic_counts_and_pressure_attribution"}
+    ]
+    index["candidate_index"] = index["candidate_index"] + [
+        {"source": "candidate_repairs"}
+    ]
+    index["mutation_pnf_index"] = index["mutation_pnf_index"] + [
+        {"source": "packet_supplied_mutation_pnf"}
+    ]
+    index["disposition_index"] = index["disposition_index"] + [
+        {"source": "change_review_disposition"}
+    ]
     index["promotion_boundary"] = {
         "status": "external_governance_required",
         "edit_authority": False,
@@ -286,7 +333,9 @@ def _grounding_rows(raw: Any) -> list[dict[str, Any]]:
     if isinstance(raw, Mapping):
         return [dict(raw)]
     if isinstance(raw, Iterable) and not isinstance(raw, (str, bytes, Mapping)):
-        return [dict(row) if isinstance(row, Mapping) else {"id": str(row)} for row in raw]
+        return [
+            dict(row) if isinstance(row, Mapping) else {"id": str(row)} for row in raw
+        ]
     return [{"id": str(raw)}]
 
 
@@ -294,20 +343,28 @@ def _packet_wikidata_grounding(packet: Mapping[str, Any]) -> dict[str, Any]:
     raw_grounding = packet.get("wikidata_grounding") or packet.get("pnf_grounding")
     supplied = dict(raw_grounding) if isinstance(raw_grounding, Mapping) else {}
     raw_components = supplied.get("components")
-    components_source = dict(raw_components) if isinstance(raw_components, Mapping) else supplied
+    components_source = (
+        dict(raw_components) if isinstance(raw_components, Mapping) else supplied
+    )
     components = {
         component: _grounding_rows(components_source.get(component))
         for component in WIKIDATA_GROUNDING_COMPONENTS
     }
     return {
-        "schema_version": str(supplied.get("schema_version") or "sl.wikidata_pnf_grounding.v0_1"),
+        "schema_version": str(
+            supplied.get("schema_version") or "sl.wikidata_pnf_grounding.v0_1"
+        ),
         "direction": str(supplied.get("direction") or "PredicatePNF_to_Wikidata"),
         "authority_policy": REVIEW_ONLY_AUTHORITY_POLICY,
         "candidate_source_policy": "packet_supplied_candidates_only",
         "qid_pid_policy": "no_fabricated_qids_or_pids",
         "receipt_policy": "no_fabricated_PNFEmissionReceipt",
-        "grounding_status": str(supplied.get("grounding_status") or "packet_supplied_candidates_only"),
-        "receipt_status": str(supplied.get("receipt_status") or "diagnostic_only_no_pnf_emission_receipts"),
+        "grounding_status": str(
+            supplied.get("grounding_status") or "packet_supplied_candidates_only"
+        ),
+        "receipt_status": str(
+            supplied.get("receipt_status") or "diagnostic_only_no_pnf_emission_receipts"
+        ),
         "source_pnf": dict(supplied.get("source_pnf", {}))
         if isinstance(supplied.get("source_pnf"), Mapping)
         else {},
@@ -324,7 +381,9 @@ def _packet_wikidata_grounding(packet: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _target_windows(candidate: Mapping[str, Any], slice_payload: Mapping[str, Any]) -> set[str] | None:
+def _target_windows(
+    candidate: Mapping[str, Any], slice_payload: Mapping[str, Any]
+) -> set[str] | None:
     raw = candidate.get("window_ids") or candidate.get("target_windows")
     if raw is None:
         return None
@@ -334,11 +393,15 @@ def _target_windows(candidate: Mapping[str, Any], slice_payload: Mapping[str, An
         return {str(item) for item in raw if item is not None}
     windows = slice_payload.get("windows")
     if isinstance(windows, list):
-        return {str(window.get("id")) for window in windows if isinstance(window, Mapping)}
+        return {
+            str(window.get("id")) for window in windows if isinstance(window, Mapping)
+        }
     return None
 
 
-def _matches_statement(statement: Mapping[str, Any], selector: Mapping[str, Any]) -> bool:
+def _matches_statement(
+    statement: Mapping[str, Any], selector: Mapping[str, Any]
+) -> bool:
     for field in ("subject", "property", "value", "rank"):
         expected = selector.get(field)
         if expected is not None and statement.get(field) != expected:
@@ -363,7 +426,14 @@ def _candidate_statement(candidate: Mapping[str, Any]) -> dict[str, Any]:
         return dict(statement)
     return {
         field: candidate[field]
-        for field in ("subject", "property", "value", "rank", "qualifiers", "references")
+        for field in (
+            "subject",
+            "property",
+            "value",
+            "rank",
+            "qualifiers",
+            "references",
+        )
         if field in candidate
     }
 
@@ -375,7 +445,9 @@ def _iter_windows(slice_payload: dict[str, Any]) -> list[dict[str, Any]]:
     return [window for window in windows if isinstance(window, dict)]
 
 
-def _apply_candidate(slice_payload: Mapping[str, Any], candidate: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+def _apply_candidate(
+    slice_payload: Mapping[str, Any], candidate: Mapping[str, Any]
+) -> tuple[dict[str, Any], dict[str, Any]]:
     mutated = deepcopy(dict(slice_payload))
     operation = str(candidate.get("operation") or candidate.get("action") or "hold")
     target_windows = _target_windows(candidate, mutated)
@@ -407,7 +479,10 @@ def _apply_candidate(slice_payload: Mapping[str, Any], candidate: Mapping[str, A
             kept = [
                 statement
                 for statement in bundles
-                if not (isinstance(statement, Mapping) and _matches_statement(statement, selector))
+                if not (
+                    isinstance(statement, Mapping)
+                    and _matches_statement(statement, selector)
+                )
             ]
             mutation_summary["changed_statement_count"] += len(bundles) - len(kept)
             window["statement_bundles"] = kept
@@ -424,11 +499,15 @@ def _apply_candidate(slice_payload: Mapping[str, Any], candidate: Mapping[str, A
             replacement_fields = candidate.get("replacement")
             if not isinstance(replacement_fields, Mapping):
                 replacement_fields = {
-                    "property": candidate.get("new_property", candidate.get("property")),
+                    "property": candidate.get(
+                        "new_property", candidate.get("property")
+                    ),
                     "value": candidate.get("new_value"),
                 }
             for statement in bundles:
-                if not isinstance(statement, dict) or not _matches_statement(statement, selector):
+                if not isinstance(statement, dict) or not _matches_statement(
+                    statement, selector
+                ):
                     continue
                 for key, value in replacement_fields.items():
                     if value is not None:
@@ -454,9 +533,15 @@ def _diagnostic_counts(
         "mixed_order": 0,
         "metaclass": 0,
         "parthood_typing": 0,
-        "unstable_slot": len(report.get("unstable_slots", [])) if isinstance(report.get("unstable_slots"), list) else 0,
-        "qualifier_drift": len(report.get("qualifier_drift", [])) if isinstance(report.get("qualifier_drift"), list) else 0,
-        "reference_drift": len(report.get("reference_drift", [])) if isinstance(report.get("reference_drift"), list) else 0,
+        "unstable_slot": len(report.get("unstable_slots", []))
+        if isinstance(report.get("unstable_slots"), list)
+        else 0,
+        "qualifier_drift": len(report.get("qualifier_drift", []))
+        if isinstance(report.get("qualifier_drift"), list)
+        else 0,
+        "reference_drift": len(report.get("reference_drift", []))
+        if isinstance(report.get("reference_drift"), list)
+        else 0,
         "disjointness_subclass": 0,
         "disjointness_instance": 0,
         "mereology_overlap": 0,
@@ -478,10 +563,16 @@ def _diagnostic_counts(
                 len(classifications) if isinstance(classifications, list) else 0
             )
     if disjointness_report is not None:
-        counts["disjointness_subclass"] = int(disjointness_report.get("subclass_violation_count", 0) or 0)
-        counts["disjointness_instance"] = int(disjointness_report.get("instance_violation_count", 0) or 0)
+        counts["disjointness_subclass"] = int(
+            disjointness_report.get("subclass_violation_count", 0) or 0
+        )
+        counts["disjointness_instance"] = int(
+            disjointness_report.get("instance_violation_count", 0) or 0
+        )
     if temporal_mereology_report is not None:
-        counts["mereology_overlap"] = int(temporal_mereology_report.get("mereology_overlap_count", 0) or 0)
+        counts["mereology_overlap"] = int(
+            temporal_mereology_report.get("mereology_overlap_count", 0) or 0
+        )
         counts["missing_temporal_qualifier"] = int(
             temporal_mereology_report.get("missing_temporal_qualifier_count", 0) or 0
         )
@@ -514,7 +605,10 @@ def _qualifier_values(statement: Mapping[str, Any], property_id: str) -> list[st
 
 
 def _has_temporal_qualifier(statement: Mapping[str, Any]) -> bool:
-    return any(_qualifier_values(statement, property_id) for property_id in TEMPORAL_QUALIFIER_PROPERTIES)
+    return any(
+        _qualifier_values(statement, property_id)
+        for property_id in TEMPORAL_QUALIFIER_PROPERTIES
+    )
 
 
 def _year_from_values(values: Iterable[str]) -> int | None:
@@ -527,7 +621,9 @@ def _year_from_values(values: Iterable[str]) -> int | None:
     return None
 
 
-def _statement_interval(statement: Mapping[str, Any]) -> tuple[int | None, int | None] | None:
+def _statement_interval(
+    statement: Mapping[str, Any],
+) -> tuple[int | None, int | None] | None:
     point = _year_from_values(_qualifier_values(statement, "P585"))
     if point is not None:
         return point, point
@@ -558,9 +654,15 @@ def _temporal_policy(packet: Mapping[str, Any]) -> dict[str, Any]:
         if isinstance(check_family_policy, Mapping):
             raw_policy = check_family_policy.get("temporal_exclusivity")
     policy = dict(raw_policy) if isinstance(raw_policy, Mapping) else {}
-    raw_exclusive = policy.get("exclusive_properties", DEFAULT_TEMPORAL_EXCLUSIVE_PROPERTIES)
-    if isinstance(raw_exclusive, Iterable) and not isinstance(raw_exclusive, (str, bytes, Mapping)):
-        exclusive_properties = sorted({str(item) for item in raw_exclusive if item is not None})
+    raw_exclusive = policy.get(
+        "exclusive_properties", DEFAULT_TEMPORAL_EXCLUSIVE_PROPERTIES
+    )
+    if isinstance(raw_exclusive, Iterable) and not isinstance(
+        raw_exclusive, (str, bytes, Mapping)
+    ):
+        exclusive_properties = sorted(
+            {str(item) for item in raw_exclusive if item is not None}
+        )
     else:
         exclusive_properties = list(DEFAULT_TEMPORAL_EXCLUSIVE_PROPERTIES)
     raw_compatible = policy.get("compatible_wholes", [])
@@ -581,7 +683,9 @@ def _temporal_policy(packet: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _temporal_mereology_report(slice_payload: Mapping[str, Any], policy: Mapping[str, Any]) -> dict[str, Any]:
+def _temporal_mereology_report(
+    slice_payload: Mapping[str, Any], policy: Mapping[str, Any]
+) -> dict[str, Any]:
     exclusive_properties = set(policy.get("exclusive_properties", []))
     compatible_pairs = {
         tuple(item.split("|", 1))
@@ -598,11 +702,15 @@ def _temporal_mereology_report(slice_payload: Mapping[str, Any], policy: Mapping
         if not isinstance(window, Mapping):
             continue
         window_id = str(window.get("id"))
-        bundles = [
-            statement
-            for statement in window.get("statement_bundles", [])
-            if isinstance(statement, Mapping)
-        ] if isinstance(window.get("statement_bundles"), list) else []
+        bundles = (
+            [
+                statement
+                for statement in window.get("statement_bundles", [])
+                if isinstance(statement, Mapping)
+            ]
+            if isinstance(window.get("statement_bundles"), list)
+            else []
+        )
 
         by_slot: dict[tuple[str, str], list[Mapping[str, Any]]] = {}
         for statement in bundles:
@@ -615,7 +723,9 @@ def _temporal_mereology_report(slice_payload: Mapping[str, Any], policy: Mapping
         for (subject, property_id), statements in sorted(by_slot.items()):
             if property_id in NON_EXCLUSIVE_MEREOLOGY_PROPERTIES:
                 continue
-            temporal_family = any(_has_temporal_qualifier(statement) for statement in statements)
+            temporal_family = any(
+                _has_temporal_qualifier(statement) for statement in statements
+            )
             if temporal_family:
                 for statement in statements:
                     if not _has_temporal_qualifier(statement):
@@ -635,14 +745,18 @@ def _temporal_mereology_report(slice_payload: Mapping[str, Any], policy: Mapping
                 left_interval = _statement_interval(left)
                 if left_interval is None:
                     continue
-                for right in statements[left_index + 1:]:
+                for right in statements[left_index + 1 :]:
                     if str(left.get("value")) == str(right.get("value")):
                         continue
-                    pair = tuple(sorted((str(left.get("value")), str(right.get("value")))))
+                    pair = tuple(
+                        sorted((str(left.get("value")), str(right.get("value"))))
+                    )
                     if pair in compatible_pairs:
                         continue
                     right_interval = _statement_interval(right)
-                    if right_interval is None or not _intervals_overlap(left_interval, right_interval):
+                    if right_interval is None or not _intervals_overlap(
+                        left_interval, right_interval
+                    ):
                         continue
                     overlaps.append(
                         {
@@ -675,7 +789,9 @@ def _blocker_total(counts: Mapping[str, int]) -> int:
     return sum(int(value) for key, value in counts.items() if key not in rollup_keys)
 
 
-def _project(slice_payload: Mapping[str, Any], property_scope: Iterable[str]) -> tuple[dict[str, Any], dict[str, Any] | None]:
+def _project(
+    slice_payload: Mapping[str, Any], property_scope: Iterable[str]
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
     report = project_wikidata_payload(slice_payload, property_filter=property_scope)
     disjointness_report = None
     scope = set(property_scope)
@@ -693,11 +809,12 @@ def _check_coverage(
     slice_payload: Mapping[str, Any],
     disjointness_report: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
-    requested = [
-        str(item)
-        for item in requested_families
-        if item is not None
-    ] if isinstance(requested_families, Iterable) and not isinstance(requested_families, (str, bytes, Mapping)) else []
+    requested = (
+        [str(item) for item in requested_families if item is not None]
+        if isinstance(requested_families, Iterable)
+        and not isinstance(requested_families, (str, bytes, Mapping))
+        else []
+    )
     scope = set(property_scope)
     windows = slice_payload.get("windows")
     window_count = len(windows) if isinstance(windows, list) else 0
@@ -720,7 +837,11 @@ def _check_coverage(
     deferred_rows: list[dict[str, str]] = []
 
     for family in requested:
-        if family in {"subclass_consistency", "class_order_pressure", "metaclass_pressure"}:
+        if family in {
+            "subclass_consistency",
+            "class_order_pressure",
+            "metaclass_pressure",
+        }:
             run.append(family)
             continue
         if family == "disjointness":
@@ -728,7 +849,11 @@ def _check_coverage(
                 run.append(family)
                 continue
             missing = sorted(required_disjointness_scope - scope)
-            reason = "requires exactly one window" if window_count != 1 else "missing required property scope"
+            reason = (
+                "requires exactly one window"
+                if window_count != 1
+                else "missing required property scope"
+            )
             if missing:
                 reason = f"{reason}: {', '.join(missing)}"
             omitted.append({"family": family, "reason": reason})
@@ -737,13 +862,23 @@ def _check_coverage(
             if scope & ({"P361", "P527", "P17", "P131"}):
                 run.append(family)
                 continue
-            omitted.append({"family": family, "reason": "missing mereology property scope: P361, P527, P17, or P131"})
+            omitted.append(
+                {
+                    "family": family,
+                    "reason": "missing mereology property scope: P361, P527, P17, or P131",
+                }
+            )
             continue
         if family == "temporal_exclusivity":
             if scope & set(DEFAULT_TEMPORAL_EXCLUSIVE_PROPERTIES):
                 run.append(family)
                 continue
-            omitted.append({"family": family, "reason": "missing temporal exclusivity property scope"})
+            omitted.append(
+                {
+                    "family": family,
+                    "reason": "missing temporal exclusivity property scope",
+                }
+            )
             continue
         if family in deferred:
             deferred_rows.append({"family": family, "reason": deferred[family]})
@@ -791,11 +926,17 @@ def _disposition(
     return "checked_safe_reviewable"
 
 
-def build_change_review_report(packet: Mapping[str, Any], *, packet_path: Path | None = None) -> dict[str, Any]:
-    authority_policy = str(packet.get("authority_policy") or REVIEW_ONLY_AUTHORITY_POLICY)
+def build_change_review_report(
+    packet: Mapping[str, Any], *, packet_path: Path | None = None
+) -> dict[str, Any]:
+    authority_policy = str(
+        packet.get("authority_policy") or REVIEW_ONLY_AUTHORITY_POLICY
+    )
     property_scope = _property_scope(packet)
     temporal_policy = _temporal_policy(packet)
-    packet_pressure = _normalize_pressure_attribution(packet.get("pressure_attribution"))
+    packet_pressure = _normalize_pressure_attribution(
+        packet.get("pressure_attribution")
+    )
     pnf_index = _packet_pnf_index(packet)
     wikidata_grounding = _packet_wikidata_grounding(packet)
     pressure_surface = _pressure_attribution_surface(
@@ -804,7 +945,9 @@ def build_change_review_report(packet: Mapping[str, Any], *, packet_path: Path |
     )
     slice_payload = _load_slice(packet, packet_path=packet_path)
     baseline_report, baseline_disjointness = _project(slice_payload, property_scope)
-    baseline_temporal_mereology = _temporal_mereology_report(slice_payload, temporal_policy)
+    baseline_temporal_mereology = _temporal_mereology_report(
+        slice_payload, temporal_policy
+    )
     baseline_counts = _diagnostic_counts(
         baseline_report,
         baseline_disjointness,
@@ -828,8 +971,12 @@ def build_change_review_report(packet: Mapping[str, Any], *, packet_path: Path |
             raise ValueError(f"candidate_repairs[{index}] must be an object")
         candidate_id = str(raw_candidate.get("id") or f"candidate_{index + 1}")
         mutated_slice, mutation_summary = _apply_candidate(slice_payload, raw_candidate)
-        candidate_report, candidate_disjointness = _project(mutated_slice, property_scope)
-        candidate_temporal_mereology = _temporal_mereology_report(mutated_slice, temporal_policy)
+        candidate_report, candidate_disjointness = _project(
+            mutated_slice, property_scope
+        )
+        candidate_temporal_mereology = _temporal_mereology_report(
+            mutated_slice, temporal_policy
+        )
         candidate_counts = _diagnostic_counts(
             candidate_report,
             candidate_disjointness,
@@ -848,7 +995,9 @@ def build_change_review_report(packet: Mapping[str, Any], *, packet_path: Path |
             mutation_summary=mutation_summary,
             diagnostic_delta=diagnostic_delta,
         )
-        pressure_attribution = _candidate_pressure_attribution(packet_pressure, raw_candidate)
+        pressure_attribution = _candidate_pressure_attribution(
+            packet_pressure, raw_candidate
+        )
         held_reasons, review_reasons = _candidate_review_reasons(
             candidate=raw_candidate,
             disposition=disposition,
@@ -877,10 +1026,18 @@ def build_change_review_report(packet: Mapping[str, Any], *, packet_path: Path |
                 "held_reasons": held_reasons,
                 "review_reasons": review_reasons,
                 "candidate_obligation": obligation is not None,
-                "promotion_required": bool(obligation and obligation["promotion_required"]),
-                "obligation_type": obligation["obligation_type"] if obligation else None,
-                "obligation_payload": obligation["obligation_payload"] if obligation else {},
-                "abstract_candidates": obligation["abstract_candidates"] if obligation else [],
+                "promotion_required": bool(
+                    obligation and obligation["promotion_required"]
+                ),
+                "obligation_type": obligation["obligation_type"]
+                if obligation
+                else None,
+                "obligation_payload": obligation["obligation_payload"]
+                if obligation
+                else {},
+                "abstract_candidates": obligation["abstract_candidates"]
+                if obligation
+                else [],
                 "candidate_obligation_report": obligation,
                 "mutation_pnf": dict(raw_candidate.get("mutation_pnf", {}))
                 if isinstance(raw_candidate.get("mutation_pnf"), Mapping)
@@ -888,7 +1045,9 @@ def build_change_review_report(packet: Mapping[str, Any], *, packet_path: Path |
                 "grounding_delta": dict(raw_candidate.get("grounding_delta", {}))
                 if isinstance(raw_candidate.get("grounding_delta"), Mapping)
                 else {},
-                "candidate_grounding": dict(raw_candidate.get("candidate_grounding", {}))
+                "candidate_grounding": dict(
+                    raw_candidate.get("candidate_grounding", {})
+                )
                 if isinstance(raw_candidate.get("candidate_grounding"), Mapping)
                 else {},
                 "baseline_blocker_count": baseline_total,
@@ -907,7 +1066,9 @@ def build_change_review_report(packet: Mapping[str, Any], *, packet_path: Path |
 
     return {
         "schema_version": CHANGE_REVIEW_REPORT_SCHEMA_VERSION,
-        "packet_schema_version": packet.get("schema_version", CHANGE_REVIEW_PACKET_SCHEMA_VERSION),
+        "packet_schema_version": packet.get(
+            "schema_version", CHANGE_REVIEW_PACKET_SCHEMA_VERSION
+        ),
         "focus_item": packet.get("focus_item"),
         "authority_policy": authority_policy,
         "edit_authority": False,
@@ -945,7 +1106,8 @@ def build_change_review_report(packet: Mapping[str, Any], *, packet_path: Path |
             "candidate_count": len(candidate_reports),
             "disposition_counts": disposition_counts,
             "best_blocker_count": min(
-                [baseline_total] + [int(item["candidate_blocker_count"]) for item in candidate_reports]
+                [baseline_total]
+                + [int(item["candidate_blocker_count"]) for item in candidate_reports]
             ),
             "non_authoritative": True,
         },

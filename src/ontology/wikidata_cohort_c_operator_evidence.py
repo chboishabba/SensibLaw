@@ -19,14 +19,18 @@ def _candidate_signature(candidate: Mapping[str, Any]) -> str:
     qid = _as_text(candidate.get("qid"))
     statement_id = _as_text(candidate.get("statement_id"))
     base = {"qid": qid, "statement_id": statement_id}
-    return hashlib.sha1(json.dumps(base, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+    return hashlib.sha1(
+        json.dumps(base, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    ).hexdigest()
 
 
 def build_nat_cohort_c_operator_evidence_packet(
     scan_payload: Mapping[str, Any],
 ) -> dict[str, Any]:
     if _as_text(scan_payload.get("cohort_id")) != "non_ghg_protocol_or_missing_p459":
-        raise ValueError("Cohort C operator evidence packet requires the Cohort C payload")
+        raise ValueError(
+            "Cohort C operator evidence packet requires the Cohort C payload"
+        )
     sample_candidates = [
         candidate
         for candidate in scan_payload.get("sample_candidates", [])
@@ -39,12 +43,20 @@ def build_nat_cohort_c_operator_evidence_packet(
     ):
         qid = _as_text(candidate.get("qid"))
         statement_id = _as_text(candidate.get("statement_id"))
-        preview_hold_reason = _as_text(candidate.get("preview_hold_reason")) or _as_text(
-            candidate.get("policy_note")
+        preview_hold_reason = _as_text(
+            candidate.get("preview_hold_reason")
+        ) or _as_text(candidate.get("policy_note"))
+        qualifier_hint = (
+            candidate.get("qualifier_hint")
+            or candidate.get("qualifier_properties")
+            or []
         )
-        qualifier_hint = candidate.get("qualifier_hint") or candidate.get("qualifier_properties") or []
-        if isinstance(qualifier_hint, Sequence) and not isinstance(qualifier_hint, (str, bytes)):
-            qualifier_hint_list = [_as_text(entry) for entry in qualifier_hint if _as_text(entry)]
+        if isinstance(qualifier_hint, Sequence) and not isinstance(
+            qualifier_hint, (str, bytes)
+        ):
+            qualifier_hint_list = [
+                _as_text(entry) for entry in qualifier_hint if _as_text(entry)
+            ]
         else:
             qualifier_hint_list = []
         evidence_rows.append(
@@ -55,9 +67,13 @@ def build_nat_cohort_c_operator_evidence_packet(
                 "p459_status": _as_text(candidate.get("p459_status")),
                 "preview_hold_reason": preview_hold_reason,
                 "operator_hold_reason": _as_text(candidate.get("operator_hold_reason"))
-                or (preview_hold_reason and f"Operator to confirm: {preview_hold_reason}")
+                or (
+                    preview_hold_reason
+                    and f"Operator to confirm: {preview_hold_reason}"
+                )
                 or "Operator confirmation required.",
-                "reference_anchor": _as_text(candidate.get("reference_anchor")) or statement_id,
+                "reference_anchor": _as_text(candidate.get("reference_anchor"))
+                or statement_id,
                 "qualifier_hint": qualifier_hint_list,
                 "promotion_guard": "hold",
                 "hold_gate": "review_first_population_scan",

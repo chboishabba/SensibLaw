@@ -93,9 +93,5 @@ def test_consent_required_allows_with_consent(caplog):
 def test_alias_flags_canonicalised():
     record = sample_record(flags=["pii"])
     doc = emit_document(record)
-    assert record["cultural_flags"] == [
-        "PERSONALLY_IDENTIFIABLE_INFORMATION"
-    ]
-    assert doc.metadata.cultural_flags == [
-        "PERSONALLY_IDENTIFIABLE_INFORMATION"
-    ]
+    assert record["cultural_flags"] == ["PERSONALLY_IDENTIFIABLE_INFORMATION"]
+    assert doc.metadata.cultural_flags == ["PERSONALLY_IDENTIFIABLE_INFORMATION"]

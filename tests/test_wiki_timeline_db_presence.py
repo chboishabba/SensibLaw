@@ -43,5 +43,8 @@ def test_db_contains_all_required_timelines():
         for suffix in SUFFIXES:
             run_id = _pick_best_run(conn, suffix)
             assert run_id, f"Missing DB run for suffix {suffix}"
-            ev_count = conn.execute("SELECT COUNT(*) AS c FROM wiki_timeline_aoo_events WHERE run_id=?", (run_id,)).fetchone()["c"]
+            ev_count = conn.execute(
+                "SELECT COUNT(*) AS c FROM wiki_timeline_aoo_events WHERE run_id=?",
+                (run_id,),
+            ).fetchone()["c"]
             assert ev_count > 0, f"No events for run {run_id} ({suffix})"

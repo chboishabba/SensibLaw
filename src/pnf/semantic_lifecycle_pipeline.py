@@ -19,8 +19,10 @@ from src.pnf.semantic_lifecycle import (
 
 
 def _get(value: Any, name: str, default: Any = None) -> Any:
-    return value.get(name, default) if isinstance(value, Mapping) else getattr(
-        value, name, default
+    return (
+        value.get(name, default)
+        if isinstance(value, Mapping)
+        else getattr(value, name, default)
     )
 
 

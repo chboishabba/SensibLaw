@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Sequence
 
-import pytest
 
 from src.ontology import wikidata_review_packet_follow_depth as follow_depth
 
@@ -35,7 +34,10 @@ def test_enrich_follow_receipt_from_extracted_evidence() -> None:
     )
     assert enriched["status"] == "enriched"
     assert enriched["excerpt_source"] == "extracted_evidence"
-    assert enriched["evidence_excerpt"] == "The extracted detail describes the migration step."
+    assert (
+        enriched["evidence_excerpt"]
+        == "The extracted detail describes the migration step."
+    )
     assert enriched["evidence_summary"] == (
         "The extracted detail describes the migration step.; Second snippet elaborates on qualifier propagation."
     )
@@ -57,7 +59,10 @@ def test_enrich_follow_receipt_from_source_text_when_no_evidence() -> None:
     assert enriched["excerpt_source"] == "source_text"
     assert enriched["evidence_excerpt"] == "Source text with newlines and multi-spaces"
     assert enriched["evidence_summary"] == "derived_from_bounded_source_text"
-    assert "excerpt_derived_without_explicit_extracted_evidence" in enriched["unresolved_uncertainty"]
+    assert (
+        "excerpt_derived_without_explicit_extracted_evidence"
+        in enriched["unresolved_uncertainty"]
+    )
 
 
 def test_enrich_follow_receipt_with_no_excerpt_data() -> None:
@@ -93,4 +98,3 @@ def test_enrich_review_packet_receipts_tracks_counts() -> None:
     assert enriched["no_excerpt_count"] == 0
     assert {receipt["status"] for receipt in enriched["receipts"]} == {"enriched"}
     assert enriched["receipts"][1]["excerpt_source"] == "source_text"
-

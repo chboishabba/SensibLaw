@@ -5,7 +5,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
-from src.concepts.matcher import Match, MatchResult, match
+from src.concepts.matcher import match
 
 
 def test_single_match():

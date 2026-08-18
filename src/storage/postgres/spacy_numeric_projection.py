@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from src.pnf.numeric_hyperfabric import SymbolKind, numeric_digest
+from src.storage.postgres.numeric_copy_rows import copy_numeric_rows as _copy_rows
 from src.storage.postgres.numeric_symbol_store import (
     SymbolValue,
     intern_morph_sets,
@@ -30,7 +31,6 @@ from src.storage.postgres.spacy_parser_model import (
     connect,
 )
 from src.storage.postgres.spacy_parser_store import (
-    _copy_rows,
     _create_boundary_repair,
     refresh_coverage,
     seal_docbin,
@@ -40,6 +40,8 @@ from src.storage.postgres.spacy_parser_store import (
 _PARSER_ORIGIN_ID = 1
 _ORTHOGRAPHIC_FALLBACK_ORIGIN_ID = 2
 _POS_FALLBACK_ORIGIN_ID = 3
+_PARSER_RECEIPT_IDENTITY_CONTRACT = b"parser-partition-receipt:v2"
+_PARSER_COMPLETION_EVENT_IDENTITY_CONTRACT = b"parser.partition.completed:v2"
 
 
 class NumericHeadProjectionError(RuntimeError):
@@ -120,10 +122,96 @@ def _require_numeric_pnf_capabilities(capabilities: Mapping[str, bool]) -> None:
         )
 
 
+def _stable_parser_receipt_digest(
+    *,
+    partition: ParserPartition,
+    sentences: tuple[_RawSentence, ...],
+    raw_tokens: tuple[_RawToken, ...],
+    raw_entities: tuple[_RawEntity, ...],
+    crossings: tuple[tuple[int, int, int, int], ...],
+    capabilities: Mapping[str, bool],
+    model_name: str,
+    model_version: str,
+) -> bytes:
+    """Hash semantic parser output, never physical execution coordinates.
+
+    Lease/retry epoch, worker/backend PID, elapsed time and optional DocBin cache
+    state are deliberately absent. The same parser output under the same
+    partition/contract/model therefore has the same receipt identity whether it
+    was fast or slow, retried or not, and cached or not.
+    """
+
+    capability_order = (
+        "tokenization",
+        "sentence_segmentation",
+        "part_of_speech",
+        "morphology",
+        "dependencies",
+        "named_entities",
+    )
+    sentence_output = tuple(
+        (
+            sentence.sentence_digest,
+            sentence.ordinal,
+            sentence.start_char,
+            sentence.end_char,
+        )
+        for sentence in sentences
+    )
+    token_output = tuple(
+        (
+            token.token_digest,
+            token.ordinal,
+            token.start_char,
+            token.end_char,
+            token.orth.encode("utf-8"),
+            token.lemma.encode("utf-8"),
+            token.pos.encode("utf-8"),
+            token.tag.encode("utf-8"),
+            token.dependency.encode("utf-8"),
+            token.lemma_origin_id,
+            token.pos_origin_id,
+            token.tag_origin_id,
+            token.dependency_origin_id,
+            token.head_is_self,
+            token.head_start_char,
+            token.head_end_char,
+            tuple(
+                (feature.encode("utf-8"), value.encode("utf-8"))
+                for feature, value in token.morphology
+            ),
+        )
+        for token in raw_tokens
+    )
+    entity_output = tuple(
+        (
+            entity.entity_digest,
+            entity.start_char,
+            entity.end_char,
+            entity.entity_type.encode("utf-8"),
+        )
+        for entity in raw_entities
+    )
+    return numeric_digest(
+        _PARSER_RECEIPT_IDENTITY_CONTRACT,
+        partition.partition_ref.encode("utf-8"),
+        partition.parser_contract_ref.encode("utf-8"),
+        SEGMENTATION_CONTRACT.encode("utf-8"),
+        model_name.encode("utf-8"),
+        model_version.encode("utf-8"),
+        tuple(bool(capabilities[name]) for name in capability_order),
+        sentence_output,
+        token_output,
+        entity_output,
+        crossings,
+    )
+
+
 def _project_numeric_heads(
     raw_tokens: tuple[_RawToken, ...],
     token_rows_by_ref: Mapping[str, tuple[int, int, int, int]],
-    token_rows_by_span: Mapping[tuple[int, int], tuple[int, int, int, int]] | None = None,
+    token_rows_by_span: Mapping[tuple[int, int], tuple[int, int, int, int]]
+    | None = None,
 ) -> tuple[tuple[int, int, int, int], ...]:
     """Resolve dependency heads without inventing root self-loops or crossing sentences."""
 
@@ -134,7 +222,12 @@ def _project_numeric_heads(
         if previous != token_id:
             raise NumericHeadProjectionError(f"duplicate committed token span {span!r}")
     if token_rows_by_span is not None:
-        for span, (token_id, sentence_id, _start_char, _end_char) in token_rows_by_span.items():
+        for span, (
+            token_id,
+            sentence_id,
+            _start_char,
+            _end_char,
+        ) in token_rows_by_span.items():
             token_id_by_sentence_span.setdefault((sentence_id, span), token_id)
 
     updates: list[tuple[int, int, int, int]] = []
@@ -158,16 +251,19 @@ def _project_numeric_heads(
             head_token_id = token_id
             head_start_char, head_end_char = start_char, end_char
         else:
-            head_token_id = token_id_by_sentence_span.get((sentence_id, declared_head_span))
+            head_token_id = token_id_by_sentence_span.get(
+                (sentence_id, declared_head_span)
+            )
             if head_token_id is None:
-                head_token_id = token_id
-                head_start_char, head_end_char = start_char, end_char
-            elif head_token_id == token_id:
+                raise NumericHeadProjectionError(
+                    "declared non-root dependency head is absent from its sentence: "
+                    f"token={token_span!r} head={declared_head_span!r}"
+                )
+            if head_token_id == token_id:
                 raise NumericHeadProjectionError(
                     "non-root dependency resolved to its own token id"
                 )
-            else:
-                head_start_char, head_end_char = declared_head_span
+            head_start_char, head_end_char = declared_head_span
         updates.append((head_token_id, head_start_char, head_end_char, token_id))
     return tuple(updates)
 
@@ -378,6 +474,8 @@ def commit_numeric_doc(
 
     capabilities = _pipeline_capabilities(pipeline)
     _require_numeric_pnf_capabilities(capabilities)
+    model_name = str(pipeline.meta.get("name") or "unknown")
+    model_version = str(pipeline.meta.get("version") or "unknown")
     (
         sentences,
         raw_tokens,
@@ -385,6 +483,16 @@ def commit_numeric_doc(
         crossings,
         symbol_values,
     ) = _collect_doc(partition, doc)
+    receipt_digest = _stable_parser_receipt_digest(
+        partition=partition,
+        sentences=sentences,
+        raw_tokens=raw_tokens,
+        raw_entities=raw_entities,
+        crossings=crossings,
+        capabilities=capabilities,
+        model_name=model_name,
+        model_version=model_version,
+    )
     artifact = (
         seal_docbin(doc, partition=partition, artifact_root=artifact_root)
         if policy.cache_docbin
@@ -562,15 +670,18 @@ def commit_numeric_doc(
                     rows=token_rows,
                 )
 
+                raw_token_refs = [raw.token_ref for raw in raw_tokens]
                 cursor.execute(
                     """
                     SELECT token_ref, token_id, sentence_id, start_char, end_char
                       FROM execution.semantic_parser_token
-                     WHERE run_ref = %s
+                     WHERE token_ref = ANY(%s)
+                       AND run_ref = %s
                        AND document_ref = %s
                        AND representation_version = 2
                     """,
                     (
+                        raw_token_refs,
                         partition.run_ref,
                         partition.document_ref,
                     ),
@@ -578,15 +689,6 @@ def commit_numeric_doc(
                 fetched_tokens = cursor.fetchall()
                 token_rows_by_ref = {
                     str(token_ref): (
-                        int(token_id),
-                        int(sentence_id),
-                        int(start_char),
-                        int(end_char),
-                    )
-                    for token_ref, token_id, sentence_id, start_char, end_char in fetched_tokens
-                }
-                token_rows_by_span = {
-                    (int(start_char), int(end_char)): (
                         int(token_id),
                         int(sentence_id),
                         int(start_char),
@@ -602,9 +704,7 @@ def commit_numeric_doc(
                            head_end_char = %s
                       WHERE token_id = %s
                     """,
-                    _project_numeric_heads(
-                        raw_tokens, token_rows_by_ref, token_rows_by_span
-                    ),
+                    _project_numeric_heads(raw_tokens, token_rows_by_ref),
                 )
 
                 entity_rows = [
@@ -716,15 +816,6 @@ def commit_numeric_doc(
 
                 cursor.execute("SELECT pg_backend_pid()")
                 backend_pid = int(cursor.fetchone()[0])
-                receipt_digest = numeric_digest(
-                    partition.lease_epoch,
-                    len(sentences),
-                    len(raw_tokens),
-                    len(raw_entities),
-                    len(crossings),
-                    elapsed_ns,
-                    artifact[2] if artifact is not None else b"",
-                )
                 receipt_ref = _compat_ref("parser-receipt:", receipt_digest)
                 cursor.execute(
                     """
@@ -750,8 +841,8 @@ def commit_numeric_doc(
                         partition.run_ref,
                         partition.document_ref,
                         partition.parser_contract_ref,
-                        str(pipeline.meta.get("name") or "unknown"),
-                        str(pipeline.meta.get("version") or "unknown"),
+                        model_name,
+                        model_version,
                         capabilities["tokenization"],
                         capabilities["sentence_segmentation"],
                         capabilities["part_of_speech"],
@@ -849,8 +940,8 @@ def commit_numeric_doc(
                         _compat_ref(
                             "parser-event:",
                             numeric_digest(
+                                _PARSER_COMPLETION_EVENT_IDENTITY_CONTRACT,
                                 partition.partition_ref.encode("utf-8"),
-                                partition.lease_epoch,
                             ),
                         ),
                         partition.run_ref,

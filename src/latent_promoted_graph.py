@@ -5,7 +5,9 @@ from collections import defaultdict
 from typing import Any, Iterable, Mapping
 
 SL_LATENT_PROMOTED_GRAPH_VERSION = "sl.latent_promoted_graph.v1"
-SL_LATENT_PROMOTED_GRAPH_PROVENANCE_RULE_VERSION = "sl.latent_graph.promoted_anchor_only.v1"
+SL_LATENT_PROMOTED_GRAPH_PROVENANCE_RULE_VERSION = (
+    "sl.latent_graph.promoted_anchor_only.v1"
+)
 
 
 def _stable_hash(parts: Iterable[object]) -> str:
@@ -19,11 +21,21 @@ def _authority_type(record: Mapping[str, Any]) -> str:
     subject_key = str(record.get("subject_key") or "").strip().lower()
     object_key = str(record.get("object_key") or "").strip().lower()
 
-    if "court" in object_key or predicate_key in {"heard_by", "ruled_by", "challenged", "appealed"}:
+    if "court" in object_key or predicate_key in {
+        "heard_by",
+        "ruled_by",
+        "challenged",
+        "appealed",
+    }:
         return "judicial"
     if "senate" in object_key or "congress" in object_key:
         return "legislative"
-    if rule_type == "executive_action" or predicate_key in {"signed", "vetoed"} or "president" in subject_key or "bush" in subject_key:
+    if (
+        rule_type == "executive_action"
+        or predicate_key in {"signed", "vetoed"}
+        or "president" in subject_key
+        or "bush" in subject_key
+    ):
         return "executive"
     if rule_type == "review_relation":
         return "judicial"
@@ -83,16 +95,52 @@ def _provenance_index(records: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
 
 def _typing_rules() -> list[dict[str, str]]:
     return [
-        {"src_node_type": "fact", "edge_type": "instantiated_by", "dst_node_type": "actor"},
-        {"src_node_type": "fact", "edge_type": "instantiated_by", "dst_node_type": "legal_ref"},
-        {"src_node_type": "fact", "edge_type": "refers_to", "dst_node_type": "document"},
+        {
+            "src_node_type": "fact",
+            "edge_type": "instantiated_by",
+            "dst_node_type": "actor",
+        },
+        {
+            "src_node_type": "fact",
+            "edge_type": "instantiated_by",
+            "dst_node_type": "legal_ref",
+        },
+        {
+            "src_node_type": "fact",
+            "edge_type": "refers_to",
+            "dst_node_type": "document",
+        },
         {"src_node_type": "fact", "edge_type": "member_of", "dst_node_type": "motif"},
-        {"src_node_type": "fact", "edge_type": "applies_to", "dst_node_type": "authority"},
-        {"src_node_type": "fact", "edge_type": "grounds_claim", "dst_node_type": "legal_claim"},
-        {"src_node_type": "legal_claim", "edge_type": "claim_subject", "dst_node_type": "actor"},
-        {"src_node_type": "legal_claim", "edge_type": "claim_subject", "dst_node_type": "legal_ref"},
-        {"src_node_type": "legal_claim", "edge_type": "claim_object", "dst_node_type": "actor"},
-        {"src_node_type": "legal_claim", "edge_type": "claim_object", "dst_node_type": "legal_ref"},
+        {
+            "src_node_type": "fact",
+            "edge_type": "applies_to",
+            "dst_node_type": "authority",
+        },
+        {
+            "src_node_type": "fact",
+            "edge_type": "grounds_claim",
+            "dst_node_type": "legal_claim",
+        },
+        {
+            "src_node_type": "legal_claim",
+            "edge_type": "claim_subject",
+            "dst_node_type": "actor",
+        },
+        {
+            "src_node_type": "legal_claim",
+            "edge_type": "claim_subject",
+            "dst_node_type": "legal_ref",
+        },
+        {
+            "src_node_type": "legal_claim",
+            "edge_type": "claim_object",
+            "dst_node_type": "actor",
+        },
+        {
+            "src_node_type": "legal_claim",
+            "edge_type": "claim_object",
+            "dst_node_type": "legal_ref",
+        },
     ]
 
 
@@ -195,7 +243,9 @@ def build_latent_promoted_graph(
         ensure_node(
             node_ref=fact_node_ref,
             node_type="fact",
-            label=str(record.get("display_label") or record.get("predicate_key") or record_ref),
+            label=str(
+                record.get("display_label") or record.get("predicate_key") or record_ref
+            ),
             payload={
                 "predicate_key": record["predicate_key"],
                 "display_label": record["display_label"],
@@ -220,7 +270,9 @@ def build_latent_promoted_graph(
         )
         edges.append(
             {
-                "edge_ref": _edge_ref(system_id, "refers_to", fact_node_ref, document_node_ref),
+                "edge_ref": _edge_ref(
+                    system_id, "refers_to", fact_node_ref, document_node_ref
+                ),
                 "src": fact_node_ref,
                 "dst": document_node_ref,
                 "edge_type": "refers_to",
@@ -244,7 +296,9 @@ def build_latent_promoted_graph(
         )
         edges.append(
             {
-                "edge_ref": _edge_ref(system_id, "applies_to", fact_node_ref, authority_node_ref),
+                "edge_ref": _edge_ref(
+                    system_id, "applies_to", fact_node_ref, authority_node_ref
+                ),
                 "src": fact_node_ref,
                 "dst": authority_node_ref,
                 "edge_type": "applies_to",
@@ -275,7 +329,9 @@ def build_latent_promoted_graph(
             )
             edges.append(
                 {
-                    "edge_ref": _edge_ref(system_id, "instantiated_by", fact_node_ref, entity_node_ref),
+                    "edge_ref": _edge_ref(
+                        system_id, "instantiated_by", fact_node_ref, entity_node_ref
+                    ),
                     "src": fact_node_ref,
                     "dst": entity_node_ref,
                     "edge_type": "instantiated_by",
@@ -307,7 +363,11 @@ def build_latent_promoted_graph(
             ensure_node(
                 node_ref=legal_claim_node_ref,
                 node_type="legal_claim",
-                label=str(record.get("display_label") or record.get("predicate_key") or record_ref),
+                label=str(
+                    record.get("display_label")
+                    or record.get("predicate_key")
+                    or record_ref
+                ),
                 payload={
                     "record_ref": record_ref,
                     "event_id": record["event_id"],
@@ -322,7 +382,9 @@ def build_latent_promoted_graph(
             )
             edges.append(
                 {
-                    "edge_ref": _edge_ref(system_id, "grounds_claim", fact_node_ref, legal_claim_node_ref),
+                    "edge_ref": _edge_ref(
+                        system_id, "grounds_claim", fact_node_ref, legal_claim_node_ref
+                    ),
                     "src": fact_node_ref,
                     "dst": legal_claim_node_ref,
                     "edge_type": "grounds_claim",
@@ -333,7 +395,12 @@ def build_latent_promoted_graph(
             )
             edges.append(
                 {
-                    "edge_ref": _edge_ref(system_id, "claim_subject", legal_claim_node_ref, entity_refs["subject"]),
+                    "edge_ref": _edge_ref(
+                        system_id,
+                        "claim_subject",
+                        legal_claim_node_ref,
+                        entity_refs["subject"],
+                    ),
                     "src": legal_claim_node_ref,
                     "dst": entity_refs["subject"],
                     "edge_type": "claim_subject",
@@ -344,7 +411,12 @@ def build_latent_promoted_graph(
             )
             edges.append(
                 {
-                    "edge_ref": _edge_ref(system_id, "claim_object", legal_claim_node_ref, entity_refs["object"]),
+                    "edge_ref": _edge_ref(
+                        system_id,
+                        "claim_object",
+                        legal_claim_node_ref,
+                        entity_refs["object"],
+                    ),
                     "src": legal_claim_node_ref,
                     "dst": entity_refs["object"],
                     "edge_type": "claim_object",
@@ -376,12 +448,20 @@ def build_latent_promoted_graph(
         for fact_node_ref in member_refs:
             edges.append(
                 {
-                    "edge_ref": _edge_ref(system_id, "member_of", fact_node_ref, motif_node_ref),
+                    "edge_ref": _edge_ref(
+                        system_id, "member_of", fact_node_ref, motif_node_ref
+                    ),
                     "src": fact_node_ref,
                     "dst": motif_node_ref,
                     "edge_type": "member_of",
                     "payload": {},
-                    "provenance_refs": [next(row["record_ref"] for row in record_index if row["fact_node_ref"] == fact_node_ref)],
+                    "provenance_refs": [
+                        next(
+                            row["record_ref"]
+                            for row in record_index
+                            if row["fact_node_ref"] == fact_node_ref
+                        )
+                    ],
                     "confidence": 1.0,
                 }
             )

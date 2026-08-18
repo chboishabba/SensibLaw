@@ -13,7 +13,9 @@ from src.reporting.observation_lanes import (
 )
 
 
-def _seed_openrecall_db(tmp_path: Path, *, timestamp: int, text: str) -> tuple[Path, Path]:
+def _seed_openrecall_db(
+    tmp_path: Path, *, timestamp: int, text: str
+) -> tuple[Path, Path]:
     db_path = tmp_path / "recall.db"
     storage_dir = tmp_path / "openrecall_storage"
     screenshot_dir = storage_dir / "screenshots"
@@ -71,7 +73,9 @@ def _run_script(cmd: list[str], cwd: Path) -> dict[str, object]:
 def test_import_observation_cli_openrecall_roundtrip(tmp_path: Path) -> None:
     repo_root = Path(__file__).resolve().parents[2]
     ts = int(datetime(2026, 3, 8, 11, 0, tzinfo=timezone.utc).timestamp())
-    source_db, storage = _seed_openrecall_db(tmp_path, timestamp=ts, text="observer import route")
+    source_db, storage = _seed_openrecall_db(
+        tmp_path, timestamp=ts, text="observer import route"
+    )
     itir_db = tmp_path / "itir.sqlite"
 
     payload = _run_script(
@@ -103,11 +107,15 @@ def test_import_observation_cli_openrecall_roundtrip(tmp_path: Path) -> None:
         conn.row_factory = sqlite3.Row
         runs = load_observation_import_runs(conn, "openrecall", limit=5)
         assert runs[0]["importRunId"] == "observation-openrecall-cli-v1"
-    units = load_observation_units(itir_db, "openrecall", import_run_id="observation-openrecall-cli-v1")
+    units = load_observation_units(
+        itir_db, "openrecall", import_run_id="observation-openrecall-cli-v1"
+    )
     assert len(units) == 1
 
 
-def test_import_observation_cli_worldmonitor_and_query_roundtrip(tmp_path: Path) -> None:
+def test_import_observation_cli_worldmonitor_and_query_roundtrip(
+    tmp_path: Path,
+) -> None:
     repo_root = Path(__file__).resolve().parents[2]
     source_dir = _seed_worldmonitor_dir(tmp_path)
     itir_db = tmp_path / "itir.sqlite"
@@ -153,7 +161,9 @@ def test_import_observation_cli_worldmonitor_and_query_roundtrip(tmp_path: Path)
 
 def test_import_observation_cli_lane_args_are_lane_agnostic(tmp_path: Path) -> None:
     repo_root = Path(__file__).resolve().parents[2]
-    source_db, storage = _seed_openrecall_db(tmp_path, timestamp=1_700_000_100, text="lane arg test")
+    source_db, storage = _seed_openrecall_db(
+        tmp_path, timestamp=1_700_000_100, text="lane arg test"
+    )
     itir_db = tmp_path / "itir.sqlite"
 
     payload = _run_script(

@@ -19,11 +19,23 @@ HOT_PYTHON = (
     ROOT / "src" / "text" / "phrase_cues.py",
 )
 HOT_SQL = (
-    ROOT / "database" / "postgres_migrations" / "089_numeric_incremental_runtime_economy.sql",
-    ROOT / "database" / "postgres_migrations" / "090_numeric_parser_evidence_and_learning.sql",
+    ROOT
+    / "database"
+    / "postgres_migrations"
+    / "089_numeric_incremental_runtime_economy.sql",
+    ROOT
+    / "database"
+    / "postgres_migrations"
+    / "090_numeric_parser_evidence_and_learning.sql",
 )
 
-PYTHON_FORBIDDEN = ("import re", "from re import", "re.compile(", "re.search(", "re.match(")
+PYTHON_FORBIDDEN = (
+    "import re",
+    "from re import",
+    "re.compile(",
+    "re.search(",
+    "re.match(",
+)
 SQL_REGEX_FORBIDDEN = (" SIMILAR TO ", " ~ ", " ~* ")
 
 
@@ -33,14 +45,18 @@ def audit() -> list[str]:
         text = path.read_text(encoding="utf-8")
         for marker in PYTHON_FORBIDDEN:
             if marker in text:
-                failures.append(f"{path.relative_to(ROOT)}: forbidden semantic regex marker {marker!r}")
+                failures.append(
+                    f"{path.relative_to(ROOT)}: forbidden semantic regex marker {marker!r}"
+                )
 
     for path in HOT_SQL:
         text = path.read_text(encoding="utf-8")
         upper = text.upper()
         for marker in SQL_REGEX_FORBIDDEN:
             if marker.upper() in upper:
-                failures.append(f"{path.relative_to(ROOT)}: forbidden SQL regex operator {marker!r}")
+                failures.append(
+                    f"{path.relative_to(ROOT)}: forbidden SQL regex operator {marker!r}"
+                )
 
     # Expensive 083 functions are redeclared in 089/090.  The replacement
     # identity-evidence function must not join semantic_symbol merely to compare
@@ -65,7 +81,9 @@ def main() -> int:
         for failure in failures:
             print(f"SIN-BIN: {failure}")
         return 1
-    print("OK: semantic hot-path audit found no regex execution and numeric parser cues are compiled")
+    print(
+        "OK: semantic hot-path audit found no regex execution and numeric parser cues are compiled"
+    )
     return 0
 
 

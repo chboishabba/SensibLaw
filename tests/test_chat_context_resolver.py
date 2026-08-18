@@ -128,8 +128,18 @@ def test_query_db_match_prefers_online_thread_id_exact(tmp_path: Path) -> None:
 def test_build_stitched_transcript_assigns_thread_and_message_line_numbers() -> None:
     transcript = _build_stitched_transcript(
         [
-            {"message_id": "m1", "ts": "2026-03-07T05:29:37+00:00", "role": "assistant", "text": "alpha\nbeta"},
-            {"message_id": "m2", "ts": "2026-03-07T05:30:37+00:00", "role": "user", "text": "gamma"},
+            {
+                "message_id": "m1",
+                "ts": "2026-03-07T05:29:37+00:00",
+                "role": "assistant",
+                "text": "alpha\nbeta",
+            },
+            {
+                "message_id": "m2",
+                "ts": "2026-03-07T05:30:37+00:00",
+                "role": "user",
+                "text": "gamma",
+            },
         ]
     )
 
@@ -165,7 +175,9 @@ def test_thread_analysis_payload_reports_mentions_and_ranges(tmp_path: Path) -> 
     assert payload["top_terms"]
 
 
-def test_cross_thread_analysis_payload_ranks_threads_by_term_frequency(tmp_path: Path) -> None:
+def test_cross_thread_analysis_payload_ranks_threads_by_term_frequency(
+    tmp_path: Path,
+) -> None:
     db_path = tmp_path / "archive.sqlite"
     _init_messages_db(db_path)
 

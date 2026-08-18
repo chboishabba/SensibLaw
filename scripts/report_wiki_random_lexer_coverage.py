@@ -55,7 +55,9 @@ def _covered_words(text: str, spans: Iterable[tuple[int, int]]) -> int:
     count = 0
     for match in _WORD_RE.finditer(text):
         start, end = match.span()
-        if any(start < span_end and end > span_start for span_start, span_end in merged):
+        if any(
+            start < span_end and end > span_start for span_start, span_end in merged
+        ):
             count += 1
     return count
 
@@ -68,7 +70,9 @@ def _ratio(numerator: int | float, denominator: int | float) -> float:
 
 def _structural_token_rows(text: str) -> tuple[list[Any], list[Any]]:
     tokens = tokenize_canonical_detailed(text)
-    structural = [token for token in tokens if token.token_type.value not in _NON_STRUCTURAL_TYPES]
+    structural = [
+        token for token in tokens if token.token_type.value not in _NON_STRUCTURAL_TYPES
+    ]
     return tokens, structural
 
 
@@ -76,15 +80,21 @@ def score_snapshot_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     text = str(payload.get("wikitext") or "")
     token_rows, structural_tokens = _structural_token_rows(text)
     token_type_counts = Counter(token.token_type.value for token in token_rows)
-    structural_token_type_counts = Counter(token.token_type.value for token in structural_tokens)
+    structural_token_type_counts = Counter(
+        token.token_type.value for token in structural_tokens
+    )
     tokenizer_spans = [(token.start, token.end) for token in structural_tokens]
 
     lexemes, profile = collect_canonical_lexeme_occurrences_with_profile(text)
     structures = collect_canonical_structure_occurrences(text)
     lexeme_kind_counts = Counter(occ.kind for occ in lexemes)
     structure_kind_counts = Counter(occ.kind for occ in structures)
-    meaningful_lexemes = [occ for occ in lexemes if occ.kind not in _NON_STRUCTURAL_KINDS]
-    meaningful_structures = [occ for occ in structures if occ.kind not in _NON_STRUCTURAL_KINDS]
+    meaningful_lexemes = [
+        occ for occ in lexemes if occ.kind not in _NON_STRUCTURAL_KINDS
+    ]
+    meaningful_structures = [
+        occ for occ in structures if occ.kind not in _NON_STRUCTURAL_KINDS
+    ]
     reducer_spans = [(occ.start_char, occ.end_char) for occ in meaningful_structures]
 
     total_words = len(_WORD_RE.findall(text))
@@ -96,14 +106,25 @@ def score_snapshot_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     tokenizer_signal = len(structural_tokens) > 0
     reducer_signal = len(meaningful_lexemes) > 0 or len(meaningful_structures) > 0
     suspicious_density = len(structural_tokens) >= 8 and tokenizer_char_ratio >= 0.35
-    alignment_ok = tokenizer_signal == reducer_signal or (tokenizer_signal and reducer_signal) or (not tokenizer_signal and not reducer_signal)
-    abstention_ok = (not tokenizer_signal and not reducer_signal) or (tokenizer_signal and not suspicious_density)
+    alignment_ok = (
+        tokenizer_signal == reducer_signal
+        or (tokenizer_signal and reducer_signal)
+        or (not tokenizer_signal and not reducer_signal)
+    )
+    abstention_ok = (not tokenizer_signal and not reducer_signal) or (
+        tokenizer_signal and not suspicious_density
+    )
 
     structural_coverage_score = round(max(tokenizer_word_ratio, reducer_word_ratio), 6)
     abstention_quality_score = 1.0 if abstention_ok else 0.0
     shared_reducer_alignment_score = 1.0 if alignment_ok else 0.0
     overall_quality_score = round(
-        (structural_coverage_score + abstention_quality_score + shared_reducer_alignment_score) / 3.0,
+        (
+            structural_coverage_score
+            + abstention_quality_score
+            + shared_reducer_alignment_score
+        )
+        / 3.0,
         6,
     )
 
@@ -129,7 +150,9 @@ def score_snapshot_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         "token_count": len(token_rows),
         "structural_token_count": len(structural_tokens),
         "token_type_counts": dict(sorted(token_type_counts.items())),
-        "structural_token_type_counts": dict(sorted(structural_token_type_counts.items())),
+        "structural_token_type_counts": dict(
+            sorted(structural_token_type_counts.items())
+        ),
         "lexeme_count": len(lexemes),
         "meaningful_lexeme_count": len(meaningful_lexemes),
         "lexeme_kind_counts": dict(sorted(lexeme_kind_counts.items())),
@@ -155,7 +178,12 @@ def score_snapshot_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def build_coverage_report(manifest: Mapping[str, Any], *, sample_limit: int | None = None, emit_page_rows: bool = True) -> dict[str, Any]:
+def build_coverage_report(
+    manifest: Mapping[str, Any],
+    *,
+    sample_limit: int | None = None,
+    emit_page_rows: bool = True,
+) -> dict[str, Any]:
     sample_rows = manifest.get("samples")
     if not isinstance(sample_rows, list):
         raise ValueError("manifest samples must be a list")
@@ -197,12 +225,21 @@ def build_coverage_report(manifest: Mapping[str, Any], *, sample_limit: int | No
         "lexeme_kind_counts": dict(sorted(aggregate_lexeme_kinds.items())),
         "structure_kind_counts": dict(sorted(aggregate_structure_kinds.items())),
         "issue_counts": dict(sorted(issue_counts.items())),
-        "pages_with_structural_signal": sum(1 for row in page_rows if row["structural_token_count"] > 0),
-        "pages_with_shared_reducer_signal": sum(
-            1 for row in page_rows if row["meaningful_lexeme_count"] > 0 or row["meaningful_structure_count"] > 0
+        "pages_with_structural_signal": sum(
+            1 for row in page_rows if row["structural_token_count"] > 0
         ),
-        "pages_with_no_signal": sum(1 for row in page_rows if "no_structural_signal" in row["issues"]),
-        "pages_with_suspicious_density": sum(1 for row in page_rows if "suspicious_structural_density" in row["issues"]),
+        "pages_with_shared_reducer_signal": sum(
+            1
+            for row in page_rows
+            if row["meaningful_lexeme_count"] > 0
+            or row["meaningful_structure_count"] > 0
+        ),
+        "pages_with_no_signal": sum(
+            1 for row in page_rows if "no_structural_signal" in row["issues"]
+        ),
+        "pages_with_suspicious_density": sum(
+            1 for row in page_rows if "suspicious_structural_density" in row["issues"]
+        ),
         "average_scores": {
             key: round((value / page_count), 6) if page_count else 0.0
             for key, value in score_sums.items()
@@ -228,7 +265,9 @@ def build_coverage_report(manifest: Mapping[str, Any], *, sample_limit: int | No
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Score stored random-page Wikipedia snapshots against tokenizer and shared-reducer coverage.")
+    parser = argparse.ArgumentParser(
+        description="Score stored random-page Wikipedia snapshots against tokenizer and shared-reducer coverage."
+    )
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--sample-limit", type=int, default=None)

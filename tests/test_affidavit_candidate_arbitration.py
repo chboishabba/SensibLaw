@@ -35,8 +35,14 @@ def test_arbitration_promotes_duplicate_root_alternate() -> None:
         ],
     )
 
-    assert result["match_excerpt"] == "I cut off the internet in November 2024 as a final attempt to prompt a discussion to resolve the situation."
-    assert result["duplicate_match_excerpt"] == "The respondent cut off my internet in November 2024."
+    assert (
+        result["match_excerpt"]
+        == "I cut off the internet in November 2024 as a final attempt to prompt a discussion to resolve the situation."
+    )
+    assert (
+        result["duplicate_match_excerpt"]
+        == "The respondent cut off my internet in November 2024."
+    )
 
 
 def test_arbitration_promotes_clause_alternate_when_duplicate_root_exists() -> None:
@@ -80,8 +86,14 @@ def test_arbitration_promotes_clause_alternate_when_duplicate_root_exists() -> N
     )
 
     assert result["match_basis"] == "clause"
-    assert result["match_excerpt"] == "I acknowledge this likely occurred on many occasions"
-    assert result["duplicate_match_excerpt"] == "Johl came into my room and would turn off or stop what I was listening to on my computer."
+    assert (
+        result["match_excerpt"]
+        == "I acknowledge this likely occurred on many occasions"
+    )
+    assert (
+        result["duplicate_match_excerpt"]
+        == "Johl came into my room and would turn off or stop what I was listening to on my computer."
+    )
 
 
 def test_arbitration_prefers_higher_predicate_on_adjusted_tie() -> None:
@@ -117,15 +129,18 @@ def test_arbitration_prefers_higher_predicate_on_adjusted_tie() -> None:
 
 
 def test_resolve_duplicate_match_excerpt_uses_cross_row_duplicate_context() -> None:
-    assert resolve_duplicate_match_excerpt(
-        selected_candidate={
-            "match_excerpt": "I deny the allegation.",
-            "duplicate_match_excerpt": None,
-        },
-        top_duplicate_candidate={
-            "match_excerpt": "The respondent cut off my internet in November 2024.",
-        },
-    ) == "The respondent cut off my internet in November 2024."
+    assert (
+        resolve_duplicate_match_excerpt(
+            selected_candidate={
+                "match_excerpt": "I deny the allegation.",
+                "duplicate_match_excerpt": None,
+            },
+            top_duplicate_candidate={
+                "match_excerpt": "The respondent cut off my internet in November 2024.",
+            },
+        )
+        == "The respondent cut off my internet in November 2024."
+    )
 
     assert (
         resolve_duplicate_match_excerpt(

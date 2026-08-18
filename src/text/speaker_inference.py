@@ -172,7 +172,9 @@ def infer_speakers(
     return _coalesce_receipts(receipts)
 
 
-def _coalesce_receipts(receipts: list[SpeakerInferenceReceipt]) -> list[SpeakerInferenceReceipt]:
+def _coalesce_receipts(
+    receipts: list[SpeakerInferenceReceipt],
+) -> list[SpeakerInferenceReceipt]:
     if len(receipts) < 3:
         return receipts
     updated = list(receipts)
@@ -182,7 +184,10 @@ def _coalesce_receipts(receipts: list[SpeakerInferenceReceipt]) -> list[SpeakerI
         following = updated[index + 1]
         if not current.abstained or current.abstain_reason != "insufficient_evidence":
             continue
-        if previous.source_id != current.source_id or following.source_id != current.source_id:
+        if (
+            previous.source_id != current.source_id
+            or following.source_id != current.source_id
+        ):
             continue
         if previous.abstained or following.abstained:
             continue

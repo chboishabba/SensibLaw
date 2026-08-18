@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-from collections import Counter
 import hashlib
 from pathlib import Path
 import sys
@@ -46,7 +45,9 @@ def main() -> int:
         for surface, start, end in tokenize_canonical_with_spans(text):
             token_surfaces.append(surface.casefold())
             offsets.extend((base + start, base + end))
-    dictionary = {surface: index for index, surface in enumerate(sorted(set(token_surfaces)))}
+    dictionary = {
+        surface: index for index, surface in enumerate(sorted(set(token_surfaces)))
+    }
     logical_ids = tuple(dictionary[surface] for surface in token_surfaces)
     codec = CorpusCodec.from_lexeme_ids(logical_ids)
     encoded_symbols = codec.encode(logical_ids)
@@ -64,9 +65,13 @@ def main() -> int:
     print(f"dictionary_bytes={dictionary_bytes}")
     print(f"encoded_symbol_bytes={len(encoded_symbols)}")
     print(f"encoded_offset_bytes={len(encoded_offsets)}")
-    print(f"compact_total_bytes={dictionary_bytes + len(encoded_symbols) + len(encoded_offsets)}")
+    print(
+        f"compact_total_bytes={dictionary_bytes + len(encoded_symbols) + len(encoded_offsets)}"
+    )
     print(f"row_projection_estimate_bytes={row_projection_estimate}")
-    print(f"reconstruction_token_hash={hashlib.sha256(chr(0).join(token_surfaces).encode()).hexdigest()}")
+    print(
+        f"reconstruction_token_hash={hashlib.sha256(chr(0).join(token_surfaces).encode()).hexdigest()}"
+    )
     print(f"elapsed_seconds={time.perf_counter() - started:.6f}")
     return 0
 

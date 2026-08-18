@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-import hashlib
-from typing import Any, Iterable, Mapping
+from typing import Any, Mapping
 
-from .read_model import build_fact_intake_report, build_fact_review_operator_views, build_fact_review_run_summary
+from .read_model import (
+    build_fact_intake_report,
+    build_fact_review_operator_views,
+    build_fact_review_run_summary,
+)
 from .payload_builder import (
     build_excerpt_row,
     build_fact_candidate_row,
@@ -12,10 +15,8 @@ from .payload_builder import (
     build_source_rows,
     build_statement_row,
     ensure_event_source_row,
-    sha256_payload,
 )
 from .review_bundle import (
-    FACT_REVIEW_BUNDLE_VERSION,
     build_abstentions,
     build_event_chronology,
     build_fact_review_bundle_payload,
@@ -63,6 +64,7 @@ _LEXICAL_MODE_BY_SOURCE_TYPE = {
     "professional_interpretation": "transcript_handoff",
 }
 
+
 def _normalize_opt_text(value: Any) -> str | None:
     if value is None:
         return None
@@ -83,8 +85,16 @@ def build_fact_intake_payload_from_transcript_report(
     semantic_run_id = str(report.get("run_id") or "").strip()
     if not semantic_run_id:
         raise ValueError("transcript semantic report run_id is required")
-    per_event = list(report.get("per_event", [])) if isinstance(report.get("per_event"), list) else []
-    source_documents = list(report.get("source_documents", [])) if isinstance(report.get("source_documents"), list) else []
+    per_event = (
+        list(report.get("per_event", []))
+        if isinstance(report.get("per_event"), list)
+        else []
+    )
+    source_documents = (
+        list(report.get("source_documents", []))
+        if isinstance(report.get("source_documents"), list)
+        else []
+    )
     run = build_fact_intake_run(
         run_kind="transcript_fact_intake_run",
         semantic_run_id=semantic_run_id,
@@ -97,9 +107,13 @@ def build_fact_intake_payload_from_transcript_report(
 
     def _extra_document_provenance(document: Mapping[str, Any]) -> Mapping[str, Any]:
         if isinstance(document.get("source_signal_classes"), list):
-            return {"source_signal_classes": list(document.get("source_signal_classes", []))}
+            return {
+                "source_signal_classes": list(document.get("source_signal_classes", []))
+            }
         if isinstance(document.get("sourceSignalClasses"), list):
-            return {"source_signal_classes": list(document.get("sourceSignalClasses", []))}
+            return {
+                "source_signal_classes": list(document.get("sourceSignalClasses", []))
+            }
         return {}
 
     sources, source_map = build_source_rows(
@@ -118,7 +132,9 @@ def build_fact_intake_payload_from_transcript_report(
 
     for index, event in enumerate(per_event, start=1):
         event_id = str(event.get("event_id") or "").strip()
-        source_document_id = str(event.get("source_document_id") or event.get("source_id") or "").strip()
+        source_document_id = str(
+            event.get("source_document_id") or event.get("source_id") or ""
+        ).strip()
         source_id = ensure_event_source_row(
             sources=sources,
             source_map=source_map,
@@ -160,9 +176,15 @@ def build_fact_intake_payload_from_transcript_report(
         for role_index, role in enumerate(event.get("event_roles", []), start=1):
             if not isinstance(role, Mapping):
                 continue
-            predicate_key = _ROLE_TO_PREDICATE.get(str(role.get("role_kind") or "").strip())
-            entity = role.get("entity") if isinstance(role.get("entity"), Mapping) else {}
-            object_text = str(entity.get("canonical_label") or entity.get("canonical_key") or "").strip()
+            predicate_key = _ROLE_TO_PREDICATE.get(
+                str(role.get("role_kind") or "").strip()
+            )
+            entity = (
+                role.get("entity") if isinstance(role.get("entity"), Mapping) else {}
+            )
+            object_text = str(
+                entity.get("canonical_label") or entity.get("canonical_key") or ""
+            ).strip()
             if not predicate_key or not object_text:
                 continue
             statement_observations.append(
@@ -175,7 +197,9 @@ def build_fact_intake_payload_from_transcript_report(
                     observation_order=len(statement_observations) + 1,
                     role_index=role_index,
                     predicate_key=predicate_key,
-                    predicate_family="actor_identification" if predicate_key in {"actor", "co_actor"} else "object_target",
+                    predicate_family="actor_identification"
+                    if predicate_key in {"actor", "co_actor"}
+                    else "object_target",
                     object_text=object_text,
                     object_type=str(entity.get("entity_kind") or "semantic_entity"),
                     object_ref=_normalize_opt_text(entity.get("canonical_key")),
@@ -191,27 +215,49 @@ def build_fact_intake_payload_from_transcript_report(
                 )
             )
 
-        for relation_index, relation in enumerate(event.get("relation_candidates", []), start=1):
+        for relation_index, relation in enumerate(
+            event.get("relation_candidates", []), start=1
+        ):
             if not isinstance(relation, Mapping):
                 continue
             predicate_key = str(relation.get("predicate_key") or "").strip()
             mapped = _RELATION_TO_OBSERVATIONS.get(predicate_key, ())
             if not mapped:
                 continue
-            subject = relation.get("subject") if isinstance(relation.get("subject"), Mapping) else {}
-            obj = relation.get("object") if isinstance(relation.get("object"), Mapping) else {}
+            subject = (
+                relation.get("subject")
+                if isinstance(relation.get("subject"), Mapping)
+                else {}
+            )
+            obj = (
+                relation.get("object")
+                if isinstance(relation.get("object"), Mapping)
+                else {}
+            )
             relation_status = observation_status_from_relation(relation)
             for mapped_index, observation_predicate in enumerate(mapped, start=1):
                 if observation_predicate == "communicated":
-                    object_text = _RELATION_EVENT_TYPE.get(predicate_key, str(relation.get("display_label") or predicate_key))
+                    object_text = _RELATION_EVENT_TYPE.get(
+                        predicate_key,
+                        str(relation.get("display_label") or predicate_key),
+                    )
                 elif observation_predicate == "acted_on":
-                    object_text = str(obj.get("canonical_label") or obj.get("canonical_key") or "").strip()
+                    object_text = str(
+                        obj.get("canonical_label") or obj.get("canonical_key") or ""
+                    ).strip()
                 elif observation_predicate == "actor_attribute":
-                    object_text = str(obj.get("canonical_label") or predicate_key).strip()
+                    object_text = str(
+                        obj.get("canonical_label") or predicate_key
+                    ).strip()
                 elif observation_predicate == "co_actor":
-                    object_text = str(obj.get("canonical_label") or obj.get("canonical_key") or "").strip()
+                    object_text = str(
+                        obj.get("canonical_label") or obj.get("canonical_key") or ""
+                    ).strip()
                 else:
-                    object_text = str(obj.get("canonical_label") or str(relation.get("display_label") or predicate_key)).strip()
+                    object_text = str(
+                        obj.get("canonical_label")
+                        or str(relation.get("display_label") or predicate_key)
+                    ).strip()
                 if not object_text:
                     continue
                 statement_observations.append(
@@ -234,7 +280,9 @@ def build_fact_intake_payload_from_transcript_report(
                         object_text=object_text,
                         object_type=str(obj.get("entity_kind") or "semantic_entity"),
                         object_ref=_normalize_opt_text(obj.get("canonical_key")),
-                        subject_text=_normalize_opt_text(subject.get("canonical_label")),
+                        subject_text=_normalize_opt_text(
+                            subject.get("canonical_label")
+                        ),
                         observation_status=relation_status,
                         semantic_run_id=semantic_run_id,
                         relation_candidate_id=relation.get("candidate_id"),
@@ -243,14 +291,26 @@ def build_fact_intake_payload_from_transcript_report(
                         extra_identity_fields={"mapped_index": mapped_index},
                         extra_provenance={
                             "semantic_basis": str(relation.get("semantic_basis") or ""),
-                            "canonical_promotion_status": str(relation.get("canonical_promotion_status") or ""),
-                            "canonical_promotion_basis": str(relation.get("canonical_promotion_basis") or ""),
-                            "canonical_promotion_reason": str(relation.get("canonical_promotion_reason") or ""),
-                            "semantic_candidate": dict(relation.get("semantic_candidate", {}))
+                            "canonical_promotion_status": str(
+                                relation.get("canonical_promotion_status") or ""
+                            ),
+                            "canonical_promotion_basis": str(
+                                relation.get("canonical_promotion_basis") or ""
+                            ),
+                            "canonical_promotion_reason": str(
+                                relation.get("canonical_promotion_reason") or ""
+                            ),
+                            "semantic_candidate": dict(
+                                relation.get("semantic_candidate", {})
+                            )
                             if isinstance(relation.get("semantic_candidate"), Mapping)
                             else None,
                             **(
-                                {"signal_classes": list(relation.get("signal_classes", []))}
+                                {
+                                    "signal_classes": list(
+                                        relation.get("signal_classes", [])
+                                    )
+                                }
                                 if isinstance(relation.get("signal_classes"), list)
                                 else {}
                             ),
@@ -293,7 +353,11 @@ def build_transcript_fact_review_bundle(
     fact_report = build_fact_intake_report(conn, run_id=fact_run_id)
     review_summary = build_fact_review_run_summary(conn, run_id=fact_run_id)
     operator_views = build_fact_review_operator_views(conn, run_id=fact_run_id)
-    events = list(fact_report.get("events", [])) if isinstance(fact_report.get("events"), list) else []
+    events = (
+        list(fact_report.get("events", []))
+        if isinstance(fact_report.get("events"), list)
+        else []
+    )
     semantic_order = {
         str(row.get("event_id") or ""): index
         for index, row in enumerate(semantic_report.get("per_event", []), start=1)

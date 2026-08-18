@@ -57,7 +57,9 @@ def compute_output_structure_signal(segment_graph: SegmentGraph) -> dict[str, ob
     edge_counts = Counter(edge.edge_kind for edge in edges)
     segment_node_count = sum(1 for node in nodes if node.role != "root")
     structural_node_count = sum(
-        count for role, count in role_counts.items() if role not in {"root", "body", "unknown"}
+        count
+        for role, count in role_counts.items()
+        if role not in {"root", "body", "unknown"}
     )
     return {
         "node_count": len(nodes),

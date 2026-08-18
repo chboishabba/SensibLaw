@@ -27,13 +27,14 @@ def test_parser_lookahead_reserves_matching_parser_lane() -> None:
     assert allocation.parser_lookahead_workers == 2
     assert allocation.foreground_worker_budget == 2
     assert (
-        allocation.foreground_worker_budget
-        + allocation.parser_lookahead_workers
+        allocation.foreground_worker_budget + allocation.parser_lookahead_workers
         == allocation.global_worker_budget
     )
 
 
-def test_parser_lookahead_disables_when_identity_preserving_split_is_impossible() -> None:
+def test_parser_lookahead_disables_when_identity_preserving_split_is_impossible() -> (
+    None
+):
     allocation = allocate_parser_lookahead(
         global_worker_budget=3,
         parser_workers=2,

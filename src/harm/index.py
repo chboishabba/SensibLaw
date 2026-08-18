@@ -24,7 +24,9 @@ def _classify(score: float, medium: float, high: float) -> str:
     return "High"
 
 
-def compute_harm(story: Dict[str, Any], weights: Dict[str, Any] | None = None) -> Dict[str, Any]:
+def compute_harm(
+    story: Dict[str, Any], weights: Dict[str, Any] | None = None
+) -> Dict[str, Any]:
     """Compute a harm score and classification for a story.
 
     Parameters
@@ -55,5 +57,7 @@ def compute_harm(story: Dict[str, Any], weights: Dict[str, Any] | None = None) -
 
     score = max(0.0, min(score, 1.0))
 
-    level = _classify(score, w.get("medium_threshold", 0.33), w.get("high_threshold", 0.66))
+    level = _classify(
+        score, w.get("medium_threshold", 0.33), w.get("high_threshold", 0.66)
+    )
     return {"score": score, "level": level}

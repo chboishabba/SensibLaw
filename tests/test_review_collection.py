@@ -2,13 +2,11 @@ import json
 from pathlib import Path
 
 import pytest
-import yaml
 
 from src.redflags.forbidden_language import assert_no_forbidden_language
 from src.review_collection import (
     COLLECTION_VERSION,
     compare_bundles,
-    load_collection,
     manifest,
     validate_collection_schema,
 )
@@ -34,7 +32,8 @@ def test_manifest_order_invariant(tmp_path: Path):
     # Reordering bundles must not change manifest content
     base = json.loads(Path("examples/review_collection_minimal.json").read_text())
     abs_bundles = [
-        {**b, "path": str((Path("examples") / b["path"]).resolve())} for b in base["bundles"]
+        {**b, "path": str((Path("examples") / b["path"]).resolve())}
+        for b in base["bundles"]
     ]
     swapped = {"version": base["version"], "bundles": list(reversed(abs_bundles))}
     base_abs = {"version": base["version"], "bundles": abs_bundles}
@@ -55,7 +54,8 @@ def test_manifest_hash_ignores_notes(tmp_path: Path):
     """Changing non-payload metadata (note) must not change bundle hashes."""
     base = json.loads(Path("examples/review_collection_minimal.json").read_text())
     abs_bundles = [
-        {**b, "path": str((Path("examples") / b["path"]).resolve())} for b in base["bundles"]
+        {**b, "path": str((Path("examples") / b["path"]).resolve())}
+        for b in base["bundles"]
     ]
     with_note = {"version": base["version"], "bundles": abs_bundles}
     without_note = {

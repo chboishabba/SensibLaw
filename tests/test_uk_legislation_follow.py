@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from src.policy.gwb_legal_follow_graph import build_gwb_legal_follow_graph, build_gwb_legal_follow_operator_view
+from src.policy.gwb_legal_follow_graph import (
+    build_gwb_legal_follow_graph,
+    build_gwb_legal_follow_operator_view,
+)
 from src.sources.uk_legislation import (
     load_uk_legislation_api_sample,
     load_uk_legislation_follow_candidates,
@@ -118,7 +121,9 @@ def test_normalize_receipts_include_labels() -> None:
 def test_uk_legislation_receipt_normalization_fallback(monkeypatch) -> None:
     import src.sources.uk_legislation as uk_legislation_src
 
-    monkeypatch.setattr(uk_legislation_src, "fetch_legislation_act_payload", lambda **kwargs: {})
+    monkeypatch.setattr(
+        uk_legislation_src, "fetch_legislation_act_payload", lambda **kwargs: {}
+    )
     receipts = normalize_legislation_receipts()
     sample = load_uk_legislation_api_sample()
     assert receipts[0]["value"] == sample["sections"][0]["url"]

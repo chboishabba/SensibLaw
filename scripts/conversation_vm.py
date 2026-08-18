@@ -13,29 +13,76 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.sensiblaw.conversation_vm import build_context_payload, build_proof_surface, compile_turn, empty_state, step_state
+from src.sensiblaw.conversation_vm import (
+    build_context_payload,
+    build_proof_surface,
+    compile_turn,
+    empty_state,
+    step_state,
+)
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    compile_parser = subparsers.add_parser("compile-turn", help="Compile one JSON/text turn into Delta_t")
-    compile_parser.add_argument("--input", "-i", type=Path, help="Input JSON file. Reads stdin when omitted.")
-    compile_parser.add_argument("--output", "-o", type=Path, help="Output delta JSON file. Writes stdout when omitted.")
-    compile_parser.add_argument("--text", action="store_true", help="Treat input as plain text instead of JSON.")
+    compile_parser = subparsers.add_parser(
+        "compile-turn", help="Compile one JSON/text turn into Delta_t"
+    )
+    compile_parser.add_argument(
+        "--input", "-i", type=Path, help="Input JSON file. Reads stdin when omitted."
+    )
+    compile_parser.add_argument(
+        "--output",
+        "-o",
+        type=Path,
+        help="Output delta JSON file. Writes stdout when omitted.",
+    )
+    compile_parser.add_argument(
+        "--text", action="store_true", help="Treat input as plain text instead of JSON."
+    )
 
-    step_parser = subparsers.add_parser("step", help="Apply a delta to a VM state artifact")
-    step_parser.add_argument("--state", type=Path, help="Existing state JSON. Uses empty state when omitted or missing.")
-    step_parser.add_argument("--delta", type=Path, required=True, help="Delta JSON from compile-turn.")
-    step_parser.add_argument("--output", "-o", type=Path, help="Output state JSON file. Writes stdout when omitted.")
+    step_parser = subparsers.add_parser(
+        "step", help="Apply a delta to a VM state artifact"
+    )
+    step_parser.add_argument(
+        "--state",
+        type=Path,
+        help="Existing state JSON. Uses empty state when omitted or missing.",
+    )
+    step_parser.add_argument(
+        "--delta", type=Path, required=True, help="Delta JSON from compile-turn."
+    )
+    step_parser.add_argument(
+        "--output",
+        "-o",
+        type=Path,
+        help="Output state JSON file. Writes stdout when omitted.",
+    )
 
-    query_parser = subparsers.add_parser("query-surface", help="Emit proof surface or compact context payload")
-    query_parser.add_argument("--state", type=Path, required=True, help="State JSON file.")
-    query_parser.add_argument("--query", "-q", help="Optional predicate/argument substring filter.")
-    query_parser.add_argument("--context", action="store_true", help="Emit compact context payload instead of proof surface.")
-    query_parser.add_argument("--limit", type=int, default=12, help="Context item limit.")
-    query_parser.add_argument("--output", "-o", type=Path, help="Output JSON file. Writes stdout when omitted.")
+    query_parser = subparsers.add_parser(
+        "query-surface", help="Emit proof surface or compact context payload"
+    )
+    query_parser.add_argument(
+        "--state", type=Path, required=True, help="State JSON file."
+    )
+    query_parser.add_argument(
+        "--query", "-q", help="Optional predicate/argument substring filter."
+    )
+    query_parser.add_argument(
+        "--context",
+        action="store_true",
+        help="Emit compact context payload instead of proof surface.",
+    )
+    query_parser.add_argument(
+        "--limit", type=int, default=12, help="Context item limit."
+    )
+    query_parser.add_argument(
+        "--output",
+        "-o",
+        type=Path,
+        help="Output JSON file. Writes stdout when omitted.",
+    )
 
     args = parser.parse_args(argv)
     if args.command == "compile-turn":

@@ -13,10 +13,11 @@ The repository is under a documentation freeze while overlapping runtime
 surfaces are consolidated. The normative authority map is
 [`docs/authority_surfaces.md`](docs/authority_surfaces.md).
 
-Local PostgreSQL endpoint and cluster selection are documented in
-[`docs/postgres_runtime.md`](docs/postgres_runtime.md). Do not assume that a
-running local PostgreSQL process or default port is the current semantic
-compiler target.
+The sole supported local runtime target is the reserved TrueNAS PostgreSQL
+database described in [`docs/postgres_runtime.md`](docs/postgres_runtime.md).
+Copy `.env.example` to the ignored `.env`, add the approved password only
+there, and source it before runtime commands. Do not assume that a running
+local PostgreSQL process or default port is a semantic compiler target.
 
 The single source-tree CLI gateway is:
 
@@ -40,6 +41,12 @@ a bounded frontier. It reports admission, activation, queueing, and execution
 through the existing document progress ledger, while the canonical operational
 compiler remains the semantic authority. Persistent hierarchy reductions remain
 an execution follow-up rather than a second compiler path.
+
+For a production complete-tranche run, use
+`scripts/run_complete_tranche_production.py`; it always selects strict numeric
+PostgreSQL execution. The historical `scripts/run_complete_tranche.py` remains
+a compatibility/parity surface. The phase-timing harness also defaults to the
+strict path, with compatibility replay requiring an explicit opt-in.
 
 ## Public Interface Boundary
 

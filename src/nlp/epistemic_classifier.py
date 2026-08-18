@@ -33,7 +33,16 @@ class EpistemicClassifier:
 
     _MODAL_AUX = {"must", "should", "shall", "may", "might", "can", "could", "ought"}
     _DEONTIC_LEMMAS = {"require", "permit", "prohibit", "oblige", "mandate"}
-    _PROCEDURAL_LEMMAS = {"file", "submit", "apply", "serve", "issue", "enter", "record", "register"}
+    _PROCEDURAL_LEMMAS = {
+        "file",
+        "submit",
+        "apply",
+        "serve",
+        "issue",
+        "enter",
+        "record",
+        "register",
+    }
     _NORMATIVE_CUE_LEMMAS = {
         "must",
         "should",
@@ -60,7 +69,9 @@ class EpistemicClassifier:
         doc = self.nlp(str(sentence or ""))
         return self.classify_from_doc(doc, verb_token_index)
 
-    def classify_from_doc(self, doc: object, verb_token_index: int) -> ClassificationResult:
+    def classify_from_doc(
+        self, doc: object, verb_token_index: int
+    ) -> ClassificationResult:
         try:
             idx = int(verb_token_index)
         except Exception:
@@ -69,7 +80,10 @@ class EpistemicClassifier:
             return ClassificationResult(
                 predicate_type=PredicateType.UNKNOWN,
                 confidence=0.0,
-                features={"reason": "invalid_token_index", "verb_token_index": verb_token_index},
+                features={
+                    "reason": "invalid_token_index",
+                    "verb_token_index": verb_token_index,
+                },
             )
         tok = doc[idx]
         return self._classify_token(doc, tok)
@@ -89,7 +103,10 @@ class EpistemicClassifier:
         features["token_lemma"] = lemma
         features["token_pos"] = pos
 
-        has_clause = any(str(getattr(ch, "dep_", "") or "") in {"ccomp", "xcomp"} for ch in getattr(tok, "children", []))
+        has_clause = any(
+            str(getattr(ch, "dep_", "") or "") in {"ccomp", "xcomp"}
+            for ch in getattr(tok, "children", [])
+        )
         features["has_clausal_complement"] = bool(has_clause)
         if has_clause:
             score[PredicateType.EPISTEMIC] += 3.0
@@ -140,7 +157,9 @@ class EpistemicClassifier:
         best = max(order, key=lambda t: (score[t], -order.index(t)))
         total = sum(positive.values())
         confidence = float(score[best] / total) if total > 0 else 0.0
-        return ClassificationResult(predicate_type=best, confidence=confidence, features=features)
+        return ClassificationResult(
+            predicate_type=best, confidence=confidence, features=features
+        )
 
     def _wordnet_lexname(self, tok: object) -> Optional[str]:
         # Optional signal: only if spacy-wordnet extension is installed and available.
@@ -166,7 +185,11 @@ class EpistemicClassifier:
             dep = str(getattr(ch, "dep_", "") or "")
             if dep not in {"aux", "auxpass"}:
                 continue
-            lemma = str(getattr(ch, "lemma_", "") or getattr(ch, "text", "") or "").strip().lower()
+            lemma = (
+                str(getattr(ch, "lemma_", "") or getattr(ch, "text", "") or "")
+                .strip()
+                .lower()
+            )
             if lemma in self._MODAL_AUX:
                 return True
         return False
@@ -184,7 +207,11 @@ class EpistemicClassifier:
     def _has_normative_text_cue(self, doc: object) -> bool:
         prev_lemma = ""
         for tok in doc:
-            lemma = str(getattr(tok, "lemma_", "") or getattr(tok, "text", "") or "").strip().lower()
+            lemma = (
+                str(getattr(tok, "lemma_", "") or getattr(tok, "text", "") or "")
+                .strip()
+                .lower()
+            )
             if not lemma:
                 continue
             if lemma in self._NORMATIVE_CUE_LEMMAS:

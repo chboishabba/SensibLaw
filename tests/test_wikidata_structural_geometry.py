@@ -67,7 +67,9 @@ def test_build_checked_hotspot_rows_and_cues() -> None:
         "cluster_count": 4,
         "promotion_status": "held",
         "hold_reason": "awaiting_manifest_promotion",
-        "source_artifacts": ["docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json"],
+        "source_artifacts": [
+            "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json"
+        ],
         "sample_questions": ["Why is GNU grouped with GNU Project?"],
     }
     rows = build_checked_hotspot_rows(
@@ -92,7 +94,9 @@ def test_build_dense_hotspot_rows_and_cues() -> None:
         "status": "held",
         "focus_qids": ["Q1", "Q2"],
         "candidate_cluster_families": ["software_entity_kind_collapse"],
-        "source_artifacts": ["docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json"],
+        "source_artifacts": [
+            "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json"
+        ],
     }
     rows = build_dense_hotspot_rows(
         pack=pack,

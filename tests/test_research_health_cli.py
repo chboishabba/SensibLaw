@@ -52,7 +52,12 @@ def test_research_health_cli_matches_golden(tmp_path: Path) -> None:
     db = _build_store(tmp_path)
     actual = _run_cli(db)
 
-    golden_path = Path(__file__).resolve().parent / "fixtures" / "research_health" / "report_small.json"
+    golden_path = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "research_health"
+        / "report_small.json"
+    )
     golden = json.loads(golden_path.read_text(encoding="utf-8"))
 
     # Drop size-sensitive fields to avoid environment-specific noise before comparing.

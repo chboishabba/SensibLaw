@@ -68,7 +68,9 @@ _MESSAGE_STARTERS = (
 
 
 def _connect_ro(db_path: Path) -> sqlite3.Connection:
-    conn = sqlite3.connect(f"file:{db_path.expanduser().resolve()}?mode=ro&immutable=1", uri=True)
+    conn = sqlite3.connect(
+        f"file:{db_path.expanduser().resolve()}?mode=ro&immutable=1", uri=True
+    )
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -169,7 +171,9 @@ def _classify_row(row: sqlite3.Row | dict[str, object]) -> str | None:
     lowered = message.casefold()
     if any(fragment in lowered for fragment in SYSTEM_MESSAGE_FRAGMENTS):
         return "system_fragment"
-    if lowered.startswith(("you sent ", "you replied to ", "you unsent ", "you missed ", "you can now ")):
+    if lowered.startswith(
+        ("you sent ", "you replied to ", "you unsent ", "you missed ", "you can now ")
+    ):
         return "system_prefix"
     if "marketplace" in lowered and "http" not in lowered and "https" not in lowered:
         return "marketplace_noise"
@@ -199,15 +203,21 @@ def _split_sender_message_contamination(sender: str, message: str) -> tuple[str,
     return sender, message
 
 
-def _persist_structural_atoms(dest_conn: sqlite3.Connection, run_id: str, row_order: int, text: str) -> None:
+def _persist_structural_atoms(
+    dest_conn: sqlite3.Connection, run_id: str, row_order: int, text: str
+) -> None:
     sensiblaw_root = Path(__file__).resolve().parents[1]
     if str(sensiblaw_root) not in sys.path:
         sys.path.insert(0, str(sensiblaw_root))
-    from src.sensiblaw.interfaces.shared_reducer import collect_canonical_structure_occurrences  # noqa: PLC0415
+    from src.sensiblaw.interfaces.shared_reducer import (
+        collect_canonical_structure_occurrences,
+    )  # noqa: PLC0415
 
     occurrences = [
         occ
-        for occ in collect_canonical_structure_occurrences(text, canonical_mode="deterministic_legal")
+        for occ in collect_canonical_structure_occurrences(
+            text, canonical_mode="deterministic_legal"
+        )
         if occ.kind.endswith("_ref")
     ]
     if not occurrences:
@@ -225,7 +235,10 @@ def _persist_structural_atoms(dest_conn: sqlite3.Connection, run_id: str, row_or
         f"SELECT atom_id, norm_text, norm_kind FROM messenger_test_structural_atoms WHERE (norm_text, norm_kind) IN ({placeholders})",
         flat,
     ).fetchall()
-    atom_ids = {(str(row["norm_text"]), str(row["norm_kind"])): int(row["atom_id"]) for row in rows}
+    atom_ids = {
+        (str(row["norm_text"]), str(row["norm_kind"])): int(row["atom_id"])
+        for row in rows
+    }
     dest_conn.executemany(
         """
         INSERT INTO messenger_test_structural_atom_occurrences(
@@ -248,14 +261,21 @@ def _persist_structural_atoms(dest_conn: sqlite3.Connection, run_id: str, row_or
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Ingest a bounded Messenger/Facebook message sample into an isolated ITIR test DB.")
+    parser = argparse.ArgumentParser(
+        description="Ingest a bounded Messenger/Facebook message sample into an isolated ITIR test DB."
+    )
     parser.add_argument(
         "--source-db",
         default="/mnt/truenas/gem-net/Ubuntu 2025-11 (WORK TO DELETE ME OVER TIME PLS)/Documents/facebook_messages.db",
     )
-    parser.add_argument("--output-db", default=".cache_local/itir_messenger_test.sqlite")
+    parser.add_argument(
+        "--output-db", default=".cache_local/itir_messenger_test.sqlite"
+    )
     parser.add_argument("--limit", type=int, default=200)
-    parser.add_argument("--note", default="bounded messenger sample for transcript/message structure tests")
+    parser.add_argument(
+        "--note",
+        default="bounded messenger sample for transcript/message structure tests",
+    )
     parser.add_argument("--source-namespace", default="messenger_test")
     parser.add_argument("--source-class", default="facebook_messages_archive_sample")
     parser.add_argument("--retention-policy", default="isolated_ephemeral_v1")
@@ -266,10 +286,20 @@ def main() -> None:
     output_db = Path(args.output_db).expanduser().resolve()
     output_db.parent.mkdir(parents=True, exist_ok=True)
 
-    created_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-    run_id = "messenger-test:" + _sha256_text(f"{source_db}:{created_at}:{args.limit}")[:16]
+    created_at = (
+        datetime.now(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+    run_id = (
+        "messenger-test:" + _sha256_text(f"{source_db}:{created_at}:{args.limit}")[:16]
+    )
 
-    with _connect_ro(source_db) as source_conn, sqlite3.connect(str(output_db)) as dest_conn:
+    with (
+        _connect_ro(source_db) as source_conn,
+        sqlite3.connect(str(output_db)) as dest_conn,
+    ):
         dest_conn.row_factory = sqlite3.Row
         _ensure_schema(dest_conn)
         rows = source_conn.execute(
@@ -312,13 +342,23 @@ def main() -> None:
                 str(args.note),
             ),
         )
-        dest_conn.execute("DELETE FROM messenger_test_messages WHERE run_id = ?", (run_id,))
-        dest_conn.execute("DELETE FROM messenger_test_structural_atom_occurrences WHERE run_id = ?", (run_id,))
-        dest_conn.execute("DELETE FROM messenger_test_filter_stats WHERE run_id = ?", (run_id,))
+        dest_conn.execute(
+            "DELETE FROM messenger_test_messages WHERE run_id = ?", (run_id,)
+        )
+        dest_conn.execute(
+            "DELETE FROM messenger_test_structural_atom_occurrences WHERE run_id = ?",
+            (run_id,),
+        )
+        dest_conn.execute(
+            "DELETE FROM messenger_test_filter_stats WHERE run_id = ?", (run_id,)
+        )
         if filter_counts:
             dest_conn.executemany(
                 "INSERT INTO messenger_test_filter_stats(run_id, reason, count) VALUES (?,?,?)",
-                [(run_id, reason, count) for reason, count in sorted(filter_counts.items())],
+                [
+                    (run_id, reason, count)
+                    for reason, count in sorted(filter_counts.items())
+                ],
             )
         payload_rows = []
         for index, row in enumerate(kept, start=1):

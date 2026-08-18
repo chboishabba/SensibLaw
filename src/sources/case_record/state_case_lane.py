@@ -20,7 +20,10 @@ STATE_CASES: dict[str, dict[str, Any]] = {
         "date": "2008-03-04",
         "summary": "Clarified the threshold for federal preemption when state agencies rely on federal grants.",
         "state_authority": "California Constitution art. I, § 1",
-        "domestic_overlay": ["calif:preemption_supremacy", "us-federal:grant-condition"],
+        "domestic_overlay": [
+            "calif:preemption_supremacy",
+            "us-federal:grant-condition",
+        ],
         "crossrefs": ["art. I § 1", "42 U.S.C. § 1983"],
         "lineage_links": ["instrument:calconst:art1", "instrument:federal:1983"],
         "translation_notes": ["English text only; official version preserved."],
@@ -37,7 +40,9 @@ STATE_CASES: dict[str, dict[str, Any]] = {
         "domestic_overlay": ["ny:executive_state_power"],
         "crossrefs": ["Executive Law § 8", "US Const. art. II"],
         "lineage_links": ["instrument:exec-law-§8"],
-        "translation_notes": ["State-produced PDF is English text with embedded metadata."],
+        "translation_notes": [
+            "State-produced PDF is English text with embedded metadata."
+        ],
         "source_family": "courtlistener_state_cases",
     },
 }

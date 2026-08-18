@@ -25,7 +25,7 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 
 WIKIS: dict[str, str] = {
@@ -68,7 +68,9 @@ def _parse_retry_after(headers: Any) -> float | None:
         return None
 
 
-def _get_json(url: str, *, timeout_s: int, pacer: Optional[_RequestPacer] = None) -> dict:
+def _get_json(
+    url: str, *, timeout_s: int, pacer: Optional[_RequestPacer] = None
+) -> dict:
     req = urllib.request.Request(
         url,
         headers={
@@ -89,7 +91,9 @@ def _get_json(url: str, *, timeout_s: int, pacer: Optional[_RequestPacer] = None
             if exc.code not in {429, 500, 502, 503, 504} or attempt == max_attempts - 1:
                 raise
             retry_after_s = _parse_retry_after(exc.headers)
-            backoff_s = retry_after_s if retry_after_s is not None else min(60.0, 2.0 ** attempt)
+            backoff_s = (
+                retry_after_s if retry_after_s is not None else min(60.0, 2.0**attempt)
+            )
             time.sleep(backoff_s)
     raise RuntimeError("unreachable")
 
@@ -134,7 +138,10 @@ class PageSnapshot:
 def _history_bounds(window_days: int) -> tuple[str | None, str]:
     now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
     older = now - dt.timedelta(days=max(0, int(window_days)))
-    return (older.strftime("%Y-%m-%dT%H:%M:%SZ") if window_days > 0 else None, now.strftime("%Y-%m-%dT%H:%M:%SZ"))
+    return (
+        older.strftime("%Y-%m-%dT%H:%M:%SZ") if window_days > 0 else None,
+        now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    )
 
 
 def _page_url(wiki: str, title: str) -> str:
@@ -313,7 +320,9 @@ def _fetch_revision_wikitext(
     actual_title = str(page.get("title") or title)
     pageid = page.get("pageid")
     revs = page.get("revisions") or []
-    rev = revs[0] if isinstance(revs, list) and revs and isinstance(revs[0], dict) else {}
+    rev = (
+        revs[0] if isinstance(revs, list) and revs and isinstance(revs[0], dict) else {}
+    )
     found_revid = rev.get("revid") if isinstance(rev.get("revid"), int) else None
     rev_ts = rev.get("timestamp") if isinstance(rev.get("timestamp"), str) else None
     wikitext = None
@@ -564,11 +573,15 @@ def _write_snapshot(out_dir: Path, snap: PageSnapshot) -> Path:
     revid = snap.revid if snap.revid is not None else "none"
     key = _sha256_text(f"{snap.wiki}|{snap.title}|{revid}")[:12]
     path = out_dir / f"{snap.wiki}__{title_slug}__revid_{revid}__{key}.json"
-    path.write_text(json.dumps(snap.to_json(), indent=2, sort_keys=True), encoding="utf-8")
+    path.write_text(
+        json.dumps(snap.to_json(), indent=2, sort_keys=True), encoding="utf-8"
+    )
     return path
 
 
-def _write_history_manifest(out_dir: Path, wiki: str, title: str, payload: dict[str, Any]) -> Path:
+def _write_history_manifest(
+    out_dir: Path, wiki: str, title: str, payload: dict[str, Any]
+) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     title_slug = title.replace(" ", "_").replace("/", "_")
     key = _sha256_text(f"{wiki}|{title}|history")[:12]
@@ -586,7 +599,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         choices=("auto", "api", "pywikibot"),
         help="Fetch driver: auto prefers pywikibot if importable, else MediaWiki API.",
     )
-    p.add_argument("--title", action="append", default=[], help="Page title (repeatable)")
+    p.add_argument(
+        "--title", action="append", default=[], help="Page title (repeatable)"
+    )
     p.add_argument("--titles-file", type=Path, help="File with one page title per line")
     p.add_argument(
         "--out-dir",
@@ -596,10 +611,26 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     p.add_argument("--max-links", type=int, default=50)
     p.add_argument("--max-categories", type=int, default=50)
-    p.add_argument("--revid", type=int, help="Fetch a specific revision id instead of the latest revision")
-    p.add_argument("--history-max-revisions", type=int, default=0, help="Write a bounded revision-history manifest")
-    p.add_argument("--history-window-days", type=int, default=0, help="Bound revision history to the most recent N days")
-    p.add_argument("--no-wikitext", action="store_true", help="Skip wikitext body in snapshot JSON")
+    p.add_argument(
+        "--revid",
+        type=int,
+        help="Fetch a specific revision id instead of the latest revision",
+    )
+    p.add_argument(
+        "--history-max-revisions",
+        type=int,
+        default=0,
+        help="Write a bounded revision-history manifest",
+    )
+    p.add_argument(
+        "--history-window-days",
+        type=int,
+        default=0,
+        help="Bound revision history to the most recent N days",
+    )
+    p.add_argument(
+        "--no-wikitext", action="store_true", help="Skip wikitext body in snapshot JSON"
+    )
     p.add_argument("--timeout-s", type=int, default=30)
     p.add_argument(
         "--wiki-rps",
@@ -607,7 +638,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         default=1.0,
         help="Max requests per second for wiki API/category calls (default: %(default)s)",
     )
-    p.add_argument("--category-traverse", action="store_true", help="Fetch 1-hop category member lists (capped)")
+    p.add_argument(
+        "--category-traverse",
+        action="store_true",
+        help="Fetch 1-hop category member lists (capped)",
+    )
     p.add_argument("--category-max-members", type=int, default=200)
     p.add_argument(
         "--category-exclude-prefix",
@@ -632,7 +667,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     titles: List[str] = [t for t in (args.title or []) if t and t.strip()]
     if args.titles_file:
         raw = args.titles_file.read_text(encoding="utf-8").splitlines()
-        titles.extend([line.strip() for line in raw if line.strip() and not line.strip().startswith("#")])
+        titles.extend(
+            [
+                line.strip()
+                for line in raw
+                if line.strip() and not line.strip().startswith("#")
+            ]
+        )
     if not titles:
         raise SystemExit("no titles provided (use --title or --titles-file)")
 
@@ -654,7 +695,9 @@ def main(argv: Optional[List[str]] = None) -> int:
             except Exception:
                 use_pywikibot = False
                 if args.driver == "pywikibot":
-                    raise SystemExit("pywikibot requested but not importable in this environment")
+                    raise SystemExit(
+                        "pywikibot requested but not importable in this environment"
+                    )
 
         driver_used = "pywikibot" if use_pywikibot else "api"
         if driver_used not in drivers_used:
@@ -712,7 +755,12 @@ def main(argv: Optional[List[str]] = None) -> int:
                 timeout_s=int(args.timeout_s),
                 pacer=pacer,
             )
-            history_path = _write_history_manifest(Path(args.out_dir), args.wiki, str(history_payload.get("title") or title), history_payload)
+            history_path = _write_history_manifest(
+                Path(args.out_dir),
+                args.wiki,
+                str(history_payload.get("title") or title),
+                history_payload,
+            )
             history_paths.append(str(history_path))
             print(
                 f"[wiki] history wrote path={history_path} rows={len(history_payload.get('rows') or [])}",
@@ -729,7 +777,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                 flush=True,
             )
             cat_map: Dict[str, List[str]] = {}
-            excludes: Tuple[str, ...] = tuple(str(x) for x in (args.category_exclude_prefix or []) if x)
+            excludes: Tuple[str, ...] = tuple(
+                str(x) for x in (args.category_exclude_prefix or []) if x
+            )
             for cat in snap.categories[: int(args.max_categories)]:
                 if excludes and any(cat.startswith(prefix) for prefix in excludes):
                     continue
@@ -748,8 +798,13 @@ def main(argv: Optional[List[str]] = None) -> int:
                 "category_max_members": int(args.category_max_members),
                 "categories": cat_map,
             }
-            traverse_path = Path(args.out_dir) / f"{snap.wiki}__{snap.title.replace(' ', '_')}__categories.json"
-            traverse_path.write_text(json.dumps(traverse_payload, indent=2, sort_keys=True), encoding="utf-8")
+            traverse_path = (
+                Path(args.out_dir)
+                / f"{snap.wiki}__{snap.title.replace(' ', '_')}__categories.json"
+            )
+            traverse_path.write_text(
+                json.dumps(traverse_payload, indent=2, sort_keys=True), encoding="utf-8"
+            )
             traverse_paths.append(str(traverse_path))
             print(
                 f"[wiki] category traverse wrote path={traverse_path} categories_written={len(cat_map)}",

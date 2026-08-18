@@ -28,7 +28,9 @@ from src.policy.world_model_projections import (
 )
 
 
-BREXIT_NATIONAL_ARCHIVES_WORLD_MODEL_SCHEMA_VERSION = "sl.brexit_national_archives_world_model.v0_1"
+BREXIT_NATIONAL_ARCHIVES_WORLD_MODEL_SCHEMA_VERSION = (
+    "sl.brexit_national_archives_world_model.v0_1"
+)
 
 
 @dataclass(frozen=True)
@@ -58,45 +60,51 @@ class BrexitNationalArchivesLane:
         "Non-recursive lane that follows bounded UK National Archives holdings focused on "
         "Brexit-era intent, cabinet minutes, and policy statements."
     )
-    search_constraints: Sequence[SearchConstraint] = field(default_factory=lambda: [
-        SearchConstraint(
-            description="Match explicit cabinet, prime ministerial, or UK/EU transition policy documents referencing Brexit intent.",
-            max_hits=4,
-            depth=1,
-            focus="BREXIT-INTENT",
-            invariants=[
-                "search anchored to named National Archives catalog references",
-                "no cross-domain follow beyond first hop",
-            ],
-        )
-    ])
-    targets: Sequence[BrexitArchiveTarget] = field(default_factory=lambda: [
-        BrexitArchiveTarget(
-            doc_id="NA.BREXIT.POLICY.001",
-            title="UK Cabinet Office Brexit Strategic Intent Memo 2019",
-            collection="UK National Archives CAB 108/1840",
-            url="https://discovery.nationalarchives.gov.uk/details/r/C12345678",
-            authority_role="Secretary of State / Cabinet agreement",
-            intent_tags=("transition-policy", "intent", "cabinet"),
-            anchor_date="2019-03-29",
-        ),
-        BrexitArchiveTarget(
-            doc_id="NA.BREXIT.POLICY.002",
-            title="EU Withdrawal Agreement Act Implementation Notes",
-            collection="UK National Archives DU 23/108",
-            url="https://discovery.nationalarchives.gov.uk/details/r/C87654321",
-            authority_role="Parliamentary guidance / legal draft",
-            intent_tags=("parliamentary", "legal", "Brexit Implementation"),
-            anchor_date="2020-01-31",
-        ),
-    ])
+    search_constraints: Sequence[SearchConstraint] = field(
+        default_factory=lambda: [
+            SearchConstraint(
+                description="Match explicit cabinet, prime ministerial, or UK/EU transition policy documents referencing Brexit intent.",
+                max_hits=4,
+                depth=1,
+                focus="BREXIT-INTENT",
+                invariants=[
+                    "search anchored to named National Archives catalog references",
+                    "no cross-domain follow beyond first hop",
+                ],
+            )
+        ]
+    )
+    targets: Sequence[BrexitArchiveTarget] = field(
+        default_factory=lambda: [
+            BrexitArchiveTarget(
+                doc_id="NA.BREXIT.POLICY.001",
+                title="UK Cabinet Office Brexit Strategic Intent Memo 2019",
+                collection="UK National Archives CAB 108/1840",
+                url="https://discovery.nationalarchives.gov.uk/details/r/C12345678",
+                authority_role="Secretary of State / Cabinet agreement",
+                intent_tags=("transition-policy", "intent", "cabinet"),
+                anchor_date="2019-03-29",
+            ),
+            BrexitArchiveTarget(
+                doc_id="NA.BREXIT.POLICY.002",
+                title="EU Withdrawal Agreement Act Implementation Notes",
+                collection="UK National Archives DU 23/108",
+                url="https://discovery.nationalarchives.gov.uk/details/r/C87654321",
+                authority_role="Parliamentary guidance / legal draft",
+                intent_tags=("parliamentary", "legal", "Brexit Implementation"),
+                anchor_date="2020-01-31",
+            ),
+        ]
+    )
 
     def manifest(self) -> Mapping[str, Any]:
         return {
             "lane_id": self.lane_id,
             "description": self.description,
             "policy_role": "derived-only, provenance-backed, review-first",
-            "search_constraints": [asdict(constraint) for constraint in self.search_constraints],
+            "search_constraints": [
+                asdict(constraint) for constraint in self.search_constraints
+            ],
             "targets": [asdict(target) for target in self.targets],
             "preconditions": [
                 "Candidate source rows already identify Brexit or UK withdrawal intent lines",
@@ -170,7 +178,9 @@ def load_records() -> Sequence[Mapping[str, Any]]:
     return records
 
 
-def _render_record_from_payload(target: BrexitArchiveTarget, payload: Mapping[str, Any]) -> Mapping[str, Any]:
+def _render_record_from_payload(
+    target: BrexitArchiveTarget, payload: Mapping[str, Any]
+) -> Mapping[str, Any]:
     record = FetchedArchiveRecord(
         doc_id=payload.get("doc_id") or target.doc_id,
         title=payload.get("title") or target.title,
@@ -198,7 +208,11 @@ def fetch_records(limit: int = 1) -> Sequence[Mapping[str, Any]]:
         live_fetch = False
         payload = fixture_payload
         try:
-            response = requests.get(target.url, timeout=5, headers={"User-Agent": "ITIR-brexit-archival/1.0"})
+            response = requests.get(
+                target.url,
+                timeout=5,
+                headers={"User-Agent": "ITIR-brexit-archival/1.0"},
+            )
             response.raise_for_status()
             text = response.text.strip()
             payload = {
@@ -262,9 +276,15 @@ def build_world_model(
             claim_id="doc_id",
             candidate_id="doc_id",
             cohort_id=lambda _record, context: context["lane_id"],
-            root_artifact_id=lambda record, _context: str(record.get("url") or record.get("doc_id") or "").strip(),
-            run_id=lambda record, _context: str(record.get("anchor_date") or "").strip(),
-            source_unit_id=lambda record, _context: f"brexit_archive:{str(record.get('doc_id') or '').strip()}",
+            root_artifact_id=lambda record, _context: str(
+                record.get("url") or record.get("doc_id") or ""
+            ).strip(),
+            run_id=lambda record, _context: str(
+                record.get("anchor_date") or ""
+            ).strip(),
+            source_unit_id=lambda record, _context: (
+                f"brexit_archive:{str(record.get('doc_id') or '').strip()}"
+            ),
             source_family=lambda _record, _context: "brexit_national_archives",
             authority_level=lambda _record, _context: "archive_record",
             claim_status=lambda _record, _context: "REVIEW_ONLY",
@@ -304,9 +324,14 @@ def build_world_model(
         "must_review_count": sum(
             1
             for claim in claims
-            if str(claim.get("action_policy", {}).get("actionability") or "") == "must_review"
+            if str(claim.get("action_policy", {}).get("actionability") or "")
+            == "must_review"
         ),
-        "live_fetch_count": sum(1 for claim in claims if claim["evidence_paths"][0]["provenance_chain"].get("live_fetch")),
+        "live_fetch_count": sum(
+            1
+            for claim in claims
+            if claim["evidence_paths"][0]["provenance_chain"].get("live_fetch")
+        ),
     }
     return _build_world_model(
         model_id=f"{lane_id}:{len(claims)}",
@@ -314,7 +339,9 @@ def build_world_model(
         model_status="candidate",
         source_mode="archive_record_sequence",
         claims=claims,
-        authority_surfaces=build_authority_surface_rows([f"archive_authority_surface:{lane_id}"]),
+        authority_surfaces=build_authority_surface_rows(
+            [f"archive_authority_surface:{lane_id}"]
+        ),
         summary=summary,
         metadata={
             "lane_id": lane_id,
@@ -339,21 +366,41 @@ def build_world_model(
 
 def project_report(world_model: Mapping[str, Any]) -> Mapping[str, Any]:
     model = dict(world_model)
-    metadata = model.get("metadata") if isinstance(model.get("metadata"), Mapping) else {}
+    metadata = (
+        model.get("metadata") if isinstance(model.get("metadata"), Mapping) else {}
+    )
     report = _project_report(
         world_model=model,
         schema_version=BREXIT_NATIONAL_ARCHIVES_WORLD_MODEL_SCHEMA_VERSION,
         artifact_id=str(model.get("model_id") or ""),
-        lane_id=str(metadata.get("lane_id") or "brexit_national_archives_policy_intent"),
-        family_id=str(model.get("lane_family") or metadata.get("lane_id") or "brexit_national_archives_policy_intent"),
-        claims=model.get("claims") if isinstance(model.get("claims"), Sequence) else None,
-        summary=model.get("summary") if isinstance(model.get("summary"), Mapping) else None,
+        lane_id=str(
+            metadata.get("lane_id") or "brexit_national_archives_policy_intent"
+        ),
+        family_id=str(
+            model.get("lane_family")
+            or metadata.get("lane_id")
+            or "brexit_national_archives_policy_intent"
+        ),
+        claims=model.get("claims")
+        if isinstance(model.get("claims"), Sequence)
+        else None,
+        summary=model.get("summary")
+        if isinstance(model.get("summary"), Mapping)
+        else None,
         extra_fields={
             "claim_schema_version": str(metadata.get("claim_schema_version") or ""),
-            "convergence_schema_version": str(metadata.get("convergence_schema_version") or ""),
-            "temporal_schema_version": str(metadata.get("temporal_schema_version") or ""),
-            "conflict_schema_version": str(metadata.get("conflict_schema_version") or ""),
-            "action_policy_schema_version": str(metadata.get("action_policy_schema_version") or ""),
+            "convergence_schema_version": str(
+                metadata.get("convergence_schema_version") or ""
+            ),
+            "temporal_schema_version": str(
+                metadata.get("temporal_schema_version") or ""
+            ),
+            "conflict_schema_version": str(
+                metadata.get("conflict_schema_version") or ""
+            ),
+            "action_policy_schema_version": str(
+                metadata.get("action_policy_schema_version") or ""
+            ),
         },
     )
     report["claim_table"] = project_claim_table(model)
@@ -367,7 +414,9 @@ def project_report(world_model: Mapping[str, Any]) -> Mapping[str, Any]:
     linkage_case_payload = build_linkage_case(report)
     report["linkage_case"] = project_linkage_case(
         model,
-        case_id=str(linkage_case_payload.get("case_id") or "brexit_archive_policy_intent"),
+        case_id=str(
+            linkage_case_payload.get("case_id") or "brexit_archive_policy_intent"
+        ),
         contract_id=str(linkage_case_payload.get("contract_id") or ""),
         nodes=linkage_case_payload.get("nodes", []),
         edges=linkage_case_payload.get("edges", []),

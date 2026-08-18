@@ -4,7 +4,9 @@ from collections import Counter
 from itertools import combinations
 from typing import Any, Mapping, Sequence
 
-CROSS_SOURCE_ALIGNMENT_SCHEMA_VERSION = "sl.wikidata_review_packet.cross_source_alignment.v0_1"
+CROSS_SOURCE_ALIGNMENT_SCHEMA_VERSION = (
+    "sl.wikidata_review_packet.cross_source_alignment.v0_1"
+)
 
 
 def _as_text(value: Any) -> str:
@@ -126,7 +128,9 @@ def summarize_cross_source_alignment(
         for label, source in sources
     }
     identity_sequence = [profile["identity"] for profile in profiles.values()]
-    consensus_level, consensus_identity, consensus_count = _determine_consensus(identity_sequence)
+    consensus_level, consensus_identity, consensus_count = _determine_consensus(
+        identity_sequence
+    )
 
     agreements: list[str] = []
     disagreements: list[str] = []
@@ -135,9 +139,15 @@ def summarize_cross_source_alignment(
             f"Shared entity id {consensus_identity} appears in {consensus_count} source(s)."
         )
     elif sum(1 for value in identity_sequence if value) >= 2:
-        disagreements.append("No consistent entity identifier spans the reviewed surfaces.")
+        disagreements.append(
+            "No consistent entity identifier spans the reviewed surfaces."
+        )
 
-    field_sets = [set(profile["field_signature"]) for profile in profiles.values() if profile["field_signature"]]
+    field_sets = [
+        set(profile["field_signature"])
+        for profile in profiles.values()
+        if profile["field_signature"]
+    ]
     if len(field_sets) >= 2:
         common_fields = set.intersection(*field_sets)
         if common_fields:

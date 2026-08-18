@@ -49,7 +49,9 @@ _MINIMIZATION_MAX_EXPOSURE = {
 def _require_protected_disclosure(handoff: Mapping[str, Any]) -> Mapping[str, Any]:
     protected = handoff.get("protected_disclosure")
     if not isinstance(protected, Mapping) or not bool(protected.get("enabled")):
-        raise ValueError("protected_disclosure.enabled=true is required for protected disclosure envelopes")
+        raise ValueError(
+            "protected_disclosure.enabled=true is required for protected disclosure envelopes"
+        )
     return protected
 
 
@@ -61,13 +63,19 @@ def _normalize_retaliation_risk_level(value: Any) -> str:
 
 
 def _normalize_disclosure_route(protected: Mapping[str, Any]) -> str:
-    route = str(protected.get("disclosure_route") or "counsel_or_regulator_first").strip().casefold()
+    route = (
+        str(protected.get("disclosure_route") or "counsel_or_regulator_first")
+        .strip()
+        .casefold()
+    )
     if route not in _DISCLOSURE_ROUTES:
         raise ValueError(f"unsupported disclosure_route: {route}")
     return route
 
 
-def _normalize_minimization_mode(protected: Mapping[str, Any], retaliation_risk_level: str) -> str:
+def _normalize_minimization_mode(
+    protected: Mapping[str, Any], retaliation_risk_level: str
+) -> str:
     explicit = str(protected.get("minimization_mode") or "").strip().casefold()
     if explicit:
         if explicit not in _MINIMIZATION_MODES:
@@ -79,7 +87,9 @@ def _normalize_minimization_mode(protected: Mapping[str, Any], retaliation_risk_
 
 
 def _normalize_envelope_export_policy(entry: Mapping[str, Any]) -> str:
-    policy = str(entry.get("envelope_export_policy") or "metadata_only").strip().casefold()
+    policy = (
+        str(entry.get("envelope_export_policy") or "metadata_only").strip().casefold()
+    )
     if policy not in _ENVELOPE_EXPORT_POLICIES:
         raise ValueError(f"unsupported envelope_export_policy: {policy}")
     return policy
@@ -127,23 +137,30 @@ def _build_sealed_item(
     local_handle = str(entry.get("local_handle") or "").strip()
     envelope_summary = str(entry.get("envelope_summary") or "").strip()
     if not local_handle or not envelope_summary:
-        raise ValueError("protected envelope entries require local_handle and envelope_summary")
+        raise ValueError(
+            "protected envelope entries require local_handle and envelope_summary"
+        )
     share_with = _normalize_share_with(entry)
     export_policy = _normalize_envelope_export_policy(entry)
     identity_policy = _normalize_identity_policy(entry)
     retaliation_risk_tags = _normalize_retaliation_risk_tags(entry)
     protected_only = bool(entry.get("protected_disclosure_only"))
-    protected_reason = str(entry.get("protected_disclosure_reason") or "").strip() or None
+    protected_reason = (
+        str(entry.get("protected_disclosure_reason") or "").strip() or None
+    )
     recipient_class = _RECIPIENT_CLASS_BY_PROFILE[recipient_profile]
-    item_id = "envitem:" + sha256_payload(
-        {
-            "run_id": run_id,
-            "unit_id": unit_id,
-            "local_handle": local_handle,
-            "source_type": source_type,
-            "export_policy": export_policy,
-        }
-    )[:16]
+    item_id = (
+        "envitem:"
+        + sha256_payload(
+            {
+                "run_id": run_id,
+                "unit_id": unit_id,
+                "local_handle": local_handle,
+                "source_type": source_type,
+                "export_policy": export_policy,
+            }
+        )[:16]
+    )
     base_row = {
         "item_id": item_id,
         "unit_id": unit_id,
@@ -165,23 +182,37 @@ def _build_sealed_item(
     if recipient_class not in _ROUTE_ALLOWED_CLASSES[disclosure_route]:
         return None, {**base_row, "exclusion_reason": "disclosure_route_mismatch"}
     if protected_only and recipient_profile not in allowed_recipient_profiles:
-        return None, {**base_row, "exclusion_reason": "protected_disclosure_scope_mismatch"}
+        return None, {
+            **base_row,
+            "exclusion_reason": "protected_disclosure_scope_mismatch",
+        }
     if recipient_profile not in share_with:
         return None, {**base_row, "exclusion_reason": "recipient_not_permitted"}
     if export_policy == "omit":
         return None, {**base_row, "exclusion_reason": "envelope_export_policy_omit"}
-    if _IDENTITY_EXPOSURE_ORDER[identity_policy] > _MINIMIZATION_MAX_EXPOSURE[minimization_mode]:
+    if (
+        _IDENTITY_EXPOSURE_ORDER[identity_policy]
+        > _MINIMIZATION_MAX_EXPOSURE[minimization_mode]
+    ):
         return None, {**base_row, "exclusion_reason": "identity_policy_too_exposed"}
     return base_row, None
 
 
-def build_protected_disclosure_envelope(input_payload: Mapping[str, Any]) -> dict[str, Any]:
+def build_protected_disclosure_envelope(
+    input_payload: Mapping[str, Any],
+) -> dict[str, Any]:
     source_label = str(input_payload.get("source_label") or "").strip()
     if not source_label:
         raise ValueError("source_label is required")
-    recipient_profile = normalize_profile(str(input_payload.get("recipient_profile") or ""))
+    recipient_profile = normalize_profile(
+        str(input_payload.get("recipient_profile") or "")
+    )
     notes = str(input_payload.get("notes") or "").strip() or None
-    handoff = input_payload.get("handoff") if isinstance(input_payload.get("handoff"), Mapping) else {}
+    handoff = (
+        input_payload.get("handoff")
+        if isinstance(input_payload.get("handoff"), Mapping)
+        else {}
+    )
     protected = _require_protected_disclosure(handoff)
     protected_settings = build_protected_disclosure_settings(
         handoff,
@@ -192,17 +223,25 @@ def build_protected_disclosure_envelope(input_payload: Mapping[str, Any]) -> dic
         default_handling_notice="Protected-disclosure material must remain local-only and do-not-sync.",
     )
     allowed_recipient_profiles = list(protected_settings.allowed_recipient_profiles)
-    retaliation_risk_level = _normalize_retaliation_risk_level(handoff.get("retaliation_risk_level"))
+    retaliation_risk_level = _normalize_retaliation_risk_level(
+        handoff.get("retaliation_risk_level")
+    )
     disclosure_route = _normalize_disclosure_route(protected)
     minimization_mode = _normalize_minimization_mode(protected, retaliation_risk_level)
-    run_id = "pdoenv:" + sha256_payload(
-        {
-            "source_label": source_label,
-            "recipient_profile": recipient_profile,
-            "unit_ids": [str(entry.get("unit_id") or "").strip() for entry in input_payload.get("entries", [])],
-            "local_case_ref": str(handoff.get("local_case_ref") or ""),
-        }
-    )[:16]
+    run_id = (
+        "pdoenv:"
+        + sha256_payload(
+            {
+                "source_label": source_label,
+                "recipient_profile": recipient_profile,
+                "unit_ids": [
+                    str(entry.get("unit_id") or "").strip()
+                    for entry in input_payload.get("entries", [])
+                ],
+                "local_case_ref": str(handoff.get("local_case_ref") or ""),
+            }
+        )[:16]
+    )
 
     sealed_items: list[dict[str, Any]] = []
     exclusions: list[dict[str, Any]] = []
@@ -230,10 +269,16 @@ def build_protected_disclosure_envelope(input_payload: Mapping[str, Any]) -> dic
         observation_markers.append(
             {
                 "unit_id": str(raw_observation.get("unit_id") or "").strip(),
-                "predicate_key": str(raw_observation.get("predicate_key") or "").strip(),
+                "predicate_key": str(
+                    raw_observation.get("predicate_key") or ""
+                ).strip(),
                 "object_type": str(raw_observation.get("object_type") or "note"),
-                "observation_status": str(raw_observation.get("observation_status") or "captured"),
-                "has_object_text": bool(str(raw_observation.get("object_text") or "").strip()),
+                "observation_status": str(
+                    raw_observation.get("observation_status") or "captured"
+                ),
+                "has_object_text": bool(
+                    str(raw_observation.get("object_text") or "").strip()
+                ),
             }
         )
 
@@ -286,7 +331,13 @@ def build_protected_disclosure_envelope(input_payload: Mapping[str, Any]) -> dic
         "observation_markers": observation_markers,
         "review_markers": review_markers,
         "integrity": {
-            "input_entry_count": len([row for row in input_payload.get("entries", []) if isinstance(row, Mapping)]),
+            "input_entry_count": len(
+                [
+                    row
+                    for row in input_payload.get("entries", [])
+                    if isinstance(row, Mapping)
+                ]
+            ),
             "sealed_item_count": len(sealed_items),
             "exclusion_count": len(exclusions),
             "observation_marker_count": len(observation_markers),
@@ -297,8 +348,14 @@ def build_protected_disclosure_envelope(input_payload: Mapping[str, Any]) -> dic
 
 def render_protected_disclosure_summary(report: Mapping[str, Any]) -> str:
     run = report.get("run") if isinstance(report.get("run"), Mapping) else {}
-    protected = report.get("protected_disclosure") if isinstance(report.get("protected_disclosure"), Mapping) else {}
-    integrity = report.get("integrity") if isinstance(report.get("integrity"), Mapping) else {}
+    protected = (
+        report.get("protected_disclosure")
+        if isinstance(report.get("protected_disclosure"), Mapping)
+        else {}
+    )
+    integrity = (
+        report.get("integrity") if isinstance(report.get("integrity"), Mapping) else {}
+    )
     lines = [
         "# Protected disclosure envelope",
         "",
@@ -328,7 +385,11 @@ def render_protected_disclosure_summary(report: Mapping[str, Any]) -> str:
         "## Sealed items",
         "",
     ]
-    items = report.get("sealed_items") if isinstance(report.get("sealed_items"), list) else []
+    items = (
+        report.get("sealed_items")
+        if isinstance(report.get("sealed_items"), list)
+        else []
+    )
     if items:
         for item in items:
             lines.append(
@@ -336,7 +397,9 @@ def render_protected_disclosure_summary(report: Mapping[str, Any]) -> str:
             )
     else:
         lines.append("- No sealed items were exportable for the selected recipient.")
-    exclusions = report.get("exclusions") if isinstance(report.get("exclusions"), list) else []
+    exclusions = (
+        report.get("exclusions") if isinstance(report.get("exclusions"), list) else []
+    )
     lines.extend(["", "## Exclusions", ""])
     if exclusions:
         for item in exclusions:

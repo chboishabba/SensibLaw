@@ -5,7 +5,17 @@ from pathlib import Path
 
 
 def run_diff(old: Path, new: Path) -> subprocess.CompletedProcess:
-    cmd = ["python", "-m", "src.cli", "receipts", "diff", "--old", str(old), "--new", str(new)]
+    cmd = [
+        "python",
+        "-m",
+        "src.cli",
+        "receipts",
+        "diff",
+        "--old",
+        str(old),
+        "--new",
+        str(new),
+    ]
     return subprocess.run(cmd, capture_output=True, text=True)
 
 

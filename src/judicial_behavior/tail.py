@@ -55,4 +55,3 @@ def lognormal_tail_prob(mu: float, sigma: float, threshold: float) -> float:
         return 1.0 if math.exp(m) > t else 0.0
     z = (math.log(t) - m) / s
     return max(0.0, min(1.0, 1.0 - _normal_cdf(z)))
-

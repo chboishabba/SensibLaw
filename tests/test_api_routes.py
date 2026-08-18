@@ -40,9 +40,15 @@ def test_logic_tree_search_endpoint(tmp_path):
     db_path = tmp_path / "logic_tree.sqlite"
     tokens = [
         logic_tree.PipelineToken(text="A", lemma="a", pos="DET", dep="", ent_type=""),
-        logic_tree.PipelineToken(text="person", lemma="person", pos="NOUN", dep="", ent_type=""),
-        logic_tree.PipelineToken(text="must", lemma="must", pos="AUX", dep="", ent_type=""),
-        logic_tree.PipelineToken(text="comply", lemma="comply", pos="VERB", dep="ROOT", ent_type=""),
+        logic_tree.PipelineToken(
+            text="person", lemma="person", pos="NOUN", dep="", ent_type=""
+        ),
+        logic_tree.PipelineToken(
+            text="must", lemma="must", pos="AUX", dep="", ent_type=""
+        ),
+        logic_tree.PipelineToken(
+            text="comply", lemma="comply", pos="VERB", dep="ROOT", ent_type=""
+        ),
     ]
     tree = logic_tree.build(tokens, source_id="doc-fts-api")
     conn = sqlite3.connect(db_path)

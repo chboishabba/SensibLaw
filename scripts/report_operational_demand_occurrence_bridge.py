@@ -154,8 +154,12 @@ def main() -> int:
                     ),
                     "target_role": str(row[8]) if row[8] is not None else None,
                     "numeric_demand_id": int(row[9]) if row[9] is not None else None,
-                    "numeric_target_token_id": int(row[10]) if row[10] is not None else None,
-                    "numeric_target_object_id": int(row[11]) if row[11] is not None else None,
+                    "numeric_target_token_id": int(row[10])
+                    if row[10] is not None
+                    else None,
+                    "numeric_target_object_id": int(row[11])
+                    if row[11] is not None
+                    else None,
                 }
                 for row in cursor.fetchall()
             ]

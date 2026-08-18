@@ -20,7 +20,10 @@ def test_parse_cases_cited_edges():
     distinguishes = next(e for e in edges if e["type"] == "distinguishes")
 
     assert follows["weight"] > distinguishes["weight"]
-    assert any(n["id"].startswith("Mabo v Queensland") and n["court_rank"] == follows["weight"] for n in nodes)
+    assert any(
+        n["id"].startswith("Mabo v Queensland") and n["court_rank"] == follows["weight"]
+        for n in nodes
+    )
 
     follows_node = next(n for n in nodes if n["id"].startswith("Mabo v Queensland"))
     follows_reference = follows_node["reference"]

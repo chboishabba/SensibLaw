@@ -27,10 +27,16 @@ jsonschema = pytest.importorskip("jsonschema")
 def _seed_fact_review_run(db_path) -> str:
     conn = sqlite3.connect(str(db_path))
     units = [
-        TextUnit("unit:1", "source-a", "context_file", "The injury occurred on 2024-01-01."),
-        TextUnit("unit:2", "source-a", "context_file", "A later note disputes that timeline."),
+        TextUnit(
+            "unit:1", "source-a", "context_file", "The injury occurred on 2024-01-01."
+        ),
+        TextUnit(
+            "unit:2", "source-a", "context_file", "A later note disputes that timeline."
+        ),
     ]
-    payload = build_fact_intake_payload_from_text_units(units, source_label="query_fact_review_demo")
+    payload = build_fact_intake_payload_from_text_units(
+        units, source_label="query_fact_review_demo"
+    )
     first_fact_id = payload["fact_candidates"][0]["fact_id"]
     first_statement_id = payload["statements"][0]["statement_id"]
     payload["fact_candidates"][0]["canonical_label"] = "Initial injury date"
@@ -140,9 +146,21 @@ def _seed_authority_ingest_run(db_path) -> str:
             "body_preview_text": "Paragraph 119 ... Paragraph 120 ... Paragraph 121 ...",
             "fetch_metadata": {"source": "pytest"},
             "segments": [
-                {"segment_kind": "paragraph", "paragraph_number": 119, "segment_text": "Paragraph 119"},
-                {"segment_kind": "paragraph", "paragraph_number": 120, "segment_text": "Paragraph 120"},
-                {"segment_kind": "paragraph", "paragraph_number": 121, "segment_text": "Paragraph 121"},
+                {
+                    "segment_kind": "paragraph",
+                    "paragraph_number": 119,
+                    "segment_text": "Paragraph 119",
+                },
+                {
+                    "segment_kind": "paragraph",
+                    "paragraph_number": 120,
+                    "segment_text": "Paragraph 120",
+                },
+                {
+                    "segment_kind": "paragraph",
+                    "paragraph_number": 121,
+                    "segment_text": "Paragraph 121",
+                },
             ],
         },
     )
@@ -186,7 +204,10 @@ def test_query_fact_review_script_lists_runs_and_summaries(tmp_path, capsys) -> 
     assert exit_code == 0
     assert runs_payload["runs"][0]["run_id"] == run_id
     assert runs_payload["runs"][0]["contestation_count"] == 1
-    assert runs_payload["runs"][0]["workflow_link"]["workflow_kind"] == "transcript_semantic"
+    assert (
+        runs_payload["runs"][0]["workflow_link"]["workflow_kind"]
+        == "transcript_semantic"
+    )
 
     exit_code = main(["--db-path", str(db_path), "summary", "--run-id", run_id])
     summary_payload = json.loads(capsys.readouterr().out)
@@ -195,10 +216,14 @@ def test_query_fact_review_script_lists_runs_and_summaries(tmp_path, capsys) -> 
     assert summary_payload["summary"]["summary"]["needs_followup_count"] == 1
     assert summary_payload["summary"]["contested_summary"]["count"] == 1
     assert summary_payload["summary"]["chronology_summary"]["fact_count"] == 2
-    assert summary_payload["summary"]["summary"]["missing_actor_review_queue_count"] >= 1
+    assert (
+        summary_payload["summary"]["summary"]["missing_actor_review_queue_count"] >= 1
+    )
 
 
-def test_query_fact_review_script_reports_review_queue_and_chronology(tmp_path, capsys) -> None:
+def test_query_fact_review_script_reports_review_queue_and_chronology(
+    tmp_path, capsys
+) -> None:
     db_path = tmp_path / "itir.sqlite"
     run_id = _seed_fact_review_run(db_path)
 
@@ -207,7 +232,10 @@ def test_query_fact_review_script_reports_review_queue_and_chronology(tmp_path, 
     assert exit_code == 0
     assert review_payload["contested_summary"]["count"] == 1
     assert review_payload["review_queue"][0]["reason_codes"]
-    assert review_payload["review_queue"][0]["status_explanation"]["status_scope"] == "review"
+    assert (
+        review_payload["review_queue"][0]["status_explanation"]["status_scope"]
+        == "review"
+    )
     assert review_payload["review_queue"][0]["status_explanation"]["why"]
 
     exit_code = main(["--db-path", str(db_path), "chronology", "--run-id", run_id])
@@ -218,13 +246,25 @@ def test_query_fact_review_script_reports_review_queue_and_chronology(tmp_path, 
     assert chronology_payload["chronology_groups"]["dated_events"]
     assert "contested_chronology_items" in chronology_payload["chronology_groups"]
 
-    exit_code = main(["--db-path", str(db_path), "view", "--run-id", run_id, "--view-kind", "intake_triage"])
+    exit_code = main(
+        [
+            "--db-path",
+            str(db_path),
+            "view",
+            "--run-id",
+            run_id,
+            "--view-kind",
+            "intake_triage",
+        ]
+    )
     view_payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert view_payload["view_kind"] == "intake_triage"
 
 
-def test_query_fact_review_script_exports_zelph_bundle_with_parse_tree(tmp_path, capsys) -> None:
+def test_query_fact_review_script_exports_zelph_bundle_with_parse_tree(
+    tmp_path, capsys
+) -> None:
     db_path = tmp_path / "itir.sqlite"
     run_id = _seed_fact_review_run(db_path)
     out_path = tmp_path / "zelph.json"
@@ -248,7 +288,11 @@ def test_query_fact_review_script_exports_zelph_bundle_with_parse_tree(tmp_path,
     assert payload["output_path"] == str(out_path.resolve())
 
     bundle = payload["zelph_bundle"]
-    schema = json.loads((Path(__file__).resolve().parents[2] / "schemas" / "zelph_input.schema.json").read_text(encoding="utf-8"))
+    schema = json.loads(
+        (
+            Path(__file__).resolve().parents[2] / "schemas" / "zelph_input.schema.json"
+        ).read_text(encoding="utf-8")
+    )
     jsonschema.validate(instance=bundle, schema=schema)
     assert bundle["facts"]
     assert bundle["provenance_mode"] == "strict"
@@ -257,10 +301,14 @@ def test_query_fact_review_script_exports_zelph_bundle_with_parse_tree(tmp_path,
     assert bundle["facts"][0]["provenance"][0]["doc_id"]
     assert bundle["facts"][0]["provenance"][0]["start"] == 0
     assert bundle["facts"][0]["provenance"][0]["end"] > 0
-    assert json.loads(out_path.read_text(encoding="utf-8"))["facts"][0]["parse_tree"]["sents"]
+    assert json.loads(out_path.read_text(encoding="utf-8"))["facts"][0]["parse_tree"][
+        "sents"
+    ]
 
 
-def test_query_fact_review_script_zelph_export_resolves_workflow_selector_variants(tmp_path, capsys) -> None:
+def test_query_fact_review_script_zelph_export_resolves_workflow_selector_variants(
+    tmp_path, capsys
+) -> None:
     db_path = tmp_path / "itir.sqlite"
     run_id = _seed_fact_review_run(db_path)
     out_path = tmp_path / "selector-zelph.json"
@@ -296,17 +344,56 @@ def test_query_fact_review_script_zelph_export_resolves_workflow_selector_varian
     exit_code = main(["--db-path", str(db_path), "workbench", "--run-id", run_id])
     workbench_payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
-    assert workbench_payload["workbench"]["operator_views"]["chronology_prep"]["groups"]["dated_events"]
-    assert "contradictory_chronology" in workbench_payload["workbench"]["operator_views"]["intake_triage"]["groups"]
-    assert workbench_payload["workbench"]["operator_views"]["intake_triage"]["control_plane"]["version"] == "follow.control.v1"
-    assert isinstance(workbench_payload["workbench"]["operator_views"]["intake_triage"]["queue"], list)
-    assert workbench_payload["workbench"]["operator_views"]["intake_triage"]["queue"][0]["operator_readout"]["headline"] == workbench_payload["workbench"]["operator_views"]["intake_triage"]["queue"][0]["title"]
-    assert workbench_payload["workbench"]["operator_views"]["contested_items"]["queue"][0]["operator_readout"]["headline"] == workbench_payload["workbench"]["operator_views"]["contested_items"]["queue"][0]["title"]
-    assert workbench_payload["workbench"]["operator_views"]["contested_items"]["control_plane"]["source_family"] == "fact_review"
-    assert workbench_payload["workbench"]["reopen_navigation"]["query"]["workflow_kind"] == "transcript_semantic"
-    assert "missing_actor" in workbench_payload["workbench"]["issue_filters"]["available_filters"]
+    assert workbench_payload["workbench"]["operator_views"]["chronology_prep"][
+        "groups"
+    ]["dated_events"]
+    assert (
+        "contradictory_chronology"
+        in workbench_payload["workbench"]["operator_views"]["intake_triage"]["groups"]
+    )
+    assert (
+        workbench_payload["workbench"]["operator_views"]["intake_triage"][
+            "control_plane"
+        ]["version"]
+        == "follow.control.v1"
+    )
+    assert isinstance(
+        workbench_payload["workbench"]["operator_views"]["intake_triage"]["queue"], list
+    )
+    assert (
+        workbench_payload["workbench"]["operator_views"]["intake_triage"]["queue"][0][
+            "operator_readout"
+        ]["headline"]
+        == workbench_payload["workbench"]["operator_views"]["intake_triage"]["queue"][
+            0
+        ]["title"]
+    )
+    assert (
+        workbench_payload["workbench"]["operator_views"]["contested_items"]["queue"][0][
+            "operator_readout"
+        ]["headline"]
+        == workbench_payload["workbench"]["operator_views"]["contested_items"]["queue"][
+            0
+        ]["title"]
+    )
+    assert (
+        workbench_payload["workbench"]["operator_views"]["contested_items"][
+            "control_plane"
+        ]["source_family"]
+        == "fact_review"
+    )
+    assert (
+        workbench_payload["workbench"]["reopen_navigation"]["query"]["workflow_kind"]
+        == "transcript_semantic"
+    )
+    assert (
+        "missing_actor"
+        in workbench_payload["workbench"]["issue_filters"]["available_filters"]
+    )
     first_fact_id = workbench_payload["workbench"]["facts"][0]["fact_id"]
-    assert workbench_payload["workbench"]["inspector_classification"]["facts"][first_fact_id]["status_keys"]
+    assert workbench_payload["workbench"]["inspector_classification"]["facts"][
+        first_fact_id
+    ]["status_keys"]
     assert "approximate_events" in workbench_payload["workbench"]["chronology_groups"]
     assert isinstance(workbench_payload["workbench"]["semantic_context"], dict)
     assert workbench_payload["workbench"]["workflow_summary"]["recommended_view"] in {
@@ -319,7 +406,17 @@ def test_query_fact_review_script_zelph_export_resolves_workflow_selector_varian
     assert "signal_classes" in workbench_payload["workbench"]["facts"][0]
     assert "inspector_classification" in workbench_payload["workbench"]["facts"][0]
 
-    exit_code = main(["--db-path", str(db_path), "acceptance", "--run-id", run_id, "--fixture-kind", "synthetic"])
+    exit_code = main(
+        [
+            "--db-path",
+            str(db_path),
+            "acceptance",
+            "--run-id",
+            run_id,
+            "--fixture-kind",
+            "synthetic",
+        ]
+    )
     acceptance_payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert acceptance_payload["acceptance"]["summary"]["story_count"] >= 1
@@ -330,9 +427,21 @@ def test_query_fact_review_script_zelph_export_resolves_workflow_selector_varian
     semantic_payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert semantic_payload["semantic_status"]["materialized"] is True
-    assert semantic_payload["semantic_status"]["latest_refresh"]["refresh_status"] == "ok"
+    assert (
+        semantic_payload["semantic_status"]["latest_refresh"]["refresh_status"] == "ok"
+    )
 
-    exit_code = main(["--db-path", str(db_path), "semantic-refreshes", "--run-id", run_id, "--limit", "5"])
+    exit_code = main(
+        [
+            "--db-path",
+            str(db_path),
+            "semantic-refreshes",
+            "--run-id",
+            run_id,
+            "--limit",
+            "5",
+        ]
+    )
     refresh_payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert refresh_payload["refreshes"][0]["run_id"] == run_id
@@ -342,10 +451,15 @@ def test_query_fact_review_script_zelph_export_resolves_workflow_selector_varian
     feedback_payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert feedback_payload["feedback"]["summary"]["constrained_fact_count"] >= 1
-    assert any("review" in msg.casefold() for msg in feedback_payload["feedback"]["global_messages"])
+    assert any(
+        "review" in msg.casefold()
+        for msg in feedback_payload["feedback"]["global_messages"]
+    )
 
 
-def test_query_fact_review_script_reports_authority_ingest_runs(tmp_path, capsys) -> None:
+def test_query_fact_review_script_reports_authority_ingest_runs(
+    tmp_path, capsys
+) -> None:
     db_path = tmp_path / "itir.sqlite"
     ingest_run_id = _seed_authority_ingest_run(db_path)
 
@@ -356,11 +470,21 @@ def test_query_fact_review_script_reports_authority_ingest_runs(tmp_path, capsys
     assert runs_payload["runs"][0]["authority_kind"] == "jade"
     assert runs_payload["runs"][0]["segment_count"] == 3
 
-    exit_code = main(["--db-path", str(db_path), "authority-summary", "--ingest-run-id", ingest_run_id])
+    exit_code = main(
+        [
+            "--db-path",
+            str(db_path),
+            "authority-summary",
+            "--ingest-run-id",
+            ingest_run_id,
+        ]
+    )
     summary_payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert summary_payload["summary"]["run"]["resolved_url"].endswith("/83")
-    assert [row["paragraph_number"] for row in summary_payload["summary"]["segments"]] == [119, 120, 121]
+    assert [
+        row["paragraph_number"] for row in summary_payload["summary"]["segments"]
+    ] == [119, 120, 121]
 
 
 def test_query_fact_review_script_reports_feedback_receipts(tmp_path, capsys) -> None:
@@ -375,12 +499,17 @@ def test_query_fact_review_script_reports_feedback_receipts(tmp_path, capsys) ->
     assert receipts_payload["receipts"][0]["role_label"] == "lawyer"
     assert receipts_payload["receipts"][0]["provenance"]["source_ref"] == "feedback:1"
 
-    exit_code = main(["--db-path", str(db_path), "feedback-summary", "--receipt-id", receipt_id])
+    exit_code = main(
+        ["--db-path", str(db_path), "feedback-summary", "--receipt-id", receipt_id]
+    )
     summary_payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert summary_payload["summary"]["receipt"]["target_product"] == "itir-svelte"
     assert summary_payload["summary"]["receipt"]["source_kind"] == "interview"
-    assert "don't know what I'm supposed to do next" in summary_payload["summary"]["receipt"]["quote_text"]
+    assert (
+        "don't know what I'm supposed to do next"
+        in summary_payload["summary"]["receipt"]["quote_text"]
+    )
 
 
 def test_query_fact_review_script_adds_feedback_receipt(tmp_path, capsys) -> None:
@@ -430,13 +559,21 @@ def test_query_fact_review_script_adds_feedback_receipt(tmp_path, capsys) -> Non
     assert add_payload["receipt"]["feedback_class"] == "competitor_frustration"
 
     receipt_id = add_payload["receipt"]["receipt_id"]
-    exit_code = main(["--db-path", str(db_path), "feedback-summary", "--receipt-id", receipt_id])
+    exit_code = main(
+        ["--db-path", str(db_path), "feedback-summary", "--receipt-id", receipt_id]
+    )
     summary_payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert summary_payload["summary"]["receipt"]["target_product"] == "competitor-x"
     assert summary_payload["summary"]["receipt"]["tags"] == ["provenance", "trust"]
-    assert summary_payload["summary"]["receipt"]["provenance"]["collector"] == "manual_note"
-    assert summary_payload["summary"]["receipt"]["provenance"]["source_ref"] == "interview:1"
+    assert (
+        summary_payload["summary"]["receipt"]["provenance"]["collector"]
+        == "manual_note"
+    )
+    assert (
+        summary_payload["summary"]["receipt"]["provenance"]["source_ref"]
+        == "interview:1"
+    )
 
 
 def test_query_fact_review_script_imports_feedback_receipts(tmp_path, capsys) -> None:
@@ -478,7 +615,9 @@ def test_query_fact_review_script_imports_feedback_receipts(tmp_path, capsys) ->
         encoding="utf-8",
     )
 
-    exit_code = main(["--db-path", str(db_path), "feedback-import", "--input", str(input_path)])
+    exit_code = main(
+        ["--db-path", str(db_path), "feedback-import", "--input", str(input_path)]
+    )
     import_payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert import_payload["imported_count"] == 2
@@ -487,14 +626,23 @@ def test_query_fact_review_script_imports_feedback_receipts(tmp_path, capsys) ->
     receipts_payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert len(receipts_payload["receipts"]) == 2
-    assert {row["feedback_class"] for row in receipts_payload["receipts"]} == {"suite_frustration", "delight_signal"}
-    imported_suite = next(row for row in receipts_payload["receipts"] if row["feedback_class"] == "suite_frustration")
+    assert {row["feedback_class"] for row in receipts_payload["receipts"]} == {
+        "suite_frustration",
+        "delight_signal",
+    }
+    imported_suite = next(
+        row
+        for row in receipts_payload["receipts"]
+        if row["feedback_class"] == "suite_frustration"
+    )
     assert imported_suite["target_product"] == "itir-svelte"
     assert imported_suite["tags"] == ["workflow"]
     assert imported_suite["provenance"]["collector"] == "pytest"
 
 
-def test_query_fact_review_script_resolves_and_reopens_by_workflow_link(tmp_path, capsys) -> None:
+def test_query_fact_review_script_resolves_and_reopens_by_workflow_link(
+    tmp_path, capsys
+) -> None:
     db_path = tmp_path / "itir.sqlite"
     run_id = _seed_fact_review_run(db_path)
 
@@ -555,13 +703,19 @@ def test_query_fact_review_script_resolves_and_reopens_by_workflow_link(tmp_path
     assert exit_code == 0
     assert implicit_latest_payload["summary"]["run"]["run_id"] == run_id
 
-    exit_code = main(["--db-path", str(db_path), "sources", "--workflow-kind", "transcript_semantic"])
+    exit_code = main(
+        ["--db-path", str(db_path), "sources", "--workflow-kind", "transcript_semantic"]
+    )
     sources_payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
-    assert sources_payload["sources"][0]["latest_workflow_link"]["fact_run_id"] == run_id
+    assert (
+        sources_payload["sources"][0]["latest_workflow_link"]["fact_run_id"] == run_id
+    )
 
 
-def test_query_fact_review_script_exports_demo_bundle_for_mary_operator_path(tmp_path, capsys) -> None:
+def test_query_fact_review_script_exports_demo_bundle_for_mary_operator_path(
+    tmp_path, capsys
+) -> None:
     db_path = tmp_path / "itir.sqlite"
     run_id = _seed_fact_review_run(db_path)
 
@@ -587,8 +741,14 @@ def test_query_fact_review_script_exports_demo_bundle_for_mary_operator_path(tmp
     assert bundle_payload["selector"]["workflow_run_id"] == "semantic:query-demo"
     assert bundle_payload["selector"]["wave"] == "wave1_legal"
     assert bundle_payload["selector"]["fixture_kind"] == "real"
-    assert bundle_payload["workbench"]["reopen_navigation"]["query"]["workflow_kind"] == "transcript_semantic"
-    assert "missing_actor" in bundle_payload["workbench"]["issue_filters"]["available_filters"]
+    assert (
+        bundle_payload["workbench"]["reopen_navigation"]["query"]["workflow_kind"]
+        == "transcript_semantic"
+    )
+    assert (
+        "missing_actor"
+        in bundle_payload["workbench"]["issue_filters"]["available_filters"]
+    )
     assert isinstance(bundle_payload["workbench"]["semantic_context"], dict)
     assert bundle_payload["workbench"]["workflow_summary"]["stage"] in {
         "inspect",
@@ -598,10 +758,15 @@ def test_query_fact_review_script_exports_demo_bundle_for_mary_operator_path(tmp
     }
     assert "chronology_groups" in bundle_payload["workbench"]
     assert bundle_payload["acceptance"]["wave"] == "wave1_legal"
-    assert bundle_payload["sources"][0]["latest_workflow_link"]["workflow_run_id"] == "semantic:query-demo"
+    assert (
+        bundle_payload["sources"][0]["latest_workflow_link"]["workflow_run_id"]
+        == "semantic:query-demo"
+    )
 
 
-def test_query_fact_review_script_accepts_later_acceptance_waves_for_demo_bundle(tmp_path, capsys) -> None:
+def test_query_fact_review_script_accepts_later_acceptance_waves_for_demo_bundle(
+    tmp_path, capsys
+) -> None:
     db_path = tmp_path / "itir.sqlite"
     run_id = _seed_fact_review_run(db_path)
 
@@ -627,7 +792,9 @@ def test_query_fact_review_script_accepts_later_acceptance_waves_for_demo_bundle
     assert bundle_payload["acceptance"]["wave"] == "wave5_handoff_false_coherence"
 
 
-def test_query_fact_review_script_acceptance_supports_wave4_fixture_kind(tmp_path, capsys) -> None:
+def test_query_fact_review_script_acceptance_supports_wave4_fixture_kind(
+    tmp_path, capsys
+) -> None:
     db_path = tmp_path / "itir.sqlite"
     run_id = _seed_fact_review_run(db_path)
 
@@ -648,10 +815,14 @@ def test_query_fact_review_script_acceptance_supports_wave4_fixture_kind(tmp_pat
     assert exit_code == 0
     assert acceptance_payload["acceptance"]["wave"] == "wave4_medical_regulatory"
     assert acceptance_payload["acceptance"]["fixture_kind"] == "real"
-    assert acceptance_payload["acceptance"]["summary"]["story_count"] == len(STORY_WAVES["wave4_medical_regulatory"])
+    assert acceptance_payload["acceptance"]["summary"]["story_count"] == len(
+        STORY_WAVES["wave4_medical_regulatory"]
+    )
 
 
-def test_query_fact_review_script_demo_bundle_resolves_selector_variants_for_later_wave(tmp_path, capsys) -> None:
+def test_query_fact_review_script_demo_bundle_resolves_selector_variants_for_later_wave(
+    tmp_path, capsys
+) -> None:
     db_path = tmp_path / "itir.sqlite"
     run_id = _seed_fact_review_run(db_path)
 
@@ -678,7 +849,9 @@ def test_query_fact_review_script_demo_bundle_resolves_selector_variants_for_lat
     assert bundle_payload["selector"]["source_label"] == "query_fact_review_demo"
     assert bundle_payload["selector"]["wave"] == "wave4_medical_regulatory"
     assert bundle_payload["acceptance"]["wave"] == "wave4_medical_regulatory"
-    assert bundle_payload["acceptance"]["summary"]["story_count"] == len(STORY_WAVES["wave4_medical_regulatory"])
+    assert bundle_payload["acceptance"]["summary"]["story_count"] == len(
+        STORY_WAVES["wave4_medical_regulatory"]
+    )
 
 
 def test_query_fact_review_script_shows_full_report(tmp_path, capsys) -> None:
@@ -693,7 +866,9 @@ def test_query_fact_review_script_shows_full_report(tmp_path, capsys) -> None:
     assert "statements" in report_payload["report"]
 
 
-def test_query_fact_review_script_lists_persisted_contested_review_runs(tmp_path, capsys) -> None:
+def test_query_fact_review_script_lists_persisted_contested_review_runs(
+    tmp_path, capsys
+) -> None:
     db_path = tmp_path / "itir.sqlite"
     source_payload = {
         "version": "fact.review.bundle.v1",
@@ -734,26 +909,63 @@ def test_query_fact_review_script_lists_persisted_contested_review_runs(tmp_path
     assert runs_payload["runs"][0]["source_label"] == "query_contested_demo"
     assert runs_payload["runs"][0]["covered_count"] == 1
 
-    exit_code = main(["--db-path", str(db_path), "contested-summary", "--review-run-id", review_run_id])
+    exit_code = main(
+        [
+            "--db-path",
+            str(db_path),
+            "contested-summary",
+            "--review-run-id",
+            review_run_id,
+        ]
+    )
     summary_payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert summary_payload["review"]["run"]["review_run_id"] == review_run_id
     assert summary_payload["review"]["summary"]["covered_count"] == 1
-    assert summary_payload["review"]["affidavit_rows"][0]["proposition_id"] == "aff-prop:p1-s1"
-    assert summary_payload["review"]["affidavit_rows"][0]["status_explanation"]["status_scope"] == "coverage"
-    assert summary_payload["review"]["affidavit_rows"][0]["status_explanation"]["status_value"] == "covered"
-    assert summary_payload["review"]["source_review_rows"][0]["status_explanation"]["status_scope"] == "review"
-    assert summary_payload["review"]["source_review_rows"][0]["status_explanation"]["status_bucket"] in {
+    assert (
+        summary_payload["review"]["affidavit_rows"][0]["proposition_id"]
+        == "aff-prop:p1-s1"
+    )
+    assert (
+        summary_payload["review"]["affidavit_rows"][0]["status_explanation"][
+            "status_scope"
+        ]
+        == "coverage"
+    )
+    assert (
+        summary_payload["review"]["affidavit_rows"][0]["status_explanation"][
+            "status_value"
+        ]
+        == "covered"
+    )
+    assert (
+        summary_payload["review"]["source_review_rows"][0]["status_explanation"][
+            "status_scope"
+        ]
+        == "review"
+    )
+    assert summary_payload["review"]["source_review_rows"][0]["status_explanation"][
+        "status_bucket"
+    ] in {
         "resolved",
         "review_source",
         "adjudicate",
         "inspect",
     }
-    assert summary_payload["review"]["source_review_rows"][0]["status_explanation"]["why"]
-    assert "review coverage" not in summary_payload["review"]["source_review_rows"][0]["status_explanation"]["why"].casefold()
+    assert summary_payload["review"]["source_review_rows"][0]["status_explanation"][
+        "why"
+    ]
+    assert (
+        "review coverage"
+        not in summary_payload["review"]["source_review_rows"][0]["status_explanation"][
+            "why"
+        ].casefold()
+    )
 
 
-def test_query_fact_review_script_shows_contested_proving_slice(tmp_path, capsys) -> None:
+def test_query_fact_review_script_shows_contested_proving_slice(
+    tmp_path, capsys
+) -> None:
     db_path = tmp_path / "itir.sqlite"
     source_payload = {
         "version": "fact.review.bundle.v1",
@@ -805,7 +1017,15 @@ def test_query_fact_review_script_shows_contested_proving_slice(tmp_path, capsys
     )
     review_run_id = result["persist_summary"]["review_run_id"]
 
-    exit_code = main(["--db-path", str(db_path), "contested-proving-slice", "--review-run-id", review_run_id])
+    exit_code = main(
+        [
+            "--db-path",
+            str(db_path),
+            "contested-proving-slice",
+            "--review-run-id",
+            review_run_id,
+        ]
+    )
     payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     proving_slice = payload["proving_slice"]
@@ -814,20 +1034,53 @@ def test_query_fact_review_script_shows_contested_proving_slice(tmp_path, capsys
     assert proving_slice["summary"]["disputed_affidavit_count"] == 1
     assert proving_slice["summary"]["weakly_addressed_affidavit_count"] == 0
     assert proving_slice["summary"]["missing_affidavit_count"] == 1
-    assert proving_slice["sections"]["supported"][0]["proposition_id"] == "aff-prop:p1-s1"
-    assert proving_slice["sections"]["supported"][0]["relation_type"] in {"exact_support", "equivalent_support"}
+    assert (
+        proving_slice["sections"]["supported"][0]["proposition_id"] == "aff-prop:p1-s1"
+    )
+    assert proving_slice["sections"]["supported"][0]["relation_type"] in {
+        "exact_support",
+        "equivalent_support",
+    }
     assert proving_slice["sections"]["supported"][0]["relation_root"] == "supports"
-    assert proving_slice["sections"]["supported"][0]["explanation"]["classification"] == "supported"
-    assert proving_slice["sections"]["supported"][0]["status_explanation"]["status_value"] == "covered"
-    assert "support" in proving_slice["sections"]["supported"][0]["status_explanation"]["why"].casefold()
-    assert proving_slice["sections"]["disputed"][0]["relation_type"] in {"explicit_dispute", "implicit_dispute"}
-    assert proving_slice["sections"]["disputed"][0]["explanation"]["classification"] == "disputed"
+    assert (
+        proving_slice["sections"]["supported"][0]["explanation"]["classification"]
+        == "supported"
+    )
+    assert (
+        proving_slice["sections"]["supported"][0]["status_explanation"]["status_value"]
+        == "covered"
+    )
+    assert (
+        "support"
+        in proving_slice["sections"]["supported"][0]["status_explanation"][
+            "why"
+        ].casefold()
+    )
+    assert proving_slice["sections"]["disputed"][0]["relation_type"] in {
+        "explicit_dispute",
+        "implicit_dispute",
+    }
+    assert (
+        proving_slice["sections"]["disputed"][0]["explanation"]["classification"]
+        == "disputed"
+    )
     assert proving_slice["sections"]["missing"][0]["proposition_id"] == "aff-prop:p3-s1"
     assert proving_slice["sections"]["missing"][0]["relation_type"] == "unrelated"
     assert proving_slice["sections"]["missing"][0]["relation_leaf"] == "missing"
-    assert proving_slice["sections"]["missing"][0]["explanation"]["classification"] == "missing"
-    assert proving_slice["sections"]["missing"][0]["status_explanation"]["status_bucket"] == "review_source"
-    assert "missing" in proving_slice["sections"]["missing"][0]["status_explanation"]["why"].casefold()
+    assert (
+        proving_slice["sections"]["missing"][0]["explanation"]["classification"]
+        == "missing"
+    )
+    assert (
+        proving_slice["sections"]["missing"][0]["status_explanation"]["status_bucket"]
+        == "review_source"
+    )
+    assert (
+        "missing"
+        in proving_slice["sections"]["missing"][0]["status_explanation"][
+            "why"
+        ].casefold()
+    )
     assert proving_slice["next_steps"]
 
     exit_code = main(
@@ -842,7 +1095,9 @@ def test_query_fact_review_script_shows_contested_proving_slice(tmp_path, capsys
     )
     interrogative_payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
-    interrogatives = interrogative_payload["proving_slice"]["sections"]["missing"][0]["interrogatives"]
+    interrogatives = interrogative_payload["proving_slice"]["sections"]["missing"][0][
+        "interrogatives"
+    ]
     assert interrogatives["why"]
     assert any(value.startswith("paragraph:") for value in interrogatives["when"])
 
@@ -871,8 +1126,18 @@ def test_query_fact_review_script_shows_narrow_contested_rows(tmp_path, capsys) 
             },
         ],
         "review_queue": [
-            {"fact_id": "fact:f1", "contestation_count": 0, "reason_codes": [], "latest_review_status": "reviewed"},
-            {"fact_id": "fact:f2", "contestation_count": 1, "reason_codes": ["source_conflict"], "latest_review_status": "contested"},
+            {
+                "fact_id": "fact:f1",
+                "contestation_count": 0,
+                "reason_codes": [],
+                "latest_review_status": "reviewed",
+            },
+            {
+                "fact_id": "fact:f2",
+                "contestation_count": 1,
+                "reason_codes": ["source_conflict"],
+                "latest_review_status": "contested",
+            },
         ],
     }
     result = write_affidavit_coverage_review(
@@ -905,7 +1170,12 @@ def test_query_fact_review_script_shows_narrow_contested_rows(tmp_path, capsys) 
     assert len(payload["rows"]) == 1
     row = payload["rows"][0]
     assert row["proposition_id"] == "aff-prop:p2-s1"
-    assert row["relation_root"] in {"invalidates", "supports", "non_resolving", "unanswered"}
+    assert row["relation_root"] in {
+        "invalidates",
+        "supports",
+        "non_resolving",
+        "unanswered",
+    }
     assert isinstance(row["matched_source_rows"], list)
     assert row["status_explanation"]["status_value"] == row["coverage_status"]
     assert row["status_explanation"]["related_record_id"] == row["best_source_row_id"]
@@ -927,6 +1197,12 @@ def test_query_fact_review_script_shows_narrow_contested_rows(tmp_path, capsys) 
     interrogative_payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     interrogative_row = interrogative_payload["rows"][0]
-    assert interrogative_row["interrogatives"]["why"] == interrogative_row["status_explanation"]["why"]
-    assert any(value.startswith("paragraph:") for value in interrogative_row["interrogatives"]["when"])
+    assert (
+        interrogative_row["interrogatives"]["why"]
+        == interrogative_row["status_explanation"]["why"]
+    )
+    assert any(
+        value.startswith("paragraph:")
+        for value in interrogative_row["interrogatives"]["when"]
+    )
     assert interrogative_row["interrogatives"]["what"]

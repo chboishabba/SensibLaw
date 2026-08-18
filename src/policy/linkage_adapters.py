@@ -49,8 +49,12 @@ def build_linkage_fragment(
     return {
         "nodes": [deepcopy(dict(row)) for row in nodes if isinstance(row, Mapping)],
         "edges": [deepcopy(dict(row)) for row in edges if isinstance(row, Mapping)],
-        "expected_anchor_ids": [_text(value) for value in expected_anchor_ids if _text(value)],
-        "expected_terminal_ids": [_text(value) for value in expected_terminal_ids if _text(value)],
+        "expected_anchor_ids": [
+            _text(value) for value in expected_anchor_ids if _text(value)
+        ],
+        "expected_terminal_ids": [
+            _text(value) for value in expected_terminal_ids if _text(value)
+        ],
         "notes": [_text(value) for value in notes if _text(value)],
     }
 
@@ -187,10 +191,17 @@ def merge_linkage_fragments(*fragments: Mapping[str, Any]) -> dict[str, Any]:
                 notes.append(text)
 
     return build_linkage_fragment(
-        nodes=sorted(nodes_by_id.values(), key=lambda row: (_text(row.get("layer")), _text(row.get("id")))),
+        nodes=sorted(
+            nodes_by_id.values(),
+            key=lambda row: (_text(row.get("layer")), _text(row.get("id"))),
+        ),
         edges=sorted(
             edges_by_key.values(),
-            key=lambda row: (_text(row.get("source")), _text(row.get("target")), _text(row.get("kind"))),
+            key=lambda row: (
+                _text(row.get("source")),
+                _text(row.get("target")),
+                _text(row.get("kind")),
+            ),
         ),
         expected_anchor_ids=anchor_ids,
         expected_terminal_ids=terminal_ids,

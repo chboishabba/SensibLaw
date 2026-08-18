@@ -33,8 +33,14 @@ def test_parliamentary_reasoning_fixture_emphasizes_nonlaw():
     assert "Iraqi Council" in iraq["fixture"]["interpretation"]["quote"]
     artifact = build_parliamentary_proof_artifact()
     assert artifact["broader_review_adjacent"] is True
-    assert any(c["broader_context"]["context"].startswith("Iraqi Council") for c in artifact["cases"])
+    assert any(
+        c["broader_context"]["context"].startswith("Iraqi Council")
+        for c in artifact["cases"]
+    )
     assert artifact["quality_notes"]["iraq"].startswith("Non-justiciable")
     cases = build_primary_proving_cases()
     iraq_case = next(item for item in cases if item["case"] == "iraq")
-    assert iraq_case["fixture"]["interpretation"]["source_reference"] == "Iraqi Council Committee report"
+    assert (
+        iraq_case["fixture"]["interpretation"]["source_reference"]
+        == "Iraqi Council Committee report"
+    )

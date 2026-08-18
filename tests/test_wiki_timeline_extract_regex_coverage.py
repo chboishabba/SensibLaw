@@ -28,8 +28,15 @@ def test_parse_inline_year_range_anchor() -> None:
 
 
 def test_parse_special_event_sept11_anchor() -> None:
-    anchors = ext._parse_special_event_anchors("The September 11 attacks changed policy.")
-    assert anchors and anchors[0].year == 2001 and anchors[0].month == 9 and anchors[0].day == 11
+    anchors = ext._parse_special_event_anchors(
+        "The September 11 attacks changed policy."
+    )
+    assert (
+        anchors
+        and anchors[0].year == 2001
+        and anchors[0].month == 9
+        and anchors[0].day == 11
+    )
 
 
 def test_split_sentences_protects_abbrevs_and_initials() -> None:

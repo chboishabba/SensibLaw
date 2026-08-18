@@ -62,8 +62,14 @@ def test_explicit_root_and_dependent_head_project() -> None:
 
     assert _project_numeric_heads(
         (root, child),
-        {"root": (101, 10, 14), "child": (102, 0, 5)},
-    ) == ((101, 101), (101, 102))
+        {
+            "root": (101, 7, 10, 14),
+            "child": (102, 7, 0, 5),
+        },
+    ) == (
+        (101, 10, 14, 101),
+        (101, 10, 14, 102),
+    )
 
 
 def test_missing_non_root_head_fails_closed() -> None:
@@ -80,7 +86,38 @@ def test_missing_non_root_head_fails_closed() -> None:
         NumericHeadProjectionError,
         match="declared non-root dependency head is absent",
     ):
-        _project_numeric_heads((child,), {"child": (102, 0, 5)})
+        _project_numeric_heads((child,), {"child": (102, 7, 0, 5)})
+
+
+def test_head_in_different_sentence_is_not_a_valid_dependency_target() -> None:
+    child = _token(
+        "child",
+        start=0,
+        end=5,
+        head_start=10,
+        head_end=14,
+        is_root=False,
+    )
+    other_sentence_head = _token(
+        "other",
+        start=10,
+        end=14,
+        head_start=10,
+        head_end=14,
+        is_root=True,
+    )
+
+    with pytest.raises(
+        NumericHeadProjectionError,
+        match="declared non-root dependency head is absent from its sentence",
+    ):
+        _project_numeric_heads(
+            (child, other_sentence_head),
+            {
+                "child": (102, 7, 0, 5),
+                "other": (101, 8, 10, 14),
+            },
+        )
 
 
 def test_root_requires_matching_self_span() -> None:
@@ -97,7 +134,7 @@ def test_root_requires_matching_self_span() -> None:
         NumericHeadProjectionError,
         match="explicit parser root has a non-self head span",
     ):
-        _project_numeric_heads((root,), {"root": (101, 10, 14)})
+        _project_numeric_heads((root,), {"root": (101, 7, 10, 14)})
 
 
 def test_non_root_cannot_resolve_to_its_own_id() -> None:
@@ -114,7 +151,7 @@ def test_non_root_cannot_resolve_to_its_own_id() -> None:
         NumericHeadProjectionError,
         match="non-root dependency resolved to its own token id",
     ):
-        _project_numeric_heads((token,), {"token": (102, 0, 5)})
+        _project_numeric_heads((token,), {"token": (102, 7, 0, 5)})
 
 
 def test_strict_numeric_pnf_requires_pos_dependencies_and_sentences() -> None:

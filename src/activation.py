@@ -59,7 +59,9 @@ def _fact_index(facts: Iterable[Fact]) -> Dict[str, Fact]:
     return index
 
 
-def _matches(trigger: LifecycleTrigger, fact_index: Mapping[str, Fact]) -> Optional[Fact]:
+def _matches(
+    trigger: LifecycleTrigger, fact_index: Mapping[str, Fact]
+) -> Optional[Fact]:
     trig = _norm(trigger.normalized or trigger.text)
     for fact_key, fact in fact_index.items():
         if not trig or not fact_key:
@@ -104,7 +106,12 @@ def simulate_activation(
             lc, fact = term_match
             state = "terminated"
             reasons.setdefault(identity_hash, []).append(
-                ActivationReason(trigger="termination", text=lc.text, fact_key=fact.key, fact_value=fact.value)
+                ActivationReason(
+                    trigger="termination",
+                    text=lc.text,
+                    fact_key=fact.key,
+                    fact_value=fact.value,
+                )
             )
         else:
             act_match: Tuple[LifecycleTrigger, Fact] | None = None
@@ -119,7 +126,12 @@ def simulate_activation(
                 lc, fact = act_match
                 state = "active"
                 reasons.setdefault(identity_hash, []).append(
-                    ActivationReason(trigger="activation", text=lc.text, fact_key=fact.key, fact_value=fact.value)
+                    ActivationReason(
+                        trigger="activation",
+                        text=lc.text,
+                        fact_key=fact.key,
+                        fact_value=fact.value,
+                    )
                 )
 
         if not has_trigger:
@@ -158,8 +170,15 @@ def activation_to_payload(result: ActivationResult) -> dict:
         "inactive": sorted(result.inactive),
         "terminated": sorted(result.terminated),
         "reasons": {
-            identity: [_reason_dict(r) for r in sorted(reason_list, key=lambda x: (x.trigger, x.text, x.fact_key))]
-            for identity, reason_list in sorted(result.reasons.items(), key=lambda kv: kv[0])
+            identity: [
+                _reason_dict(r)
+                for r in sorted(
+                    reason_list, key=lambda x: (x.trigger, x.text, x.fact_key)
+                )
+            ]
+            for identity, reason_list in sorted(
+                result.reasons.items(), key=lambda kv: kv[0]
+            )
         },
     }
 

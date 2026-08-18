@@ -6,7 +6,10 @@ import sqlite3
 from pathlib import Path
 
 from scripts import build_personal_handoff_from_message_db
-from scripts.build_personal_handoff_from_message_db import build_handoff_from_message_db_artifact, main
+from scripts.build_personal_handoff_from_message_db import (
+    build_handoff_from_message_db_artifact,
+    main,
+)
 
 
 def _make_chat_db(db_path: Path) -> None:
@@ -70,8 +73,24 @@ def _make_chat_db(db_path: Path) -> None:
             VALUES (?,?,?,?,?,?,?)
             """,
             [
-                ("chat-test:fixture", 1, "abc", "chatgpt", "2026-03-26T10:00:00Z", "user", "I wrote down the sequence after the appointment."),
-                ("chat-test:fixture", 2, "abc", "chatgpt", "2026-03-26T10:01:00Z", "assistant", "Keep the chronology provisional until the letter arrives."),
+                (
+                    "chat-test:fixture",
+                    1,
+                    "abc",
+                    "chatgpt",
+                    "2026-03-26T10:00:00Z",
+                    "user",
+                    "I wrote down the sequence after the appointment.",
+                ),
+                (
+                    "chat-test:fixture",
+                    2,
+                    "abc",
+                    "chatgpt",
+                    "2026-03-26T10:01:00Z",
+                    "assistant",
+                    "Keep the chronology provisional until the letter arrives.",
+                ),
             ],
         )
         conn.commit()
@@ -135,8 +154,24 @@ def _make_messenger_db(db_path: Path) -> None:
             VALUES (?,?,?,?,?,?,?)
             """,
             [
-                ("messenger-test:fixture", 1, "abc", "one_to_one", "2026-03-26T10:00:00Z", "Alice", "I noted the sequence right after the meeting."),
-                ("messenger-test:fixture", 2, "abc", "one_to_one", "2026-03-26T10:01:00Z", "Bob", "We should keep this within protected recipients."),
+                (
+                    "messenger-test:fixture",
+                    1,
+                    "abc",
+                    "one_to_one",
+                    "2026-03-26T10:00:00Z",
+                    "Alice",
+                    "I noted the sequence right after the meeting.",
+                ),
+                (
+                    "messenger-test:fixture",
+                    2,
+                    "abc",
+                    "one_to_one",
+                    "2026-03-26T10:01:00Z",
+                    "Bob",
+                    "We should keep this within protected recipients.",
+                ),
             ],
         )
         conn.commit()
@@ -156,13 +191,20 @@ def test_message_db_import_builds_personal_handoff_from_chat_db(tmp_path: Path) 
         run_id="chat-test:fixture",
     )
 
-    normalized = json.loads(Path(payload["normalized_input_path"]).read_text(encoding="utf-8"))
+    normalized = json.loads(
+        Path(payload["normalized_input_path"]).read_text(encoding="utf-8")
+    )
     report = json.loads(Path(payload["report_path"]).read_text(encoding="utf-8"))
-    assert normalized["entries"][0]["text"] == "I wrote down the sequence after the appointment."
+    assert (
+        normalized["entries"][0]["text"]
+        == "I wrote down the sequence after the appointment."
+    )
     assert report["recipient_export"]["exported_item_count"] == 2
 
 
-def test_message_db_import_builds_protected_envelope_from_messenger_db(tmp_path: Path) -> None:
+def test_message_db_import_builds_protected_envelope_from_messenger_db(
+    tmp_path: Path,
+) -> None:
     db_path = tmp_path / "messenger.sqlite"
     _make_messenger_db(db_path)
 
@@ -176,10 +218,15 @@ def test_message_db_import_builds_protected_envelope_from_messenger_db(tmp_path:
         run_id="messenger-test:fixture",
     )
 
-    normalized = json.loads(Path(payload["normalized_input_path"]).read_text(encoding="utf-8"))
+    normalized = json.loads(
+        Path(payload["normalized_input_path"]).read_text(encoding="utf-8")
+    )
     report = json.loads(Path(payload["report_path"]).read_text(encoding="utf-8"))
     serialized = json.dumps(report, sort_keys=True)
-    assert normalized["entries"][0]["local_handle"] == "messenger_test_db://messenger-test:fixture:1"
+    assert (
+        normalized["entries"][0]["local_handle"]
+        == "messenger_test_db://messenger-test:fixture:1"
+    )
     assert report["integrity"]["sealed_item_count"] == 2
     assert "I noted the sequence right after the meeting." not in serialized
 

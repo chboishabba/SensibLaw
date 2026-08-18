@@ -31,6 +31,8 @@ def test_compression_efficiency_legal_reference():
 
 def test_deterministic_legal_reference_is_no_more_fragmented_than_legacy():
     text = "Civil Liability Act 2002 (NSW) s 5B(2)(a) Pt 4 Div 2 r 7.32 Sch 1 cl 4"
-    deterministic = collect_lexeme_occurrences(text, canonical_mode="deterministic_legal")
+    deterministic = collect_lexeme_occurrences(
+        text, canonical_mode="deterministic_legal"
+    )
     legacy = collect_lexeme_occurrences(text, canonical_mode="legacy_regex")
     assert len(deterministic) <= len(legacy)

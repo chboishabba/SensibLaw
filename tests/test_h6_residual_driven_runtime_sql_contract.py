@@ -12,7 +12,9 @@ def _sql() -> str:
 
 
 def _function(sql: str, name: str) -> str:
-    return sql.split(f"CREATE OR REPLACE FUNCTION execution.{name}", 1)[1].split("$$;", 1)[0]
+    return sql.split(f"CREATE OR REPLACE FUNCTION execution.{name}", 1)[1].split(
+        "$$;", 1
+    )[0]
 
 
 def test_h6_is_numeric_typed_factor_evidence_not_proximity_or_text_matching() -> None:
@@ -42,7 +44,9 @@ def test_h6_missing_relation_cannot_create_negative_evidence() -> None:
     assert "2,6" in body  # evidence family 2, H6
     assert "1::BIGINT AS signed_residual" in body
     assert "-1::BIGINT AS signed_residual" not in body
-    assert "NOT EXISTS" in body  # only proof/stop guards, never a negative-evidence producer
+    assert (
+        "NOT EXISTS" in body
+    )  # only proof/stop guards, never a negative-evidence producer
     assert "h6_discourse_factor_role_signature" in body
     assert "h6_temporal_factor_role_signature" in body
 
@@ -71,7 +75,8 @@ def test_h6_uses_smallint_horizon_argument_for_existing_stop_function() -> None:
 def test_zero_signed_h3_coordinate_is_classified_neutral_not_resolved() -> None:
     sql = _sql()
     view = sql.split(
-        "CREATE OR REPLACE VIEW execution.semantic_pnf_candidate_evidence_classification_v1", 1
+        "CREATE OR REPLACE VIEW execution.semantic_pnf_candidate_evidence_classification_v1",
+        1,
     )[1].split(";", 1)[0]
     assert "signed_residual > 0 THEN 2" in view
     assert "signed_residual < 0 THEN 3" in view

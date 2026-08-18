@@ -20,7 +20,9 @@ def act_reference_text() -> str:
 
 @pytest.fixture
 def section_reference_text() -> str:
-    return "We looked at s 223 of the Crimes Act 1914 and Part 3 of the Another Act 2000."
+    return (
+        "We looked at s 223 of the Crimes Act 1914 and Part 3 of the Another Act 2000."
+    )
 
 
 def test_normalization_and_citation_extraction(act_reference_text):
@@ -132,9 +134,7 @@ def test_dispatch_persists_hansard(tmp_path):
             {
                 "name": "Hansard",
                 "adapter": "hansard",
-                "debates": [
-                    {"id": "d1", "text": "Discussion of the Crimes Act 1914"}
-                ],
+                "debates": [{"id": "d1", "text": "Discussion of the Crimes Act 1914"}],
                 "db_path": str(db_path),
             }
         ]

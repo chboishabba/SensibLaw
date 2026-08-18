@@ -1,4 +1,5 @@
 """Shared affidavit response semantics helpers."""
+
 from __future__ import annotations
 
 from typing import Any, Mapping
@@ -24,8 +25,13 @@ def infer_response_packet(
 
     if duplicate_excerpt:
         response_acts.append("repetition_only")
-    characterization_overlap = any(term in proposition_lower and term in excerpt_lower for term in characterization_terms)
-    characterization_dispute = characterization_overlap or "characterization" in excerpt_lower
+    characterization_overlap = any(
+        term in proposition_lower and term in excerpt_lower
+        for term in characterization_terms
+    )
+    characterization_dispute = (
+        characterization_overlap or "characterization" in excerpt_lower
+    )
     if role in {"dispute", "hedged_denial"}:
         if characterization_dispute:
             response_acts.append("deny_characterisation")
@@ -61,21 +67,33 @@ def infer_response_packet(
         response_acts.append("scope_limitation")
         legal_significance_signals.append("scope_limitation")
 
-    if coverage_status == "covered" and response_acts and all(act != "repetition_only" for act in response_acts):
+    if (
+        coverage_status == "covered"
+        and response_acts
+        and all(act != "repetition_only" for act in response_acts)
+    ):
         support_status = "substantively_addressed"
     elif coverage_status == "partial" and duplicate_excerpt:
         support_status = "textually_addressed"
     elif coverage_status == "partial" and response_acts:
         support_status = "responsive_but_non_substantive"
-    elif coverage_status in {"unsupported_affidavit", "contested_source", "abstained_source"}:
+    elif coverage_status in {
+        "unsupported_affidavit",
+        "contested_source",
+        "abstained_source",
+    }:
         support_status = "unresolved"
     else:
         support_status = "textually_addressed"
 
-    if "evidentiary_grounding_signal" in legal_significance_signals and support_status in {
-        "substantively_addressed",
-        "responsive_but_non_substantive",
-    }:
+    if (
+        "evidentiary_grounding_signal" in legal_significance_signals
+        and support_status
+        in {
+            "substantively_addressed",
+            "responsive_but_non_substantive",
+        }
+    ):
         support_status = "evidentially_grounded_response"
 
     return {
@@ -85,10 +103,20 @@ def infer_response_packet(
     }
 
 
-def derive_primary_target_component(*, response: Mapping[str, Any], response_acts: list[str]) -> str:
-    component_targets = response.get("component_targets") if isinstance(response.get("component_targets"), list) else []
-    normalized_targets = [str(target).strip() for target in component_targets if str(target).strip()]
-    if "characterization" in normalized_targets and "deny_characterisation" in set(response_acts):
+def derive_primary_target_component(
+    *, response: Mapping[str, Any], response_acts: list[str]
+) -> str:
+    component_targets = (
+        response.get("component_targets")
+        if isinstance(response.get("component_targets"), list)
+        else []
+    )
+    normalized_targets = [
+        str(target).strip() for target in component_targets if str(target).strip()
+    ]
+    if "characterization" in normalized_targets and "deny_characterisation" in set(
+        response_acts
+    ):
         return "characterization"
     if "time" in normalized_targets:
         return "time"
@@ -110,7 +138,8 @@ def derive_semantic_basis(
         str(binding.get("component") or "").strip()
         for binding in response_component_bindings
         if isinstance(binding, Mapping)
-        and str(binding.get("component") or "").strip() in {"predicate_text", "characterization", "time"}
+        and str(binding.get("component") or "").strip()
+        in {"predicate_text", "characterization", "time"}
     }
     if structural_binding_components and justifications:
         return "mixed"
@@ -139,7 +168,8 @@ def derive_claim_state(
     )
     has_against = bool(
         {"deny_fact", "deny_characterisation", "hedged_denial"} & acts
-        or {"factual_denial", "characterization_dispute", "hedged_denial_signal"} & signals
+        or {"factual_denial", "characterization_dispute", "hedged_denial_signal"}
+        & signals
     )
     if has_for and has_against:
         support_direction = "mixed"
@@ -165,27 +195,47 @@ def derive_claim_state(
 
     if support_status == "evidentially_grounded_response":
         evidentiary_state = "supported"
-    elif support_status == "substantively_addressed" and support_direction in {"for", "mixed"}:
+    elif support_status == "substantively_addressed" and support_direction in {
+        "for",
+        "mixed",
+    }:
         evidentiary_state = "weakly_supported"
     elif support_direction == "against":
         evidentiary_state = "unproven"
-    elif support_status in {"textually_addressed", "responsive_but_non_substantive", "unresolved"}:
+    elif support_status in {
+        "textually_addressed",
+        "responsive_but_non_substantive",
+        "unresolved",
+    }:
         evidentiary_state = "unproven"
     else:
         evidentiary_state = "unassessed"
 
     if support_direction == "none" and support_status == "unresolved":
         operational_status = "claim_only"
-    elif support_direction == "for" and conflict_state == "undisputed" and evidentiary_state in {"unproven", "weakly_supported"}:
+    elif (
+        support_direction == "for"
+        and conflict_state == "undisputed"
+        and evidentiary_state in {"unproven", "weakly_supported"}
+    ):
         operational_status = "claim_with_support"
     elif support_direction == "against":
-        operational_status = "claim_with_opposition" if conflict_state == "unanswered" else "disputed_claim"
+        operational_status = (
+            "claim_with_opposition"
+            if conflict_state == "unanswered"
+            else "disputed_claim"
+        )
     elif support_direction == "mixed" and conflict_state == "partially_reconciled":
         operational_status = "partially_reconciled_claim"
-    elif support_direction == "for" and evidentiary_state in {"supported", "strongly_supported"}:
+    elif support_direction == "for" and evidentiary_state in {
+        "supported",
+        "strongly_supported",
+    }:
         operational_status = "resolved_but_unproven"
     else:
-        operational_status = "disputed_claim" if conflict_state == "disputed" else "claim_only"
+        operational_status = (
+            "disputed_claim" if conflict_state == "disputed" else "claim_only"
+        )
 
     return {
         "support_direction": support_direction,
@@ -214,9 +264,15 @@ def derive_missing_dimensions(
 
     if support_status in {"responsive_but_non_substantive", "unresolved"}:
         dimensions.append("direct_response")
-    if support_status == "textually_addressed" and not str(duplicate_match_excerpt or "").strip():
+    if (
+        support_status == "textually_addressed"
+        and not str(duplicate_match_excerpt or "").strip()
+    ):
         dimensions.append("object")
-    if coverage_status == "unsupported_affidavit" and not str(best_match_excerpt or "").strip():
+    if (
+        coverage_status == "unsupported_affidavit"
+        and not str(best_match_excerpt or "").strip()
+    ):
         dimensions.append("direct_response")
 
     deduped: list[str] = []
@@ -258,7 +314,9 @@ def derive_relation_classification(
         relation_root = "supports"
         relation_leaf = "equivalent_support"
         classification = "supported"
-        matched_response = str(duplicate_match_excerpt or "").strip() or matched_response
+        matched_response = (
+            str(duplicate_match_excerpt or "").strip() or matched_response
+        )
         if str(alternate_context_excerpt or "").strip():
             reason = "A direct or near-duplicate clause supports the same claim root, while a nearby alternate clause adds context and should not replace the matching leaf."
         else:
@@ -266,14 +324,29 @@ def derive_relation_classification(
         missing_dimensions = []
     elif coverage_status == "covered":
         relation_root = "supports"
-        relation_leaf = "exact_support" if support_status == "substantively_addressed" else "equivalent_support"
+        relation_leaf = (
+            "exact_support"
+            if support_status == "substantively_addressed"
+            else "equivalent_support"
+        )
         classification = "supported"
         reason = "The matched response aligns on the same proposition with substantive support."
-    elif coverage_status in {"contested_source", "contested_affidavit"} or conflict_state == "disputed" or support_direction == "against" or role == "dispute":
+    elif (
+        coverage_status in {"contested_source", "contested_affidavit"}
+        or conflict_state == "disputed"
+        or support_direction == "against"
+        or role == "dispute"
+    ):
         relation_root = "invalidates"
-        relation_leaf = "explicit_dispute" if role in {"dispute", "hedged_denial"} else "implicit_dispute"
+        relation_leaf = (
+            "explicit_dispute"
+            if role in {"dispute", "hedged_denial"}
+            else "implicit_dispute"
+        )
         classification = "disputed"
-        reason = "The matched response disputes or materially opposes the same proposition."
+        reason = (
+            "The matched response disputes or materially opposes the same proposition."
+        )
     elif coverage_status == "unsupported_affidavit":
         relation_root = "unanswered"
         relation_leaf = "missing"
@@ -294,7 +367,16 @@ def derive_relation_classification(
         relation_leaf = "substitution"
         classification = "substitution"
         reason = "The matched response overlaps lexically, but substitutes a different act or incident."
-    elif support_status in {"textually_addressed", "responsive_but_non_substantive", "evidentially_grounded_response"} or role in {"explanation", "procedural_frame", "restatement_only", "non_response"}:
+    elif support_status in {
+        "textually_addressed",
+        "responsive_but_non_substantive",
+        "evidentially_grounded_response",
+    } or role in {
+        "explanation",
+        "procedural_frame",
+        "restatement_only",
+        "non_response",
+    }:
         relation_root = "non_resolving"
         relation_leaf = "non_substantive_response"
         classification = "non_substantive_response"

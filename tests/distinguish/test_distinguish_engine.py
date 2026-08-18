@@ -1,5 +1,4 @@
 from src.distinguish.engine import (
-    CaseSilhouette,
     compare_cases,
     compare_story_to_case,
     extract_case_silhouette,
@@ -67,5 +66,9 @@ def test_compare_story_to_case_overlap_and_missing():
     assert "abuse_indicators" in missing_ids
     # anchors included
     assert any(o["candidate"]["anchor"] for o in result["overlaps"])
-    assert all("anchor" in o["base"] and "anchor" in o["candidate"] for o in result["overlaps"])
-    assert all("anchor" in m["base"] and "anchor" in m["candidate"] for m in result["missing"])
+    assert all(
+        "anchor" in o["base"] and "anchor" in o["candidate"] for o in result["overlaps"]
+    )
+    assert all(
+        "anchor" in m["base"] and "anchor" in m["candidate"] for m in result["missing"]
+    )

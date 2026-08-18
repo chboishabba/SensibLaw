@@ -113,18 +113,43 @@ def _classify_legal_ref(value: str) -> str:
     raw = str(value or "").casefold()
     if not normalized:
         return "legal_ref"
-    if any(token in normalized for token in (" act ", " statute ", " regulation ", " ordinance ", " bill ")):
+    if any(
+        token in normalized
+        for token in (" act ", " statute ", " regulation ", " ordinance ", " bill ")
+    ):
         return "supporting_legislation"
-    if any(token in normalized for token in ("instrument", "treaty", "agreement", "protocol", "convention", "charter")):
+    if any(
+        token in normalized
+        for token in (
+            "instrument",
+            "treaty",
+            "agreement",
+            "protocol",
+            "convention",
+            "charter",
+        )
+    ):
         return "cited_instrument"
-    if "_act_" in raw or raw.endswith("_act") or "act " in normalized or normalized.endswith(" act"):
+    if (
+        "_act_" in raw
+        or raw.endswith("_act")
+        or "act " in normalized
+        or normalized.endswith(" act")
+    ):
         return "supporting_legislation"
-    if "_v_" in raw or " hca " in normalized or " fca " in normalized or " court " in normalized:
+    if (
+        "_v_" in raw
+        or " hca " in normalized
+        or " fca " in normalized
+        or " court " in normalized
+    ):
         return "case_ref"
     return "legal_ref"
 
 
-def _detail_classification(details: Sequence[Mapping[str, Any]] | None, canonical_ref: str) -> str | None:
+def _detail_classification(
+    details: Sequence[Mapping[str, Any]] | None, canonical_ref: str
+) -> str | None:
     for row in details or ():
         if not isinstance(row, Mapping):
             continue
@@ -183,7 +208,9 @@ def _citation_detail_for_text(
     return {}
 
 
-def _infer_detail_jurisdiction_hint(detail: Mapping[str, Any], canonical_ref: str) -> str | None:
+def _infer_detail_jurisdiction_hint(
+    detail: Mapping[str, Any], canonical_ref: str
+) -> str | None:
     raw = " ".join(
         str(value or "").strip()
         for value in (
@@ -195,7 +222,9 @@ def _infer_detail_jurisdiction_hint(detail: Mapping[str, Any], canonical_ref: st
     ).casefold()
     if not raw:
         return None
-    if any(token in raw for token in ("commonwealth", " australia ", " aust ", " cth ")):
+    if any(
+        token in raw for token in ("commonwealth", " australia ", " aust ", " cth ")
+    ):
         return "CTH"
     for token in ("NSW", "VIC", "QLD", "WA", "SA", "TAS", "ACT", "NT", "HCA"):
         if token.casefold() in raw:
@@ -203,7 +232,9 @@ def _infer_detail_jurisdiction_hint(detail: Mapping[str, Any], canonical_ref: st
     return None
 
 
-def _infer_detail_instrument_kind(detail: Mapping[str, Any], canonical_ref: str) -> str | None:
+def _infer_detail_instrument_kind(
+    detail: Mapping[str, Any], canonical_ref: str
+) -> str | None:
     raw = " ".join(
         str(value or "").strip()
         for value in (
@@ -274,7 +305,9 @@ def _relation_entity_label(entity: Mapping[str, Any]) -> str:
     )
 
 
-def _native_title_relation_route_target(predicate_key: str, subject_label: str, object_label: str) -> str:
+def _native_title_relation_route_target(
+    predicate_key: str, subject_label: str, object_label: str
+) -> str:
     combined = " ".join(
         part.casefold()
         for part in (predicate_key, subject_label, object_label)
@@ -327,12 +360,21 @@ def _legal_claim_edge_admissibility(
     *,
     event_section: str | None,
 ) -> dict[str, Any]:
-    subject = relation.get("subject") if isinstance(relation.get("subject"), Mapping) else {}
-    object_ = relation.get("object") if isinstance(relation.get("object"), Mapping) else {}
+    subject = (
+        relation.get("subject") if isinstance(relation.get("subject"), Mapping) else {}
+    )
+    object_ = (
+        relation.get("object") if isinstance(relation.get("object"), Mapping) else {}
+    )
     shared_linkage_refs = [
         value
         for value in (
-            str(relation.get("promoted_record_ref") or relation.get("record_ref") or relation.get("candidate_id") or "").strip(),
+            str(
+                relation.get("promoted_record_ref")
+                or relation.get("record_ref")
+                or relation.get("candidate_id")
+                or ""
+            ).strip(),
             str(relation.get("fact_node_ref") or "").strip(),
             str(relation.get("claim_node_ref") or "").strip(),
             str(relation.get("event_id") or "").strip(),
@@ -340,7 +382,9 @@ def _legal_claim_edge_admissibility(
         if value
     ]
     payload = {
-        "relation_kind": _relation_edge_kind(str(relation.get("predicate_key") or "").strip()),
+        "relation_kind": _relation_edge_kind(
+            str(relation.get("predicate_key") or "").strip()
+        ),
         "source_node_admissibility": _relation_endpoint_admissibility(
             relation=relation,
             entity=subject,
@@ -365,7 +409,9 @@ def _legal_claim_edge_admissibility(
     return evaluate_legal_edge_admissibility(payload)
 
 
-def _relation_claim_chips(predicate_key: str, route_target: str, subject_label: str, object_label: str) -> list[str]:
+def _relation_claim_chips(
+    predicate_key: str, route_target: str, subject_label: str, object_label: str
+) -> list[str]:
     chips = ["legal_claim", predicate_key]
     if route_target == "au_native_title_follow":
         chips.append("native_title")
@@ -378,9 +424,27 @@ def _relation_claim_chips(predicate_key: str, route_target: str, subject_label: 
 
 
 _SUPPORTING_LEGISLATION_ROLE_HINTS: Sequence[tuple[Sequence[str], str]] = (
-    (("support", "supporting", "statute", "enable", "empower", "authoris", "permit", "allow"), "enabling_legislation"),
-    (("limit", "restrict", "prohibit", "ban", "forbid", "constrain", "regulate"), "constraining_legislation"),
-    (("procedur", "procedure", "trial", "hearing", "appeal", "process"), "procedural_legislation"),
+    (
+        (
+            "support",
+            "supporting",
+            "statute",
+            "enable",
+            "empower",
+            "authoris",
+            "permit",
+            "allow",
+        ),
+        "enabling_legislation",
+    ),
+    (
+        ("limit", "restrict", "prohibit", "ban", "forbid", "constrain", "regulate"),
+        "constraining_legislation",
+    ),
+    (
+        ("procedur", "procedure", "trial", "hearing", "appeal", "process"),
+        "procedural_legislation",
+    ),
     (("delegate", "delegat", "instrument"), "delegated_instrument_parent"),
     (("amend", "amended", "amendment", "repeal", "revise"), "amending_legislation"),
 )
@@ -407,7 +471,9 @@ def _supporting_legislation_roles_from_context(
         row = event_map.get(event_id)
         if isinstance(row, Mapping):
             event_text = str(row.get("event_text") or row.get("text") or "").strip()
-            event_section = str(row.get("event_section") or row.get("section") or "").strip()
+            event_section = str(
+                row.get("event_section") or row.get("section") or ""
+            ).strip()
             texts.extend([event_text, event_section])
     if isinstance(detail, Mapping):
         for key in ("source_title", "canonical_ref", "ref_kind", "reference_class"):
@@ -512,7 +578,9 @@ def _metadata_label_counts(
     for row in nodes:
         if str(row.get("kind") or "") not in kinds:
             continue
-        metadata = row.get("metadata") if isinstance(row.get("metadata"), Mapping) else {}
+        metadata = (
+            row.get("metadata") if isinstance(row.get("metadata"), Mapping) else {}
+        )
         label = str(metadata.get(metadata_key) or "").strip()
         if not label:
             continue
@@ -527,7 +595,9 @@ def _edge_metadata_label_counts(
 ) -> dict[str, int]:
     counts: dict[str, int] = {}
     for row in edges:
-        metadata = row.get("metadata") if isinstance(row.get("metadata"), Mapping) else {}
+        metadata = (
+            row.get("metadata") if isinstance(row.get("metadata"), Mapping) else {}
+        )
         label = str(metadata.get(metadata_key) or "").strip()
         if not label:
             continue
@@ -545,13 +615,19 @@ def _kind_counts(rows: Sequence[Mapping[str, Any]], *, field: str) -> dict[str, 
     return counts
 
 
-def _assert_edge_admissibility_counts(edges: Sequence[Mapping[str, Any]]) -> dict[str, int]:
+def _assert_edge_admissibility_counts(
+    edges: Sequence[Mapping[str, Any]],
+) -> dict[str, int]:
     counts: dict[str, int] = {"promote": 0, "audit": 0, "abstain": 0, "unknown": 0}
     for edge in edges:
         if not str(edge.get("kind") or "").startswith("asserts_"):
             continue
-        metadata = edge.get("metadata") if isinstance(edge.get("metadata"), Mapping) else {}
-        admissibility = metadata.get("edge_admissibility") if isinstance(metadata, Mapping) else {}
+        metadata = (
+            edge.get("metadata") if isinstance(edge.get("metadata"), Mapping) else {}
+        )
+        admissibility = (
+            metadata.get("edge_admissibility") if isinstance(metadata, Mapping) else {}
+        )
         decision = str((admissibility or {}).get("decision") or "").strip().casefold()
         if decision in counts:
             counts[decision] += 1
@@ -569,11 +645,25 @@ def _assert_edge_admissibility_queue_rows(
         kind = str(edge.get("kind") or "")
         if not kind.startswith("asserts_"):
             continue
-        metadata = edge.get("metadata") if isinstance(edge.get("metadata"), Mapping) else {}
-        admissibility = metadata.get("edge_admissibility") if isinstance(metadata.get("edge_admissibility"), Mapping) else metadata.get("edge_admissibility")
+        metadata = (
+            edge.get("metadata") if isinstance(edge.get("metadata"), Mapping) else {}
+        )
+        admissibility = (
+            metadata.get("edge_admissibility")
+            if isinstance(metadata.get("edge_admissibility"), Mapping)
+            else metadata.get("edge_admissibility")
+        )
         admissibility = admissibility if isinstance(admissibility, Mapping) else {}
         decision = str(admissibility.get("decision") or "").strip() or "unknown"
-        reasons = [str(value) for value in admissibility.get("reasons", []) if str(value).strip()] if isinstance(admissibility.get("reasons"), list) else []
+        reasons = (
+            [
+                str(value)
+                for value in admissibility.get("reasons", [])
+                if str(value).strip()
+            ]
+            if isinstance(admissibility.get("reasons"), list)
+            else []
+        )
         source_id = str(edge.get("source") or "").strip()
         target_id = str(edge.get("target") or "").strip()
         source_node = node_map.get(source_id) or {}
@@ -581,14 +671,23 @@ def _assert_edge_admissibility_queue_rows(
         rows.append(
             {
                 "edge_kind": kind,
-                "predicate_key": str(metadata.get("predicate_key") or kind.split("_", 1)[-1]).strip(),
+                "predicate_key": str(
+                    metadata.get("predicate_key") or kind.split("_", 1)[-1]
+                ).strip(),
                 "decision": decision,
                 "reasons": reasons,
                 "source_node_id": source_id or None,
-                "source_node_label": str(source_node.get("label") or source_id or "").strip() or None,
+                "source_node_label": str(
+                    source_node.get("label") or source_id or ""
+                ).strip()
+                or None,
                 "target_node_id": target_id or None,
-                "target_node_label": str(target_node.get("label") or target_id or "").strip() or None,
-                "claim_node_id": str(metadata.get("claim_node_id") or "").strip() or None,
+                "target_node_label": str(
+                    target_node.get("label") or target_id or ""
+                ).strip()
+                or None,
+                "claim_node_id": str(metadata.get("claim_node_id") or "").strip()
+                or None,
                 "candidate_id": str(metadata.get("candidate_id") or "").strip() or None,
                 "route_target": str(metadata.get("route_target") or "").strip() or None,
             }
@@ -630,7 +729,9 @@ def _priority_score_for_admissibility_rows(
 
     for row in rows:
         decision = str(row.get("decision") or "").strip().casefold() or "unknown"
-        reasons = [str(value).strip() for value in row.get("reasons", []) if str(value).strip()]
+        reasons = [
+            str(value).strip() for value in row.get("reasons", []) if str(value).strip()
+        ]
         decision_counts[decision] = decision_counts.get(decision, 0) + 1
         row_score = decision_weights.get(decision, decision_weights["unknown"])
         for reason in reasons:
@@ -651,8 +752,12 @@ def _priority_score_for_admissibility_rows(
         "priority_score": priority_score,
         "priority_band": _priority_band_for_score(priority_score),
         "priority_reasons": sorted(dict.fromkeys(priority_reasons)),
-        "priority_reason_counts": {key: reason_counts[key] for key in sorted(reason_counts)},
-        "priority_decision_counts": {key: decision_counts[key] for key in sorted(decision_counts)},
+        "priority_reason_counts": {
+            key: reason_counts[key] for key in sorted(reason_counts)
+        },
+        "priority_decision_counts": {
+            key: decision_counts[key] for key in sorted(decision_counts)
+        },
         "priority_source_count": len(rows),
     }
 
@@ -667,7 +772,9 @@ def _list_metadata_counts(
     for row in nodes:
         if row.get("kind") not in kinds:
             continue
-        metadata = row.get("metadata") if isinstance(row.get("metadata"), Mapping) else {}
+        metadata = (
+            row.get("metadata") if isinstance(row.get("metadata"), Mapping) else {}
+        )
         values = metadata.get(metadata_key)
         if isinstance(values, list):
             for value in values:
@@ -692,7 +799,9 @@ def _metadata_numeric_counts(
     for row in nodes:
         if str(row.get("kind") or "") not in kinds:
             continue
-        metadata = row.get("metadata") if isinstance(row.get("metadata"), Mapping) else {}
+        metadata = (
+            row.get("metadata") if isinstance(row.get("metadata"), Mapping) else {}
+        )
         value = metadata.get(metadata_key)
         if value in {None, ""}:
             continue
@@ -701,12 +810,16 @@ def _metadata_numeric_counts(
     return counts
 
 
-def _build_au_promoted_latent_graph(semantic_report: Mapping[str, Any]) -> dict[str, Any] | None:
+def _build_au_promoted_latent_graph(
+    semantic_report: Mapping[str, Any],
+) -> dict[str, Any] | None:
     run_id = str(semantic_report.get("run_id") or "").strip()
     if not run_id:
         return None
     try:
-        records = extract_promoted_records_from_report(system_id="au_hca", report=semantic_report)
+        records = extract_promoted_records_from_report(
+            system_id="au_hca", report=semantic_report
+        )
     except ValueError:
         return None
     return build_latent_promoted_graph(
@@ -716,11 +829,15 @@ def _build_au_promoted_latent_graph(semantic_report: Mapping[str, Any]) -> dict[
     )
 
 
-def _promoted_legal_claim_rows_from_latent_graph(graph: Mapping[str, Any] | None) -> list[dict[str, Any]]:
+def _promoted_legal_claim_rows_from_latent_graph(
+    graph: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
     if not isinstance(graph, Mapping):
         return []
     nodes = graph.get("nodes") if isinstance(graph.get("nodes"), list) else []
-    record_index = graph.get("record_index") if isinstance(graph.get("record_index"), list) else []
+    record_index = (
+        graph.get("record_index") if isinstance(graph.get("record_index"), list) else []
+    )
     node_map = {
         str(row.get("node_ref") or ""): row
         for row in nodes
@@ -734,11 +851,21 @@ def _promoted_legal_claim_rows_from_latent_graph(graph: Mapping[str, Any] | None
         if not claim_ref:
             continue
         claim_node = node_map.get(claim_ref)
-        subject_node = node_map.get(str(record_row.get("subject_node_ref") or "").strip())
+        subject_node = node_map.get(
+            str(record_row.get("subject_node_ref") or "").strip()
+        )
         object_node = node_map.get(str(record_row.get("object_node_ref") or "").strip())
-        if not isinstance(claim_node, Mapping) or not isinstance(subject_node, Mapping) or not isinstance(object_node, Mapping):
+        if (
+            not isinstance(claim_node, Mapping)
+            or not isinstance(subject_node, Mapping)
+            or not isinstance(object_node, Mapping)
+        ):
             continue
-        payload = claim_node.get("payload") if isinstance(claim_node.get("payload"), Mapping) else {}
+        payload = (
+            claim_node.get("payload")
+            if isinstance(claim_node.get("payload"), Mapping)
+            else {}
+        )
         rows.append(
             {
                 "record_ref": str(record_row.get("record_ref") or "").strip(),
@@ -748,18 +875,29 @@ def _promoted_legal_claim_rows_from_latent_graph(graph: Mapping[str, Any] | None
                 "promotion_status": str(payload.get("promotion_status") or "").strip(),
                 "rule_type": str(payload.get("rule_type") or "").strip(),
                 "subject": {
-                    "entity_kind": str(subject_node.get("node_type") or "").strip() or None,
-                    "canonical_key": str((subject_node.get("payload") or {}).get("canonical_key") or "").strip(),
+                    "entity_kind": str(subject_node.get("node_type") or "").strip()
+                    or None,
+                    "canonical_key": str(
+                        (subject_node.get("payload") or {}).get("canonical_key") or ""
+                    ).strip(),
                     "canonical_label": str(subject_node.get("label") or "").strip(),
                 },
                 "object": {
-                    "entity_kind": str(object_node.get("node_type") or "").strip() or None,
-                    "canonical_key": str((object_node.get("payload") or {}).get("canonical_key") or "").strip(),
+                    "entity_kind": str(object_node.get("node_type") or "").strip()
+                    or None,
+                    "canonical_key": str(
+                        (object_node.get("payload") or {}).get("canonical_key") or ""
+                    ).strip(),
                     "canonical_label": str(object_node.get("label") or "").strip(),
                 },
                 "semantic_basis": "promoted_anchor",
-                "canonical_promotion_status": str(payload.get("promotion_status") or "").strip() or "promoted_true",
-                "canonical_promotion_basis": str(record_row.get("record_ref") or "").strip(),
+                "canonical_promotion_status": str(
+                    payload.get("promotion_status") or ""
+                ).strip()
+                or "promoted_true",
+                "canonical_promotion_basis": str(
+                    record_row.get("record_ref") or ""
+                ).strip(),
                 "candidate_id": str(record_row.get("record_ref") or "").strip(),
                 "claim_node_ref": claim_ref,
                 "fact_node_ref": str(record_row.get("fact_node_ref") or "").strip(),
@@ -790,7 +928,11 @@ def build_au_legal_follow_graph(
         if isinstance(semantic_report.get("authority_receipts"), Mapping)
         else {}
     )
-    items = authority_receipts.get("items") if isinstance(authority_receipts.get("items"), list) else []
+    items = (
+        authority_receipts.get("items")
+        if isinstance(authority_receipts.get("items"), list)
+        else []
+    )
     follow_needed_events = (
         authority_receipts.get("follow_needed_events")
         if isinstance(authority_receipts.get("follow_needed_events"), list)
@@ -810,10 +952,16 @@ def build_au_legal_follow_graph(
     )
     if latent_promoted_graph is None:
         latent_promoted_graph = _build_au_promoted_latent_graph(semantic_report)
-    promoted_legal_claim_rows = _promoted_legal_claim_rows_from_latent_graph(latent_promoted_graph)
+    promoted_legal_claim_rows = _promoted_legal_claim_rows_from_latent_graph(
+        latent_promoted_graph
+    )
 
     event_map: dict[str, Mapping[str, Any]] = {}
-    for row in semantic_report.get("per_event", []) if isinstance(semantic_report.get("per_event"), list) else ():
+    for row in (
+        semantic_report.get("per_event", [])
+        if isinstance(semantic_report.get("per_event"), list)
+        else ()
+    ):
         if isinstance(row, Mapping):
             event_id = str(row.get("event_id") or "").strip()
             if event_id:
@@ -838,7 +986,10 @@ def build_au_legal_follow_graph(
     for relation in relation_candidates:
         if not isinstance(relation, Mapping):
             continue
-        if str(relation.get("predicate_key") or "").strip() not in _AU_LEGAL_CLAIM_PREDICATES:
+        if (
+            str(relation.get("predicate_key") or "").strip()
+            not in _AU_LEGAL_CLAIM_PREDICATES
+        ):
             continue
         event_id = str(relation.get("event_id") or "").strip()
         if event_id and event_id not in event_map:
@@ -848,8 +999,18 @@ def build_au_legal_follow_graph(
         if event_id and event_id not in event_map:
             event_map[event_id] = {"event_id": event_id}
 
-    def add_node(node_id: str, *, kind: str, label: str, metadata: Mapping[str, Any] | None = None) -> None:
-        clean_metadata = {key: value for key, value in dict(metadata or {}).items() if value is not None}
+    def add_node(
+        node_id: str,
+        *,
+        kind: str,
+        label: str,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> None:
+        clean_metadata = {
+            key: value
+            for key, value in dict(metadata or {}).items()
+            if value is not None
+        }
         if node_id in seen_nodes:
             existing = node_index[node_id]
             if not existing.get("label") and label:
@@ -869,7 +1030,13 @@ def build_au_legal_follow_graph(
         node_index[node_id] = node
         nodes.append(node)
 
-    def add_edge(source: str, target: str, *, kind: str, metadata: Mapping[str, Any] | None = None) -> None:
+    def add_edge(
+        source: str,
+        target: str,
+        *,
+        kind: str,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> None:
         key = (source, target, kind)
         if key in seen_edges:
             return
@@ -888,7 +1055,9 @@ def build_au_legal_follow_graph(
             return
         if target_id in node_index:
             return
-        target_kind = "case_reference" if target_id.startswith("case:") else "legal_instrument"
+        target_kind = (
+            "case_reference" if target_id.startswith("case:") else "legal_instrument"
+        )
         add_node(
             target_id,
             kind=target_kind,
@@ -939,22 +1108,37 @@ def build_au_legal_follow_graph(
     ) -> None:
         predicate_key = str(relation.get("predicate_key") or "").strip()
         event_id = str(relation.get("event_id") or "").strip()
-        subject = relation.get("subject") if isinstance(relation.get("subject"), Mapping) else {}
-        object_ = relation.get("object") if isinstance(relation.get("object"), Mapping) else {}
+        subject = (
+            relation.get("subject")
+            if isinstance(relation.get("subject"), Mapping)
+            else {}
+        )
+        object_ = (
+            relation.get("object")
+            if isinstance(relation.get("object"), Mapping)
+            else {}
+        )
         subject_key = str(subject.get("canonical_key") or "").strip()
         object_key = str(object_.get("canonical_key") or "").strip()
         subject_label = _relation_entity_label(subject)
         object_label = _relation_entity_label(object_)
         event_row = event_map.get(event_id) if event_id else None
         event_section = (
-            str((event_row or {}).get("section") or (event_row or {}).get("event_section") or "").strip() or None
+            str(
+                (event_row or {}).get("section")
+                or (event_row or {}).get("event_section")
+                or ""
+            ).strip()
+            or None
         )
         if not predicate_key or not event_id or not subject_key or not object_key:
             return
 
         subject_node_id = f"{_relation_entity_node_kind(subject)}:{_slug(subject_key)}"
         object_node_id = f"{_relation_entity_node_kind(object_)}:{_slug(object_key)}"
-        route_target = _native_title_relation_route_target(predicate_key, subject_label, object_label)
+        route_target = _native_title_relation_route_target(
+            predicate_key, subject_label, object_label
+        )
         edge_admissibility = _legal_claim_edge_admissibility(
             relation,
             event_section=event_section,
@@ -986,12 +1170,23 @@ def build_au_legal_follow_graph(
                 "candidate_id": str(relation.get("candidate_id") or "").strip() or None,
                 "event_id": event_id,
                 "predicate_key": predicate_key,
-                "display_label": str(relation.get("display_label") or predicate_key).strip(),
-                "confidence_tier": str(relation.get("confidence_tier") or "").strip() or None,
-                "promotion_status": str(relation.get("promotion_status") or "").strip() or None,
-                "canonical_promotion_status": str(relation.get("canonical_promotion_status") or "").strip() or None,
-                "canonical_promotion_basis": str(relation.get("canonical_promotion_basis") or "").strip() or None,
-                "semantic_basis": str(relation.get("semantic_basis") or "").strip() or None,
+                "display_label": str(
+                    relation.get("display_label") or predicate_key
+                ).strip(),
+                "confidence_tier": str(relation.get("confidence_tier") or "").strip()
+                or None,
+                "promotion_status": str(relation.get("promotion_status") or "").strip()
+                or None,
+                "canonical_promotion_status": str(
+                    relation.get("canonical_promotion_status") or ""
+                ).strip()
+                or None,
+                "canonical_promotion_basis": str(
+                    relation.get("canonical_promotion_basis") or ""
+                ).strip()
+                or None,
+                "semantic_basis": str(relation.get("semantic_basis") or "").strip()
+                or None,
                 "route_target": route_target,
                 "subject_node_id": subject_node_id,
                 "object_node_id": object_node_id,
@@ -1008,13 +1203,19 @@ def build_au_legal_follow_graph(
             node_id,
             subject_node_id,
             kind="claim_subject",
-            metadata={"predicate_key": predicate_key, "candidate_id": str(relation.get("candidate_id") or "").strip() or None},
+            metadata={
+                "predicate_key": predicate_key,
+                "candidate_id": str(relation.get("candidate_id") or "").strip() or None,
+            },
         )
         add_edge(
             node_id,
             object_node_id,
             kind="claim_object",
-            metadata={"predicate_key": predicate_key, "candidate_id": str(relation.get("candidate_id") or "").strip() or None},
+            metadata={
+                "predicate_key": predicate_key,
+                "candidate_id": str(relation.get("candidate_id") or "").strip() or None,
+            },
         )
         add_edge(
             subject_node_id,
@@ -1036,8 +1237,14 @@ def build_au_legal_follow_graph(
             label=_event_label(row),
             metadata={
                 "event_id": event_id,
-                "event_section": str(row.get("section") or row.get("event_section") or "").strip() or None,
-                "event_text": str(row.get("text") or row.get("event_text") or "").strip()[:240] or None,
+                "event_section": str(
+                    row.get("section") or row.get("event_section") or ""
+                ).strip()
+                or None,
+                "event_text": str(
+                    row.get("text") or row.get("event_text") or ""
+                ).strip()[:240]
+                or None,
             },
         )
 
@@ -1061,7 +1268,11 @@ def build_au_legal_follow_graph(
                 label=normalized,
                 metadata={
                     "supporting_event_ids": [event_id],
-                    "supporting_event_sections": [str(row.get("event_section") or "").strip()] if str(row.get("event_section") or "").strip() else [],
+                    "supporting_event_sections": [
+                        str(row.get("event_section") or "").strip()
+                    ]
+                    if str(row.get("event_section") or "").strip()
+                    else [],
                 },
             )
             add_edge(event_node_id, authority_node_id, kind="mentions_authority_title")
@@ -1087,10 +1298,16 @@ def build_au_legal_follow_graph(
                 "jurisdiction_hint": detail.get("jurisdiction_hint"),
                 "instrument_kind": detail.get("instrument_kind"),
                 "supporting_event_ids": [event_id],
-                "supporting_event_sections": [str(row.get("event_section") or "").strip()] if str(row.get("event_section") or "").strip() else [],
+                "supporting_event_sections": [
+                    str(row.get("event_section") or "").strip()
+                ]
+                if str(row.get("event_section") or "").strip()
+                else [],
             }
             if classification == "supporting_legislation":
-                roles = _supporting_legislation_roles_from_context(event_map, [event_id], detail)
+                roles = _supporting_legislation_roles_from_context(
+                    event_map, [event_id], detail
+                )
                 if roles:
                     metadata["supporting_legislation_roles"] = roles
             add_node(
@@ -1117,7 +1334,9 @@ def build_au_legal_follow_graph(
             normalized = str(citation or "").strip()
             if not normalized:
                 continue
-            citation_detail = _citation_detail_for_text(row.get("candidate_citation_details"), normalized)
+            citation_detail = _citation_detail_for_text(
+                row.get("candidate_citation_details"), normalized
+            )
             citation_node_id = f"citation:{_slug(normalized)}"
             add_node(
                 citation_node_id,
@@ -1126,14 +1345,22 @@ def build_au_legal_follow_graph(
                 metadata={
                     **citation_detail,
                     "supporting_event_ids": [event_id],
-                    "supporting_event_sections": [str(row.get("event_section") or "").strip()] if str(row.get("event_section") or "").strip() else [],
+                    "supporting_event_sections": [
+                        str(row.get("event_section") or "").strip()
+                    ]
+                    if str(row.get("event_section") or "").strip()
+                    else [],
                 },
             )
             add_edge(
                 event_node_id,
                 citation_node_id,
                 kind="mentions_citation",
-                metadata={key: value for key, value in citation_detail.items() if key != "raw_text"},
+                metadata={
+                    key: value
+                    for key, value in citation_detail.items()
+                    if key != "raw_text"
+                },
             )
 
     for item in items:
@@ -1142,7 +1369,11 @@ def build_au_legal_follow_graph(
         ingest_run_id = str(item.get("ingest_run_id") or "").strip()
         if not ingest_run_id:
             continue
-        structured_summary = item.get("structured_summary") if isinstance(item.get("structured_summary"), Mapping) else {}
+        structured_summary = (
+            item.get("structured_summary")
+            if isinstance(item.get("structured_summary"), Mapping)
+            else {}
+        )
         receipt_node_id = f"authority_receipt:{_slug(ingest_run_id)}"
         citation = str(item.get("citation") or "").strip()
         add_node(
@@ -1155,9 +1386,15 @@ def build_au_legal_follow_graph(
                 "ingest_mode": str(item.get("ingest_mode") or "").strip() or None,
                 "resolved_url": str(item.get("resolved_url") or "").strip() or None,
                 "link_status": str(item.get("link_status") or "").strip() or None,
-                "selected_paragraph_numbers": list(structured_summary.get("selected_paragraph_numbers") or []),
-                "linked_event_sections": list(structured_summary.get("linked_event_sections") or []),
-                "detected_neutral_citations": list(structured_summary.get("detected_neutral_citations") or []),
+                "selected_paragraph_numbers": list(
+                    structured_summary.get("selected_paragraph_numbers") or []
+                ),
+                "linked_event_sections": list(
+                    structured_summary.get("linked_event_sections") or []
+                ),
+                "detected_neutral_citations": list(
+                    structured_summary.get("detected_neutral_citations") or []
+                ),
                 "linked_event_ids": list(item.get("linked_event_ids") or []),
             },
         )
@@ -1169,7 +1406,8 @@ def build_au_legal_follow_graph(
                     receipt_node_id,
                     kind="linked_authority_receipt",
                     metadata={
-                        "authority_kind": str(item.get("authority_kind") or "").strip() or None,
+                        "authority_kind": str(item.get("authority_kind") or "").strip()
+                        or None,
                         "ingest_run_id": ingest_run_id,
                     },
                 )
@@ -1178,9 +1416,12 @@ def build_au_legal_follow_graph(
                     receipt_node_id,
                     kind="supported_by_authority_receipt",
                     metadata={
-                        "authority_kind": str(item.get("authority_kind") or "").strip() or None,
+                        "authority_kind": str(item.get("authority_kind") or "").strip()
+                        or None,
                         "ingest_run_id": ingest_run_id,
-                        "selected_paragraph_numbers": list(structured_summary.get("selected_paragraph_numbers") or []),
+                        "selected_paragraph_numbers": list(
+                            structured_summary.get("selected_paragraph_numbers") or []
+                        ),
                     },
                 )
         if citation:
@@ -1196,7 +1437,11 @@ def build_au_legal_follow_graph(
                 metadata={
                     **citation_detail,
                     "supporting_receipt_ids": [ingest_run_id],
-                    "supporting_authority_kinds": [str(item.get("authority_kind") or "").strip()] if str(item.get("authority_kind") or "").strip() else [],
+                    "supporting_authority_kinds": [
+                        str(item.get("authority_kind") or "").strip()
+                    ]
+                    if str(item.get("authority_kind") or "").strip()
+                    else [],
                 },
             )
             add_edge(
@@ -1208,7 +1453,8 @@ def build_au_legal_follow_graph(
                     for key, value in {
                         **citation_detail,
                         "ingest_run_id": ingest_run_id,
-                        "authority_kind": str(item.get("authority_kind") or "").strip() or None,
+                        "authority_kind": str(item.get("authority_kind") or "").strip()
+                        or None,
                         "supporting_receipt_ids": [ingest_run_id],
                     }.items()
                     if key != "raw_text"
@@ -1225,15 +1471,23 @@ def build_au_legal_follow_graph(
                 label=normalized,
                 metadata={
                     "supporting_receipt_ids": [ingest_run_id],
-                    "supporting_authority_kinds": [str(item.get("authority_kind") or "").strip()] if str(item.get("authority_kind") or "").strip() else [],
+                    "supporting_authority_kinds": [
+                        str(item.get("authority_kind") or "").strip()
+                    ]
+                    if str(item.get("authority_kind") or "").strip()
+                    else [],
                 },
             )
-            add_edge(receipt_node_id, authority_node_id, kind="supports_authority_title")
+            add_edge(
+                receipt_node_id, authority_node_id, kind="supports_authority_title"
+            )
         for ref in item.get("matched_legal_refs", []):
             normalized = str(ref or "").strip()
             if not normalized:
                 continue
-            detail = _detail_for_canonical_ref(item.get("matched_legal_ref_details"), normalized)
+            detail = _detail_for_canonical_ref(
+                item.get("matched_legal_ref_details"), normalized
+            )
             classification = str(detail.get("reference_class") or "").strip()
             if classification == "case":
                 classification = "case_ref"
@@ -1251,7 +1505,11 @@ def build_au_legal_follow_graph(
                 "jurisdiction_hint": detail.get("jurisdiction_hint"),
                 "instrument_kind": detail.get("instrument_kind"),
                 "supporting_receipt_ids": [ingest_run_id],
-                "supporting_authority_kinds": [str(item.get("authority_kind") or "").strip()] if str(item.get("authority_kind") or "").strip() else [],
+                "supporting_authority_kinds": [
+                    str(item.get("authority_kind") or "").strip()
+                ]
+                if str(item.get("authority_kind") or "").strip()
+                else [],
             }
             if classification == "supporting_legislation":
                 roles = _supporting_legislation_roles_from_context(
@@ -1310,8 +1568,14 @@ def build_au_legal_follow_graph(
             node_id=f"legal_claim:promoted:{_slug(record_ref)}",
             metadata_extra={
                 "promoted_record_ref": record_ref,
-                "promoted_fact_node_ref": str(relation.get("fact_node_ref") or "").strip() or None,
-                "promoted_claim_node_ref": str(relation.get("claim_node_ref") or "").strip() or None,
+                "promoted_fact_node_ref": str(
+                    relation.get("fact_node_ref") or ""
+                ).strip()
+                or None,
+                "promoted_claim_node_ref": str(
+                    relation.get("claim_node_ref") or ""
+                ).strip()
+                or None,
             },
         )
 
@@ -1329,7 +1593,11 @@ def build_au_legal_follow_graph(
             metadata={
                 "supporting_node_ids": sorted(uk_supporting_nodes),
                 "supporting_fields": sorted(
-                    {field for fields in uk_supporting_nodes.values() for field in fields}
+                    {
+                        field
+                        for fields in uk_supporting_nodes.values()
+                        for field in fields
+                    }
                 ),
             },
         )
@@ -1341,30 +1609,49 @@ def build_au_legal_follow_graph(
                 metadata={"derived_reason_fields": sorted(fields)},
             )
 
-    supporting_receipt_ids = [receipt_id for row in nodes for receipt_id in row["metadata"].get("supporting_receipt_ids", [])]
+    supporting_receipt_ids = [
+        receipt_id
+        for row in nodes
+        for receipt_id in row["metadata"].get("supporting_receipt_ids", [])
+    ]
     supporting_authority_kinds: dict[str, int] = {}
     for row in nodes:
         for kind in row["metadata"].get("supporting_authority_kinds", []):
-            supporting_authority_kinds[kind] = supporting_authority_kinds.get(kind, 0) + 1
+            supporting_authority_kinds[kind] = (
+                supporting_authority_kinds.get(kind, 0) + 1
+            )
     assert_edge_admissibility_counts = _assert_edge_admissibility_counts(edges)
     summary = {
         "node_count": len(nodes),
         "edge_count": len(edges),
         "event_count": sum(1 for row in nodes if row["kind"] == "event"),
-        "authority_title_count": sum(1 for row in nodes if row["kind"] == "authority_title"),
+        "authority_title_count": sum(
+            1 for row in nodes if row["kind"] == "authority_title"
+        ),
         "legal_ref_count": sum(
             1
             for row in nodes
-            if row["kind"] in {"legal_ref", "case_ref", "supporting_legislation", "cited_instrument"}
+            if row["kind"]
+            in {"legal_ref", "case_ref", "supporting_legislation", "cited_instrument"}
         ),
         "case_ref_count": sum(1 for row in nodes if row["kind"] == "case_ref"),
-        "supporting_legislation_count": sum(1 for row in nodes if row["kind"] == "supporting_legislation"),
-        "cited_instrument_count": sum(1 for row in nodes if row["kind"] == "cited_instrument"),
+        "supporting_legislation_count": sum(
+            1 for row in nodes if row["kind"] == "supporting_legislation"
+        ),
+        "cited_instrument_count": sum(
+            1 for row in nodes if row["kind"] == "cited_instrument"
+        ),
         "citation_count": sum(1 for row in nodes if row["kind"] == "citation"),
-        "authority_receipt_count": sum(1 for row in nodes if row["kind"] == "authority_receipt"),
-        "derived_follow_target_count": sum(1 for row in nodes if row["kind"] == "derived_follow_target"),
+        "authority_receipt_count": sum(
+            1 for row in nodes if row["kind"] == "authority_receipt"
+        ),
+        "derived_follow_target_count": sum(
+            1 for row in nodes if row["kind"] == "derived_follow_target"
+        ),
         "legal_claim_count": sum(1 for row in nodes if row["kind"] == "legal_claim"),
-        "debate_record_count": sum(1 for row in nodes if row["kind"] == "debate_record"),
+        "debate_record_count": sum(
+            1 for row in nodes if row["kind"] == "debate_record"
+        ),
         "derived_uk_follow_target_supporting_node_count": len(uk_supporting_nodes),
         "supporting_receipt_count": len(set(supporting_receipt_ids)),
         "supporting_authority_kind_counts": supporting_authority_kinds,
@@ -1375,22 +1662,42 @@ def build_au_legal_follow_graph(
         ),
         "reference_kind_counts": _metadata_label_counts(
             nodes,
-            kinds={"legal_ref", "case_ref", "supporting_legislation", "cited_instrument"},
+            kinds={
+                "legal_ref",
+                "case_ref",
+                "supporting_legislation",
+                "cited_instrument",
+            },
             metadata_key="reference_kind",
         ),
         "reference_class_counts": _metadata_label_counts(
             nodes,
-            kinds={"legal_ref", "case_ref", "supporting_legislation", "cited_instrument"},
+            kinds={
+                "legal_ref",
+                "case_ref",
+                "supporting_legislation",
+                "cited_instrument",
+            },
             metadata_key="reference_class",
         ),
         "ref_kind_counts": _metadata_label_counts(
             nodes,
-            kinds={"legal_ref", "case_ref", "supporting_legislation", "cited_instrument"},
+            kinds={
+                "legal_ref",
+                "case_ref",
+                "supporting_legislation",
+                "cited_instrument",
+            },
             metadata_key="ref_kind",
         ),
         "jurisdiction_hint_counts": _metadata_label_counts(
             nodes,
-            kinds={"legal_ref", "case_ref", "supporting_legislation", "cited_instrument"},
+            kinds={
+                "legal_ref",
+                "case_ref",
+                "supporting_legislation",
+                "cited_instrument",
+            },
             metadata_key="jurisdiction_hint",
         ),
         "instrument_kind_counts": _metadata_label_counts(
@@ -1414,15 +1721,25 @@ def build_au_legal_follow_graph(
             metadata_key="year_hint",
         ),
         "edge_kind_counts": _kind_counts(edges, field="kind"),
-        "edge_reference_class_counts": _edge_metadata_label_counts(edges, metadata_key="reference_class"),
-        "edge_ref_kind_counts": _edge_metadata_label_counts(edges, metadata_key="ref_kind"),
+        "edge_reference_class_counts": _edge_metadata_label_counts(
+            edges, metadata_key="reference_class"
+        ),
+        "edge_ref_kind_counts": _edge_metadata_label_counts(
+            edges, metadata_key="ref_kind"
+        ),
     }
     summary.update(
         {
-            "assert_edge_count": sum(1 for edge in edges if str(edge.get("kind") or "").startswith("asserts_")),
+            "assert_edge_count": sum(
+                1
+                for edge in edges
+                if str(edge.get("kind") or "").startswith("asserts_")
+            ),
             "assert_edge_admissibility_counts": assert_edge_admissibility_counts,
             "assert_edge_admissibility_review_count": sum(
-                count for decision, count in assert_edge_admissibility_counts.items() if decision in {"audit", "abstain"}
+                count
+                for decision, count in assert_edge_admissibility_counts.items()
+                if decision in {"audit", "abstain"}
             ),
         }
     )
@@ -1440,9 +1757,19 @@ def build_au_legal_follow_graph(
 def build_au_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, Any]:
     nodes = graph.get("nodes") if isinstance(graph.get("nodes"), list) else []
     edges = graph.get("edges") if isinstance(graph.get("edges"), list) else []
-    summary = dict(graph.get("summary", {})) if isinstance(graph.get("summary"), Mapping) else {}
-    node_map = {str(row.get("id") or ""): row for row in nodes if str(row.get("id") or "").strip()}
-    assert_edge_admissibility_rows = _assert_edge_admissibility_queue_rows(edges, node_map)
+    summary = (
+        dict(graph.get("summary", {}))
+        if isinstance(graph.get("summary"), Mapping)
+        else {}
+    )
+    node_map = {
+        str(row.get("id") or ""): row
+        for row in nodes
+        if str(row.get("id") or "").strip()
+    }
+    assert_edge_admissibility_rows = _assert_edge_admissibility_queue_rows(
+        edges, node_map
+    )
 
     supporting_edges: dict[str, list[dict[str, Any]]] = {}
     for edge in edges:
@@ -1455,7 +1782,9 @@ def build_au_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, A
         supporting_edges.setdefault(target, []).append(
             {
                 "source_id": source,
-                "source_label": str((node_map.get(source) or {}).get("label") or source),
+                "source_label": str(
+                    (node_map.get(source) or {}).get("label") or source
+                ),
                 "source_kind": str((node_map.get(source) or {}).get("kind") or ""),
                 "derived_reason_fields": list(
                     (edge.get("metadata") or {}).get("derived_reason_fields", [])
@@ -1475,15 +1804,26 @@ def build_au_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, A
     for node in nodes:
         if str(node.get("kind") or "") == "legal_claim":
             node_id = str(node.get("id") or "").strip()
-            metadata = node.get("metadata") if isinstance(node.get("metadata"), Mapping) else {}
-            predicate_key = str(metadata.get("predicate_key") or "").strip() or "legal_claim"
-            route_target = str(metadata.get("route_target") or "").strip() or "au_legal_claim_follow"
+            metadata = (
+                node.get("metadata")
+                if isinstance(node.get("metadata"), Mapping)
+                else {}
+            )
+            predicate_key = (
+                str(metadata.get("predicate_key") or "").strip() or "legal_claim"
+            )
+            route_target = (
+                str(metadata.get("route_target") or "").strip()
+                or "au_legal_claim_follow"
+            )
             claim_admissibility_rows = [
                 row
                 for row in assert_edge_admissibility_rows
                 if row.get("claim_node_id") == node_id
             ]
-            priority_profile = _priority_score_for_admissibility_rows(claim_admissibility_rows)
+            priority_profile = _priority_score_for_admissibility_rows(
+                claim_admissibility_rows
+            )
             queue.append(
                 build_reviewer_packet(
                     item_id=node_id,
@@ -1496,8 +1836,20 @@ def build_au_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, A
                     chips=_relation_claim_chips(
                         predicate_key,
                         route_target,
-                        str((node_map.get(str(metadata.get("subject_node_id") or "")) or {}).get("label") or ""),
-                        str((node_map.get(str(metadata.get("object_node_id") or "")) or {}).get("label") or ""),
+                        str(
+                            (
+                                node_map.get(str(metadata.get("subject_node_id") or ""))
+                                or {}
+                            ).get("label")
+                            or ""
+                        ),
+                        str(
+                            (
+                                node_map.get(str(metadata.get("object_node_id") or ""))
+                                or {}
+                            ).get("label")
+                            or ""
+                        ),
                     ),
                     detail_rows=[
                         {
@@ -1506,15 +1858,33 @@ def build_au_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, A
                         },
                         {
                             "label": "Subject",
-                            "value": str((node_map.get(str(metadata.get("subject_node_id") or "")) or {}).get("label") or "unknown"),
+                            "value": str(
+                                (
+                                    node_map.get(
+                                        str(metadata.get("subject_node_id") or "")
+                                    )
+                                    or {}
+                                ).get("label")
+                                or "unknown"
+                            ),
                         },
                         {
                             "label": "Object",
-                            "value": str((node_map.get(str(metadata.get("object_node_id") or "")) or {}).get("label") or "unknown"),
+                            "value": str(
+                                (
+                                    node_map.get(
+                                        str(metadata.get("object_node_id") or "")
+                                    )
+                                    or {}
+                                ).get("label")
+                                or "unknown"
+                            ),
                         },
                         {
                             "label": "Promotion basis",
-                            "value": str(metadata.get("canonical_promotion_basis") or "unknown"),
+                            "value": str(
+                                metadata.get("canonical_promotion_basis") or "unknown"
+                            ),
                         },
                         {
                             "label": "Edge admissibility",
@@ -1549,7 +1919,9 @@ def build_au_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, A
                         "candidate_id": metadata.get("candidate_id"),
                         "event_id": metadata.get("event_id"),
                         "predicate_key": predicate_key,
-                        "canonical_promotion_status": metadata.get("canonical_promotion_status"),
+                        "canonical_promotion_status": metadata.get(
+                            "canonical_promotion_status"
+                        ),
                         "semantic_basis": metadata.get("semantic_basis"),
                         "subject_node_id": metadata.get("subject_node_id"),
                         "object_node_id": metadata.get("object_node_id"),
@@ -1562,7 +1934,9 @@ def build_au_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, A
         if str(node.get("kind") or "") != "derived_follow_target":
             continue
         node_id = str(node.get("id") or "").strip()
-        metadata = node.get("metadata") if isinstance(node.get("metadata"), Mapping) else {}
+        metadata = (
+            node.get("metadata") if isinstance(node.get("metadata"), Mapping) else {}
+        )
         supporting = supporting_edges.get(node_id, [])
         label = str(node.get("label") or "").strip() or "AU legal follow target"
         route_target = "uk_british_legal_follow"
@@ -1579,15 +1953,22 @@ def build_au_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, A
                 detail_rows=[
                     {
                         "label": "Supporting nodes",
-                        "value": ", ".join(row["source_label"] for row in supporting) or "none",
+                        "value": ", ".join(row["source_label"] for row in supporting)
+                        or "none",
                     },
                     {
                         "label": "Supporting fields",
-                        "value": ", ".join(str(value) for value in metadata.get("supporting_fields", [])) or "none",
+                        "value": ", ".join(
+                            str(value)
+                            for value in metadata.get("supporting_fields", [])
+                        )
+                        or "none",
                     },
                 ],
                 extra={
-                    "supporting_node_ids": list(metadata.get("supporting_node_ids", [])),
+                    "supporting_node_ids": list(
+                        metadata.get("supporting_node_ids", [])
+                    ),
                     "supporting_fields": list(metadata.get("supporting_fields", [])),
                     "supporting_nodes": supporting,
                     "priority_score": 1,
@@ -1604,12 +1985,20 @@ def build_au_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, A
         if str(node.get("kind") or "") != "debate_record":
             continue
         node_id = str(node.get("id") or "").strip()
-        metadata = node.get("metadata") if isinstance(node.get("metadata"), Mapping) else {}
+        metadata = (
+            node.get("metadata") if isinstance(node.get("metadata"), Mapping) else {}
+        )
         debate_edges = edges_by_source.get(node_id, [])
-        influence_tags = [str(item) for item in metadata.get("influence_tags", []) if item]
+        influence_tags = [
+            str(item) for item in metadata.get("influence_tags", []) if item
+        ]
         edge_descriptions: list[str] = []
         for edge in debate_edges:
-            edge_metadata = edge.get("metadata") if isinstance(edge.get("metadata"), Mapping) else {}
+            edge_metadata = (
+                edge.get("metadata")
+                if isinstance(edge.get("metadata"), Mapping)
+                else {}
+            )
             parts: list[str] = [edge["kind"], edge.get("target", "")]
             instrument_type = str(edge_metadata.get("instrument_type") or "").strip()
             if instrument_type:
@@ -1629,8 +2018,14 @@ def build_au_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, A
                 resolution_status="open",
                 chips=["debate", "non_binding"],
                 detail_rows=[
-                    {"label": "Influence tags", "value": ", ".join(influence_tags) or "none"},
-                    {"label": "Edge highlights", "value": "; ".join(edge_descriptions) or "none"},
+                    {
+                        "label": "Influence tags",
+                        "value": ", ".join(influence_tags) or "none",
+                    },
+                    {
+                        "label": "Edge highlights",
+                        "value": "; ".join(edge_descriptions) or "none",
+                    },
                     {"label": "Summary", "value": metadata.get("summary") or "none"},
                 ],
                 extra={
@@ -1651,7 +2046,9 @@ def build_au_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, A
         if "priority_score" not in row:
             row["priority_score"] = 0
         if "priority_band" not in row:
-            row["priority_band"] = _priority_band_for_score(int(row.get("priority_score") or 0))
+            row["priority_band"] = _priority_band_for_score(
+                int(row.get("priority_score") or 0)
+            )
         if "priority_reasons" not in row:
             row["priority_reasons"] = []
         if "priority_reason_counts" not in row:
@@ -1697,11 +2094,13 @@ def build_au_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, A
             receipt_kind="authority_receipt",
             substrate_kind="legal_follow_graph",
             conjecture_kind="follow_needed_conjecture",
-            route_targets=list(queue_summary["route_target_counts"].keys()) or [
+            route_targets=list(queue_summary["route_target_counts"].keys())
+            or [
                 "uk_british_legal_follow",
                 "manual_review",
             ],
-            resolution_statuses=list(queue_summary["resolution_status_counts"].keys()) or [
+            resolution_statuses=list(queue_summary["resolution_status_counts"].keys())
+            or [
                 "open",
                 "resolved",
                 "reviewed",
@@ -1713,8 +2112,12 @@ def build_au_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, A
             "route_target_counts": queue_summary["route_target_counts"],
             "resolution_status_counts": queue_summary["resolution_status_counts"],
             "queue_count": queue_summary["queue_count"],
-            "edge_admissibility_review_count": summary.get("assert_edge_admissibility_review_count", 0),
-            "edge_admissibility_counts": dict(summary.get("assert_edge_admissibility_counts", {})),
+            "edge_admissibility_review_count": summary.get(
+                "assert_edge_admissibility_review_count", 0
+            ),
+            "edge_admissibility_counts": dict(
+                summary.get("assert_edge_admissibility_counts", {})
+            ),
             "priority_band_counts": priority_band_counts,
             "highest_priority_score": highest_priority_score,
             "highest_priority_band": highest_priority_band,
@@ -1723,10 +2126,12 @@ def build_au_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, A
         "pressure": dict(pressure),
         "queue": queue,
         "edge_admissibility_queue": assert_edge_admissibility_rows,
-        "parliamentary_follow_control": compute_parliamentary_weight([
-            "debate",
-            "committee_report",
-        ]),
+        "parliamentary_follow_control": compute_parliamentary_weight(
+            [
+                "debate",
+                "committee_report",
+            ]
+        ),
         "parliamentary_samples": [
             asdict(record)
             for record in list(build_sample_debate_records().values())[:2]

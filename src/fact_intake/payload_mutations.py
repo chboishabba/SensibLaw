@@ -22,7 +22,10 @@ def append_payload_observation(
 ) -> None:
     statement = payload["statements"][statement_index]
     excerpt = payload["excerpts"][statement_index]
-    source = next((row for row in payload["sources"] if row["source_id"] == excerpt["source_id"]), payload["sources"][0])
+    source = next(
+        (row for row in payload["sources"] if row["source_id"] == excerpt["source_id"]),
+        payload["sources"][0],
+    )
     observation_id = f"obs:{sha256_payload({'run_id': payload['run']['run_id'], **dict(identity_fields)})[:16]}"
     payload["observations"].append(
         build_observation_row(
@@ -31,7 +34,11 @@ def append_payload_observation(
             excerpt_id=excerpt["excerpt_id"],
             source_id=source["source_id"],
             observation_order=len(
-                [row for row in payload["observations"] if row["statement_id"] == statement["statement_id"]]
+                [
+                    row
+                    for row in payload["observations"]
+                    if row["statement_id"] == statement["statement_id"]
+                ]
             )
             + 1,
             predicate_key=predicate_key,

@@ -15,20 +15,33 @@ except ModuleNotFoundError:
 
 
 def test_next_action_for_workload_preserves_structural_review_mapping() -> None:
-    assert next_action_for_workload("baseline_confirmation") == "retain as checked baseline"
-    assert next_action_for_workload("governance_gap") == "promote held hotspot pack through manifest governance"
-    assert next_action_for_workload("structural_contradiction") == "review contradiction culprits and preserve disjointness evidence"
+    assert (
+        next_action_for_workload("baseline_confirmation")
+        == "retain as checked baseline"
+    )
+    assert (
+        next_action_for_workload("governance_gap")
+        == "promote held hotspot pack through manifest governance"
+    )
+    assert (
+        next_action_for_workload("structural_contradiction")
+        == "review contradiction culprits and preserve disjointness evidence"
+    )
 
 
 def test_make_provisional_rows_and_bundles_rank_by_workload_and_cue_priority() -> None:
     review_items = [
         {
             "review_item_id": "review:contradiction",
-            "recommended_next_action": next_action_for_workload("structural_contradiction"),
+            "recommended_next_action": next_action_for_workload(
+                "structural_contradiction"
+            ),
         },
         {
             "review_item_id": "review:baseline",
-            "recommended_next_action": next_action_for_workload("baseline_confirmation"),
+            "recommended_next_action": next_action_for_workload(
+                "baseline_confirmation"
+            ),
         },
     ]
     source_rows = [

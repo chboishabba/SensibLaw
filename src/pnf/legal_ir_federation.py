@@ -231,9 +231,7 @@ def _active_attestations(
     attestations: Sequence[LegalReviewAttestation],
 ) -> tuple[LegalReviewAttestation, ...]:
     superseded = {
-        ref
-        for row in attestations
-        for ref in row.supersedes_attestation_refs
+        ref for row in attestations for ref in row.supersedes_attestation_refs
     }
     return tuple(row for row in attestations if row.attestation_ref not in superseded)
 
@@ -252,7 +250,9 @@ def project_federated_claim_state(
     for row in _active_attestations(attestations):
         if row.revision_ref != revision_ref:
             continue
-        if accepted_credentials and not accepted_credentials.intersection(row.credential_refs):
+        if accepted_credentials and not accepted_credentials.intersection(
+            row.credential_refs
+        ):
             continue
         if accepted_institutions and row.institution_ref not in accepted_institutions:
             continue
@@ -290,7 +290,9 @@ def project_federated_claim_state(
         abstention_count=counts["abstain"],
         supersession_count=counts["supersede"],
         active_reviewer_refs=tuple(sorted({row.reviewer_ref for row in scoped})),
-        institution_refs=tuple(sorted({row.institution_ref for row in scoped if row.institution_ref})),
+        institution_refs=tuple(
+            sorted({row.institution_ref for row in scoped if row.institution_ref})
+        ),
         unresolved_coordinate_refs=tuple(sorted(unresolved)),
         state=state,
     )
@@ -318,7 +320,10 @@ def build_federation_bundle(
         credential_refs=tuple(sorted(row.credential_ref for row in credentials)),
         attestation_refs=tuple(sorted(row.attestation_ref for row in attestations)),
         trust_projection_refs=tuple(
-            sorted("legal-trust-projection:" + canonical_sha256(row.to_dict()) for row in projections)
+            sorted(
+                "legal-trust-projection:" + canonical_sha256(row.to_dict())
+                for row in projections
+            )
         ),
         federation_refs=tuple(sorted(set(federation_refs))),
         checkpoint_state="reviewable_federated_graph",

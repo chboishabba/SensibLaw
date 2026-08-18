@@ -15,9 +15,7 @@ class CorrectionEntry:
     author: str
 
 
-DEFAULT_LEDGER_PATH = (
-    Path(__file__).resolve().parents[2] / "data" / "corrections.csv"
-)
+DEFAULT_LEDGER_PATH = Path(__file__).resolve().parents[2] / "data" / "corrections.csv"
 
 
 def _resolve_path(path: Optional[Path] = None) -> Path:
@@ -36,7 +34,9 @@ class CorrectionLedger:
     def __init__(self, path: Optional[Path] = None):
         self.path = _resolve_path(path)
 
-    def append(self, description: str, author: str, date: Optional[str] = None) -> CorrectionEntry:
+    def append(
+        self, description: str, author: str, date: Optional[str] = None
+    ) -> CorrectionEntry:
         entry = CorrectionEntry(
             date=date or datetime.utcnow().date().isoformat(),
             description=description,
@@ -61,13 +61,13 @@ class CorrectionLedger:
     def to_dicts(self) -> List[dict]:
         return [asdict(e) for e in self.list_entries()]
 
+
 """Simple in-memory ledger for corrections.
 
 This module provides a minimal API for storing correction entries.
 """
 
 from dataclasses import dataclass
-from typing import List
 
 
 @dataclass

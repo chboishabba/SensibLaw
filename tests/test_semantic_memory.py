@@ -118,7 +118,9 @@ def test_semantic_memory_retrieves_great_dane_note_for_dog_query() -> None:
     assert match["matched_span"] == "great dane"
     assert match["grounded_node"] == "QGreatDane"
     assert match["wrapper_state"] == "asserted_personal_observation"
-    dog_path = next(path for path in match["explanation_paths"] if path["topic_id"] == "QDog")
+    dog_path = next(
+        path for path in match["explanation_paths"] if path["topic_id"] == "QDog"
+    )
     assert dog_path["ontology_path"] == ["Great Dane", "dog breed", "dog"]
 
 
@@ -144,12 +146,15 @@ def test_semantic_memory_can_filter_by_wrapper_without_public_claims() -> None:
         ontology_snapshot_id="wikidata_snapshot_test",
     )
 
-    assert retrieve_semantic_memory(
-        query="Where did I actually see dogs?",
-        memory_index=index,
-        grounding_catalog=_grounding_catalog(),
-        require_wrapper_state="asserted_personal_observation",
-    )["match_count"] == 0
+    assert (
+        retrieve_semantic_memory(
+            query="Where did I actually see dogs?",
+            memory_index=index,
+            grounding_catalog=_grounding_catalog(),
+            require_wrapper_state="asserted_personal_observation",
+        )["match_count"]
+        == 0
+    )
     unfiltered = retrieve_semantic_memory(
         query="Where do I mention dogs?",
         memory_index=index,

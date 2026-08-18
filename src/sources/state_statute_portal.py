@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Iterable
 
 
 @dataclass(frozen=True)
@@ -83,4 +82,7 @@ def canonical_state_statute_portals() -> list[StateStatutePortal]:
 def canonical_state_statute_queries(query_text: str) -> list[dict[str, object]]:
     """Produce a normalized payload for each canonical portal using the provided text."""
 
-    return [portal.build_search_payload(query_text) for portal in canonical_state_statute_portals()]
+    return [
+        portal.build_search_payload(query_text)
+        for portal in canonical_state_statute_portals()
+    ]

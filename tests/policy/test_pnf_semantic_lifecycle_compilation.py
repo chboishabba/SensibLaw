@@ -91,12 +91,9 @@ def test_fibred_compiler_separates_reduction_resolution_and_legal_projection(
     artifacts = compilation.artifacts
 
     assert artifacts["semantic_lifecycle"]["reduction_is_not_resolution"] is True
-    assert artifacts["semantic_resolution_receipts"][0]["state"] == (
-        "resolved_unique"
-    )
+    assert artifacts["semantic_resolution_receipts"][0]["state"] == ("resolved_unique")
     assert any(
-        row["domain"] == "retrieval"
-        for row in artifacts["domain_ir_projections"]
+        row["domain"] == "retrieval" for row in artifacts["domain_ir_projections"]
     )
     assert any(
         row["demand_kind"] == "missing_jurisdiction"

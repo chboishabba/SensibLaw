@@ -57,9 +57,12 @@ class AustLIIClient:
                 {"User-Agent": "SensibLawBot/0.1 (+https://github.com/)"}
             )
             self.cache = (
-                HTTPCache(cache_dir or Path(__file__).resolve().parent.parent / "data" / "cache",
-                          delay=cache_delay,
-                          session=self.session)
+                HTTPCache(
+                    cache_dir
+                    or Path(__file__).resolve().parent.parent / "data" / "cache",
+                    delay=cache_delay,
+                    session=self.session,
+                )
                 if cache_dir is not None or cache_delay
                 else None
             )
@@ -159,7 +162,9 @@ class AustLIIClient:
         html = content.decode("utf-8") if isinstance(content, bytes) else content
 
         title_match = re.search(r"<h1[^>]*>(.*?)</h1>", html, re.IGNORECASE | re.DOTALL)
-        title = re.sub(r"<.*?>", "", title_match.group(1)).strip() if title_match else ""
+        title = (
+            re.sub(r"<.*?>", "", title_match.group(1)).strip() if title_match else ""
+        )
 
         date_match = re.search(
             r"<span[^>]*class=['\"]date['\"][^>]*>(.*?)</span>",

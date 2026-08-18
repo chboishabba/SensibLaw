@@ -91,7 +91,9 @@ class EpistemicEntityReport:
         return any(entity.world_canonical for entity in self.canonical_entities)
 
 
-def _fetchall(cursor: Any, query: str, params: Sequence[object] = ()) -> tuple[Any, ...]:
+def _fetchall(
+    cursor: Any, query: str, params: Sequence[object] = ()
+) -> tuple[Any, ...]:
     cursor.execute(query, params)
     return tuple(cursor.fetchall())
 
@@ -301,7 +303,9 @@ def collect_epistemic_entity_report(
     connection: Any,
     surfaces: Sequence[str],
 ) -> EpistemicEntityReport:
-    normalized = tuple(dict.fromkeys(surface.strip() for surface in surfaces if surface.strip()))
+    normalized = tuple(
+        dict.fromkeys(surface.strip() for surface in surfaces if surface.strip())
+    )
     if not normalized:
         raise ValueError("at least one non-empty surface is required")
 
@@ -333,22 +337,27 @@ def collect_epistemic_entity_report(
         )
         direct_object_ids = tuple(int(row[0]) for row in object_rows)
 
-        factor_rows = _fetchall(
-            cursor,
-            """
+        factor_rows = (
+            _fetchall(
+                cursor,
+                """
             SELECT DISTINCT factor_id
               FROM execution.semantic_pnf_hyperedge
              WHERE object_id = ANY(%s)
              ORDER BY factor_id
             """,
-            (list(direct_object_ids),),
-        ) if direct_object_ids else ()
+                (list(direct_object_ids),),
+            )
+            if direct_object_ids
+            else ()
+        )
         direct_factor_ids = tuple(int(row[0]) for row in factor_rows)
         direct_factors = _factor_records(cursor, direct_factor_ids, epistemic_level=1)
 
-        entity_rows = _fetchall(
-            cursor,
-            """
+        entity_rows = (
+            _fetchall(
+                cursor,
+                """
             SELECT DISTINCT entity.entity_id,
                    entity.entity_ref,
                    authority.authority_name,
@@ -364,8 +373,11 @@ def collect_epistemic_entity_report(
              WHERE member.object_id = ANY(%s)
              ORDER BY entity.entity_id
             """,
-            (list(direct_object_ids),),
-        ) if direct_object_ids else ()
+                (list(direct_object_ids),),
+            )
+            if direct_object_ids
+            else ()
+        )
         entities = tuple(
             CanonicalEntityRecord(
                 entity_id=int(row[0]),
@@ -378,9 +390,10 @@ def collect_epistemic_entity_report(
         )
         entity_ids = tuple(entity.entity_id for entity in entities)
 
-        witness_rows = _fetchall(
-            cursor,
-            """
+        witness_rows = (
+            _fetchall(
+                cursor,
+                """
             SELECT witness.witness_id,
                    witness.source_object_id,
                    source_head.symbol_text,
@@ -421,8 +434,11 @@ def collect_epistemic_entity_report(
                       witness.candidate_count
              ORDER BY witness.witness_id
             """,
-            (list(entity_ids),),
-        ) if entity_ids else ()
+                (list(entity_ids),),
+            )
+            if entity_ids
+            else ()
+        )
         witnesses = tuple(
             IdentityWitnessRecord(
                 witness_id=int(row[0]),
@@ -444,9 +460,10 @@ def collect_epistemic_entity_report(
         relevant_factor_ids = set(direct_factor_ids)
         relevant_factor_ids.update(factor.factor_id for factor in derived_factors)
 
-        composition_rows = _fetchall(
-            cursor,
-            """
+        composition_rows = (
+            _fetchall(
+                cursor,
+                """
             SELECT candidate.candidate_id,
                    candidate.left_factor_id,
                    candidate.right_factor_id,
@@ -473,8 +490,11 @@ def collect_epistemic_entity_report(
                 OR candidate.right_factor_id = ANY(%s)
              ORDER BY candidate.candidate_rank, candidate.candidate_id
             """,
-            (list(relevant_factor_ids), list(relevant_factor_ids)),
-        ) if relevant_factor_ids else ()
+                (list(relevant_factor_ids), list(relevant_factor_ids)),
+            )
+            if relevant_factor_ids
+            else ()
+        )
         composition_candidates = tuple(
             CompositionCandidateRecord(
                 candidate_id=int(row[0]),
@@ -539,7 +559,9 @@ def render_epistemic_entity_report(report: EpistemicEntityReport) -> str:
         "",
     ]
     if not report.canonical_entities:
-        lines.append("No canonical entity fibre is currently admitted for these local surface objects.")
+        lines.append(
+            "No canonical entity fibre is currently admitted for these local surface objects."
+        )
     else:
         for entity in report.canonical_entities:
             lines.append(
@@ -563,7 +585,9 @@ def render_epistemic_entity_report(report: EpistemicEntityReport) -> str:
 
     lines.extend(["", "## 3. Level-1 direct structural facts", ""])
     if not report.direct_factors:
-        lines.append("No direct role-labelled factor contains the requested surface identity.")
+        lines.append(
+            "No direct role-labelled factor contains the requested surface identity."
+        )
     for factor in report.direct_factors:
         args = ", ".join(_argument_text(argument) for argument in factor.arguments)
         lines.extend(
@@ -580,7 +604,9 @@ def render_epistemic_entity_report(report: EpistemicEntityReport) -> str:
 
     lines.extend(["## 4. Level-3 witnessed substitutions", ""])
     if not report.derived_factors:
-        lines.append("No factor is currently admitted through an identity substitution proof.")
+        lines.append(
+            "No factor is currently admitted through an identity substitution proof."
+        )
     for factor in report.derived_factors:
         args = ", ".join(_argument_text(argument) for argument in factor.arguments)
         lines.extend(
@@ -601,7 +627,9 @@ def render_epistemic_entity_report(report: EpistemicEntityReport) -> str:
     )
     lines.append("")
     if not report.composition_candidates:
-        lines.append("No bounded local composition candidate touches the admitted factor neighbourhood.")
+        lines.append(
+            "No bounded local composition candidate touches the admitted factor neighbourhood."
+        )
     for candidate in report.composition_candidates:
         bridge = (
             candidate.bridge_entity_ref

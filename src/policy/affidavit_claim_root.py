@@ -1,4 +1,5 @@
 """Shared affidavit duplicate-response and claim-root helpers."""
+
 from __future__ import annotations
 
 import hashlib
@@ -45,10 +46,18 @@ def derive_claim_root_fields(
             "claim_root_basis": None,
             "alternate_context_excerpt": None,
         }
-    basis = "duplicate_excerpt" if str(duplicate_match_excerpt or "").strip() else "proposition_text"
+    basis = (
+        "duplicate_excerpt"
+        if str(duplicate_match_excerpt or "").strip()
+        else "proposition_text"
+    )
     alternate_context_excerpt = None
     best_excerpt = str(best_match_excerpt or "").strip()
-    if str(duplicate_match_excerpt or "").strip() and best_excerpt and best_excerpt != str(duplicate_match_excerpt or "").strip():
+    if (
+        str(duplicate_match_excerpt or "").strip()
+        and best_excerpt
+        and best_excerpt != str(duplicate_match_excerpt or "").strip()
+    ):
         alternate_context_excerpt = best_excerpt
     return {
         "claim_root_text": claim_root_text,

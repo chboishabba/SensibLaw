@@ -10,19 +10,19 @@ from src.policy.decision_surface import build_decision_surface
 
 
 def _load_fixture(name: str) -> dict:
-    fixture_path = (
-        Path(__file__).resolve().parent
-        / "fixtures"
-        / "wikidata"
-        / name
-    )
+    fixture_path = Path(__file__).resolve().parent / "fixtures" / "wikidata" / name
     return json.loads(fixture_path.read_text(encoding="utf-8"))
 
 
-def test_cohort_d_review_control_index_fixture_preserves_blockers_and_hold_signals() -> None:
+def test_cohort_d_review_control_index_fixture_preserves_blockers_and_hold_signals() -> (
+    None
+):
     payload = _load_fixture("wikidata_nat_cohort_d_review_control_index_20260402.json")
 
-    assert payload["schema_version"] == WIKIDATA_NAT_COHORT_D_REVIEW_CONTROL_INDEX_SCHEMA_VERSION
+    assert (
+        payload["schema_version"]
+        == WIKIDATA_NAT_COHORT_D_REVIEW_CONTROL_INDEX_SCHEMA_VERSION
+    )
     assert payload["index_id"] == "cohort_d_review_control_index_20260402"
     assert payload["decision"] == "review"
     assert payload["promotion_allowed"] is False
@@ -40,11 +40,15 @@ def test_cohort_d_review_control_index_fixture_preserves_blockers_and_hold_signa
     ]
     assert payload["workflow_summary"]["stage"] == "inspect"
     assert payload["workflow_summary"]["recommended_view"] == "batch_entries"
-    assert payload["workflow_summary"]["counts"]["total_unresolved_packet_ref_count"] == 1
+    assert (
+        payload["workflow_summary"]["counts"]["total_unresolved_packet_ref_count"] == 1
+    )
 
 
 def test_cohort_d_review_control_index_builder_accepts_batch_reports() -> None:
-    payload = _load_fixture("wikidata_nat_cohort_d_review_control_index_input_20260402.json")
+    payload = _load_fixture(
+        "wikidata_nat_cohort_d_review_control_index_input_20260402.json"
+    )
     report = build_wikidata_nat_cohort_d_review_control_index(
         batch_reports=payload["batch_reports"],
         index_id=payload["index_id"],

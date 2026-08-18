@@ -8,7 +8,9 @@ def test_infer_semantic_recommendations_scores_keywords():
         GraphNode(
             type=NodeType.CASE,
             identifier="case:negligence",
-            metadata={"summary": "A negligent act caused injury requiring compensation"},
+            metadata={
+                "summary": "A negligent act caused injury requiring compensation"
+            },
         )
     )
     graph.add_node(

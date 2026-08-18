@@ -13,6 +13,25 @@ class CoordinatorLeaseLost(RuntimeError):
     pass
 
 
+COORDINATOR_LEASE_ENV = "SENSIBLAW_COORDINATOR_LEASE_SECONDS"
+DEFAULT_COORDINATOR_LEASE_SECONDS = 90
+
+
+def coordinator_lease_seconds() -> int:
+    """Read the coordinator lease duration from the explicit runtime setting."""
+
+    raw_value = os.environ.get(
+        COORDINATOR_LEASE_ENV, str(DEFAULT_COORDINATOR_LEASE_SECONDS)
+    )
+    try:
+        lease_seconds = int(raw_value)
+    except ValueError as error:
+        raise ValueError(f"{COORDINATOR_LEASE_ENV} must be an integer") from error
+    if lease_seconds < 3:
+        raise ValueError("coordinator lease must be at least three seconds")
+    return lease_seconds
+
+
 def _connect(database_url: str) -> Any:
     import psycopg
 
@@ -40,7 +59,7 @@ class CoordinatorLeaseGuard:
         *,
         database_url: str,
         run_ref: str,
-        lease_seconds: int = 90,
+        lease_seconds: int = DEFAULT_COORDINATOR_LEASE_SECONDS,
         coordinator_ref: str | None = None,
     ) -> None:
         if lease_seconds < 3:
@@ -201,4 +220,7 @@ __all__ = [
     "CoordinatorLease",
     "CoordinatorLeaseGuard",
     "CoordinatorLeaseLost",
+    "COORDINATOR_LEASE_ENV",
+    "DEFAULT_COORDINATOR_LEASE_SECONDS",
+    "coordinator_lease_seconds",
 ]

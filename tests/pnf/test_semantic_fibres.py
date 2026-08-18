@@ -71,9 +71,10 @@ def test_fibre_ledger_join_is_associative_commutative_and_idempotent() -> None:
 
     assert first.join(second).ledger_ref == second.join(first).ledger_ref
     assert first.join(first).ledger_ref == first.ledger_ref
-    assert first.join(second).join(third).ledger_ref == first.join(
-        second.join(third)
-    ).ledger_ref
+    assert (
+        first.join(second).join(third).ledger_ref
+        == first.join(second.join(third)).ledger_ref
+    )
     assert len(first.join(second).fibre(coordinate.coordinate_ref)) == 2
 
 
@@ -91,22 +92,34 @@ def test_validation_is_computed_from_fibre_shape() -> None:
         role="undetermined",
     )
 
-    assert evaluate_fibre(
-        coordinate_ref=coordinate.coordinate_ref,
-        elements=(support,),
-    ).outcome == "satisfied"
-    assert evaluate_fibre(
-        coordinate_ref=coordinate.coordinate_ref,
-        elements=(contradiction,),
-    ).outcome == "violated"
-    assert evaluate_fibre(
-        coordinate_ref=coordinate.coordinate_ref,
-        elements=(support, contradiction),
-    ).outcome == "both"
-    assert evaluate_fibre(
-        coordinate_ref=coordinate.coordinate_ref,
-        elements=(unresolved,),
-    ).outcome == "undetermined"
+    assert (
+        evaluate_fibre(
+            coordinate_ref=coordinate.coordinate_ref,
+            elements=(support,),
+        ).outcome
+        == "satisfied"
+    )
+    assert (
+        evaluate_fibre(
+            coordinate_ref=coordinate.coordinate_ref,
+            elements=(contradiction,),
+        ).outcome
+        == "violated"
+    )
+    assert (
+        evaluate_fibre(
+            coordinate_ref=coordinate.coordinate_ref,
+            elements=(support, contradiction),
+        ).outcome
+        == "both"
+    )
+    assert (
+        evaluate_fibre(
+            coordinate_ref=coordinate.coordinate_ref,
+            elements=(unresolved,),
+        ).outcome
+        == "undetermined"
+    )
     validation = evaluate_fibre(
         coordinate_ref=coordinate.coordinate_ref,
         elements=(support,),

@@ -172,10 +172,17 @@ def build_relation_neighborhood_report(
             if idx + 1 < len(tokens) and _is_candidate_token(tokens[idx + 1]):
                 dependency_neighbors[(_term_key(tokens[idx + 1]), "adjacent_next")] += 1
             if mention.unit_id not in seen_example_units:
-                sentence_examples.append({"unit_id": mention.unit_id, "snippet": _trim(mention.sentence_text)})
+                sentence_examples.append(
+                    {
+                        "unit_id": mention.unit_id,
+                        "snippet": _trim(mention.sentence_text),
+                    }
+                )
                 seen_example_units.add(mention.unit_id)
             for alias in {mention.surface, term, mention.surface.casefold()}:
-                for link in lookup_bridge_alias(alias, conn=conn, db_path=db_path, slice_name=slice_name):
+                for link in lookup_bridge_alias(
+                    alias, conn=conn, db_path=db_path, slice_name=slice_name
+                ):
                     bridge_hits[(link.provider, link.external_id)] = {
                         "canonical_ref": link.canonical_ref,
                         "canonical_kind": link.canonical_kind,
@@ -193,13 +200,24 @@ def build_relation_neighborhood_report(
                 "source_count": len(source_ids),
                 "top_dependency_neighbors": [
                     {"term": neighbor, "relation": relation, "count": count}
-                    for (neighbor, relation), count in dependency_neighbors.most_common(top_n_neighbors)
+                    for (neighbor, relation), count in dependency_neighbors.most_common(
+                        top_n_neighbors
+                    )
                 ],
                 "top_cooccurring_terms": [
                     {"term": neighbor, "count": count}
-                    for neighbor, count in cooccurring_terms.most_common(top_n_neighbors)
+                    for neighbor, count in cooccurring_terms.most_common(
+                        top_n_neighbors
+                    )
                 ],
-                "bridge_matches": sorted(bridge_hits.values(), key=lambda row: (row["canonical_kind"], row["canonical_ref"], row["curie"])),
+                "bridge_matches": sorted(
+                    bridge_hits.values(),
+                    key=lambda row: (
+                        row["canonical_kind"],
+                        row["canonical_ref"],
+                        row["curie"],
+                    ),
+                ),
                 "examples": sentence_examples[:3],
             }
         )

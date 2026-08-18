@@ -9,10 +9,24 @@ from src.fact_intake import list_fact_intake_runs, persist_fact_semantic_materia
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Backfill normalized fact semantics for persisted fact_intake runs.")
-    parser.add_argument("--db-path", required=True, help="Path to the SensibLaw SQLite database.")
-    parser.add_argument("--run-id", action="append", default=[], help="Specific fact_intake run_id to backfill. Repeatable.")
-    parser.add_argument("--limit", type=int, default=None, help="Optional limit when no run_id is provided.")
+    parser = argparse.ArgumentParser(
+        description="Backfill normalized fact semantics for persisted fact_intake runs."
+    )
+    parser.add_argument(
+        "--db-path", required=True, help="Path to the SensibLaw SQLite database."
+    )
+    parser.add_argument(
+        "--run-id",
+        action="append",
+        default=[],
+        help="Specific fact_intake run_id to backfill. Repeatable.",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Optional limit when no run_id is provided.",
+    )
     args = parser.parse_args(argv)
 
     db_path = Path(args.db_path)
@@ -25,6 +39,7 @@ def main(argv: list[str] | None = None) -> int:
         if not run_ids:
             rows = list_fact_intake_runs(conn, limit=args.limit or 100000)
             run_ids = [str(row["run_id"]) for row in rows]
+
         def progress(update: dict[str, object]) -> None:
             print(
                 f"[semantic-refresh] run={update['run_id']} status={update['status']} "
@@ -32,6 +47,7 @@ def main(argv: list[str] | None = None) -> int:
                 f"relations={update['relation_count']} policies={update['policy_count']} "
                 f"msg={update['message']}"
             )
+
         payload = {
             "db_path": str(db_path),
             "run_count": len(run_ids),

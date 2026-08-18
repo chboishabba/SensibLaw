@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import Counter
 from typing import Any, Mapping
 
 
@@ -99,12 +98,11 @@ def compute_normalized_metrics(
 
     dominant_primary_workload = "none"
     for workload_name in NORMALIZED_WORKLOAD_ORDER:
-        if primary_counts[workload_name] > primary_counts.get(dominant_primary_workload, 0):
-            dominant_primary_workload = workload_name
-        elif (
-            dominant_primary_workload == "none"
-            and primary_counts[workload_name] > 0
+        if primary_counts[workload_name] > primary_counts.get(
+            dominant_primary_workload, 0
         ):
+            dominant_primary_workload = workload_name
+        elif dominant_primary_workload == "none" and primary_counts[workload_name] > 0:
             dominant_primary_workload = workload_name
 
     review_required_source_count = source_status_counts["review_required"]

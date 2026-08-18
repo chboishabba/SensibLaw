@@ -97,7 +97,9 @@ class ReopenableRuntimeStore:
                     )
                     row = cursor.fetchone()
                     if row is None:
-                        raise RuntimeError("candidate evidence insert did not return an id")
+                        raise RuntimeError(
+                            "candidate evidence insert did not return an id"
+                        )
                     return int(row[0])
         finally:
             connection.close()
@@ -284,7 +286,9 @@ class ReopenableRuntimeStore:
             (run_id, document_id),
         )
 
-    def demand_funnel(self, *, run_id: int, document_id: int) -> tuple[DemandFunnelRow, ...]:
+    def demand_funnel(
+        self, *, run_id: int, document_id: int
+    ) -> tuple[DemandFunnelRow, ...]:
         connection = connect(self.database_url)
         try:
             with connection.cursor() as cursor:

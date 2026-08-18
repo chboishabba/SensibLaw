@@ -1,4 +1,5 @@
 """Minimal append-only SQLite store for resolution-loop artifacts."""
+
 from __future__ import annotations
 
 import hashlib

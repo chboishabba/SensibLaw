@@ -29,8 +29,15 @@ def test_build_gwb_zelph_handoff_artifact(tmp_path: Path) -> None:
     assert slice_payload["summary"]["selected_seed_lane_count"] == 11
     assert slice_payload["summary"]["unresolved_surface_count"] >= 3
     assert slice_payload["compiler_contract"]["lane"] == "gwb"
-    assert slice_payload["compiler_contract"]["evidence_bundle"]["bundle_kind"] == "public_source_bundle"
-    assert slice_payload["promotion_gate"]["decision"] in {"promote", "audit", "abstain"}
+    assert (
+        slice_payload["compiler_contract"]["evidence_bundle"]["bundle_kind"]
+        == "public_source_bundle"
+    )
+    assert slice_payload["promotion_gate"]["decision"] in {
+        "promote",
+        "audit",
+        "abstain",
+    }
     assert slice_payload["promotion_gate"]["product_ref"] == "gwb_public_handoff_v1"
 
     predicates = {

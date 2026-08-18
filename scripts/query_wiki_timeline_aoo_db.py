@@ -7,8 +7,11 @@ import sys
 from pathlib import Path
 from typing import Any
 
+
 def main() -> None:
-    p = argparse.ArgumentParser(description="Query wiki timeline payloads from the canonical SQLite store.")
+    p = argparse.ArgumentParser(
+        description="Query wiki timeline payloads from the canonical SQLite store."
+    )
     p.add_argument("--db-path", help="Path to canonical ITIR sqlite database.")
     p.add_argument(
         "--projection",
@@ -28,9 +31,18 @@ def main() -> None:
     )
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument("--run-id", help="Exact run_id to load.")
-    g.add_argument("--timeline-path-suffix", help="Pick best run whose stored timeline_path ends with this suffix.")
-    g.add_argument("--rel-path", help="Resolve raw payload by canonical rel_path using Python suffix-candidate policy.")
-    g.add_argument("--source-key", help="Named source key resolved through the Python wiki timeline source registry.")
+    g.add_argument(
+        "--timeline-path-suffix",
+        help="Pick best run whose stored timeline_path ends with this suffix.",
+    )
+    g.add_argument(
+        "--rel-path",
+        help="Resolve raw payload by canonical rel_path using Python suffix-candidate policy.",
+    )
+    g.add_argument(
+        "--source-key",
+        help="Named source key resolved through the Python wiki timeline source registry.",
+    )
     g.add_argument("--list-runs", action="store_true", help="List available runs.")
     args = p.parse_args()
 
@@ -54,7 +66,6 @@ def main() -> None:
         return
 
     with connect_sqlite(db_path) as conn:
-
         if args.list_runs:
             rows = conn.execute(
                 """
@@ -83,7 +94,11 @@ def main() -> None:
                 rel_path=str(args.rel_path),
                 projection=args.projection,
             )
-            sys.stdout.write(json.dumps(result, indent=2, sort_keys=True) if result is not None else "null")
+            sys.stdout.write(
+                json.dumps(result, indent=2, sort_keys=True)
+                if result is not None
+                else "null"
+            )
             sys.stdout.write("\n")
             return
 
@@ -96,11 +111,17 @@ def main() -> None:
                 fallback=fallback,
                 variant=args.source_variant,
             )
-            sys.stdout.write(json.dumps(result, indent=2, sort_keys=True) if result is not None else "null")
+            sys.stdout.write(
+                json.dumps(result, indent=2, sort_keys=True)
+                if result is not None
+                else "null"
+            )
             sys.stdout.write("\n")
             return
 
-        timeline_suffix = str(args.timeline_path_suffix) if args.timeline_path_suffix else None
+        timeline_suffix = (
+            str(args.timeline_path_suffix) if args.timeline_path_suffix else None
+        )
         if args.source_key:
             fallback = "gwb" if args.projection == "timeline_view" else "hca"
             source_meta = resolve_source_config(
@@ -116,8 +137,14 @@ def main() -> None:
             sys.stdout.write("null\n")
             return
 
-        result: Any = load_projection_payload(conn, run_id=run_id, projection=args.projection)
-        sys.stdout.write(json.dumps(result, indent=2, sort_keys=True) if result is not None else "null")
+        result: Any = load_projection_payload(
+            conn, run_id=run_id, projection=args.projection
+        )
+        sys.stdout.write(
+            json.dumps(result, indent=2, sort_keys=True)
+            if result is not None
+            else "null"
+        )
         sys.stdout.write("\n")
 
 

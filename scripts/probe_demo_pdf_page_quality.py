@@ -70,7 +70,8 @@ def build_page_quality_probe(pages: Sequence[Mapping[str, Any]]) -> dict[str, An
         page_reports.append(
             {
                 **page,
-                "heading_repeated": bool(heading) and heading_counts.get(heading, 0) > 1,
+                "heading_repeated": bool(heading)
+                and heading_counts.get(heading, 0) > 1,
                 "body_present": page["body_char_count"] > 0,
             }
         )
@@ -81,7 +82,8 @@ def build_page_quality_probe(pages: Sequence[Mapping[str, Any]]) -> dict[str, An
             {
                 "previous_page": previous["page"],
                 "next_page": current["page"],
-                "same_heading": previous["heading"] == current["heading"] and bool(previous["heading"]),
+                "same_heading": previous["heading"] == current["heading"]
+                and bool(previous["heading"]),
                 "previous_terminal_closed": _terminal_closed(previous["body"]),
                 "next_starts_lower": _starts_with_lower(current["body"]),
                 "continuation_candidate": (
@@ -94,7 +96,9 @@ def build_page_quality_probe(pages: Sequence[Mapping[str, Any]]) -> dict[str, An
     return {
         "page_count": len(page_reports),
         "pages_with_body": sum(1 for page in page_reports if page["body_present"]),
-        "repeated_heading_pages": sum(1 for page in page_reports if page["heading_repeated"]),
+        "repeated_heading_pages": sum(
+            1 for page in page_reports if page["heading_repeated"]
+        ),
         "continuation_candidate_count": sum(
             1 for boundary in boundary_reports if boundary["continuation_candidate"]
         ),

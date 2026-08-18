@@ -12,7 +12,12 @@ def build_observation_id(
     kind: str,
     identity_fields: Mapping[str, Any],
 ) -> str:
-    payload = {"run_id": run_id, "event_id": event_id, "kind": kind, **dict(identity_fields)}
+    payload = {
+        "run_id": run_id,
+        "event_id": event_id,
+        "kind": kind,
+        **dict(identity_fields),
+    }
     return f"obs:{sha256_payload(payload)[:16]}"
 
 

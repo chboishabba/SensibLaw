@@ -129,7 +129,9 @@ def _dbpedia_external_url(uri: str) -> str:
     return uri
 
 
-def _build_notes(term: str, row: Mapping[str, Any], *, picked_index: int, total: int) -> str:
+def _build_notes(
+    term: str, row: Mapping[str, Any], *, picked_index: int, total: int
+) -> str:
     label = row.get("label")
     types = row.get("types") or []
     types_str = ", ".join(str(t) for t in types) if types else "none"
@@ -188,7 +190,9 @@ def _external_refs_batch_payload(
                         "provider": "dbpedia",
                         "external_id": str(uri),
                         "external_url": _dbpedia_external_url(str(uri)),
-                        "notes": _build_notes(term, picked_row, picked_index=pick or 1, total=total),
+                        "notes": _build_notes(
+                            term, picked_row, picked_index=pick or 1, total=total
+                        ),
                     }
                 )
             if concept_code:
@@ -198,7 +202,9 @@ def _external_refs_batch_payload(
                         "provider": "dbpedia",
                         "external_id": str(uri),
                         "external_url": _dbpedia_external_url(str(uri)),
-                        "notes": _build_notes(term, picked_row, picked_index=pick or 1, total=total),
+                        "notes": _build_notes(
+                            term, picked_row, picked_index=pick or 1, total=total
+                        ),
                     }
                 )
 
@@ -223,12 +229,26 @@ def _external_refs_batch_payload(
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    ap = argparse.ArgumentParser(description="DBpedia Lookup API search (string -> candidate URIs).")
+    ap = argparse.ArgumentParser(
+        description="DBpedia Lookup API search (string -> candidate URIs)."
+    )
     ap.add_argument("term", help="Search term (e.g. 'Westmead Hospital')")
-    ap.add_argument("--base-url", default=DEFAULT_BASE_URL, help=f"Lookup base URL (default: {DEFAULT_BASE_URL})")
-    ap.add_argument("--max-results", type=int, default=25, help="Max results (default: 25)")
-    ap.add_argument("--type", default=None, help="Optional DBpedia class/type filter (service-dependent)")
-    ap.add_argument("--timeout", type=int, default=20, help="HTTP timeout seconds (default: 20)")
+    ap.add_argument(
+        "--base-url",
+        default=DEFAULT_BASE_URL,
+        help=f"Lookup base URL (default: {DEFAULT_BASE_URL})",
+    )
+    ap.add_argument(
+        "--max-results", type=int, default=25, help="Max results (default: 25)"
+    )
+    ap.add_argument(
+        "--type",
+        default=None,
+        help="Optional DBpedia class/type filter (service-dependent)",
+    )
+    ap.add_argument(
+        "--timeout", type=int, default=20, help="HTTP timeout seconds (default: 20)"
+    )
     ap.add_argument(
         "--cache-dir",
         default=str(Path("SensibLaw/.cache_local/dbpedia_lookup").as_posix()),
@@ -240,8 +260,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         default=7 * 24 * 3600,
         help="Cache max age seconds; 0 disables expiry (default: 7 days)",
     )
-    ap.add_argument("--no-cache", action="store_true", help="Disable cache reads/writes")
-    ap.add_argument("--raw", action="store_true", help="Include raw API response in output")
+    ap.add_argument(
+        "--no-cache", action="store_true", help="Disable cache reads/writes"
+    )
+    ap.add_argument(
+        "--raw", action="store_true", help="Include raw API response in output"
+    )
     ap.add_argument(
         "--emit-batch",
         type=Path,
@@ -251,9 +275,23 @@ def main(argv: Optional[List[str]] = None) -> int:
             "Recommended: SensibLaw/.cache_local/external_refs_<name>.json"
         ),
     )
-    ap.add_argument("--pick", type=int, default=None, help="1-based candidate row index to emit into the batch")
-    ap.add_argument("--actor-id", type=int, default=None, help="Actor ID to anchor emitted actor_external_refs row")
-    ap.add_argument("--concept-code", default=None, help="Concept code to anchor emitted concept_external_refs row")
+    ap.add_argument(
+        "--pick",
+        type=int,
+        default=None,
+        help="1-based candidate row index to emit into the batch",
+    )
+    ap.add_argument(
+        "--actor-id",
+        type=int,
+        default=None,
+        help="Actor ID to anchor emitted actor_external_refs row",
+    )
+    ap.add_argument(
+        "--concept-code",
+        default=None,
+        help="Concept code to anchor emitted concept_external_refs row",
+    )
     args = ap.parse_args(argv)
 
     params = {"format": "JSON", "query": args.term, "maxResults": str(args.max_results)}
@@ -264,7 +302,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     cache_key = _sha256_text(url)
     cache_dir = Path(args.cache_dir)
     if not args.no_cache:
-        cached = _read_cache(cache_dir, cache_key, max_age_s=max(0, args.cache_max_age_s))
+        cached = _read_cache(
+            cache_dir, cache_key, max_age_s=max(0, args.cache_max_age_s)
+        )
         if cached is not None:
             # Cache hits should still support batch emission (curation workflow).
             if args.emit_batch is not None:
@@ -278,9 +318,14 @@ def main(argv: Optional[List[str]] = None) -> int:
                         concept_code=args.concept_code,
                     )
                     args.emit_batch.parent.mkdir(parents=True, exist_ok=True)
-                    args.emit_batch.write_text(json.dumps(batch, indent=2, sort_keys=True), encoding="utf-8")
+                    args.emit_batch.write_text(
+                        json.dumps(batch, indent=2, sort_keys=True), encoding="utf-8"
+                    )
                 except Exception as exc:
-                    print(f"error: unable to write --emit-batch file from cache: {exc}", file=sys.stderr)
+                    print(
+                        f"error: unable to write --emit-batch file from cache: {exc}",
+                        file=sys.stderr,
+                    )
                     return 2
             print(json.dumps(cached, indent=2, sort_keys=True))
             return 0
@@ -289,7 +334,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         raw = _get_json(url, timeout_s=args.timeout)
     except Exception as exc:
         print(f"error: dbpedia lookup api failed: {exc}", file=sys.stderr)
-        print("hint: network/DNS must allow outbound access to lookup.dbpedia.org", file=sys.stderr)
+        print(
+            "hint: network/DNS must allow outbound access to lookup.dbpedia.org",
+            file=sys.stderr,
+        )
         return 2
 
     rows = _normalize_results(raw)
@@ -324,7 +372,9 @@ def main(argv: Optional[List[str]] = None) -> int:
 
         try:
             args.emit_batch.parent.mkdir(parents=True, exist_ok=True)
-            args.emit_batch.write_text(json.dumps(batch, indent=2, sort_keys=True), encoding="utf-8")
+            args.emit_batch.write_text(
+                json.dumps(batch, indent=2, sort_keys=True), encoding="utf-8"
+            )
         except Exception as exc:
             print(f"error: unable to write --emit-batch file: {exc}", file=sys.stderr)
             return 2

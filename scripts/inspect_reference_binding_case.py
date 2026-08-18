@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+from collections.abc import Mapping
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,6 +27,22 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _materialised_artifacts(compilation: object) -> dict[str, object]:
+    """Materialise manifest-backed families for this human-readable inspector."""
+
+    artifacts = dict(getattr(compilation, "artifacts"))
+    reader = getattr(compilation, "artifact_reader", None)
+    if reader is None:
+        return artifacts
+    for key, value in tuple(artifacts.items()):
+        if not isinstance(value, Mapping):
+            continue
+        if value.get("representation") != "manifest":
+            continue
+        artifacts[key] = reader.materialise(str(value["artifact_key"]))
+    return artifacts
+
+
 def main() -> int:
     args = _parse_args()
     text = args.text
@@ -41,7 +58,7 @@ def main() -> int:
             },
             default_compiler_context(),
         )
-    artifacts = compilation.artifacts
+    artifacts = _materialised_artifacts(compilation)
     reference_factor_refs = {
         str(row["reference_factor_ref"])
         for row in artifacts.get("binding_candidate_sets") or ()

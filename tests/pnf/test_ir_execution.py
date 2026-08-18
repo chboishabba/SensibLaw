@@ -4,7 +4,9 @@ from src.pnf.domain_ir import DomainIRProjection
 from src.pnf.ir_execution import IRExecutionRequest, execute_ir_request
 
 
-def _domain_ir(*, validation_state: str = "operational_candidate") -> DomainIRProjection:
+def _domain_ir(
+    *, validation_state: str = "operational_candidate"
+) -> DomainIRProjection:
     return DomainIRProjection(
         document_ref="document:1",
         domain="legal",

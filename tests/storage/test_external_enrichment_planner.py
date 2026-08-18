@@ -67,7 +67,9 @@ def test_postgres_planner_projects_named_entities_and_lexical_work() -> None:
         ("the United States", "entity_identity"),
         ("bank", "lexical_sense"),
     ]
-    assert all("postgres-external-lookup-plan:v0_1" in row.provenance_refs for row in demands)
+    assert all(
+        "postgres-external-lookup-plan:v0_1" in row.provenance_refs for row in demands
+    )
 
 
 def test_postgres_planner_can_disable_wiktionary_and_enforces_limit() -> None:
@@ -86,10 +88,13 @@ def test_postgres_planner_can_disable_wiktionary_and_enforces_limit() -> None:
         ]
     )
 
-    assert load_external_lookup_demands(
-        cursor,
-        include_wiktionary=False,
-    ) == ()
+    assert (
+        load_external_lookup_demands(
+            cursor,
+            include_wiktionary=False,
+        )
+        == ()
+    )
 
     try:
         load_external_lookup_demands(cursor, limit=0)

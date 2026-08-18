@@ -57,12 +57,8 @@ def main() -> int:
         if alternative.get("type_ref") == "semantic.binding_candidate"
     ]
     set_projection = {
-        "accessibility_declaration": compact.get(
-            "binding_accessibility_declaration"
-        ),
-        "compatibility_declaration": compact.get(
-            "binding_compatibility_declaration"
-        ),
+        "accessibility_declaration": compact.get("binding_accessibility_declaration"),
+        "compatibility_declaration": compact.get("binding_compatibility_declaration"),
         "candidate_sets": compact.get("binding_candidate_sets") or (),
         "members": compact.get("binding_candidate_members") or (),
         "exclusions": compact.get("binding_exclusion_summaries") or (),
@@ -95,9 +91,7 @@ def main() -> int:
             row.get("compatibility_state") == "compatible_candidate"
             for row in compact.get("binding_candidate_members") or ()
         ),
-        "exclusion_summaries": len(
-            compact.get("binding_exclusion_summaries") or ()
-        ),
+        "exclusion_summaries": len(compact.get("binding_exclusion_summaries") or ()),
         "zero_member_sets": sum(
             int(row.get("member_count", 0)) == 0 for row in candidate_sets
         ),

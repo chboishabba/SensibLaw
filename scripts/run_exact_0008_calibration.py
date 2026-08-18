@@ -4,7 +4,8 @@
 This is an orchestration/reporting script, not a compiler entry point.  Every
 trial launches ``run_complete_tranche.py`` in a new process and persists the
 raw bounded stream, environment, stage ledger, single-trial report, and final
-three-trial comparison.
+three-trial comparison. Strict numeric PostgreSQL execution is the default;
+historical compatibility replay is an explicit parity-only option.
 """
 
 from __future__ import annotations
@@ -20,6 +21,12 @@ from typing import Any
 from src.runtime.execution_resource_ledger import compare_ownership_reports
 
 
+def _cpu_default(cap: int) -> int:
+    """Use available CPU without turning a reference calibration unbounded."""
+
+    return max(1, min(int(os.cpu_count() or 1), cap))
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -29,11 +36,38 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--ledger-root", type=Path, required=True)
     parser.add_argument("--tranche", choices=("GWB", "AU", "BREXIT"), default="GWB")
-    parser.add_argument("--closure-workers", type=int, default=1)
-    parser.add_argument("--owner-partitions", type=int, default=1)
-    parser.add_argument("--parser-workers", type=int, default=1)
-    parser.add_argument("--worker-budget", type=int, default=1)
+    parser.add_argument("--closure-workers", type=int, default=_cpu_default(4))
+    parser.add_argument("--owner-partitions", type=int, default=8)
+    parser.add_argument("--parser-workers", type=int, default=_cpu_default(2))
+    parser.add_argument("--worker-budget", type=int, default=_cpu_default(4))
+    parser.add_argument(
+        "--compatibility-replay",
+        action="store_true",
+        help=(
+            "Explicitly use historical local-compatibility replay for parity only. "
+            "The default is strict numeric PostgreSQL execution."
+        ),
+    )
+    parser.add_argument(
+        "--strict-exact",
+        action="store_true",
+        help="Explicitly restate the default strict numeric execution mode.",
+    )
     return parser.parse_args()
+
+
+def _runner_strategy_args(
+    *, compatibility_replay: bool, strict_exact: bool = False
+) -> list[str]:
+    """Return the unambiguous execution mode for a calibration trial."""
+
+    if compatibility_replay and strict_exact:
+        raise ValueError(
+            "--compatibility-replay and --strict-exact are mutually exclusive"
+        )
+    if compatibility_replay:
+        return []
+    return ["--strict-exact"]
 
 
 def main() -> int:
@@ -47,6 +81,11 @@ def main() -> int:
     ledger_root.mkdir(parents=True, exist_ok=True)
 
     reports: list[dict[str, Any]] = []
+    execution_mode = (
+        "local-compatibility-replay"
+        if args.compatibility_replay
+        else "strict-numeric-postgresql"
+    )
     for trial in range(1, 4):
         trial_ref = f"trial-{trial}"
         trial_output = output_root / trial_ref
@@ -74,6 +113,10 @@ def main() -> int:
             str(args.parser_workers),
             "--worker-budget",
             str(args.worker_budget),
+            *_runner_strategy_args(
+                compatibility_replay=args.compatibility_replay,
+                strict_exact=args.strict_exact,
+            ),
         ]
         environment = os.environ.copy()
         environment["SENSIBLAW_TRANCHE_CALIBRATION"] = "1"
@@ -92,11 +135,23 @@ def main() -> int:
             "artifact_manifests": 0,
         }:
             raise SystemExit(f"rollback leak in {calibration_path}")
+        expected_strategy = (
+            "local-compatibility-replay"
+            if args.compatibility_replay
+            else "postgresql-leased-exact-execution:v1"
+        )
+        if report.get("execution_strategy") != expected_strategy:
+            raise SystemExit(
+                f"unexpected execution strategy in {report_path}: "
+                f"expected {expected_strategy!r}, "
+                f"got {report.get('execution_strategy')!r}"
+            )
         reports.append(report)
 
     comparison = compare_ownership_reports(reports)
     comparison["input_path"] = str(input_path)
     comparison["tranche"] = args.tranche
+    comparison["execution_mode"] = execution_mode
     comparison["rollback_verified"] = True
     comparison["optimisation_owner"] = None
     comparison["threshold_selected"] = False

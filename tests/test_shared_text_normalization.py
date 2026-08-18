@@ -26,7 +26,9 @@ def test_shared_text_splitting_keeps_pre_semantic_ownership() -> None:
         "First sentence.",
         "Second sentence!",
     ]
-    assert split_text_clauses("I opened the gate, but he stayed outside; I then called.") == [
+    assert split_text_clauses(
+        "I opened the gate, but he stayed outside; I then called."
+    ) == [
         "I opened the gate",
         "he stayed outside",
         "I then called.",

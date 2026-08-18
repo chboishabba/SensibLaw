@@ -14,9 +14,7 @@ def test_fetch_acts_creates_graph():
             {
                 "id": "NTA1993",
                 "title": "Native Title Act 1993",
-                "sections": [
-                    {"number": "223", "title": "Definition of native title"}
-                ],
+                "sections": [{"number": "223", "title": "Definition of native title"}],
             }
         ]
     }
@@ -35,7 +33,4 @@ def test_fetch_acts_creates_graph():
             "title": "Definition of native title",
         },
     ]
-    assert edges == [
-        {"from": "NTA1993", "to": "NTA1993:223", "type": "has_section"}
-    ]
-
+    assert edges == [{"from": "NTA1993", "to": "NTA1993:223", "type": "has_section"}]

@@ -41,7 +41,9 @@ def _parse_args() -> argparse.Namespace:
         "--database-url", default=os.environ.get("DATABASE_URL"), required=False
     )
     parser.add_argument(
-        "--postgres-mode", choices=("local", "existing"), default="local",
+        "--postgres-mode",
+        choices=("local", "existing"),
+        default="local",
         help="Use a retained operator database (existing) or the configured local PostgreSQL endpoint (local).",
     )
     parser.add_argument("--output-root", type=Path, required=True)
@@ -145,17 +147,35 @@ def _authority_summary(database_url: str | None) -> dict[str, Any]:
                 )
                 runs = [
                     {
-                        "run_ref": str(row[0]), "document_ref": str(row[1]),
-                        "authority_backend": str(row[2]), "owner_revision": int(row[3]),
-                        "lifecycle": str(row[4]), "sealed": bool(row[5]),
+                        "run_ref": str(row[0]),
+                        "document_ref": str(row[1]),
+                        "authority_backend": str(row[2]),
+                        "owner_revision": int(row[3]),
+                        "lifecycle": str(row[4]),
+                        "sealed": bool(row[5]),
                     }
                     for row in cursor.fetchall()
                 ]
-                cursor.execute("SELECT migration_name, content_sha256 FROM public.sensiblaw_schema_migration ORDER BY migration_name")
-                migrations = [{"name": str(row[0]), "sha256": str(row[1])} for row in cursor.fetchall()]
-        return {"state": "verified", "database": identity[0], "user": identity[1], "runs": runs, "migrations": migrations}
+                cursor.execute(
+                    "SELECT migration_name, content_sha256 FROM public.sensiblaw_schema_migration ORDER BY migration_name"
+                )
+                migrations = [
+                    {"name": str(row[0]), "sha256": str(row[1])}
+                    for row in cursor.fetchall()
+                ]
+        return {
+            "state": "verified",
+            "database": identity[0],
+            "user": identity[1],
+            "runs": runs,
+            "migrations": migrations,
+        }
     except Exception as error:
-        return {"state": "missing", "failure_reason": "postgresql_authority_missing", "diagnostic_path": str(error)}
+        return {
+            "state": "missing",
+            "failure_reason": "postgresql_authority_missing",
+            "diagnostic_path": str(error),
+        }
 
 
 def _process_memory(pid: int) -> dict[str, int | None]:
@@ -407,6 +427,29 @@ def _verify_explicit_publication(args: argparse.Namespace) -> dict[str, Any]:
                     (list(document_refs),),
                 )
                 projections = [(str(row[0]), int(row[1])) for row in cursor.fetchall()]
+                numeric_states = {"compiled_numeric_pnf", "reused_numeric_pnf"}
+                numeric_occurrences = bool(occurrences) and all(
+                    state in numeric_states for _ref, state in occurrences
+                )
+                interfaces: list[tuple[str, int]] = []
+                if numeric_occurrences:
+                    cursor.execute(
+                        """
+                        SELECT region.document_ref, COUNT(*)
+                        FROM execution.semantic_pnf_interface AS interface
+                        JOIN execution.semantic_pnf_region AS region
+                          ON region.region_id = interface.region_id
+                        WHERE region.document_ref = ANY(%s)
+                          AND region.region_kind = 10
+                          AND region.closure_state = 3
+                        GROUP BY region.document_ref
+                        ORDER BY region.document_ref
+                        """,
+                        (list(document_refs),),
+                    )
+                    interfaces = [
+                        (str(row[0]), int(row[1])) for row in cursor.fetchall()
+                    ]
     except Exception as error:
         return {
             "state": "not_verified",
@@ -414,14 +457,29 @@ def _verify_explicit_publication(args: argparse.Namespace) -> dict[str, Any]:
         }
 
     expected_refs = sorted(document_refs)
-    verified = (
+    compatibility_publication = (
         sorted(row[0] for row in occurrences) == expected_refs
-        and all(state == "compiled" for _ref, state in occurrences)
+        # A content-addressed build may be reused after its immutable
+        # publication already completed.  It carries the same final
+        # authority boundary as a newly compiled occurrence.
+        and all(
+            state in {"compiled", "reused_compilation"} for _ref, state in occurrences
+        )
         and builds == [(ref, 1) for ref in expected_refs]
         and len(manifests) == len(expected_refs)
         and all(count > 0 and digest_valid for _ref, count, digest_valid in manifests)
         and projections == [(ref, 1) for ref in expected_refs]
     )
+    numeric_publication = (
+        sorted(row[0] for row in occurrences) == expected_refs
+        and all(
+            state in {"compiled_numeric_pnf", "reused_numeric_pnf"}
+            for _ref, state in occurrences
+        )
+        and builds == [(ref, 1) for ref in expected_refs]
+        and interfaces == [(ref, 1) for ref in expected_refs]
+    )
+    verified = compatibility_publication or numeric_publication
     return {
         "state": "verified" if verified else "not_verified",
         "corpus_ref": compilation["corpus_ref"],
@@ -430,6 +488,10 @@ def _verify_explicit_publication(args: argparse.Namespace) -> dict[str, Any]:
         "builds": builds,
         "artifact_manifests": manifests,
         "projection_manifests": projections,
+        "numeric_document_interfaces": interfaces,
+        "publication_authority": (
+            "numeric_pnf" if numeric_publication else "compatibility"
+        ),
         "expected_raw_sha256": expected_hashes,
     }
 
@@ -444,7 +506,11 @@ def main() -> int:
             args.database_url, _database_name = provision_local_postgres(
                 admin_url=args.database_url,
                 migration_root=ROOT / "database" / "postgres_migrations",
-                run_ref=f"{args.tranche.lower()}-{args.acceptance_root.name}",
+                run_ref=(
+                    f"{args.tranche.lower()}-"
+                    f"{args.acceptance_root.parent.name}-"
+                    f"{args.acceptance_root.name}"
+                ),
             )
         except Exception as error:
             provisioning_error = str(error)
@@ -519,7 +585,9 @@ def main() -> int:
             "accepted": False,
             "started_at": started_at,
             "command": command,
-            "execution": strict_execution_metadata() if args.strict_exact else {
+            "execution": strict_execution_metadata()
+            if args.strict_exact
+            else {
                 "execution_strategy": "local-compatibility-replay",
                 "authority_backend": "postgresql",
                 "local_replay": "compatibility-only",
@@ -639,8 +707,16 @@ def main() -> int:
     if not args.calibration and publication["state"] == "not_verified":
         accepted = False
         failure_reason = "explicit input publication verification failed"
-    authority = _authority_summary(args.database_url) if args.strict_exact else {"state": "compatibility-only"}
-    if args.strict_exact and authority.get("state") != "verified" and failure_reason is None:
+    authority = (
+        _authority_summary(args.database_url)
+        if args.strict_exact
+        else {"state": "compatibility-only"}
+    )
+    if (
+        args.strict_exact
+        and authority.get("state") != "verified"
+        and failure_reason is None
+    ):
         accepted = False
         failure_reason = "postgresql_authority_missing"
 
@@ -658,10 +734,14 @@ def main() -> int:
         "accepted": accepted,
         "failure_reason": failure_reason,
         "diagnostic_path": (
-            "strict.connection" if failure_reason == "postgresql_authority_missing" else None
+            "strict.connection"
+            if failure_reason == "postgresql_authority_missing"
+            else None
         ),
         "kernel_key": (
-            "strict.connection" if failure_reason == "postgresql_authority_missing" else None
+            "strict.connection"
+            if failure_reason == "postgresql_authority_missing"
+            else None
         ),
         "authority": authority,
         "started_at": started_at,
@@ -686,7 +766,9 @@ def main() -> int:
         },
         "database_url_redacted": args.database_url.split("@")[-1],
         "database_provisioning_mode": args.postgres_mode,
-        "execution": strict_execution_metadata() if args.strict_exact else {
+        "execution": strict_execution_metadata()
+        if args.strict_exact
+        else {
             "execution_strategy": "local-compatibility-replay",
             "authority_backend": "postgresql",
             "local_replay": "compatibility-only",

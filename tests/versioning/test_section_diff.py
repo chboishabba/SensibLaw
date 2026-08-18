@@ -18,9 +18,7 @@ def test_only_changed_spans():
     assert '<span class="del">2020' in html
     assert '<span class="ins">2021' in html
 
-    match = re.search(
-        r"<h2>Section 2 - Purpose</h2>.*?<p>(.*?)</p>", html, re.S
-    )
+    match = re.search(r"<h2>Section 2 - Purpose</h2>.*?<p>(.*?)</p>", html, re.S)
     assert match is not None
     body = match.group(1)
     assert "<span" not in body

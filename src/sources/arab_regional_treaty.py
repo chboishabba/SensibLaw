@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Iterable
 
 
 @dataclass(frozen=True)
@@ -81,5 +80,10 @@ def canonical_arab_regional_treaties() -> list[RegionalTreatyAuthority]:
     ]
 
 
-def canonical_arab_regional_follow_payloads(focus_clause: str) -> list[dict[str, object]]:
-    return [treaty.build_follow_payload(focus_clause) for treaty in canonical_arab_regional_treaties()]
+def canonical_arab_regional_follow_payloads(
+    focus_clause: str,
+) -> list[dict[str, object]]:
+    return [
+        treaty.build_follow_payload(focus_clause)
+        for treaty in canonical_arab_regional_treaties()
+    ]

@@ -52,7 +52,9 @@ def _get_json(url: str) -> Dict[str, object]:
     return fetch_json(url)
 
 
-def _acts_to_graph(acts: Iterable[Act]) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
+def _acts_to_graph(
+    acts: Iterable[Act],
+) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
     """Convert a sequence of :class:`Act` objects into graph ``nodes`` and
     ``edges`` representing the relationship between Acts and their sections."""
 
@@ -60,24 +62,30 @@ def _acts_to_graph(acts: Iterable[Act]) -> Tuple[List[Dict[str, object]], List[D
     edges: List[Dict[str, object]] = []
 
     for act in acts:
-        nodes.append({
-            "id": act.identifier,
-            "type": "act",
-            "title": act.title,
-            "point_in_time": act.point_in_time,
-        })
+        nodes.append(
+            {
+                "id": act.identifier,
+                "type": "act",
+                "title": act.title,
+                "point_in_time": act.point_in_time,
+            }
+        )
         for sec in act.sections or []:
-            nodes.append({
-                "id": f"{act.identifier}:{sec.number}",
-                "type": "section",
-                "number": sec.number,
-                "title": sec.title,
-            })
-            edges.append({
-                "from": act.identifier,
-                "to": f"{act.identifier}:{sec.number}",
-                "type": "has_section",
-            })
+            nodes.append(
+                {
+                    "id": f"{act.identifier}:{sec.number}",
+                    "type": "section",
+                    "number": sec.number,
+                    "title": sec.title,
+                }
+            )
+            edges.append(
+                {
+                    "from": act.identifier,
+                    "to": f"{act.identifier}:{sec.number}",
+                    "type": "has_section",
+                }
+            )
     return nodes, edges
 
 
@@ -86,7 +94,9 @@ def _acts_to_graph(acts: Iterable[Act]) -> Tuple[List[Dict[str, object]], List[D
 # ---------------------------------------------------------------------------
 
 
-def fetch_acts(api_url: str, *, data: Optional[Dict[str, object]] = None) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
+def fetch_acts(
+    api_url: str, *, data: Optional[Dict[str, object]] = None
+) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
     """Fetch Acts from the FRL API and return graph data.
 
     Parameters
@@ -137,7 +147,11 @@ def fetch_acts(api_url: str, *, data: Optional[Dict[str, object]] = None) -> Tup
             if body:
                 for m in re.finditer(r'"([^"\n]+)"\s+means', body):
                     term_definitions[m.group(1).lower()] = f"{ident}:{num}"
-        acts.append(Act(identifier=str(ident), title=title, point_in_time=pit, sections=sections))
+        acts.append(
+            Act(
+                identifier=str(ident), title=title, point_in_time=pit, sections=sections
+            )
+        )
 
     nodes, edges = _acts_to_graph(acts)
 
@@ -145,22 +159,28 @@ def fetch_acts(api_url: str, *, data: Optional[Dict[str, object]] = None) -> Tup
     # Parse bodies for cross-references and uses of defined terms
     # ------------------------------------------------------------------
     for act in acts:
-        sec_map = {sec.number: f"{act.identifier}:{sec.number}" for sec in act.sections or []}
+        sec_map = {
+            sec.number: f"{act.identifier}:{sec.number}" for sec in act.sections or []
+        }
         for sec in act.sections or []:
             body = sec.body or ""
             from_id = f"{act.identifier}:{sec.number}"
 
             # Cross references to other sections within the same Act
-            for m in re.finditer(r"section\s+([0-9A-Za-z]+)", body, flags=re.IGNORECASE):
+            for m in re.finditer(
+                r"section\s+([0-9A-Za-z]+)", body, flags=re.IGNORECASE
+            ):
                 ref = m.group(1)
                 to_id = sec_map.get(ref)
                 if to_id:
-                    edges.append({
-                        "from": from_id,
-                        "to": to_id,
-                        "type": "cites",
-                        "text": m.group(0),
-                    })
+                    edges.append(
+                        {
+                            "from": from_id,
+                            "to": to_id,
+                            "type": "cites",
+                            "text": m.group(0),
+                        }
+                    )
 
             # Usage of defined terms
             for term, def_id in term_definitions.items():
@@ -168,12 +188,14 @@ def fetch_acts(api_url: str, *, data: Optional[Dict[str, object]] = None) -> Tup
                     continue
                 m = re.search(rf"\b{re.escape(term)}\b", body, flags=re.IGNORECASE)
                 if m:
-                    edges.append({
-                        "from": def_id,
-                        "to": from_id,
-                        "type": "defines",
-                        "text": m.group(0),
-                    })
+                    edges.append(
+                        {
+                            "from": def_id,
+                            "to": from_id,
+                            "type": "defines",
+                            "text": m.group(0),
+                        }
+                    )
 
     return nodes, edges
 

@@ -64,7 +64,9 @@ def _smallest_next_check(
     }
 
 
-def build_wikidata_review_packet_reviewer_actions(packet: Mapping[str, Any]) -> dict[str, Any]:
+def build_wikidata_review_packet_reviewer_actions(
+    packet: Mapping[str, Any],
+) -> dict[str, Any]:
     split_review_context = packet.get("split_review_context")
     reviewer_view = packet.get("reviewer_view")
     if not isinstance(split_review_context, Mapping):
@@ -81,7 +83,8 @@ def build_wikidata_review_packet_reviewer_actions(packet: Mapping[str, Any]) -> 
     )
 
     merged_split_axes = [
-        axis for axis in split_review_context.get("merged_split_axes", [])
+        axis
+        for axis in split_review_context.get("merged_split_axes", [])
         if isinstance(axis, Mapping)
     ]
     reasons: list[str] = []

@@ -21,7 +21,9 @@ from src.fact_intake.protected_disclosure_envelope import (  # noqa: E402
 )
 
 
-def build_protected_disclosure_artifact(input_json_path: Path, output_dir: Path) -> dict[str, object]:
+def build_protected_disclosure_artifact(
+    input_json_path: Path, output_dir: Path
+) -> dict[str, object]:
     output_dir.mkdir(parents=True, exist_ok=True)
     input_payload = json.loads(input_json_path.read_text(encoding="utf-8"))
     report = build_protected_disclosure_envelope(input_payload)
@@ -42,11 +44,23 @@ def build_protected_disclosure_artifact(input_json_path: Path, output_dir: Path)
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Build a metadata-only protected disclosure envelope.")
-    parser.add_argument("--input-json", required=True, help="JSON file describing protected disclosure metadata and entries.")
-    parser.add_argument("--output-dir", required=True, help="Directory to write the protected disclosure envelope into.")
+    parser = argparse.ArgumentParser(
+        description="Build a metadata-only protected disclosure envelope."
+    )
+    parser.add_argument(
+        "--input-json",
+        required=True,
+        help="JSON file describing protected disclosure metadata and entries.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        required=True,
+        help="Directory to write the protected disclosure envelope into.",
+    )
     args = parser.parse_args(argv)
-    payload = build_protected_disclosure_artifact(Path(args.input_json).resolve(), Path(args.output_dir).resolve())
+    payload = build_protected_disclosure_artifact(
+        Path(args.input_json).resolve(), Path(args.output_dir).resolve()
+    )
     print(json.dumps(payload, indent=2, sort_keys=True))
     return 0
 

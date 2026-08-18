@@ -93,6 +93,8 @@ def test_tests_run(tmp_path: Path):
         "abuse_of_process": False,
         "fair_trial_possible": False,
     }
+
+
 def test_query_treatment_cli():
     cmd = [
         "python",

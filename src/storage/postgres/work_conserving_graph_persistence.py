@@ -4,16 +4,26 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
 
-from src.policy.algebra.revision_identity import (
-    factor_revision_payload,
-    factor_revision_ref,
-)
+from src.policy.algebra.revision_identity import factor_revision_ref
 from src.storage.postgres.work_conserving_stage import (
     StagePayload,
     _complete_stage,
     _sha,
     _stage_payloads,
 )
+
+
+def _factor_revision_digest(revision_ref: str) -> bytes:
+    prefix = "factor-revision:"
+    if not revision_ref.startswith(prefix):
+        raise ValueError("factor revision ref lacks canonical digest prefix")
+    digest = revision_ref[len(prefix) :]
+    if len(digest) != 64:
+        raise ValueError("factor revision ref contains invalid SHA-256 width")
+    try:
+        return bytes.fromhex(digest)
+    except ValueError as error:
+        raise ValueError("factor revision ref contains invalid SHA-256") from error
 
 
 def deferred_factor_revision(
@@ -63,7 +73,11 @@ def _factor_payloads(
                         factor_ref,
                         str(factor["closure_state"]),
                     ),
-                    byteas=(_sha(factor_revision_payload(factor)),),
+                    # factor_revision_ref is defined as the SHA-256 of this
+                    # canonical factor-revision payload. Reuse that digest
+                    # instead of canonicalising and hashing the same factor a
+                    # second time solely for factor_sha256 storage.
+                    byteas=(_factor_revision_digest(revision_ref),),
                 )
             )
         if graph_ref is not None:
@@ -91,10 +105,7 @@ def _factor_payloads(
                                 else None
                             ),
                             None if isinstance(value, Mapping) else str(value),
-                            str(
-                                alternative.get("authority_state")
-                                or "candidate_only"
-                            ),
+                            str(alternative.get("authority_state") or "candidate_only"),
                         ),
                         byteas=(_sha(alternative),),
                     )
@@ -141,8 +152,7 @@ def persist_pnf_graph_work_conserving(
     graph_state = (
         "locally_closed"
         if all(
-            row.get("closure_state")
-            in {"locally_closed", "closed", "not_required"}
+            row.get("closure_state") in {"locally_closed", "closed", "not_required"}
             for row in factors
         )
         else "open"

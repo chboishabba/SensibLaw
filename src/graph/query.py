@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional
 @dataclass
 class Node:
     """Graph node representation."""
+
     id: str
     type: str
     citation: Optional[str] = None
@@ -34,6 +35,7 @@ class Node:
 @dataclass
 class Edge:
     """Graph edge representation."""
+
     source: str
     target: str
     date: Optional[date] = None

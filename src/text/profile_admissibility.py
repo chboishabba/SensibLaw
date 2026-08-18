@@ -23,12 +23,27 @@ PROFILE_RULES: dict[ProfileName, dict[str, set[str]]] = {
         "allowed_overlays": {"citation", "holding", "norm_constraint", "actor_role"},
     },
     "sb_profile": {
-        "allowed_groups": {"task_ref", "actor_role", "state_transition", "evidence_ref"},
+        "allowed_groups": {
+            "task_ref",
+            "actor_role",
+            "state_transition",
+            "evidence_ref",
+        },
         "allowed_axes": {"state_phase", "adapter_source", "confidence_tier"},
-        "allowed_overlays": {"activity_label", "transition_label", "evidence_link", "receipt"},
+        "allowed_overlays": {
+            "activity_label",
+            "transition_label",
+            "evidence_link",
+            "receipt",
+        },
     },
     "infra_profile": {
-        "allowed_groups": {"system_component", "service_ref", "pipeline_step", "signal_ref"},
+        "allowed_groups": {
+            "system_component",
+            "service_ref",
+            "pipeline_step",
+            "signal_ref",
+        },
         "allowed_axes": {"deployment_scope", "hosting", "severity"},
         "allowed_overlays": {"ops_label", "incident_marker", "metric_annotation"},
     },
@@ -63,7 +78,12 @@ def lint_payload(payload: dict[str, Any]) -> list[LintIssue]:
         rows = payload.get(collection, [])
         if not isinstance(rows, list):
             issues.append(
-                LintIssue("error", "invalid_collection", f"{collection} must be a list", collection)
+                LintIssue(
+                    "error",
+                    "invalid_collection",
+                    f"{collection} must be a list",
+                    collection,
+                )
             )
             continue
         for idx, row in enumerate(rows):

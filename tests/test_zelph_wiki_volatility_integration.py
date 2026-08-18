@@ -9,6 +9,7 @@ from src.fact_intake import (
     build_fact_review_workbench_payload,
 )
 
+
 def test_zelph_identifies_vandalism_and_dispute_as_volatility_signals() -> None:
     conn = sqlite3.connect(":memory:")
     units = [
@@ -31,37 +32,54 @@ def test_zelph_identifies_vandalism_and_dispute_as_volatility_signals() -> None:
             text="Revision by Admin: Warning issued to user regarding unsourced claims.",
         ),
     ]
-    payload = build_fact_intake_payload_from_text_units(units, source_label="zelph_volatility_test")
-    
+    payload = build_fact_intake_payload_from_text_units(
+        units, source_label="zelph_volatility_test"
+    )
+
     # We need to set the source_type correctly so the lexical projection triggers
     for source in payload["sources"]:
         source["source_type"] = "wiki_article"
         source.setdefault("provenance", {})["source_signal_classes"] = ["wiki_article"]
 
     persist_fact_intake_payload(conn, payload)
-    
-    workbench = build_fact_review_workbench_payload(conn, run_id=payload["run"]["run_id"])
-    
+
+    workbench = build_fact_review_workbench_payload(
+        conn, run_id=payload["run"]["run_id"]
+    )
+
     # Check "vandalism" signal
-    vandal_fact = next(row for row in workbench["facts"] if "vandalism" in row["canonical_label"].lower() or "vandal" in row["canonical_label"].lower())
+    vandal_fact = next(
+        row
+        for row in workbench["facts"]
+        if "vandalism" in row["canonical_label"].lower()
+        or "vandal" in row["canonical_label"].lower()
+    )
     assert "volatility_signal" in vandal_fact["signal_classes"]
     assert "volatility_signal" in vandal_fact["inferred_signal_classes"]
-    
+
     # Check "disputed" signal
-    dispute_fact = next(row for row in workbench["facts"] if "disputed" in row["canonical_label"].lower() or "dispute" in row["canonical_label"].lower())
+    dispute_fact = next(
+        row
+        for row in workbench["facts"]
+        if "disputed" in row["canonical_label"].lower()
+        or "dispute" in row["canonical_label"].lower()
+    )
     assert "volatility_signal" in dispute_fact["signal_classes"]
     assert "volatility_signal" in dispute_fact["inferred_signal_classes"]
 
     # Check "warning" and "unsourced" signal
     # "warning" is an administrative_edit, "unsourced" is a volatility_signal
-    admin_fact = next(row for row in workbench["facts"] if "warning" in row["canonical_label"].lower())
+    admin_fact = next(
+        row for row in workbench["facts"] if "warning" in row["canonical_label"].lower()
+    )
     # Note: "unsourced" should trigger volatility_signal
     # But wait, does the lexical analysis pick up all tokens? Yes.
     assert "volatility_signal" in admin_fact["signal_classes"]
     assert "volatility_signal" in admin_fact["inferred_signal_classes"]
-    
+
     assert workbench["zelph"]["inferred_fact_count"] >= 3
     assert workbench["zelph"]["rule_status"] == "engine_ok"
+
 
 def test_zelph_identifies_contested_and_unverified_as_volatility_signals() -> None:
     conn = sqlite3.connect(":memory:")
@@ -79,21 +97,34 @@ def test_zelph_identifies_contested_and_unverified_as_volatility_signals() -> No
             text="Revision by Editor4: Unverified information; needs citation.",
         ),
     ]
-    payload = build_fact_intake_payload_from_text_units(units, source_label="zelph_volatility_test_2")
-    
+    payload = build_fact_intake_payload_from_text_units(
+        units, source_label="zelph_volatility_test_2"
+    )
+
     for source in payload["sources"]:
         source["source_type"] = "wiki_article"
         source.setdefault("provenance", {})["source_signal_classes"] = ["wiki_article"]
 
     persist_fact_intake_payload(conn, payload)
-    
-    workbench = build_fact_review_workbench_payload(conn, run_id=payload["run"]["run_id"])
-    
-    contest_fact = next(row for row in workbench["facts"] if "contested" in row["canonical_label"].lower())
+
+    workbench = build_fact_review_workbench_payload(
+        conn, run_id=payload["run"]["run_id"]
+    )
+
+    contest_fact = next(
+        row
+        for row in workbench["facts"]
+        if "contested" in row["canonical_label"].lower()
+    )
     assert "volatility_signal" in contest_fact["signal_classes"]
-    
-    unverify_fact = next(row for row in workbench["facts"] if "unverified" in row["canonical_label"].lower())
+
+    unverify_fact = next(
+        row
+        for row in workbench["facts"]
+        if "unverified" in row["canonical_label"].lower()
+    )
     assert "volatility_signal" in unverify_fact["signal_classes"]
+
 
 def test_zelph_flags_reversion_without_context_as_risk() -> None:
     conn = sqlite3.connect(":memory:")
@@ -111,24 +142,30 @@ def test_zelph_flags_reversion_without_context_as_risk() -> None:
             text="Revision by E2: Reverted change because it was unsourced.",
         ),
     ]
-    payload = build_fact_intake_payload_from_text_units(units, source_label="zelph_rev_test")
-    
+    payload = build_fact_intake_payload_from_text_units(
+        units, source_label="zelph_rev_test"
+    )
+
     for source in payload["sources"]:
         source["source_type"] = "wiki_article"
         source.setdefault("provenance", {})["source_signal_classes"] = ["wiki_article"]
 
     persist_fact_intake_payload(conn, payload)
-    
-    workbench = build_fact_review_workbench_payload(conn, run_id=payload["run"]["run_id"])
-    
+
+    workbench = build_fact_review_workbench_payload(
+        conn, run_id=payload["run"]["run_id"]
+    )
+
     # Check no-context revision
-    rev_no_context_fact = next(row for row in workbench["facts"] if "e1" in row["canonical_label"].lower())
+    rev_no_context_fact = next(
+        row for row in workbench["facts"] if "e1" in row["canonical_label"].lower()
+    )
     assert "volatility_signal" in rev_no_context_fact["signal_classes"]
-    
+
     # Verify the "risk_signal" was inferred by Zelph
     # Note: inferred triples are in workbench["zelph"]["triples"]
     triples = workbench["zelph"]["triples"]
-    
+
     # Check for is_reversion first
     is_rev_found = any(t["predicate"] == "is_reversion" for t in triples)
 
@@ -137,19 +174,30 @@ def test_zelph_flags_reversion_without_context_as_risk() -> None:
         t["predicate"] == "signal_class" and t["object"] == "Reversion without context"
         for t in triples
     )
-    assert risk_found, f"Should have flagged lack of context as a risk. Triples: {json.dumps(triples)}"
-    
+    assert risk_found, (
+        f"Should have flagged lack of context as a risk. Triples: {json.dumps(triples)}"
+    )
+
     # Check with-context revision
-    rev_with_context_fact = next(row for row in workbench["facts"] if "e2" in row["canonical_label"].lower())
+    rev_with_context_fact = next(
+        row for row in workbench["facts"] if "e2" in row["canonical_label"].lower()
+    )
     assert "volatility_signal" in rev_with_context_fact["signal_classes"]
-    
+
     # Verify the "risk_signal" was NOT inferred for E2 (who gave context)
-    node_id_e2 = "fact_" + str(rev_with_context_fact["fact_id"]).replace(':', '_').replace('-', '_')
+    node_id_e2 = "fact_" + str(rev_with_context_fact["fact_id"]).replace(
+        ":", "_"
+    ).replace("-", "_")
     risk_for_e2 = any(
-        t["subject"] == node_id_e2 and t["predicate"] == "signal_class" and t["object"] == "Reversion without context"
+        t["subject"] == node_id_e2
+        and t["predicate"] == "signal_class"
+        and t["object"] == "Reversion without context"
         for t in triples
     )
-    assert not risk_for_e2, f"Should NOT have flagged reversion with context as a risk, but found: {triples}"
+    assert not risk_for_e2, (
+        f"Should NOT have flagged reversion with context as a risk, but found: {triples}"
+    )
+
 
 def test_zelph_identifies_admin_and_archive_signals() -> None:
     conn = sqlite3.connect(":memory:")
@@ -167,22 +215,34 @@ def test_zelph_identifies_admin_and_archive_signals() -> None:
             text="Revision by Bot: Archiving old discussion threads.",
         ),
     ]
-    payload = build_fact_intake_payload_from_text_units(units, source_label="zelph_admin_archive_test")
-    
+    payload = build_fact_intake_payload_from_text_units(
+        units, source_label="zelph_admin_archive_test"
+    )
+
     for source in payload["sources"]:
         source["source_type"] = "wiki_article"
         source.setdefault("provenance", {})["source_signal_classes"] = ["wiki_article"]
 
     persist_fact_intake_payload(conn, payload)
-    
-    workbench = build_fact_review_workbench_payload(conn, run_id=payload["run"]["run_id"])
-    
+
+    workbench = build_fact_review_workbench_payload(
+        conn, run_id=payload["run"]["run_id"]
+    )
+
     # Check administrative_edit
-    protect_fact = next(row for row in workbench["facts"] if "administrative_edit" in row["signal_classes"])
+    protect_fact = next(
+        row
+        for row in workbench["facts"]
+        if "administrative_edit" in row["signal_classes"]
+    )
     assert "administrative_edit" in protect_fact["signal_classes"]
     assert "administrative_edit" in protect_fact["inferred_signal_classes"]
-    
+
     # Check archive_management_edit
-    archive_fact = next(row for row in workbench["facts"] if "archive_management_edit" in row["signal_classes"])
+    archive_fact = next(
+        row
+        for row in workbench["facts"]
+        if "archive_management_edit" in row["signal_classes"]
+    )
     assert "archive_management_edit" in archive_fact["signal_classes"]
     assert "archive_management_edit" in archive_fact["inferred_signal_classes"]

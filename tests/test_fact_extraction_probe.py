@@ -7,7 +7,12 @@ from src.fact_intake.fact_extraction_probe import build_fact_extraction_probe
 
 
 def test_fact_extraction_probe_builds_receipt_backed_fact_statuses() -> None:
-    fixture_path = Path(__file__).parent / "fixtures" / "fact_intake" / "fact_extraction_probe_v0_1.json"
+    fixture_path = (
+        Path(__file__).parent
+        / "fixtures"
+        / "fact_intake"
+        / "fact_extraction_probe_v0_1.json"
+    )
     fixture = json.loads(fixture_path.read_text())
 
     probe = build_fact_extraction_probe(
@@ -20,11 +25,18 @@ def test_fact_extraction_probe_builds_receipt_backed_fact_statuses() -> None:
     assert probe["case_count"] == expected["case_count"]
     assert probe["summary"]["status_counts"] == expected["status_counts"]
     assert probe["summary"]["residual_counts"] == expected["residual_counts"]
-    assert probe["summary"]["missing_receipt_cases"] == expected["missing_receipt_cases"]
+    assert (
+        probe["summary"]["missing_receipt_cases"] == expected["missing_receipt_cases"]
+    )
     assert probe["summary"]["contested_cases"] == expected["contested_cases"]
     assert probe["summary"]["abstained_cases"] == expected["abstained_cases"]
     assert probe["authority_boundary"]["raw_sentence_as_fact"] is False
-    assert probe["authority_boundary"]["facts_require_source_excerpt_statement_observation_receipts"] is True
+    assert (
+        probe["authority_boundary"][
+            "facts_require_source_excerpt_statement_observation_receipts"
+        ]
+        is True
+    )
     assert probe["authority_boundary"]["predicate_pnf_fibres_gate_comparison"] is True
 
     by_case = {case["case_id"]: case for case in probe["cases"]}
@@ -37,7 +49,9 @@ def test_fact_extraction_probe_builds_receipt_backed_fact_statuses() -> None:
     uncertain = by_case["uncertain_fragment"]
     assert uncertain["fact_candidate"]["status"] == "candidate"
     assert uncertain["aggregate_residual"] == "partial"
-    assert uncertain["evidence_comparisons"][0]["residual"]["missing_roles"] == ["certainty"]
+    assert uncertain["evidence_comparisons"][0]["residual"]["missing_roles"] == [
+        "certainty"
+    ]
 
     contradiction = by_case["contradictory_chronology"]
     assert contradiction["fact_candidate"]["status"] == "contested"
@@ -47,7 +61,9 @@ def test_fact_extraction_probe_builds_receipt_backed_fact_statuses() -> None:
     no_typed_meet = by_case["no_typed_meet"]
     assert no_typed_meet["fact_candidate"]["status"] == "abstained"
     assert no_typed_meet["aggregate_residual"] == "no_typed_meet"
-    assert no_typed_meet["evidence_comparisons"][0]["residual"]["level"] == "no_typed_meet"
+    assert (
+        no_typed_meet["evidence_comparisons"][0]["residual"]["level"] == "no_typed_meet"
+    )
 
     missing = by_case["missing_receipt"]
     assert missing["fact_candidate"]["status"] == "blocked_missing_receipt"
@@ -56,7 +72,12 @@ def test_fact_extraction_probe_builds_receipt_backed_fact_statuses() -> None:
 
 
 def test_fact_extraction_probe_pins_constraint_carrier_and_violation_boundary() -> None:
-    fixture_path = Path(__file__).parent / "fixtures" / "fact_intake" / "fact_extraction_probe_v0_1.json"
+    fixture_path = (
+        Path(__file__).parent
+        / "fixtures"
+        / "fact_intake"
+        / "fact_extraction_probe_v0_1.json"
+    )
     fixture = json.loads(fixture_path.read_text())
     probe = build_fact_extraction_probe(
         fact_cases=fixture["fact_cases"],
@@ -74,5 +95,7 @@ def test_fact_extraction_probe_pins_constraint_carrier_and_violation_boundary() 
     violation = by_case["constraint_violation"]
     assert violation["fact_candidate"]["status"] == "contested"
     assert violation["aggregate_residual"] == "contradiction"
-    assert violation["evidence_comparisons"][0]["residual"]["contradictions"] == ["polarity conflict"]
+    assert violation["evidence_comparisons"][0]["residual"]["contradictions"] == [
+        "polarity conflict"
+    ]
     assert violation["promotion_gate"]["blockers"] == ["constraint_violation"]

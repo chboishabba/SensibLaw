@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional, Tuple
 
-from src.obligation_identity import ObligationIdentity, compute_identities
+from src.obligation_identity import compute_identities
 from src.obligations import ObligationAtom, obligation_to_dict
 
 ALIGNMENT_SCHEMA_VERSION = "obligation.alignment.v1"
@@ -37,7 +37,9 @@ def _metadata_view(ob: ObligationAtom) -> Dict[str, object]:
     }
 
 
-def _diff_metadata(old_meta: Dict[str, object], new_meta: Dict[str, object]) -> Dict[str, Tuple[Optional[object], Optional[object]]]:
+def _diff_metadata(
+    old_meta: Dict[str, object], new_meta: Dict[str, object]
+) -> Dict[str, Tuple[Optional[object], Optional[object]]]:
     changes: Dict[str, Tuple[Optional[object], Optional[object]]] = {}
     keys = set(old_meta) | set(new_meta)
     for key in sorted(keys):
@@ -46,14 +48,20 @@ def _diff_metadata(old_meta: Dict[str, object], new_meta: Dict[str, object]) -> 
     return changes
 
 
-def align_obligations(old: Iterable[ObligationAtom], new: Iterable[ObligationAtom]) -> AlignmentReport:
+def align_obligations(
+    old: Iterable[ObligationAtom], new: Iterable[ObligationAtom]
+) -> AlignmentReport:
     old_list = list(old)
     new_list = list(new)
     old_ids = compute_identities(old_list)
     new_ids = compute_identities(new_list)
 
-    id_to_ob_old: Dict[str, ObligationAtom] = {oid.identity_hash: ob for oid, ob in zip(old_ids, old_list)}
-    id_to_ob_new: Dict[str, ObligationAtom] = {nid.identity_hash: ob for nid, ob in zip(new_ids, new_list)}
+    id_to_ob_old: Dict[str, ObligationAtom] = {
+        oid.identity_hash: ob for oid, ob in zip(old_ids, old_list)
+    }
+    id_to_ob_new: Dict[str, ObligationAtom] = {
+        nid.identity_hash: ob for nid, ob in zip(new_ids, new_list)
+    }
 
     old_keys = set(id_to_ob_old)
     new_keys = set(id_to_ob_new)
@@ -82,14 +90,18 @@ def align_obligations(old: Iterable[ObligationAtom], new: Iterable[ObligationAto
 
     added = [obligation_to_dict(id_to_ob_new[k]) for k in added_keys]
     removed = [obligation_to_dict(id_to_ob_old[k]) for k in removed_keys]
-    return AlignmentReport(added=added, removed=removed, unchanged=unchanged, modified=modified)
+    return AlignmentReport(
+        added=added, removed=removed, unchanged=unchanged, modified=modified
+    )
 
 
 def alignment_to_payload(report: AlignmentReport) -> dict:
     def _changes_as_list(delta: AlignmentDelta) -> list[dict]:
         return [
             {"field": field, "old": old_val, "new": new_val}
-            for field, (old_val, new_val) in sorted(delta.changes.items(), key=lambda kv: kv[0])
+            for field, (old_val, new_val) in sorted(
+                delta.changes.items(), key=lambda kv: kv[0]
+            )
         ]
 
     return {

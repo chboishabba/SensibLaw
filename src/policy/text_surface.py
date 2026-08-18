@@ -22,9 +22,7 @@ def _clean_mapping(value: Mapping[str, Any] | None) -> dict[str, Any]:
     if not isinstance(value, Mapping):
         return {}
     return {
-        str(key): item
-        for key, item in value.items()
-        if item not in (None, "", [], {})
+        str(key): item for key, item in value.items() if item not in (None, "", [], {})
     }
 
 

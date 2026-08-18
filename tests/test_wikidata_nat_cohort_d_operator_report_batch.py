@@ -8,19 +8,19 @@ from src.ontology.wikidata_nat_cohort_d_review import (
 
 
 def _load_fixture(name: str) -> dict:
-    fixture_path = (
-        Path(__file__).resolve().parent
-        / "fixtures"
-        / "wikidata"
-        / name
-    )
+    fixture_path = Path(__file__).resolve().parent / "fixtures" / "wikidata" / name
     return json.loads(fixture_path.read_text(encoding="utf-8"))
 
 
-def test_cohort_d_operator_report_batch_fixture_aggregates_readiness_and_blockers() -> None:
+def test_cohort_d_operator_report_batch_fixture_aggregates_readiness_and_blockers() -> (
+    None
+):
     payload = _load_fixture("wikidata_nat_cohort_d_operator_report_batch_20260402.json")
 
-    assert payload["schema_version"] == WIKIDATA_NAT_COHORT_D_OPERATOR_REPORT_BATCH_SCHEMA_VERSION
+    assert (
+        payload["schema_version"]
+        == WIKIDATA_NAT_COHORT_D_OPERATOR_REPORT_BATCH_SCHEMA_VERSION
+    )
     assert payload["batch_id"] == "cohort_d_operator_batch_20260402"
     assert payload["decision"] == "review"
     assert payload["promotion_allowed"] is False
@@ -35,8 +35,12 @@ def test_cohort_d_operator_report_batch_fixture_aggregates_readiness_and_blocker
     assert "unresolved_packet_refs_present" in payload["blocked_signals"]
 
 
-def test_cohort_d_operator_report_batch_builder_accepts_operator_review_surfaces() -> None:
-    batch_input = _load_fixture("wikidata_nat_cohort_d_operator_report_batch_input_20260402.json")
+def test_cohort_d_operator_report_batch_builder_accepts_operator_review_surfaces() -> (
+    None
+):
+    batch_input = _load_fixture(
+        "wikidata_nat_cohort_d_operator_report_batch_input_20260402.json"
+    )
     payload = build_wikidata_nat_cohort_d_operator_report_batch(
         operator_review_surfaces=batch_input["operator_review_surfaces"],
         batch_id=batch_input["batch_id"],

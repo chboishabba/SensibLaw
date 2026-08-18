@@ -27,7 +27,9 @@ class JadeAdapter:
         user_agent: str | None = None,
         timeout_s: float = 30.0,
     ):
-        self.api_base = api_base or os.environ.get("JADE_API_BASE", "https://jade.barnet.com.au")
+        self.api_base = api_base or os.environ.get(
+            "JADE_API_BASE", "https://jade.barnet.com.au"
+        )
         self.api_key = api_key or os.environ.get("JADE_API_KEY")
         self.limiter = limiter or TokenBucketRateLimiter(RateLimit(rps=1.0, burst=1))
         self.session = session or requests.Session()

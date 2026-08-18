@@ -10,7 +10,10 @@ from urllib.parse import urldefrag, urlparse
 
 import requests
 
-from src.ingestion.media_adapter import HtmlDocumentMediaAdapter, TextDocumentMediaAdapter
+from src.ingestion.media_adapter import (
+    HtmlDocumentMediaAdapter,
+    TextDocumentMediaAdapter,
+)
 from src.runtime.progress import ProgressEvent, emit_progress
 
 
@@ -60,9 +63,7 @@ class FetchReceipt:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            key: value
-            for key, value in asdict(self).items()
-            if value not in (None, "")
+            key: value for key, value in asdict(self).items() if value not in (None, "")
         }
 
 

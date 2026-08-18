@@ -62,8 +62,13 @@ class ReviewClaimRecord:
         }
         if isinstance(self.review_candidate, Mapping) and self.review_candidate:
             payload["review_candidate"] = dict(self.review_candidate)
-        if isinstance(self.target_proposition_identity, Mapping) and self.target_proposition_identity:
-            payload["target_proposition_identity"] = dict(self.target_proposition_identity)
+        if (
+            isinstance(self.target_proposition_identity, Mapping)
+            and self.target_proposition_identity
+        ):
+            payload["target_proposition_identity"] = dict(
+                self.target_proposition_identity
+            )
         if isinstance(self.proposition_relation, Mapping) and self.proposition_relation:
             payload["proposition_relation"] = dict(self.proposition_relation)
         if isinstance(self.review_text, Mapping) and self.review_text:
@@ -108,7 +113,10 @@ def build_review_claim_record_dict(
             local_id=claim_id,
             source_kind="review_claim_record",
             upstream_artifact_ids=[root_artifact_id, cohort_id],
-            anchor_refs={"claim_id": _as_text(claim_id), "candidate_id": _as_text(candidate_id)},
+            anchor_refs={
+                "claim_id": _as_text(claim_id),
+                "candidate_id": _as_text(candidate_id),
+            },
         )
     return ReviewClaimRecord(
         claim_id=_as_text(claim_id),

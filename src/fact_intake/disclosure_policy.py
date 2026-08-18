@@ -29,7 +29,12 @@ def sha256_payload(payload: object) -> str:
 
 
 def created_at_utc() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return (
+        datetime.now(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
 
 
 def normalize_profile(value: str) -> str:
@@ -39,7 +44,9 @@ def normalize_profile(value: str) -> str:
     return text
 
 
-def normalize_profile_list(values: Sequence[Any], *, field_name: str, require_unique: bool = True) -> list[str]:
+def normalize_profile_list(
+    values: Sequence[Any], *, field_name: str, require_unique: bool = True
+) -> list[str]:
     out = [normalize_profile(str(value)) for value in values]
     if require_unique and len(set(out)) != len(out):
         raise ValueError(f"{field_name} must not contain duplicates")
@@ -56,7 +63,9 @@ def normalize_share_with(
     raw = entry.get("share_with")
     if not isinstance(raw, list) or not raw:
         return list(default_share_with) if default_share_with is not None else []
-    return normalize_profile_list(raw, field_name=field_name, require_unique=require_unique)
+    return normalize_profile_list(
+        raw, field_name=field_name, require_unique=require_unique
+    )
 
 
 def build_protected_disclosure_settings(
@@ -71,7 +80,9 @@ def build_protected_disclosure_settings(
     raw = handoff.get("protected_disclosure")
     if not isinstance(raw, Mapping) or not bool(raw.get("enabled")):
         if require_enabled:
-            raise ValueError("protected_disclosure.enabled=true is required for protected disclosure envelopes")
+            raise ValueError(
+                "protected_disclosure.enabled=true is required for protected disclosure envelopes"
+            )
         return ProtectedDisclosureSettings(
             enabled=False,
             disclosure_level="none",

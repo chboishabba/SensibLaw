@@ -59,41 +59,63 @@ def _qualifiers_for_queue_row(row: Mapping[str, Any]) -> dict[str, Any]:
         "authority_yield": _as_text(row.get("authority_yield")),
         "priority_score": int(row.get("priority_score") or 0),
         "priority_rank": int(row.get("priority_rank") or 0),
-        "chips": list(row.get("chips", [])) if isinstance(row.get("chips"), Sequence) else [],
+        "chips": list(row.get("chips", []))
+        if isinstance(row.get("chips"), Sequence)
+        else [],
         "source_url": _as_text(row.get("source_url")),
         "cite_class": _as_text(row.get("cite_class")),
         "brexit_related": bool(row.get("brexit_related")),
         "resolution_mode": _as_text(row.get("resolution_mode")),
-        "source_refs": list(row.get("source_refs", [])) if isinstance(row.get("source_refs"), Sequence) else [],
+        "source_refs": list(row.get("source_refs", []))
+        if isinstance(row.get("source_refs"), Sequence)
+        else [],
     }
 
 
 def build_world_model(payload: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(payload, Mapping):
-        raise ValueError("GWB broader-review world-model adapter requires mapping payload")
+        raise ValueError(
+            "GWB broader-review world-model adapter requires mapping payload"
+        )
     if _as_text(payload.get("fixture_kind")) != "gwb_broader_review":
-        raise ValueError("GWB broader-review world-model adapter requires gwb_broader_review fixture kind")
+        raise ValueError(
+            "GWB broader-review world-model adapter requires gwb_broader_review fixture kind"
+        )
 
     normalized_metrics = payload.get("normalized_metrics_v1")
     if not isinstance(normalized_metrics, Mapping):
-        raise ValueError("GWB broader-review world-model adapter requires normalized_metrics_v1")
+        raise ValueError(
+            "GWB broader-review world-model adapter requires normalized_metrics_v1"
+        )
     artifact_id = _as_text(normalized_metrics.get("artifact_id"))
     if not artifact_id:
         raise ValueError("GWB broader-review world-model adapter requires artifact_id")
 
     compiler_contract = normalize_compiler_contract(
-        payload.get("compiler_contract") if isinstance(payload.get("compiler_contract"), Mapping) else None
+        payload.get("compiler_contract")
+        if isinstance(payload.get("compiler_contract"), Mapping)
+        else None
     )
     promotion_gate = normalize_product_gate(
-        payload.get("promotion_gate") if isinstance(payload.get("promotion_gate"), Mapping) else None
+        payload.get("promotion_gate")
+        if isinstance(payload.get("promotion_gate"), Mapping)
+        else None
     )
-    workflow_summary = payload.get("workflow_summary") if isinstance(payload.get("workflow_summary"), Mapping) else {}
+    workflow_summary = (
+        payload.get("workflow_summary")
+        if isinstance(payload.get("workflow_summary"), Mapping)
+        else {}
+    )
     operator_workflow_surface = build_operator_workflow_surface(
         compiler_contract=compiler_contract,
         promotion_gate=promotion_gate,
         workflow_summary=workflow_summary,
     )
-    operator_views = payload.get("operator_views") if isinstance(payload.get("operator_views"), Mapping) else {}
+    operator_views = (
+        payload.get("operator_views")
+        if isinstance(payload.get("operator_views"), Mapping)
+        else {}
+    )
     legal_follow_view = (
         operator_views.get("legal_follow_graph")
         if isinstance(operator_views.get("legal_follow_graph"), Mapping)
@@ -115,8 +137,12 @@ def build_world_model(payload: Mapping[str, Any]) -> dict[str, Any]:
             root_artifact_id=lambda _row, context: context.get("artifact_id"),
             source_family=lambda _row, _context: "gwb_legal_follow",
             authority_level=lambda _row, _context: "legal_follow_queue_item",
-            claim_status=lambda row, _context: _claim_status(_as_text(row.get("resolution_status")) or "open"),
-            evidence_status=lambda row, _context: _as_text(row.get("resolution_status")) or "open",
+            claim_status=lambda row, _context: _claim_status(
+                _as_text(row.get("resolution_status")) or "open"
+            ),
+            evidence_status=lambda row, _context: (
+                _as_text(row.get("resolution_status")) or "open"
+            ),
             source_property=lambda _row, _context: "gwb_broader_review",
             target_property=lambda _row, _context: "legal_follow_target",
             state_basis=lambda _row, _context: "gwb_broader_review_artifact",
@@ -124,10 +150,16 @@ def build_world_model(payload: Mapping[str, Any]) -> dict[str, Any]:
                 "artifact_id": context.get("artifact_id"),
                 "lane": context.get("lane_id"),
                 "promotion_decision": _as_text(
-                    context.get("operator_workflow_surface", {}).get("summary", {}).get("gate_decision")
+                    context.get("operator_workflow_surface", {})
+                    .get("summary", {})
+                    .get("gate_decision")
                 ),
-                "workflow_stage": _as_text(context.get("operator_workflow_surface", {}).get("stage")),
-                "recommended_view": _as_text(context.get("operator_workflow_surface", {}).get("recommended_view")),
+                "workflow_stage": _as_text(
+                    context.get("operator_workflow_surface", {}).get("stage")
+                ),
+                "recommended_view": _as_text(
+                    context.get("operator_workflow_surface", {}).get("recommended_view")
+                ),
                 "route_target": _as_text(row.get("route_target")),
             },
             canonical_form=lambda row, context: {
@@ -147,7 +179,9 @@ def build_world_model(payload: Mapping[str, Any]) -> dict[str, Any]:
         model_status="candidate",
         source_mode="gwb_broader_review_payload",
         claims=claims,
-        authority_surfaces=build_authority_surface_rows([f"operator_workflow_surface:{artifact_id}"]),
+        authority_surfaces=build_authority_surface_rows(
+            [f"operator_workflow_surface:{artifact_id}"]
+        ),
         provenance_graph=[
             {
                 "source_payload_kind": _as_text(payload.get("fixture_kind")),
@@ -157,20 +191,31 @@ def build_world_model(payload: Mapping[str, Any]) -> dict[str, Any]:
         summary={
             "claim_count": len(claims),
             "must_review_count": sum(
-                1 for claim in claims if _as_text(claim.get("action_policy", {}).get("actionability")) == "must_review"
+                1
+                for claim in claims
+                if _as_text(claim.get("action_policy", {}).get("actionability"))
+                == "must_review"
             ),
             "must_abstain_count": sum(
-                1 for claim in claims if _as_text(claim.get("action_policy", {}).get("actionability")) == "must_abstain"
+                1
+                for claim in claims
+                if _as_text(claim.get("action_policy", {}).get("actionability"))
+                == "must_abstain"
             ),
             "can_act_count": sum(
-                1 for claim in claims if _as_text(claim.get("action_policy", {}).get("actionability")) == "can_act"
+                1
+                for claim in claims
+                if _as_text(claim.get("action_policy", {}).get("actionability"))
+                == "can_act"
             ),
             "queue_count": len(queue),
         },
         metadata={
             "artifact_id": artifact_id,
             "lane_id": _as_text(operator_workflow_surface.get("lane")) or "gwb",
-            "decision": _as_text(operator_workflow_surface.get("summary", {}).get("gate_decision")),
+            "decision": _as_text(
+                operator_workflow_surface.get("summary", {}).get("gate_decision")
+            ),
             "compiler_contract": compiler_contract,
             "promotion_gate": promotion_gate,
             "workflow_summary": dict(workflow_summary),
@@ -180,7 +225,11 @@ def build_world_model(payload: Mapping[str, Any]) -> dict[str, Any]:
             "temporal_schema_version": TEMPORAL_SCHEMA_VERSION,
             "conflict_schema_version": CONFLICT_SCHEMA_VERSION,
             "action_policy_schema_version": ACTION_POLICY_SCHEMA_VERSION,
-            "adapter_stack": ["review_claim_records", "authority_surface_rows", "review_inputs"],
+            "adapter_stack": [
+                "review_claim_records",
+                "authority_surface_rows",
+                "review_inputs",
+            ],
             "linkage_inputs": build_review_inputs(
                 payload,
                 field_names=(
@@ -207,34 +256,57 @@ def build_world_model(payload: Mapping[str, Any]) -> dict[str, Any]:
 
 def project_report(world_model: Mapping[str, Any]) -> dict[str, Any]:
     model = dict(world_model)
-    metadata = model.get("metadata") if isinstance(model.get("metadata"), Mapping) else {}
+    metadata = (
+        model.get("metadata") if isinstance(model.get("metadata"), Mapping) else {}
+    )
     report = _project_report(
         world_model=model,
         schema_version=GWB_BROADER_REVIEW_WORLD_MODEL_SCHEMA_VERSION,
-        artifact_id=_as_text(metadata.get("artifact_id")) or _as_text(model.get("model_id")),
+        artifact_id=_as_text(metadata.get("artifact_id"))
+        or _as_text(model.get("model_id")),
         lane_id=_as_text(metadata.get("lane_id")) or "gwb",
         family_id=_as_text(model.get("lane_family")) or GWB_BROADER_REVIEW_FAMILY_ID,
-        compiler_contract=metadata.get("compiler_contract") if isinstance(metadata.get("compiler_contract"), Mapping) else None,
-        promotion_gate=metadata.get("promotion_gate") if isinstance(metadata.get("promotion_gate"), Mapping) else None,
-        workflow_summary=metadata.get("workflow_summary") if isinstance(metadata.get("workflow_summary"), Mapping) else None,
+        compiler_contract=metadata.get("compiler_contract")
+        if isinstance(metadata.get("compiler_contract"), Mapping)
+        else None,
+        promotion_gate=metadata.get("promotion_gate")
+        if isinstance(metadata.get("promotion_gate"), Mapping)
+        else None,
+        workflow_summary=metadata.get("workflow_summary")
+        if isinstance(metadata.get("workflow_summary"), Mapping)
+        else None,
         operator_workflow_surface=metadata.get("operator_workflow_surface")
         if isinstance(metadata.get("operator_workflow_surface"), Mapping)
         else None,
-        claims=model.get("claims") if isinstance(model.get("claims"), Sequence) else None,
-        summary=model.get("summary") if isinstance(model.get("summary"), Mapping) else None,
+        claims=model.get("claims")
+        if isinstance(model.get("claims"), Sequence)
+        else None,
+        summary=model.get("summary")
+        if isinstance(model.get("summary"), Mapping)
+        else None,
         extra_fields={
             "claim_schema_version": _as_text(metadata.get("claim_schema_version")),
-            "convergence_schema_version": _as_text(metadata.get("convergence_schema_version")),
-            "temporal_schema_version": _as_text(metadata.get("temporal_schema_version")),
-            "conflict_schema_version": _as_text(metadata.get("conflict_schema_version")),
-            "action_policy_schema_version": _as_text(metadata.get("action_policy_schema_version")),
+            "convergence_schema_version": _as_text(
+                metadata.get("convergence_schema_version")
+            ),
+            "temporal_schema_version": _as_text(
+                metadata.get("temporal_schema_version")
+            ),
+            "conflict_schema_version": _as_text(
+                metadata.get("conflict_schema_version")
+            ),
+            "action_policy_schema_version": _as_text(
+                metadata.get("action_policy_schema_version")
+            ),
             "decision": _as_text(metadata.get("decision")),
         },
     )
     report["claim_table"] = project_claim_table(model)
     report["review_surface"] = project_review_surface(
         model,
-        workflow_summary=metadata.get("workflow_summary") if isinstance(metadata.get("workflow_summary"), Mapping) else None,
+        workflow_summary=metadata.get("workflow_summary")
+        if isinstance(metadata.get("workflow_summary"), Mapping)
+        else None,
         operator_workflow_surface=metadata.get("operator_workflow_surface")
         if isinstance(metadata.get("operator_workflow_surface"), Mapping)
         else None,

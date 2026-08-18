@@ -44,12 +44,8 @@ def test_targeted_change_evaluates_only_incident_constraints() -> None:
         changed_factor_refs=("factor:c",),
     )
 
-    assert [row.constraint_ref for row in result.assessments] == [
-        "constraint:bc"
-    ]
-    assert [row.constraint_ref for row in result.work_items] == [
-        "constraint:bc"
-    ]
+    assert [row.constraint_ref for row in result.assessments] == ["constraint:bc"]
+    assert [row.constraint_ref for row in result.work_items] == ["constraint:bc"]
     assert result.fixed_point_rounds == 1
 
 
@@ -57,9 +53,7 @@ def test_unrelated_change_does_not_fall_back_to_full_scan() -> None:
     result = evaluate_constraint_worklist(
         document_ref="document:1",
         factor_refs=("factor:a", "factor:b"),
-        constraints=(
-            _constraint("constraint:ab", "factor:a", "factor:b"),
-        ),
+        constraints=(_constraint("constraint:ab", "factor:a", "factor:b"),),
         changed_factor_refs=("factor:unrelated",),
     )
 

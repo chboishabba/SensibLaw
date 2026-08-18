@@ -143,10 +143,7 @@ def test_build_document_strips_toc_from_body():
             "page": 2,
             "heading": "Part 1 Preliminary",
             "text": (
-                "1 Short title\n"
-                "Short title text\n\n"
-                "2 Definitions\n"
-                "Definitions text"
+                "1 Short title\nShort title text\n\n2 Definitions\nDefinitions text"
             ),
             "lines": [
                 "Part 1 Preliminary",

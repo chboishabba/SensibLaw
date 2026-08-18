@@ -73,7 +73,11 @@ def test_add_revision_stores_tokenizer_profile(tmp_path):
         profile = stored_metadata["tokenizer_profile"]
         assert profile["canonical_tokenizer_id"]
         assert profile["canonical_tokenizer_version"]
-        assert profile["canonical_mode"] in {"legacy_regex", "spacy", "deterministic_legal"}
+        assert profile["canonical_mode"] in {
+            "legacy_regex",
+            "spacy",
+            "deterministic_legal",
+        }
         assert isinstance(profile["canonical_token_count"], int)
         assert profile["source_hash"] == (
             hashlib.sha256(body.encode("utf-8")).hexdigest()
@@ -104,7 +108,10 @@ def test_add_revision_persists_structural_atom_dictionary(tmp_path):
         assert [(row["norm_text"], row["norm_kind"]) for row in atoms] == [
             ("act:civil_liability_act_2002_nsw", "act_ref"),
             ("art:5", "article_ref"),
-            ("instrument:india_united_states_civil_nuclear_agreement", "instrument_ref"),
+            (
+                "instrument:india_united_states_civil_nuclear_agreement",
+                "instrument_ref",
+            ),
             ("para:a", "paragraph_ref"),
             ("sec:5b", "section_ref"),
             ("subsec:2", "subsection_ref"),
@@ -124,8 +131,10 @@ def test_add_revision_persists_structural_atom_dictionary(tmp_path):
             (35, 38, "subsec:2"),
             (38, 41, "para:a"),
         ]
-        assert ("art:5" in {row[2] for row in got})
-        assert ("instrument:india_united_states_civil_nuclear_agreement" in {row[2] for row in got})
+        assert "art:5" in {row[2] for row in got}
+        assert "instrument:india_united_states_civil_nuclear_agreement" in {
+            row[2] for row in got
+        }
     finally:
         store.close()
 
@@ -159,7 +168,10 @@ def test_deterministic_legal_occurrences_emit_gwb_style_acts_and_courts():
     occs = collect_lexeme_occurrences(text, canonical_mode="deterministic_legal")
     pairs = [(occ.norm_text, occ.kind) for occ in occs]
     assert ("act:military_commissions_act_of_2006", "act_ref") in pairs
-    assert ("court:united_states_court_of_appeals_for_the_sixth_circuit", "court_ref") in pairs
+    assert (
+        "court:united_states_court_of_appeals_for_the_sixth_circuit",
+        "court_ref",
+    ) in pairs
     assert ("court:u_s_supreme_court", "court_ref") in pairs
 
 
@@ -175,7 +187,10 @@ def test_deterministic_legal_occurrences_emit_articles_constitutional_refs_and_i
     assert ("sec:75", "section_ref") in pairs
     assert ("para:v", "paragraph_ref") in pairs
     assert ("art:5", "article_ref") in pairs
-    assert ("instrument:india_united_states_civil_nuclear_agreement", "instrument_ref") in pairs
+    assert (
+        "instrument:india_united_states_civil_nuclear_agreement",
+        "instrument_ref",
+    ) in pairs
     assert ("instrument:u_s_dprk_agreed_framework", "instrument_ref") in pairs
 
 
@@ -197,7 +212,9 @@ def test_seeded_entity_bridge_resolves_refs_to_wikidata():
 
     text = "UN inspectors briefed the United Nations Security Council while the ICC and ICJ were discussed."
     occs = collect_lexeme_occurrences(text, canonical_mode="deterministic_legal")
-    linked = {(link.canonical_ref, link.curie) for link in link_lexeme_occurrences(occs)}
+    linked = {
+        (link.canonical_ref, link.curie) for link in link_lexeme_occurrences(occs)
+    }
     assert ("institution:united_nations", "wikidata:Q1065") in linked
     assert ("institution:united_nations_security_council", "wikidata:Q37470") in linked
     assert ("court:international_criminal_court", "wikidata:Q47488") in linked
@@ -214,13 +231,21 @@ def test_seeded_entity_bridge_resolves_gwb_body_and_court_refs_to_wikidata():
         "in a United States district court before the United States Court of Appeals for the Sixth Circuit considered it."
     )
     occs = collect_lexeme_occurrences(text, canonical_mode="deterministic_legal")
-    linked = {(link.canonical_ref, link.curie) for link in link_lexeme_occurrences(occs)}
+    linked = {
+        (link.canonical_ref, link.curie) for link in link_lexeme_occurrences(occs)
+    }
     assert ("institution:u_s_senate", "wikidata:Q66096") in linked
     assert ("institution:u_s_house_of_representatives", "wikidata:Q11701") in linked
     assert ("court:u_s_supreme_court", "wikidata:Q11201") in linked
     assert ("court:united_states_district_court", "wikidata:Q1614849") in linked
-    assert ("court:united_states_court_of_appeals_for_the_sixth_circuit", "wikidata:Q250472") in linked
-    assert ("institution:united_states_department_of_defense", "wikidata:Q11209") in linked
+    assert (
+        "court:united_states_court_of_appeals_for_the_sixth_circuit",
+        "wikidata:Q250472",
+    ) in linked
+    assert (
+        "institution:united_states_department_of_defense",
+        "wikidata:Q11209",
+    ) in linked
     assert ("institution:central_intelligence_agency", "wikidata:Q37230") in linked
     assert ("institution:federal_bureau_of_investigation", "wikidata:Q8333") in linked
 
@@ -248,7 +273,12 @@ def test_seeded_entity_bridge_emits_external_refs_batch_payload():
             "court:international_court_of_justice": {"actor_id": 104},
         },
     )
-    assert {row["external_id"] for row in batch["actor_external_refs"]} == {"Q1065", "Q37470", "Q47488", "Q7801"}
+    assert {row["external_id"] for row in batch["actor_external_refs"]} == {
+        "Q1065",
+        "Q37470",
+        "Q47488",
+        "Q7801",
+    }
     assert not batch["concept_external_refs"]
     assert batch["meta"]["coverage"]["resolved_bridge_refs"] == 4
     assert batch["meta"]["coverage"]["skipped_no_bridge_match"] == 0
@@ -260,9 +290,18 @@ def test_prepopulation_bridge_resolves_au_branch_refs_via_text_alias_scan():
     import sqlite3
     from pathlib import Path
 
-    from src.ontology.entity_bridge import ensure_bridge_schema, import_bridge_payload, link_text_via_bridge_aliases
+    from src.ontology.entity_bridge import (
+        ensure_bridge_schema,
+        import_bridge_payload,
+        link_text_via_bridge_aliases,
+    )
 
-    bridge_path = Path(__file__).resolve().parents[1] / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+    bridge_path = (
+        Path(__file__).resolve().parents[1]
+        / "data"
+        / "ontology"
+        / "external_ref_bridge_prepopulation_core_v1.json"
+    )
     payload = json.loads(bridge_path.read_text(encoding="utf-8"))
     text = (
         "In Mabo v Queensland (No 2), Eddie Mabo and the High Court of Australia "
@@ -279,8 +318,12 @@ def test_prepopulation_bridge_resolves_au_branch_refs_via_text_alias_scan():
                 {
                     "case:mabo_v_queensland_no_2": {"concept_code": "AU_CASE_MABO"},
                     "court:high_court_of_australia": {"actor_id": 1},
-                    "jurisdiction:commonwealth_of_australia": {"concept_code": "AU_JURIS_COMMONWEALTH"},
-                    "legislation:native_title_act_1993": {"concept_code": "AU_ACT_NATIVE_TITLE"},
+                    "jurisdiction:commonwealth_of_australia": {
+                        "concept_code": "AU_JURIS_COMMONWEALTH"
+                    },
+                    "legislation:native_title_act_1993": {
+                        "concept_code": "AU_ACT_NATIVE_TITLE"
+                    },
                     "person:eddie_mabo": {"actor_id": 2},
                 },
                 conn=conn,
@@ -291,7 +334,10 @@ def test_prepopulation_bridge_resolves_au_branch_refs_via_text_alias_scan():
     assert ("person:eddie_mabo", "wikidata:Q5331630") in linked
     assert ("court:high_court_of_australia", "wikidata:Q16903290") in linked
     assert ("jurisdiction:commonwealth_of_australia", "wikidata:Q408") in linked
-    assert ("jurisdiction:commonwealth_of_australia", "dbpedia:http://dbpedia.org/resource/Australia") in linked
+    assert (
+        "jurisdiction:commonwealth_of_australia",
+        "dbpedia:http://dbpedia.org/resource/Australia",
+    ) in linked
     assert ("legislation:native_title_act_1993", "wikidata:Q6987230") in linked
 
 
@@ -300,9 +346,18 @@ def test_prepopulation_bridge_resolves_nsw_branch_refs_with_mixed_providers():
     import sqlite3
     from pathlib import Path
 
-    from src.ontology.entity_bridge import ensure_bridge_schema, import_bridge_payload, link_text_via_bridge_aliases
+    from src.ontology.entity_bridge import (
+        ensure_bridge_schema,
+        import_bridge_payload,
+        link_text_via_bridge_aliases,
+    )
 
-    bridge_path = Path(__file__).resolve().parents[1] / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+    bridge_path = (
+        Path(__file__).resolve().parents[1]
+        / "data"
+        / "ontology"
+        / "external_ref_bridge_prepopulation_core_v1.json"
+    )
     payload = json.loads(bridge_path.read_text(encoding="utf-8"))
     text = (
         "House v The King and New South Wales v Lepore were discussed in New South Wales "
@@ -318,21 +373,31 @@ def test_prepopulation_bridge_resolves_nsw_branch_refs_with_mixed_providers():
                 text,
                 {
                     "court:high_court_of_australia": {"actor_id": 1},
-                    "jurisdiction:state_of_new_south_wales": {"concept_code": "AU_JURIS_NSW"},
+                    "jurisdiction:state_of_new_south_wales": {
+                        "concept_code": "AU_JURIS_NSW"
+                    },
                     "case:house_v_the_king": {"concept_code": "AU_CASE_HOUSE"},
                     "case:new_south_wales_v_lepore": {"concept_code": "AU_CASE_LEPORE"},
-                    "legislation:civil_liability_act_2002_nsw": {"concept_code": "AU_ACT_CLA_NSW"},
+                    "legislation:civil_liability_act_2002_nsw": {
+                        "concept_code": "AU_ACT_CLA_NSW"
+                    },
                 },
                 conn=conn,
                 slice_name="prepopulation_core_refs_v1",
             )
         }
-    assert ("case:house_v_the_king", "austlii:https://www.austlii.edu.au/cgi-bin/viewdoc/au/cases/cth/HCA/1936/40.html") in linked
+    assert (
+        "case:house_v_the_king",
+        "austlii:https://www.austlii.edu.au/cgi-bin/viewdoc/au/cases/cth/HCA/1936/40.html",
+    ) in linked
     assert (
         "case:new_south_wales_v_lepore",
         "hcourt_au:https://www.hcourt.gov.au/cases-and-judgments/judgments/judgments-2000-current/new-south-wales-v-lepore",
     ) in linked
-    assert ("legislation:civil_liability_act_2002_nsw", "nsw_legislation:https://legislation.nsw.gov.au/view/html/inforce/current/act-2002-022") in linked
+    assert (
+        "legislation:civil_liability_act_2002_nsw",
+        "nsw_legislation:https://legislation.nsw.gov.au/view/html/inforce/current/act-2002-022",
+    ) in linked
     assert ("jurisdiction:state_of_new_south_wales", "wikidata:Q3224") in linked
 
 
@@ -341,9 +406,18 @@ def test_prepopulation_bridge_resolves_judicial_review_branch_refs_via_text_alia
     import sqlite3
     from pathlib import Path
 
-    from src.ontology.entity_bridge import ensure_bridge_schema, import_bridge_payload, link_text_via_bridge_aliases
+    from src.ontology.entity_bridge import (
+        ensure_bridge_schema,
+        import_bridge_payload,
+        link_text_via_bridge_aliases,
+    )
 
-    bridge_path = Path(__file__).resolve().parents[1] / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+    bridge_path = (
+        Path(__file__).resolve().parents[1]
+        / "data"
+        / "ontology"
+        / "external_ref_bridge_prepopulation_core_v1.json"
+    )
     payload = json.loads(bridge_path.read_text(encoding="utf-8"))
     text = (
         "In Plaintiff S157/2002 v Commonwealth of Australia, the High Court held that the Migration Act 1958 "
@@ -359,11 +433,19 @@ def test_prepopulation_bridge_resolves_judicial_review_branch_refs_via_text_alia
             for link in link_text_via_bridge_aliases(
                 text,
                 {
-                    "case:plaintiff_s157_2002_v_commonwealth_of_australia": {"concept_code": "AU_CASE_S157"},
+                    "case:plaintiff_s157_2002_v_commonwealth_of_australia": {
+                        "concept_code": "AU_CASE_S157"
+                    },
                     "court:high_court_of_australia": {"actor_id": 1},
-                    "legislation:migration_act_1958_cth": {"concept_code": "AU_ACT_MIGRATION"},
-                    "legislation:native_title_new_south_wales_act_1994": {"concept_code": "AU_ACT_NATIVE_TITLE_NSW"},
-                    "jurisdiction:state_of_new_south_wales": {"concept_code": "AU_JURIS_NSW"},
+                    "legislation:migration_act_1958_cth": {
+                        "concept_code": "AU_ACT_MIGRATION"
+                    },
+                    "legislation:native_title_new_south_wales_act_1994": {
+                        "concept_code": "AU_ACT_NATIVE_TITLE_NSW"
+                    },
+                    "jurisdiction:state_of_new_south_wales": {
+                        "concept_code": "AU_JURIS_NSW"
+                    },
                 },
                 conn=conn,
                 slice_name="prepopulation_core_refs_v1",
@@ -373,7 +455,10 @@ def test_prepopulation_bridge_resolves_judicial_review_branch_refs_via_text_alia
         "case:plaintiff_s157_2002_v_commonwealth_of_australia",
         "hcourt_au:https://www.hcourt.gov.au/cases-and-judgments/judgments/judgments-1998-current/plaintiff-s1572002-v-commonwealth-australia",
     ) in linked
-    assert ("legislation:migration_act_1958_cth", "legislation_gov_au:https://www.legislation.gov.au/Latest/C2025C00506") in linked
+    assert (
+        "legislation:migration_act_1958_cth",
+        "legislation_gov_au:https://www.legislation.gov.au/Latest/C2025C00506",
+    ) in linked
     assert (
         "legislation:native_title_new_south_wales_act_1994",
         "nsw_legislation:https://legislation.nsw.gov.au/view/html/inforce/current/act-1994-045",
@@ -387,9 +472,18 @@ def test_prepopulation_bridge_resolves_liability_branch_refs_via_text_alias_scan
     import sqlite3
     from pathlib import Path
 
-    from src.ontology.entity_bridge import ensure_bridge_schema, import_bridge_payload, link_text_via_bridge_aliases
+    from src.ontology.entity_bridge import (
+        ensure_bridge_schema,
+        import_bridge_payload,
+        link_text_via_bridge_aliases,
+    )
 
-    bridge_path = Path(__file__).resolve().parents[1] / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+    bridge_path = (
+        Path(__file__).resolve().parents[1]
+        / "data"
+        / "ontology"
+        / "external_ref_bridge_prepopulation_core_v1.json"
+    )
     payload = json.loads(bridge_path.read_text(encoding="utf-8"))
     text = (
         "In Commonwealth v Introvigne and Nationwide News Pty Ltd v Naidu, the High Court of Australia "
@@ -404,23 +498,37 @@ def test_prepopulation_bridge_resolves_liability_branch_refs_via_text_alias_scan
             for link in link_text_via_bridge_aliases(
                 text,
                 {
-                    "case:commonwealth_v_introvigne": {"concept_code": "AU_CASE_INTROVIGNE"},
-                    "case:nationwide_news_pty_ltd_v_naidu": {"concept_code": "AU_CASE_NAIDU"},
+                    "case:commonwealth_v_introvigne": {
+                        "concept_code": "AU_CASE_INTROVIGNE"
+                    },
+                    "case:nationwide_news_pty_ltd_v_naidu": {
+                        "concept_code": "AU_CASE_NAIDU"
+                    },
                     "court:high_court_of_australia": {"actor_id": 1},
                 },
                 conn=conn,
                 slice_name="prepopulation_core_refs_v1",
             )
         }
-    assert ("case:commonwealth_v_introvigne", "austlii:https://www.austlii.edu.au/au/cases/cth/HCA/1982/40.html") in linked
-    assert ("case:nationwide_news_pty_ltd_v_naidu", "nswlr:https://nswlr.com.au/view/71-NSWLR-471") in linked
+    assert (
+        "case:commonwealth_v_introvigne",
+        "austlii:https://www.austlii.edu.au/au/cases/cth/HCA/1982/40.html",
+    ) in linked
+    assert (
+        "case:nationwide_news_pty_ltd_v_naidu",
+        "nswlr:https://nswlr.com.au/view/71-NSWLR-471",
+    ) in linked
     assert ("court:high_court_of_australia", "wikidata:Q16903290") in linked
 
 
 def test_text_alias_match_receipts_expose_resolved_and_abstaining_refs():
     import sqlite3
 
-    from src.ontology.entity_bridge import build_text_alias_match_receipts, ensure_bridge_schema, ensure_seeded_bridge_slice
+    from src.ontology.entity_bridge import (
+        build_text_alias_match_receipts,
+        ensure_bridge_schema,
+        ensure_seeded_bridge_slice,
+    )
 
     text = "The U.S. Senate consulted the U.S. Supreme Court."
     with sqlite3.connect(":memory:") as conn:
@@ -442,7 +550,9 @@ def test_text_alias_match_receipts_expose_resolved_and_abstaining_refs():
     assert ("court:u_s_supreme_court", "resolved") in statuses
     assert ("institution:central_intelligence_agency", "abstain_no_alias") in statuses
     assert ("institution:nonexistent_review_target", "abstain_no_bridge") in statuses
-    senate_rows = [row for row in receipts if row["canonical_ref"] == "institution:u_s_senate"]
+    senate_rows = [
+        row for row in receipts if row["canonical_ref"] == "institution:u_s_senate"
+    ]
     assert senate_rows[0]["predicate"] == "reviewed_alias_match"
     assert senate_rows[0]["anchor_targets"] == {"actor_id": 1}
     assert senate_rows[0]["matched_alias"] == "U.S. Senate"

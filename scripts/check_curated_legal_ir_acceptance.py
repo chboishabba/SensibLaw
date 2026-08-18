@@ -14,7 +14,9 @@ def _args() -> argparse.Namespace:
     parser.add_argument("--build-root", type=Path, required=True)
     parser.add_argument("--parity-root", type=Path, required=True)
     parser.add_argument("--maximum-p50-postgres-seconds", type=float, default=1.85)
-    parser.add_argument("--maximum-p50-base-reduction-seconds", type=float, default=0.69)
+    parser.add_argument(
+        "--maximum-p50-base-reduction-seconds", type=float, default=0.69
+    )
     parser.add_argument("--require-control-parity", action="store_true")
     return parser.parse_args()
 
@@ -54,7 +56,10 @@ def main() -> int:
         failures.append("parity_receipt_network_attempt")
     if parity_receipt.get("unexpected_failure_refs"):
         failures.append("parity_unexpected_failures")
-    if args.require_control_parity and parity_receipt.get("identity_parity") is not True:
+    if (
+        args.require_control_parity
+        and parity_receipt.get("identity_parity") is not True
+    ):
         failures.append("semantic_identity_drift_or_control_absent")
     if admission.get("counts", {}).get("compile", 0) < 1:
         failures.append("no_compile_eligible_source")

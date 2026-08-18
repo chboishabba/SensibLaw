@@ -82,5 +82,3 @@ def test_update_requires_actor_and_checks_uniqueness():
                 participation_note=None,
             )
         )
-
-

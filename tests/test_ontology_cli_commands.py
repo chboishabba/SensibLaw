@@ -130,15 +130,15 @@ def test_ontology_concepts_enrich_cli_emits_provider_candidates(
     assert payload[0]["candidates"]["dbpedia"][0]["external_id"].endswith("/Consent")
 
 
-def test_ontology_actors_enrich_cli_interactive_upsert(
-    tmp_path, monkeypatch, capsys
-):
+def test_ontology_actors_enrich_cli_interactive_upsert(tmp_path, monkeypatch, capsys):
     db_path = tmp_path / "ontology.db"
     connection = sqlite3.connect(db_path)
     try:
         ensure_database(connection)
         cur = connection.cursor()
-        cur.execute("INSERT INTO actors(kind, label) VALUES (?, ?)", ("ORG", "Example Org"))
+        cur.execute(
+            "INSERT INTO actors(kind, label) VALUES (?, ?)", ("ORG", "Example Org")
+        )
         connection.commit()
     finally:
         connection.close()
@@ -346,7 +346,9 @@ def test_ontology_bridge_import_and_report_cli(tmp_path, capsys):
 
 def test_ontology_bridge_report_includes_provider_and_duplicate_stats(tmp_path, capsys):
     db_path = tmp_path / "ontology.db"
-    bridge_file = ROOT / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+    bridge_file = (
+        ROOT / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+    )
 
     cli_main.main(
         [
@@ -388,10 +390,15 @@ def test_ontology_bridge_report_includes_provider_and_duplicate_stats(tmp_path, 
     assert report["duplicate_alias_count"] >= 1
     assert report["missing_external_url_count"] == 0
     assert report["duplicate_external_id_reuse"][0]["provider"] == "dbpedia"
-    assert report["duplicate_external_id_reuse"][0]["external_id"] == "http://dbpedia.org/resource/Australia"
+    assert (
+        report["duplicate_external_id_reuse"][0]["external_id"]
+        == "http://dbpedia.org/resource/Australia"
+    )
 
 
-def test_bridge_batch_emitter_emits_multi_provider_actor_and_concept_rows(tmp_path, capsys):
+def test_bridge_batch_emitter_emits_multi_provider_actor_and_concept_rows(
+    tmp_path, capsys
+):
     db_path = tmp_path / "ontology.db"
     bridge_file = tmp_path / "multi_provider_bridge.json"
     bridge_file.write_text(
@@ -444,7 +451,10 @@ def test_bridge_batch_emitter_emits_multi_provider_actor_and_concept_rows(tmp_pa
     anchor_map_path.write_text(
         json.dumps(
             {
-                "institution:united_nations": {"actor_id": 101, "concept_code": "INTL_UN"},
+                "institution:united_nations": {
+                    "actor_id": 101,
+                    "concept_code": "INTL_UN",
+                },
             },
             sort_keys=True,
         ),
@@ -474,8 +484,13 @@ def test_bridge_batch_emitter_emits_multi_provider_actor_and_concept_rows(tmp_pa
     assert payload["meta"]["coverage"]["resolved_bridge_refs"] == 1
     assert payload["meta"]["coverage"]["emitted_actor_rows"] == 2
     assert payload["meta"]["coverage"]["emitted_concept_rows"] == 2
-    actor_refs = {(row["provider"], row["external_id"]) for row in payload["actor_external_refs"]}
-    concept_refs = {(row["provider"], row["external_id"]) for row in payload["concept_external_refs"]}
+    actor_refs = {
+        (row["provider"], row["external_id"]) for row in payload["actor_external_refs"]
+    }
+    concept_refs = {
+        (row["provider"], row["external_id"])
+        for row in payload["concept_external_refs"]
+    }
     assert actor_refs == {
         ("wikidata", "Q1065"),
         ("dbpedia", "http://dbpedia.org/resource/United_Nations"),
@@ -485,19 +500,31 @@ def test_bridge_batch_emitter_emits_multi_provider_actor_and_concept_rows(tmp_pa
 
 def test_bridge_batch_emitter_resolves_au_branch_prepopulation_refs(tmp_path, capsys):
     db_path = tmp_path / "ontology.db"
-    bridge_file = ROOT / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+    bridge_file = (
+        ROOT / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+    )
 
     connection = sqlite3.connect(db_path)
     try:
         ensure_database(connection)
         cur = connection.cursor()
-        cur.execute("INSERT INTO actors(kind, label) VALUES (?, ?)", ("ORG", "High Court of Australia"))
+        cur.execute(
+            "INSERT INTO actors(kind, label) VALUES (?, ?)",
+            ("ORG", "High Court of Australia"),
+        )
         hca_actor_id = int(cur.lastrowid)
-        cur.execute("INSERT INTO actors(kind, label) VALUES (?, ?)", ("PERSON", "Eddie Mabo"))
+        cur.execute(
+            "INSERT INTO actors(kind, label) VALUES (?, ?)", ("PERSON", "Eddie Mabo")
+        )
         mabo_actor_id = int(cur.lastrowid)
         cur.execute(
             "INSERT INTO concepts(code, label, concept_type, source) VALUES (?,?,?,?)",
-            ("AU_JURIS_COMMONWEALTH", "Commonwealth of Australia", "jurisdiction", "test"),
+            (
+                "AU_JURIS_COMMONWEALTH",
+                "Commonwealth of Australia",
+                "jurisdiction",
+                "test",
+            ),
         )
         cur.execute(
             "INSERT INTO concepts(code, label, concept_type, source) VALUES (?,?,?,?)",
@@ -531,8 +558,12 @@ def test_bridge_batch_emitter_resolves_au_branch_prepopulation_refs(tmp_path, ca
             {
                 "case:mabo_v_queensland_no_2": {"concept_code": "AU_CASE_MABO"},
                 "court:high_court_of_australia": {"actor_id": hca_actor_id},
-                "jurisdiction:commonwealth_of_australia": {"concept_code": "AU_JURIS_COMMONWEALTH"},
-                "legislation:native_title_act_1993": {"concept_code": "AU_ACT_NATIVE_TITLE"},
+                "jurisdiction:commonwealth_of_australia": {
+                    "concept_code": "AU_JURIS_COMMONWEALTH"
+                },
+                "legislation:native_title_act_1993": {
+                    "concept_code": "AU_ACT_NATIVE_TITLE"
+                },
                 "person:eddie_mabo": {"actor_id": mabo_actor_id},
             },
             sort_keys=True,
@@ -589,7 +620,9 @@ def test_bridge_batch_emitter_resolves_au_branch_prepopulation_refs(tmp_path, ca
     assert payload["concept_external_refs"] == 4
 
 
-def test_bridge_batch_emitter_resolves_gwb_branch_refs_via_seeded_slice(tmp_path, capsys):
+def test_bridge_batch_emitter_resolves_gwb_branch_refs_via_seeded_slice(
+    tmp_path, capsys
+):
     db_path = tmp_path / "ontology.db"
     connection = sqlite3.connect(db_path)
     try:
@@ -615,12 +648,24 @@ def test_bridge_batch_emitter_resolves_gwb_branch_refs_via_seeded_slice(tmp_path
     anchor_map_path.write_text(
         json.dumps(
             {
-                "institution:u_s_house_of_representatives": {"actor_id": actor_ids["United States House of Representatives"]},
-                "institution:u_s_senate": {"actor_id": actor_ids["United States Senate"]},
-                "institution:united_states_department_of_defense": {"actor_id": actor_ids["United States Department of Defense"]},
-                "court:u_s_supreme_court": {"actor_id": actor_ids["Supreme Court of the United States"]},
-                "institution:central_intelligence_agency": {"actor_id": actor_ids["Central Intelligence Agency"]},
-                "institution:nonexistent_review_target": {"actor_id": actor_ids["Central Intelligence Agency"]},
+                "institution:u_s_house_of_representatives": {
+                    "actor_id": actor_ids["United States House of Representatives"]
+                },
+                "institution:u_s_senate": {
+                    "actor_id": actor_ids["United States Senate"]
+                },
+                "institution:united_states_department_of_defense": {
+                    "actor_id": actor_ids["United States Department of Defense"]
+                },
+                "court:u_s_supreme_court": {
+                    "actor_id": actor_ids["Supreme Court of the United States"]
+                },
+                "institution:central_intelligence_agency": {
+                    "actor_id": actor_ids["Central Intelligence Agency"]
+                },
+                "institution:nonexistent_review_target": {
+                    "actor_id": actor_ids["Central Intelligence Agency"]
+                },
             },
             sort_keys=True,
         ),
@@ -694,9 +739,13 @@ def test_bridge_batch_emitter_resolves_gwb_branch_refs_via_seeded_slice(tmp_path
     assert receipt_payload["counts_by_status"]["abstain_no_bridge"] >= 1
 
 
-def test_gwb_bridge_receipts_remain_seeded_when_au_prepopulation_slice_is_also_imported(tmp_path, capsys):
+def test_gwb_bridge_receipts_remain_seeded_when_au_prepopulation_slice_is_also_imported(
+    tmp_path, capsys
+):
     db_path = tmp_path / "ontology.db"
-    prepopulation_bridge_file = ROOT / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+    prepopulation_bridge_file = (
+        ROOT / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+    )
 
     connection = sqlite3.connect(db_path)
     try:
@@ -733,10 +782,18 @@ def test_gwb_bridge_receipts_remain_seeded_when_au_prepopulation_slice_is_also_i
     anchor_map_path.write_text(
         json.dumps(
             {
-                "institution:u_s_house_of_representatives": {"actor_id": actor_ids["United States House of Representatives"]},
-                "institution:u_s_senate": {"actor_id": actor_ids["United States Senate"]},
-                "institution:united_states_department_of_defense": {"actor_id": actor_ids["United States Department of Defense"]},
-                "court:u_s_supreme_court": {"actor_id": actor_ids["Supreme Court of the United States"]},
+                "institution:u_s_house_of_representatives": {
+                    "actor_id": actor_ids["United States House of Representatives"]
+                },
+                "institution:u_s_senate": {
+                    "actor_id": actor_ids["United States Senate"]
+                },
+                "institution:united_states_department_of_defense": {
+                    "actor_id": actor_ids["United States Department of Defense"]
+                },
+                "court:u_s_supreme_court": {
+                    "actor_id": actor_ids["Supreme Court of the United States"]
+                },
             },
             sort_keys=True,
         ),
@@ -770,7 +827,9 @@ def test_gwb_bridge_receipts_remain_seeded_when_au_prepopulation_slice_is_also_i
     batch_payload = json.loads(batch_path.read_text(encoding="utf-8"))
     assert batch_payload["meta"]["slice_name"] == "seeded_body_refs_v1"
     assert all(
-        row["canonical_ref"].startswith(("institution:u_s_", "institution:united_states_", "court:u_s_"))
+        row["canonical_ref"].startswith(
+            ("institution:u_s_", "institution:united_states_", "court:u_s_")
+        )
         for row in batch_payload["meta"]["match_receipts"]
         if row["resolution_status"] == "resolved"
     )
@@ -790,21 +849,30 @@ def test_gwb_bridge_receipts_remain_seeded_when_au_prepopulation_slice_is_also_i
     assert receipt_payload["slice_name"] == "seeded_body_refs_v1"
     assert receipt_payload["counts_by_status"]["resolved"] >= 4
     assert all(
-        row["canonical_ref"].startswith(("institution:u_s_", "institution:united_states_", "court:u_s_"))
+        row["canonical_ref"].startswith(
+            ("institution:u_s_", "institution:united_states_", "court:u_s_")
+        )
         for row in receipt_payload["receipts"]
         if row["resolution_status"] == "resolved"
     )
 
 
-def test_bridge_batch_emitter_resolves_nsw_branch_refs_from_reviewed_slice(tmp_path, capsys):
+def test_bridge_batch_emitter_resolves_nsw_branch_refs_from_reviewed_slice(
+    tmp_path, capsys
+):
     db_path = tmp_path / "ontology.db"
-    bridge_file = ROOT / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+    bridge_file = (
+        ROOT / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+    )
 
     connection = sqlite3.connect(db_path)
     try:
         ensure_database(connection)
         cur = connection.cursor()
-        cur.execute("INSERT INTO actors(kind, label) VALUES (?, ?)", ("ORG", "High Court of Australia"))
+        cur.execute(
+            "INSERT INTO actors(kind, label) VALUES (?, ?)",
+            ("ORG", "High Court of Australia"),
+        )
         hca_actor_id = int(cur.lastrowid)
         cur.execute(
             "INSERT INTO concepts(code, label, concept_type, source) VALUES (?,?,?,?)",
@@ -845,10 +913,14 @@ def test_bridge_batch_emitter_resolves_nsw_branch_refs_from_reviewed_slice(tmp_p
         json.dumps(
             {
                 "court:high_court_of_australia": {"actor_id": hca_actor_id},
-                "jurisdiction:state_of_new_south_wales": {"concept_code": "AU_JURIS_NSW"},
+                "jurisdiction:state_of_new_south_wales": {
+                    "concept_code": "AU_JURIS_NSW"
+                },
                 "case:house_v_the_king": {"concept_code": "AU_CASE_HOUSE"},
                 "case:new_south_wales_v_lepore": {"concept_code": "AU_CASE_LEPORE"},
-                "legislation:civil_liability_act_2002_nsw": {"concept_code": "AU_ACT_CLA_NSW"},
+                "legislation:civil_liability_act_2002_nsw": {
+                    "concept_code": "AU_ACT_CLA_NSW"
+                },
             },
             sort_keys=True,
         ),
@@ -903,19 +975,31 @@ def test_bridge_batch_emitter_resolves_nsw_branch_refs_from_reviewed_slice(tmp_p
     assert upsert_payload["concept_external_refs"] == 5
 
 
-def test_bridge_batch_emitter_resolves_judicial_review_branch_refs_from_reviewed_slice(tmp_path, capsys):
+def test_bridge_batch_emitter_resolves_judicial_review_branch_refs_from_reviewed_slice(
+    tmp_path, capsys
+):
     db_path = tmp_path / "ontology.db"
-    bridge_file = ROOT / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+    bridge_file = (
+        ROOT / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+    )
 
     connection = sqlite3.connect(db_path)
     try:
         ensure_database(connection)
         cur = connection.cursor()
-        cur.execute("INSERT INTO actors(kind, label) VALUES (?, ?)", ("ORG", "High Court of Australia"))
+        cur.execute(
+            "INSERT INTO actors(kind, label) VALUES (?, ?)",
+            ("ORG", "High Court of Australia"),
+        )
         hca_actor_id = int(cur.lastrowid)
         cur.execute(
             "INSERT INTO concepts(code, label, concept_type, source) VALUES (?,?,?,?)",
-            ("AU_CASE_S157", "Plaintiff S157/2002 v Commonwealth of Australia", "case", "test"),
+            (
+                "AU_CASE_S157",
+                "Plaintiff S157/2002 v Commonwealth of Australia",
+                "case",
+                "test",
+            ),
         )
         cur.execute(
             "INSERT INTO concepts(code, label, concept_type, source) VALUES (?,?,?,?)",
@@ -923,7 +1007,12 @@ def test_bridge_batch_emitter_resolves_judicial_review_branch_refs_from_reviewed
         )
         cur.execute(
             "INSERT INTO concepts(code, label, concept_type, source) VALUES (?,?,?,?)",
-            ("AU_ACT_NATIVE_TITLE_NSW", "Native Title (New South Wales) Act 1994", "legislation", "test"),
+            (
+                "AU_ACT_NATIVE_TITLE_NSW",
+                "Native Title (New South Wales) Act 1994",
+                "legislation",
+                "test",
+            ),
         )
         cur.execute(
             "INSERT INTO concepts(code, label, concept_type, source) VALUES (?,?,?,?)",
@@ -951,11 +1040,19 @@ def test_bridge_batch_emitter_resolves_judicial_review_branch_refs_from_reviewed
     anchor_map_path.write_text(
         json.dumps(
             {
-                "case:plaintiff_s157_2002_v_commonwealth_of_australia": {"concept_code": "AU_CASE_S157"},
+                "case:plaintiff_s157_2002_v_commonwealth_of_australia": {
+                    "concept_code": "AU_CASE_S157"
+                },
                 "court:high_court_of_australia": {"actor_id": hca_actor_id},
-                "legislation:migration_act_1958_cth": {"concept_code": "AU_ACT_MIGRATION"},
-                "legislation:native_title_new_south_wales_act_1994": {"concept_code": "AU_ACT_NATIVE_TITLE_NSW"},
-                "jurisdiction:state_of_new_south_wales": {"concept_code": "AU_JURIS_NSW"},
+                "legislation:migration_act_1958_cth": {
+                    "concept_code": "AU_ACT_MIGRATION"
+                },
+                "legislation:native_title_new_south_wales_act_1994": {
+                    "concept_code": "AU_ACT_NATIVE_TITLE_NSW"
+                },
+                "jurisdiction:state_of_new_south_wales": {
+                    "concept_code": "AU_JURIS_NSW"
+                },
             },
             sort_keys=True,
         ),
@@ -997,7 +1094,10 @@ def test_bridge_batch_emitter_resolves_judicial_review_branch_refs_from_reviewed
         (row["canonical_ref"], row["resolution_status"])
         for row in batch_payload["meta"]["match_receipts"]
     }
-    assert ("case:plaintiff_s157_2002_v_commonwealth_of_australia", "resolved") in statuses
+    assert (
+        "case:plaintiff_s157_2002_v_commonwealth_of_australia",
+        "resolved",
+    ) in statuses
     assert ("legislation:migration_act_1958_cth", "resolved") in statuses
     assert ("legislation:native_title_new_south_wales_act_1994", "resolved") in statuses
 
@@ -1020,15 +1120,22 @@ def test_bridge_batch_emitter_resolves_judicial_review_branch_refs_from_reviewed
     assert payload["concept_external_refs"] == 5
 
 
-def test_bridge_batch_emitter_resolves_liability_branch_refs_from_reviewed_slice(tmp_path, capsys):
+def test_bridge_batch_emitter_resolves_liability_branch_refs_from_reviewed_slice(
+    tmp_path, capsys
+):
     db_path = tmp_path / "ontology.db"
-    bridge_file = ROOT / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+    bridge_file = (
+        ROOT / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+    )
 
     connection = sqlite3.connect(db_path)
     try:
         ensure_database(connection)
         cur = connection.cursor()
-        cur.execute("INSERT INTO actors(kind, label) VALUES (?, ?)", ("ORG", "High Court of Australia"))
+        cur.execute(
+            "INSERT INTO actors(kind, label) VALUES (?, ?)",
+            ("ORG", "High Court of Australia"),
+        )
         hca_actor_id = int(cur.lastrowid)
         cur.execute(
             "INSERT INTO concepts(code, label, concept_type, source) VALUES (?,?,?,?)",
@@ -1060,8 +1167,12 @@ def test_bridge_batch_emitter_resolves_liability_branch_refs_from_reviewed_slice
     anchor_map_path.write_text(
         json.dumps(
             {
-                "case:commonwealth_v_introvigne": {"concept_code": "AU_CASE_INTROVIGNE"},
-                "case:nationwide_news_pty_ltd_v_naidu": {"concept_code": "AU_CASE_NAIDU"},
+                "case:commonwealth_v_introvigne": {
+                    "concept_code": "AU_CASE_INTROVIGNE"
+                },
+                "case:nationwide_news_pty_ltd_v_naidu": {
+                    "concept_code": "AU_CASE_NAIDU"
+                },
                 "court:high_court_of_australia": {"actor_id": hca_actor_id},
             },
             sort_keys=True,

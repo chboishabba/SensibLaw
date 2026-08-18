@@ -27,14 +27,18 @@ SAMPLES = list(_load_samples())
 def _normalise_rule(rule_dict: dict) -> dict:
     normalised = deepcopy(rule_dict)
     elements = normalised.get("elements", {})
-    normalised["elements"] = {key: sorted(value) for key, value in sorted(elements.items())}
+    normalised["elements"] = {
+        key: sorted(value) for key, value in sorted(elements.items())
+    }
     return normalised
 
 
 @pytest.mark.parametrize(("name", "data"), SAMPLES)
 def test_rule_extraction_matches_golden(name: str, data: dict) -> None:
     expected_rules = [_normalise_rule(rule) for rule in data["rules"]]
-    actual_rules = [_normalise_rule(asdict(rule)) for rule in extract_rules(data["text"])]
+    actual_rules = [
+        _normalise_rule(asdict(rule)) for rule in extract_rules(data["text"])
+    ]
 
     assert actual_rules == expected_rules
 

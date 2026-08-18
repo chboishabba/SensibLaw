@@ -13,7 +13,10 @@ from src.gwb_us_law.linkage import (
     build_gwb_us_law_linkage_report,
     run_gwb_us_law_linkage,
 )
-from src.policy.semantic_promotion import build_relation_candidate, promote_relation_candidate
+from src.policy.semantic_promotion import (
+    build_relation_candidate,
+    promote_relation_candidate,
+)
 from src.policy.semantic_promotion import derive_relation_semantic_basis
 from src.wiki_timeline.sqlite_store import load_run_payload_from_normalized
 
@@ -92,11 +95,19 @@ _SEMANTIC_SLOT_DEFINITIONS: tuple[tuple[str, str, str], ...] = (
     ("verb", "lexical_trigger", "Lexical trigger or cue verb for the rule match."),
     ("actor", "actor", "Actor participant for role assignment rules."),
     ("party", "litigant", "Litigant/party slot used by role assignment rules."),
-    ("role_marker", "representation_marker", "Role cue surface such as appeared for / counsel for."),
+    (
+        "role_marker",
+        "representation_marker",
+        "Role cue surface such as appeared for / counsel for.",
+    ),
     ("forum", "court", "Forum or court context attached to a review/authority rule."),
     ("speaker", "actor", "Speaker participant for conversational rules."),
     ("state", "state", "Explicit affect/state concept attached to a participant."),
-    ("relation_marker", "lexical_trigger", "Explicit kinship/guardian/care/friendship marker used by social relation rules."),
+    (
+        "relation_marker",
+        "lexical_trigger",
+        "Explicit kinship/guardian/care/friendship marker used by social relation rules.",
+    ),
 )
 
 _SEMANTIC_RULE_SLOTS: tuple[tuple[str, str, str, int, int], ...] = (
@@ -129,33 +140,222 @@ _SEMANTIC_RULE_SLOTS: tuple[tuple[str, str, str, int, int], ...] = (
 )
 
 _SEMANTIC_PROMOTION_POLICIES: tuple[tuple[str, str, str, int, int, str], ...] = (
-    ("nominated", "governance_action", "medium", 3, 0, "subject + verb + object actor required for promotion"),
-    ("confirmed_by", "governance_action", "medium", 3, 0, "subject + verb + confirming authority required for promotion"),
-    ("signed", "executive_action", "medium", 3, 0, "subject + verb + legal reference required for promotion"),
-    ("vetoed", "executive_action", "medium", 3, 0, "subject + verb + legal reference required for promotion"),
-    ("authorized", "executive_action", "medium", 3, 0, "event-scoped executive authorization requires complete subject/object evidence"),
-    ("ruled_by", "review_relation", "medium", 2, 0, "review/forum relation requires explicit cue plus resolved court/object"),
-    ("challenged_in", "review_relation", "medium", 2, 0, "challenge relation requires explicit cue plus resolved forum/object"),
-    ("subject_of_review_by", "review_relation", "medium", 2, 0, "review relation requires explicit cue plus resolved court/object"),
-    ("funded_by", "governance_action", "medium", 2, 0, "funding relation requires explicit actor/object support"),
-    ("sanctioned", "governance_action", "medium", 2, 0, "sanction relation requires explicit actor/object support"),
-    ("appealed", "review_relation", "medium", 3, 0, "appeal promotion requires subject + verb + forum/object evidence"),
-    ("challenged", "review_relation", "medium", 3, 0, "challenge promotion requires subject + verb + object evidence"),
-    ("heard_by", "review_relation", "medium", 3, 0, "hearing promotion requires subject + verb + forum/object evidence"),
-    ("decided_by", "review_relation", "medium", 3, 0, "decision promotion requires subject + verb + forum/object evidence"),
-    ("applied", "authority_invocation", "medium", 3, 0, "authority invocation requires subject + verb + legal reference evidence"),
-    ("followed", "authority_invocation", "medium", 3, 0, "authority invocation requires subject + verb + legal reference evidence"),
-    ("distinguished", "authority_invocation", "medium", 3, 0, "authority invocation requires subject + verb + legal reference evidence"),
-    ("held_that", "authority_invocation", "medium", 3, 0, "holding relation requires subject + verb + object evidence"),
-    ("replied_to", "conversational_relation", "high", 3, 0, "conversational replies remain conservative unless speaker/object evidence is complete"),
-    ("felt_state", "state_signal", "high", 3, 0, "affect/state relations remain candidate-first unless explicit state evidence is complete"),
-    ("sibling_of", "social_relation", "high", 3, 0, "explicit kinship relations remain candidate-first unless stronger cross-evidence exists"),
-    ("parent_of", "social_relation", "high", 3, 0, "explicit kinship relations remain candidate-first unless stronger cross-evidence exists"),
-    ("child_of", "social_relation", "high", 3, 0, "explicit kinship relations remain candidate-first unless stronger cross-evidence exists"),
-    ("spouse_of", "social_relation", "high", 3, 0, "explicit partner relations remain candidate-first unless stronger cross-evidence exists"),
-    ("friend_of", "social_relation", "high", 3, 0, "explicit friendship relations remain candidate-first unless stronger cross-evidence exists"),
-    ("guardian_of", "social_relation", "high", 3, 0, "explicit guardianship relations remain candidate-first unless stronger cross-evidence exists"),
-    ("caregiver_of", "social_relation", "high", 3, 0, "explicit care relations remain candidate-first unless stronger cross-evidence exists"),
+    (
+        "nominated",
+        "governance_action",
+        "medium",
+        3,
+        0,
+        "subject + verb + object actor required for promotion",
+    ),
+    (
+        "confirmed_by",
+        "governance_action",
+        "medium",
+        3,
+        0,
+        "subject + verb + confirming authority required for promotion",
+    ),
+    (
+        "signed",
+        "executive_action",
+        "medium",
+        3,
+        0,
+        "subject + verb + legal reference required for promotion",
+    ),
+    (
+        "vetoed",
+        "executive_action",
+        "medium",
+        3,
+        0,
+        "subject + verb + legal reference required for promotion",
+    ),
+    (
+        "authorized",
+        "executive_action",
+        "medium",
+        3,
+        0,
+        "event-scoped executive authorization requires complete subject/object evidence",
+    ),
+    (
+        "ruled_by",
+        "review_relation",
+        "medium",
+        2,
+        0,
+        "review/forum relation requires explicit cue plus resolved court/object",
+    ),
+    (
+        "challenged_in",
+        "review_relation",
+        "medium",
+        2,
+        0,
+        "challenge relation requires explicit cue plus resolved forum/object",
+    ),
+    (
+        "subject_of_review_by",
+        "review_relation",
+        "medium",
+        2,
+        0,
+        "review relation requires explicit cue plus resolved court/object",
+    ),
+    (
+        "funded_by",
+        "governance_action",
+        "medium",
+        2,
+        0,
+        "funding relation requires explicit actor/object support",
+    ),
+    (
+        "sanctioned",
+        "governance_action",
+        "medium",
+        2,
+        0,
+        "sanction relation requires explicit actor/object support",
+    ),
+    (
+        "appealed",
+        "review_relation",
+        "medium",
+        3,
+        0,
+        "appeal promotion requires subject + verb + forum/object evidence",
+    ),
+    (
+        "challenged",
+        "review_relation",
+        "medium",
+        3,
+        0,
+        "challenge promotion requires subject + verb + object evidence",
+    ),
+    (
+        "heard_by",
+        "review_relation",
+        "medium",
+        3,
+        0,
+        "hearing promotion requires subject + verb + forum/object evidence",
+    ),
+    (
+        "decided_by",
+        "review_relation",
+        "medium",
+        3,
+        0,
+        "decision promotion requires subject + verb + forum/object evidence",
+    ),
+    (
+        "applied",
+        "authority_invocation",
+        "medium",
+        3,
+        0,
+        "authority invocation requires subject + verb + legal reference evidence",
+    ),
+    (
+        "followed",
+        "authority_invocation",
+        "medium",
+        3,
+        0,
+        "authority invocation requires subject + verb + legal reference evidence",
+    ),
+    (
+        "distinguished",
+        "authority_invocation",
+        "medium",
+        3,
+        0,
+        "authority invocation requires subject + verb + legal reference evidence",
+    ),
+    (
+        "held_that",
+        "authority_invocation",
+        "medium",
+        3,
+        0,
+        "holding relation requires subject + verb + object evidence",
+    ),
+    (
+        "replied_to",
+        "conversational_relation",
+        "high",
+        3,
+        0,
+        "conversational replies remain conservative unless speaker/object evidence is complete",
+    ),
+    (
+        "felt_state",
+        "state_signal",
+        "high",
+        3,
+        0,
+        "affect/state relations remain candidate-first unless explicit state evidence is complete",
+    ),
+    (
+        "sibling_of",
+        "social_relation",
+        "high",
+        3,
+        0,
+        "explicit kinship relations remain candidate-first unless stronger cross-evidence exists",
+    ),
+    (
+        "parent_of",
+        "social_relation",
+        "high",
+        3,
+        0,
+        "explicit kinship relations remain candidate-first unless stronger cross-evidence exists",
+    ),
+    (
+        "child_of",
+        "social_relation",
+        "high",
+        3,
+        0,
+        "explicit kinship relations remain candidate-first unless stronger cross-evidence exists",
+    ),
+    (
+        "spouse_of",
+        "social_relation",
+        "high",
+        3,
+        0,
+        "explicit partner relations remain candidate-first unless stronger cross-evidence exists",
+    ),
+    (
+        "friend_of",
+        "social_relation",
+        "high",
+        3,
+        0,
+        "explicit friendship relations remain candidate-first unless stronger cross-evidence exists",
+    ),
+    (
+        "guardian_of",
+        "social_relation",
+        "high",
+        3,
+        0,
+        "explicit guardianship relations remain candidate-first unless stronger cross-evidence exists",
+    ),
+    (
+        "caregiver_of",
+        "social_relation",
+        "high",
+        3,
+        0,
+        "explicit care relations remain candidate-first unless stronger cross-evidence exists",
+    ),
 )
 
 
@@ -673,13 +873,17 @@ def _ensure_mission_actual_mappings_schema(conn: sqlite3.Connection) -> None:
         needs_rebuild = True
     index_rows = conn.execute("PRAGMA index_list(mission_actual_mappings)").fetchall()
     if any(
-        int(row["unique"]) and str(row["origin"]) != "pk" and str(row["name"]).startswith("sqlite_autoindex_mission_actual_mappings_")
+        int(row["unique"])
+        and str(row["origin"]) != "pk"
+        and str(row["name"]).startswith("sqlite_autoindex_mission_actual_mappings_")
         for row in index_rows
     ):
         needs_rebuild = True
     if not needs_rebuild:
         return
-    conn.execute("ALTER TABLE mission_actual_mappings RENAME TO mission_actual_mappings_legacy")
+    conn.execute(
+        "ALTER TABLE mission_actual_mappings RENAME TO mission_actual_mappings_legacy"
+    )
     conn.execute(
         """
         CREATE TABLE mission_actual_mappings (
@@ -708,9 +912,14 @@ def _ensure_mission_actual_mappings_schema(conn: sqlite3.Connection) -> None:
 
 
 def _ensure_semantic_entities_shared_actor_column(conn: sqlite3.Connection) -> None:
-    columns = {str(row["name"]) for row in conn.execute("PRAGMA table_info(semantic_entities)").fetchall()}
+    columns = {
+        str(row["name"])
+        for row in conn.execute("PRAGMA table_info(semantic_entities)").fetchall()
+    }
     if "shared_actor_id" not in columns:
-        conn.execute("ALTER TABLE semantic_entities ADD COLUMN shared_actor_id INTEGER REFERENCES actors(actor_id) ON DELETE SET NULL")
+        conn.execute(
+            "ALTER TABLE semantic_entities ADD COLUMN shared_actor_id INTEGER REFERENCES actors(actor_id) ON DELETE SET NULL"
+        )
 
 
 def _display_label_from_role_key(role_key: str) -> str:
@@ -730,12 +939,21 @@ def _ensure_event_role_vocab(conn: sqlite3.Connection) -> None:
               review_status=excluded.review_status,
               pipeline_version=excluded.pipeline_version
             """,
-            (role_key, display_label, role_family, 1, "deterministic_v1", PIPELINE_VERSION),
+            (
+                role_key,
+                display_label,
+                role_family,
+                1,
+                "deterministic_v1",
+                PIPELINE_VERSION,
+            ),
         )
 
 
 def _ensure_event_role_vocab_entry(conn: sqlite3.Connection, role_key: str) -> None:
-    row = conn.execute("SELECT 1 FROM event_role_vocab WHERE role_key = ?", (role_key,)).fetchone()
+    row = conn.execute(
+        "SELECT 1 FROM event_role_vocab WHERE role_key = ?", (role_key,)
+    ).fetchone()
     if row is not None:
         return
     conn.execute(
@@ -743,7 +961,14 @@ def _ensure_event_role_vocab_entry(conn: sqlite3.Connection, role_key: str) -> N
         INSERT INTO event_role_vocab(role_key, display_label, role_family, active_v1, review_status, pipeline_version)
         VALUES (?,?,?,?,?,?)
         """,
-        (role_key, _display_label_from_role_key(role_key), "semantic_role", 1, "deterministic_v1", PIPELINE_VERSION),
+        (
+            role_key,
+            _display_label_from_role_key(role_key),
+            "semantic_role",
+            1,
+            "deterministic_v1",
+            PIPELINE_VERSION,
+        ),
     )
 
 
@@ -761,7 +986,14 @@ def _ensure_semantic_rule_metadata(conn: sqlite3.Connection) -> None:
                           active_v1=excluded.active_v1,
                           pipeline_version=excluded.pipeline_version
             """,
-            (rule_type_key, display_label, description, output_kind, 1, PIPELINE_VERSION),
+            (
+                rule_type_key,
+                display_label,
+                description,
+                output_kind,
+                1,
+                PIPELINE_VERSION,
+            ),
         )
     for slot_key, slot_type, description in _SEMANTIC_SLOT_DEFINITIONS:
         conn.execute(
@@ -775,7 +1007,13 @@ def _ensure_semantic_rule_metadata(conn: sqlite3.Connection) -> None:
             """,
             (slot_key, slot_type, description, PIPELINE_VERSION),
         )
-    for rule_type_key, slot_key, selector_type, required, slot_order in _SEMANTIC_RULE_SLOTS:
+    for (
+        rule_type_key,
+        slot_key,
+        selector_type,
+        required,
+        slot_order,
+    ) in _SEMANTIC_RULE_SLOTS:
         conn.execute(
             """
             INSERT INTO semantic_rule_slots(
@@ -786,12 +1024,26 @@ def _ensure_semantic_rule_metadata(conn: sqlite3.Connection) -> None:
                           slot_order=excluded.slot_order,
                           pipeline_version=excluded.pipeline_version
             """,
-            (rule_type_key, slot_key, selector_type, required, slot_order, PIPELINE_VERSION),
+            (
+                rule_type_key,
+                slot_key,
+                selector_type,
+                required,
+                slot_order,
+                PIPELINE_VERSION,
+            ),
         )
 
 
 def _ensure_promotion_policies(conn: sqlite3.Connection) -> None:
-    for predicate_key, rule_type_key, min_confidence, required_evidence_count, allow_conflict, policy_note in _SEMANTIC_PROMOTION_POLICIES:
+    for (
+        predicate_key,
+        rule_type_key,
+        min_confidence,
+        required_evidence_count,
+        allow_conflict,
+        policy_note,
+    ) in _SEMANTIC_PROMOTION_POLICIES:
         row = conn.execute(
             "SELECT 1 FROM semantic_predicate_vocab WHERE predicate_key = ?",
             (predicate_key,),
@@ -884,14 +1136,24 @@ _ENTITY_SEEDS: tuple[EntitySeed, ...] = (
         canonical_key="actor:u_s_house_of_representatives",
         canonical_label="United States House of Representatives",
         actor_kind="institution_actor",
-        aliases=("United States House of Representatives", "U.S. House of Representatives", "House of Representatives", "House"),
+        aliases=(
+            "United States House of Representatives",
+            "U.S. House of Representatives",
+            "House of Representatives",
+            "House",
+        ),
     ),
     EntitySeed(
         entity_kind="actor",
         canonical_key="actor:united_states_department_of_defense",
         canonical_label="United States Department of Defense",
         actor_kind="institution_actor",
-        aliases=("Department of Defense", "Defense Department", "DoD", "United States Department of Defense"),
+        aliases=(
+            "Department of Defense",
+            "Defense Department",
+            "DoD",
+            "United States Department of Defense",
+        ),
     ),
     EntitySeed(
         entity_kind="actor",
@@ -899,7 +1161,12 @@ _ENTITY_SEEDS: tuple[EntitySeed, ...] = (
         canonical_label="Supreme Court of the United States",
         actor_kind="institution_actor",
         classification_tag="court",
-        aliases=("U.S. Supreme Court", "US Supreme Court", "United States Supreme Court", "Supreme Court"),
+        aliases=(
+            "U.S. Supreme Court",
+            "US Supreme Court",
+            "United States Supreme Court",
+            "Supreme Court",
+        ),
     ),
     EntitySeed(
         entity_kind="actor",
@@ -907,7 +1174,12 @@ _ENTITY_SEEDS: tuple[EntitySeed, ...] = (
         canonical_label="United States district court",
         actor_kind="institution_actor",
         classification_tag="court",
-        aliases=("United States district court", "U.S. district court", "US district court", "district court"),
+        aliases=(
+            "United States district court",
+            "U.S. district court",
+            "US district court",
+            "district court",
+        ),
     ),
     EntitySeed(
         entity_kind="actor",
@@ -915,7 +1187,12 @@ _ENTITY_SEEDS: tuple[EntitySeed, ...] = (
         canonical_label="United States Court of Appeals for the Sixth Circuit",
         actor_kind="institution_actor",
         classification_tag="court",
-        aliases=("United States Court of Appeals for the Sixth Circuit", "U.S. Court of Appeals for the Sixth Circuit", "Sixth Circuit", "6th Circuit"),
+        aliases=(
+            "United States Court of Appeals for the Sixth Circuit",
+            "U.S. Court of Appeals for the Sixth Circuit",
+            "Sixth Circuit",
+            "6th Circuit",
+        ),
     ),
     EntitySeed(
         entity_kind="office",
@@ -929,13 +1206,34 @@ _ENTITY_SEEDS: tuple[EntitySeed, ...] = (
 
 _PREDICATES = (
     ("nominated", "nominated", "executive_action", 1, None, "gwb_nomination_v1"),
-    ("confirmed_by", "confirmed by", "legislative_action", 1, None, "gwb_confirmation_v1"),
+    (
+        "confirmed_by",
+        "confirmed by",
+        "legislative_action",
+        1,
+        None,
+        "gwb_confirmation_v1",
+    ),
     ("signed", "signed", "executive_action", 1, None, "gwb_signed_v1"),
     ("vetoed", "vetoed", "executive_action", 1, None, "gwb_vetoed_v1"),
     ("authorized", "authorized", "executive_action", 1, None, "gwb_authorized_v1"),
     ("ruled_by", "ruled by", "adjudicative_review", 1, None, "gwb_ruled_by_v1"),
-    ("challenged_in", "challenged in", "adjudicative_review", 1, None, "gwb_challenged_in_v1"),
-    ("subject_of_review_by", "subject of review by", "adjudicative_review", 1, None, "gwb_review_v1"),
+    (
+        "challenged_in",
+        "challenged in",
+        "adjudicative_review",
+        1,
+        None,
+        "gwb_challenged_in_v1",
+    ),
+    (
+        "subject_of_review_by",
+        "subject of review by",
+        "adjudicative_review",
+        1,
+        None,
+        "gwb_review_v1",
+    ),
     ("funded_by", "funded by", "resource_allocation", 1, None, "gwb_funded_by_v1"),
     ("sanctioned", "sanctioned", "sanction_imposition", 1, None, "gwb_sanctioned_v1"),
 )
@@ -980,6 +1278,7 @@ _GENERATION_AMBIGUITY_KINSHIP_CUES = frozenset(
 _POSSESSIVE_PRONOUNS = frozenset({"his", "her", "their"})
 _FIRST_PERSON_SINGULAR = frozenset({"i", "me", "my", "mine"})
 
+
 def _slug(text: str) -> str:
     parts: list[str] = []
     previous_sep = True
@@ -1005,7 +1304,10 @@ def _text_contains_phrase(text: str, phrase: str) -> bool:
 
 
 def _bare_bush_is_generation_ambiguous(text: str) -> bool:
-    if any(_text_contains_phrase(text, surface) for surface in _ELDER_BUSH_EXPLICIT_SURFACES):
+    if any(
+        _text_contains_phrase(text, surface)
+        for surface in _ELDER_BUSH_EXPLICIT_SURFACES
+    ):
         return True
 
     words = [part for part in _slug(text).split("_") if part]
@@ -1013,7 +1315,10 @@ def _bare_bush_is_generation_ambiguous(text: str) -> bool:
         return False
 
     for idx in range(len(words) - 1):
-        if words[idx] in _POSSESSIVE_PRONOUNS and words[idx + 1] in _GENERATION_AMBIGUITY_KINSHIP_CUES:
+        if (
+            words[idx] in _POSSESSIVE_PRONOUNS
+            and words[idx + 1] in _GENERATION_AMBIGUITY_KINSHIP_CUES
+        ):
             return True
 
     bush_positions = [idx for idx, word in enumerate(words) if word == "bush"]
@@ -1080,7 +1385,9 @@ def _ensure_shared_actor(
         """,
         (actor_kind, canonical_key, display_name, "deterministic_v1", pipeline_version),
     )
-    row = conn.execute("SELECT actor_id FROM actors WHERE canonical_key = ?", (canonical_key,)).fetchone()
+    row = conn.execute(
+        "SELECT actor_id FROM actors WHERE canonical_key = ?", (canonical_key,)
+    ).fetchone()
     assert row is not None
     return int(row["actor_id"])
 
@@ -1109,7 +1416,16 @@ def _upsert_actor_alias(
                       is_primary=MAX(actor_aliases.is_primary, excluded.is_primary),
                       pipeline_version=excluded.pipeline_version
         """,
-        (actor_id, alias_text, normalized_alias, source_kind, source_ref, "deterministic_v1", 1 if is_primary else 0, pipeline_version),
+        (
+            actor_id,
+            alias_text,
+            normalized_alias,
+            source_kind,
+            source_ref,
+            "deterministic_v1",
+            1 if is_primary else 0,
+            pipeline_version,
+        ),
     )
 
 
@@ -1126,9 +1442,18 @@ def _upsert_seed_entity(
         ON CONFLICT(canonical_key)
         DO UPDATE SET canonical_label=excluded.canonical_label, review_status=excluded.review_status, pipeline_version=excluded.pipeline_version
         """,
-        (seed.entity_kind, seed.canonical_key, seed.canonical_label, "deterministic_v1", pipeline_version),
+        (
+            seed.entity_kind,
+            seed.canonical_key,
+            seed.canonical_label,
+            "deterministic_v1",
+            pipeline_version,
+        ),
     )
-    row = conn.execute("SELECT entity_id FROM semantic_entities WHERE canonical_key = ?", (seed.canonical_key,)).fetchone()
+    row = conn.execute(
+        "SELECT entity_id FROM semantic_entities WHERE canonical_key = ?",
+        (seed.canonical_key,),
+    ).fetchone()
     assert row is not None
     entity_id = int(row["entity_id"])
     if seed.entity_kind == "actor":
@@ -1186,13 +1511,24 @@ def _upsert_seed_entity(
             VALUES (?,?,?)
             ON CONFLICT(entity_id) DO UPDATE SET ref_kind=excluded.ref_kind, source_title=excluded.source_title
             """,
-            (entity_id, seed.ref_kind or "authority_title", seed.source_title or seed.canonical_label),
+            (
+                entity_id,
+                seed.ref_kind or "authority_title",
+                seed.source_title or seed.canonical_label,
+            ),
         )
     return entity_id
 
 
 def _ensure_predicates(conn: sqlite3.Connection) -> dict[str, int]:
-    for predicate_key, display_label, family, is_directed, inverse_key, rule_key in _PREDICATES:
+    for (
+        predicate_key,
+        display_label,
+        family,
+        is_directed,
+        inverse_key,
+        rule_key,
+    ) in _PREDICATES:
         conn.execute(
             """
             INSERT INTO semantic_predicate_vocab(
@@ -1209,7 +1545,9 @@ def _ensure_predicates(conn: sqlite3.Connection) -> dict[str, int]:
             (predicate_key, display_label, family, is_directed, inverse_key, rule_key),
         )
     _ensure_promotion_policies(conn)
-    rows = conn.execute("SELECT predicate_id, predicate_key FROM semantic_predicate_vocab").fetchall()
+    rows = conn.execute(
+        "SELECT predicate_id, predicate_key FROM semantic_predicate_vocab"
+    ).fetchall()
     return {str(row["predicate_key"]): int(row["predicate_id"]) for row in rows}
 
 
@@ -1227,25 +1565,52 @@ def _seed_entities(conn: sqlite3.Connection) -> dict[str, int]:
         ) VALUES (?,?,?,?,?,?)
         ON CONFLICT(person_entity_id, office_entity_id, start_date, end_date) DO UPDATE SET source=excluded.source, pipeline_version=excluded.pipeline_version
         """,
-        (bush_id, office_id, "2001-01-20", "2009-01-20", "reviewed_gwb_v1", PIPELINE_VERSION),
+        (
+            bush_id,
+            office_id,
+            "2001-01-20",
+            "2009-01-20",
+            "reviewed_gwb_v1",
+            PIPELINE_VERSION,
+        ),
     )
     return out
 
 
 def _delete_run_rows(conn: sqlite3.Connection, run_id: str) -> None:
-    conn.execute("DELETE FROM mission_plan_receipts WHERE plan_node_id IN (SELECT plan_node_id FROM mission_plan_nodes WHERE run_id = ?)", (run_id,))
-    conn.execute("DELETE FROM mission_plan_deadlines WHERE plan_node_id IN (SELECT plan_node_id FROM mission_plan_nodes WHERE run_id = ?)", (run_id,))
-    conn.execute("DELETE FROM mission_actual_mapping_current WHERE run_id = ?", (run_id,))
-    conn.execute("DELETE FROM mission_actual_mapping_receipts WHERE mapping_id IN (SELECT mapping_id FROM mission_actual_mappings WHERE run_id = ?)", (run_id,))
+    conn.execute(
+        "DELETE FROM mission_plan_receipts WHERE plan_node_id IN (SELECT plan_node_id FROM mission_plan_nodes WHERE run_id = ?)",
+        (run_id,),
+    )
+    conn.execute(
+        "DELETE FROM mission_plan_deadlines WHERE plan_node_id IN (SELECT plan_node_id FROM mission_plan_nodes WHERE run_id = ?)",
+        (run_id,),
+    )
+    conn.execute(
+        "DELETE FROM mission_actual_mapping_current WHERE run_id = ?", (run_id,)
+    )
+    conn.execute(
+        "DELETE FROM mission_actual_mapping_receipts WHERE mapping_id IN (SELECT mapping_id FROM mission_actual_mappings WHERE run_id = ?)",
+        (run_id,),
+    )
     conn.execute("DELETE FROM mission_actual_mappings WHERE run_id = ?", (run_id,))
     conn.execute("DELETE FROM mission_plan_edges WHERE run_id = ?", (run_id,))
     conn.execute("DELETE FROM mission_plan_nodes WHERE run_id = ?", (run_id,))
-    conn.execute("DELETE FROM mission_overlay_refs WHERE annotation_id IN (SELECT annotation_id FROM mission_observer_overlays WHERE run_id = ?)", (run_id,))
+    conn.execute(
+        "DELETE FROM mission_overlay_refs WHERE annotation_id IN (SELECT annotation_id FROM mission_observer_overlays WHERE run_id = ?)",
+        (run_id,),
+    )
     conn.execute("DELETE FROM mission_observer_overlays WHERE run_id = ?", (run_id,))
     conn.execute("DELETE FROM mission_evidence_refs WHERE run_id = ?", (run_id,))
     conn.execute("DELETE FROM mission_edges WHERE run_id = ?", (run_id,))
-    conn.execute("DELETE FROM mission_node_owner_refs WHERE mission_id IN (SELECT mission_id FROM mission_nodes WHERE run_id = ?)", (run_id,))
-    conn.execute("DELETE FROM mission_node_event_refs WHERE mission_id IN (SELECT mission_id FROM mission_nodes WHERE run_id = ?)", (run_id,))
+    conn.execute(
+        "DELETE FROM mission_node_owner_refs WHERE mission_id IN (SELECT mission_id FROM mission_nodes WHERE run_id = ?)",
+        (run_id,),
+    )
+    conn.execute(
+        "DELETE FROM mission_node_event_refs WHERE mission_id IN (SELECT mission_id FROM mission_nodes WHERE run_id = ?)",
+        (run_id,),
+    )
     conn.execute("DELETE FROM mission_nodes WHERE run_id = ?", (run_id,))
     conn.execute("DELETE FROM mission_runs WHERE run_id = ?", (run_id,))
     conn.execute(
@@ -1327,7 +1692,10 @@ def submit_semantic_review_submission(
             created_at,
         ),
     )
-    conn.execute("DELETE FROM semantic_review_evidence_refs WHERE submission_id = ?", (submission_id,))
+    conn.execute(
+        "DELETE FROM semantic_review_evidence_refs WHERE submission_id = ?",
+        (submission_id,),
+    )
     for evidence_order, payload in enumerate(evidence_refs):
         conn.execute(
             """
@@ -1393,11 +1761,18 @@ def list_semantic_review_submissions(
                 "run_id": str(row["run_id"]),
                 "corpus_label": str(row["corpus_label"]),
                 "event_id": str(row["event_id"]),
-                "relation_id": str(row["relation_id"]) if row["relation_id"] is not None else None,
-                "anchor_key": str(row["anchor_key"]) if row["anchor_key"] is not None else None,
+                "relation_id": str(row["relation_id"])
+                if row["relation_id"] is not None
+                else None,
+                "anchor_key": str(row["anchor_key"])
+                if row["anchor_key"] is not None
+                else None,
                 "action_kind": str(row["action_kind"]),
                 "proposed_payload": json.loads(str(row["proposed_payload_json"])),
-                "evidence_refs": [json.loads(str(item["evidence_payload_json"])) for item in evidence_rows],
+                "evidence_refs": [
+                    json.loads(str(item["evidence_payload_json"]))
+                    for item in evidence_rows
+                ],
                 "operator_provenance": json.loads(str(row["operator_provenance_json"])),
                 "created_at": str(row["created_at"]),
                 "note": str(row["note"] or ""),
@@ -1458,7 +1833,11 @@ def persist_mission_observer(
                 str(node.get("deadline") or "") or None,
             ),
         )
-        for event_id in node.get("sourceEventIds", []) if isinstance(node.get("sourceEventIds"), list) else []:
+        for event_id in (
+            node.get("sourceEventIds", [])
+            if isinstance(node.get("sourceEventIds"), list)
+            else []
+        ):
             conn.execute(
                 "INSERT OR IGNORE INTO mission_node_event_refs(mission_id, event_id) VALUES (?,?)",
                 (mission_id, str(event_id)),
@@ -1475,7 +1854,9 @@ def persist_mission_observer(
                 (
                     mission_id,
                     owner_order,
-                    int(owner["entityId"]) if owner.get("entityId") is not None else None,
+                    int(owner["entityId"])
+                    if owner.get("entityId") is not None
+                    else None,
                     str(owner.get("label") or ""),
                 ),
             )
@@ -1545,7 +1926,12 @@ def persist_mission_observer(
                         INSERT OR REPLACE INTO mission_overlay_refs(annotation_id, ref_group, ref_order, ref_payload_json)
                         VALUES (?,?,?,?)
                         """,
-                        (annotation_id, ref_group, ref_order, json.dumps(dict(payload), sort_keys=True)),
+                        (
+                            annotation_id,
+                            ref_group,
+                            ref_order,
+                            json.dumps(dict(payload), sort_keys=True),
+                        ),
                     )
                     if ref_group == "evidence_refs":
                         conn.execute(
@@ -1553,7 +1939,13 @@ def persist_mission_observer(
                             INSERT OR REPLACE INTO mission_evidence_refs(run_id, owner_kind, owner_id, evidence_order, evidence_payload_json)
                             VALUES (?,?,?,?,?)
                             """,
-                            (run_id, "overlay", annotation_id, ref_order, json.dumps(dict(payload), sort_keys=True)),
+                            (
+                                run_id,
+                                "overlay",
+                                annotation_id,
+                                ref_order,
+                                json.dumps(dict(payload), sort_keys=True),
+                            ),
                         )
 
 
@@ -1579,7 +1971,9 @@ def load_mission_observer(conn: sqlite3.Connection, *, run_id: str) -> dict[str,
         ]
         owners = [
             {
-                "entityId": int(item["entity_id"]) if item["entity_id"] is not None else None,
+                "entityId": int(item["entity_id"])
+                if item["entity_id"] is not None
+                else None,
                 "label": str(item["label"]),
             }
             for item in conn.execute(
@@ -1602,19 +1996,34 @@ def load_mission_observer(conn: sqlite3.Connection, *, run_id: str) -> dict[str,
                 "confidence": str(row["confidence"]),
                 "sourceId": str(row["source_id"]),
                 "sourceEventIds": event_refs,
-                "deadline": str(row["deadline"]) if row["deadline"] is not None else None,
+                "deadline": str(row["deadline"])
+                if row["deadline"] is not None
+                else None,
                 "owners": owners,
             }
         )
     followups = [
         {
-            "eventId": str(row["activity_event_id"]) if row["activity_event_id"] is not None else None,
+            "eventId": str(row["activity_event_id"])
+            if row["activity_event_id"] is not None
+            else None,
             "sourceId": str(row["source_id"]) if row["source_id"] is not None else None,
             "speaker": str(row["speaker"]) if row["speaker"] is not None else None,
             "followupTopic": str(row["followup_topic"]),
-            "resolvedMissionId": str(row["source_node_id"]) if row["source_node_id"] is not None else None,
-            "resolvedTopicLabel": next((node["topicLabel"] for node in nodes if node["missionId"] == str(row["source_node_id"])), None),
-            "targetEventId": str(row["target_event_id"]) if row["target_event_id"] is not None else None,
+            "resolvedMissionId": str(row["source_node_id"])
+            if row["source_node_id"] is not None
+            else None,
+            "resolvedTopicLabel": next(
+                (
+                    node["topicLabel"]
+                    for node in nodes
+                    if node["missionId"] == str(row["source_node_id"])
+                ),
+                None,
+            ),
+            "targetEventId": str(row["target_event_id"])
+            if row["target_event_id"] is not None
+            else None,
             "status": str(row["status"]),
             "confidence": str(row["confidence"]),
             "deadline": str(row["deadline"]) if row["deadline"] is not None else None,
@@ -1640,7 +2049,10 @@ def load_mission_observer(conn: sqlite3.Connection, *, run_id: str) -> dict[str,
         (run_id,),
     ).fetchall():
         annotation_id = str(row["annotation_id"])
-        ref_groups: dict[str, list[dict[str, Any]]] = {"mission_refs": [], "evidence_refs": []}
+        ref_groups: dict[str, list[dict[str, Any]]] = {
+            "mission_refs": [],
+            "evidence_refs": [],
+        }
         for ref in conn.execute(
             """
             SELECT ref_group, ref_payload_json
@@ -1650,12 +2062,16 @@ def load_mission_observer(conn: sqlite3.Connection, *, run_id: str) -> dict[str,
             """,
             (annotation_id,),
         ).fetchall():
-            ref_groups[str(ref["ref_group"])].append(json.loads(str(ref["ref_payload_json"])))
+            ref_groups[str(ref["ref_group"])].append(
+                json.loads(str(ref["ref_payload_json"]))
+            )
         overlays.append(
             {
                 "activity_event_id": str(row["activity_event_id"]),
                 "annotation_id": annotation_id,
-                "sb_state_id": str(row["sb_state_id"]) if row["sb_state_id"] is not None else None,
+                "sb_state_id": str(row["sb_state_id"])
+                if row["sb_state_id"] is not None
+                else None,
                 "provenance": json.loads(str(row["provenance_json"])),
                 "observer_kind": str(row["observer_kind"]),
                 "status": str(row["status"]),
@@ -1677,7 +2093,9 @@ def load_mission_observer(conn: sqlite3.Connection, *, run_id: str) -> dict[str,
         "missions": nodes,
         "followups": followups,
         "sb_observer_overlays": overlays,
-        "unavailableReason": None if nodes or followups else "No explicit mission/follow-up cues were derived from this transcript/freeform run.",
+        "unavailableReason": None
+        if nodes or followups
+        else "No explicit mission/follow-up cues were derived from this transcript/freeform run.",
     }
 
 
@@ -1700,7 +2118,11 @@ def _infer_deadline_semantics(raw_phrase: str | None) -> dict[str, str | None]:
         certainty_kind = "exact_time"
         urgency_level = "high"
         flexibility_level = "hard"
-    elif "close of business" in lowered or re.search(r"\bby\s+[a-z]+day\b", lowered) or re.fullmatch(r"[A-Za-z]+", text):
+    elif (
+        "close of business" in lowered
+        or re.search(r"\bby\s+[a-z]+day\b", lowered)
+        or re.fullmatch(r"[A-Za-z]+", text)
+    ):
         certainty_kind = "day_bound"
         urgency_level = "high"
         flexibility_level = "firm"
@@ -1714,13 +2136,19 @@ def _infer_deadline_semantics(raw_phrase: str | None) -> dict[str, str | None]:
         flexibility_level = "soft"
     if "sometime" in lowered:
         flexibility_level = "soft"
-    iso_match = re.search(r"\b(\d{4}-\d{2}-\d{2})(?:[ t](\d{2}:\d{2}(?::\d{2})?z?))?\b", text, flags=re.IGNORECASE)
+    iso_match = re.search(
+        r"\b(\d{4}-\d{2}-\d{2})(?:[ t](\d{2}:\d{2}(?::\d{2})?z?))?\b",
+        text,
+        flags=re.IGNORECASE,
+    )
     due_start: str | None = None
     due_end: str | None = None
     if iso_match:
         due_start = iso_match.group(1)
         if iso_match.group(2):
-            due_start = f"{iso_match.group(1)}T{iso_match.group(2).upper().replace('Z', '')}"
+            due_start = (
+                f"{iso_match.group(1)}T{iso_match.group(2).upper().replace('Z', '')}"
+            )
             if not due_start.endswith("Z"):
                 due_start = f"{due_start}Z"
         due_end = due_start
@@ -1766,7 +2194,9 @@ def ensure_mission_plan_seed(conn: sqlite3.Connection, *, run_id: str) -> None:
                 run_id,
                 "mission",
                 str(row["topic_label"]),
-                "active" if str(row["status"] or "candidate") != "obsolete" else "obsolete",
+                "active"
+                if str(row["status"] or "candidate") != "obsolete"
+                else "obsolete",
                 "observer_seed",
                 mission_id,
                 None,
@@ -1804,7 +2234,9 @@ def ensure_mission_plan_seed(conn: sqlite3.Connection, *, run_id: str) -> None:
             ("confidence", str(row["confidence"] or "")),
             ("source_id", str(row["source_id"] or "")),
         ]
-        conn.execute("DELETE FROM mission_plan_receipts WHERE plan_node_id = ?", (plan_node_id,))
+        conn.execute(
+            "DELETE FROM mission_plan_receipts WHERE plan_node_id = ?", (plan_node_id,)
+        )
         for receipt_order, (kind, value) in enumerate(receipts):
             conn.execute(
                 """
@@ -1851,7 +2283,17 @@ def upsert_mission_plan_node(
           target_weight=excluded.target_weight,
           updated_at=CURRENT_TIMESTAMP
         """,
-        (plan_node_id, run_id, node_kind, title, status, source_kind, mission_id, parent_plan_node_id, target_weight),
+        (
+            plan_node_id,
+            run_id,
+            node_kind,
+            title,
+            status,
+            source_kind,
+            mission_id,
+            parent_plan_node_id,
+            target_weight,
+        ),
     )
     if parent_plan_node_id:
         edge_id = f"edge:contains:{parent_plan_node_id}:{plan_node_id}"
@@ -1896,7 +2338,9 @@ def upsert_mission_plan_node(
                 semantics["flexibility_level"] or "flexible",
             ),
         )
-    conn.execute("DELETE FROM mission_plan_receipts WHERE plan_node_id = ?", (plan_node_id,))
+    conn.execute(
+        "DELETE FROM mission_plan_receipts WHERE plan_node_id = ?", (plan_node_id,)
+    )
     if receipts:
         for receipt_order, (kind, value) in enumerate(receipts):
             conn.execute(
@@ -1906,7 +2350,12 @@ def upsert_mission_plan_node(
                 """,
                 (plan_node_id, receipt_order, kind, value),
             )
-    return {"plan_node_id": plan_node_id, "run_id": run_id, "title": title, "node_kind": node_kind}
+    return {
+        "plan_node_id": plan_node_id,
+        "run_id": run_id,
+        "title": title,
+        "node_kind": node_kind,
+    }
 
 
 def load_mission_plan(conn: sqlite3.Connection, *, run_id: str) -> dict[str, Any]:
@@ -1942,16 +2391,32 @@ def load_mission_plan(conn: sqlite3.Connection, *, run_id: str) -> dict[str, Any
                 "title": str(row["title"]),
                 "status": str(row["status"]),
                 "sourceKind": str(row["source_kind"]),
-                "missionId": str(row["mission_id"]) if row["mission_id"] is not None else None,
-                "parentPlanNodeId": str(row["parent_plan_node_id"]) if row["parent_plan_node_id"] is not None else None,
+                "missionId": str(row["mission_id"])
+                if row["mission_id"] is not None
+                else None,
+                "parentPlanNodeId": str(row["parent_plan_node_id"])
+                if row["parent_plan_node_id"] is not None
+                else None,
                 "targetWeight": float(row["target_weight"]),
                 "deadline": {
-                    "rawPhrase": str(row["raw_phrase"]) if row["raw_phrase"] is not None else None,
-                    "dueStart": str(row["due_start"]) if row["due_start"] is not None else None,
-                    "dueEnd": str(row["due_end"]) if row["due_end"] is not None else None,
-                    "certaintyKind": str(row["certainty_kind"]) if row["certainty_kind"] is not None else "ambiguous",
-                    "urgencyLevel": str(row["urgency_level"]) if row["urgency_level"] is not None else "medium",
-                    "flexibilityLevel": str(row["flexibility_level"]) if row["flexibility_level"] is not None else "flexible",
+                    "rawPhrase": str(row["raw_phrase"])
+                    if row["raw_phrase"] is not None
+                    else None,
+                    "dueStart": str(row["due_start"])
+                    if row["due_start"] is not None
+                    else None,
+                    "dueEnd": str(row["due_end"])
+                    if row["due_end"] is not None
+                    else None,
+                    "certaintyKind": str(row["certainty_kind"])
+                    if row["certainty_kind"] is not None
+                    else "ambiguous",
+                    "urgencyLevel": str(row["urgency_level"])
+                    if row["urgency_level"] is not None
+                    else "medium",
+                    "flexibilityLevel": str(row["flexibility_level"])
+                    if row["flexibility_level"] is not None
+                    else "flexible",
                 },
                 "receipts": receipts,
             }
@@ -2004,9 +2469,21 @@ def upsert_mission_actual_mapping(
           confidence_tier=excluded.confidence_tier,
           note=excluded.note
         """,
-        (mapping_id, run_id, activity_ref_id, normalized_plan_node_id, mapping_kind, status, confidence_tier, note),
+        (
+            mapping_id,
+            run_id,
+            activity_ref_id,
+            normalized_plan_node_id,
+            mapping_kind,
+            status,
+            confidence_tier,
+            note,
+        ),
     )
-    conn.execute("DELETE FROM mission_actual_mapping_receipts WHERE mapping_id = ?", (mapping_id,))
+    conn.execute(
+        "DELETE FROM mission_actual_mapping_receipts WHERE mapping_id = ?",
+        (mapping_id,),
+    )
     if receipts:
         for receipt_order, (kind, value) in enumerate(receipts):
             conn.execute(
@@ -2016,7 +2493,9 @@ def upsert_mission_actual_mapping(
                 """,
                 (mapping_id, receipt_order, kind, value),
             )
-    _refresh_mission_actual_mapping_current(conn, run_id=run_id, activity_ref_id=activity_ref_id)
+    _refresh_mission_actual_mapping_current(
+        conn, run_id=run_id, activity_ref_id=activity_ref_id
+    )
     return {
         "mapping_id": mapping_id,
         "run_id": run_id,
@@ -2079,7 +2558,9 @@ def _refresh_mission_actual_mapping_current(
     )
 
 
-def _refresh_all_mission_actual_mapping_current(conn: sqlite3.Connection, *, run_id: str) -> None:
+def _refresh_all_mission_actual_mapping_current(
+    conn: sqlite3.Connection, *, run_id: str
+) -> None:
     ensure_gwb_semantic_schema(conn)
     activity_ref_ids = [
         str(row["activity_ref_id"])
@@ -2088,12 +2569,18 @@ def _refresh_all_mission_actual_mapping_current(conn: sqlite3.Connection, *, run
             (run_id,),
         ).fetchall()
     ]
-    conn.execute("DELETE FROM mission_actual_mapping_current WHERE run_id = ?", (run_id,))
+    conn.execute(
+        "DELETE FROM mission_actual_mapping_current WHERE run_id = ?", (run_id,)
+    )
     for activity_ref_id in activity_ref_ids:
-        _refresh_mission_actual_mapping_current(conn, run_id=run_id, activity_ref_id=activity_ref_id)
+        _refresh_mission_actual_mapping_current(
+            conn, run_id=run_id, activity_ref_id=activity_ref_id
+        )
 
 
-def load_mission_actual_mappings(conn: sqlite3.Connection, *, run_id: str) -> list[dict[str, Any]]:
+def load_mission_actual_mappings(
+    conn: sqlite3.Connection, *, run_id: str
+) -> list[dict[str, Any]]:
     ensure_gwb_semantic_schema(conn)
     rows = conn.execute(
         """
@@ -2134,7 +2621,9 @@ def load_mission_actual_mappings(conn: sqlite3.Connection, *, run_id: str) -> li
     return out
 
 
-def load_mission_actual_mapping_current(conn: sqlite3.Connection, *, run_id: str) -> list[dict[str, Any]]:
+def load_mission_actual_mapping_current(
+    conn: sqlite3.Connection, *, run_id: str
+) -> list[dict[str, Any]]:
     ensure_gwb_semantic_schema(conn)
     history_count_row = conn.execute(
         "SELECT COUNT(*) AS n FROM mission_actual_mappings WHERE run_id = ?",
@@ -2262,7 +2751,15 @@ def _insert_cluster_and_resolution(
           run_id, event_id, mention_kind, canonical_key_hint, surface_text, normalized_surface, source_rule
         ) VALUES (?,?,?,?,?,?,?)
         """,
-        (run_id, event_id, mention_kind, canonical_key_hint, surface_text, normalized_surface, source_rule),
+        (
+            run_id,
+            event_id,
+            mention_kind,
+            canonical_key_hint,
+            surface_text,
+            normalized_surface,
+            source_rule,
+        ),
     )
     cluster_id = int(cur.lastrowid)
     res_cur = conn.execute(
@@ -2271,7 +2768,13 @@ def _insert_cluster_and_resolution(
           cluster_id, resolved_entity_id, resolution_status, resolution_rule, pipeline_version
         ) VALUES (?,?,?,?,?)
         """,
-        (cluster_id, resolved_entity_id, resolution_status, resolution_rule, pipeline_version),
+        (
+            cluster_id,
+            resolved_entity_id,
+            resolution_status,
+            resolution_rule,
+            pipeline_version,
+        ),
     )
     resolution_id = int(res_cur.lastrowid)
     for idx, (kind, value) in enumerate(receipts, start=1):
@@ -2310,7 +2813,10 @@ def _detect_mentions_for_event(
                 resolved_entity_id=None,
                 resolution_status="abstained",
                 resolution_rule="administration_noncanonical_v1",
-                receipts=[("surface", surface), ("reason", "administration_discourse_label")],
+                receipts=[
+                    ("surface", surface),
+                    ("reason", "administration_discourse_label"),
+                ],
             )
             found["abstained"].append(cluster_id)
     for surface in _ABSTAINED_TITLE_SURFACES:
@@ -2326,7 +2832,10 @@ def _detect_mentions_for_event(
                 resolved_entity_id=None,
                 resolution_status="abstained",
                 resolution_rule="title_requires_stronger_context_v1",
-                receipts=[("surface", surface), ("reason", "ambiguous_title_reference")],
+                receipts=[
+                    ("surface", surface),
+                    ("reason", "ambiguous_title_reference"),
+                ],
             )
             found["abstained"].append(cluster_id)
 
@@ -2334,9 +2843,17 @@ def _detect_mentions_for_event(
         for alias in seed_index.get(seed.canonical_key, list(seed.aliases)):
             if not _text_contains_phrase(text, alias):
                 continue
-            if seed.canonical_key == "actor:george_w_bush" and alias == "Bush" and _text_contains_phrase(text, "Bush administration"):
+            if (
+                seed.canonical_key == "actor:george_w_bush"
+                and alias == "Bush"
+                and _text_contains_phrase(text, "Bush administration")
+            ):
                 continue
-            if seed.canonical_key == "actor:george_w_bush" and alias in {"Bush", "George Bush"} and _bare_bush_is_generation_ambiguous(text):
+            if (
+                seed.canonical_key == "actor:george_w_bush"
+                and alias in {"Bush", "George Bush"}
+                and _bare_bush_is_generation_ambiguous(text)
+            ):
                 cluster_id, _ = _insert_cluster_and_resolution(
                     conn,
                     run_id=run_id,
@@ -2348,7 +2865,10 @@ def _detect_mentions_for_event(
                     resolved_entity_id=None,
                     resolution_status="abstained",
                     resolution_rule="generation_disambiguation_required_v1",
-                    receipts=[("surface", alias), ("reason", "ambiguous_bush_generation_context")],
+                    receipts=[
+                        ("surface", alias),
+                        ("reason", "ambiguous_bush_generation_context"),
+                    ],
                 )
                 found["abstained"].append(cluster_id)
                 continue
@@ -2356,7 +2876,9 @@ def _detect_mentions_for_event(
                 conn,
                 run_id=run_id,
                 event_id=event_id,
-                mention_kind="actor" if seed.entity_kind == "actor" else seed.entity_kind,
+                mention_kind="actor"
+                if seed.entity_kind == "actor"
+                else seed.entity_kind,
                 canonical_key_hint=seed.canonical_key,
                 surface_text=alias,
                 source_rule="seed_alias_v1",
@@ -2399,7 +2921,10 @@ def _detect_mentions_for_event(
 
 
 def _entity_for_key(conn: sqlite3.Connection, canonical_key: str) -> int | None:
-    row = conn.execute("SELECT entity_id FROM semantic_entities WHERE canonical_key = ?", (canonical_key,)).fetchone()
+    row = conn.execute(
+        "SELECT entity_id FROM semantic_entities WHERE canonical_key = ?",
+        (canonical_key,),
+    ).fetchone()
     return int(row["entity_id"]) if row else None
 
 
@@ -2423,7 +2948,9 @@ def _candidate_exists(
     return row is not None
 
 
-def _load_event_linkage_matches(conn: sqlite3.Connection, *, run_id: str, event_id: str) -> dict[str, dict[str, Any]]:
+def _load_event_linkage_matches(
+    conn: sqlite3.Connection, *, run_id: str, event_id: str
+) -> dict[str, dict[str, Any]]:
     rows = conn.execute(
         """
         SELECT m.seed_id, m.confidence, m.matched, r.reason_kind, r.reason_value
@@ -2448,7 +2975,9 @@ def _load_event_linkage_matches(conn: sqlite3.Connection, *, run_id: str, event_
             },
         )
         if row["reason_kind"] is not None:
-            bucket["receipts"].append((str(row["reason_kind"]), str(row["reason_value"])))
+            bucket["receipts"].append(
+                (str(row["reason_kind"]), str(row["reason_value"]))
+            )
     return out
 
 
@@ -2476,17 +3005,28 @@ def _insert_broader_source_seed_backfill_candidates(
     if bush_id is None:
         return
 
-    linkage_matches = _load_event_linkage_matches(conn, run_id=run_id, event_id=event_id)
+    linkage_matches = _load_event_linkage_matches(
+        conn, run_id=run_id, event_id=event_id
+    )
     root_actor_key = _event_root_actor_key(event)
     bush_rooted_first_person = root_actor_key == "actor:george_w_bush"
 
     nclb_match = linkage_matches.get("gwb_us_law:no_child_left_behind_act")
-    if nclb_match and nclb_match["matched"] and (
-        "no child left behind" in text_fold or ("signed" in text_fold and "education" in text_fold)
+    if (
+        nclb_match
+        and nclb_match["matched"]
+        and (
+            "no child left behind" in text_fold
+            or ("signed" in text_fold and "education" in text_fold)
+        )
     ):
         legal_title = "No Child Left Behind Act"
         legal_key = f"legal_ref:{_slug(legal_title)}"
-        legal_id = entity_ids.get(legal_key) or _entity_for_key(conn, legal_key) or _ensure_legal_ref_entity(conn, legal_title)
+        legal_id = (
+            entity_ids.get(legal_key)
+            or _entity_for_key(conn, legal_key)
+            or _ensure_legal_ref_entity(conn, legal_title)
+        )
         if not _candidate_exists(
             conn,
             run_id=run_id,
@@ -2494,8 +3034,22 @@ def _insert_broader_source_seed_backfill_candidates(
             predicate_id=predicate_ids["signed"],
             object_entity_id=legal_id,
         ):
-            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="agent", entity_id=bush_id, note="signed_seed_backfill_nclb_v1")
-            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="theme", entity_id=legal_id, note="signed_seed_backfill_nclb_v1")
+            _insert_event_role(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                role_kind="agent",
+                entity_id=bush_id,
+                note="signed_seed_backfill_nclb_v1",
+            )
+            _insert_event_role(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                role_kind="theme",
+                entity_id=legal_id,
+                note="signed_seed_backfill_nclb_v1",
+            )
             receipts = [
                 ("subject", "George W. Bush"),
                 ("verb", "signed"),
@@ -2513,7 +3067,9 @@ def _insert_broader_source_seed_backfill_candidates(
                 receipts=receipts,
             )
 
-    stem_cell_match = linkage_matches.get("gwb_us_law:stem_cell_research_enhancement_act")
+    stem_cell_match = linkage_matches.get(
+        "gwb_us_law:stem_cell_research_enhancement_act"
+    )
     if (
         stem_cell_match
         and stem_cell_match["matched"]
@@ -2523,7 +3079,11 @@ def _insert_broader_source_seed_backfill_candidates(
     ):
         legal_title = "Stem Cell Research Enhancement Act"
         legal_key = f"legal_ref:{_slug(legal_title)}"
-        legal_id = entity_ids.get(legal_key) or _entity_for_key(conn, legal_key) or _ensure_legal_ref_entity(conn, legal_title)
+        legal_id = (
+            entity_ids.get(legal_key)
+            or _entity_for_key(conn, legal_key)
+            or _ensure_legal_ref_entity(conn, legal_title)
+        )
         if not _candidate_exists(
             conn,
             run_id=run_id,
@@ -2531,8 +3091,22 @@ def _insert_broader_source_seed_backfill_candidates(
             predicate_id=predicate_ids["vetoed"],
             object_entity_id=legal_id,
         ):
-            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="agent", entity_id=bush_id, note="vetoed_seed_backfill_stem_cell_v1")
-            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="theme", entity_id=legal_id, note="vetoed_seed_backfill_stem_cell_v1")
+            _insert_event_role(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                role_kind="agent",
+                entity_id=bush_id,
+                note="vetoed_seed_backfill_stem_cell_v1",
+            )
+            _insert_event_role(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                role_kind="theme",
+                entity_id=legal_id,
+                note="vetoed_seed_backfill_stem_cell_v1",
+            )
             receipts = [
                 ("subject", "George W. Bush"),
                 ("verb", "veto"),
@@ -2552,10 +3126,22 @@ def _insert_broader_source_seed_backfill_candidates(
             )
 
     iraq_match = linkage_matches.get("gwb_us_law:iraq_2002_authorization")
-    if iraq_match and iraq_match["matched"] and any(term in text_fold for term in ("authorization", "authorize", "authorized")):
-        legal_title = "Authorization for Use of Military Force Against Iraq Resolution of 2002"
+    if (
+        iraq_match
+        and iraq_match["matched"]
+        and any(
+            term in text_fold for term in ("authorization", "authorize", "authorized")
+        )
+    ):
+        legal_title = (
+            "Authorization for Use of Military Force Against Iraq Resolution of 2002"
+        )
         legal_key = f"legal_ref:{_slug(legal_title)}"
-        legal_id = entity_ids.get(legal_key) or _entity_for_key(conn, legal_key) or _ensure_legal_ref_entity(conn, legal_title)
+        legal_id = (
+            entity_ids.get(legal_key)
+            or _entity_for_key(conn, legal_key)
+            or _ensure_legal_ref_entity(conn, legal_title)
+        )
         if not _candidate_exists(
             conn,
             run_id=run_id,
@@ -2563,9 +3149,27 @@ def _insert_broader_source_seed_backfill_candidates(
             predicate_id=predicate_ids["authorized"],
             object_entity_id=legal_id,
         ):
-            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="agent", entity_id=bush_id, note="authorized_seed_backfill_v1")
-            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="theme", entity_id=legal_id, note="authorized_seed_backfill_v1")
-            receipts = [("subject", "George W. Bush"), ("verb", "authorization"), ("cue_surface", "Iraq")]
+            _insert_event_role(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                role_kind="agent",
+                entity_id=bush_id,
+                note="authorized_seed_backfill_v1",
+            )
+            _insert_event_role(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                role_kind="theme",
+                entity_id=legal_id,
+                note="authorized_seed_backfill_v1",
+            )
+            receipts = [
+                ("subject", "George W. Bush"),
+                ("verb", "authorization"),
+                ("cue_surface", "Iraq"),
+            ]
             _insert_relation_candidate(
                 conn,
                 run_id=run_id,
@@ -2578,12 +3182,17 @@ def _insert_broader_source_seed_backfill_candidates(
             )
 
     supreme_court_match = linkage_matches.get("gwb_us_law:supreme_court_appointments")
-    supreme_court_id = entity_ids.get("actor:u_s_supreme_court") or _entity_for_key(conn, "actor:u_s_supreme_court")
+    supreme_court_id = entity_ids.get("actor:u_s_supreme_court") or _entity_for_key(
+        conn, "actor:u_s_supreme_court"
+    )
     if (
         supreme_court_match
         and supreme_court_id is not None
         and mention_clusters.get("actor:u_s_supreme_court")
-        and any(term in text_fold for term in ("supreme court", "court decision", "ordered", "recount"))
+        and any(
+            term in text_fold
+            for term in ("supreme court", "court decision", "ordered", "recount")
+        )
     ):
         if not _candidate_exists(
             conn,
@@ -2592,7 +3201,14 @@ def _insert_broader_source_seed_backfill_candidates(
             predicate_id=predicate_ids["subject_of_review_by"],
             object_entity_id=supreme_court_id,
         ):
-            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="forum", entity_id=supreme_court_id, note="subject_of_review_seed_backfill_v1")
+            _insert_event_role(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                role_kind="forum",
+                entity_id=supreme_court_id,
+                note="subject_of_review_seed_backfill_v1",
+            )
             receipts = [
                 ("subject", "George W. Bush"),
                 ("verb", "decision"),
@@ -2606,7 +3222,9 @@ def _insert_broader_source_seed_backfill_candidates(
                 subject_entity_id=bush_id,
                 predicate_id=predicate_ids["subject_of_review_by"],
                 object_entity_id=supreme_court_id,
-                confidence_tier=_predicate_confidence(conn, "subject_of_review_by", receipts),
+                confidence_tier=_predicate_confidence(
+                    conn, "subject_of_review_by", receipts
+                ),
                 receipts=receipts,
             )
 
@@ -2620,7 +3238,9 @@ def _confidence_rank(confidence_tier: str) -> int:
     }.get(confidence_tier, 0)
 
 
-def _load_promotion_policy_for_predicate_id(conn: sqlite3.Connection, predicate_id: int) -> dict[str, Any] | None:
+def _load_promotion_policy_for_predicate_id(
+    conn: sqlite3.Connection, predicate_id: int
+) -> dict[str, Any] | None:
     row = conn.execute(
         """
         SELECT p.predicate_key, p.promotion_rule_key, sp.rule_type_key,
@@ -2637,14 +3257,24 @@ def _load_promotion_policy_for_predicate_id(conn: sqlite3.Connection, predicate_
     return {
         "predicate_key": str(row["predicate_key"]),
         "promotion_rule_key": str(row["promotion_rule_key"]),
-        "rule_type_key": str(row["rule_type_key"]) if row["rule_type_key"] is not None else None,
-        "min_confidence": str(row["min_confidence"]) if row["min_confidence"] is not None else None,
-        "required_evidence_count": int(row["required_evidence_count"]) if row["required_evidence_count"] is not None else None,
-        "allow_conflict": int(row["allow_conflict"]) if row["allow_conflict"] is not None else 0,
+        "rule_type_key": str(row["rule_type_key"])
+        if row["rule_type_key"] is not None
+        else None,
+        "min_confidence": str(row["min_confidence"])
+        if row["min_confidence"] is not None
+        else None,
+        "required_evidence_count": int(row["required_evidence_count"])
+        if row["required_evidence_count"] is not None
+        else None,
+        "allow_conflict": int(row["allow_conflict"])
+        if row["allow_conflict"] is not None
+        else 0,
     }
 
 
-def _load_promotion_policy_for_predicate_key(conn: sqlite3.Connection, predicate_key: str) -> dict[str, Any] | None:
+def _load_promotion_policy_for_predicate_key(
+    conn: sqlite3.Connection, predicate_key: str
+) -> dict[str, Any] | None:
     row = conn.execute(
         """
         SELECT p.predicate_key, p.promotion_rule_key, sp.rule_type_key,
@@ -2661,10 +3291,18 @@ def _load_promotion_policy_for_predicate_key(conn: sqlite3.Connection, predicate
     return {
         "predicate_key": str(row["predicate_key"]),
         "promotion_rule_key": str(row["promotion_rule_key"]),
-        "rule_type_key": str(row["rule_type_key"]) if row["rule_type_key"] is not None else None,
-        "min_confidence": str(row["min_confidence"]) if row["min_confidence"] is not None else None,
-        "required_evidence_count": int(row["required_evidence_count"]) if row["required_evidence_count"] is not None else None,
-        "allow_conflict": int(row["allow_conflict"]) if row["allow_conflict"] is not None else 0,
+        "rule_type_key": str(row["rule_type_key"])
+        if row["rule_type_key"] is not None
+        else None,
+        "min_confidence": str(row["min_confidence"])
+        if row["min_confidence"] is not None
+        else None,
+        "required_evidence_count": int(row["required_evidence_count"])
+        if row["required_evidence_count"] is not None
+        else None,
+        "allow_conflict": int(row["allow_conflict"])
+        if row["allow_conflict"] is not None
+        else 0,
     }
 
 
@@ -2686,7 +3324,9 @@ def _policy_adjusted_confidence(
     evidence_count = len({kind for kind, _ in receipts})
     if evidence_count < max(1, required_evidence_count - 1):
         return "abstain"
-    if evidence_count < required_evidence_count and _confidence_rank(legacy_confidence) > _confidence_rank("low"):
+    if evidence_count < required_evidence_count and _confidence_rank(
+        legacy_confidence
+    ) > _confidence_rank("low"):
         return "low"
     return legacy_confidence
 
@@ -2702,20 +3342,50 @@ def _promotion_status_from_policy(
         return "abstained"
     if required_evidence_count is not None and evidence_count < required_evidence_count:
         return "candidate"
-    if min_confidence is not None and _confidence_rank(confidence_tier) < _confidence_rank(min_confidence):
+    if min_confidence is not None and _confidence_rank(
+        confidence_tier
+    ) < _confidence_rank(min_confidence):
         return "candidate"
     return "promoted"
 
 
-def _predicate_confidence(conn: sqlite3.Connection, predicate_key: str, receipts: list[tuple[str, str]]) -> str:
+def _predicate_confidence(
+    conn: sqlite3.Connection, predicate_key: str, receipts: list[tuple[str, str]]
+) -> str:
     kinds = {kind for kind, _ in receipts}
-    if predicate_key in {"signed", "vetoed"} and {"subject", "object_legal_ref", "verb"} <= kinds:
-        return _policy_adjusted_confidence(conn, predicate_key=predicate_key, receipts=receipts, legacy_confidence="high")
-    if predicate_key in {"nominated", "confirmed_by"} and {"subject", "object_actor", "verb"} <= kinds:
-        return _policy_adjusted_confidence(conn, predicate_key=predicate_key, receipts=receipts, legacy_confidence="high")
+    if (
+        predicate_key in {"signed", "vetoed"}
+        and {"subject", "object_legal_ref", "verb"} <= kinds
+    ):
+        return _policy_adjusted_confidence(
+            conn,
+            predicate_key=predicate_key,
+            receipts=receipts,
+            legacy_confidence="high",
+        )
+    if (
+        predicate_key in {"nominated", "confirmed_by"}
+        and {"subject", "object_actor", "verb"} <= kinds
+    ):
+        return _policy_adjusted_confidence(
+            conn,
+            predicate_key=predicate_key,
+            receipts=receipts,
+            legacy_confidence="high",
+        )
     if {"subject", "verb"} <= kinds:
-        return _policy_adjusted_confidence(conn, predicate_key=predicate_key, receipts=receipts, legacy_confidence="medium")
-    return _policy_adjusted_confidence(conn, predicate_key=predicate_key, receipts=receipts, legacy_confidence="abstain")
+        return _policy_adjusted_confidence(
+            conn,
+            predicate_key=predicate_key,
+            receipts=receipts,
+            legacy_confidence="medium",
+        )
+    return _policy_adjusted_confidence(
+        conn,
+        predicate_key=predicate_key,
+        receipts=receipts,
+        legacy_confidence="abstain",
+    )
 
 
 def _insert_event_role(
@@ -2757,20 +3427,35 @@ def _insert_relation_candidate(
             confidence_tier=confidence_tier,
             evidence_count=evidence_count,
             min_confidence=policy["min_confidence"] if policy else None,
-            required_evidence_count=policy["required_evidence_count"] if policy else None,
+            required_evidence_count=policy["required_evidence_count"]
+            if policy
+            else None,
         )
         if policy
-        else ("promoted" if confidence_tier in {"high", "medium"} else ("candidate" if confidence_tier == "low" else "abstained"))
+        else (
+            "promoted"
+            if confidence_tier in {"high", "medium"}
+            else ("candidate" if confidence_tier == "low" else "abstained")
+        )
     )
     stored_receipts = list(receipts)
     if policy is not None:
         if policy["rule_type_key"]:
             stored_receipts.append(("rule_type", str(policy["rule_type_key"])))
-        stored_receipts.append(("promotion_rule_key", str(policy["promotion_rule_key"])))
+        stored_receipts.append(
+            ("promotion_rule_key", str(policy["promotion_rule_key"]))
+        )
         if policy["min_confidence"] is not None:
-            stored_receipts.append(("promotion_min_confidence", str(policy["min_confidence"])))
+            stored_receipts.append(
+                ("promotion_min_confidence", str(policy["min_confidence"]))
+            )
         if policy["required_evidence_count"] is not None:
-            stored_receipts.append(("promotion_required_evidence_count", str(policy["required_evidence_count"])))
+            stored_receipts.append(
+                (
+                    "promotion_required_evidence_count",
+                    str(policy["required_evidence_count"]),
+                )
+            )
     stored_receipts.append(("evidence_count", str(evidence_count)))
     stored_receipts.append(("promotion_status", promotion_status))
     cur = conn.execute(
@@ -2806,7 +3491,15 @@ def _insert_relation_candidate(
               candidate_id, subject_entity_id, predicate_id, object_entity_id, event_id, confidence_tier, pipeline_version
             ) VALUES (?,?,?,?,?,?,?)
             """,
-            (candidate_id, subject_entity_id, predicate_id, object_entity_id, event_id, confidence_tier, pipeline_version),
+            (
+                candidate_id,
+                subject_entity_id,
+                predicate_id,
+                object_entity_id,
+                event_id,
+                confidence_tier,
+                pipeline_version,
+            ),
         )
         relation_id = int(rel_cur.lastrowid)
         for idx, (kind, value) in enumerate(stored_receipts, start=1):
@@ -2838,7 +3531,11 @@ def _extract_event_relations(
     legal_ref_keys = [key for key in mention_clusters if key.startswith("legal_ref:")]
     court_keys = [
         key
-        for key in ("actor:u_s_supreme_court", "actor:united_states_district_court", "actor:sixth_circuit")
+        for key in (
+            "actor:u_s_supreme_court",
+            "actor:united_states_district_court",
+            "actor:sixth_circuit",
+        )
         if mention_clusters.get(key)
     ]
     nominee_keys = [
@@ -2852,9 +3549,27 @@ def _extract_event_relations(
             legal_id = entity_ids.get(legal_key) or _entity_for_key(conn, legal_key)
             if legal_id is None:
                 continue
-            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="agent", entity_id=bush_id, note="signed_v1")
-            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="theme", entity_id=legal_id, note="signed_v1")
-            receipts = [("subject", "George W. Bush"), ("verb", "signed"), ("object_legal_ref", legal_key)]
+            _insert_event_role(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                role_kind="agent",
+                entity_id=bush_id,
+                note="signed_v1",
+            )
+            _insert_event_role(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                role_kind="theme",
+                entity_id=legal_id,
+                note="signed_v1",
+            )
+            receipts = [
+                ("subject", "George W. Bush"),
+                ("verb", "signed"),
+                ("object_legal_ref", legal_key),
+            ]
             _insert_relation_candidate(
                 conn,
                 run_id=run_id,
@@ -2871,9 +3586,27 @@ def _extract_event_relations(
             legal_id = entity_ids.get(legal_key) or _entity_for_key(conn, legal_key)
             if legal_id is None:
                 continue
-            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="agent", entity_id=bush_id, note="vetoed_v1")
-            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="theme", entity_id=legal_id, note="vetoed_v1")
-            receipts = [("subject", "George W. Bush"), ("verb", "veto"), ("object_legal_ref", legal_key)]
+            _insert_event_role(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                role_kind="agent",
+                entity_id=bush_id,
+                note="vetoed_v1",
+            )
+            _insert_event_role(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                role_kind="theme",
+                entity_id=legal_id,
+                note="vetoed_v1",
+            )
+            receipts = [
+                ("subject", "George W. Bush"),
+                ("verb", "veto"),
+                ("object_legal_ref", legal_key),
+            ]
             _insert_relation_candidate(
                 conn,
                 run_id=run_id,
@@ -2888,9 +3621,27 @@ def _extract_event_relations(
     if bush_id and nominee_keys and "nominat" in text_fold:
         for nominee_key in nominee_keys:
             nominee_id = entity_ids[nominee_key]
-            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="agent", entity_id=bush_id, note="nominated_v1")
-            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="patient", entity_id=nominee_id, note="nominated_v1")
-            receipts = [("subject", "George W. Bush"), ("verb", "nominated"), ("object_actor", nominee_key)]
+            _insert_event_role(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                role_kind="agent",
+                entity_id=bush_id,
+                note="nominated_v1",
+            )
+            _insert_event_role(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                role_kind="patient",
+                entity_id=nominee_id,
+                note="nominated_v1",
+            )
+            receipts = [
+                ("subject", "George W. Bush"),
+                ("verb", "nominated"),
+                ("object_actor", nominee_key),
+            ]
             _insert_relation_candidate(
                 conn,
                 run_id=run_id,
@@ -2902,12 +3653,38 @@ def _extract_event_relations(
                 receipts=receipts,
             )
 
-    if senate_id and nominee_keys and ("confirmed by the senate" in text_fold or "confirmed by senate" in text_fold or "confirmed the senate" in text_fold):
+    if (
+        senate_id
+        and nominee_keys
+        and (
+            "confirmed by the senate" in text_fold
+            or "confirmed by senate" in text_fold
+            or "confirmed the senate" in text_fold
+        )
+    ):
         for nominee_key in nominee_keys:
             nominee_id = entity_ids[nominee_key]
-            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="patient", entity_id=nominee_id, note="confirmed_by_v1")
-            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="authority", entity_id=senate_id, note="confirmed_by_v1")
-            receipts = [("subject", nominee_key), ("verb", "confirmed_by"), ("object_actor", "actor:u_s_senate")]
+            _insert_event_role(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                role_kind="patient",
+                entity_id=nominee_id,
+                note="confirmed_by_v1",
+            )
+            _insert_event_role(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                role_kind="authority",
+                entity_id=senate_id,
+                note="confirmed_by_v1",
+            )
+            receipts = [
+                ("subject", nominee_key),
+                ("verb", "confirmed_by"),
+                ("object_actor", "actor:u_s_senate"),
+            ]
             _insert_relation_candidate(
                 conn,
                 run_id=run_id,
@@ -2919,18 +3696,41 @@ def _extract_event_relations(
                 receipts=receipts,
             )
 
-    review_subject_keys = legal_ref_keys if legal_ref_keys else (["actor:george_w_bush"] if bush_id is not None else [])
-    review_court_ids = [entity_ids.get(key) or _entity_for_key(conn, key) for key in court_keys]
+    review_subject_keys = (
+        legal_ref_keys
+        if legal_ref_keys
+        else (["actor:george_w_bush"] if bush_id is not None else [])
+    )
+    review_court_ids = [
+        entity_ids.get(key) or _entity_for_key(conn, key) for key in court_keys
+    ]
     review_court_ids = [cid for cid in review_court_ids if cid is not None]
     if review_subject_keys and review_court_ids:
         for subject_key in review_subject_keys:
-            subject_id = entity_ids.get(subject_key) or _entity_for_key(conn, subject_key)
+            subject_id = entity_ids.get(subject_key) or _entity_for_key(
+                conn, subject_key
+            )
             if subject_id is None:
                 continue
             for court_id in review_court_ids:
-                if ("ruled" in text_fold or "vacated" in text_fold or "unconstitutional" in text_fold) and ("court" in text_fold or "circuit" in text_fold):
-                    _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="forum", entity_id=court_id, note="ruled_by_v1")
-                    receipts = [("subject", subject_key), ("verb", "ruled_by"), ("object_actor", str(court_id))]
+                if (
+                    "ruled" in text_fold
+                    or "vacated" in text_fold
+                    or "unconstitutional" in text_fold
+                ) and ("court" in text_fold or "circuit" in text_fold):
+                    _insert_event_role(
+                        conn,
+                        run_id=run_id,
+                        event_id=event_id,
+                        role_kind="forum",
+                        entity_id=court_id,
+                        note="ruled_by_v1",
+                    )
+                    receipts = [
+                        ("subject", subject_key),
+                        ("verb", "ruled_by"),
+                        ("object_actor", str(court_id)),
+                    ]
                     _insert_relation_candidate(
                         conn,
                         run_id=run_id,
@@ -2938,12 +3738,29 @@ def _extract_event_relations(
                         subject_entity_id=subject_id,
                         predicate_id=predicate_ids["ruled_by"],
                         object_entity_id=court_id,
-                        confidence_tier=_predicate_confidence(conn, "ruled_by", receipts),
+                        confidence_tier=_predicate_confidence(
+                            conn, "ruled_by", receipts
+                        ),
                         receipts=receipts,
                     )
-                if ("challeng" in text_fold or "lawsuit" in text_fold or "sued" in text_fold) and ("court" in text_fold or "circuit" in text_fold):
-                    _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="forum", entity_id=court_id, note="challenged_in_v1")
-                    receipts = [("subject", subject_key), ("verb", "challenged_in"), ("object_actor", str(court_id))]
+                if (
+                    "challeng" in text_fold
+                    or "lawsuit" in text_fold
+                    or "sued" in text_fold
+                ) and ("court" in text_fold or "circuit" in text_fold):
+                    _insert_event_role(
+                        conn,
+                        run_id=run_id,
+                        event_id=event_id,
+                        role_kind="forum",
+                        entity_id=court_id,
+                        note="challenged_in_v1",
+                    )
+                    receipts = [
+                        ("subject", subject_key),
+                        ("verb", "challenged_in"),
+                        ("object_actor", str(court_id)),
+                    ]
                     _insert_relation_candidate(
                         conn,
                         run_id=run_id,
@@ -2951,14 +3768,30 @@ def _extract_event_relations(
                         subject_entity_id=subject_id,
                         predicate_id=predicate_ids["challenged_in"],
                         object_entity_id=court_id,
-                        confidence_tier=_predicate_confidence(conn, "challenged_in", receipts),
+                        confidence_tier=_predicate_confidence(
+                            conn, "challenged_in", receipts
+                        ),
                         receipts=receipts,
                     )
-                if ("review" in text_fold or "reaching" in text_fold or "reached" in text_fold or "considered" in text_fold) and (
-                    "court" in text_fold or "circuit" in text_fold
-                ):
-                    _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="forum", entity_id=court_id, note="subject_of_review_by_v1")
-                    receipts = [("subject", subject_key), ("verb", "subject_of_review_by"), ("object_actor", str(court_id))]
+                if (
+                    "review" in text_fold
+                    or "reaching" in text_fold
+                    or "reached" in text_fold
+                    or "considered" in text_fold
+                ) and ("court" in text_fold or "circuit" in text_fold):
+                    _insert_event_role(
+                        conn,
+                        run_id=run_id,
+                        event_id=event_id,
+                        role_kind="forum",
+                        entity_id=court_id,
+                        note="subject_of_review_by_v1",
+                    )
+                    receipts = [
+                        ("subject", subject_key),
+                        ("verb", "subject_of_review_by"),
+                        ("object_actor", str(court_id)),
+                    ]
                     _insert_relation_candidate(
                         conn,
                         run_id=run_id,
@@ -2966,7 +3799,9 @@ def _extract_event_relations(
                         subject_entity_id=subject_id,
                         predicate_id=predicate_ids["subject_of_review_by"],
                         object_entity_id=court_id,
-                        confidence_tier=_predicate_confidence(conn, "subject_of_review_by", receipts),
+                        confidence_tier=_predicate_confidence(
+                            conn, "subject_of_review_by", receipts
+                        ),
                         receipts=receipts,
                     )
 
@@ -2994,7 +3829,9 @@ def run_gwb_semantic_pipeline(
     run_gwb_us_law_linkage(conn, timeline_suffix=timeline_suffix, run_id=active_run_id)
     payload = load_run_payload_from_normalized(conn, active_run_id)
     if not payload:
-        raise ValueError(f"unable to load normalized payload for run_id={active_run_id}")
+        raise ValueError(
+            f"unable to load normalized payload for run_id={active_run_id}"
+        )
     _delete_run_rows(conn, active_run_id)
     entity_ids = _seed_entities(conn)
     predicate_ids = _ensure_predicates(conn)
@@ -3022,8 +3859,15 @@ def run_gwb_semantic_pipeline(
             entity_ids=entity_ids,
             predicate_ids=predicate_ids,
         )
-    entity_count = int(conn.execute("SELECT COUNT(*) FROM semantic_entities").fetchone()[0])
-    candidate_count = int(conn.execute("SELECT COUNT(*) FROM semantic_relation_candidates WHERE run_id = ?", (active_run_id,)).fetchone()[0])
+    entity_count = int(
+        conn.execute("SELECT COUNT(*) FROM semantic_entities").fetchone()[0]
+    )
+    candidate_count = int(
+        conn.execute(
+            "SELECT COUNT(*) FROM semantic_relation_candidates WHERE run_id = ?",
+            (active_run_id,),
+        ).fetchone()[0]
+    )
     promoted_count = int(
         conn.execute(
             """
@@ -3080,8 +3924,15 @@ def _build_timeline_source_documents(
 ) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]]]:
     documents_by_id: dict[str, dict[str, Any]] = {}
     event_spans: dict[str, dict[str, Any]] = {}
-    source_timeline = payload.get("source_timeline") if isinstance(payload.get("source_timeline"), Mapping) else {}
-    default_source_document_id = str(source_timeline.get("path") or fallback_source_document_id).strip() or fallback_source_document_id
+    source_timeline = (
+        payload.get("source_timeline")
+        if isinstance(payload.get("source_timeline"), Mapping)
+        else {}
+    )
+    default_source_document_id = (
+        str(source_timeline.get("path") or fallback_source_document_id).strip()
+        or fallback_source_document_id
+    )
     events = payload.get("events") if isinstance(payload.get("events"), list) else []
     for event in events:
         if not isinstance(event, Mapping):
@@ -3090,7 +3941,10 @@ def _build_timeline_source_documents(
         text = str(event.get("text") or "").strip()
         if not event_id or not text:
             continue
-        source_document_id = str(event.get("source_id") or default_source_document_id).strip() or default_source_document_id
+        source_document_id = (
+            str(event.get("source_id") or default_source_document_id).strip()
+            or default_source_document_id
+        )
         source_type = str(event.get("source_type") or "timeline_payload")
         document = documents_by_id.setdefault(
             source_document_id,
@@ -3130,27 +3984,59 @@ def _build_timeline_source_documents(
                 "eventIds": row["eventIds"],
             }
         )
-    documents.sort(key=lambda row: (str(row["sourceType"]), str(row["title"]), str(row["sourceDocumentId"])))
+    documents.sort(
+        key=lambda row: (
+            str(row["sourceType"]),
+            str(row["title"]),
+            str(row["sourceDocumentId"]),
+        )
+    )
     return documents, event_spans
 
 
 def _text_debug_relation_family(predicate_key: str) -> tuple[str, str]:
-    if predicate_key in {"ruled_by", "challenged_in", "subject_of_review_by", "appealed", "challenged", "heard_by", "decided_by"}:
+    if predicate_key in {
+        "ruled_by",
+        "challenged_in",
+        "subject_of_review_by",
+        "appealed",
+        "challenged",
+        "heard_by",
+        "decided_by",
+    }:
         return ("review", "#2563eb")
     if predicate_key in {"applied", "followed", "distinguished", "held_that"}:
         return ("authority", "#059669")
-    if predicate_key in {"signed", "vetoed", "nominated", "confirmed_by", "authorized", "funded_by", "sanctioned"}:
+    if predicate_key in {
+        "signed",
+        "vetoed",
+        "nominated",
+        "confirmed_by",
+        "authorized",
+        "funded_by",
+        "sanctioned",
+    }:
         return ("governance", "#d97706")
     if predicate_key in {"replied_to"}:
         return ("conversation", "#e11d48")
     if predicate_key in {"felt_state"}:
         return ("state", "#7c3aed")
-    if predicate_key in {"sibling_of", "parent_of", "child_of", "spouse_of", "friend_of", "guardian_of", "caregiver_of"}:
+    if predicate_key in {
+        "sibling_of",
+        "parent_of",
+        "child_of",
+        "spouse_of",
+        "friend_of",
+        "guardian_of",
+        "caregiver_of",
+    }:
         return ("social", "#0f766e")
     return ("semantic", "#475569")
 
 
-def _text_debug_confidence_opacity(confidence_tier: str, promotion_status: str) -> float:
+def _text_debug_confidence_opacity(
+    confidence_tier: str, promotion_status: str
+) -> float:
     base = 0.0
     if confidence_tier == "high":
         base = 0.92
@@ -3171,7 +4057,9 @@ def _text_debug_tokenize(text: str) -> list[dict[str, Any]]:
             "start": int(match.start()),
             "end": int(match.end()),
         }
-        for index, match in enumerate(re.finditer(r"[A-Za-z0-9][A-Za-z0-9.'’:/-]*", text))
+        for index, match in enumerate(
+            re.finditer(r"[A-Za-z0-9][A-Za-z0-9.'’:/-]*", text)
+        )
     ]
 
 
@@ -3189,8 +4077,14 @@ def _text_debug_find_surface_range(text: str, surface: str) -> tuple[int, int] |
     return (int(match.start()), int(match.end()))
 
 
-def _text_debug_char_range_to_token_range(tokens: list[dict[str, Any]], start: int, end: int) -> tuple[int, int] | None:
-    overlapping = [token for token in tokens if int(token["end"]) > start and int(token["start"]) < end]
+def _text_debug_char_range_to_token_range(
+    tokens: list[dict[str, Any]], start: int, end: int
+) -> tuple[int, int] | None:
+    overlapping = [
+        token
+        for token in tokens
+        if int(token["end"]) > start and int(token["start"]) < end
+    ]
     if not overlapping:
         return None
     return (int(overlapping[0]["index"]), int(overlapping[-1]["index"]))
@@ -3209,10 +4103,17 @@ def _text_debug_entity_anchor(
         if (
             mention.get("resolution_status") == "resolved"
             and isinstance(resolved, dict)
-            and str(resolved.get("canonical_key", "")) == str(entity.get("canonical_key", ""))
+            and str(resolved.get("canonical_key", ""))
+            == str(entity.get("canonical_key", ""))
         ):
-            char_range = _text_debug_find_surface_range(text, str(mention.get("surface_text", "")))
-            token_range = _text_debug_char_range_to_token_range(tokens, *char_range) if char_range else None
+            char_range = _text_debug_find_surface_range(
+                text, str(mention.get("surface_text", ""))
+            )
+            token_range = (
+                _text_debug_char_range_to_token_range(tokens, *char_range)
+                if char_range
+                else None
+            )
             if token_range:
                 return (
                     token_range[0],
@@ -3227,7 +4128,11 @@ def _text_debug_entity_anchor(
         str(entity.get("canonical_key", "")).split(":")[-1].replace("_", " "),
     ):
         char_range = _text_debug_find_surface_range(text, surface)
-        token_range = _text_debug_char_range_to_token_range(tokens, *char_range) if char_range else None
+        token_range = (
+            _text_debug_char_range_to_token_range(tokens, *char_range)
+            if char_range
+            else None
+        )
         if token_range:
             return (
                 token_range[0],
@@ -3251,7 +4156,8 @@ def _text_debug_predicate_anchor(
         for kind in _TEXT_DEBUG_RECEIPT_PRIORITY:
             receipt = next(
                 (
-                    row for row in receipts
+                    row
+                    for row in receipts
                     if isinstance(row, dict)
                     and str(row.get("kind", "")) == kind
                     and str(row.get("value", "")).strip()
@@ -3260,9 +4166,16 @@ def _text_debug_predicate_anchor(
             )
             if receipt is None:
                 continue
-            for surface in (str(receipt.get("value", "")), str(receipt.get("value", "")).replace("_", " ")):
+            for surface in (
+                str(receipt.get("value", "")),
+                str(receipt.get("value", "")).replace("_", " "),
+            ):
                 char_range = _text_debug_find_surface_range(text, surface)
-                token_range = _text_debug_char_range_to_token_range(tokens, *char_range) if char_range else None
+                token_range = (
+                    _text_debug_char_range_to_token_range(tokens, *char_range)
+                    if char_range
+                    else None
+                )
                 if token_range:
                     return (
                         token_range[0],
@@ -3272,9 +4185,15 @@ def _text_debug_predicate_anchor(
                         "receipt",
                         f"candidate_receipt:{relation.get('candidate_id', 'unknown')}:{kind}",
                     )
-    fallback_label = str(relation.get("display_label") or relation.get("predicate_key") or "").replace("_", " ")
+    fallback_label = str(
+        relation.get("display_label") or relation.get("predicate_key") or ""
+    ).replace("_", " ")
     char_range = _text_debug_find_surface_range(text, fallback_label)
-    token_range = _text_debug_char_range_to_token_range(tokens, *char_range) if char_range else None
+    token_range = (
+        _text_debug_char_range_to_token_range(tokens, *char_range)
+        if char_range
+        else None
+    )
     if token_range:
         return (
             token_range[0],
@@ -3287,7 +4206,9 @@ def _text_debug_predicate_anchor(
     return None
 
 
-def build_semantic_text_debug_payload(per_event: list[dict[str, Any]]) -> dict[str, Any]:
+def build_semantic_text_debug_payload(
+    per_event: list[dict[str, Any]],
+) -> dict[str, Any]:
     events: list[dict[str, Any]] = []
     for event in per_event:
         text = str(event.get("text") or "").strip()
@@ -3296,7 +4217,11 @@ def build_semantic_text_debug_payload(per_event: list[dict[str, Any]]) -> dict[s
         tokens = _text_debug_tokenize(text)
         if not tokens:
             continue
-        mentions = list(event.get("mentions", [])) if isinstance(event.get("mentions"), list) else []
+        mentions = (
+            list(event.get("mentions", []))
+            if isinstance(event.get("mentions"), list)
+            else []
+        )
         rows = []
         for key in ("promoted_relations", "candidate_only_relations"):
             value = event.get(key)
@@ -3324,14 +4249,20 @@ def build_semantic_text_debug_payload(per_event: list[dict[str, Any]]) -> dict[s
                 entity=object_,
                 fallback_label=str(object_.get("canonical_label") or ""),
             )
-            predicate_range = _text_debug_predicate_anchor(text=text, tokens=tokens, relation=row)
+            predicate_range = _text_debug_predicate_anchor(
+                text=text, tokens=tokens, relation=row
+            )
             anchors: list[dict[str, Any]] = []
             if subject_range:
                 anchors.append(
                     {
                         "key": f"{row['candidate_id']}:subject",
                         "role": "subject",
-                        "label": str(subject.get("canonical_label") or subject.get("canonical_key") or "subject"),
+                        "label": str(
+                            subject.get("canonical_label")
+                            or subject.get("canonical_key")
+                            or "subject"
+                        ),
                         "source": subject_range[4],
                         "charStart": subject_range[2],
                         "charEnd": subject_range[3],
@@ -3345,7 +4276,11 @@ def build_semantic_text_debug_payload(per_event: list[dict[str, Any]]) -> dict[s
                     {
                         "key": f"{row['candidate_id']}:predicate",
                         "role": "predicate",
-                        "label": str(row.get("display_label") or row.get("predicate_key") or "predicate"),
+                        "label": str(
+                            row.get("display_label")
+                            or row.get("predicate_key")
+                            or "predicate"
+                        ),
                         "source": predicate_range[4],
                         "charStart": predicate_range[2],
                         "charEnd": predicate_range[3],
@@ -3359,7 +4294,11 @@ def build_semantic_text_debug_payload(per_event: list[dict[str, Any]]) -> dict[s
                     {
                         "key": f"{row['candidate_id']}:object",
                         "role": "object",
-                        "label": str(object_.get("canonical_label") or object_.get("canonical_key") or "object"),
+                        "label": str(
+                            object_.get("canonical_label")
+                            or object_.get("canonical_key")
+                            or "object"
+                        ),
                         "source": object_range[4],
                         "charStart": object_range[2],
                         "charEnd": object_range[3],
@@ -3370,12 +4309,16 @@ def build_semantic_text_debug_payload(per_event: list[dict[str, Any]]) -> dict[s
                 )
             if len(anchors) < 2:
                 continue
-            family, color = _text_debug_relation_family(str(row.get("predicate_key") or ""))
+            family, color = _text_debug_relation_family(
+                str(row.get("predicate_key") or "")
+            )
             relations.append(
                 {
                     "relationId": f"{event['event_id']}:{row['candidate_id']}",
                     "predicateKey": str(row.get("predicate_key") or ""),
-                    "displayLabel": str(row.get("display_label") or row.get("predicate_key") or ""),
+                    "displayLabel": str(
+                        row.get("display_label") or row.get("predicate_key") or ""
+                    ),
                     "promotionStatus": str(row.get("promotion_status") or "candidate"),
                     "confidenceTier": str(row.get("confidence_tier") or "low"),
                     "family": family,
@@ -3396,11 +4339,17 @@ def build_semantic_text_debug_payload(per_event: list[dict[str, Any]]) -> dict[s
                 "sourceId": str(event.get("source_id") or "") or None,
                 "sourceType": str(event.get("source_type") or "") or None,
                 "sourceDocumentId": str(event.get("source_document_id") or "") or None,
-                "sourceCharStart": int(event["source_char_start"]) if event.get("source_char_start") is not None else None,
-                "sourceCharEnd": int(event["source_char_end"]) if event.get("source_char_end") is not None else None,
+                "sourceCharStart": int(event["source_char_start"])
+                if event.get("source_char_start") is not None
+                else None,
+                "sourceCharEnd": int(event["source_char_end"])
+                if event.get("source_char_end") is not None
+                else None,
                 "tokenCount": len(tokens),
                 "relationCount": len(relations),
-                "promotedCount": sum(1 for row in relations if row["promotionStatus"] == "promoted"),
+                "promotedCount": sum(
+                    1 for row in relations if row["promotionStatus"] == "promoted"
+                ),
                 "tokens": tokens,
                 "relations": relations,
             }
@@ -3427,7 +4376,9 @@ def build_semantic_review_summary(
     promoted_counts: dict[str, int] = defaultdict(int)
     candidate_counts: dict[str, int] = defaultdict(int)
     abstained_counts: dict[str, int] = defaultdict(int)
-    cue_surface_counts: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    cue_surface_counts: dict[str, dict[str, int]] = defaultdict(
+        lambda: defaultdict(int)
+    )
     family_counts: dict[str, int] = defaultdict(int)
     for row in all_rows:
         predicate_key = str(row.get("predicate_key") or "")
@@ -3445,8 +4396,16 @@ def build_semantic_review_summary(
             for receipt in receipts:
                 if str(receipt.get("kind")) == "cue_surface":
                     cue_surface_counts[predicate_key][str(receipt.get("value"))] += 1
-    text_debug = report.get("text_debug", {}) if isinstance(report.get("text_debug"), dict) else {}
-    text_debug_events = list(text_debug.get("events", [])) if isinstance(text_debug.get("events"), list) else []
+    text_debug = (
+        report.get("text_debug", {})
+        if isinstance(report.get("text_debug"), dict)
+        else {}
+    )
+    text_debug_events = (
+        list(text_debug.get("events", []))
+        if isinstance(text_debug.get("events"), list)
+        else []
+    )
     arc_ready_relation_count = sum(
         len(event.get("relations", []))
         for event in text_debug_events
@@ -3473,13 +4432,21 @@ def build_semantic_review_summary(
         "summary": report.get("summary", {}),
     }
     if extra_event_counts:
-        summary["event_counts"] = dict(sorted((str(k), int(v)) for k, v in extra_event_counts.items()))
-    if focus_predicates and focus_candidate_only_note and not any(predicate in focus_predicates for predicate in promoted_counts):
+        summary["event_counts"] = dict(
+            sorted((str(k), int(v)) for k, v in extra_event_counts.items())
+        )
+    if (
+        focus_predicates
+        and focus_candidate_only_note
+        and not any(predicate in focus_predicates for predicate in promoted_counts)
+    ):
         summary["focus_candidate_only_note"] = focus_candidate_only_note
     return summary
 
 
-def build_gwb_semantic_report(conn: sqlite3.Connection, *, run_id: str) -> dict[str, Any]:
+def build_gwb_semantic_report(
+    conn: sqlite3.Connection, *, run_id: str
+) -> dict[str, Any]:
     ensure_gwb_semantic_schema(conn)
     linkage = build_gwb_us_law_linkage_report(conn, run_id=run_id)
     payload = load_run_payload_from_normalized(conn, run_id) or {}
@@ -3508,7 +4475,11 @@ def build_gwb_semantic_report(conn: sqlite3.Connection, *, run_id: str) -> dict[
         """,
         (run_id,),
     ).fetchall():
-        entity = entities.get(int(row["entity_id"])) if row["entity_id"] is not None else None
+        entity = (
+            entities.get(int(row["entity_id"]))
+            if row["entity_id"] is not None
+            else None
+        )
         event_roles_by_event[str(row["event_id"])].append(
             {
                 "role_kind": str(row["role_kind"]),
@@ -3530,7 +4501,11 @@ def build_gwb_semantic_report(conn: sqlite3.Connection, *, run_id: str) -> dict[
     unresolved_mentions: list[dict[str, Any]] = []
     per_event_mentions: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in mention_rows:
-        resolved = entities.get(int(row["resolved_entity_id"])) if row["resolved_entity_id"] is not None else None
+        resolved = (
+            entities.get(int(row["resolved_entity_id"]))
+            if row["resolved_entity_id"] is not None
+            else None
+        )
         entry = {
             "cluster_id": int(row["cluster_id"]),
             "surface_text": str(row["surface_text"]),
@@ -3597,7 +4572,8 @@ def build_gwb_semantic_report(conn: sqlite3.Connection, *, run_id: str) -> dict[
             rule_ids=[
                 str(receipt.get("value"))
                 for receipt in receipts
-                if str(receipt.get("kind") or "") == "rule_type" and str(receipt.get("value") or "").strip()
+                if str(receipt.get("kind") or "") == "rule_type"
+                and str(receipt.get("value") or "").strip()
             ],
         )
         promotion = promote_relation_candidate(semantic_candidate)
@@ -3618,12 +4594,18 @@ def build_gwb_semantic_report(conn: sqlite3.Connection, *, run_id: str) -> dict[
             "canonical_promotion_reason": promotion["reason"],
         }
         candidate_relations.append(entry)
-        for participant in (int(row["subject_entity_id"]), int(row["object_entity_id"])):
+        for participant in (
+            int(row["subject_entity_id"]),
+            int(row["object_entity_id"]),
+        ):
             per_entity[participant]["candidate_relation_count"] += 1
             per_entity[participant]["events"].add(str(row["event_id"]))
         if str(row["promotion_status"]) == "promoted":
             promoted_relations.append(entry)
-            for participant in (int(row["subject_entity_id"]), int(row["object_entity_id"])):
+            for participant in (
+                int(row["subject_entity_id"]),
+                int(row["object_entity_id"]),
+            ):
                 per_entity[participant]["promoted_relation_count"] += 1
         elif str(row["promotion_status"]) == "candidate":
             candidate_only_relations.append(entry)
@@ -3644,10 +4626,22 @@ def build_gwb_semantic_report(conn: sqlite3.Connection, *, run_id: str) -> dict[
                 "source_char_end": source_span.get("source_char_end"),
                 "mentions": per_event_mentions.get(event_id, []),
                 "event_roles": event_roles_by_event.get(event_id, []),
-                "relation_candidates": [row for row in candidate_relations if row["event_id"] == event_id],
-                "candidate_only_relations": [row for row in candidate_only_relations if row["event_id"] == event_id],
-                "abstained_relation_candidates": [row for row in abstained_relation_candidates if row["event_id"] == event_id],
-                "promoted_relations": [row for row in promoted_relations if row["event_id"] == event_id],
+                "relation_candidates": [
+                    row for row in candidate_relations if row["event_id"] == event_id
+                ],
+                "candidate_only_relations": [
+                    row
+                    for row in candidate_only_relations
+                    if row["event_id"] == event_id
+                ],
+                "abstained_relation_candidates": [
+                    row
+                    for row in abstained_relation_candidates
+                    if row["event_id"] == event_id
+                ],
+                "promoted_relations": [
+                    row for row in promoted_relations if row["event_id"] == event_id
+                ],
             }
         )
 
@@ -3667,7 +4661,11 @@ def build_gwb_semantic_report(conn: sqlite3.Connection, *, run_id: str) -> dict[
             "candidate_only_relation_count": len(candidate_only_relations),
             "abstained_relation_candidate_count": len(abstained_relation_candidates),
             "unresolved_mention_count": len(unresolved_mentions),
-            "semantic_basis_counts": dict(Counter(str(row.get("semantic_basis") or "") for row in candidate_relations)),
+            "semantic_basis_counts": dict(
+                Counter(
+                    str(row.get("semantic_basis") or "") for row in candidate_relations
+                )
+            ),
         },
         "promoted_relations": promoted_relations,
         "relation_candidates": candidate_relations,

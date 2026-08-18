@@ -39,7 +39,9 @@ def test_deterministic_legal_tokenizer_atomizes_section_reference() -> None:
 def test_deterministic_legal_tokenizer_atomizes_act_and_rule_chain() -> None:
     from src.text.deterministic_legal_tokenizer import tokenize_detailed
 
-    tokens = tokenize_detailed("Civil Liability Act 2002 (NSW) Pt 4 Div 2 r 7.32 Sch 1 cl 4")
+    tokens = tokenize_detailed(
+        "Civil Liability Act 2002 (NSW) Pt 4 Div 2 r 7.32 Sch 1 cl 4"
+    )
     assert [token.token_type for token in tokens] == [
         TokenType.ACT_REFERENCE,
         TokenType.PART_REFERENCE,
@@ -72,7 +74,9 @@ def test_deterministic_legal_tokenizer_atomizes_article_and_instrument_refs() ->
     assert TokenType.INSTRUMENT_REFERENCE in token_types
 
 
-def test_deterministic_legal_tokenizer_atomizes_seeded_institutions_and_international_courts() -> None:
+def test_deterministic_legal_tokenizer_atomizes_seeded_institutions_and_international_courts() -> (
+    None
+):
     from src.text.deterministic_legal_tokenizer import tokenize_detailed
 
     tokens = tokenize_detailed(
@@ -83,7 +87,9 @@ def test_deterministic_legal_tokenizer_atomizes_seeded_institutions_and_internat
     assert TokenType.COURT_REFERENCE in token_types
 
 
-def test_deterministic_legal_tokenizer_does_not_treat_artful_or_ambiguous_art_as_article_ref() -> None:
+def test_deterministic_legal_tokenizer_does_not_treat_artful_or_ambiguous_art_as_article_ref() -> (
+    None
+):
     from src.text.deterministic_legal_tokenizer import tokenize_detailed
 
     samples = [

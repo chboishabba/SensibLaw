@@ -4,6 +4,7 @@ Evidence acquisition never selects identity; reconciliation never promotes a
 claim; refinement changes only a declared PNF factor; readiness remains
 review-only and carries no editing authority.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -190,9 +191,7 @@ def build_document_local_evidence(
                 payload={"member_mentions": sorted(members)},
             )
         )
-    for local_type in sorted(
-        local_types, key=lambda row: str(row.get("type_ref"))
-    ):
+    for local_type in sorted(local_types, key=lambda row: str(row.get("type_ref"))):
         if str(local_type.get("mention_ref")) != mention_ref:
             continue
         types = local_type.get("type_refs") or (local_type.get("local_type"),)
@@ -205,8 +204,7 @@ def build_document_local_evidence(
                 labels=(str(mention.get("canonical_surface") or ""),),
                 type_refs=tuple(str(value) for value in types if value),
                 provenance_refs=tuple(
-                    local_type.get("provenance_refs")
-                    or (f"document:{document_ref}",)
+                    local_type.get("provenance_refs") or (f"document:{document_ref}",)
                 ),
                 payload={"local_type": dict(local_type)},
             )
@@ -505,7 +503,10 @@ def assess_entity_resolution(
     )
     local_labels = tuple(
         str(value).casefold()
-        for value in (*tuple(local.get("labels") or ()), *tuple(local.get("aliases") or ()))
+        for value in (
+            *tuple(local.get("labels") or ()),
+            *tuple(local.get("aliases") or ()),
+        )
     )
     external_labels = tuple(
         str(value).casefold()
@@ -551,18 +552,13 @@ def assess_event_resolution(
         local.get("type_refs") or (), snapshot.get("type_refs") or ()
     )
     participant_state, participant_relation = _set_relation(
-        (
-            ref
-            for refs in (local.get("participants") or {}).values()
-            for ref in refs
-        ),
-        (
-            ref
-            for refs in (snapshot.get("participants") or {}).values()
-            for ref in refs
-        ),
+        (ref for refs in (local.get("participants") or {}).values() for ref in refs),
+        (ref for refs in (snapshot.get("participants") or {}).values() for ref in refs),
     )
-    local_time, external_time = local.get("temporal") or {}, snapshot.get("temporal") or {}
+    local_time, external_time = (
+        local.get("temporal") or {},
+        snapshot.get("temporal") or {},
+    )
     if local_time and external_time:
         if set(local_time.values()).intersection(external_time.values()):
             temporal_state, temporal_relation = (
@@ -575,23 +571,38 @@ def assess_event_resolution(
                 "distinct_temporal_roles",
             )
     else:
-        temporal_state, temporal_relation = MeetState.UNRESOLVED, "missing_temporal_role"
-    local_space, external_space = local.get("spatial") or {}, snapshot.get("spatial") or {}
+        temporal_state, temporal_relation = (
+            MeetState.UNRESOLVED,
+            "missing_temporal_role",
+        )
+    local_space, external_space = (
+        local.get("spatial") or {},
+        snapshot.get("spatial") or {},
+    )
     if local_space and external_space:
         if set(map(str, local_space.values())).intersection(
             map(str, external_space.values())
         ):
-            spatial_state, spatial_relation = MeetState.COMPATIBLE, "shared_spatial_anchor"
+            spatial_state, spatial_relation = (
+                MeetState.COMPATIBLE,
+                "shared_spatial_anchor",
+            )
         else:
             spatial_state, spatial_relation = (
                 MeetState.COMPATIBLE_WITH_REFINEMENT,
                 "spatial_refinement_required",
             )
     else:
-        spatial_state, spatial_relation = MeetState.UNRESOLVED, "missing_spatial_coordinate"
+        spatial_state, spatial_relation = (
+            MeetState.UNRESOLVED,
+            "missing_spatial_coordinate",
+        )
     local_labels = tuple(
         str(value).casefold()
-        for value in (*tuple(local.get("labels") or ()), *tuple(local.get("aliases") or ()))
+        for value in (
+            *tuple(local.get("labels") or ()),
+            *tuple(local.get("aliases") or ()),
+        )
     )
     external_labels = tuple(
         str(value).casefold()
@@ -639,7 +650,10 @@ def assess_event_resolution(
         outcome = ResolutionOutcome.CONTRADICTION
     elif MeetState.NO_TYPED_MEET in states:
         outcome = ResolutionOutcome.NO_TYPED_MEET
-    elif states <= {MeetState.COMPATIBLE, MeetState.NOT_APPLICABLE} and role == "occurrence":
+    elif (
+        states <= {MeetState.COMPATIBLE, MeetState.NOT_APPLICABLE}
+        and role == "occurrence"
+    ):
         outcome = ResolutionOutcome.RESOLVED
     elif type_state in {
         MeetState.COMPATIBLE,
@@ -648,7 +662,9 @@ def assess_event_resolution(
         outcome = ResolutionOutcome.POSSIBLE_SAME
     else:
         outcome = ResolutionOutcome.NOT_EVALUATED
-    selected = snapshot.get("external_ref") if outcome == ResolutionOutcome.RESOLVED else None
+    selected = (
+        snapshot.get("external_ref") if outcome == ResolutionOutcome.RESOLVED else None
+    )
     return ResolutionAssessment(
         assessment_ref=f"assessment:{_digest([subject_ref, local, snapshot])[:16]}",
         subject_ref=subject_ref,
@@ -680,7 +696,9 @@ class PNFRefinement:
         retained = set(_refs(self.retained_alternatives))
         rejected = set(_refs(self.rejected_alternatives))
         if not retained.issubset(prior) or not rejected.issubset(prior):
-            raise ValueError("retained/rejected alternatives must exist in prior factor")
+            raise ValueError(
+                "retained/rejected alternatives must exist in prior factor"
+            )
         if retained.intersection(rejected):
             raise ValueError("an alternative cannot be retained and rejected")
         row = {

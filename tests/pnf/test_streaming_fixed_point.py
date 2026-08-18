@@ -18,7 +18,9 @@ from src.pnf.streaming_fixed_point import (
 )
 
 
-def _delta(*, document_ref: str = "document:1", sequence_no: int = 0) -> ObservationDelta:
+def _delta(
+    *, document_ref: str = "document:1", sequence_no: int = 0
+) -> ObservationDelta:
     ref = f"observation:{sequence_no}"
     return ObservationDelta(
         document_ref=document_ref,
@@ -83,7 +85,10 @@ def test_ledger_join_is_associative_commutative_and_idempotent() -> None:
 
     assert first.join(second).ledger_ref == second.join(first).ledger_ref
     assert first.join(first).ledger_ref == first.ledger_ref
-    assert first.join(second).join(third).ledger_ref == first.join(second.join(third)).ledger_ref
+    assert (
+        first.join(second).join(third).ledger_ref
+        == first.join(second.join(third)).ledger_ref
+    )
 
 
 def test_multiple_partial_jobs_stream_back_to_one_logical_owner() -> None:

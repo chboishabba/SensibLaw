@@ -34,7 +34,9 @@ from src.reporting.worldmonitor_import import (
 )
 
 
-def _seed_openrecall_db(tmp_path: Path, *, timestamp: int, text: str) -> tuple[Path, Path]:
+def _seed_openrecall_db(
+    tmp_path: Path, *, timestamp: int, text: str
+) -> tuple[Path, Path]:
     db_path = tmp_path / "recall.db"
     storage_dir = tmp_path / "openrecall_storage"
     screenshot_dir = storage_dir / "screenshots"
@@ -102,7 +104,9 @@ def test_observation_lane_registry_is_boundaries_ready() -> None:
             assert callable(getattr(lane, attr_name))
 
 
-def test_observation_lane_registry_loads_plugins_from_environment(tmp_path: Path, monkeypatch) -> None:
+def test_observation_lane_registry_loads_plugins_from_environment(
+    tmp_path: Path, monkeypatch
+) -> None:
     plugin_path = tmp_path / "dummy_observation_lane_plugin.py"
     plugin_path.write_text(
         """
@@ -158,7 +162,9 @@ WIZ_OBSERVATION_LANE = dummy_lane
     try:
         sys.path.insert(0, str(tmp_path))
         clear_observation_lane_registry_for_tests()
-        monkeypatch.setenv("SENSIBLAW_OBSERVATION_LANE_MODULES", "dummy_observation_lane_plugin")
+        monkeypatch.setenv(
+            "SENSIBLAW_OBSERVATION_LANE_MODULES", "dummy_observation_lane_plugin"
+        )
         lanes = get_observation_lanes()
     finally:
         sys.path[:] = sys_path_before
@@ -170,7 +176,9 @@ WIZ_OBSERVATION_LANE = dummy_lane
 
 def test_observation_lane_contract_openrecall_adapter_roundtrip(tmp_path: Path) -> None:
     ts = int(datetime(2026, 3, 8, 10, 15, tzinfo=timezone.utc).timestamp())
-    source_db, storage = _seed_openrecall_db(tmp_path, timestamp=ts, text="Observer note for lane contract check.")
+    source_db, storage = _seed_openrecall_db(
+        tmp_path, timestamp=ts, text="Observer note for lane contract check."
+    )
     itir_db = tmp_path / "itir.sqlite"
 
     with sqlite3.connect(itir_db) as conn:
@@ -189,32 +197,42 @@ def test_observation_lane_contract_openrecall_adapter_roundtrip(tmp_path: Path) 
             "openrecall",
             import_run_id="contract-openrecall",
         ) == load_openrecall_units(itir_db, import_run_id="contract-openrecall")
-        assert load_observation_import_runs(conn, "openrecall") == load_openrecall_import_runs(conn)
+        assert load_observation_import_runs(
+            conn, "openrecall"
+        ) == load_openrecall_import_runs(conn)
         assert query_observation_captures(
             conn,
             "openrecall",
             import_run_id="contract-openrecall",
             source_kind="Firefox",
-        ) == query_openrecall_captures(conn, import_run_id="contract-openrecall", app_name="Firefox")
+        ) == query_openrecall_captures(
+            conn, import_run_id="contract-openrecall", app_name="Firefox"
+        )
         assert build_observation_summary(
             conn,
             "openrecall",
             import_run_id="contract-openrecall",
         ) == build_openrecall_capture_summary(conn, import_run_id="contract-openrecall")
-        assert load_observation_activity_rows(conn, "openrecall", date="2026-03-08") == load_openrecall_activity_rows(
+        assert load_observation_activity_rows(
+            conn, "openrecall", date="2026-03-08"
+        ) == load_openrecall_activity_rows(
             conn,
             date="2026-03-08",
         )
 
 
-def test_observation_lane_contract_worldmonitor_adapter_roundtrip(tmp_path: Path) -> None:
+def test_observation_lane_contract_worldmonitor_adapter_roundtrip(
+    tmp_path: Path,
+) -> None:
     source_dir = _seed_worldmonitor_dir(tmp_path)
     itir_db = tmp_path / "itir.sqlite"
 
     with sqlite3.connect(itir_db) as conn:
         conn.row_factory = sqlite3.Row
         ensure_worldmonitor_capture_schema(conn)
-        import_worldmonitor_data(conn, source_path=source_dir, import_run_id="contract-worldmonitor")
+        import_worldmonitor_data(
+            conn, source_path=source_dir, import_run_id="contract-worldmonitor"
+        )
         conn.commit()
 
         assert load_observation_units(
@@ -222,18 +240,27 @@ def test_observation_lane_contract_worldmonitor_adapter_roundtrip(tmp_path: Path
             "worldmonitor",
             import_run_id="contract-worldmonitor",
         ) == load_worldmonitor_units(itir_db, import_run_id="contract-worldmonitor")
-        assert load_observation_import_runs(conn, "worldmonitor") == load_worldmonitor_import_runs(conn)
+        assert load_observation_import_runs(
+            conn, "worldmonitor"
+        ) == load_worldmonitor_import_runs(conn)
         assert query_observation_captures(
             conn,
             "worldmonitor",
             import_run_id="contract-worldmonitor",
             source_kind=None,
             text_query="sample",
-        ) == query_worldmonitor_captures(conn, import_run_id="contract-worldmonitor", text_query="sample")
+        ) == query_worldmonitor_captures(
+            conn, import_run_id="contract-worldmonitor", text_query="sample"
+        )
         assert build_observation_summary(
             conn,
             "worldmonitor",
             import_run_id="contract-worldmonitor",
-        ) == build_worldmonitor_capture_summary(conn, import_run_id="contract-worldmonitor")
-        assert len(load_observation_activity_rows(conn, "worldmonitor", date="2026-03-08")) > 0
+        ) == build_worldmonitor_capture_summary(
+            conn, import_run_id="contract-worldmonitor"
+        )
+        assert (
+            len(load_observation_activity_rows(conn, "worldmonitor", date="2026-03-08"))
+            > 0
+        )
         assert len(load_worldmonitor_activity_rows(conn, date="2026-03-08")) > 0

@@ -30,7 +30,9 @@ def configure_cli_logging(level_name: str) -> None:
     )
 
 
-def build_progress_callback(*, enabled: bool, fmt: str = "human") -> ProgressCallback | None:
+def build_progress_callback(
+    *, enabled: bool, fmt: str = "human"
+) -> ProgressCallback | None:
     if not enabled:
         return None
     if fmt == "json":
@@ -74,7 +76,9 @@ def _human_progress(stage: str, details: dict[str, Any]) -> None:
     confidence = str(details.get("eta_confidence") or "").strip()
     message = str(details.get("message") or "").strip()
     status = str(details.get("status") or "").strip()
-    eta_at = str(details.get("eta_at") or details.get("estimated_completion_at") or "").strip()
+    eta_at = str(
+        details.get("eta_at") or details.get("estimated_completion_at") or ""
+    ).strip()
 
     parts: list[str] = [f"[progress] {stage}"]
     if section:
@@ -130,7 +134,9 @@ def _build_bar_progress_callback() -> ProgressCallback:
         total = details.get("total")
         elapsed = _format_duration(details.get("elapsed_seconds"))
         eta = _format_duration(details.get("eta_seconds_remaining"))
-        eta_at = str(details.get("eta_at") or details.get("estimated_completion_at") or "").strip()
+        eta_at = str(
+            details.get("eta_at") or details.get("estimated_completion_at") or ""
+        ).strip()
         message = str(details.get("message") or "").strip()
         status = str(details.get("status") or "").strip()
 

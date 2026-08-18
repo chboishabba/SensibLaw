@@ -11,7 +11,9 @@ def _byte_len(text: str) -> int:
     return len(text.encode("utf-8"))
 
 
-def build_jmd_sl_ingest_from_runtime_object(runtime_object: dict[str, Any]) -> dict[str, Any]:
+def build_jmd_sl_ingest_from_runtime_object(
+    runtime_object: dict[str, Any],
+) -> dict[str, Any]:
     obj = runtime_object["object"]
     erdfa = obj.get("erdfa", {})
     content_ref = obj["content_ref"]
@@ -36,7 +38,9 @@ def build_jmd_sl_ingest_from_runtime_object(runtime_object: dict[str, Any]) -> d
                 },
                 "provenance": {
                     "source": provenance.get("source", "pastebin"),
-                    "captured_at": provenance.get("captured_at", runtime_object.get("resolved_at")),
+                    "captured_at": provenance.get(
+                        "captured_at", runtime_object.get("resolved_at")
+                    ),
                 },
                 "reserved_commitments": {
                     "corpus_root": None,
@@ -50,7 +54,9 @@ def build_jmd_sl_ingest_from_runtime_object(runtime_object: dict[str, Any]) -> d
     }
 
 
-def build_sl_jmd_overlay_from_runtime_object(runtime_object: dict[str, Any]) -> dict[str, Any]:
+def build_sl_jmd_overlay_from_runtime_object(
+    runtime_object: dict[str, Any],
+) -> dict[str, Any]:
     obj = runtime_object["object"]
     erdfa = obj.get("erdfa", {})
     shard_id = erdfa.get("shard_id") or obj["object_id"].split(":")[-1]
@@ -105,7 +111,9 @@ def build_sl_jmd_overlay_from_runtime_object(runtime_object: dict[str, Any]) -> 
     }
 
 
-def build_jmd_sl_bridge_artifacts(runtime_object: dict[str, Any]) -> dict[str, dict[str, Any]]:
+def build_jmd_sl_bridge_artifacts(
+    runtime_object: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
     return {
         "ingest": build_jmd_sl_ingest_from_runtime_object(runtime_object),
         "overlay": build_sl_jmd_overlay_from_runtime_object(runtime_object),

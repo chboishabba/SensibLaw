@@ -6,7 +6,18 @@ import json
 import random
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+)
 
 from .models import EdgeType, LegalGraph, NodeType
 
@@ -95,7 +106,10 @@ class RGCNTrainingResult:
         """Return a JSON serialisable mapping of node identifiers to vectors."""
 
         return {
-            node_id: [float(component) for component in self.embeddings[idx].detach().cpu().tolist()]
+            node_id: [
+                float(component)
+                for component in self.embeddings[idx].detach().cpu().tolist()
+            ]
             for idx, node_id in enumerate(self.node_ids)
         }
 
@@ -124,12 +138,19 @@ def legal_graph_to_dgl(legal_graph: LegalGraph) -> RGCNGraphData:
     node_ids = sorted(legal_graph.nodes.keys())
     node_index = {identifier: idx for idx, identifier in enumerate(node_ids)}
 
-    relation_types = [edge.type for edge in legal_graph.edges if edge.source in node_index and edge.target in node_index]
+    relation_types = [
+        edge.type
+        for edge in legal_graph.edges
+        if edge.source in node_index and edge.target in node_index
+    ]
     if not relation_types:
         raise ValueError("The graph must contain at least one edge before training.")
 
     relation_index: Dict[EdgeType, int] = {
-        edge_type: idx for idx, edge_type in enumerate(sorted(set(relation_types), key=lambda et: et.value))
+        edge_type: idx
+        for idx, edge_type in enumerate(
+            sorted(set(relation_types), key=lambda et: et.value)
+        )
     }
 
     sources: List[int] = []
@@ -153,13 +174,19 @@ def legal_graph_to_dgl(legal_graph: LegalGraph) -> RGCNGraphData:
     graph.edata["norm"] = _edge_norm(graph)
 
     node_type_lookup: Dict[NodeType, int] = {
-        node_type: idx for idx, node_type in enumerate(sorted(NodeType, key=lambda nt: nt.value))
+        node_type: idx
+        for idx, node_type in enumerate(sorted(NodeType, key=lambda nt: nt.value))
     }
     node_type_indices = torch.tensor(
-        [node_type_lookup[legal_graph.nodes[identifier].type] for identifier in node_ids],
+        [
+            node_type_lookup[legal_graph.nodes[identifier].type]
+            for identifier in node_ids
+        ],
         dtype=torch.int64,
     )
-    type_features = F.one_hot(node_type_indices, num_classes=len(node_type_lookup)).to(torch.float32)
+    type_features = F.one_hot(node_type_indices, num_classes=len(node_type_lookup)).to(
+        torch.float32
+    )
     degree_features = graph.in_degrees().to(torch.float32).unsqueeze(1)
     features = torch.cat([type_features, degree_features], dim=1)
 
@@ -177,7 +204,14 @@ if torch is not None and nn is not None and RelGraphConv is not None:
     class RGCNEncoder(nn.Module):
         """Stacked :class:`dgl.nn.RelGraphConv` layers for node embeddings."""
 
-        def __init__(self, in_dim: int, hidden_dim: int, num_rels: int, num_layers: int, dropout: float) -> None:
+        def __init__(
+            self,
+            in_dim: int,
+            hidden_dim: int,
+            num_rels: int,
+            num_layers: int,
+            dropout: float,
+        ) -> None:
             super().__init__()
             if num_layers < 1:
                 raise ValueError("R-GCN must have at least one layer")
@@ -198,7 +232,9 @@ if torch is not None and nn is not None and RelGraphConv is not None:
                 )
             self.layers = nn.ModuleList(layers)
 
-        def forward(self, graph: "DGLGraph", features: "torch.Tensor") -> "torch.Tensor":
+        def forward(
+            self, graph: "DGLGraph", features: "torch.Tensor"
+        ) -> "torch.Tensor":
             x = features
             rel_types = graph.edata["rel_type"]
             norms = graph.edata["norm"]
@@ -226,7 +262,9 @@ else:  # pragma: no cover - backend guard
 class RGCNTrainer:
     """Manage R-GCN training and persistence."""
 
-    def __init__(self, legal_graph: LegalGraph, config: Optional[RGCNConfig] = None) -> None:
+    def __init__(
+        self, legal_graph: LegalGraph, config: Optional[RGCNConfig] = None
+    ) -> None:
         _require_backend()
         assert torch is not None
 
@@ -277,20 +315,23 @@ class RGCNTrainer:
         val_size = int(num_edges * max(0.0, min(self.config.validation_ratio, 0.5)))
         train_size = num_edges - val_size
         if train_size <= 0:
-            raise ValueError("Validation split left no edges for training; reduce validation_ratio.")
+            raise ValueError(
+                "Validation split left no edges for training; reduce validation_ratio."
+            )
 
         train_indices = permutation[:train_size]
-        val_indices = permutation[train_size:] if val_size else torch.empty(0, dtype=torch.int64)
+        val_indices = (
+            permutation[train_size:] if val_size else torch.empty(0, dtype=torch.int64)
+        )
 
         train_edges = edge_pairs.index_select(0, train_indices).to(self.device)
         val_edges = (
-            edge_pairs.index_select(0, val_indices).to(self.device) if val_size else torch.empty(0, 2, device=self.device)
+            edge_pairs.index_select(0, val_indices).to(self.device)
+            if val_size
+            else torch.empty(0, 2, device=self.device)
         )
 
-        edge_set = {
-            (int(edge[0]), int(edge[1]))
-            for edge in edge_pairs.cpu().tolist()
-        }
+        edge_set = {(int(edge[0]), int(edge[1])) for edge in edge_pairs.cpu().tolist()}
 
         history: List[RGCNEpochResult] = []
         best_state: Optional[Dict[str, Any]] = None
@@ -305,7 +346,9 @@ class RGCNTrainer:
             positive_edges = train_edges
             negative_edges = _sample_negative_edges(
                 num_nodes=len(self.graph_data.node_ids),
-                num_samples=max(positive_edges.shape[0] * max(1, self.config.negative_ratio), 1),
+                num_samples=max(
+                    positive_edges.shape[0] * max(1, self.config.negative_ratio), 1
+                ),
                 existing=edge_set,
                 rng=rng,
                 device=self.device,
@@ -319,12 +362,16 @@ class RGCNTrainer:
                 if val_size:
                     val_negatives = _sample_negative_edges(
                         num_nodes=len(self.graph_data.node_ids),
-                        num_samples=max(val_edges.shape[0] * max(1, self.config.negative_ratio), 1),
+                        num_samples=max(
+                            val_edges.shape[0] * max(1, self.config.negative_ratio), 1
+                        ),
                         existing=edge_set,
                         rng=rng,
                         device=self.device,
                     )
-                    val_loss = float(_binary_link_loss(embeddings, val_edges, val_negatives).item())
+                    val_loss = float(
+                        _binary_link_loss(embeddings, val_edges, val_negatives).item()
+                    )
 
                 history.append(
                     RGCNEpochResult(
@@ -337,10 +384,15 @@ class RGCNTrainer:
                 metric = val_loss if val_loss is not None else float(loss.item())
                 if best_metric is None or metric < best_metric:
                     best_metric = metric
-                    best_state = {key: value.detach().cpu() for key, value in model.state_dict().items()}
+                    best_state = {
+                        key: value.detach().cpu()
+                        for key, value in model.state_dict().items()
+                    }
                     best_epoch = epoch
                     if self.config.checkpoint_path:
-                        self._save_checkpoint(self.config.checkpoint_path, best_state, history)
+                        self._save_checkpoint(
+                            self.config.checkpoint_path, best_state, history
+                        )
 
         if best_state is not None:
             model.load_state_dict(best_state)
@@ -358,7 +410,9 @@ class RGCNTrainer:
         )
 
         if self.config.attach_to_graph:
-            attach_embeddings(self.legal_graph, result, metadata_key=self.config.metadata_key)
+            attach_embeddings(
+                self.legal_graph, result, metadata_key=self.config.metadata_key
+            )
 
         return result
 
@@ -378,7 +432,10 @@ class RGCNTrainer:
                 "state_dict": state_dict,
                 "config": self.config.asdict(),
                 "node_ids": list(self.graph_data.node_ids),
-                "relation_index": {edge_type.value: idx for edge_type, idx in self.graph_data.relation_index.items()},
+                "relation_index": {
+                    edge_type.value: idx
+                    for edge_type, idx in self.graph_data.relation_index.items()
+                },
                 "history": [epoch.__dict__ for epoch in history],
             },
             path,
@@ -471,7 +528,9 @@ def _sample_negative_edges(
         negatives.append(candidate)
 
     if not negatives:
-        raise RuntimeError("Unable to sample negative edges; the graph may be fully connected.")
+        raise RuntimeError(
+            "Unable to sample negative edges; the graph may be fully connected."
+        )
 
     while len(negatives) < num_samples:
         negatives.append(negatives[len(negatives) % len(negatives)])

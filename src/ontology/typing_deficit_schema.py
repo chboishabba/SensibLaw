@@ -24,15 +24,21 @@ def _infer_source(payload: Mapping[str, Any]) -> str:
         if isinstance(identity, str) and identity.strip():
             return _canonical_source_label(identity)
     return _canonical_source_label(
-        str(payload.get("source_system") or payload.get("artifact_id") or "unknown").strip()
+        str(
+            payload.get("source_system") or payload.get("artifact_id") or "unknown"
+        ).strip()
     )
 
 
 def _normalize_signal(signal: Mapping[str, Any], *, source: str) -> dict[str, Any]:
     entry = dict(signal)
-    entry.setdefault("signal_id", f"{source}:{entry.get('signal_id') or uuid4_signifier(entry)}")
+    entry.setdefault(
+        "signal_id", f"{source}:{entry.get('signal_id') or uuid4_signifier(entry)}"
+    )
     entry.setdefault("source", source)
-    entry.setdefault("signal_kind", entry.get("signal_kind") or "missing_instance_of_typing_deficit")
+    entry.setdefault(
+        "signal_kind", entry.get("signal_kind") or "missing_instance_of_typing_deficit"
+    )
     return entry
 
 
@@ -42,7 +48,9 @@ def uuid4_signifier(entry: Mapping[str, Any]) -> str:
     return str(entry.get("linked_qid") or entry.get("packet_id") or uuid4())
 
 
-def collect_typing_deficit_signals(payloads: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
+def collect_typing_deficit_signals(
+    payloads: Iterable[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
     signals: list[dict[str, Any]] = []
     for payload in payloads:
         if not isinstance(payload, Mapping):
@@ -54,7 +62,9 @@ def collect_typing_deficit_signals(payloads: Iterable[Mapping[str, Any]]) -> lis
         for signal in raw_signals:
             if not isinstance(signal, Mapping):
                 continue
-            entry_source = _canonical_source_label(str(signal.get("source") or source_hint))
+            entry_source = _canonical_source_label(
+                str(signal.get("source") or source_hint)
+            )
             normalized = _normalize_signal(signal, source=entry_source)
             signals.append(normalized)
     return signals

@@ -26,7 +26,10 @@ def test_derive_claim_root_fields_prefers_duplicate_excerpt_and_context() -> Non
     )
 
     assert result["claim_root_basis"] == "duplicate_excerpt"
-    assert result["claim_root_text"] == "The respondent cut off my internet in November 2024."
+    assert (
+        result["claim_root_text"]
+        == "The respondent cut off my internet in November 2024."
+    )
     assert result["alternate_context_excerpt"] == (
         "I cut off the internet in November 2024 as a final attempt to prompt a discussion to resolve the situation."
     )

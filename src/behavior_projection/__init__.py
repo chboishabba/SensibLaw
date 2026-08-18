@@ -11,4 +11,3 @@ __all__ = [
     "project_case_observation",
     "project_action_observation",
 ]
-

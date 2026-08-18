@@ -42,7 +42,9 @@ class FakeSession:
 
 def test_html_fetch_uses_shared_canonical_text_and_reports_source_url() -> None:
     url = "https://example.test/page"
-    html = b"<html><body><h1>George W. Bush</h1><script>PoisonActor</script></body></html>"
+    html = (
+        b"<html><body><h1>George W. Bush</h1><script>PoisonActor</script></body></html>"
+    )
     stream = StringIO()
     result = fetch_web_document(
         url,

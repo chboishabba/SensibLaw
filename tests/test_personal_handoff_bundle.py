@@ -9,10 +9,16 @@ from src.fact_intake import personal_handoff_bundle
 from src.fact_intake.personal_handoff_bundle import build_personal_handoff_report
 
 _FIXTURE_PATH = (
-    Path(__file__).resolve().parent / "fixtures" / "fact_intake" / "personal_handoff_input_v1.json"
+    Path(__file__).resolve().parent
+    / "fixtures"
+    / "fact_intake"
+    / "personal_handoff_input_v1.json"
 )
 _PROTECTED_FIXTURE_PATH = (
-    Path(__file__).resolve().parent / "fixtures" / "fact_intake" / "personal_handoff_protected_input_v1.json"
+    Path(__file__).resolve().parent
+    / "fixtures"
+    / "fact_intake"
+    / "personal_handoff_protected_input_v1.json"
 )
 
 
@@ -24,7 +30,10 @@ def test_personal_handoff_report_applies_scope_and_redaction() -> None:
     assert report["version"] == "personal.handoff.report.v1"
     assert report["run"]["recipient_profile"] == "lawyer"
     assert report["run"]["local_only"] is True
-    assert report["recipient_export"]["preferred_operator_view"]["key"] == "professional_handoff"
+    assert (
+        report["recipient_export"]["preferred_operator_view"]["key"]
+        == "professional_handoff"
+    )
     assert report["recipient_export"]["exported_item_count"] == 3
     assert report["recipient_export"]["excluded_item_count"] == 1
     exported_by_unit = {
@@ -42,7 +51,9 @@ def test_personal_handoff_report_applies_scope_and_redaction() -> None:
 def test_personal_handoff_script_writes_report_and_summary(tmp_path, capsys) -> None:
     output_dir = tmp_path / "handoff"
 
-    exit_code = main(["--input-json", str(_FIXTURE_PATH), "--output-dir", str(output_dir)])
+    exit_code = main(
+        ["--input-json", str(_FIXTURE_PATH), "--output-dir", str(output_dir)]
+    )
     captured = capsys.readouterr()
     payload = json.loads(captured.out)
 
@@ -73,28 +84,43 @@ def test_protected_disclosure_envelope_forces_local_flags_and_scopes_export() ->
     assert lawyer_report["protected_disclosure"]["enabled"] is True
     assert lawyer_report["run"]["local_only"] is True
     assert lawyer_report["run"]["do_not_sync"] is True
-    assert lawyer_report["protected_disclosure"]["allowed_recipient_profiles"] == ["lawyer", "regulator"]
+    assert lawyer_report["protected_disclosure"]["allowed_recipient_profiles"] == [
+        "lawyer",
+        "regulator",
+    ]
     exported_by_unit = {
-        tuple(item["unit_ids"]): item for item in lawyer_report["recipient_export"]["items"]
+        tuple(item["unit_ids"]): item
+        for item in lawyer_report["recipient_export"]["items"]
     }
     assert ("w2",) in exported_by_unit
     assert exported_by_unit[("w2",)]["protected_disclosure_only"] is True
-    assert exported_by_unit[("w2",)]["protected_disclosure_reason"] == "potential workplace retaliation risk"
+    assert (
+        exported_by_unit[("w2",)]["protected_disclosure_reason"]
+        == "potential workplace retaliation risk"
+    )
     assert exported_by_unit[("w2",)]["text_redacted"] is True
 
     payload["recipient_profile"] = "advocate"
     advocate_report = build_personal_handoff_report(payload)
     excluded_by_unit = {
-        tuple(item["unit_ids"]): item for item in advocate_report["recipient_export"]["excluded_items"]
+        tuple(item["unit_ids"]): item
+        for item in advocate_report["recipient_export"]["excluded_items"]
     }
     assert ("w2",) in excluded_by_unit
-    assert excluded_by_unit[("w2",)]["exclusion_reason"] == "protected_disclosure_scope_mismatch"
+    assert (
+        excluded_by_unit[("w2",)]["exclusion_reason"]
+        == "protected_disclosure_scope_mismatch"
+    )
 
 
-def test_protected_disclosure_summary_emits_envelope_without_leaking_excluded_text(tmp_path, capsys) -> None:
+def test_protected_disclosure_summary_emits_envelope_without_leaking_excluded_text(
+    tmp_path, capsys
+) -> None:
     output_dir = tmp_path / "protected"
 
-    exit_code = main(["--input-json", str(_PROTECTED_FIXTURE_PATH), "--output-dir", str(output_dir)])
+    exit_code = main(
+        ["--input-json", str(_PROTECTED_FIXTURE_PATH), "--output-dir", str(output_dir)]
+    )
     captured = capsys.readouterr()
     payload = json.loads(captured.out)
 

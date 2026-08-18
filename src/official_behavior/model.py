@@ -61,21 +61,39 @@ class AlignmentObservation:
             institution_id=str(self.institution_id or "").strip(),
             institution_kind=str(self.institution_kind or "").strip(),
             action_date=str(self.action_date).strip() if self.action_date else None,
-            policy_area_id=str(self.policy_area_id).strip() if self.policy_area_id else None,
+            policy_area_id=str(self.policy_area_id).strip()
+            if self.policy_area_id
+            else None,
             alignment=AlignmentLabel.canonicalize(self.alignment),
             official_id=str(self.official_id).strip() if self.official_id else None,
             party_id=str(self.party_id).strip() if self.party_id else None,
-            constraint_keys=tuple(sorted({str(x).strip() for x in (self.constraint_keys or []) if str(x).strip()})),
+            constraint_keys=tuple(
+                sorted(
+                    {
+                        str(x).strip()
+                        for x in (self.constraint_keys or [])
+                        if str(x).strip()
+                    }
+                )
+            ),
         )
 
 
-def normalize_observations(rows: Iterable[AlignmentObservation]) -> list[AlignmentObservation]:
+def normalize_observations(
+    rows: Iterable[AlignmentObservation],
+) -> list[AlignmentObservation]:
     out: list[AlignmentObservation] = []
     for r in rows:
         if not isinstance(r, AlignmentObservation):
             continue
         n = r.normalized()
-        if n.link_id and n.action_id and n.jurisdiction_id and n.institution_id and n.institution_kind:
+        if (
+            n.link_id
+            and n.action_id
+            and n.jurisdiction_id
+            and n.institution_id
+            and n.institution_kind
+        ):
             out.append(n)
     # Stable ordering for deterministic downstream grouping.
     out.sort(
@@ -89,4 +107,3 @@ def normalize_observations(rows: Iterable[AlignmentObservation]) -> list[Alignme
         )
     )
     return out
-

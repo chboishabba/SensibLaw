@@ -6,7 +6,9 @@ from typing import Any, Mapping
 from sensiblaw.db import ContextFieldDAO, MigrationRunner
 
 
-def import_les_snapshot(connection: sqlite3.Connection, snapshot: Mapping[str, Any]) -> None:
+def import_les_snapshot(
+    connection: sqlite3.Connection, snapshot: Mapping[str, Any]
+) -> None:
     """Store a LES environment snapshot as a context_field overlay."""
 
     snapshot_id = snapshot["snapshot_id"]

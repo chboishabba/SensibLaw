@@ -10,8 +10,14 @@ from typing import Any
 
 from src.reporting.observation_lanes import ObservationLaneAdapter
 
-from src.reporting.source_loaders import find_timestamped_artifact_path, resolve_loader_path
-from src.reporting.source_identity import build_openrecall_capture_id, format_local_iso_and_date_from_timestamp
+from src.reporting.source_loaders import (
+    find_timestamped_artifact_path,
+    resolve_loader_path,
+)
+from src.reporting.source_identity import (
+    build_openrecall_capture_id,
+    format_local_iso_and_date_from_timestamp,
+)
 from src.reporting.text_unit_builders import build_header_body_text
 
 if TYPE_CHECKING:
@@ -132,12 +138,16 @@ def ensure_openrecall_capture_schema(conn: sqlite3.Connection) -> None:
     )
 
 
-def _screenshot_path_for_timestamp(*, source_db_path: Path, storage_path: Path | None, timestamp: int) -> Path | None:
+def _screenshot_path_for_timestamp(
+    *, source_db_path: Path, storage_path: Path | None, timestamp: int
+) -> Path | None:
     candidates: list[Path] = []
     if storage_path is not None:
         candidates.append(storage_path / "screenshots")
     candidates.append(source_db_path.parent / "screenshots")
-    return find_timestamped_artifact_path(search_roots=candidates, timestamp=timestamp, suffix=".webp")
+    return find_timestamped_artifact_path(
+        search_roots=candidates, timestamp=timestamp, suffix=".webp"
+    )
 
 
 def _content_sha1(app_name: str, window_title: str, ocr_text: str) -> str:
@@ -168,7 +178,9 @@ def import_openrecall_db(
         source_db_path,
         limit=limit,
     )
-    resolved_storage = resolve_loader_path(storage_path) if storage_path is not None else None
+    resolved_storage = (
+        resolve_loader_path(storage_path) if storage_path is not None else None
+    )
     conn.execute(
         """
         INSERT INTO openrecall_import_runs(import_run_id, source_db_path, storage_path, imported_at, source_entry_count, imported_capture_count, latest_source_timestamp)
@@ -194,8 +206,12 @@ def import_openrecall_db(
     imported_count = 0
     for row in rows:
         ts = int(row["timestamp"])
-        capture_id = build_openrecall_capture_id(source_db_path=str(resolved_source), source_timestamp=ts)
-        captured_at, fallback_captured_date = format_local_iso_and_date_from_timestamp(ts)
+        capture_id = build_openrecall_capture_id(
+            source_db_path=str(resolved_source), source_timestamp=ts
+        )
+        captured_at, fallback_captured_date = format_local_iso_and_date_from_timestamp(
+            ts
+        )
         captured_date = (
             str(row["captured_date"] or fallback_captured_date)
             if "captured_date" in row.keys()
@@ -287,7 +303,9 @@ def import_openrecall_db(
         source_db_path=str(resolved_source),
         source_entry_count=len(rows),
         imported_capture_count=imported_count,
-        latest_source_timestamp=max((int(row["timestamp"]) for row in rows), default=None),
+        latest_source_timestamp=max(
+            (int(row["timestamp"]) for row in rows), default=None
+        ),
     )
 
 
@@ -357,7 +375,14 @@ def load_openrecall_activity_rows(
     out: list[dict[str, Any]] = []
     for row in rows:
         ts = str(row["captured_at"] or "")
-        detail_parts = [part for part in [str(row["window_title"] or "").strip(), str(row["ocr_text"] or "").strip()] if part]
+        detail_parts = [
+            part
+            for part in [
+                str(row["window_title"] or "").strip(),
+                str(row["ocr_text"] or "").strip(),
+            ]
+            if part
+        ]
         detail = " — ".join(detail_parts[:2])[:240]
         hour = None
         try:
@@ -370,7 +395,9 @@ def load_openrecall_activity_rows(
                 "hour": hour,
                 "kind": "openrecall_capture",
                 "detail": detail,
-                "source_path": str(row["screenshot_path"] or row["source_db_path"] or ""),
+                "source_path": str(
+                    row["screenshot_path"] or row["source_db_path"] or ""
+                ),
                 "meta": {
                     "captureId": str(row["capture_id"]),
                     "appName": str(row["app_name"] or ""),
@@ -465,7 +492,9 @@ def build_openrecall_capture_summary(
         tuple(params),
     ).fetchone()
     total = int((totals["capture_count"] if totals is not None else 0) or 0)
-    screenshot_count = int((totals["screenshot_count"] if totals is not None else 0) or 0)
+    screenshot_count = int(
+        (totals["screenshot_count"] if totals is not None else 0) or 0
+    )
     app_rows = conn.execute(
         f"""
         SELECT app_name, COUNT(*) AS capture_count

@@ -114,9 +114,7 @@ def test_integrated_producer_family_preserves_operation_contract() -> None:
     proposal = _proposal(bearer="entity:driver")
 
     assert proposal.producer_contract == INTEGRATED_SEMANTIC_PRODUCER_CONTRACT
-    assert proposal.operation_contract == (
-        "grammar:semantic:operator-composition:v0_1"
-    )
+    assert proposal.operation_contract == ("grammar:semantic:operator-composition:v0_1")
 
 
 def test_executor_metadata_does_not_change_semantic_identity() -> None:
@@ -131,9 +129,9 @@ def test_executor_metadata_does_not_change_semantic_identity() -> None:
     )
 
     assert python.proposal_ref == zelph.proposal_ref
-    assert python.to_dict()["execution_metadata"] != zelph.to_dict()[
-        "execution_metadata"
-    ]
+    assert (
+        python.to_dict()["execution_metadata"] != zelph.to_dict()["execution_metadata"]
+    )
 
 
 def test_build_key_targets_only_declared_inputs() -> None:

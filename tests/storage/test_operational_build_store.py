@@ -5,6 +5,7 @@ import hashlib
 from src.policy.corpus_compilation import default_compiler_context
 from src.policy.postgres_corpus_compilation import _operational_document_ref
 from src.storage.postgres.operational_build_store import (
+    _receipt_build_key,
     load_completed_operational_build,
     operational_build_ref,
     persist_completed_operational_build,
@@ -99,7 +100,7 @@ def test_completed_build_replays_exact_demand_refs() -> None:
         build_key_sha256="00" * 32,
     )
     assert demands == ("demand:a", "demand:b")
-    assert bytes.fromhex("00" * 32) in cursor.calls[0][1]
+    assert bytes.fromhex(_receipt_build_key("00" * 32)) in cursor.calls[0][1]
     assert "JOIN corpus.document AS document" in cursor.calls[0][0]
 
 
@@ -116,12 +117,15 @@ def test_missing_build_is_not_confused_with_zero_demand_build() -> None:
     )
 
     zero_demands = Cursor(rows=[("build:test",), []])
-    assert load_completed_operational_build(
-        zero_demands,
-        document_ref="document:test",
-        compiler_contract_ref="postgres-semantic-compiler:v0_8",
-        build_key_sha256="00" * 32,
-    ) == ()
+    assert (
+        load_completed_operational_build(
+            zero_demands,
+            document_ref="document:test",
+            compiler_contract_ref="postgres-semantic-compiler:v0_8",
+            build_key_sha256="00" * 32,
+        )
+        == ()
+    )
 
 
 def test_persisted_build_links_all_demands() -> None:

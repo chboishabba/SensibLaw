@@ -5,7 +5,12 @@ from pathlib import Path
 
 
 def test_cohort_c_live_preview_extension_fixture_shape() -> None:
-    fixture_path = Path(__file__).resolve().parent / "fixtures" / "wikidata" / "wikidata_nat_cohort_c_live_preview_extension_20260402.json"
+    fixture_path = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_cohort_c_live_preview_extension_20260402.json"
+    )
     candidates = json.loads(fixture_path.read_text(encoding="utf-8"))
     assert isinstance(candidates, list)
     required_keys = {

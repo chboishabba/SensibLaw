@@ -4,6 +4,7 @@
 Text is rendered only for inspection at this reporting boundary. Admission itself
 is entirely numeric/set-based in PostgreSQL.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -103,7 +104,9 @@ def main() -> int:
             print(f"active_external_need_rows\t{need_rows}")
             print(f"active_external_need_demands\t{need_demands}")
             print(f"provider_ready_requests\t{provider_ready}")
-            print(f"admission_invariant_ok\t{bool(_scalar(cursor, 'SELECT execution.verify_numeric_pnf_h9_external_admission()'))}")
+            print(
+                f"admission_invariant_ok\t{bool(_scalar(cursor, 'SELECT execution.verify_numeric_pnf_h9_external_admission()'))}"
+            )
 
             cursor.execute(
                 """
@@ -124,7 +127,9 @@ def main() -> int:
             sample_rows = cursor.fetchall()
             if sample_rows:
                 print("\nadmitted sample (render boundary only):")
-                print("demand\tneed\tanchor\tlabel\tsymbol_id\tworld_candidate\tattached")
+                print(
+                    "demand\tneed\tanchor\tlabel\tsymbol_id\tworld_candidate\tattached"
+                )
                 for row in sample_rows:
                     print("\t".join(str(value) for value in row))
     finally:

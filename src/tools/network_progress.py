@@ -121,7 +121,11 @@ class TransferProgressReporter:
         if not self.enabled:
             return
         now = time.monotonic()
-        if not force and self.last_emit_monotonic and (now - self.last_emit_monotonic) < self.interval_s:
+        if (
+            not force
+            and self.last_emit_monotonic
+            and (now - self.last_emit_monotonic) < self.interval_s
+        ):
             return
         details = {
             "label": self.label,

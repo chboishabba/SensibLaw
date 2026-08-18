@@ -76,8 +76,9 @@ def test_flow_selects_persisted_source_and_never_fetches() -> None:
         compiler_contract_ref="postgres-fibred-semantic-compiler:v0_1",
         ordinary_compilations=(_compilation("world", legal_demand=True),),
         source_lookup=lambda demand: (source,),
-        payload_lookup=lambda source_ref: payload_reads.append(source_ref)
-        or {"source_revision_ref": source_ref},
+        payload_lookup=lambda source_ref: (
+            payload_reads.append(source_ref) or {"source_revision_ref": source_ref}
+        ),
         compile_legal_source=lambda payload: _compilation("law", legal_demand=False),
         network_attempt_count=0,
     )
@@ -131,8 +132,12 @@ def test_flow_preserves_missing_source_as_blocked_requirement() -> None:
         compiler_contract_ref="postgres-fibred-semantic-compiler:v0_1",
         ordinary_compilations=(_compilation("world", legal_demand=True),),
         source_lookup=lambda demand: (),
-        payload_lookup=lambda source_ref: (_ for _ in ()).throw(AssertionError(source_ref)),
-        compile_legal_source=lambda payload: (_ for _ in ()).throw(AssertionError(payload)),
+        payload_lookup=lambda source_ref: (_ for _ in ()).throw(
+            AssertionError(source_ref)
+        ),
+        compile_legal_source=lambda payload: (_ for _ in ()).throw(
+            AssertionError(payload)
+        ),
         network_attempt_count=0,
     )
 

@@ -7,6 +7,7 @@ import pytest
 from src.policy.algebra.revision_identity import factor_revision_ref
 from src.storage.postgres import work_conserving_persistence as persistence
 from src.storage.postgres import work_conserving_stage as stage
+from src.storage.postgres import work_conserving_stage_hot_path as stage_hot_path
 
 
 def _factor(*, factor_ref: str = "factor:1") -> dict[str, object]:
@@ -165,9 +166,7 @@ def test_store_bindings_restore_instance_surface() -> None:
         def persist_token_batches(self, *_args: object, **_kwargs: object) -> str:
             return "original"
 
-        def persist_annotation_layer(
-            self, *_args: object, **_kwargs: object
-        ) -> None:
+        def persist_annotation_layer(self, *_args: object, **_kwargs: object) -> None:
             return None
 
         def persist_annotation_layer_batches(
@@ -187,13 +186,14 @@ def test_store_bindings_restore_instance_surface() -> None:
 def test_compiler_bindings_restore_module_globals() -> None:
     import src.policy.postgres_corpus_compilation as compiler
     from src.storage.postgres import work_conserving_stage
+    from src.storage.postgres.work_conserving_graph_batching import (
+        persist_pnf_graph_batched,
+    )
 
     original_graph = compiler.persist_pnf_graph
     original_partition = work_conserving_stage._stage_partition
     with persistence.activate_work_conserving_postgres_bindings():
-        assert compiler.persist_pnf_graph is (
-            persistence.persist_pnf_graph_work_conserving
-        )
+        assert compiler.persist_pnf_graph is persist_pnf_graph_batched
         assert compiler.persist_licensed_spans is (
             persistence.persist_licensed_spans_work_conserving
         )
@@ -250,13 +250,14 @@ def test_stage_partition_count_is_bounded_by_worker_budget(
         def cursor(self) -> "FakeConnection":
             return self
 
+        def transaction(self) -> "FakeConnection":
+            return self
+
         def execute(self, *_args: object, **_kwargs: object) -> None:
             return None
 
-    class FakePsycopg:
-        @staticmethod
-        def connect(_dsn: str) -> FakeConnection:
-            return FakeConnection()
+    def fake_transactional_connection(_dsn: str) -> FakeConnection:
+        return FakeConnection()
 
     class ImmediateFuture:
         def __init__(self, value: dict[str, int]) -> None:
@@ -278,9 +279,21 @@ def test_stage_partition_count_is_bounded_by_worker_budget(
         def submit(self, _fn: object, **kwargs: object) -> ImmediateFuture:
             return ImmediateFuture({"partition_no": int(kwargs["partition_no"])})
 
-    monkeypatch.setattr(stage, "_require_psycopg", lambda: FakePsycopg)
-    monkeypatch.setattr(stage, "ThreadPoolExecutor", ImmediateExecutor)
-    monkeypatch.setattr(stage, "as_completed", lambda futures: tuple(futures))
+    monkeypatch.setattr(
+        stage_hot_path,
+        "transactional_persistence_connection",
+        fake_transactional_connection,
+    )
+    monkeypatch.setattr(
+        stage_hot_path,
+        "_executor",
+        lambda max_workers: ImmediateExecutor(max_workers=max_workers),
+    )
+    monkeypatch.setattr(
+        stage_hot_path,
+        "as_completed",
+        lambda futures: tuple(futures),
+    )
     stage._prepare_stage(
         dsn="postgresql://example",
         stage_ref="stage:1",

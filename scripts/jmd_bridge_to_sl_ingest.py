@@ -17,7 +17,9 @@ from src.ingestion.jmd_bridge import build_jmd_sl_bridge_artifacts  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Convert a JMD runtime object into SensibLaw bridge payloads.")
+    parser = argparse.ArgumentParser(
+        description="Convert a JMD runtime object into SensibLaw bridge payloads."
+    )
     parser.add_argument("--runtime-object", type=Path, required=True)
     parser.add_argument("--ingest-output", type=Path)
     parser.add_argument("--overlay-output", type=Path)

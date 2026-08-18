@@ -71,7 +71,10 @@ def import_asr_transcript(
         "execution_envelope",
         {
             "source": source,
-            "toolchain": {"model": model or transcript.get("model"), "language": language or transcript.get("language")},
+            "toolchain": {
+                "model": model or transcript.get("model"),
+                "language": language or transcript.get("language"),
+            },
             "audio_hash": audio_hash,
             "segment_count": len(segments),
             "provenance": {

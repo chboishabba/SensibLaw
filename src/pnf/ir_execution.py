@@ -26,8 +26,10 @@ _OUTCOMES = {
 
 
 def _get(value: Any, name: str, default: Any = None) -> Any:
-    return value.get(name, default) if isinstance(value, Mapping) else getattr(
-        value, name, default
+    return (
+        value.get(name, default)
+        if isinstance(value, Mapping)
+        else getattr(value, name, default)
     )
 
 
@@ -60,9 +62,7 @@ class IRExecutionRequest:
         payload = {
             "schema_version": IR_EXECUTION_REQUEST_SCHEMA_VERSION,
             **asdict(self),
-            "applicability_witness_refs": list(
-                refs(self.applicability_witness_refs)
-            ),
+            "applicability_witness_refs": list(refs(self.applicability_witness_refs)),
             "required_evidence_refs": list(refs(self.required_evidence_refs)),
             "supplied_evidence_refs": list(refs(self.supplied_evidence_refs)),
             "requested_output": dict(self.requested_output or {}),
@@ -103,9 +103,7 @@ class IRExecutionReceipt:
         payload = {
             "schema_version": IR_EXECUTION_RECEIPT_SCHEMA_VERSION,
             **asdict(self),
-            "applicability_witness_refs": list(
-                refs(self.applicability_witness_refs)
-            ),
+            "applicability_witness_refs": list(refs(self.applicability_witness_refs)),
             "evidence_refs": list(refs(self.evidence_refs)),
             "emitted_output": dict(self.emitted_output or {}),
             "reason_chain": list(self.reason_chain),
@@ -128,9 +126,7 @@ def coerce_execution_request(
         document_ref=str(value["document_ref"]),
         domain_ir_ref=str(value["domain_ir_ref"]),
         rule_or_query_ref=str(value["rule_or_query_ref"]),
-        applicability_witness_refs=refs(
-            value.get("applicability_witness_refs") or ()
-        ),
+        applicability_witness_refs=refs(value.get("applicability_witness_refs") or ()),
         required_evidence_refs=refs(value.get("required_evidence_refs") or ()),
         supplied_evidence_refs=refs(value.get("supplied_evidence_refs") or ()),
         requested_output=(
@@ -219,9 +215,7 @@ def execute_ir_request(
             evidence_refs=row.supplied_evidence_refs,
             outcome="blocked_missing_evidence",
             emitted_output=None,
-            reason_chain=tuple(
-                f"missing_evidence:{ref}" for ref in sorted(missing)
-            ),
+            reason_chain=tuple(f"missing_evidence:{ref}" for ref in sorted(missing)),
         )
     return IRExecutionReceipt(
         document_ref=row.document_ref,

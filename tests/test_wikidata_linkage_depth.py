@@ -112,16 +112,34 @@ def test_wikidata_linkage_depth_audit_passes_synthetic_and_real_cases() -> None:
     by_id = {row["case_id"]: row for row in audit["cases"]}
     assert by_id["dog_soft_stitch"]["typed_path_depth"] == 7
     assert by_id["dog_soft_stitch"]["wd_promotion_blocked"] is True
-    assert by_id["climate_review_demonstrator"]["lane_id"] == "climate_review_demonstrator"
-    assert by_id["climate_review_demonstrator"]["case_source"] == "projected_world_model_artifact"
+    assert (
+        by_id["climate_review_demonstrator"]["lane_id"] == "climate_review_demonstrator"
+    )
+    assert (
+        by_id["climate_review_demonstrator"]["case_source"]
+        == "projected_world_model_artifact"
+    )
     assert by_id["climate_review_demonstrator"]["linkage_depth_status"] == "complete"
-    assert by_id["climate_review_demonstrator"]["anchor_to_tranche_reachability"]["anchor_count"] == 3
+    assert (
+        by_id["climate_review_demonstrator"]["anchor_to_tranche_reachability"][
+            "anchor_count"
+        ]
+        == 3
+    )
     assert by_id["climate_review_demonstrator"]["collapse_origin"] == "none"
-    assert by_id["disjointness_report"]["contract_id"] == "wikidata_disjointness_review_linkage"
-    assert by_id["disjointness_report"]["case_source"] == "projected_world_model_artifact"
+    assert (
+        by_id["disjointness_report"]["contract_id"]
+        == "wikidata_disjointness_review_linkage"
+    )
+    assert (
+        by_id["disjointness_report"]["case_source"] == "projected_world_model_artifact"
+    )
     assert by_id["disjointness_report"]["typed_path_depth"] == 6
     assert by_id["disjointness_report"]["wd_soft_stitch_present"] is False
-    assert by_id["disjointness_report"]["anchor_to_tranche_reachability"]["anchor_count"] == 1
+    assert (
+        by_id["disjointness_report"]["anchor_to_tranche_reachability"]["anchor_count"]
+        == 1
+    )
 
 
 def test_climate_review_demonstrator_emits_linkage_depth_receipt() -> None:
@@ -134,7 +152,10 @@ def test_climate_review_demonstrator_emits_linkage_depth_receipt() -> None:
     assert receipt["contract"]["contract_id"] == "sensiblaw_pnf_wd_linkage"
     assert receipt["diagnostics"]["linkage_depth_status"] == "complete"
     assert receipt["diagnostics"]["wd_promotion_blocked"] is True
-    assert receipt["diagnostics"]["anchor_to_tranche_reachability"]["all_reachable"] is True
+    assert (
+        receipt["diagnostics"]["anchor_to_tranche_reachability"]["all_reachable"]
+        is True
+    )
     assert any(
         edge["metadata"]["promotion_status"] == "blocked"
         for edge in receipt["edges"]
@@ -162,11 +183,11 @@ def test_disjointness_report_emits_linkage_depth_receipt() -> None:
     assert receipt["contract"]["contract_id"] == contract["contract_id"]
     assert receipt["diagnostics"]["linkage_depth_status"] == "complete"
     assert receipt["diagnostics"]["wd_soft_stitch_present"] is False
-    assert receipt["diagnostics"]["anchor_to_tranche_reachability"]["all_reachable"] is True
-    assert [
-        edge["kind"]
-        for edge in receipt["edges"]
-    ] == [
+    assert (
+        receipt["diagnostics"]["anchor_to_tranche_reachability"]["all_reachable"]
+        is True
+    )
+    assert [edge["kind"] for edge in receipt["edges"]] == [
         "window_statement_bundle_projection",
         "pair_extraction",
         "contradiction_candidate_projection",
@@ -198,9 +219,12 @@ def test_generic_climate_demonstrator_remains_receipt_free() -> None:
     report = build_wikidata_climate_review_demonstrator(
         _read_json(climate_root / "migration_pack.json"),
         climate_text_payload=_read_json(
-            climate_root / "climate_text_source_q10403939_akademiska_hus_scope1_2018_2020.json"
+            climate_root
+            / "climate_text_source_q10403939_akademiska_hus_scope1_2018_2020.json"
         ),
-        review_packet=_read_json(fixture_root / "wikidata_nat_review_packet_20260401.json"),
+        review_packet=_read_json(
+            fixture_root / "wikidata_nat_review_packet_20260401.json"
+        ),
     )
 
     assert "linkage_depth_receipt" not in report
@@ -222,7 +246,9 @@ def test_generic_disjointness_report_remains_receipt_free() -> None:
     assert "linkage_depth_receipt" not in report
 
 
-def test_linkage_depth_audit_detects_projection_collapse_when_pnf_bridge_is_removed() -> None:
+def test_linkage_depth_audit_detects_projection_collapse_when_pnf_bridge_is_removed() -> (
+    None
+):
     contract = build_sensiblaw_pnf_wd_linkage_contract()
     case = build_dog_soft_stitch_linkage_case()
     case["edges"] = [
@@ -278,15 +304,23 @@ def test_shared_core_audits_mixed_wd_gwb_and_au_contracts(tmp_path) -> None:
         "wikidata_disjointness_review_linkage",
     ]
     by_id = {row["case_id"]: row for row in audit["cases"]}
-    assert by_id["au_fact_review_bundle"]["contract_id"] == AU_FACT_REVIEW_BUNDLE_LINKAGE_CONTRACT_ID
+    assert (
+        by_id["au_fact_review_bundle"]["contract_id"]
+        == AU_FACT_REVIEW_BUNDLE_LINKAGE_CONTRACT_ID
+    )
     assert by_id["au_fact_review_bundle"]["typed_path_depth"] == 7
     assert by_id["au_fact_review_bundle"]["authority_boundary_visibility"] == "complete"
-    assert by_id["gwb_broader_review"]["contract_id"] == GWB_BROADER_REVIEW_LINKAGE_CONTRACT_ID
+    assert (
+        by_id["gwb_broader_review"]["contract_id"]
+        == GWB_BROADER_REVIEW_LINKAGE_CONTRACT_ID
+    )
     assert by_id["gwb_broader_review"]["typed_path_depth"] == 5
     assert by_id["gwb_broader_review"]["wd_soft_stitch_present"] is False
 
 
-def test_shared_core_audits_mixed_wd_gwb_au_q43229_and_brexit_contracts(tmp_path) -> None:
+def test_shared_core_audits_mixed_wd_gwb_au_q43229_and_brexit_contracts(
+    tmp_path,
+) -> None:
     gwb_result = build_gwb_broader_review(tmp_path / "gwb-out")
     import json
     from pathlib import Path
@@ -295,7 +329,9 @@ def test_shared_core_audits_mixed_wd_gwb_au_q43229_and_brexit_contracts(tmp_path
     gwb_report = build_gwb_report(payload, with_receipt=True)
     au_bundle, _, _, _ = _prepare_au_fact_review_bundle_fixture(tmp_path / "au-fixture")
     au_bundle = attach_au_receipt(au_bundle)
-    q43229_report = load_fixture(profile="q43229_superclass_pressure", with_receipt=True)
+    q43229_report = load_fixture(
+        profile="q43229_superclass_pressure", with_receipt=True
+    )
     brexit_report = build_report(with_receipt=True)
 
     audit = build_linkage_depth_audit(
@@ -322,15 +358,26 @@ def test_shared_core_audits_mixed_wd_gwb_au_q43229_and_brexit_contracts(tmp_path
     }
     by_id = {row["case_id"]: row for row in audit["cases"]}
     assert by_id["wikidata_q43229_superclass_pressure"]["typed_path_depth"] == 6
-    assert by_id["wikidata_q43229_superclass_pressure"]["candidate_vs_promoted_visibility"] is True
+    assert (
+        by_id["wikidata_q43229_superclass_pressure"]["candidate_vs_promoted_visibility"]
+        is True
+    )
     assert by_id["brexit_archive_policy_intent"]["typed_path_depth"] == 6
-    assert by_id["brexit_archive_policy_intent"]["visibility_requirements"]["archive_authority_visibility"][
-        "values"
-    ] == ["complete"]
+    assert by_id["brexit_archive_policy_intent"]["visibility_requirements"][
+        "archive_authority_visibility"
+    ]["values"] == ["complete"]
 
 
 def test_wikidata_linkage_depth_wrapper_uses_shared_core(monkeypatch) -> None:
-    def _fake_build_linkage_depth_audit(*, cases, contracts=None, audit_scope="linkage_depth", schema_version="", next_actions=(), primary_owner=""):
+    def _fake_build_linkage_depth_audit(
+        *,
+        cases,
+        contracts=None,
+        audit_scope="linkage_depth",
+        schema_version="",
+        next_actions=(),
+        primary_owner="",
+    ):
         assert len(cases) == 1
         assert cases[0]["case_id"] == "dog_soft_stitch"
         assert audit_scope == "bounded_pnf_x_zelph_wd_linkage_depth"
@@ -356,9 +403,15 @@ def test_wikidata_linkage_depth_wrapper_uses_shared_core(monkeypatch) -> None:
             "next_actions": list(next_actions),
         }
 
-    monkeypatch.setattr(wikidata_linkage_depth, "build_linkage_depth_audit", _fake_build_linkage_depth_audit)
+    monkeypatch.setattr(
+        wikidata_linkage_depth,
+        "build_linkage_depth_audit",
+        _fake_build_linkage_depth_audit,
+    )
 
-    report = wikidata_linkage_depth.build_wikidata_linkage_depth_audit(case_id="dog_soft_stitch")
+    report = wikidata_linkage_depth.build_wikidata_linkage_depth_audit(
+        case_id="dog_soft_stitch"
+    )
 
     assert report["schema_version"] == "sl.wikidata_linkage_depth_audit.v0_1"
     assert report["summary"]["complete_case_ids"] == ["dog_soft_stitch"]

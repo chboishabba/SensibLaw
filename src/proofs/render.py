@@ -78,9 +78,7 @@ def to_dot_with_harm(
             attrs.append(f'weight="{edge.weight}"')
         tooltip = receipt or label or "why is this here?"
         attrs.append(f'tooltip="{tooltip}"')
-        lines.append(
-            f'  "{edge.source}" -> "{edge.target}" [{", ".join(attrs)}];'
-        )
+        lines.append(f'  "{edge.source}" -> "{edge.target}" [{", ".join(attrs)}];')
     lines.append("}")
     return "\n".join(lines)
 

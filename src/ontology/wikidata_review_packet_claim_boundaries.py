@@ -40,7 +40,9 @@ def _normalize_anchor_refs(source_surface: Mapping[str, Any]) -> list[dict[str, 
     return anchors
 
 
-def _normalize_split_axes(split_review_context: Mapping[str, Any]) -> list[dict[str, Any]]:
+def _normalize_split_axes(
+    split_review_context: Mapping[str, Any],
+) -> list[dict[str, Any]]:
     raw = split_review_context.get("merged_split_axes", [])
     if not isinstance(raw, list):
         raise ValueError("split_review_context.merged_split_axes must be a list")
@@ -63,7 +65,14 @@ def _normalize_split_axes(split_review_context: Mapping[str, Any]) -> list[dict[
                 "cardinality": max(cardinality, 0),
             }
         )
-    axes.sort(key=lambda item: (item["property"], item["source"], item["reason"], item["axis_id"]))
+    axes.sort(
+        key=lambda item: (
+            item["property"],
+            item["source"],
+            item["reason"],
+            item["axis_id"],
+        )
+    )
     return axes
 
 
@@ -120,7 +129,9 @@ def build_review_packet_claim_boundaries(
         raw_questions = page_signals.get("unresolved_questions", [])
         if isinstance(raw_questions, list):
             unresolved_questions = [
-                _stringify(item).strip() for item in raw_questions if _stringify(item).strip()
+                _stringify(item).strip()
+                for item in raw_questions
+                if _stringify(item).strip()
             ]
 
     boundaries: list[dict[str, Any]] = []

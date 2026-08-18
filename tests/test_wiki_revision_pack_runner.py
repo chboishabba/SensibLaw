@@ -5,8 +5,15 @@ import sqlite3
 import subprocess
 from pathlib import Path
 
-from src.wiki_timeline.revision_pack_runner import default_out_dir_for_pack, ensure_revision_pack_schema, human_summary, run
-from src.wiki_timeline.revision_pack_storage import slug_artifact_name
+from src.wiki_timeline.revision_pack_runner import (
+    ensure_revision_pack_schema,
+    human_summary,
+    run,
+)
+from src.wiki_timeline.revision_pack_storage import (
+    default_out_dir_for_pack,
+    slug_artifact_name,
+)
 
 
 def _pack(tmp_path: Path, *, pack_id: str = "test_pack") -> Path:
@@ -30,7 +37,10 @@ def _pack(tmp_path: Path, *, pack_id: str = "test_pack") -> Path:
                 "role": "baseline",
                 "graph_enabled": True,
                 "topics": ["baseline"],
-                "review_context": {"curated_qids": ["Q1"], "diagnostic_topics": ["baseline"]},
+                "review_context": {
+                    "curated_qids": ["Q1"],
+                    "diagnostic_topics": ["baseline"],
+                },
             }
         ],
     }
@@ -68,7 +78,12 @@ def _timeline_payload(snapshot_payload: dict) -> dict:
         "events": [
             {
                 "event_id": "ev:0001",
-                "anchor": {"year": 2026, "precision": "year", "text": "2026", "kind": "explicit"},
+                "anchor": {
+                    "year": 2026,
+                    "precision": "year",
+                    "text": "2026",
+                    "kind": "explicit",
+                },
                 "section": section,
                 "text": f"Event for revision {revid}",
                 "links": ["Example"],
@@ -82,7 +97,10 @@ def _aoo_payload(snapshot_payload: dict) -> dict:
     revid = int(snapshot_payload["revid"])
     claim_bearing = revid >= 2
     return {
-        "source_timeline": {"path": f"/tmp/timeline_{revid}.json", "snapshot": snapshot_payload},
+        "source_timeline": {
+            "path": f"/tmp/timeline_{revid}.json",
+            "snapshot": snapshot_payload,
+        },
         "source_entity": {
             "id": "source:test",
             "type": "wikipedia_article",
@@ -108,7 +126,13 @@ def _aoo_payload(snapshot_payload: dict) -> dict:
                 "claim_bearing": claim_bearing,
                 "claim_step_indices": [0] if claim_bearing else [],
                 "attributions": (
-                    [{"attributed_actor_id": "United Nations", "attribution_type": "direct_statement", "step_index": 0}]
+                    [
+                        {
+                            "attributed_actor_id": "United Nations",
+                            "attribution_type": "direct_statement",
+                            "step_index": 0,
+                        }
+                    ]
                     if claim_bearing
                     else []
                 ),
@@ -136,9 +160,17 @@ def _history_rows(*revids: int) -> list[dict]:
 
 def _fake_env(tmp_path: Path, current_revid_box: dict[str, int]):
     snapshot_store = {
-        1: _snapshot_payload(1, body="Intro text.\n== History ==\nSmall change.\n== Legacy ==\nalpha.\n"),
-        2: _snapshot_payload(2, body="Intro text updated.\n== History ==\nMajor revision with much larger section text here.\n== Legacy ==\nbeta.\n"),
-        3: _snapshot_payload(3, body="Intro text updated.\n== History ==\nMajor revision with much larger section text here and follow-up.\n== Legacy ==\ngamma.\n"),
+        1: _snapshot_payload(
+            1, body="Intro text.\n== History ==\nSmall change.\n== Legacy ==\nalpha.\n"
+        ),
+        2: _snapshot_payload(
+            2,
+            body="Intro text updated.\n== History ==\nMajor revision with much larger section text here.\n== Legacy ==\nbeta.\n",
+        ),
+        3: _snapshot_payload(
+            3,
+            body="Intro text updated.\n== History ==\nMajor revision with much larger section text here and follow-up.\n== Legacy ==\ngamma.\n",
+        ),
     }
 
     def fetch_current(*, article, out_dir, python_cmd, repo_root):
@@ -155,7 +187,9 @@ def _fake_env(tmp_path: Path, current_revid_box: dict[str, int]):
         path.write_text(json.dumps(payload), encoding="utf-8")
         return {"snapshot_path": path, "snapshot_payload": payload}
 
-    def fetch_history(*, article, out_dir, python_cmd, repo_root, max_revisions, window_days):
+    def fetch_history(
+        *, article, out_dir, python_cmd, repo_root, max_revisions, window_days
+    ):
         payload = {
             "title": article["title"],
             "rows": _history_rows(3, 2, 1)[:max_revisions],
@@ -182,9 +216,20 @@ def _fake_env(tmp_path: Path, current_revid_box: dict[str, int]):
         return {"aoo_path": out_path, "aoo_payload": payload}
 
     def auto_review_context(*, packet, article, bridge_db_path):
-        return {"auto_bridge_matches": [{"curie": "wikidata:Q1065", "source_surface": "United Nations"}]}
+        return {
+            "auto_bridge_matches": [
+                {"curie": "wikidata:Q1065", "source_surface": "United Nations"}
+            ]
+        }
 
-    return fetch_current, fetch_revision, fetch_history, build_timeline, build_aoo, auto_review_context
+    return (
+        fetch_current,
+        fetch_revision,
+        fetch_history,
+        build_timeline,
+        build_aoo,
+        auto_review_context,
+    )
 
 
 def test_pack_runner_history_pairs_and_state_cycle(tmp_path: Path) -> None:
@@ -192,7 +237,14 @@ def test_pack_runner_history_pairs_and_state_cycle(tmp_path: Path) -> None:
     out_dir = tmp_path / "out"
     state_db = tmp_path / "state.sqlite"
     current_revid = {"value": 1}
-    fetch_current, fetch_revision, fetch_history, build_timeline, build_aoo, auto_review_context = _fake_env(tmp_path, current_revid)
+    (
+        fetch_current,
+        fetch_revision,
+        fetch_history,
+        build_timeline,
+        build_aoo,
+        auto_review_context,
+    ) = _fake_env(tmp_path, current_revid)
 
     first = run(
         pack_path=pack_path,
@@ -214,8 +266,15 @@ def test_pack_runner_history_pairs_and_state_cycle(tmp_path: Path) -> None:
     assert pair_report["highest_severity"] in {"high", "medium", "low", "none"}
     assert isinstance(pair_report["packet_counts"], dict)
     assert pair_report["section_delta_summary"]["changed_section_count"] >= 1
-    assert pair_report["comparison_report"]["issue_packets"][0]["review_context"]["curated"]["curated_qids"] == ["Q1"]
-    assert pair_report["comparison_report"]["issue_packets"][0]["review_context"]["auto_bridge_matches"][0]["curie"] == "wikidata:Q1065"
+    assert pair_report["comparison_report"]["issue_packets"][0]["review_context"][
+        "curated"
+    ]["curated_qids"] == ["Q1"]
+    assert (
+        pair_report["comparison_report"]["issue_packets"][0]["review_context"][
+            "auto_bridge_matches"
+        ][0]["curie"]
+        == "wikidata:Q1065"
+    )
     assert "section_context" in pair_report["comparison_report"]["issue_packets"][0]
     assert not any((out_dir / "pair_snapshots").glob("*__older.json"))
     assert not any((out_dir / "pair_snapshots").glob("*__newer.json"))
@@ -236,12 +295,20 @@ def test_pack_runner_history_pairs_and_state_cycle(tmp_path: Path) -> None:
     assert not any((out_dir / "contested_graphs").glob("*.json"))
     assert first["articles"][0]["contested_graph_summary"]["region_count"] >= 1
     assert first["pack_triage"]["top_changed_articles"][0]["article_id"] == "article_1"
-    assert first["pack_triage"]["top_high_severity_pairs"][0]["article_id"] == "article_1"
-    assert first["pack_triage"]["top_sections_changed"][0]["section"] in {"History", "Legacy", "(lead)"}
+    assert (
+        first["pack_triage"]["top_high_severity_pairs"][0]["article_id"] == "article_1"
+    )
+    assert first["pack_triage"]["top_sections_changed"][0]["section"] in {
+        "History",
+        "Legacy",
+        "(lead)",
+    }
     assert first["pack_triage"]["top_contested_graphs"][0]["article_id"] == "article_1"
     assert first["pack_triage"]["top_contested_regions"][0]["article_id"] == "article_1"
     assert "summary_path" not in first
-    assert not (out_dir / "runs" / f"{slug_artifact_name(first['run_id'])}.json").exists()
+    assert not (
+        out_dir / "runs" / f"{slug_artifact_name(first['run_id'])}.json"
+    ).exists()
 
     second = run(
         pack_path=pack_path,
@@ -273,7 +340,9 @@ def test_pack_runner_history_pairs_and_state_cycle(tmp_path: Path) -> None:
     assert third["highest_severity"] == "high"
     with sqlite3.connect(state_db) as conn:
         conn.row_factory = sqlite3.Row
-        state = conn.execute("SELECT last_revid, status FROM wiki_revision_monitor_article_state WHERE article_id = 'article_1'").fetchone()
+        state = conn.execute(
+            "SELECT last_revid, status FROM wiki_revision_monitor_article_state WHERE article_id = 'article_1'"
+        ).fetchone()
         assert state["last_revid"] == 3
         state_paths = conn.execute(
             """
@@ -283,23 +352,29 @@ def test_pack_runner_history_pairs_and_state_cycle(tmp_path: Path) -> None:
             """
         ).fetchone()
         assert state_paths["snapshot_path"]
-        pair_rows = conn.execute("SELECT count(*) FROM wiki_revision_monitor_candidate_pairs WHERE article_id = 'article_1'").fetchone()
+        pair_rows = conn.execute(
+            "SELECT count(*) FROM wiki_revision_monitor_candidate_pairs WHERE article_id = 'article_1'"
+        ).fetchone()
         assert pair_rows[0] >= 2
-        graph_rows = conn.execute("SELECT count(*) FROM wiki_revision_monitor_contested_graphs WHERE article_id = 'article_1'").fetchone()
+        graph_rows = conn.execute(
+            "SELECT count(*) FROM wiki_revision_monitor_contested_graphs WHERE article_id = 'article_1'"
+        ).fetchone()
         assert graph_rows[0] >= 1
         summary_row = conn.execute(
             """
             SELECT highest_severity, changed_count, candidate_selected_count, candidate_reported_count
             FROM wiki_revision_monitor_run_summaries
             WHERE run_id = ?
-            """
-            ,
+            """,
             (third["run_id"],),
         ).fetchone()
         assert summary_row["highest_severity"] == "high"
         assert summary_row["changed_count"] == 1
         assert summary_row["candidate_selected_count"] >= 1
-        assert summary_row["candidate_reported_count"] == summary_row["candidate_selected_count"]
+        assert (
+            summary_row["candidate_reported_count"]
+            == summary_row["candidate_selected_count"]
+        )
         changed_row = conn.execute(
             """
             SELECT article_id, contested_graph_available, contested_region_count
@@ -338,25 +413,33 @@ def test_pack_runner_history_pairs_and_state_cycle(tmp_path: Path) -> None:
         assert "section" in str(selected_pair_row["top_changed_sections_json"] or "")
         article_result_columns = {
             row["name"]
-            for row in conn.execute("PRAGMA table_info(wiki_revision_monitor_article_results)").fetchall()
+            for row in conn.execute(
+                "PRAGMA table_info(wiki_revision_monitor_article_results)"
+            ).fetchall()
         }
         assert "packet_counts_json" not in article_result_columns
         assert "result_json" not in article_result_columns
         pair_columns = {
             row["name"]
-            for row in conn.execute("PRAGMA table_info(wiki_revision_monitor_candidate_pairs)").fetchall()
+            for row in conn.execute(
+                "PRAGMA table_info(wiki_revision_monitor_candidate_pairs)"
+            ).fetchall()
         }
         assert "score_json" not in pair_columns
         assert "section_delta_json" not in pair_columns
         assert "result_json" not in pair_columns
         run_columns = {
             row["name"]
-            for row in conn.execute("PRAGMA table_info(wiki_revision_monitor_runs)").fetchall()
+            for row in conn.execute(
+                "PRAGMA table_info(wiki_revision_monitor_runs)"
+            ).fetchall()
         }
         assert "summary_json" not in run_columns
         graph_columns = {
             row["name"]
-            for row in conn.execute("PRAGMA table_info(wiki_revision_monitor_contested_graphs)").fetchall()
+            for row in conn.execute(
+                "PRAGMA table_info(wiki_revision_monitor_contested_graphs)"
+            ).fetchall()
         }
         assert "graph_json" not in graph_columns
 
@@ -366,7 +449,14 @@ def test_pack_runner_emits_progress(tmp_path: Path) -> None:
     out_dir = tmp_path / "out"
     state_db = tmp_path / "state.sqlite"
     current_revid = {"value": 1}
-    fetch_current, fetch_revision, fetch_history, build_timeline, build_aoo, auto_review_context = _fake_env(tmp_path, current_revid)
+    (
+        fetch_current,
+        fetch_revision,
+        fetch_history,
+        build_timeline,
+        build_aoo,
+        auto_review_context,
+    ) = _fake_env(tmp_path, current_revid)
     seen: list[tuple[str, dict]] = []
 
     result = run(
@@ -389,15 +479,21 @@ def test_pack_runner_emits_progress(tmp_path: Path) -> None:
     assert "revision_pack_article_history" in stages
     assert "revision_pack_article_candidates_progress" in stages
     assert "revision_pack_article_reports_progress" in stages
-    finished = [details for stage, details in seen if stage == "revision_pack_article_finished"]
+    finished = [
+        details for stage, details in seen if stage == "revision_pack_article_finished"
+    ]
     assert finished[-1]["status"] == "changed"
 
 
-def test_ensure_revision_pack_schema_migrates_v0_3_blob_columns_in_place(tmp_path: Path) -> None:
+def test_ensure_revision_pack_schema_migrates_v0_3_blob_columns_in_place(
+    tmp_path: Path,
+) -> None:
     db_path = tmp_path / "legacy.sqlite"
     with sqlite3.connect(db_path) as conn:
         conn.execute("PRAGMA foreign_keys = ON")
-        conn.execute("CREATE TABLE wiki_revision_monitor_packs (pack_id TEXT PRIMARY KEY)")
+        conn.execute(
+            "CREATE TABLE wiki_revision_monitor_packs (pack_id TEXT PRIMARY KEY)"
+        )
         conn.execute(
             """
             CREATE TABLE wiki_revision_monitor_articles (
@@ -498,7 +594,9 @@ def test_ensure_revision_pack_schema_migrates_v0_3_blob_columns_in_place(tmp_pat
             )
             """
         )
-        conn.execute("INSERT INTO wiki_revision_monitor_packs(pack_id) VALUES('pack_one')")
+        conn.execute(
+            "INSERT INTO wiki_revision_monitor_packs(pack_id) VALUES('pack_one')"
+        )
         conn.execute(
             """
             INSERT INTO wiki_revision_monitor_articles(
@@ -601,15 +699,21 @@ def test_ensure_revision_pack_schema_migrates_v0_3_blob_columns_in_place(tmp_pat
         ensure_revision_pack_schema(conn)
         article_state_columns = {
             row[1]
-            for row in conn.execute("PRAGMA table_info(wiki_revision_monitor_article_state)").fetchall()
+            for row in conn.execute(
+                "PRAGMA table_info(wiki_revision_monitor_article_state)"
+            ).fetchall()
         }
         article_result_columns = {
             row[1]
-            for row in conn.execute("PRAGMA table_info(wiki_revision_monitor_article_results)").fetchall()
+            for row in conn.execute(
+                "PRAGMA table_info(wiki_revision_monitor_article_results)"
+            ).fetchall()
         }
         run_columns = {
             row[1]
-            for row in conn.execute("PRAGMA table_info(wiki_revision_monitor_runs)").fetchall()
+            for row in conn.execute(
+                "PRAGMA table_info(wiki_revision_monitor_runs)"
+            ).fetchall()
         }
         assert "summary_json" not in run_columns
         assert "report_path" not in article_state_columns
@@ -622,11 +726,15 @@ def test_ensure_revision_pack_schema_migrates_v0_3_blob_columns_in_place(tmp_pat
         assert "aoo_path" not in article_result_columns
         pair_columns = {
             row[1]
-            for row in conn.execute("PRAGMA table_info(wiki_revision_monitor_candidate_pairs)").fetchall()
+            for row in conn.execute(
+                "PRAGMA table_info(wiki_revision_monitor_candidate_pairs)"
+            ).fetchall()
         }
         graph_columns = {
             row[1]
-            for row in conn.execute("PRAGMA table_info(wiki_revision_monitor_contested_graphs)").fetchall()
+            for row in conn.execute(
+                "PRAGMA table_info(wiki_revision_monitor_contested_graphs)"
+            ).fetchall()
         }
         assert "graph_json" not in graph_columns
         assert "graph_path" not in graph_columns
@@ -714,7 +822,14 @@ def test_pack_runner_records_error_without_state_corruption(tmp_path: Path) -> N
     out_dir = tmp_path / "out"
     state_db = tmp_path / "state.sqlite"
     current_revid = {"value": 1}
-    fetch_current, fetch_revision, fetch_history, build_timeline, build_aoo, auto_review_context = _fake_env(tmp_path, current_revid)
+    (
+        fetch_current,
+        fetch_revision,
+        fetch_history,
+        build_timeline,
+        build_aoo,
+        auto_review_context,
+    ) = _fake_env(tmp_path, current_revid)
 
     run(
         pack_path=pack_path,
@@ -745,7 +860,9 @@ def test_pack_runner_records_error_without_state_corruption(tmp_path: Path) -> N
     assert result["counts"]["error"] == 1
     with sqlite3.connect(state_db) as conn:
         conn.row_factory = sqlite3.Row
-        state = conn.execute("SELECT last_revid FROM wiki_revision_monitor_article_state WHERE article_id = 'article_1'").fetchone()
+        state = conn.execute(
+            "SELECT last_revid FROM wiki_revision_monitor_article_state WHERE article_id = 'article_1'"
+        ).fetchone()
         assert state["last_revid"] == 1
 
 
@@ -753,7 +870,9 @@ def test_pack_runner_rejects_incomplete_snapshot_payload(tmp_path: Path) -> None
     pack_path = _pack(tmp_path)
     out_dir = tmp_path / "out"
     state_db = tmp_path / "state.sqlite"
-    _, fetch_revision, fetch_history, build_timeline, build_aoo, _ = _fake_env(tmp_path, {"value": 1})
+    _, fetch_revision, fetch_history, build_timeline, build_aoo, _ = _fake_env(
+        tmp_path, {"value": 1}
+    )
 
     def incomplete_fetch(*, article, out_dir, python_cmd, repo_root):
         payload = {
@@ -777,27 +896,42 @@ def test_pack_runner_rejects_incomplete_snapshot_payload(tmp_path: Path) -> None
         fetch_current_snapshot_fn=incomplete_fetch,
         fetch_revision_history_fn=fetch_history,
         fetch_revision_snapshot_fn=fetch_revision,
-        build_timeline_fn=lambda **_: (_ for _ in ()).throw(AssertionError("timeline should not run")),
-        build_aoo_fn=lambda **_: (_ for _ in ()).throw(AssertionError("aoo should not run")),
+        build_timeline_fn=lambda **_: (_ for _ in ()).throw(
+            AssertionError("timeline should not run")
+        ),
+        build_aoo_fn=lambda **_: (_ for _ in ()).throw(
+            AssertionError("aoo should not run")
+        ),
         auto_review_context_fn=lambda **_: {},
     )
     assert result["counts"]["error"] == 1
     assert "incomplete snapshot" in result["articles"][0]["error"]
     with sqlite3.connect(state_db) as conn:
-        state = conn.execute("SELECT count(*) FROM wiki_revision_monitor_article_state").fetchone()
+        state = conn.execute(
+            "SELECT count(*) FROM wiki_revision_monitor_article_state"
+        ).fetchone()
         assert state[0] == 0
 
 
 def test_default_out_dir_for_pack_uses_pack_id(tmp_path: Path) -> None:
     pack_path = _pack(tmp_path)
-    assert default_out_dir_for_pack(pack_path) == Path("SensibLaw/demo/ingest/wiki_revision_monitor/test_pack")
+    assert default_out_dir_for_pack(pack_path) == Path(
+        "SensibLaw/demo/ingest/wiki_revision_monitor/test_pack"
+    )
 
 
 def test_pack_runner_allows_same_article_ids_across_packs(tmp_path: Path) -> None:
     out_dir = tmp_path / "out"
     state_db = tmp_path / "state.sqlite"
     current_revid = {"value": 1}
-    fetch_current, fetch_revision, fetch_history, build_timeline, build_aoo, auto_review_context = _fake_env(tmp_path, current_revid)
+    (
+        fetch_current,
+        fetch_revision,
+        fetch_history,
+        build_timeline,
+        build_aoo,
+        auto_review_context,
+    ) = _fake_env(tmp_path, current_revid)
 
     first_pack = _pack(tmp_path / "p1", pack_id="pack_one")
     second_pack = _pack(tmp_path / "p2", pack_id="pack_two")
@@ -829,7 +963,9 @@ def test_pack_runner_allows_same_article_ids_across_packs(tmp_path: Path) -> Non
     assert second["ok"] is True
     with sqlite3.connect(state_db) as conn:
         conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT pack_id FROM wiki_revision_monitor_articles WHERE article_id = 'article_1'").fetchone()
+        row = conn.execute(
+            "SELECT pack_id FROM wiki_revision_monitor_articles WHERE article_id = 'article_1'"
+        ).fetchone()
         assert row["pack_id"] == "pack_two"
 
 
@@ -837,9 +973,20 @@ def test_pack_runner_cli_human_summary(tmp_path: Path) -> None:
     payload = {
         "pack_id": "pack",
         "run_id": "run:1",
-        "counts": {"baseline_initialized": 0, "unchanged": 0, "changed": 1, "no_candidate_delta": 0, "error": 0},
+        "counts": {
+            "baseline_initialized": 0,
+            "unchanged": 0,
+            "changed": 1,
+            "no_candidate_delta": 0,
+            "error": 0,
+        },
         "candidate_pair_counts": {"considered": 3, "selected": 2, "reported": 2},
-        "contested_graph_counts": {"articles_with_graphs": 1, "graphs_built": 1, "regions_detected": 4, "cycles_detected": 2},
+        "contested_graph_counts": {
+            "articles_with_graphs": 1,
+            "graphs_built": 1,
+            "regions_detected": 4,
+            "cycles_detected": 2,
+        },
         "highest_severity": "high",
         "pack_triage": {
             "top_changed_articles": [
@@ -900,10 +1047,15 @@ def test_pack_runner_cli_human_summary(tmp_path: Path) -> None:
     assert "top_articles=article_1:high:largest_delta_in_window" in text
     assert "top_pairs=article_1:largest_delta_in_window:high" in text
     assert "top_sections=History:1200" in text
-    assert "article_1: status=changed sev=high prev=1 curr=2 primary_pair=largest_delta_in_window pairs=2" in text
+    assert (
+        "article_1: status=changed sev=high prev=1 curr=2 primary_pair=largest_delta_in_window pairs=2"
+        in text
+    )
     assert "report=" not in text
 
-    script = Path(__file__).resolve().parents[1] / "scripts" / "wiki_revision_pack_runner.py"
+    script = (
+        Path(__file__).resolve().parents[1] / "scripts" / "wiki_revision_pack_runner.py"
+    )
     completed = subprocess.run(
         ["python", str(script), "--help"],
         capture_output=True,
@@ -914,12 +1066,28 @@ def test_pack_runner_cli_human_summary(tmp_path: Path) -> None:
 
 
 def test_pack_runner_keeps_pair_payload_in_memory_not_json_working_state() -> None:
-    source = (Path(__file__).resolve().parents[1] / "src" / "wiki_timeline" / "revision_pack_runner.py").read_text(encoding="utf-8")
+    source = (
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "wiki_timeline"
+        / "revision_pack_runner.py"
+    ).read_text(encoding="utf-8")
     assert 'pair.get("pair_report_payload")' in source
-    assert 'read_json_file(Path(str(report_path))) if report_path else None' not in source
+    assert (
+        "read_json_file(Path(str(report_path))) if report_path else None" not in source
+    )
     assert 'if selected.get("pair_report_path")' not in source
     assert 'write_json_file(pair_paths["pair_report"], wrapper)' not in source
     assert "write_json_file(graph_path, payload)" not in source
-    assert 'report_path=current_report_path or (Path(str(previous_state["report_path"]))' not in source
-    assert 'timeline_path=current_timeline_path or (Path(str(previous_state["timeline_path"]))' not in source
-    assert 'aoo_path=current_aoo_path or (Path(str(previous_state["aoo_path"]))' not in source
+    assert (
+        'report_path=current_report_path or (Path(str(previous_state["report_path"]))'
+        not in source
+    )
+    assert (
+        'timeline_path=current_timeline_path or (Path(str(previous_state["timeline_path"]))'
+        not in source
+    )
+    assert (
+        'aoo_path=current_aoo_path or (Path(str(previous_state["aoo_path"]))'
+        not in source
+    )

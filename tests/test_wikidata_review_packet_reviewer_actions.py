@@ -10,20 +10,20 @@ from src.ontology.wikidata_review_packet_reviewer_actions import (
 
 
 def _load_nat_packet_fixture(name: str) -> dict:
-    fixture_path = (
-        Path(__file__).resolve().parent
-        / "fixtures"
-        / "wikidata"
-        / name
-    )
+    fixture_path = Path(__file__).resolve().parent / "fixtures" / "wikidata" / name
     return json.loads(fixture_path.read_text(encoding="utf-8"))
 
 
 def test_build_reviewer_actions_for_structured_split_packet() -> None:
-    packet = _load_nat_packet_fixture("wikidata_nat_review_packet_Q10416948_sidecar_20260402.json")
+    packet = _load_nat_packet_fixture(
+        "wikidata_nat_review_packet_Q10416948_sidecar_20260402.json"
+    )
     actions = build_wikidata_review_packet_reviewer_actions(packet)
 
-    assert actions["schema_version"] == WIKIDATA_REVIEW_PACKET_REVIEWER_ACTIONS_SCHEMA_VERSION
+    assert (
+        actions["schema_version"]
+        == WIKIDATA_REVIEW_PACKET_REVIEWER_ACTIONS_SCHEMA_VERSION
+    )
     assert actions["packet_id"] == packet["packet_id"]
     assert actions["review_entity_qid"] == "Q10416948"
     assert actions["likely_decision"] == "review_structured_split"
@@ -34,12 +34,17 @@ def test_build_reviewer_actions_for_structured_split_packet() -> None:
 
 
 def test_build_reviewer_actions_for_review_only_packet() -> None:
-    packet = _load_nat_packet_fixture("wikidata_nat_review_packet_Q56404383_sidecar_20260402.json")
+    packet = _load_nat_packet_fixture(
+        "wikidata_nat_review_packet_Q56404383_sidecar_20260402.json"
+    )
     actions = build_wikidata_review_packet_reviewer_actions(packet)
 
     assert actions["likely_decision"] == "review_only"
     assert actions["smallest_next_check"]["check_id"] == "resolve_one_page_question"
-    assert any(reason == "split_status=review_only" for reason in actions["why_this_row_is_in_review"])
+    assert any(
+        reason == "split_status=review_only"
+        for reason in actions["why_this_row_is_in_review"]
+    )
     assert "uncertainty=page_open_questions" in actions["why_this_row_is_in_review"]
 
 

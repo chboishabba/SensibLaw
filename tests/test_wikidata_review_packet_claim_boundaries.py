@@ -33,8 +33,18 @@ def _sample_split_review_context() -> dict:
     return {
         "split_plan_id": "split://Q10403939|P5991",
         "merged_split_axes": [
-            {"property": "P518", "source": "slot", "reason": "multi_valued_dimension", "cardinality": 3},
-            {"property": "P580", "source": "slot", "reason": "multi_valued_dimension", "cardinality": 2},
+            {
+                "property": "P518",
+                "source": "slot",
+                "reason": "multi_valued_dimension",
+                "cardinality": 3,
+            },
+            {
+                "property": "P580",
+                "source": "slot",
+                "reason": "multi_valued_dimension",
+                "cardinality": 2,
+            },
         ],
     }
 
@@ -46,7 +56,10 @@ def test_build_review_packet_claim_boundaries_maps_anchors_and_axes() -> None:
         page_signals={"unresolved_questions": ["Is scope 3 merged with scope 2?"]},
     )
 
-    assert payload["schema_version"] == WIKIDATA_REVIEW_PACKET_CLAIM_BOUNDARY_SCHEMA_VERSION
+    assert (
+        payload["schema_version"]
+        == WIKIDATA_REVIEW_PACKET_CLAIM_BOUNDARY_SCHEMA_VERSION
+    )
     assert payload["decomposition_state"] == "candidate_only"
     assert "not_full_semantic_decomposition" in payload["non_claims"]
     assert payload["summary"] == {
@@ -62,7 +75,9 @@ def test_build_review_packet_claim_boundaries_maps_anchors_and_axes() -> None:
     assert "open_questions_unresolved" in first["missing_evidence"]
 
 
-def test_build_review_packet_claim_boundaries_produces_axis_only_candidate_without_anchors() -> None:
+def test_build_review_packet_claim_boundaries_produces_axis_only_candidate_without_anchors() -> (
+    None
+):
     payload = build_review_packet_claim_boundaries(
         source_surface={"anchor_refs": []},
         split_review_context=_sample_split_review_context(),
@@ -84,7 +99,9 @@ def test_build_review_packet_claim_boundaries_fails_closed_on_invalid_shape() ->
             split_review_context=_sample_split_review_context(),
         )
 
-    with pytest.raises(ValueError, match="split_review_context\\.merged_split_axes must be a list"):
+    with pytest.raises(
+        ValueError, match="split_review_context\\.merged_split_axes must be a list"
+    ):
         build_review_packet_claim_boundaries(
             source_surface=_sample_source_surface(),
             split_review_context={"merged_split_axes": "bad"},

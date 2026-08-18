@@ -13,17 +13,43 @@ _SENSIBLAW_ROOT = _THIS_DIR.parent
 if str(_SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(_SENSIBLAW_ROOT))
 
-from src.reporting.openrecall_import import ensure_openrecall_capture_schema, import_openrecall_db, load_openrecall_units
+from src.reporting.openrecall_import import (
+    ensure_openrecall_capture_schema,
+    import_openrecall_db,
+    load_openrecall_units,
+)
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Import OpenRecall capture rows into itir.sqlite as observer-class artifacts.")
-    parser.add_argument("--source-db", type=Path, required=True, help="Path to OpenRecall recall.db")
-    parser.add_argument("--itir-db-path", type=Path, default=Path(".cache_local/itir.sqlite"), help="Target ITIR SQLite DB")
-    parser.add_argument("--storage-path", type=Path, default=None, help="Optional OpenRecall storage root for screenshots")
-    parser.add_argument("--limit", type=int, default=None, help="Optional max source rows to import")
-    parser.add_argument("--import-run-id", default=None, help="Optional stable import run id")
-    parser.add_argument("--show-units", action="store_true", help="Include a small preview of imported text units")
+    parser = argparse.ArgumentParser(
+        description="Import OpenRecall capture rows into itir.sqlite as observer-class artifacts."
+    )
+    parser.add_argument(
+        "--source-db", type=Path, required=True, help="Path to OpenRecall recall.db"
+    )
+    parser.add_argument(
+        "--itir-db-path",
+        type=Path,
+        default=Path(".cache_local/itir.sqlite"),
+        help="Target ITIR SQLite DB",
+    )
+    parser.add_argument(
+        "--storage-path",
+        type=Path,
+        default=None,
+        help="Optional OpenRecall storage root for screenshots",
+    )
+    parser.add_argument(
+        "--limit", type=int, default=None, help="Optional max source rows to import"
+    )
+    parser.add_argument(
+        "--import-run-id", default=None, help="Optional stable import run id"
+    )
+    parser.add_argument(
+        "--show-units",
+        action="store_true",
+        help="Include a small preview of imported text units",
+    )
     args = parser.parse_args(argv)
 
     import_run_id = args.import_run_id or f"openrecall-import:{uuid.uuid4().hex[:12]}"
@@ -49,7 +75,9 @@ def main(argv: list[str] | None = None) -> int:
         "itirDbPath": str(args.itir_db_path.resolve()),
     }
     if args.show_units:
-        units = load_openrecall_units(args.itir_db_path, import_run_id=summary.import_run_id, limit=5)
+        units = load_openrecall_units(
+            args.itir_db_path, import_run_id=summary.import_run_id, limit=5
+        )
         payload["unitPreview"] = [
             {
                 "unitId": unit.unit_id,

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Iterable
 
 
 def debate_control_contract() -> dict[str, str | Iterable[str]]:
@@ -48,8 +48,15 @@ def build_sample_debate_records() -> dict[str, DebateRecord]:
                 "law:uk:climate_act",
                 "treaty:uk:withdrawal_agreement",
             ],
-            competing_views=["economic_growth vs. emission targets", "national security resilience"],
-            influence_tags=["climate_policy", "statutory_amendment", "brexit_environment"],
+            competing_views=[
+                "economic_growth vs. emission targets",
+                "national security resilience",
+            ],
+            influence_tags=[
+                "climate_policy",
+                "statutory_amendment",
+                "brexit_environment",
+            ],
             edges=[
                 "refers_to:treaty:uk:paris",
                 "refers_to:law:uk:climate_act",
@@ -63,7 +70,10 @@ def build_sample_debate_records() -> dict[str, DebateRecord]:
             chamber="Senate",
             date="2022-04-05",
             summary="Anchored defense cooperation debates in Iraq mission lessons and US coalition agreements.",
-            referenced_instruments=["bill:aus:defense_cooperation", "treaty:aus:us:2001:iraq_coalition_support"],
+            referenced_instruments=[
+                "bill:aus:defense_cooperation",
+                "treaty:aus:us:2001:iraq_coalition_support",
+            ],
             competing_views=["sovereignty concerns vs. alliance obligations"],
             influence_tags=["defense_policy", "foreign_relations", "iraq_policy"],
             edges=[

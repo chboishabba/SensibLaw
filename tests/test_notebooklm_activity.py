@@ -50,7 +50,9 @@ def _seed_runs_root(tmp_path: Path) -> Path:
     return runs_root
 
 
-def test_notebooklm_activity_report_summarizes_conversations_notes_and_dates(tmp_path: Path) -> None:
+def test_notebooklm_activity_report_summarizes_conversations_notes_and_dates(
+    tmp_path: Path,
+) -> None:
     runs_root = _seed_runs_root(tmp_path)
     report = build_notebooklm_activity_report(runs_root)
     assert report["summary"]["eventCount"] == 2
@@ -60,7 +62,9 @@ def test_notebooklm_activity_report_summarizes_conversations_notes_and_dates(tmp
     assert report["notebooks"][0]["title"] == "Policy Notebook"
 
 
-def test_notebooklm_activity_dates_and_query_filtering_are_bounded(tmp_path: Path) -> None:
+def test_notebooklm_activity_dates_and_query_filtering_are_bounded(
+    tmp_path: Path,
+) -> None:
     runs_root = _seed_runs_root(tmp_path)
     dates = list_notebooklm_activity_dates(runs_root)
     assert dates == [
@@ -84,7 +88,9 @@ def test_notebooklm_activity_dates_and_query_filtering_are_bounded(tmp_path: Pat
     assert events[0]["noteTitle"] == "Follow-up tasks"
 
 
-def test_load_notebooklm_activity_units_projects_previews_into_text_units(tmp_path: Path) -> None:
+def test_load_notebooklm_activity_units_projects_previews_into_text_units(
+    tmp_path: Path,
+) -> None:
     runs_root = _seed_runs_root(tmp_path)
     units = load_notebooklm_activity_units(runs_root, limit=10)
     assert len(units) == 2

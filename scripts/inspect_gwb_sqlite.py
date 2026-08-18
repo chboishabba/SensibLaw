@@ -60,10 +60,7 @@ def _table_inventory(
     samples: list[dict[str, object]] = []
     if text_columns and sample_limit > 0:
         selected = ", ".join(_quote(column) for column in text_columns)
-        query = (
-            f"SELECT {selected} FROM {_quote(table)} "
-            f"LIMIT {max(sample_limit, 0)}"
-        )
+        query = f"SELECT {selected} FROM {_quote(table)} LIMIT {max(sample_limit, 0)}"
         for row in connection.execute(query):
             sample: dict[str, object] = {}
             for column, value in zip(text_columns, row, strict=True):

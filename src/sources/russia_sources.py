@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Iterable
 
 
 @dataclass(frozen=True)
@@ -98,4 +97,7 @@ def canonical_russian_legal_sources() -> list[RussianLegalSource]:
 
 
 def canonical_russian_source_payloads(focus: str) -> list[dict[str, object]]:
-    return [source.build_source_payload(focus) for source in canonical_russian_legal_sources()]
+    return [
+        source.build_source_payload(focus)
+        for source in canonical_russian_legal_sources()
+    ]

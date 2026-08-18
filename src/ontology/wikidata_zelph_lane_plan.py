@@ -28,7 +28,9 @@ def _climate_query_pressures(
 ) -> list[dict[str, Any]]:
     inputs = report.get("inputs") if isinstance(report.get("inputs"), Mapping) else {}
     review_disposition = (
-        report.get("review_disposition") if isinstance(report.get("review_disposition"), Mapping) else {}
+        report.get("review_disposition")
+        if isinstance(report.get("review_disposition"), Mapping)
+        else {}
     )
     candidate_surface = (
         report.get("candidate_change_surface")
@@ -49,8 +51,12 @@ def _climate_query_pressures(
                 "node-route-selection",
             ],
             "bounded_receipt": {
-                "candidate_count": int(candidate_surface.get("candidate_count", 0) or 0),
-                "held_candidate_count": int(review_disposition.get("held_candidate_count", 0) or 0),
+                "candidate_count": int(
+                    candidate_surface.get("candidate_count", 0) or 0
+                ),
+                "held_candidate_count": int(
+                    review_disposition.get("held_candidate_count", 0) or 0
+                ),
             },
         },
         {
@@ -95,7 +101,9 @@ def _live_follow_query_pressures(
     report: Mapping[str, Any],
     bundle: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
-    candidates = report.get("candidates") if isinstance(report.get("candidates"), list) else []
+    candidates = (
+        report.get("candidates") if isinstance(report.get("candidates"), list) else []
+    )
     focus_qids = _as_list(bundle.get("dependency_cone", {}).get("focus_qids"))
     routing_needs: list[str] = []
     for row in candidates:
@@ -153,7 +161,9 @@ def build_adjacent_zelph_lane_plan(
         query_pressures = _live_follow_query_pressures(report=report, bundle=bundle)
         zelph_role = "follow_target_confirmation_and_queue_pressure"
     else:
-        raise ValueError(f"lane does not expose an adjacent Zelph plan surface: {lane_id}")
+        raise ValueError(
+            f"lane does not expose an adjacent Zelph plan surface: {lane_id}"
+        )
 
     return {
         "schema_version": WIKIDATA_ZELPH_LANE_PLAN_SCHEMA_VERSION,
@@ -163,14 +173,28 @@ def build_adjacent_zelph_lane_plan(
         "plan_scope": "bounded_adjacent_zelph_discovery",
         "zelph_role": zelph_role,
         "focus_entities": _as_list(bundle.get("dependency_cone", {}).get("focus_qids")),
-        "focus_properties": _as_list(bundle.get("dependency_cone", {}).get("focus_pids")),
+        "focus_properties": _as_list(
+            bundle.get("dependency_cone", {}).get("focus_pids")
+        ),
         "query_pressures": query_pressures,
         "graph_receipt": {
             "flatness_posture": _text(
-                latent_slice_graph.get("flatness_indicators", {}).get("flatness_posture")
+                latent_slice_graph.get("flatness_indicators", {}).get(
+                    "flatness_posture"
+                )
             ),
-            "node_count": int(latent_slice_graph.get("diagnostics", {}).get("metrics", {}).get("node_count", 0) or 0),
-            "edge_count": int(latent_slice_graph.get("diagnostics", {}).get("metrics", {}).get("edge_count", 0) or 0),
+            "node_count": int(
+                latent_slice_graph.get("diagnostics", {})
+                .get("metrics", {})
+                .get("node_count", 0)
+                or 0
+            ),
+            "edge_count": int(
+                latent_slice_graph.get("diagnostics", {})
+                .get("metrics", {})
+                .get("edge_count", 0)
+                or 0
+            ),
         },
         "readiness": {
             "normalized_bundle_status": "available",

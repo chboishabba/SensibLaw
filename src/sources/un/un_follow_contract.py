@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from typing import Any, Mapping
 
+
 def un_document_follow_contract() -> dict[str, str | list[str]]:
     return {
         "scope": "bounded UN document follow unit",

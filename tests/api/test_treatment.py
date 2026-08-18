@@ -139,8 +139,12 @@ def test_fetch_case_treatment_scores_and_components():
     assert first["factor_alignment"] == "s 60CC(2)(a)"
     assert not first["flag_inapposite"]
     assert math.isclose(first["components"]["recency_decay"], recency, rel_tol=1e-12)
-    assert math.isclose(first["components"]["jurisdiction_fit"], jurisdiction_fit, rel_tol=1e-12)
-    assert math.isclose(first["components"]["posture_fit"], POSTURE_MATCH_BOOST, rel_tol=1e-12)
+    assert math.isclose(
+        first["components"]["jurisdiction_fit"], jurisdiction_fit, rel_tol=1e-12
+    )
+    assert math.isclose(
+        first["components"]["posture_fit"], POSTURE_MATCH_BOOST, rel_tol=1e-12
+    )
     assert math.isclose(first["years_since"], years, rel_tol=1e-12)
     assert "Consider emphasising" in result["what_to_cite_next"]
 
@@ -149,7 +153,9 @@ def test_fetch_case_treatment_flags_and_negative_scores():
     target = setup_rank_graph()
     result = fetch_case_treatment(target)
 
-    negative = next(a for a in result["authorities"] if a["relationship"] == "DISTINGUISHES")
+    negative = next(
+        a for a in result["authorities"] if a["relationship"] == "DISTINGUISHES"
+    )
     assert negative["score"] < 0
     assert negative["flag_inapposite"]
     assert negative["pinpoint"] == "¶ 5"
@@ -161,4 +167,3 @@ def test_fetch_case_treatment_not_found():
     with pytest.raises(HTTPException) as exc:
         fetch_case_treatment("missing")
     assert exc.value.status_code == 404
-

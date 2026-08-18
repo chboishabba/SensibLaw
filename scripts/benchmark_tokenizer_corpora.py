@@ -17,7 +17,11 @@ def _load_json(path: Path) -> dict:
 
 def _gwb_timeline_texts() -> list[str]:
     payload = _load_json(ROOT / "SensibLaw" / ".cache_local" / "wiki_timeline_gwb.json")
-    return [str(ev.get("text") or "").strip() for ev in payload.get("events", []) if str(ev.get("text") or "").strip()]
+    return [
+        str(ev.get("text") or "").strip()
+        for ev in payload.get("events", [])
+        if str(ev.get("text") or "").strip()
+    ]
 
 
 def _gwb_reference_texts() -> list[str]:
@@ -45,7 +49,10 @@ def _gwb_reference_texts() -> list[str]:
 def _legal_fixture_texts() -> list[str]:
     files = [
         ROOT / "data" / "pdfs" / "Mabo [No 2] - [1992] HCA 23.json",
-        ROOT / "data" / "pdfs" / "Plaintiff S157_2002 v Commonwealth - [2003] HCA 2.json",
+        ROOT
+        / "data"
+        / "pdfs"
+        / "Plaintiff S157_2002 v Commonwealth - [2003] HCA 2.json",
     ]
     out: list[str] = []
     for path in files:
@@ -60,15 +67,30 @@ def _legal_fixture_texts() -> list[str]:
 
 def _legal_principles_texts() -> list[str]:
     files = [
-        ROOT / "SensibLaw" / "demo" / "ingest" / "legal_principles_au_v1" / "wiki_timeline_legal_principles_au_v1.json",
-        ROOT / "SensibLaw" / "demo" / "ingest" / "legal_principles_au_v1" / "follow" / "wiki_timeline_legal_principles_au_v1_follow.json",
+        ROOT
+        / "SensibLaw"
+        / "demo"
+        / "ingest"
+        / "legal_principles_au_v1"
+        / "wiki_timeline_legal_principles_au_v1.json",
+        ROOT
+        / "SensibLaw"
+        / "demo"
+        / "ingest"
+        / "legal_principles_au_v1"
+        / "follow"
+        / "wiki_timeline_legal_principles_au_v1_follow.json",
     ]
     out: list[str] = []
     for path in files:
         if not path.exists():
             continue
         payload = _load_json(path)
-        out.extend(str(ev.get("text") or "").strip() for ev in payload.get("events", []) if str(ev.get("text") or "").strip())
+        out.extend(
+            str(ev.get("text") or "").strip()
+            for ev in payload.get("events", [])
+            if str(ev.get("text") or "").strip()
+        )
     return out
 
 
@@ -91,7 +113,12 @@ def _deterministic_tokenizer() -> Callable[[str], list[str]]:
     from src.text.lexeme_index import collect_lexeme_occurrences
 
     def inner(text: str) -> list[str]:
-        return [occ.norm_text for occ in collect_lexeme_occurrences(text, canonical_mode="deterministic_legal")]
+        return [
+            occ.norm_text
+            for occ in collect_lexeme_occurrences(
+                text, canonical_mode="deterministic_legal"
+            )
+        ]
 
     return inner
 
@@ -100,7 +127,10 @@ def _legacy_tokenizer() -> Callable[[str], list[str]]:
     from src.text.lexeme_index import collect_lexeme_occurrences
 
     def inner(text: str) -> list[str]:
-        return [occ.norm_text for occ in collect_lexeme_occurrences(text, canonical_mode="legacy_regex")]
+        return [
+            occ.norm_text
+            for occ in collect_lexeme_occurrences(text, canonical_mode="legacy_regex")
+        ]
 
     return inner
 
@@ -112,7 +142,10 @@ def _spacy_tokenizer() -> Callable[[str], list[str]] | None:
         return None
 
     def inner(text: str) -> list[str]:
-        return [occ.norm_text for occ in collect_lexeme_occurrences(text, canonical_mode="spacy")]
+        return [
+            occ.norm_text
+            for occ in collect_lexeme_occurrences(text, canonical_mode="spacy")
+        ]
 
     return inner
 
@@ -262,7 +295,9 @@ def _summarize(
         toks = tokenize(text)
         total_tokens += len(toks)
         token_set = set(toks)
-        linked_set = set(linked_tokenize(text)) if linked_tokenize is not None else set()
+        linked_set = (
+            set(linked_tokenize(text)) if linked_tokenize is not None else set()
+        )
         unique_tokens.update(token_set)
         corpus_token_presence.update(token_set)
         low_text = text.lower()
@@ -271,7 +306,9 @@ def _summarize(
                 legal_atom_total += len(needles)
                 legal_atom_hits += sum(1 for needle in needles if needle in token_set)
                 linked_entity_total += len(linked_needles)
-                linked_entity_hits += sum(1 for needle in linked_needles if needle in linked_set)
+                linked_entity_hits += sum(
+                    1 for needle in linked_needles if needle in linked_set
+                )
 
     overlap = sum(1 for _, seen in corpus_token_presence.items() if seen > 1)
     return {
@@ -281,10 +318,16 @@ def _summarize(
         "avg_chars_per_token": (total_chars / total_tokens) if total_tokens else 0.0,
         "unique_tokens": len(unique_tokens),
         "unique_ratio": (len(unique_tokens) / total_tokens) if total_tokens else 0.0,
-        "reuse_ratio": (1.0 - (len(unique_tokens) / total_tokens)) if total_tokens else 0.0,
+        "reuse_ratio": (1.0 - (len(unique_tokens) / total_tokens))
+        if total_tokens
+        else 0.0,
         "cross_document_overlap_tokens": overlap,
-        "legal_atom_capture_rate": (legal_atom_hits / legal_atom_total) if legal_atom_total else None,
-        "linked_entity_capture_rate": (linked_entity_hits / linked_entity_total) if linked_entity_total else None,
+        "legal_atom_capture_rate": (legal_atom_hits / legal_atom_total)
+        if legal_atom_total
+        else None,
+        "linked_entity_capture_rate": (linked_entity_hits / linked_entity_total)
+        if linked_entity_total
+        else None,
     }
 
 

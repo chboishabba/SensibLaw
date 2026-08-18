@@ -9,7 +9,9 @@ from src.ingestion.jmd_bridge import build_jmd_sl_bridge_artifacts
 def test_build_jmd_sl_bridge_artifacts_from_runtime_example() -> None:
     repo_root = Path(__file__).resolve().parents[2]
     runtime_object = json.loads(
-        (repo_root / "examples" / "jmd_bridge" / "jmd_runtime_object_minimal.json").read_text(encoding="utf-8")
+        (
+            repo_root / "examples" / "jmd_bridge" / "jmd_runtime_object_minimal.json"
+        ).read_text(encoding="utf-8")
     )
     payloads = build_jmd_sl_bridge_artifacts(runtime_object)
     ingest = payloads["ingest"]

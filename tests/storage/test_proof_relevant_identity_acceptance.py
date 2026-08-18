@@ -360,7 +360,9 @@ def _reduce(cursor: object, root_interface_id: int) -> None:
     cursor.fetchone()  # type: ignore[attr-defined]
 
 
-def _run_document_ids(cursor: object, run_ref: str, document_ref: str) -> tuple[int, int]:
+def _run_document_ids(
+    cursor: object, run_ref: str, document_ref: str
+) -> tuple[int, int]:
     cursor.execute(  # type: ignore[attr-defined]
         "SELECT run_id FROM execution.semantic_pnf_run_identity WHERE run_ref = %s",
         (run_ref,),
@@ -433,7 +435,12 @@ def test_unique_identity_round_trip_is_proof_relevant_and_retractable() -> None:
                 (demand_id, int(fixture["root_interface_id"])),
             )
             outcome, candidate_count, target_kind, target_id = cursor.fetchone()
-            assert (int(outcome), int(candidate_count), int(target_kind), int(target_id)) == (
+            assert (
+                int(outcome),
+                int(candidate_count),
+                int(target_kind),
+                int(target_id),
+            ) == (
                 2,
                 1,
                 1,
@@ -465,7 +472,9 @@ def test_unique_identity_round_trip_is_proof_relevant_and_retractable() -> None:
                 """,
                 (source_object_id,),
             )
-            entity_id, witness_ids, anchor_object_id, authority_class = cursor.fetchone()
+            entity_id, witness_ids, anchor_object_id, authority_class = (
+                cursor.fetchone()
+            )
             assert int(anchor_object_id) == target_object_id
             assert int(authority_class) == 2
             assert len(witness_ids) >= 1
@@ -486,9 +495,13 @@ def test_unique_identity_round_trip_is_proof_relevant_and_retractable() -> None:
                 """,
                 (source_object_id, int(entity_id), demand_id),
             )
-            witness_id, witness_candidate_count, witness_authority, witness_kind, admission = (
-                cursor.fetchone()
-            )
+            (
+                witness_id,
+                witness_candidate_count,
+                witness_authority,
+                witness_kind,
+                admission,
+            ) = cursor.fetchone()
             assert int(witness_candidate_count) == 1
             assert int(witness_authority) == int(authority_class)
             assert witness_kind == "anaphor_demand_resolution"
@@ -653,7 +666,9 @@ def test_singular_two_candidate_reference_is_ambiguous_and_projects_nothing() ->
         connection.close()
 
 
-def test_plural_and_generic_reference_modes_do_not_collapse_to_ambiguity_or_unique() -> None:
+def test_plural_and_generic_reference_modes_do_not_collapse_to_ambiguity_or_unique() -> (
+    None
+):
     assert DATABASE_URL is not None
     marker = uuid4().hex
     connection = connect(DATABASE_URL)

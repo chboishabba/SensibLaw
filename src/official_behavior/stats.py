@@ -7,7 +7,11 @@ from .model import AlignmentLabel, AlignmentObservation, normalize_observations
 
 # Reuse deterministic conjugate helpers (no sampling). This is intentionally a
 # shared math primitive, not a domain merge.
-from ..judicial_behavior.bayes import beta_binomial_posterior, beta_credible_interval, empirical_bayes_prior
+from ..judicial_behavior.bayes import (
+    beta_binomial_posterior,
+    beta_credible_interval,
+    empirical_bayes_prior,
+)
 
 
 class IndividualStatsDisabledError(ValueError):
@@ -64,7 +68,9 @@ def _normalize_slice_decl(slice_decl: Dict[str, Any]) -> Dict[str, Any]:
     return norm(dict(slice_decl or {}))
 
 
-def _corpus_time_bounds(rows: Sequence[AlignmentObservation]) -> Tuple[str | None, str | None]:
+def _corpus_time_bounds(
+    rows: Sequence[AlignmentObservation],
+) -> Tuple[str | None, str | None]:
     ds = [str(r.action_date) for r in rows if r.action_date]
     if not ds:
         return (None, None)
@@ -72,21 +78,31 @@ def _corpus_time_bounds(rows: Sequence[AlignmentObservation]) -> Tuple[str | Non
     return (ds_sorted[0], ds_sorted[-1])
 
 
-def _require_slice_decl(slice_decl: Dict[str, Any] | None, *, group_by: Sequence[str]) -> Dict[str, Any]:
+def _require_slice_decl(
+    slice_decl: Dict[str, Any] | None, *, group_by: Sequence[str]
+) -> Dict[str, Any]:
     if slice_decl is None:
-        raise SliceDeclarationError("slice declaration is required (no silent defaults)")
+        raise SliceDeclarationError(
+            "slice declaration is required (no silent defaults)"
+        )
     if not isinstance(slice_decl, dict):
         raise SliceDeclarationError("slice must be a dict")
     if "filters" not in slice_decl:
         raise SliceDeclarationError("slice.filters is required (may be empty)")
     if "time_bounds_declared" not in slice_decl:
-        raise SliceDeclarationError("slice.time_bounds_declared is required (start/end may be null)")
+        raise SliceDeclarationError(
+            "slice.time_bounds_declared is required (start/end may be null)"
+        )
     if "group_by" not in slice_decl:
-        raise SliceDeclarationError("slice.group_by is required and must match group_by")
+        raise SliceDeclarationError(
+            "slice.group_by is required and must match group_by"
+        )
     declared_gb = tuple(str(x) for x in (slice_decl.get("group_by") or ()))
     gb = tuple(str(x) for x in (group_by or ()))
     if declared_gb != gb:
-        raise SliceDeclarationError(f"slice.group_by mismatch: declared={list(declared_gb)} actual={list(gb)}")
+        raise SliceDeclarationError(
+            f"slice.group_by mismatch: declared={list(declared_gb)} actual={list(gb)}"
+        )
     return _normalize_slice_decl(slice_decl)
 
 
@@ -108,12 +124,16 @@ def aggregate_alignment_counts(
         gb = ("jurisdiction_id", "institution_id", "institution_kind")
 
     if ("official_id" in gb) and not allow_individuals:
-        raise IndividualStatsDisabledError("Individual-level grouping is disabled by default (allow_individuals=false).")
+        raise IndividualStatsDisabledError(
+            "Individual-level grouping is disabled by default (allow_individuals=false)."
+        )
 
     slice_decl = _require_slice_decl(slice, group_by=gb)
 
     rows = normalize_observations(observations)
-    counts: Dict[Tuple[str, ...], Dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    counts: Dict[Tuple[str, ...], Dict[str, int]] = defaultdict(
+        lambda: defaultdict(int)
+    )
     totals: Dict[Tuple[str, ...], int] = defaultdict(int)
 
     for obs in rows:
@@ -136,7 +156,14 @@ def aggregate_alignment_counts(
         ]:
             if int(c.get(lab, 0)) > 0:
                 labels[lab] = int(c.get(lab, 0))
-        groups_out.append({"group_by": list(gb), "group_key": list(k), "total": total, "labels": labels})
+        groups_out.append(
+            {
+                "group_by": list(gb),
+                "group_key": list(k),
+                "total": total,
+                "labels": labels,
+            }
+        )
 
     time_min, time_max = _corpus_time_bounds(rows)
     return {
@@ -145,7 +172,11 @@ def aggregate_alignment_counts(
         "interpretation_guard": _INTERPRETATION_GUARD,
         "allow_individuals": bool(allow_individuals),
         "slice": slice_decl,
-        "corpus": {"n_total": int(len(rows)), "time_min": time_min, "time_max": time_max},
+        "corpus": {
+            "n_total": int(len(rows)),
+            "time_min": time_min,
+            "time_max": time_max,
+        },
         "group_by": list(gb),
         "groups": groups_out,
     }
@@ -155,7 +186,11 @@ def aggregate_alignment_beta_binomial(
     observations: Iterable[AlignmentObservation],
     *,
     group_by: Sequence[str] = ("jurisdiction_id", "institution_id", "institution_kind"),
-    baseline_by: Sequence[str] = ("jurisdiction_id", "institution_id", "institution_kind"),
+    baseline_by: Sequence[str] = (
+        "jurisdiction_id",
+        "institution_id",
+        "institution_kind",
+    ),
     kappa: float = 40.0,
     quantiles: Tuple[float, float] = (0.10, 0.90),
     allow_individuals: bool = False,
@@ -175,7 +210,9 @@ def aggregate_alignment_beta_binomial(
         bb = ("jurisdiction_id", "institution_id", "institution_kind")
 
     if ("official_id" in gb) and not allow_individuals:
-        raise IndividualStatsDisabledError("Individual-level grouping is disabled by default (allow_individuals=false).")
+        raise IndividualStatsDisabledError(
+            "Individual-level grouping is disabled by default (allow_individuals=false)."
+        )
 
     slice_decl = _require_slice_decl(slice, group_by=gb)
 
@@ -225,7 +262,13 @@ def aggregate_alignment_beta_binomial(
                 "baseline_key": list(bk),
                 "target_label": tgt,
                 "data": {"n": n, "y": y},
-                "prior": {"mu": mu, "kappa": float(kappa), "alpha0": post.alpha0, "beta0": post.beta0, "baseline_n": bn},
+                "prior": {
+                    "mu": mu,
+                    "kappa": float(kappa),
+                    "alpha0": post.alpha0,
+                    "beta0": post.beta0,
+                    "baseline_n": bn,
+                },
                 "posterior": {
                     "alpha": post.alpha,
                     "beta": post.beta,
@@ -246,9 +289,12 @@ def aggregate_alignment_beta_binomial(
         "interpretation_guard": _INTERPRETATION_GUARD,
         "allow_individuals": bool(allow_individuals),
         "slice": slice_decl,
-        "corpus": {"n_total": int(len(rows)), "time_min": time_min, "time_max": time_max},
+        "corpus": {
+            "n_total": int(len(rows)),
+            "time_min": time_min,
+            "time_max": time_max,
+        },
         "group_by": list(gb),
         "baseline_by": list(bb),
         "groups": groups,
     }
-

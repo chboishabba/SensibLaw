@@ -53,7 +53,9 @@ def test_builder_emits_edges(graph: LegalGraph) -> None:
     has_edge = builder.has_element(concept_id="concept-1", element_id="concept-2")
     applies_edge = builder.applies_to(concept_id="concept-1", provision_id="prov-1")
     interp_edge = builder.interprets(case_id="case-1", provision_id="prov-1")
-    control_edge = builder.controls(leading_case_id="case-1", following_case_id="case-2")
+    control_edge = builder.controls(
+        leading_case_id="case-1", following_case_id="case-2"
+    )
 
     assert art_edge.type.name == "ARTICULATES"
     assert has_edge.type.name == "HAS_ELEMENT"
@@ -70,7 +72,9 @@ def test_builder_emits_edges(graph: LegalGraph) -> None:
 
 
 def test_module_wrappers(graph: LegalGraph) -> None:
-    articulates(graph, case_id="case-1", concept_id="concept-2", metadata={"source": "headnote"})
+    articulates(
+        graph, case_id="case-1", concept_id="concept-2", metadata={"source": "headnote"}
+    )
     has_element(graph, concept_id="concept-2", element_id="concept-1", weight=2.0)
     applies_to(graph, concept_id="concept-2", provision_id="prov-1", weight=0.5)
     interprets(graph, case_id="case-2", provision_id="prov-1")

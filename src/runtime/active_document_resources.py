@@ -46,7 +46,9 @@ def current_process_tree_rss_bytes() -> int:
 
     def resident(pid: int) -> int:
         try:
-            pages = int(Path(f"/proc/{pid}/statm").read_text(encoding="ascii").split()[1])
+            pages = int(
+                Path(f"/proc/{pid}/statm").read_text(encoding="ascii").split()[1]
+            )
             return pages * int(os.sysconf("SC_PAGE_SIZE"))
         except (OSError, ValueError, IndexError):
             return 0
@@ -81,14 +83,16 @@ class ActiveDocumentResourceGuard:
 
     def __init__(self, *, document_ref: str):
         self.document_ref = document_ref
-        self.soft_limit_bytes = _environment_mib(
-            "SENSIBLAW_DOCUMENT_SOFT_MEMORY_MIB", 5 * 1024
-        ) * MIB
-        self.hard_limit_bytes = _environment_mib(
-            "SENSIBLAW_DOCUMENT_HARD_MEMORY_MIB", 6 * 1024
-        ) * MIB
+        self.soft_limit_bytes = (
+            _environment_mib("SENSIBLAW_DOCUMENT_SOFT_MEMORY_MIB", 5 * 1024) * MIB
+        )
+        self.hard_limit_bytes = (
+            _environment_mib("SENSIBLAW_DOCUMENT_HARD_MEMORY_MIB", 6 * 1024) * MIB
+        )
         if self.hard_limit_bytes <= self.soft_limit_bytes:
-            raise ValueError("SENSIBLAW_DOCUMENT_HARD_MEMORY_MIB must exceed soft limit")
+            raise ValueError(
+                "SENSIBLAW_DOCUMENT_HARD_MEMORY_MIB must exceed soft limit"
+            )
 
     def sample(self) -> dict[str, int]:
         return {
@@ -191,7 +195,9 @@ class ActiveDocumentResourceGuard:
             try:
                 yield handle
             finally:
-                after = self.checkpoint(stage=stage, current_kernel="stage_boundary_after")
+                after = self.checkpoint(
+                    stage=stage, current_kernel="stage_boundary_after"
+                )
                 if stage == "parser_observation_projection":
                     handle.observe(
                         measures=after["resources"],

@@ -7,13 +7,10 @@ from src.policy.fragment_pnf import (
     FragmentPNFProjectionReceipt,
     GrammarMatchStrength,
     ProjectionBasisLevel,
-    residual_level_to_compatibility,
 )
 from src.text.residual_lattice import (
     PredicateAtom,
-    PredicatePNF,
     QualifierState,
-    ResidualLevel,
     TypedArg,
     WrapperState,
 )

@@ -19,7 +19,9 @@ def _nonempty_strings(values: Sequence[Any] | None) -> list[str]:
     return seen
 
 
-def _entity_row(*, qid: Any, role: str, label: Any = "", status: str = "candidate") -> dict[str, Any]:
+def _entity_row(
+    *, qid: Any, role: str, label: Any = "", status: str = "candidate"
+) -> dict[str, Any]:
     return {
         "qid": _text(qid),
         "role": _text(role),
@@ -110,7 +112,11 @@ def build_climate_review_bundle(
     execution_surface: str,
 ) -> dict[str, Any]:
     inputs = report.get("inputs") if isinstance(report.get("inputs"), Mapping) else {}
-    packet_context = inputs.get("packet_context") if isinstance(inputs.get("packet_context"), Mapping) else {}
+    packet_context = (
+        inputs.get("packet_context")
+        if isinstance(inputs.get("packet_context"), Mapping)
+        else {}
+    )
     entity_qid = _text(inputs.get("entity_qid"))
     source_property = _text(inputs.get("source_property"))
     target_property = _text(inputs.get("target_property"))
@@ -119,8 +125,14 @@ def build_climate_review_bundle(
         if isinstance(report.get("review_disposition"), Mapping)
         else []
     )
-    held_count = sum(1 for row in dispositions if _text((row or {}).get("final_state")) == "held")
-    promotion_status = "blocked" if held_count == len(dispositions) and dispositions else "candidate_only"
+    held_count = sum(
+        1 for row in dispositions if _text((row or {}).get("final_state")) == "held"
+    )
+    promotion_status = (
+        "blocked"
+        if held_count == len(dispositions) and dispositions
+        else "candidate_only"
+    )
     return _bundle(
         lane_id=lane_id,
         lane_family=lane_family,
@@ -130,10 +142,16 @@ def build_climate_review_bundle(
         soft_type_strength="substantial",
         domain_projection="bounded climate-family migration packet",
         promotion_status=promotion_status,
-        candidate_entities=[_entity_row(qid=entity_qid, role="review_entity", status="bounded")],
+        candidate_entities=[
+            _entity_row(qid=entity_qid, role="review_entity", status="bounded")
+        ],
         candidate_properties=[
-            _property_row(pid=source_property, role="source_property", status="bounded"),
-            _property_row(pid=target_property, role="target_property", status="bounded"),
+            _property_row(
+                pid=source_property, role="source_property", status="bounded"
+            ),
+            _property_row(
+                pid=target_property, role="target_property", status="bounded"
+            ),
         ],
         residuals=[
             _residual_row(
@@ -144,7 +162,9 @@ def build_climate_review_bundle(
         ],
         receipts=[
             _receipt_row(kind="packet_id", value=packet_context.get("packet_id")),
-            _receipt_row(kind="split_plan_id", value=packet_context.get("split_plan_id")),
+            _receipt_row(
+                kind="split_plan_id", value=packet_context.get("split_plan_id")
+            ),
         ],
         source_revision_refs=[
             packet_context.get("packet_id"),
@@ -170,8 +190,16 @@ def build_change_review_bundle(
     evidence_mode: str,
     execution_surface: str,
 ) -> dict[str, Any]:
-    grounding = report.get("wikidata_grounding") if isinstance(report.get("wikidata_grounding"), Mapping) else {}
-    components = grounding.get("components") if isinstance(grounding.get("components"), Mapping) else {}
+    grounding = (
+        report.get("wikidata_grounding")
+        if isinstance(report.get("wikidata_grounding"), Mapping)
+        else {}
+    )
+    components = (
+        grounding.get("components")
+        if isinstance(grounding.get("components"), Mapping)
+        else {}
+    )
     subject_candidates = [
         _entity_row(
             qid=row.get("qid"),
@@ -201,14 +229,15 @@ def build_change_review_bundle(
     ]
     residuals = [
         _residual_row(
-            code=_text(row.get("grounding_residual")) or _text(row.get("reason")) or "grounding_residual",
+            code=_text(row.get("grounding_residual"))
+            or _text(row.get("reason"))
+            or "grounding_residual",
             status="open",
             detail=row.get("reason"),
         )
         for row in components.get("object_qid_candidates", [])
-        if isinstance(row, Mapping) and (
-            _text(row.get("grounding_residual")) or _text(row.get("reason"))
-        )
+        if isinstance(row, Mapping)
+        and (_text(row.get("grounding_residual")) or _text(row.get("reason")))
     ]
     if not residuals:
         residuals.append(
@@ -218,9 +247,16 @@ def build_change_review_bundle(
                 detail="bounded in-memory candidate comparison",
             )
         )
-    candidate_reports = report.get("candidate_reports") if isinstance(report.get("candidate_reports"), list) else []
+    candidate_reports = (
+        report.get("candidate_reports")
+        if isinstance(report.get("candidate_reports"), list)
+        else []
+    )
     checked_safe = sum(
-        1 for row in candidate_reports if isinstance(row, Mapping) and _text(row.get("disposition")) == "checked_safe_reviewable"
+        1
+        for row in candidate_reports
+        if isinstance(row, Mapping)
+        and _text(row.get("disposition")) == "checked_safe_reviewable"
     )
     return _bundle(
         lane_id=lane_id,
@@ -236,7 +272,9 @@ def build_change_review_bundle(
         residuals=residuals,
         receipts=[
             _receipt_row(kind="focus_item", value=report.get("focus_item")),
-            _receipt_row(kind="packet_schema_version", value=report.get("packet_schema_version")),
+            _receipt_row(
+                kind="packet_schema_version", value=report.get("packet_schema_version")
+            ),
         ],
         source_revision_refs=[
             report.get("focus_item"),
@@ -244,9 +282,15 @@ def build_change_review_bundle(
         ],
         dependency_cone={
             "focus_qids": _nonempty_strings([report.get("focus_item")]),
-            "focus_pids": [row["pid"] for row in pid_candidates if _text(row.get("pid"))],
+            "focus_pids": [
+                row["pid"] for row in pid_candidates if _text(row.get("pid"))
+            ],
             "candidate_report_ids": _nonempty_strings(
-                (row.get("candidate_id") for row in candidate_reports if isinstance(row, Mapping))
+                (
+                    row.get("candidate_id")
+                    for row in candidate_reports
+                    if isinstance(row, Mapping)
+                )
             ),
         },
         authority_posture=authority_posture,
@@ -264,10 +308,22 @@ def build_disjointness_bundle(
     evidence_mode: str,
     execution_surface: str,
 ) -> dict[str, Any]:
-    pairs = report.get("disjoint_pairs") if isinstance(report.get("disjoint_pairs"), list) else []
+    pairs = (
+        report.get("disjoint_pairs")
+        if isinstance(report.get("disjoint_pairs"), list)
+        else []
+    )
     pair = pairs[0] if pairs and isinstance(pairs[0], Mapping) else {}
-    culprit_classes = report.get("culprit_classes") if isinstance(report.get("culprit_classes"), list) else []
-    culprit_items = report.get("culprit_items") if isinstance(report.get("culprit_items"), list) else []
+    culprit_classes = (
+        report.get("culprit_classes")
+        if isinstance(report.get("culprit_classes"), list)
+        else []
+    )
+    culprit_items = (
+        report.get("culprit_items")
+        if isinstance(report.get("culprit_items"), list)
+        else []
+    )
     candidate_entities = []
     for role, qid_key, label_key in (
         ("holder_class", "holder_qid", "holder_label"),
@@ -276,33 +332,56 @@ def build_disjointness_bundle(
     ):
         if _text(pair.get(qid_key)):
             candidate_entities.append(
-                _entity_row(qid=pair.get(qid_key), role=role, label=pair.get(label_key), status="bounded")
+                _entity_row(
+                    qid=pair.get(qid_key),
+                    role=role,
+                    label=pair.get(label_key),
+                    status="bounded",
+                )
             )
     for row in culprit_classes:
         if isinstance(row, Mapping) and _text(row.get("qid")):
             candidate_entities.append(
-                _entity_row(qid=row.get("qid"), role="culprit_class", label=row.get("label"), status="contradiction")
+                _entity_row(
+                    qid=row.get("qid"),
+                    role="culprit_class",
+                    label=row.get("label"),
+                    status="contradiction",
+                )
             )
     for row in culprit_items:
         if isinstance(row, Mapping) and _text(row.get("qid")):
             candidate_entities.append(
-                _entity_row(qid=row.get("qid"), role="culprit_item", label=row.get("label"), status="contradiction")
+                _entity_row(
+                    qid=row.get("qid"),
+                    role="culprit_item",
+                    label=row.get("label"),
+                    status="contradiction",
+                )
             )
     candidate_properties = [
-        _property_row(pid=pair.get("property_pid"), role="disjointness_property", status="bounded"),
-        _property_row(pid=pair.get("qualifier_pid"), role="qualifier_property", status="bounded"),
+        _property_row(
+            pid=pair.get("property_pid"), role="disjointness_property", status="bounded"
+        ),
+        _property_row(
+            pid=pair.get("qualifier_pid"), role="qualifier_property", status="bounded"
+        ),
         _property_row(pid="P279", role="subclass_context", status="bounded"),
         _property_row(pid="P31", role="instance_context", status="bounded"),
     ]
     residuals = [
         _residual_row(
             code="subclass_contradiction",
-            status="open" if int(report.get("subclass_violation_count") or 0) else "closed",
+            status="open"
+            if int(report.get("subclass_violation_count") or 0)
+            else "closed",
             detail=f"count={int(report.get('subclass_violation_count') or 0)}",
         ),
         _residual_row(
             code="instance_contradiction",
-            status="open" if int(report.get("instance_violation_count") or 0) else "closed",
+            status="open"
+            if int(report.get("instance_violation_count") or 0)
+            else "closed",
             detail=f"count={int(report.get('instance_violation_count') or 0)}",
         ),
     ]
@@ -359,7 +438,11 @@ def build_hotspot_eval_bundle(
     evidence_mode: str,
     execution_surface: str,
 ) -> dict[str, Any]:
-    cluster_results = report.get("cluster_results") if isinstance(report.get("cluster_results"), list) else []
+    cluster_results = (
+        report.get("cluster_results")
+        if isinstance(report.get("cluster_results"), list)
+        else []
+    )
     selected_pack_ids = _nonempty_strings(report.get("selected_pack_ids"))
     candidate_entities = [
         _entity_row(
@@ -372,11 +455,17 @@ def build_hotspot_eval_bundle(
         if isinstance(row, Mapping) and _text(row.get("cluster_id"))
     ]
     candidate_properties = [
-        _property_row(pid=row.get("supporting_hotspot_family"), role="hotspot_family", status="bounded")
+        _property_row(
+            pid=row.get("supporting_hotspot_family"),
+            role="hotspot_family",
+            status="bounded",
+        )
         for row in cluster_results
         if isinstance(row, Mapping) and _text(row.get("supporting_hotspot_family"))
     ]
-    inconsistent = int(report.get("summary", {}).get("cluster_counts", {}).get("inconsistent") or 0)
+    inconsistent = int(
+        report.get("summary", {}).get("cluster_counts", {}).get("inconsistent") or 0
+    )
     return _bundle(
         lane_id=lane_id,
         lane_family=lane_family,
@@ -397,7 +486,10 @@ def build_hotspot_eval_bundle(
         ],
         receipts=[
             _receipt_row(kind="manifest_version", value=report.get("manifest_version")),
-            *[_receipt_row(kind="pack_id", value=pack_id) for pack_id in selected_pack_ids],
+            *[
+                _receipt_row(kind="pack_id", value=pack_id)
+                for pack_id in selected_pack_ids
+            ],
         ],
         source_revision_refs=[report.get("manifest_version"), *selected_pack_ids],
         dependency_cone={
@@ -408,7 +500,9 @@ def build_hotspot_eval_bundle(
                 if isinstance(row, Mapping)
             ),
             "cluster_ids": _nonempty_strings(
-                row.get("cluster_id") for row in cluster_results if isinstance(row, Mapping)
+                row.get("cluster_id")
+                for row in cluster_results
+                if isinstance(row, Mapping)
             ),
         },
         authority_posture=authority_posture,
@@ -426,16 +520,24 @@ def build_live_follow_preflight_bundle(
     evidence_mode: str,
     execution_surface: str,
 ) -> dict[str, Any]:
-    candidates = report.get("candidates") if isinstance(report.get("candidates"), list) else []
+    candidates = (
+        report.get("candidates") if isinstance(report.get("candidates"), list) else []
+    )
     candidate_entities = [
-        _entity_row(qid=row.get("qid"), role="follow_candidate", status=row.get("coverage_status") or "candidate")
+        _entity_row(
+            qid=row.get("qid"),
+            role="follow_candidate",
+            status=row.get("coverage_status") or "candidate",
+        )
         for row in candidates
         if isinstance(row, Mapping) and _text(row.get("qid"))
     ]
     residuals = [
         _residual_row(
             code="coverage_hold",
-            status="open" if _text(row.get("coverage_status")) == "hold" else "candidate",
+            status="open"
+            if _text(row.get("coverage_status")) == "hold"
+            else "candidate",
             detail=row.get("stop_condition"),
         )
         for row in candidates
@@ -455,9 +557,14 @@ def build_live_follow_preflight_bundle(
         residuals=residuals,
         receipts=[
             _receipt_row(kind="campaign_id", value=report.get("campaign_id")),
-            _receipt_row(kind="plan_schema_version", value=report.get("plan_schema_version")),
+            _receipt_row(
+                kind="plan_schema_version", value=report.get("plan_schema_version")
+            ),
         ],
-        source_revision_refs=[report.get("campaign_id"), report.get("plan_schema_version")],
+        source_revision_refs=[
+            report.get("campaign_id"),
+            report.get("plan_schema_version"),
+        ],
         dependency_cone={
             "focus_qids": _nonempty_strings(
                 row.get("qid") for row in candidates if isinstance(row, Mapping)

@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import requests
 
-from src.sources.worldbank_adapter import fetch_live_worldbank_report, mock_worldbank_bundle
+from src.sources.worldbank_adapter import (
+    fetch_live_worldbank_report,
+    mock_worldbank_bundle,
+)
 
 
 class FakeHeadResponse:

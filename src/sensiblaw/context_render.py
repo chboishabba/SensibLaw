@@ -6,7 +6,9 @@ from typing import Any, Mapping
 BANNED_CAUSAL_TERMS = {"caused", "influenced", "impacted", "due to", "led to"}
 
 
-def render_context_summary(context_type: str, payload: Mapping[str, Any] | None = None) -> str:
+def render_context_summary(
+    context_type: str, payload: Mapping[str, Any] | None = None
+) -> str:
     """
     Render a neutral, non-causal one-liner for a context field.
 

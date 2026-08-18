@@ -64,12 +64,22 @@ def evaluate_clause(
 ) -> dict[str, Any]:
     sb_payload = _sb_payload(evidence_bundle)
     semantic_evidence_refs = [
-        str(value) for value in evidence_bundle.get("semantic_evidence_refs", []) if str(value).strip()
+        str(value)
+        for value in evidence_bundle.get("semantic_evidence_refs", [])
+        if str(value).strip()
     ]
 
     if clause_id == "provenance_traceability":
-        provenance_refs = [str(value) for value in sb_payload.get("provenance_refs", []) if str(value).strip()]
-        lineage_refs = [str(value) for value in sb_payload.get("lineage_refs", []) if str(value).strip()]
+        provenance_refs = [
+            str(value)
+            for value in sb_payload.get("provenance_refs", [])
+            if str(value).strip()
+        ]
+        lineage_refs = [
+            str(value)
+            for value in sb_payload.get("lineage_refs", [])
+            if str(value).strip()
+        ]
         if provenance_refs and lineage_refs:
             return _clause_result(
                 clause_id=clause_id,
@@ -103,7 +113,10 @@ def evaluate_clause(
                     if not legal_follow_pressure_refs
                     else "no unresolved pressure remains; legal follow pressure metadata preserved separately"
                 ),
-                evidence_refs=["unresolved_pressure_status:none", *legal_follow_pressure_refs],
+                evidence_refs=[
+                    "unresolved_pressure_status:none",
+                    *legal_follow_pressure_refs,
+                ],
             )
         if isinstance(sb_payload.get("follow_obligation"), Mapping):
             return _clause_result(
@@ -136,7 +149,9 @@ def evaluate_clause(
 
     if clause_id == "casey_execution_traceability":
         casey_refs = [
-            ref for ref in sb_payload.get("casey_observer_refs", []) if isinstance(ref, Mapping)
+            ref
+            for ref in sb_payload.get("casey_observer_refs", [])
+            if isinstance(ref, Mapping)
         ]
         if not casey_refs:
             return _clause_result(
@@ -148,7 +163,10 @@ def evaluate_clause(
             ref
             for ref in casey_refs
             if not _normalize_opt_text(ref.get("receipt_hash"))
-            or not any(_normalize_opt_text(ref.get(field)) for field in ("workspace_id", "operation_id", "build_id"))
+            or not any(
+                _normalize_opt_text(ref.get(field))
+                for field in ("workspace_id", "operation_id", "build_id")
+            )
         ]
         if bad_refs:
             return _clause_result(

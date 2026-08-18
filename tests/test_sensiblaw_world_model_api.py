@@ -11,7 +11,6 @@ from sensiblaw import (
 )
 from src.ontology import nat
 from src.policy import brexit
-from src.policy.adapter_discovery import UnsupportedInputError
 from src.policy.au_world_model import AU_FACT_REVIEW_BUNDLE_FAMILY_ID
 from src.policy.linkage_depth import LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION
 
@@ -69,7 +68,9 @@ def test_public_api_supports_nat_profile_via_schema_marker() -> None:
 
     world_model = build_world_model(payload)
 
-    assert world_model["metadata"]["runtime_adapter"] == "nat:climate_review_demonstrator"
+    assert (
+        world_model["metadata"]["runtime_adapter"] == "nat:climate_review_demonstrator"
+    )
 
 
 def test_generic_attach_receipt_accepts_linkage_projection_only() -> None:
@@ -77,7 +78,10 @@ def test_generic_attach_receipt_accepts_linkage_projection_only() -> None:
     linkage_case = project_linkage_case(world_model)
     wrapped = attach_receipt(linkage_case)
 
-    assert wrapped["linkage_depth_receipt"]["schema_version"] == LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION
+    assert (
+        wrapped["linkage_depth_receipt"]["schema_version"]
+        == LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION
+    )
 
 
 def test_nat_and_brexit_wrappers_match_generic_projection_path() -> None:
@@ -95,9 +99,15 @@ def test_nat_and_brexit_wrappers_match_generic_projection_path() -> None:
     brexit_generic = project_report(build_world_model(brexit_records))
 
     assert nat_report["artifact_id"] == nat_generic["artifact_id"]
-    assert nat_report["linkage_case"]["payload"]["case_id"] == nat_generic["linkage_case"]["payload"]["case_id"]
+    assert (
+        nat_report["linkage_case"]["payload"]["case_id"]
+        == nat_generic["linkage_case"]["payload"]["case_id"]
+    )
     assert brexit_report["artifact_id"] == brexit_generic["artifact_id"]
-    assert brexit_report["linkage_case"]["payload"]["case_id"] == brexit_generic["linkage_case"]["payload"]["case_id"]
+    assert (
+        brexit_report["linkage_case"]["payload"]["case_id"]
+        == brexit_generic["linkage_case"]["payload"]["case_id"]
+    )
 
 
 def test_public_api_rejects_lane_shaped_adapter_hints() -> None:
@@ -116,7 +126,10 @@ def test_public_api_rejects_lane_shaped_adapter_hints() -> None:
             },
         )
     except ValueError as exc:
-        assert "adapter_hint is not part of the public world-model input boundary" in str(exc)
+        assert (
+            "adapter_hint is not part of the public world-model input boundary"
+            in str(exc)
+        )
     else:
         raise AssertionError("expected build_world_model to reject adapter_hint")
 
@@ -146,4 +159,6 @@ def test_build_world_model_has_no_adapter_selector_parameter() -> None:
     sig = inspect.signature(build_world_model)
     forbidden = {"adapter_hint", "profile", "kind", "lane", "adapter"}
     intersection = forbidden & set(sig.parameters)
-    assert not intersection, f"build_world_model has forbidden parameters: {intersection}"
+    assert not intersection, (
+        f"build_world_model has forbidden parameters: {intersection}"
+    )

@@ -34,9 +34,7 @@ class LegalSourceEndpoint:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            key: value
-            for key, value in asdict(self).items()
-            if value not in (None, "")
+            key: value for key, value in asdict(self).items() if value not in (None, "")
         }
 
 
@@ -215,7 +213,9 @@ def profile_for(jurisdiction: str) -> LegalFollowProfile:
     try:
         return PROFILES[key]
     except KeyError as error:
-        raise ValueError(f"unsupported legal follow jurisdiction: {jurisdiction}") from error
+        raise ValueError(
+            f"unsupported legal follow jurisdiction: {jurisdiction}"
+        ) from error
 
 
 def _allowed_hosts(endpoints: Iterable[LegalSourceEndpoint]) -> tuple[str, ...]:

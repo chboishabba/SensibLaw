@@ -134,4 +134,3 @@ __all__ = [
     "legal_graph_to_dgl",
     "load_embeddings",
 ]
-

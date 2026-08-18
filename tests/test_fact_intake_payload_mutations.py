@@ -30,7 +30,12 @@ def test_append_payload_observation_adds_deterministic_row() -> None:
         predicate_family="who",
         object_text="Client",
         object_type="person",
-        identity_fields={"fixture_key": "f1", "statement_id": "statement:1", "predicate_key": "actor", "object_text": "Client"},
+        identity_fields={
+            "fixture_key": "f1",
+            "statement_id": "statement:1",
+            "predicate_key": "actor",
+            "object_text": "Client",
+        },
         provenance={"source": "fixture"},
     )
 
@@ -49,7 +54,12 @@ def test_append_payload_review_and_contestation_add_rows() -> None:
         review_status="review_queue",
         reviewer="tester",
         note="note",
-        identity_fields={"fixture_key": "f1", "fact_id": "fact:1", "review_status": "review_queue", "note": "note"},
+        identity_fields={
+            "fixture_key": "f1",
+            "fact_id": "fact:1",
+            "review_status": "review_queue",
+            "note": "note",
+        },
         provenance={"source": "fixture"},
     )
     append_payload_contestation(
@@ -59,7 +69,12 @@ def test_append_payload_review_and_contestation_add_rows() -> None:
         status="disputed",
         reason_text="reason",
         author="tester",
-        identity_fields={"fixture_key": "f1", "fact_id": "fact:1", "statement_id": "statement:1", "reason_text": "reason"},
+        identity_fields={
+            "fixture_key": "f1",
+            "fact_id": "fact:1",
+            "statement_id": "statement:1",
+            "reason_text": "reason",
+        },
         provenance={"source": "fixture"},
     )
 

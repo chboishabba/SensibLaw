@@ -45,7 +45,9 @@ class TokenBucketRateLimiter:
                 self._last = now
 
                 # refill tokens
-                self._tokens = min(float(self.cfg.burst), self._tokens + elapsed * self.cfg.rps)
+                self._tokens = min(
+                    float(self.cfg.burst), self._tokens + elapsed * self.cfg.rps
+                )
 
                 if self._tokens >= tokens:
                     self._tokens -= tokens

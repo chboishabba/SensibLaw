@@ -4,7 +4,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-M112 = ROOT / "database/postgres_migrations/112_consumer_observed_world_axis_contract.sql"
+M112 = (
+    ROOT / "database/postgres_migrations/112_consumer_observed_world_axis_contract.sql"
+)
 
 
 def _sql() -> str:
@@ -12,13 +14,21 @@ def _sql() -> str:
 
 
 def _function(sql: str, name: str) -> str:
-    return sql.split(f"CREATE OR REPLACE FUNCTION execution.{name}", 1)[1].split("$$;", 1)[0]
+    return sql.split(f"CREATE OR REPLACE FUNCTION execution.{name}", 1)[1].split(
+        "$$;", 1
+    )[0]
 
 
 def test_contract_cannot_select_all_h9_demands_implicitly() -> None:
     sql = _sql()
-    assert "consumer world-axis contract requires at least one numeric demand selector" in sql
-    table = sql.split("CREATE TABLE IF NOT EXISTS execution.semantic_pnf_consumer_world_axis_contract", 1)[1].split(";", 1)[0]
+    assert (
+        "consumer world-axis contract requires at least one numeric demand selector"
+        in sql
+    )
+    table = sql.split(
+        "CREATE TABLE IF NOT EXISTS execution.semantic_pnf_consumer_world_axis_contract",
+        1,
+    )[1].split(";", 1)[0]
     assert "expected_target_kind IS NOT NULL" in table
     assert "expected_factor_type_symbol_id IS NOT NULL" in table
     assert "expected_object_kind_symbol_id IS NOT NULL" in table
@@ -67,7 +77,10 @@ def test_contract_origins_do_not_override_manual_needs() -> None:
     assert "1 explicit/manual registration; 2 consumer world-axis contract" in sql
     body = _function(sql, "compile_numeric_pnf_h9_external_needs_for_consumer")
     assert "origin.origin_kind=2" in body
-    assert "LEFT JOIN execution.semantic_pnf_consumer_external_need_origin AS origin" in body
+    assert (
+        "LEFT JOIN execution.semantic_pnf_consumer_external_need_origin AS origin"
+        in body
+    )
     assert "COALESCE(bool_or(origin.active),FALSE)" in body
 
 
@@ -86,7 +99,10 @@ def test_property_contract_requires_explicit_axis_and_provider_property() -> Non
 
 def test_funnel_keeps_h9_residual_separate_from_external_need() -> None:
     sql = _sql()
-    view = sql.split("CREATE OR REPLACE VIEW execution.semantic_pnf_consumer_external_need_funnel_v1", 1)[1]
+    view = sql.split(
+        "CREATE OR REPLACE VIEW execution.semantic_pnf_consumer_external_need_funnel_v1",
+        1,
+    )[1]
     assert "h9_residual_demands" in view
     assert "explicit_external_need_demands" in view
     assert "contract_external_need_demands" in view

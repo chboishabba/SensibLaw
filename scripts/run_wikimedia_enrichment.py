@@ -150,9 +150,7 @@ def main() -> int:
             output["network_performed"] = True
             output["summary"] = {
                 "result_count": len(results),
-                "candidate_set_count": sum(
-                    len(row.candidate_sets) for row in results
-                ),
+                "candidate_set_count": sum(len(row.candidate_sets) for row in results),
                 "candidate_count": sum(
                     len(candidate_set.candidates)
                     for row in results

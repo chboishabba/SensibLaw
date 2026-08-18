@@ -57,7 +57,10 @@ def evaluate_multi_lane_gate(
         open_follow_conjectures += snapshot.follow_queue_open
         if snapshot.promotion_gate_decision in READY_DECISIONS:
             ready_lanes.append(snapshot.lane_name)
-        if isinstance(snapshot.legal_follow_pressure, Mapping) and snapshot.legal_follow_pressure:
+        if (
+            isinstance(snapshot.legal_follow_pressure, Mapping)
+            and snapshot.legal_follow_pressure
+        ):
             legal_follow_pressure_lanes.append(snapshot.lane_name)
 
     decision = "hold"

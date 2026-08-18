@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from scripts.analyze_follow_quality_reports import _infer_follow_bucket
-from scripts.report_wiki_random_article_ingest_coverage import compute_follow_target_quality
+from scripts.report_wiki_random_article_ingest_coverage import (
+    compute_follow_target_quality,
+)
 
 
 def test_infer_follow_bucket_prefers_low_information_when_cooccurring() -> None:
@@ -30,7 +32,10 @@ def test_generic_continuation_routes_to_low_information_follow_bucket() -> None:
         },
     )
 
-    assert details["list_follow_subtype"] == "generic_continuation_routing_to_low_information"
+    assert (
+        details["list_follow_subtype"]
+        == "generic_continuation_routing_to_low_information"
+    )
     assert details["list_like_penalty_active"] is False
     assert details["primary_failure_bucket"] == "low_information_gain_follow"
     assert "low_information_gain_follow" in details["quality_flags"]

@@ -1,8 +1,14 @@
 # PostgreSQL runtime map
 
-This is the operator-facing source of truth for local PostgreSQL selection.
-Several local clusters may exist at once; a running PostgreSQL server is not
-automatically the canonical SensibLaw runtime.
+This is the operator-facing source of truth for SensibLaw's local runtime
+selection. The sole supported default target is the dedicated TrueNAS database:
+
+```text
+postgresql://admin:<password>@truenas.local:5432/sensiblaw_sparse_ready_20260818
+```
+
+Keep the actual password only in the ignored `.env` file. Do not put it in a
+shell history entry, report, test output, or tracked file.
 
 ## Authority rule
 
@@ -14,67 +20,103 @@ database/postgres_migrations/
 ```
 
 The active semantic rows are in the generic schemas, especially `corpus`,
-`algebra`, and `resolution`. The legacy `public.compiler_*` tables are not the
-authority for the current compiler runtime.
+`algebra`, `resolution`, and `execution`. The legacy `public.compiler_*` tables
+are not the authority for the current compiler runtime.
 
-Select an endpoint explicitly with `DATABASE_URL` or `--database-url`. Do not
-infer the target from the presence of a local PostgreSQL process or from the
-default port.
-
-## Local cluster matrix
-
-| Role | Endpoint | Data directory | Status | Use |
-| --- | --- | --- | --- | --- |
-| Previous full tranche run | `postgresql://postgres@127.0.0.1:5433/sensiblaw_tranche` | `/tmp/sensiblaw-pgdata` | disposable test cluster; currently running | Reproduce or inspect the 2026-07-25 `ALL` run |
-| Persistent local cluster | socket `/home/c/.local/share/sensiblaw/postgres-18/socket`, port `55432`, database `sensiblaw` | `/home/c/.local/share/sensiblaw/postgres-18` | persistent development cluster | Not the current generic corpus target until its migrations are applied and verified |
-| Debug cluster | `postgresql://c@127.0.0.1:55434/sensiblaw` | `/tmp/sensiblaw-pg-debug2.*` | temporary debug instance | Debugging only; never use for an acceptance run |
-| Other test cluster | port `55924` | `/tmp/sensiblaw-tranche-*/pgdata` | temporary test instance | Test isolation only |
-
-The 5433 cluster is the database used by the last complete tranche command;
-it is not a durable canonical store because its data directory is under
-`/tmp`. A new run must either deliberately target it for reproduction or
-choose a persistent cluster and first verify the active schemas and applied
-migrations.
-
-## Last full run
-
-The command recorded in the shell history was:
+Runtime commands must load the ignored local configuration before invoking a
+script. Scripts retain their explicit `--database-url` override.
 
 ```bash
-export DATABASE_URL='postgresql://postgres@localhost:5433/sensiblaw_tranche'
-python scripts/run_complete_tranche.py \
-  --tranche ALL \
-  --output-root /tmp/sensiblaw-tranche-out
+set -a
+. ./.env
+set +a
+psql "$DATABASE_URL" -c 'select current_database(), current_user;'
 ```
 
-Its output directory was `/tmp/sensiblaw-tranche-out`. It produced GWB source
-projection artifacts and PostgreSQL semantic rows, but did not produce a
-checkpoint file. The run later hit a foreign-key failure while persisting a
-resolution refinement; see `/tmp/sensiblaw-pgdata/server.log`.
+## Supported target and preflight
 
-## Verify before a run
+| Role | Endpoint | Status | Use |
+| --- | --- | --- | --- |
+| SensibLaw runtime | `truenas.local:5432/sensiblaw_sparse_ready_20260818` | migration-145 complete; reserved for measurements | Sole default for strict calibration and production complete-tranche runs |
 
-From `SensibLaw/`, verify the selected target before compiling:
+Before every workload, verify reachability, migration 145, available capacity,
+and that the reserved database starts without compilation builds or semantic
+runs. The recorded target had 98 GiB free capacity at handover; recheck it, do
+not treat that observation as a perpetual guarantee.
 
 ```bash
-export DATABASE_URL='postgresql://postgres@127.0.0.1:5433/sensiblaw_tranche'
-psql "$DATABASE_URL" -c \
-  "select current_database(), current_user;"
+set -a
+. ./.env
+set +a
 
-psql "$DATABASE_URL" -c \
-  "select table_schema, count(*) from information_schema.tables
-   where table_schema in ('corpus','algebra','resolution')
-   group by table_schema order by table_schema;"
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c \
+  "select current_database(), current_user, pg_size_pretty(pg_database_size(current_database()));"
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c \
+  "select exists (
+     select 1 from public.sensiblaw_schema_migration
+     where migration_name = '145_sparse_frontier_dirty_closure.sql'
+   ) as migration_145_applied;"
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c \
+  "select
+     (select count(*) from execution.document_compilation_build) as builds,
+     (select count(*) from execution.semantic_pnf_run_identity) as semantic_runs;"
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c \
+  "select pg_size_pretty(sum(pg_tablespace_size(oid))) as visible_tablespace_usage
+   from pg_tablespace;"
 ```
 
-For a new persistent target, apply migrations first and confirm that
-`corpus.document_occurrence`, `algebra.factor`, `algebra.factor_revision`, and
-`resolution.demand` exist before running a tranche. Record the endpoint,
-database, data directory, tranche, and output root in the run log.
+Proceed only when migration 145 is present and both starting counts are zero.
+Record the capacity check with the run receipt. The tablespace query reports
+visible database usage only; use the TrueNAS storage report as the authoritative
+free-space figure.
 
-Never use `rm -rf` against the persistent data directory. The 5433 cluster is
-disposable only because the prior setup intentionally created it under
-`/tmp`; that does not make other clusters interchangeable.
+## Retired local exact-0008 cluster
+
+`/tmp/sensiblaw-pr485-pg.wB1DN7` was a disposable diagnostic cluster, not a
+runtime target. Its final `postgres.log` records the failure sequence on
+2026-08-18: `/tmp` quota exhaustion prevented extension of
+`execution.semantic_parser_token`, WAL temporary-file writing panicked during
+autovacuum, and PostgreSQL terminated then shut down during recovery. Preserve
+that log as the diagnostic record before removing the data directory. Do not
+restart or target this cluster.
+
+Other documentation that mentions `127.0.0.1:5433` is historical evidence
+only, not a runnable default. New commands must source `.env` and use the
+TrueNAS database.
+
+## Complete-tranche measurement contract
+
+Use fresh output and ledger roots for each strict calibration. Calibration
+runs are intentionally rolled back; production runs are not.
+
+```bash
+set -a
+. ./.env
+set +a
+
+uv run python scripts/benchmark_complete_tranche_phases.py \
+  --tranche GWB \
+  --database-url "$DATABASE_URL" \
+  --input-path /absolute/path/to/0008.epub \
+  --output-root .tmp/exact-0008-truenas-calibration-serial \
+  --ledger-root .tmp/exact-0008-truenas-calibration-serial-ledger \
+  --typing-workers 1 --closure-workers 1 --owner-partitions 1 \
+  --parser-workers 1 --worker-budget 1 --strict-exact
+```
+
+Then run the strict production shape in a separate rolled-back calibration root:
+`--worker-budget 4 --closure-workers 4 --owner-partitions 8`. Require
+`strict-numeric-postgresql`, zero rollback counts, no failure references,
+durable outer phase timings, and resource/stage ledgers from both runs.
+
+After calibration, run one separate strict offline non-calibration complete
+tranche against the same database. Invoke the unchanged sparse-frontier
+reduction for its run/document references and require a receipt reporting zero
+rebuilt frontiers. Rank any compact report by actual phase wall time first, and
+include the commit SHA, EPUB digest, migration level, worker shape, peak
+RSS/PSS, reduction-scan amplification, reuse/failure counts, and that
+frontier-idempotence receipt. Do not claim an hour-scale path until completed
+strict runs provide those terminal receipts.
 
 ## Document compiler progress contract
 

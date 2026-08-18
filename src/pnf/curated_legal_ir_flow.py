@@ -35,9 +35,7 @@ from src.pnf.legal_ir_projection_bridge import (
 from src.pnf.legal_source_registry import RegisteredLegalSource
 from src.policy.carriers.canonical import canonical_sha256
 
-SourceLookup = Callable[
-    [NormativeInteractionDemand], Sequence[RegisteredLegalSource]
-]
+SourceLookup = Callable[[NormativeInteractionDemand], Sequence[RegisteredLegalSource]]
 PayloadLookup = Callable[[str], Mapping[str, Any] | None]
 LegalCompiler = Callable[[Mapping[str, Any]], Mapping[str, Any]]
 
@@ -78,17 +76,11 @@ def _factor_projection_rows(
                 "factor_revision_ref": revision_ref,
                 "structural_signature_ref": signature_ref,
                 "role_bindings": dict(metadata.get("role_bindings") or {}),
-                "qualifier_state": dict(
-                    metadata.get("qualifier_state") or {}
-                ),
+                "qualifier_state": dict(metadata.get("qualifier_state") or {}),
                 "wrapper_state": dict(metadata.get("wrapper_state") or {}),
-                "provenance_refs": tuple(
-                    metadata.get("provenance_refs") or ()
-                ),
+                "provenance_refs": tuple(metadata.get("provenance_refs") or ()),
                 "residual_refs": tuple(factor.get("residuals") or ()),
-                "legal_coordinates": dict(
-                    metadata.get("legal_coordinates") or {}
-                ),
+                "legal_coordinates": dict(metadata.get("legal_coordinates") or {}),
             }
         )
     return tuple(rows)
@@ -183,9 +175,7 @@ def run_curated_legal_ir_flow(
                 persisted_sources=(row.planning_row() for row in sources),
             )
         )
-    ordered_plans = tuple(
-        sorted(plans, key=lambda row: (row.demand_ref, row.plan_key))
-    )
+    ordered_plans = tuple(sorted(plans, key=lambda row: (row.demand_ref, row.plan_key)))
     requirements = project_acquisition_requirements(ordered_plans)
 
     selected_refs = tuple(
@@ -203,20 +193,15 @@ def run_curated_legal_ir_flow(
         payload = payload_lookup(source_ref)
         if payload is None:
             raise ValueError(
-                "selected persisted legal source is unavailable: " f"{source_ref}"
+                f"selected persisted legal source is unavailable: {source_ref}"
             )
         compilation = compile_legal_source(payload)
         artifacts = _artifacts(compilation)
         streaming = artifacts.get("streaming_semantic_build") or {}
-        if (
-            (streaming.get("fixed_point_certificate") or {}).get(
-                "local_fixed_point"
-            )
-            != "reached"
-        ):
-            raise ValueError(
-                "selected legal source did not reach local fixed point"
-            )
+        if (streaming.get("fixed_point_certificate") or {}).get(
+            "local_fixed_point"
+        ) != "reached":
+            raise ValueError("selected legal source did not reach local fixed point")
         legal_compilations.append(dict(compilation))
 
     legal_ir = _lawful_legal_ir(legal_compilations)
@@ -243,8 +228,7 @@ def run_curated_legal_ir_flow(
         all_artifacts,
         legal_ir_refs=(row.observation_ref for row in legal_ir),
         typed_meet_refs=(
-            "legal-typed-meet:" + canonical_sha256(row.to_dict())
-            for row in typed_meets
+            "legal-typed-meet:" + canonical_sha256(row.to_dict()) for row in typed_meets
         ),
         legacy_witness_refs=witness_refs,
     )
@@ -279,8 +263,7 @@ def run_curated_legal_ir_flow(
         ),
         legal_ir_refs=tuple(row.observation_ref for row in legal_ir),
         typed_meet_refs=tuple(
-            "legal-typed-meet:" + canonical_sha256(row.to_dict())
-            for row in typed_meets
+            "legal-typed-meet:" + canonical_sha256(row.to_dict()) for row in typed_meets
         ),
         legacy_witness_refs=witness_refs,
         identity_snapshot=snapshot.to_dict(),

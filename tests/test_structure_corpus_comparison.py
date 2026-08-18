@@ -1,13 +1,32 @@
 from __future__ import annotations
 
-from src.reporting.structure_report import TextUnit, build_source_comparison_report, emit_comparison_summary
+from src.reporting.structure_report import (
+    TextUnit,
+    build_source_comparison_report,
+    emit_comparison_summary,
+)
 
 
 def test_structure_corpus_comparison_splits_per_source():
     units = [
-        TextUnit("c1", "chat-run", "chat_test_db", "User: run `pytest -q` on ./SensibLaw/tests/test_lexeme_layer.py"),
-        TextUnit("ctx1", "ctx-file", "context_file", "# Heading\n- outputs/rom/rom_samples_L0.json"),
-        TextUnit("t1", "transcript-file", "transcript_file", "1/1/21, 10:00 AM - Alice: Hello"),
+        TextUnit(
+            "c1",
+            "chat-run",
+            "chat_test_db",
+            "User: run `pytest -q` on ./SensibLaw/tests/test_lexeme_layer.py",
+        ),
+        TextUnit(
+            "ctx1",
+            "ctx-file",
+            "context_file",
+            "# Heading\n- outputs/rom/rom_samples_L0.json",
+        ),
+        TextUnit(
+            "t1",
+            "transcript-file",
+            "transcript_file",
+            "1/1/21, 10:00 AM - Alice: Hello",
+        ),
     ]
     payload = build_source_comparison_report(units, top_n=5)
     assert "overall" in payload
@@ -21,8 +40,18 @@ def test_structure_corpus_comparison_splits_per_source():
 
 def test_comparison_summary_emits_side_by_side_rows():
     units = [
-        TextUnit("c1", "chat-run", "chat_test_db", "User: run `pytest -q` on ./SensibLaw/tests/test_lexeme_layer.py"),
-        TextUnit("ctx1", "ctx-file", "context_file", "# Heading\n- outputs/rom/rom_samples_L0.json"),
+        TextUnit(
+            "c1",
+            "chat-run",
+            "chat_test_db",
+            "User: run `pytest -q` on ./SensibLaw/tests/test_lexeme_layer.py",
+        ),
+        TextUnit(
+            "ctx1",
+            "ctx-file",
+            "context_file",
+            "# Heading\n- outputs/rom/rom_samples_L0.json",
+        ),
     ]
     payload = build_source_comparison_report(units, top_n=3)
     summary = emit_comparison_summary(payload, top_n=3)

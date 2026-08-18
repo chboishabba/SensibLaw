@@ -18,7 +18,9 @@ def _stringify(value: Any) -> str:
     return str(value).strip()
 
 
-def _normalize_case_summaries(operator_packets: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+def _normalize_case_summaries(
+    operator_packets: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
     cases: list[dict[str, Any]] = []
     for index, packet in enumerate(operator_packets):
         if not isinstance(packet, Mapping):
@@ -30,8 +32,12 @@ def _normalize_case_summaries(operator_packets: Sequence[Mapping[str, Any]]) -> 
                 "case_id": f"cohort-b-case:{index + 1}",
                 "packet_id": _stringify(packet.get("packet_id")),
                 "decision": _stringify(packet.get("decision")) or "hold",
-                "selected_row_count": int(summary_map.get("selected_row_count", 0) or 0),
-                "variance_flag_counts": dict(summary_map.get("variance_flag_counts", {}))
+                "selected_row_count": int(
+                    summary_map.get("selected_row_count", 0) or 0
+                ),
+                "variance_flag_counts": dict(
+                    summary_map.get("variance_flag_counts", {})
+                )
                 if isinstance(summary_map.get("variance_flag_counts"), Mapping)
                 else {},
             }
@@ -40,7 +46,11 @@ def _normalize_case_summaries(operator_packets: Sequence[Mapping[str, Any]]) -> 
 
 
 def _packet_decision_counts(cases: Sequence[Mapping[str, Any]]) -> dict[str, int]:
-    counts = Counter(_stringify(case.get("decision")) for case in cases if _stringify(case.get("decision")))
+    counts = Counter(
+        _stringify(case.get("decision"))
+        for case in cases
+        if _stringify(case.get("decision"))
+    )
     return {key: counts[key] for key in sorted(counts)}
 
 
@@ -53,7 +63,9 @@ def build_nat_cohort_b_operator_batch_report(
     if not isinstance(operator_packets, Sequence) or isinstance(
         operator_packets, (str, bytes, bytearray)
     ):
-        raise ValueError("operator_packets must be a sequence of Cohort B operator packet objects")
+        raise ValueError(
+            "operator_packets must be a sequence of Cohort B operator packet objects"
+        )
 
     case_summaries = _normalize_case_summaries(operator_packets)
     queue_payload = build_nat_cohort_b_operator_queue(
@@ -81,7 +93,8 @@ def build_nat_cohort_b_operator_batch_report(
 
     return {
         "schema_version": WIKIDATA_NAT_COHORT_B_OPERATOR_BATCH_REPORT_SCHEMA_VERSION,
-        "lane_id": _stringify(queue_payload.get("lane_id")) or "wikidata_nat_wdu_p5991_p14143",
+        "lane_id": _stringify(queue_payload.get("lane_id"))
+        or "wikidata_nat_wdu_p5991_p14143",
         "cohort_id": "cohort_b_reconciled_non_business",
         "batch_status": batch_status,
         "decision_reasons": sorted(set(decision_reasons)),
@@ -91,13 +104,19 @@ def build_nat_cohort_b_operator_batch_report(
         "report": report_payload,
         "summary": {
             "case_count": len(case_summaries),
-            "queue_item_count": int(queue_payload.get("summary", {}).get("queue_item_count", 0) or 0)
+            "queue_item_count": int(
+                queue_payload.get("summary", {}).get("queue_item_count", 0) or 0
+            )
             if isinstance(queue_payload.get("summary"), Mapping)
             else 0,
-            "blocked_packet_count": int(report_payload.get("summary", {}).get("blocked_packet_count", 0) or 0)
+            "blocked_packet_count": int(
+                report_payload.get("summary", {}).get("blocked_packet_count", 0) or 0
+            )
             if isinstance(report_payload.get("summary"), Mapping)
             else 0,
-            "validation_error_count": int(report_payload.get("summary", {}).get("validation_error_count", 0) or 0)
+            "validation_error_count": int(
+                report_payload.get("summary", {}).get("validation_error_count", 0) or 0
+            )
             if isinstance(report_payload.get("summary"), Mapping)
             else 0,
             "review_first": True,

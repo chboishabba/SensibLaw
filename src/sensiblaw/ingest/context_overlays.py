@@ -8,7 +8,9 @@ from sensiblaw.db import ContextFieldDAO
 Overlay = Mapping[str, Any]
 
 
-def ingest_context_fields(connection: sqlite3.Connection, overlays: Iterable[Overlay]) -> None:
+def ingest_context_fields(
+    connection: sqlite3.Connection, overlays: Iterable[Overlay]
+) -> None:
     """Upsert context_field overlays into the DB (non-authoritative).
 
     Each overlay dict should provide:

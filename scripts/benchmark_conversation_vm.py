@@ -24,12 +24,20 @@ def _fixture_turns(mode: str) -> list[dict[str, Any]]:
                 "turn_id": "supplied-1",
                 "text": "Supplied atom surface.",
                 "predicate_atoms": [
-                    {"predicate": "claim", "arguments": ["alpha"], "polarity": "positive", "receipt_ids": ["r1"]}
+                    {
+                        "predicate": "claim",
+                        "arguments": ["alpha"],
+                        "polarity": "positive",
+                        "receipt_ids": ["r1"],
+                    }
                 ],
             }
         ]
     if mode == "shared_projector":
-        return [{"turn_id": f"shared-{idx}", "text": "Alpha supports beta."} for idx in range(4)]
+        return [
+            {"turn_id": f"shared-{idx}", "text": "Alpha supports beta."}
+            for idx in range(4)
+        ]
     if mode == "repeated_text":
         text = "Alpha supports beta. " * 40
         return [{"turn_id": "repeated-1", "text": text}]
@@ -55,7 +63,10 @@ def _fixture_turns(mode: str) -> list[dict[str, Any]]:
             {"turn_id": "utterance-negative", "text": "I did not walk the dog."},
         ]
     if mode == "sparse_atoms":
-        return [{"turn_id": "sparse-1", "text": ""}, {"turn_id": "sparse-2", "text": "   \n"}]
+        return [
+            {"turn_id": "sparse-1", "text": ""},
+            {"turn_id": "sparse-2", "text": "   \n"},
+        ]
     raise ValueError(f"unknown fixture mode: {mode}")
 
 
@@ -66,7 +77,10 @@ def run_benchmark(mode: str, *, iterations: int = 1) -> dict[str, Any]:
     turns = _fixture_turns(mode)
     for iteration in range(max(1, iterations)):
         for turn in turns:
-            delta = compile_turn({**turn, "turn_id": f"{turn['turn_id']}:{iteration}"}, metrics_callback=metrics.append)
+            delta = compile_turn(
+                {**turn, "turn_id": f"{turn['turn_id']}:{iteration}"},
+                metrics_callback=metrics.append,
+            )
             state = step_state(state, delta, metrics_callback=metrics.append)
     elapsed_ms = round((time.perf_counter() - started) * 1000, 6)
     by_stage: dict[str, dict[str, Any]] = {}
@@ -74,7 +88,9 @@ def run_benchmark(mode: str, *, iterations: int = 1) -> dict[str, Any]:
         key = f"{row.get('component')}:{row.get('stage')}"
         bucket = by_stage.setdefault(key, {"count": 0, "elapsed_ms": 0.0})
         bucket["count"] += 1
-        bucket["elapsed_ms"] = round(float(bucket["elapsed_ms"]) + float(row.get("elapsed_ms") or 0.0), 6)
+        bucket["elapsed_ms"] = round(
+            float(bucket["elapsed_ms"]) + float(row.get("elapsed_ms") or 0.0), 6
+        )
     return {
         "schema": "sensiblaw.conversation_vm.benchmark.v0_1",
         "fixture_mode": mode,
@@ -91,7 +107,14 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--fixture-mode",
-        choices=["supplied_atoms", "shared_projector", "repeated_text", "conflict_density", "utterance_pnf_conflict", "sparse_atoms"],
+        choices=[
+            "supplied_atoms",
+            "shared_projector",
+            "repeated_text",
+            "conflict_density",
+            "utterance_pnf_conflict",
+            "sparse_atoms",
+        ],
         default="shared_projector",
     )
     parser.add_argument("--iterations", type=int, default=1)

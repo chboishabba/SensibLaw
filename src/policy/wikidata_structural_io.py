@@ -26,7 +26,9 @@ def write_json_markdown_artifact(
     output_dir.mkdir(parents=True, exist_ok=True)
     artifact_path = output_dir / f"{artifact_version}.json"
     summary_path = output_dir / f"{artifact_version}.summary.md"
-    artifact_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    artifact_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     summary_path.write_text(summary_text, encoding="utf-8")
     return {
         "artifact_path": str(artifact_path),

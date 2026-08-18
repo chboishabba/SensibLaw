@@ -117,7 +117,9 @@ def coerce_carrier_motif_annotation(
     if isinstance(value, CarrierMotifAnnotation):
         return _ensure_non_promoting_annotation(value)
     if not isinstance(value, Mapping):
-        raise TypeError("carrier motif annotation must be a mapping or CarrierMotifAnnotation")
+        raise TypeError(
+            "carrier motif annotation must be a mapping or CarrierMotifAnnotation"
+        )
 
     schema = value.get("schema", CARRIER_MOTIF_SCHEMA)
     if schema != CARRIER_MOTIF_SCHEMA:
@@ -186,7 +188,9 @@ def attach_carrier_motif_modifier(
     )
 
 
-def _ensure_non_promoting_annotation(annotation: CarrierMotifAnnotation) -> CarrierMotifAnnotation:
+def _ensure_non_promoting_annotation(
+    annotation: CarrierMotifAnnotation,
+) -> CarrierMotifAnnotation:
     roles = annotation.roles or (CarrierRole.NON_PROMOTION_BOUNDARY,)
     if CarrierRole.NON_PROMOTION_BOUNDARY not in roles:
         roles = (*roles, CarrierRole.NON_PROMOTION_BOUNDARY)
@@ -205,7 +209,9 @@ def _coerce_motif(raw: Any, *, strict: bool, diagnostics: list[str]) -> CarrierM
         return CarrierMotif.MOTIF_DIALECTIC
 
 
-def _coerce_roles(raw: Any, *, strict: bool, diagnostics: list[str]) -> tuple[CarrierRole, ...]:
+def _coerce_roles(
+    raw: Any, *, strict: bool, diagnostics: list[str]
+) -> tuple[CarrierRole, ...]:
     if raw is None:
         return (CarrierRole.NON_PROMOTION_BOUNDARY,)
     if isinstance(raw, str) or not isinstance(raw, Sequence):
@@ -249,7 +255,9 @@ def _coerce_projection_target(
             return alias
         if strict:
             raise ValueError(f"unknown projection target: {raw!r}") from None
-        diagnostics.append(f"unknown projection target {raw!r}; defaulted to modifierDiagnosticTarget")
+        diagnostics.append(
+            f"unknown projection target {raw!r}; defaulted to modifierDiagnosticTarget"
+        )
         return ProjectionTarget.MODIFIER_DIAGNOSTIC
 
 

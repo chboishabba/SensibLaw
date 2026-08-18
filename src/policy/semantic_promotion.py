@@ -35,7 +35,9 @@ def derive_relation_semantic_basis(
         for receipt in receipts
         if str(receipt.get("kind") or "").strip()
     }
-    has_subject = any(kind == "subject" or kind.startswith("subject_") for kind in kinds)
+    has_subject = any(
+        kind == "subject" or kind.startswith("subject_") for kind in kinds
+    )
     has_object = any(kind == "object" or kind.startswith("object_") for kind in kinds)
     has_predicate = "verb" in kinds or "predicate" in kinds
     if has_participants and has_subject and has_object and has_predicate:
@@ -43,6 +45,7 @@ def derive_relation_semantic_basis(
     if has_participants and (has_subject or has_object or has_predicate):
         return "mixed"
     return "heuristic"
+
 
 TRUTH_BEARING_FIELDS = (
     "promotion_status",
@@ -137,7 +140,11 @@ def build_contested_claim_candidate(
 
 
 def validate_contested_claim_candidate(candidate: Mapping[str, Any]) -> None:
-    missing = [field for field in MANDATORY_CONTESTED_CANDIDATE_FIELDS if field not in candidate]
+    missing = [
+        field
+        for field in MANDATORY_CONTESTED_CANDIDATE_FIELDS
+        if field not in candidate
+    ]
     if missing:
         raise ValueError(f"Missing contested semantic candidate fields: {missing}")
     basis = str(candidate.get("basis") or "").strip()
@@ -177,7 +184,9 @@ def build_relation_candidate(
 
 
 def validate_relation_candidate(candidate: Mapping[str, Any]) -> None:
-    missing = [field for field in MANDATORY_RELATION_CANDIDATE_FIELDS if field not in candidate]
+    missing = [
+        field for field in MANDATORY_RELATION_CANDIDATE_FIELDS if field not in candidate
+    ]
     if missing:
         raise ValueError(f"Missing relation semantic candidate fields: {missing}")
     basis = str(candidate.get("basis") or "").strip()
@@ -215,7 +224,11 @@ def build_hotspot_pack_candidate(
 
 
 def validate_hotspot_pack_candidate(candidate: Mapping[str, Any]) -> None:
-    missing = [field for field in MANDATORY_HOTSPOT_PACK_CANDIDATE_FIELDS if field not in candidate]
+    missing = [
+        field
+        for field in MANDATORY_HOTSPOT_PACK_CANDIDATE_FIELDS
+        if field not in candidate
+    ]
     if missing:
         raise ValueError(f"Missing hotspot pack semantic candidate fields: {missing}")
     basis = str(candidate.get("basis") or "").strip()
@@ -321,7 +334,10 @@ def promote_contested_claim(candidate: Mapping[str, Any]) -> dict[str, Any]:
             "reason": "non_structural_basis",
         }
 
-    if support_direction == "mixed" or conflict_state in {"partially_reconciled", "unresolved"}:
+    if support_direction == "mixed" or conflict_state in {
+        "partially_reconciled",
+        "unresolved",
+    }:
         return {
             "version": SEMANTIC_PROMOTION_VERSION,
             "status": CANDIDATE_CONFLICT,

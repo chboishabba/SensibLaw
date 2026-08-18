@@ -125,7 +125,11 @@ def _extract_text_ref(*candidates: Mapping[str, Any] | None) -> dict[str, Any] |
     for candidate in candidates:
         if not isinstance(candidate, Mapping):
             continue
-        explicit = candidate.get("text_ref") if isinstance(candidate.get("text_ref"), Mapping) else candidate
+        explicit = (
+            candidate.get("text_ref")
+            if isinstance(candidate.get("text_ref"), Mapping)
+            else candidate
+        )
         normalized = _normalize_text_ref(explicit)
         if normalized:
             return normalized
@@ -243,7 +247,9 @@ def build_au_fact_review_bundle_normalized_artifact(
             ],
         ]
     )
-    source_family = str(evidence_bundle.get("source_family") or "au_fact_review_bundle").strip()
+    source_family = str(
+        evidence_bundle.get("source_family") or "au_fact_review_bundle"
+    ).strip()
     item_label = str(evidence_bundle.get("item_label") or "fact").strip()
     normalized_signals = [
         _normalize_typing_deficit_signal(signal, default_source="au")
@@ -293,7 +299,9 @@ def build_au_fact_review_bundle_normalized_artifact(
             "promoted_count": _int(promoted_outcomes.get("promoted_count")),
             "review_count": review_count,
             "abstained_count": abstained_count,
-            "product_ref": str(promotion_gate.get("product_ref") or "au_fact_review_bundle"),
+            "product_ref": str(
+                promotion_gate.get("product_ref") or "au_fact_review_bundle"
+            ),
             "gate_decision": gate_decision,
         },
         "typing_deficit_signals": normalized_signals,
@@ -321,7 +329,9 @@ def build_au_fact_review_bundle_normalized_artifact(
             baseline_graph_diagnostics=baseline_graph_diagnostics,
         )
         if isinstance(graph_payload.get("pressure"), Mapping):
-            artifact["legal_follow_pressure"] = dict(graph_payload.get("pressure") or {})
+            artifact["legal_follow_pressure"] = dict(
+                graph_payload.get("pressure") or {}
+            )
     return artifact
 
 
@@ -351,7 +361,9 @@ def build_gwb_public_review_normalized_artifact(
         hold_stop_condition="stop when open review or legal-follow pressure is cleared",
     )
 
-    source_family = str(evidence_bundle.get("source_family") or "gwb_public_review").strip()
+    source_family = str(
+        evidence_bundle.get("source_family") or "gwb_public_review"
+    ).strip()
     item_label = str(evidence_bundle.get("item_label") or "source_row").strip()
     source_ref = str(source_input.get("path") or artifact_id).strip()
     text_ref = _extract_text_ref(source_input)
@@ -444,7 +456,9 @@ def build_gwb_broader_review_normalized_artifact(
         hold_stop_condition="stop when open review, archive-follow, or legal-follow pressure is cleared",
     )
 
-    source_family = str(evidence_bundle.get("source_family") or "gwb_broader_review").strip()
+    source_family = str(
+        evidence_bundle.get("source_family") or "gwb_broader_review"
+    ).strip()
     item_label = str(evidence_bundle.get("item_label") or "source_row").strip()
     source_ref = str(source_input.get("path") or artifact_id).strip()
     text_ref = _extract_text_ref(source_input)
@@ -535,8 +549,12 @@ def build_affidavit_coverage_review_normalized_artifact(
         hold_stop_condition="stop when open review or abstain pressure is cleared",
     )
 
-    source_family = str(evidence_bundle.get("source_family") or "affidavit_coverage_review").strip()
-    item_label = str(evidence_bundle.get("item_label") or "affidavit_proposition").strip()
+    source_family = str(
+        evidence_bundle.get("source_family") or "affidavit_coverage_review"
+    ).strip()
+    item_label = str(
+        evidence_bundle.get("item_label") or "affidavit_proposition"
+    ).strip()
     source_ref = str(source_input.get("path") or artifact_id).strip()
     artifact = {
         "schema_version": SUITE_NORMALIZED_ARTIFACT_SCHEMA_VERSION,
@@ -605,7 +623,9 @@ def _build_transport_review_packet_projection(
     build_provenance: Mapping[str, Any] | None,
     source_system: str,
 ) -> dict[str, Any]:
-    provenance_source = dict(build_provenance) if isinstance(build_provenance, Mapping) else {}
+    provenance_source = (
+        dict(build_provenance) if isinstance(build_provenance, Mapping) else {}
+    )
     normalized_selectors = [
         _strip_transport_review_packet_fields(selector)
         for selector in selectors
@@ -620,7 +640,11 @@ def _build_transport_review_packet_projection(
         for section_id in selected_sections
     )
     candidate_refs = _normalize_transport_projection_refs(
-        [selector.get("selector_id") for selector in selectors if isinstance(selector, Mapping)]
+        [
+            selector.get("selector_id")
+            for selector in selectors
+            if isinstance(selector, Mapping)
+        ]
     )
     provenance_refs = _normalize_transport_projection_refs(
         [
@@ -646,13 +670,17 @@ def _build_transport_review_packet_projection(
                     + (
                         list(selector.get("citation_refs"))
                         if isinstance(selector.get("citation_refs"), Sequence)
-                        and not isinstance(selector.get("citation_refs"), (str, bytes, bytearray))
+                        and not isinstance(
+                            selector.get("citation_refs"), (str, bytes, bytearray)
+                        )
                         else []
                     )
                     + (
                         list(selector.get("provenance_refs"))
                         if isinstance(selector.get("provenance_refs"), Sequence)
-                        and not isinstance(selector.get("provenance_refs"), (str, bytes, bytearray))
+                        and not isinstance(
+                            selector.get("provenance_refs"), (str, bytes, bytearray)
+                        )
                         else []
                     )
                 )
@@ -724,12 +752,22 @@ def _normalize_zelph_selector(selector: Any) -> Any:
 
 
 def _zelph_manifest_artifact_id(manifest: Mapping[str, Any]) -> str:
-    hf_objects = manifest.get("hfObjects") if isinstance(manifest.get("hfObjects"), Mapping) else {}
-    manifest_object = hf_objects.get("manifest") if isinstance(hf_objects.get("manifest"), Mapping) else {}
+    hf_objects = (
+        manifest.get("hfObjects")
+        if isinstance(manifest.get("hfObjects"), Mapping)
+        else {}
+    )
+    manifest_object = (
+        hf_objects.get("manifest")
+        if isinstance(hf_objects.get("manifest"), Mapping)
+        else {}
+    )
     manifest_path = str(manifest_object.get("path") or "").strip()
     if manifest_path:
         return manifest_path.rsplit("/", 1)[-1]
-    source = manifest.get("source") if isinstance(manifest.get("source"), Mapping) else {}
+    source = (
+        manifest.get("source") if isinstance(manifest.get("source"), Mapping) else {}
+    )
     bin_path = str(source.get("binPath") or "").strip()
     if bin_path:
         return bin_path.rsplit("/", 1)[-1]
@@ -742,7 +780,9 @@ def _chunk_indices_from_selector(selector: Mapping[str, Any]) -> list[int]:
     if explicit not in {None, ""}:
         values.append(_int(explicit))
     raw_values = selector.get("chunk_indices")
-    if isinstance(raw_values, Sequence) and not isinstance(raw_values, (str, bytes, bytearray)):
+    if isinstance(raw_values, Sequence) and not isinstance(
+        raw_values, (str, bytes, bytearray)
+    ):
         values.extend(_int(value) for value in raw_values)
     return [value for value in values if value >= 0]
 
@@ -752,7 +792,9 @@ def _derive_zelph_selected_shards(selectors: Sequence[Any]) -> list[str]:
     for selector in selectors:
         if not isinstance(selector, Mapping):
             continue
-        section = str(selector.get("section") or selector.get("section_name") or "").strip()
+        section = str(
+            selector.get("section") or selector.get("section_name") or ""
+        ).strip()
         if not section:
             continue
         for chunk_index in _chunk_indices_from_selector(selector):
@@ -765,7 +807,9 @@ def _derive_zelph_selected_sections(selectors: Sequence[Any]) -> list[str]:
     for selector in selectors:
         if not isinstance(selector, Mapping):
             continue
-        section = str(selector.get("section") or selector.get("section_name") or "").strip()
+        section = str(
+            selector.get("section") or selector.get("section_name") or ""
+        ).strip()
         if section:
             selected.append(section)
     return selected
@@ -776,15 +820,29 @@ def _summarize_zelph_manifest_provenance(
     *,
     backend_capabilities: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
-    source = manifest.get("source") if isinstance(manifest.get("source"), Mapping) else {}
-    transport = manifest.get("transport") if isinstance(manifest.get("transport"), Mapping) else {}
+    source = (
+        manifest.get("source") if isinstance(manifest.get("source"), Mapping) else {}
+    )
+    transport = (
+        manifest.get("transport")
+        if isinstance(manifest.get("transport"), Mapping)
+        else {}
+    )
     selector_model = (
-        manifest.get("selectorModel") if isinstance(manifest.get("selectorModel"), Mapping) else {}
+        manifest.get("selectorModel")
+        if isinstance(manifest.get("selectorModel"), Mapping)
+        else {}
     )
     capabilities = (
-        manifest.get("capabilities") if isinstance(manifest.get("capabilities"), Mapping) else {}
+        manifest.get("capabilities")
+        if isinstance(manifest.get("capabilities"), Mapping)
+        else {}
     )
-    sections = manifest.get("sections") if isinstance(manifest.get("sections"), Mapping) else {}
+    sections = (
+        manifest.get("sections")
+        if isinstance(manifest.get("sections"), Mapping)
+        else {}
+    )
     section_counts: dict[str, int] = {}
     for name, value in sections.items():
         if isinstance(value, Mapping):
@@ -795,9 +853,15 @@ def _summarize_zelph_manifest_provenance(
         "transport_primary": str(transport.get("primary") or "").strip(),
         "transport_fallback": str(transport.get("fallback") or "").strip(),
         "selector_unit": str(selector_model.get("unit") or "").strip(),
-        "supported_sections": _nonempty_strings(selector_model.get("supportedSections") or []),
-        "supported_operations": _nonempty_strings(selector_model.get("supportedOperations") or []),
-        "unsupported_operations": _nonempty_strings(selector_model.get("unsupportedOperations") or []),
+        "supported_sections": _nonempty_strings(
+            selector_model.get("supportedSections") or []
+        ),
+        "supported_operations": _nonempty_strings(
+            selector_model.get("supportedOperations") or []
+        ),
+        "unsupported_operations": _nonempty_strings(
+            selector_model.get("unsupportedOperations") or []
+        ),
         "node_route_index": bool(capabilities.get("nodeRouteIndex")),
         "header_probe": bool(capabilities.get("headerProbe")),
         "selected_chunk_read": bool(capabilities.get("selectedChunkRead")),
@@ -834,12 +898,16 @@ def build_zelph_shard_transport_normalized_artifact(
     build_provenance: Mapping[str, Any] | None = None,
     source_system: str = "Zelph-HF",
 ) -> dict[str, Any]:
-    normalized_selectors = [_normalize_zelph_selector(selector) for selector in selectors]
+    normalized_selectors = [
+        _normalize_zelph_selector(selector) for selector in selectors
+    ]
     normalized_shard_ids = _nonempty_texts(selected_shard_ids)
     normalized_sections = _nonempty_texts(selected_sections)
     normalized_upstream_artifact_ids = _nonempty_texts(upstream_artifact_ids or [])
     normalized_build_provenance = (
-        _strip_transport_review_packet_fields(build_provenance) if isinstance(build_provenance, Mapping) else None
+        _strip_transport_review_packet_fields(build_provenance)
+        if isinstance(build_provenance, Mapping)
+        else None
     )
     review_packet_projection = _build_transport_review_packet_projection(
         artifact_id=artifact_id,
@@ -934,21 +1002,31 @@ def build_zelph_hf_transport_normalized_artifact(
     source_system: str = "Zelph-HF",
 ) -> dict[str, Any]:
     if not isinstance(manifest, Mapping):
-        raise ValueError("zelph hf transport normalized artifact requires manifest mapping")
+        raise ValueError(
+            "zelph hf transport normalized artifact requires manifest mapping"
+        )
 
     manifest_version = str(manifest.get("manifestVersion") or "").strip()
     if not manifest_version:
-        raise ValueError("zelph hf transport normalized artifact requires manifestVersion")
+        raise ValueError(
+            "zelph hf transport normalized artifact requires manifestVersion"
+        )
 
-    derived_shard_ids = _nonempty_texts(selected_shard_ids or _derive_zelph_selected_shards(selectors))
-    derived_sections = _nonempty_texts(selected_sections or _derive_zelph_selected_sections(selectors))
+    derived_shard_ids = _nonempty_texts(
+        selected_shard_ids or _derive_zelph_selected_shards(selectors)
+    )
+    derived_sections = _nonempty_texts(
+        selected_sections or _derive_zelph_selected_sections(selectors)
+    )
     build_provenance = _summarize_zelph_manifest_provenance(
         manifest,
         backend_capabilities=backend_capabilities,
     )
     artifact = build_zelph_shard_transport_normalized_artifact(
         artifact_id=_zelph_manifest_artifact_id(manifest),
-        artifact_revision=artifact_revision or str(manifest.get("createdAtUtc") or "").strip() or "unversioned",
+        artifact_revision=artifact_revision
+        or str(manifest.get("createdAtUtc") or "").strip()
+        or "unversioned",
         artifact_class=manifest_version,
         selectors=selectors,
         selected_shard_ids=derived_shard_ids,
@@ -964,8 +1042,12 @@ def build_zelph_hf_transport_normalized_artifact(
             "transport_primary": build_provenance.get("transport_primary"),
             "node_route_index": bool(build_provenance.get("node_route_index")),
             "selected_chunk_read": bool(build_provenance.get("selected_chunk_read")),
-            "supported_operation_count": len(build_provenance.get("supported_operations") or []),
-            "supported_section_count": len(build_provenance.get("supported_sections") or []),
+            "supported_operation_count": len(
+                build_provenance.get("supported_operations") or []
+            ),
+            "supported_section_count": len(
+                build_provenance.get("supported_sections") or []
+            ),
         }
     )
     if isinstance(build_provenance.get("backend_capabilities"), Mapping):
@@ -977,10 +1059,16 @@ def build_zelph_hf_transport_normalized_artifact(
         "transport_primary": build_provenance.get("transport_primary"),
         "node_route_index": bool(build_provenance.get("node_route_index")),
         "selected_chunk_read": bool(build_provenance.get("selected_chunk_read")),
-        "supported_operations": list(build_provenance.get("supported_operations") or []),
+        "supported_operations": list(
+            build_provenance.get("supported_operations") or []
+        ),
         "supported_sections": list(build_provenance.get("supported_sections") or []),
         **(
-            {"backend_capabilities": dict(build_provenance.get("backend_capabilities") or {})}
+            {
+                "backend_capabilities": dict(
+                    build_provenance.get("backend_capabilities") or {}
+                )
+            }
             if isinstance(build_provenance.get("backend_capabilities"), Mapping)
             else {}
         ),

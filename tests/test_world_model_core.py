@@ -89,7 +89,9 @@ def test_project_report_keeps_world_model_reference() -> None:
 
     assert report["schema_version"] == "sl.demo_report.v0_1"
     assert report["world_model_ref"]["model_id"] == "model:2"
-    assert report["projection"]["schema_version"] == WORLD_MODEL_PROJECTION_SCHEMA_VERSION
+    assert (
+        report["projection"]["schema_version"] == WORLD_MODEL_PROJECTION_SCHEMA_VERSION
+    )
     assert report["projection"]["projection_kind"] == "report"
     assert report["report_kind"] == "demo"
 
@@ -166,7 +168,9 @@ def test_world_model_profiles_stay_generic_and_normalized() -> None:
         external_bridges=["wikidata"],
         default_projection_kinds=["report", "review_surface", "linkage_case"],
     )
-    normalized = normalize_profile({"profile_id": "broader_review", "lane_family": "gwb"})
+    normalized = normalize_profile(
+        {"profile_id": "broader_review", "lane_family": "gwb"}
+    )
 
     assert profile["schema_version"] == WORLD_MODEL_PROFILE_SCHEMA_VERSION
     assert profile["profile_id"] == "q43229_superclass_pressure"
@@ -175,11 +179,22 @@ def test_world_model_profiles_stay_generic_and_normalized() -> None:
     assert normalized["lane_family"] == "gwb"
 
 
-def test_world_model_adapters_build_generic_claim_nodes_and_review_claim_records() -> None:
+def test_world_model_adapters_build_generic_claim_nodes_and_review_claim_records() -> (
+    None
+):
     claim_nodes = build_claim_nodes_from_mapping(
-        [{"event_id": "ev1", "candidate_id": "cand1", "label": "Signed", "status": "coalesced"}],
+        [
+            {
+                "event_id": "ev1",
+                "candidate_id": "cand1",
+                "label": "Signed",
+                "status": "coalesced",
+            }
+        ],
         mapping=StateNodeMapping(
-            node_id=lambda row, _context: f"relation:{row['event_id']}:{row['candidate_id']}",
+            node_id=lambda row, _context: (
+                f"relation:{row['event_id']}:{row['candidate_id']}"
+            ),
             node_kind=lambda _row, _context: "relation_candidate",
             label="label",
             status="status",
@@ -241,7 +256,10 @@ def test_world_model_adapters_build_generic_claim_state_records() -> None:
             source_property=lambda _row, _context: "archive_source",
             target_property=lambda _row, _context: "policy_intent",
             state_basis=lambda _row, _context: "archive_lane",
-            provenance_chain=lambda row, context: {"doc_id": row["doc_id"], "lane_id": context["lane_id"]},
+            provenance_chain=lambda row, context: {
+                "doc_id": row["doc_id"],
+                "lane_id": context["lane_id"],
+            },
             canonical_form=lambda row, _context: {
                 "subject": row["doc_id"],
                 "property": "policy_intent",

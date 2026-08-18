@@ -42,8 +42,16 @@ def test_query_results_are_ordered_and_noise_stable():
     base_obs = extract_obligations_from_text("The operator must keep records.")
     noisy_obs = extract_obligations_from_text("(a)  The operator   must keep records.")
 
-    base_actions = [ob.action.normalized for ob in query_obligations(base_obs, action="keep") if ob.action]
-    noisy_actions = [ob.action.normalized for ob in query_obligations(noisy_obs, action="keep") if ob.action]
+    base_actions = [
+        ob.action.normalized
+        for ob in query_obligations(base_obs, action="keep")
+        if ob.action
+    ]
+    noisy_actions = [
+        ob.action.normalized
+        for ob in query_obligations(noisy_obs, action="keep")
+        if ob.action
+    ]
     assert base_actions == noisy_actions == ["keep"]
 
     payload = obligations_to_query_payload(base_obs)

@@ -41,15 +41,22 @@ def test_build_wikidata_structural_handoff_artifact(tmp_path: Path) -> None:
 
     facts_text = facts_path.read_text(encoding="utf-8")
     assert 'qualifier_import_baseline "kind" "qualifier_baseline"' in facts_text
-    assert 'pack_software_entity_kind_collapse_pack_v0 "hold_reason" "awaiting_manifest_promotion"' in facts_text
-    assert 'case_working_fluid_contradiction "case_status" "contradiction"' in facts_text
+    assert (
+        'pack_software_entity_kind_collapse_pack_v0 "hold_reason" "awaiting_manifest_promotion"'
+        in facts_text
+    )
+    assert (
+        'case_working_fluid_contradiction "case_status" "contradiction"' in facts_text
+    )
 
     rules_text = rules_path.read_text(encoding="utf-8")
     assert 'X "structural_case_ready_for_handoff" "true"' in rules_text
     assert 'X "needs_review_due_to_governance" "true"' in rules_text
 
     scorecard_payload = json.loads(scorecard_path.read_text(encoding="utf-8"))
-    assert scorecard_payload["destination"] == "checked_wikidata_structural_understanding"
+    assert (
+        scorecard_payload["destination"] == "checked_wikidata_structural_understanding"
+    )
     assert scorecard_payload["current_stage"] == "checked_structural_handoff_checkpoint"
     assert scorecard_payload["promoted_hotspot_pack_count"] == 3
     assert scorecard_payload["held_hotspot_pack_count"] == 1

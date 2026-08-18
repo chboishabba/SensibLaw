@@ -24,7 +24,9 @@ def test_analyze_pdf_reports_shannon_metrics(monkeypatch, tmp_path: Path) -> Non
     assert result["token_entropy_proxy"] == round(result["entropy_rate_bits"] / 8.0, 4)
 
 
-def test_token_entropy_proxy_increases_with_entropy(monkeypatch, tmp_path: Path) -> None:
+def test_token_entropy_proxy_increases_with_entropy(
+    monkeypatch, tmp_path: Path
+) -> None:
     low_entropy = "abc" * 200
     rng = random.Random(0)
     high_entropy = "".join(rng.choice("abcdefghijklmnopqrstuvwxyz") for _ in range(800))

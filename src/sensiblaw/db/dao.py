@@ -163,7 +163,9 @@ class LegalSourceDAO(BaseDAO):
         self.connection.execute("DELETE FROM legal_sources WHERE id = ?", (source_id,))
         self.connection.commit()
 
-    def get_by_citation(self, *, legal_system_code: str, citation: str) -> Optional[LegalSourceRecord]:
+    def get_by_citation(
+        self, *, legal_system_code: str, citation: str
+    ) -> Optional[LegalSourceRecord]:
         legal_system_id = self._resolve_legal_system_id(legal_system_code)
         row = self._fetchone(
             """
@@ -234,7 +236,9 @@ class LegalSourceDAO(BaseDAO):
 class ActorMappingDAO(BaseDAO):
     """Lookup helpers that connect extracted actors to canonical vocabularies."""
 
-    def list_actor_classes(self, *, legal_system_code: str | None = None) -> list[ActorClassRecord]:
+    def list_actor_classes(
+        self, *, legal_system_code: str | None = None
+    ) -> list[ActorClassRecord]:
         params: list[Any] = []
         where = ""
         if legal_system_code:
@@ -410,7 +414,9 @@ class ContextFieldDAO(BaseDAO):
                     time_end=row["time_end"],
                     symbolic=bool(row["symbolic"]),
                     payload=json.loads(row["payload"]) if row["payload"] else None,
-                    provenance=json.loads(row["provenance"]) if row["provenance"] else None,
+                    provenance=json.loads(row["provenance"])
+                    if row["provenance"]
+                    else None,
                 )
             )
         return records

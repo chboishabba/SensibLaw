@@ -5,7 +5,11 @@ from typing import Iterable, Mapping
 
 def build_summary_index(summaries: Iterable[Mapping[str, object]]) -> dict[str, object]:
     """Aggregate a sequence of Cohort E summaries into a reusable index."""
-    index: dict[str, int] = {"total_batch_runs": 0, "total_agreements": 0, "total_disagreements": 0}
+    index: dict[str, int] = {
+        "total_batch_runs": 0,
+        "total_agreements": 0,
+        "total_disagreements": 0,
+    }
     axis_counts: dict[str, int] = {}
     lane_id: str | None = None
     for summary in summaries:

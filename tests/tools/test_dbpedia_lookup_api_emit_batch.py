@@ -40,7 +40,9 @@ def test_emit_batch_payload_accepts_pick_and_anchors() -> None:
     assert "meta" in payload
     assert payload["actor_external_refs"][0]["actor_id"] == 42
     assert payload["concept_external_refs"][0]["concept_code"] == "HOSPITAL"
-    assert payload["actor_external_refs"][0]["external_id"].endswith("Westmead_Hospital")
+    assert payload["actor_external_refs"][0]["external_id"].endswith(
+        "Westmead_Hospital"
+    )
 
 
 def test_emit_batch_payload_rejects_out_of_range_pick() -> None:
@@ -49,7 +51,14 @@ def test_emit_batch_payload_rejects_out_of_range_pick() -> None:
     ).resolve()
     mod = _load_module(script)
 
-    rows = [{"uri": "http://dbpedia.org/resource/X", "label": "X", "comment": None, "types": []}]
+    rows = [
+        {
+            "uri": "http://dbpedia.org/resource/X",
+            "label": "X",
+            "comment": None,
+            "types": [],
+        }
+    ]
     try:
         mod._external_refs_batch_payload(  # type: ignore[attr-defined]
             term="X",
@@ -65,7 +74,9 @@ def test_emit_batch_payload_rejects_out_of_range_pick() -> None:
 
 
 def test_emit_batch_writes_even_on_cache_hit(tmp_path: Path) -> None:
-    script = (Path(__file__).resolve().parents[2] / "scripts" / "dbpedia_lookup_api.py").resolve()
+    script = (
+        Path(__file__).resolve().parents[2] / "scripts" / "dbpedia_lookup_api.py"
+    ).resolve()
     mod = _load_module(script)
 
     term = "Westmead Hospital"
@@ -117,4 +128,6 @@ def test_emit_batch_writes_even_on_cache_hit(tmp_path: Path) -> None:
     assert rc == 0
     assert out_path.exists()
     payload = json.loads(out_path.read_text(encoding="utf-8"))
-    assert payload["actor_external_refs"][0]["external_id"].endswith("Westmead_Hospital")
+    assert payload["actor_external_refs"][0]["external_id"].endswith(
+        "Westmead_Hospital"
+    )

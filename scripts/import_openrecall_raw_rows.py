@@ -24,15 +24,37 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Import raw OpenRecall rows into bounded SensibLaw staging tables."
     )
-    parser.add_argument("--source-db", type=Path, required=True, help="Path to OpenRecall recall.db")
-    parser.add_argument("--itir-db-path", type=Path, default=Path(".cache_local/itir.sqlite"), help="Target ITIR SQLite DB")
-    parser.add_argument("--storage-path", type=Path, default=None, help="Optional OpenRecall storage root for screenshots")
-    parser.add_argument("--limit", type=int, default=None, help="Optional max source rows to import")
-    parser.add_argument("--import-run-id", default=None, help="Optional stable import run id")
-    parser.add_argument("--show-rows", action="store_true", help="Include a small preview of imported raw rows")
+    parser.add_argument(
+        "--source-db", type=Path, required=True, help="Path to OpenRecall recall.db"
+    )
+    parser.add_argument(
+        "--itir-db-path",
+        type=Path,
+        default=Path(".cache_local/itir.sqlite"),
+        help="Target ITIR SQLite DB",
+    )
+    parser.add_argument(
+        "--storage-path",
+        type=Path,
+        default=None,
+        help="Optional OpenRecall storage root for screenshots",
+    )
+    parser.add_argument(
+        "--limit", type=int, default=None, help="Optional max source rows to import"
+    )
+    parser.add_argument(
+        "--import-run-id", default=None, help="Optional stable import run id"
+    )
+    parser.add_argument(
+        "--show-rows",
+        action="store_true",
+        help="Include a small preview of imported raw rows",
+    )
     args = parser.parse_args(argv)
 
-    import_run_id = args.import_run_id or f"openrecall-raw-import:{uuid.uuid4().hex[:12]}"
+    import_run_id = (
+        args.import_run_id or f"openrecall-raw-import:{uuid.uuid4().hex[:12]}"
+    )
     args.itir_db_path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(str(args.itir_db_path)) as conn:
         conn.row_factory = sqlite3.Row
@@ -46,7 +68,9 @@ def main(argv: list[str] | None = None) -> int:
         )
         conn.commit()
         row_preview = (
-            query_openrecall_raw_rows(conn, import_run_id=summary.import_run_id, limit=5)
+            query_openrecall_raw_rows(
+                conn, import_run_id=summary.import_run_id, limit=5
+            )
             if args.show_rows
             else None
         )

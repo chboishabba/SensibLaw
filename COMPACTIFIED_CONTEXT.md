@@ -1,5 +1,20 @@
 # COMPACTIFIED_CONTEXT
 
+## 2026-08-18 — sparse-frontier readiness before full-ingest measurement
+
+- Strict numeric production and complete-tranche timing now opt out of the
+  historical compatibility replay unless it is explicitly requested. This
+  prevents old document-sized typing and persistence work from silently
+  contaminating a production timing run.
+- Migrations 141–145 remove/defer redundant ancestry and frontier work. The
+  current closure model is canonical-parent dirty propagation plus root-only
+  visible publication; overlapping adjacency/evidence fibres are not canonical
+  parents.
+- Documentation/source contracts and a fresh PostgreSQL migration-through-145
+  catalog gate now pass. The next empirical step is one representative strict
+  full ingest with durable phase timing; Agda kernel checking remains a
+  separate external gate.
+
 ## 2026-08-02 — streamed activation replay acceptance
 
 - Closure handoff state is now a self-verifying v2 replay contract over

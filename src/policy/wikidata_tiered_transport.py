@@ -13,6 +13,7 @@ Freshness is consumer/request relative.  A snapshot with ``snapshot_epoch`` less
 than a request's ``minimum_source_epoch`` is skipped without I/O rather than
 queried and then rejected downstream.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -123,10 +124,7 @@ class ZelphCliSnapshotQueryBackend:
             )
         if self._is_manifest:
             if name_only:
-                return (
-                    f".load-partial {source} left=none right=none "
-                    "nameOfNode=none"
-                )
+                return f".load-partial {source} left=none right=none nameOfNode=none"
             return f".load-partial {source} nameOfNode=none nodeOfName=none"
         return f".load {source}"
 
@@ -142,13 +140,23 @@ class ZelphCliSnapshotQueryBackend:
                 check=False,
             )
         except FileNotFoundError as exc:
-            raise RuntimeError(f"Zelph executable unavailable: {self.executable}") from exc
+            raise RuntimeError(
+                f"Zelph executable unavailable: {self.executable}"
+            ) from exc
         except subprocess.TimeoutExpired as exc:
-            raise TimeoutError(f"Zelph query timed out after {self.timeout_seconds}s") from exc
-        output = "\n".join(part for part in (completed.stdout, completed.stderr) if part)
+            raise TimeoutError(
+                f"Zelph query timed out after {self.timeout_seconds}s"
+            ) from exc
+        output = "\n".join(
+            part for part in (completed.stdout, completed.stderr) if part
+        )
         missing_node_only = allow_missing_node and "No node found with name" in output
-        if completed.returncode != 0 or ("Error in line" in output and not missing_node_only):
-            raise RuntimeError(f"Zelph query failed ({completed.returncode}): {output[-4000:]}")
+        if completed.returncode != 0 or (
+            "Error in line" in output and not missing_node_only
+        ):
+            raise RuntimeError(
+                f"Zelph query failed ({completed.returncode}): {output[-4000:]}"
+            )
         return output
 
     @classmethod
@@ -188,7 +196,9 @@ class ZelphCliSnapshotQueryBackend:
             section = next(
                 (part for part in sections if part.startswith(f"{index}__")), ""
             )
-            candidate = self._candidate_from_node_output(section, source_ref=self.source_ref)
+            candidate = self._candidate_from_node_output(
+                section, source_ref=self.source_ref
+            )
             candidates[label] = (candidate.qid,) if candidate is not None else ()
         acquisitions = 1
         return ZelphSnapshotSearchResult(candidates, acquisitions)
@@ -263,7 +273,11 @@ class ZelphCliSnapshotQueryBackend:
             rows = tuple(
                 fact
                 for value in self._result_values("?value\n" + section)
-                if (fact := self._fact_for_value(*key, value, source_ref=self.source_ref))
+                if (
+                    fact := self._fact_for_value(
+                        *key, value, source_ref=self.source_ref
+                    )
+                )
                 is not None
             )
             facts[key] = rows
@@ -302,7 +316,10 @@ class ZelphHFWikidataTransport:
     def _satisfies_floor(self, minimum_source_epoch: int | None) -> bool:
         if minimum_source_epoch is None:
             return True
-        return self.snapshot_epoch is not None and self.snapshot_epoch >= minimum_source_epoch
+        return (
+            self.snapshot_epoch is not None
+            and self.snapshot_epoch >= minimum_source_epoch
+        )
 
     def search_entities(
         self,
@@ -355,7 +372,9 @@ class ZelphHFWikidataTransport:
             rows: list[WikidataPropertyFact] = []
             for fact in result.facts_by_key.get(key, ()):
                 if (int(fact.subject_qid), int(fact.property_pid)) != key:
-                    raise ValueError("Zelph backend returned an unrequested Wikidata fact")
+                    raise ValueError(
+                        "Zelph backend returned an unrequested Wikidata fact"
+                    )
                 rows.append(
                     WikidataPropertyFact(
                         subject_qid=fact.subject_qid,
@@ -365,7 +384,11 @@ class ZelphHFWikidataTransport:
                         value_text=fact.value_text,
                         value_symbol_kind=fact.value_symbol_kind,
                         value_numeric=fact.value_numeric,
-                        entity_revision=(fact.entity_revision if fact.entity_revision is not None else self.snapshot_revision),
+                        entity_revision=(
+                            fact.entity_revision
+                            if fact.entity_revision is not None
+                            else self.snapshot_revision
+                        ),
                         source_ref=f"zelph-hf:{self.snapshot_ref}",
                         source_epoch=self.snapshot_epoch,
                     )
@@ -408,7 +431,11 @@ class TieredWikidataTransport:
             if self.policy.require_live_discovery:
                 live_labels = unique_labels
             elif self.policy.fallback_on_snapshot_miss:
-                live_labels = tuple(label for label in unique_labels if not snapshot.candidates_by_label.get(label))
+                live_labels = tuple(
+                    label
+                    for label in unique_labels
+                    if not snapshot.candidates_by_label.get(label)
+                )
         live = (
             self.live.search_entities(
                 live_labels,
@@ -422,9 +449,15 @@ class TieredWikidataTransport:
         merged: dict[str, tuple[WikidataSearchCandidate, ...]] = {}
         for label in unique_labels:
             sources = (
-                (live.candidates_by_label.get(label, ()), snapshot.candidates_by_label.get(label, ()))
+                (
+                    live.candidates_by_label.get(label, ()),
+                    snapshot.candidates_by_label.get(label, ()),
+                )
                 if self.policy.require_live_discovery
-                else (snapshot.candidates_by_label.get(label, ()), live.candidates_by_label.get(label, ()))
+                else (
+                    snapshot.candidates_by_label.get(label, ()),
+                    live.candidates_by_label.get(label, ()),
+                )
             )
             seen: set[int] = set()
             rows: list[WikidataSearchCandidate] = []
@@ -447,7 +480,9 @@ class TieredWikidataTransport:
                 if len(rows) >= limit_per_label:
                     break
             merged[label] = tuple(rows)
-        return WikidataSearchBatch(merged, snapshot.provider_call_count + live.provider_call_count)
+        return WikidataSearchBatch(
+            merged, snapshot.provider_call_count + live.provider_call_count
+        )
 
     def fetch_properties(
         self,
@@ -467,9 +502,13 @@ class TieredWikidataTransport:
             if self.policy.require_live_properties:
                 live_keys = unique_keys
             elif self.policy.fallback_on_snapshot_miss:
-                live_keys = tuple(key for key in unique_keys if not snapshot.facts_by_key.get(key))
+                live_keys = tuple(
+                    key for key in unique_keys if not snapshot.facts_by_key.get(key)
+                )
         live = (
-            self.live.fetch_properties(live_keys, minimum_source_epoch=minimum_source_epoch)
+            self.live.fetch_properties(
+                live_keys, minimum_source_epoch=minimum_source_epoch
+            )
             if self.live is not None and live_keys
             else WikidataPropertyBatch({}, 0)
         )
@@ -479,23 +518,33 @@ class TieredWikidataTransport:
             source_rows = (
                 (live.facts_by_key.get(key, ()), snapshot.facts_by_key.get(key, ()))
                 if self.policy.require_live_properties
-                else (snapshot.facts_by_key.get(key, ()), live.facts_by_key.get(key, ()))
+                else (
+                    snapshot.facts_by_key.get(key, ()),
+                    live.facts_by_key.get(key, ()),
+                )
             )
             seen: set[tuple[object, ...]] = set()
             rows: list[WikidataPropertyFact] = []
             for facts in source_rows:
                 for fact in facts:
                     signature = (
-                        int(fact.value_kind), fact.value_qid, fact.value_text,
-                        fact.value_symbol_kind, fact.value_numeric,
-                        fact.entity_revision, fact.source_ref, fact.source_epoch,
+                        int(fact.value_kind),
+                        fact.value_qid,
+                        fact.value_text,
+                        fact.value_symbol_kind,
+                        fact.value_numeric,
+                        fact.entity_revision,
+                        fact.source_ref,
+                        fact.source_epoch,
                     )
                     if signature in seen:
                         continue
                     seen.add(signature)
                     rows.append(fact)
             merged[key] = tuple(rows)
-        return WikidataPropertyBatch(merged, snapshot.provider_call_count + live.provider_call_count)
+        return WikidataPropertyBatch(
+            merged, snapshot.provider_call_count + live.provider_call_count
+        )
 
 
 __all__ = [

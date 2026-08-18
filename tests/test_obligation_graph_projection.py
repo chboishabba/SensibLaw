@@ -15,13 +15,17 @@ def test_graph_projection_is_deterministic():
 
 def test_no_inferred_edges_without_triggers():
     body = "The operator must keep records."
-    graph = build_obligation_graph(extract_obligations_from_text(body, references=[], source_id="doc"))
+    graph = build_obligation_graph(
+        extract_obligations_from_text(body, references=[], source_id="doc")
+    )
     assert not graph.conditional_on
     assert not graph.exception_to
 
 
 def test_exception_edge_created_from_explicit_text():
     body = "The operator must keep records unless exempt."
-    graph = build_obligation_graph(extract_obligations_from_text(body, references=[], source_id="doc"))
+    graph = build_obligation_graph(
+        extract_obligations_from_text(body, references=[], source_id="doc")
+    )
     assert graph.exception_to
     assert graph.exception_to[0][1] == "unless"

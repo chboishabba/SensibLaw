@@ -31,10 +31,14 @@ def _batch_id(batch: Mapping[str, Any], index: int) -> str:
         "packet_decision_counts": dict(batch.get("packet_decision_counts", {}))
         if isinstance(batch.get("packet_decision_counts"), Mapping)
         else {},
-        "summary": dict(batch.get("summary", {})) if isinstance(batch.get("summary"), Mapping) else {},
+        "summary": dict(batch.get("summary", {}))
+        if isinstance(batch.get("summary"), Mapping)
+        else {},
     }
     digest = hashlib.sha1(
-        json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        json.dumps(
+            payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+        ).encode("utf-8")
     ).hexdigest()[:12]
     return f"cohort-b-batch:{digest}"
 
@@ -47,7 +51,9 @@ def build_nat_cohort_b_operator_evidence_index(
     if not isinstance(batch_reports, Sequence) or isinstance(
         batch_reports, (str, bytes, bytearray)
     ):
-        raise ValueError("batch_reports must be a sequence of Cohort B batch-report objects")
+        raise ValueError(
+            "batch_reports must be a sequence of Cohort B batch-report objects"
+        )
     if min_ready_batches < 1:
         raise ValueError("min_ready_batches must be at least 1")
 
@@ -57,7 +63,9 @@ def build_nat_cohort_b_operator_evidence_index(
 
     for index, batch in enumerate(batch_reports):
         if not isinstance(batch, Mapping):
-            validation_errors.append({"batch_index": str(index), "error": "batch_not_object"})
+            validation_errors.append(
+                {"batch_index": str(index), "error": "batch_not_object"}
+            )
             continue
         lane_id = lane_id or _stringify(batch.get("lane_id"))
         cohort_id = _stringify(batch.get("cohort_id"))
@@ -88,15 +96,25 @@ def build_nat_cohort_b_operator_evidence_index(
                 else [],
                 "case_count": int(summary_map.get("case_count", 0) or 0),
                 "queue_item_count": int(summary_map.get("queue_item_count", 0) or 0),
-                "blocked_packet_count": int(summary_map.get("blocked_packet_count", 0) or 0),
-                "validation_error_count": int(summary_map.get("validation_error_count", 0) or 0),
+                "blocked_packet_count": int(
+                    summary_map.get("blocked_packet_count", 0) or 0
+                ),
+                "validation_error_count": int(
+                    summary_map.get("validation_error_count", 0) or 0
+                ),
             }
         )
 
     batch_entries.sort(key=lambda item: (item["batch_index"], item["batch_id"]))
 
-    status_counts = Counter(entry["batch_status"] for entry in batch_entries if entry["batch_status"])
-    ready_batches = [entry for entry in batch_entries if entry["batch_status"] == "batch_review_ready"]
+    status_counts = Counter(
+        entry["batch_status"] for entry in batch_entries if entry["batch_status"]
+    )
+    ready_batches = [
+        entry
+        for entry in batch_entries
+        if entry["batch_status"] == "batch_review_ready"
+    ]
     hold_batches = [entry for entry in batch_entries if entry["batch_status"] == "hold"]
 
     if validation_errors:

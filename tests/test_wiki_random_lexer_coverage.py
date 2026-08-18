@@ -3,7 +3,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.report_wiki_random_lexer_coverage import build_coverage_report, main, score_snapshot_payload
+from scripts.report_wiki_random_lexer_coverage import (
+    build_coverage_report,
+    main,
+    score_snapshot_payload,
+)
 
 
 def _write_snapshot(tmp_path: Path, *, name: str, title: str, text: str) -> Path:
@@ -24,7 +28,9 @@ def _write_snapshot(tmp_path: Path, *, name: str, title: str, text: str) -> Path
     return path
 
 
-def test_score_snapshot_payload_distinguishes_structural_signal_from_plain_text() -> None:
+def test_score_snapshot_payload_distinguishes_structural_signal_from_plain_text() -> (
+    None
+):
     legal = score_snapshot_payload(
         {
             "title": "Legal example",
@@ -100,7 +106,15 @@ def test_coverage_main_writes_report(tmp_path: Path, capsys) -> None:
         ),
         encoding="utf-8",
     )
-    exit_code = main(["--manifest", str(manifest_path), "--output", str(report_path), "--emit-page-rows"])
+    exit_code = main(
+        [
+            "--manifest",
+            str(manifest_path),
+            "--output",
+            str(report_path),
+            "--emit-page-rows",
+        ]
+    )
     payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert report_path.exists()

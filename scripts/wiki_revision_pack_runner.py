@@ -14,11 +14,17 @@ if str(_SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(_SENSIBLAW_ROOT))
 
 from cli_runtime import build_progress_callback, configure_cli_logging
-from src.wiki_timeline.revision_pack_runner import default_out_dir_for_pack, human_summary, run
+from src.wiki_timeline.revision_pack_runner import (
+    default_out_dir_for_pack,
+    human_summary,
+    run,
+)
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Bounded rolling Wikipedia revision pack runner.")
+    parser = argparse.ArgumentParser(
+        description="Bounded rolling Wikipedia revision pack runner."
+    )
     parser.add_argument(
         "--pack",
         type=Path,
@@ -49,12 +55,25 @@ def main(argv: list[str] | None = None) -> int:
         default="json",
         help="stdout summary format (default: %(default)s)",
     )
-    parser.add_argument("--progress", action="store_true", help="Emit progress to stderr.")
-    parser.add_argument("--progress-format", choices=("human", "json", "bar"), default="human", help="Progress renderer for stderr output.")
-    parser.add_argument("--log-level", default="INFO", help="stderr logging level (default: %(default)s).")
+    parser.add_argument(
+        "--progress", action="store_true", help="Emit progress to stderr."
+    )
+    parser.add_argument(
+        "--progress-format",
+        choices=("human", "json", "bar"),
+        default="human",
+        help="Progress renderer for stderr output.",
+    )
+    parser.add_argument(
+        "--log-level",
+        default="INFO",
+        help="stderr logging level (default: %(default)s).",
+    )
     args = parser.parse_args(argv)
     configure_cli_logging(args.log_level)
-    progress_callback = build_progress_callback(enabled=bool(args.progress), fmt=str(args.progress_format))
+    progress_callback = build_progress_callback(
+        enabled=bool(args.progress), fmt=str(args.progress_format)
+    )
 
     if callable(progress_callback):
         progress_callback(
@@ -73,7 +92,11 @@ def main(argv: list[str] | None = None) -> int:
         progress_callback=progress_callback,
     )
     if callable(progress_callback):
-        results = list(payload.get("articles", [])) if isinstance(payload.get("articles"), list) else []
+        results = (
+            list(payload.get("articles", []))
+            if isinstance(payload.get("articles"), list)
+            else []
+        )
         progress_callback(
             "revision_pack_finished",
             {

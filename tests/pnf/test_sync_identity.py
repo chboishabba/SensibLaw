@@ -1,4 +1,7 @@
-from src.pnf.legal_semantic_export import export_legal_semantic_build, verify_legal_semantic_import
+from src.pnf.legal_semantic_export import (
+    export_legal_semantic_build,
+    verify_legal_semantic_import,
+)
 
 
 def test_sync_identity_verifies_without_promoting_semantics() -> None:

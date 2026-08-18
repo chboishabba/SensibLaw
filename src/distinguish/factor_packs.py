@@ -26,7 +26,9 @@ def factor_pack_for_case(case_id: str) -> Dict[str, List[int]]:
     raise ValueError(f"Unknown case: {case_id}")
 
 
-def distinguish_story(case_id: str, story_path: Path) -> Dict[str, List[Dict[str, object]]]:
+def distinguish_story(
+    case_id: str, story_path: Path
+) -> Dict[str, List[Dict[str, object]]]:
     """Compare a story's facts against the factor packs for *case_id*.
 
     The story file is expected to contain a JSON object with a ``facts`` mapping

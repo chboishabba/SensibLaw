@@ -91,8 +91,14 @@ def _issue_from_probe_row(
             "cohort_id": cohort_id or None,
             "packet_id": packet_id or None,
             "split_plan_id": split_plan_id or None,
-            "smallest_typing_check": _stringify(row.get("smallest_typing_check")).strip() or None,
-            "recommended_next_step": _stringify(row.get("recommended_next_step")).strip() or None,
+            "smallest_typing_check": _stringify(
+                row.get("smallest_typing_check")
+            ).strip()
+            or None,
+            "recommended_next_step": _stringify(
+                row.get("recommended_next_step")
+            ).strip()
+            or None,
             "packet_status": _stringify(row.get("packet_status")).strip() or None,
             "uncertainty_flags": _string_list(row.get("uncertainty_flags")),
             "required_reviewer_checks": reviewer_checks,
@@ -125,12 +131,14 @@ def detect_ontology_issues(
             issue
             for row in probe_rows
             if isinstance(row, Mapping)
-            for issue in [_issue_from_probe_row(
-                row,
-                lane_id=lane_id,
-                cohort_id=cohort_id,
-                required_reviewer_checks=required_reviewer_checks,
-            )]
+            for issue in [
+                _issue_from_probe_row(
+                    row,
+                    lane_id=lane_id,
+                    cohort_id=cohort_id,
+                    required_reviewer_checks=required_reviewer_checks,
+                )
+            ]
             if issue is not None
         ]
         return sorted(issues, key=lambda issue: issue.issue_id)
@@ -148,12 +156,14 @@ def detect_ontology_issues(
             issue
             for row in queue_rows
             if isinstance(row, Mapping)
-            for issue in [_issue_from_probe_row(
-                row,
-                lane_id=lane_id,
-                cohort_id=cohort_id,
-                required_reviewer_checks=required_reviewer_checks,
-            )]
+            for issue in [
+                _issue_from_probe_row(
+                    row,
+                    lane_id=lane_id,
+                    cohort_id=cohort_id,
+                    required_reviewer_checks=required_reviewer_checks,
+                )
+            ]
             if issue is not None
         ]
         return sorted(issues, key=lambda issue: issue.issue_id)

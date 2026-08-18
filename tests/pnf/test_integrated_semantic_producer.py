@@ -63,17 +63,13 @@ def test_ordinary_proposals_share_one_integrated_producer_contract() -> None:
 
 
 def test_backend_telemetry_does_not_change_semantic_proposal_identity() -> None:
-    python = _proposal(
-        execution_metadata={"sub_executor_ref": "python-linker:v1"}
-    )
-    zelph = _proposal(
-        execution_metadata={"sub_executor_ref": "zelph-linker:v1"}
-    )
+    python = _proposal(execution_metadata={"sub_executor_ref": "python-linker:v1"})
+    zelph = _proposal(execution_metadata={"sub_executor_ref": "zelph-linker:v1"})
 
     assert python.proposal_ref == zelph.proposal_ref
-    assert python.to_dict()["execution_metadata"] != zelph.to_dict()[
-        "execution_metadata"
-    ]
+    assert (
+        python.to_dict()["execution_metadata"] != zelph.to_dict()["execution_metadata"]
+    )
 
 
 def test_external_enrichment_remains_distinct_from_integrated_core() -> None:

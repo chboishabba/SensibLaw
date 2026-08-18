@@ -21,7 +21,10 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
-from src.storage.manifest_runtime import load_json_object, resolve_sensiblaw_manifest_path
+from src.storage.manifest_runtime import (
+    load_json_object,
+    resolve_sensiblaw_manifest_path,
+)
 from src.tools.network_progress import TransferProgressReporter
 
 
@@ -43,7 +46,9 @@ AUTHORITY_HOST_SUFFIXES = (
 
 
 class _RequestPacer:
-    def __init__(self, *, legal_rps: float, wiki_rps: float, default_rps: float) -> None:
+    def __init__(
+        self, *, legal_rps: float, wiki_rps: float, default_rps: float
+    ) -> None:
         self._legal_interval = 1.0 / max(0.01, float(legal_rps))
         self._wiki_interval = 1.0 / max(0.01, float(wiki_rps))
         self._default_interval = 1.0 / max(0.01, float(default_rps))
@@ -81,7 +86,9 @@ def _utc_now_iso() -> str:
 
 
 def _slug(text: str) -> str:
-    out = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in (text or "").strip())
+    out = "".join(
+        ch if ch.isalnum() or ch in "._-" else "_" for ch in (text or "").strip()
+    )
     while "__" in out:
         out = out.replace("__", "_")
     return out.strip("._") or "artifact"
@@ -152,7 +159,9 @@ class _LinkAndTitleParser(HTMLParser):
         return _collapse_ws("".join(self._title_buf))
 
 
-def _fetch(url: str, timeout: int, user_agent: str, pacer: Optional[_RequestPacer] = None) -> Dict[str, object]:
+def _fetch(
+    url: str, timeout: int, user_agent: str, pacer: Optional[_RequestPacer] = None
+) -> Dict[str, object]:
     if pacer is not None:
         pacer.wait_for(url)
     req = urllib.request.Request(url, headers={"User-Agent": user_agent}, method="GET")
@@ -191,7 +200,9 @@ def _fetch(url: str, timeout: int, user_agent: str, pacer: Optional[_RequestPace
     }
 
 
-def _parse_html_links(content: bytes, final_url: str, max_links: int) -> Tuple[str, List[Dict[str, str]]]:
+def _parse_html_links(
+    content: bytes, final_url: str, max_links: int
+) -> Tuple[str, List[Dict[str, str]]]:
     text = content.decode("utf-8", errors="replace")
     parser = _LinkAndTitleParser()
     parser.feed(text)
@@ -224,8 +235,12 @@ def _guess_content_type_from_path(path: Path) -> str:
     return "application/octet-stream"
 
 
-DEFAULT_SOURCE_PACK_PATH = resolve_sensiblaw_manifest_path("data", "source_packs", "legal_principles_au_v1.json")
-DEFAULT_OUTPUT_DIR = resolve_sensiblaw_manifest_path("demo", "ingest", "legal_principles_au_v1")
+DEFAULT_SOURCE_PACK_PATH = resolve_sensiblaw_manifest_path(
+    "data", "source_packs", "legal_principles_au_v1.json"
+)
+DEFAULT_OUTPUT_DIR = resolve_sensiblaw_manifest_path(
+    "demo", "ingest", "legal_principles_au_v1"
+)
 
 
 def _iso_to_anchor(ts: str) -> Dict[str, object]:
@@ -251,25 +266,53 @@ def _timeline_graph(events: List[Dict[str, object]], pack_id: str) -> Dict[str, 
         source_id = str(ev.get("source_id") or "")
         event_id = str(ev.get("event_id") or "")
         event_label = str(ev.get("text") or "")
-        day = str(((ev.get("anchor") or {}) if isinstance(ev.get("anchor"), dict) else {}).get("text") or "")
+        day = str(
+            (
+                (ev.get("anchor") or {}) if isinstance(ev.get("anchor"), dict) else {}
+            ).get("text")
+            or ""
+        )
         if source_id and source_id not in source_seen:
-            nodes.append({"id": f"source:{source_id}", "type": "source", "label": source_id})
-            edges.append({"from": f"pack:{pack_id}", "to": f"source:{source_id}", "type": "HAS_SOURCE"})
+            nodes.append(
+                {"id": f"source:{source_id}", "type": "source", "label": source_id}
+            )
+            edges.append(
+                {
+                    "from": f"pack:{pack_id}",
+                    "to": f"source:{source_id}",
+                    "type": "HAS_SOURCE",
+                }
+            )
             source_seen.add(source_id)
         if day and day not in time_seen:
             nodes.append({"id": f"time:{day}", "type": "time_day", "label": day})
             time_seen.add(day)
         nodes.append({"id": f"ev:{event_id}", "type": "event", "label": event_label})
         if source_id:
-            edges.append({"from": f"source:{source_id}", "to": f"ev:{event_id}", "type": "HAS_EVENT"})
+            edges.append(
+                {
+                    "from": f"source:{source_id}",
+                    "to": f"ev:{event_id}",
+                    "type": "HAS_EVENT",
+                }
+            )
         if day:
-            edges.append({"from": f"time:{day}", "to": f"ev:{event_id}", "type": "TIME_BIN"})
+            edges.append(
+                {"from": f"time:{day}", "to": f"ev:{event_id}", "type": "TIME_BIN"}
+            )
 
     for i in range(len(events) - 1):
         a = str(events[i].get("event_id") or "")
         b = str(events[i + 1].get("event_id") or "")
         if a and b:
-            edges.append({"from": f"ev:{a}", "to": f"ev:{b}", "type": "NEXT_CHRONO", "order": i + 1})
+            edges.append(
+                {
+                    "from": f"ev:{a}",
+                    "to": f"ev:{b}",
+                    "type": "NEXT_CHRONO",
+                    "order": i + 1,
+                }
+            )
 
     return {
         "graph_id": f"source_pack_timeline_{pack_id}",
@@ -280,7 +323,9 @@ def _timeline_graph(events: List[Dict[str, object]], pack_id: str) -> Dict[str, 
     }
 
 
-def _wiki_timeline_payload(events: List[Dict[str, object]], pack_id: str) -> Dict[str, object]:
+def _wiki_timeline_payload(
+    events: List[Dict[str, object]], pack_id: str
+) -> Dict[str, object]:
     out_events = []
     for ev in events:
         out_events.append(
@@ -306,7 +351,9 @@ def _wiki_timeline_payload(events: List[Dict[str, object]], pack_id: str) -> Dic
     }
 
 
-def _iter_seed_items(pack: Dict[str, object]) -> Iterable[Tuple[Dict[str, object], str, str]]:
+def _iter_seed_items(
+    pack: Dict[str, object],
+) -> Iterable[Tuple[Dict[str, object], str, str]]:
     sources = pack.get("sources") or []
     if not isinstance(sources, list):
         return []
@@ -342,7 +389,9 @@ def run(
     pack_id = str(pack.get("pack_id") or pack_path.stem)
     user_agent = f"ITIR-suite/source-pack-manifest-pull ({pack_id})"
     generated_at = _utc_now_iso()
-    pacer = _RequestPacer(legal_rps=legal_rps, wiki_rps=wiki_rps, default_rps=default_rps)
+    pacer = _RequestPacer(
+        legal_rps=legal_rps, wiki_rps=wiki_rps, default_rps=default_rps
+    )
 
     out_dir.mkdir(parents=True, exist_ok=True)
     raw_dir = out_dir / "raw"
@@ -376,13 +425,23 @@ def run(
         }
         try:
             if kind == "url":
-                fetched = _fetch(seed_value, timeout=timeout, user_agent=user_agent, pacer=pacer)
-                content = fetched["bytes"] if isinstance(fetched["bytes"], bytes) else b""
+                fetched = _fetch(
+                    seed_value, timeout=timeout, user_agent=user_agent, pacer=pacer
+                )
+                content = (
+                    fetched["bytes"] if isinstance(fetched["bytes"], bytes) else b""
+                )
                 final_url = str(fetched["final_url"])
                 content_type = str(fetched["content_type"] or "")
                 status_code = int(fetched["status_code"])
                 digest = _sha256_bytes(content)
-                suffix = ".html" if "html" in content_type.lower() else ".pdf" if "pdf" in content_type.lower() else ".bin"
+                suffix = (
+                    ".html"
+                    if "html" in content_type.lower()
+                    else ".pdf"
+                    if "pdf" in content_type.lower()
+                    else ".bin"
+                )
                 raw_name = f"{idx:04d}_{_slug(source_id)}_{_slug(final_url)}{suffix}"
                 raw_path = raw_dir / raw_name
                 raw_path.write_bytes(content)
@@ -390,7 +449,9 @@ def run(
                 title = ""
                 outbound_links: List[Dict[str, str]] = []
                 if "html" in content_type.lower() or suffix == ".html":
-                    title, outbound_links = _parse_html_links(content, final_url, max_links=max_links_per_doc)
+                    title, outbound_links = _parse_html_links(
+                        content, final_url, max_links=max_links_per_doc
+                    )
 
                 authority_links: List[Dict[str, str]] = []
                 seen_auth = set()
@@ -445,7 +506,9 @@ def run(
             errors.append({"doc_id": doc_id, "url": seed_value, "error": row["error"]})
         docs.append(row)
 
-    docs_sorted = sorted(docs, key=lambda r: (str(r.get("fetched_at") or ""), str(r.get("doc_id") or "")))
+    docs_sorted = sorted(
+        docs, key=lambda r: (str(r.get("fetched_at") or ""), str(r.get("doc_id") or ""))
+    )
 
     events: List[Dict[str, object]] = []
     for i, d in enumerate(docs_sorted, start=1):
@@ -455,7 +518,9 @@ def run(
         authority_labels = []
         for link in d.get("authority_links") or []:
             if isinstance(link, dict):
-                label = _collapse_ws(str(link.get("text") or "")) or str(link.get("url") or "")
+                label = _collapse_ws(str(link.get("text") or "")) or str(
+                    link.get("url") or ""
+                )
                 authority_labels.append(label)
         event_id = f"ev:{i:04d}"
         events.append(
@@ -477,7 +542,9 @@ def run(
         "pack_id": pack_id,
         "generated_at": generated_at,
         "pack_path": str(pack_path),
-        "contracts": pack.get("contracts") if isinstance(pack.get("contracts"), dict) else {},
+        "contracts": pack.get("contracts")
+        if isinstance(pack.get("contracts"), dict)
+        else {},
         "fetch_policy": {
             "legal_rps": float(legal_rps),
             "wiki_rps": float(wiki_rps),
@@ -489,7 +556,9 @@ def run(
             "documents_total": len(docs_sorted),
             "documents_ok": sum(1 for d in docs_sorted if d.get("status") == "ok"),
             "documents_error": sum(1 for d in docs_sorted if d.get("status") != "ok"),
-            "authority_links_total": sum(len(d.get("authority_links") or []) for d in docs_sorted),
+            "authority_links_total": sum(
+                len(d.get("authority_links") or []) for d in docs_sorted
+            ),
         },
     }
 
@@ -506,10 +575,18 @@ def run(
     graph_path = out_dir / "timeline_graph.json"
     wiki_timeline_path = out_dir / f"wiki_timeline_{pack_id}.json"
 
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
-    timeline_path.write_text(json.dumps(timeline_payload, indent=2, sort_keys=True), encoding="utf-8")
-    graph_path.write_text(json.dumps(timeline_graph, indent=2, sort_keys=True), encoding="utf-8")
-    wiki_timeline_path.write_text(json.dumps(wiki_timeline, indent=2, sort_keys=True), encoding="utf-8")
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8"
+    )
+    timeline_path.write_text(
+        json.dumps(timeline_payload, indent=2, sort_keys=True), encoding="utf-8"
+    )
+    graph_path.write_text(
+        json.dumps(timeline_graph, indent=2, sort_keys=True), encoding="utf-8"
+    )
+    wiki_timeline_path.write_text(
+        json.dumps(wiki_timeline, indent=2, sort_keys=True), encoding="utf-8"
+    )
 
     return {
         "ok": True,
@@ -524,7 +601,9 @@ def run(
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    ap = argparse.ArgumentParser(description="Bounded source-pack pull -> manifest + chronology artifacts.")
+    ap = argparse.ArgumentParser(
+        description="Bounded source-pack pull -> manifest + chronology artifacts."
+    )
     ap.add_argument(
         "--pack",
         dest="pack_path",
@@ -539,7 +618,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         default=DEFAULT_OUTPUT_DIR,
         help="Output directory (default: %(default)s)",
     )
-    ap.add_argument("--timeout", type=int, default=20, help="Per-request timeout seconds (default: %(default)s)")
+    ap.add_argument(
+        "--timeout",
+        type=int,
+        default=20,
+        help="Per-request timeout seconds (default: %(default)s)",
+    )
     ap.add_argument(
         "--max-links-per-doc",
         type=int,

@@ -27,7 +27,7 @@ from src.models.numeric_claims import (
 
 
 @given(
-    n=st.integers(min_value=-10**9, max_value=10**9),
+    n=st.integers(min_value=-(10**9), max_value=10**9),
     exp=st.integers(min_value=-4, max_value=4),
 )
 def test_magnitude_identity_invariant_under_decimal_rendering(n: int, exp: int) -> None:
@@ -36,7 +36,7 @@ def test_magnitude_identity_invariant_under_decimal_rendering(n: int, exp: int) 
 
 
 @given(
-    n=st.integers(min_value=-10**8, max_value=10**8).filter(lambda x: x != 0),
+    n=st.integers(min_value=-(10**8), max_value=10**8).filter(lambda x: x != 0),
     exp=st.integers(min_value=-3, max_value=3),
     sig=st.integers(min_value=1, max_value=6),
 )
@@ -110,21 +110,36 @@ def test_anchor_graduation_rules() -> None:
     policy = GraduationPolicy(recurrence_threshold=3, cross_actor_threshold=2)
     assert (
         graduate_magnitude_anchor(
-            MagnitudeUsage(recurrence_count=3, cross_actor_count=2, boundary_usage_count=0, dimension="currency"),
+            MagnitudeUsage(
+                recurrence_count=3,
+                cross_actor_count=2,
+                boundary_usage_count=0,
+                dimension="currency",
+            ),
             policy,
         )
         == AnchorStatus.ANCHOR
     )
     assert (
         graduate_magnitude_anchor(
-            MagnitudeUsage(recurrence_count=2, cross_actor_count=1, boundary_usage_count=0, dimension="unknown"),
+            MagnitudeUsage(
+                recurrence_count=2,
+                cross_actor_count=1,
+                boundary_usage_count=0,
+                dimension="unknown",
+            ),
             policy,
         )
         == AnchorStatus.CANDIDATE
     )
     assert (
         graduate_magnitude_anchor(
-            MagnitudeUsage(recurrence_count=1, cross_actor_count=1, boundary_usage_count=0, dimension="unknown"),
+            MagnitudeUsage(
+                recurrence_count=1,
+                cross_actor_count=1,
+                boundary_usage_count=0,
+                dimension="unknown",
+            ),
             policy,
         )
         == AnchorStatus.TRANSIENT

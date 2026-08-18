@@ -61,8 +61,7 @@ def persist_external_snapshot(
             "assertion_role_ref": assertion["assertion_role_ref"],
         }
         assertion_ref = str(
-            assertion.get("assertion_ref")
-            or "assertion:" + canonical_sha256(identity)
+            assertion.get("assertion_ref") or "assertion:" + canonical_sha256(identity)
         )
         cursor.execute(
             """

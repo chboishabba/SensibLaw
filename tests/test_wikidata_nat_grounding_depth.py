@@ -13,14 +13,12 @@ from src.ontology.wikidata_grounding_depth import (
     GROUNDING_EVIDENCE_REPORT_SCHEMA_VERSION,
     GROUNDING_PRIORITY_SURFACE_SCHEMA_VERSION,
     GROUNDING_ROUTING_SCHEMA_VERSION,
-    GROUNDING_SCORECARD_SCHEMA_VERSION,
     build_grounding_depth_attachment,
     build_grounding_depth_batch,
     build_grounding_depth_comparison,
     build_grounding_depth_evidence_report,
     build_grounding_depth_priority_surface,
     build_grounding_depth_routing_report,
-    build_grounding_depth_scorecard,
     build_grounding_depth_summary,
 )
 
@@ -66,7 +64,10 @@ def _load_attachment_fixture() -> dict:
 def test_build_grounding_attachment_matches_fixture() -> None:
     payload = _load_fixture()
     summary = build_grounding_depth_summary(fixture=payload)
-    review_packet = {"packet_id": "review-packet:5bae90b4fcb444f6", "review_entity_qid": "Q10403939"}
+    review_packet = {
+        "packet_id": "review-packet:5bae90b4fcb444f6",
+        "review_entity_qid": "Q10403939",
+    }
     attachment = build_grounding_depth_attachment(
         review_packet=review_packet,
         grounding_summary=summary,
@@ -124,7 +125,10 @@ def test_build_grounding_batch_matches_fixture() -> None:
     payload = _load_fixture()
     summary = build_grounding_depth_summary(fixture=payload)
     review_packets = [
-        {"packet_id": "review-packet:5bae90b4fcb444f6", "review_entity_qid": "Q10403939"},
+        {
+            "packet_id": "review-packet:5bae90b4fcb444f6",
+            "review_entity_qid": "Q10403939",
+        },
         {"packet_id": "review-packet:c52b8308fdbdd5e3", "review_entity_qid": "Q731938"},
     ]
     batch = build_grounding_depth_batch(
@@ -331,7 +335,9 @@ def _build_live_follow_result(
 
 
 def test_hard_grounding_policy_checks_allowlist_and_freshness() -> None:
-    from src.ontology.wikidata_grounding_depth import HARD_GROUNDING_ALLOWED_SOURCE_CLASSES
+    from src.ontology.wikidata_grounding_depth import (
+        HARD_GROUNDING_ALLOWED_SOURCE_CLASSES,
+    )
 
     payload = _load_fixture()
     live_result = _build_live_follow_result(
@@ -344,7 +350,9 @@ def test_hard_grounding_policy_checks_allowlist_and_freshness() -> None:
         policy_reference_time=datetime(2025, 10, 22, tzinfo=timezone.utc),
     )
     policy_checks = summary["hard_grounding_policy_checks"]
-    assert policy_checks["allowed_source_classes"] == list(sorted(HARD_GROUNDING_ALLOWED_SOURCE_CLASSES))
+    assert policy_checks["allowed_source_classes"] == list(
+        sorted(HARD_GROUNDING_ALLOWED_SOURCE_CLASSES)
+    )
     assert policy_checks["max_revision_age_days"] == 365
     assert policy_checks["violations"] == []
 
@@ -511,9 +519,18 @@ def test_build_grounding_depth_routing_report_counts_hold_vs_abstain() -> None:
     summary = build_grounding_depth_summary(fixture=_load_fixture())
     coverage_index = {
         "packet_slots": [
-            {"packet_id": "review-packet:5bae90b4fcb444f6", "coverage_decision": "grounded"},
-            {"packet_id": "review-packet:atrium-ljungberg-20260401", "coverage_decision": "hold"},
-            {"packet_id": "review-packet:c52b8308fdbdd5e3", "coverage_decision": "abstain"},
+            {
+                "packet_id": "review-packet:5bae90b4fcb444f6",
+                "coverage_decision": "grounded",
+            },
+            {
+                "packet_id": "review-packet:atrium-ljungberg-20260401",
+                "coverage_decision": "hold",
+            },
+            {
+                "packet_id": "review-packet:c52b8308fdbdd5e3",
+                "coverage_decision": "abstain",
+            },
         ]
     }
     report = build_grounding_depth_routing_report(
@@ -524,6 +541,11 @@ def test_build_grounding_depth_routing_report_counts_hold_vs_abstain() -> None:
     assert report["grounded_packet_count"] == 1
     assert report["hold_count"] == 1
     assert report["abstain_count"] == 1
-    assert routing_map["review-packet:5bae90b4fcb444f6"]["coverage_status"] == "grounded"
-    assert routing_map["review-packet:atrium-ljungberg-20260401"]["coverage_status"] == "hold"
+    assert (
+        routing_map["review-packet:5bae90b4fcb444f6"]["coverage_status"] == "grounded"
+    )
+    assert (
+        routing_map["review-packet:atrium-ljungberg-20260401"]["coverage_status"]
+        == "hold"
+    )
     assert routing_map["review-packet:c52b8308fdbdd5e3"]["coverage_status"] == "abstain"

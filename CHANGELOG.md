@@ -1,3 +1,16 @@
+# 2026-08-18
+
+- Document the strict-numeric complete-tranche production boundary and the
+  current sparse-frontier topology. PostgreSQL migration index entries now
+  cover migrations 140–145; the consumer-sufficient complexity note no longer
+  describes the superseded changed-interface lookup/demand-planner approach.
+- Extend sparse-frontier contract coverage with a regression that keeps the
+  removed delta strategy modules absent and PostgreSQL catalog assertions for
+  migration-145 dirty closure functions and table.
+- Apply the complete migration chain through 145 on a fresh PostgreSQL 18
+  validation database and verify the sparse-frontier catalog tests. This is a
+  bounded schema gate, not a complete-ingest performance result.
+
 # 2026-07-29
 
 - Complete the parser-carrier receipt seam: every fibre now atomically writes a

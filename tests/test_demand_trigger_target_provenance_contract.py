@@ -1,8 +1,13 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-M135 = (ROOT / "database/postgres_migrations/135_demand_trigger_target_occurrence.sql").read_text()
-M136 = (ROOT / "database/postgres_migrations/136_demand_occurrence_registration_hardening.sql").read_text()
+M135 = (
+    ROOT / "database/postgres_migrations/135_demand_trigger_target_occurrence.sql"
+).read_text()
+M136 = (
+    ROOT
+    / "database/postgres_migrations/136_demand_occurrence_registration_hardening.sql"
+).read_text()
 REPORT = (ROOT / "scripts/report_demand_target_provenance.py").read_text()
 
 
@@ -42,7 +47,9 @@ def test_factor_producer_uses_exact_support_token_for_trigger() -> None:
 
 
 def test_factor_support_is_evidence_not_automatic_target() -> None:
-    evidence = M135.split("Preserve all other exact factor-support tokens as evidence", 1)[1]
+    evidence = M135.split(
+        "Preserve all other exact factor-support tokens as evidence", 1
+    )[1]
     evidence = evidence.split("SELECT rule.target_role_symbol_id", 1)[0]
     assert "3::SMALLINT" in evidence
     assert "2::SMALLINT" not in evidence
@@ -72,7 +79,10 @@ def test_migration_install_does_not_backfill_historical_demands() -> None:
     assert "historical demand rows" in lowered
     assert "not backfilled" in lowered
     assert "update execution.semantic_pnf_demand\n   set" not in lowered
-    assert "insert into execution.semantic_pnf_demand_occurrence_provenance\n    select demand.demand_id" not in lowered
+    assert (
+        "insert into execution.semantic_pnf_demand_occurrence_provenance\n    select demand.demand_id"
+        not in lowered
+    )
 
 
 def test_recompile_path_fires_on_insert_and_existing_demand_update() -> None:
@@ -99,7 +109,9 @@ def test_h9_consumes_only_producer_target_occurrence() -> None:
 def test_historical_provider_origins_are_withdrawn_not_deleted() -> None:
     assert "UPDATE execution.semantic_pnf_consumer_external_need_origin" in M135
     assert "SET active=FALSE" in M135
-    assert "DELETE FROM execution.semantic_pnf_consumer_external_need_origin" not in M135
+    assert (
+        "DELETE FROM execution.semantic_pnf_consumer_external_need_origin" not in M135
+    )
 
 
 def test_no_textual_nearest_noun_recovery_is_added() -> None:

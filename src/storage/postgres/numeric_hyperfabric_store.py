@@ -14,6 +14,8 @@ import re
 from typing import Any, Mapping, Sequence
 from uuid import uuid4
 
+import psycopg
+
 from src.pnf.numeric_hyperfabric import (
     ClosureState,
     ExportKind,
@@ -412,24 +414,30 @@ def _load_sentence_tokens(
         (region_id,),
     )
     rows = cursor.fetchall()
-    tokens = tuple(
-        NumericToken(
-            token_id=int(row[0]),
-            orth_id=int(row[1]),
-            lemma_id=int(row[2]),
-            pos_id=int(row[3]),
-            tag_id=int(row[4]),
-            dependency_id=int(row[5]),
-            head_token_id=int(row[6] or row[0]),
-            morph_set_id=int(row[7]) if row[7] is not None else None,
-            start_char=int(row[8]),
-            end_char=int(row[9]),
+    tokens: list[NumericToken] = []
+    for row in rows:
+        if row[6] is None:
+            raise RuntimeError(
+                "numeric parser token has missing dependency head "
+                f"for sentence region {region_id}: token_id={row[0]}"
+            )
+        tokens.append(
+            NumericToken(
+                token_id=int(row[0]),
+                orth_id=int(row[1]),
+                lemma_id=int(row[2]),
+                pos_id=int(row[3]),
+                tag_id=int(row[4]),
+                dependency_id=int(row[5]),
+                head_token_id=int(row[6]),
+                morph_set_id=int(row[7]) if row[7] is not None else None,
+                start_char=int(row[8]),
+                end_char=int(row[9]),
+            )
         )
-        for row in rows
-    )
     if not tokens:
         raise RuntimeError("numeric sentence region has no typed parser tokens")
-    return tokens
+    return tuple(tokens)
 
 
 def _load_profile(cursor: Any, profile_id: int = 1) -> MdlProfile:
@@ -925,6 +933,12 @@ def drain_sentence_closure(
 ) -> int:
     if limit < 1:
         raise ValueError("numeric sentence closure limit must be positive")
+    # Imported after this module has established WorkLease.  The admission
+    # strategy uses that carrier but must not create a second closure authority.
+    from src.storage.postgres.numeric_sentence_admission import (
+        persist_sentence_closure_setwise,
+    )
+
     completed = 0
     connection = connect(database_url)
     try:
@@ -950,7 +964,7 @@ def drain_sentence_closure(
                             tokens=tokens,
                             lexicon=lexicon,
                         )
-                        _persist_sentence_closure(
+                        persist_sentence_closure_setwise(
                             cursor,
                             lease=lease,
                             closure=closure,

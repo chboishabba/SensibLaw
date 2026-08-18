@@ -16,7 +16,9 @@ FIXTURE_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "crossdoc"
 
 
 def _doc(body: str, refs: list[RuleReference], source_id: str) -> Document:
-    meta = DocumentMetadata(jurisdiction="NSW", citation="CIT", date=date(2024, 1, 1), provenance=source_id)
+    meta = DocumentMetadata(
+        jurisdiction="NSW", citation="CIT", date=date(2024, 1, 1), provenance=source_id
+    )
     prov = Provision(text=body, rule_atoms=[RuleAtom(references=refs)])
     return Document(metadata=meta, body=body, provisions=[prov])
 
@@ -24,9 +26,13 @@ def _doc(body: str, refs: list[RuleReference], source_id: str) -> Document:
 def test_crossdoc_topology_snapshot(tmp_path):
     # doc-new repeals Old Act s1; doc-old holds the referenced clause.
     body_new = "The minister must repeal section 1 of the Old Act."
-    ref = RuleReference(work="Old Act", section="1", provenance={"clause_id": "doc-new-clause-0"})
+    ref = RuleReference(
+        work="Old Act", section="1", provenance={"clause_id": "doc-new-clause-0"}
+    )
     body_old = "Section 1 must apply to all operators."
-    ref_old = RuleReference(work="Old Act", section="1", provenance={"clause_id": "doc-old-clause-0"})
+    ref_old = RuleReference(
+        work="Old Act", section="1", provenance={"clause_id": "doc-old-clause-0"}
+    )
 
     documents = {
         "doc-new": _doc(body_new, [ref], source_id="doc-new"),
@@ -34,7 +40,12 @@ def test_crossdoc_topology_snapshot(tmp_path):
     }
     payload = build_crossdoc_topology(documents)
     assert payload["version"] == CROSSDOC_VERSION
-    snapshot_path = Path(__file__).resolve().parents[1] / "snapshots" / "s7" / "crossdoc_topology.json"
+    snapshot_path = (
+        Path(__file__).resolve().parents[1]
+        / "snapshots"
+        / "s7"
+        / "crossdoc_topology.json"
+    )
     snapshot_path.parent.mkdir(parents=True, exist_ok=True)
     if not snapshot_path.exists():
         snapshot_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2))
@@ -60,9 +71,13 @@ def test_phrase_without_reference_emits_no_edge():
 
 def test_repeals_edge_requires_reference_identity():
     body_new = "The minister must repeal section 1 of the Old Act."
-    ref = RuleReference(work="Old Act", section="1", provenance={"clause_id": "doc-new-clause-0"})
+    ref = RuleReference(
+        work="Old Act", section="1", provenance={"clause_id": "doc-new-clause-0"}
+    )
     body_old = "Section 1 applies to all operators."
-    ref_old = RuleReference(work="Old Act", section="1", provenance={"clause_id": "doc-old-clause-0"})
+    ref_old = RuleReference(
+        work="Old Act", section="1", provenance={"clause_id": "doc-old-clause-0"}
+    )
     doc_new = _doc(body_new, [ref], source_id="doc-new")
     doc_old = _doc(body_old, [ref_old], source_id="doc-old")
 

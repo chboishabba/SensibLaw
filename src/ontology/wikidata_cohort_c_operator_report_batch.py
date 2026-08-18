@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from collections import Counter
 from typing import Any, Mapping, Sequence
 
@@ -12,7 +11,9 @@ from .wikidata_cohort_c_operator_report import (
 BATCH_SCHEMA_VERSION = "sl.wikidata_nat.cohort_c.operator_report_batch.v0_1"
 
 
-def _ensure_sequence(inputs: Sequence[Mapping[str, Any]]) -> Sequence[Mapping[str, Any]]:
+def _ensure_sequence(
+    inputs: Sequence[Mapping[str, Any]],
+) -> Sequence[Mapping[str, Any]]:
     if not inputs:
         raise ValueError("At least one evidence packet is required for batch reporting")
     return inputs
