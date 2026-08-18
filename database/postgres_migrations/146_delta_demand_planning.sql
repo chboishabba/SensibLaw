@@ -5,7 +5,7 @@ BEGIN;
 --
 -- Migration 145 reduced the physical lookup refresh to changed paragraph-pair
 -- interfaces, but the existing AFTER INSERT statement trigger still invoked the
--- whole-document demand planner.  Factor the exact per-demand candidate kernel
+-- whole-document demand planner. Factor the exact per-demand candidate kernel
 -- once, retain the existing full scheduler for authoritative hierarchy refresh,
 -- and add an interface-indexed scheduler for the final adjacency delta.
 
@@ -21,9 +21,13 @@ DECLARE
     demand_row RECORD;
     inserted_for_demand BIGINT := 0;
 BEGIN
-    SELECT demand.*
+    SELECT demand.*,
+           source_region.run_ref AS source_run_ref,
+           source_region.document_ref AS source_document_ref
       INTO demand_row
       FROM execution.semantic_pnf_demand AS demand
+      JOIN execution.semantic_pnf_region AS source_region
+        ON source_region.region_id = demand.source_region_id
      WHERE demand.demand_id = selected_demand_id
        AND demand.state IN (1, 2);
 
@@ -69,16 +73,8 @@ BEGIN
             LEFT JOIN execution.semantic_pnf_factor AS factor
               ON global.target_kind = 2
              AND factor.factor_id = global.target_id
-           WHERE global.run_ref = (
-                     SELECT region.run_ref
-                       FROM execution.semantic_pnf_region AS region
-                      WHERE region.region_id = demand_row.source_region_id
-                 )
-             AND global.document_ref = (
-                     SELECT region.document_ref
-                       FROM execution.semantic_pnf_region AS region
-                      WHERE region.region_id = demand_row.source_region_id
-                 )
+           WHERE global.run_ref = demand_row.source_run_ref
+             AND global.document_ref = demand_row.source_document_ref
              AND global.target_kind = demand_row.expected_target_kind
              AND global.target_id <> demand_row.demand_id
              AND (
@@ -210,7 +206,7 @@ RETURNS BIGINT
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    selected RECORD;
+    selected_demand_id BIGINT;
     affected_ids BIGINT[];
     inserted_total BIGINT := 0;
     anaphor_residual_id BIGINT;
@@ -232,7 +228,10 @@ BEGIN
      WHERE kind_id = 14
        AND symbol_text = 'mention.pronoun';
 
-    SELECT COALESCE(array_agg(DISTINCT demand.demand_id ORDER BY demand.demand_id), '{}')
+    SELECT COALESCE(
+               array_agg(DISTINCT demand.demand_id ORDER BY demand.demand_id),
+               ARRAY[]::BIGINT[]
+           )
       INTO affected_ids
       FROM execution.semantic_pnf_demand AS demand
       JOIN execution.semantic_pnf_region AS source_region
@@ -297,10 +296,10 @@ BEGIN
            )
        );
 
-    FOREACH selected.demand_id IN ARRAY affected_ids LOOP
+    FOREACH selected_demand_id IN ARRAY affected_ids LOOP
         inserted_total := inserted_total
             + execution.plan_numeric_pnf_one_demand(
-                selected.demand_id,
+                selected_demand_id,
                 anaphor_residual_id,
                 pronoun_kind_id
             );
