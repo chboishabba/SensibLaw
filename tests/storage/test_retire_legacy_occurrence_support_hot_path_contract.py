@@ -25,10 +25,12 @@ def test_cold_document_rebuild_is_setwise() -> None:
 
 
 def test_all_three_legacy_support_kinds_remain_rebuildable() -> None:
-    assert "1::SMALLINT" in SQL
-    assert "2::SMALLINT" in SQL
-    assert "9::SMALLINT" in SQL
-    assert "semantic_pnf_object_token_support" not in SQL or True
+    assert "demand.demand_id,1::SMALLINT" in SQL
+    assert "demand.demand_id,2::SMALLINT" in SQL
+    assert "demand.demand_id,9::SMALLINT" in SQL
+    assert "export.target_kind=1" in SQL
+    assert "export.target_kind=2" in SQL
+    assert "demand.source_object_id IS NOT NULL" in SQL
 
 
 def test_migration_declares_current_h9_authority_separately() -> None:
