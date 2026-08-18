@@ -28,8 +28,11 @@ def test_sentence_provenance_keeps_generic_trigger_as_fail_closed_fallback() -> 
 
     assert "tmp_numeric_sentence_demand" in policy
     assert "tmp_numeric_sentence_factor_support" in policy
-    assert "tmp_numeric_sentence_factor_slot" not in policy or "semantic_pnf_hyperedge" in policy
     assert "HAVING count(*) = 1" in policy
+    assert "HAVING count(DISTINCT support.object_id) = 1" in policy
+    assert "occurrence_token AS" in policy
+    assert "unique_object AS" in policy
+    assert "LEFT JOIN LATERAL" not in policy
     assert "semantic_pnf_demand_occurrence_provenance" in policy
     assert "set_config(" in policy
 
@@ -58,6 +61,7 @@ def test_parser_sentence_region_work_is_one_statement_projection() -> None:
 
 def test_dependency_heads_are_resolved_statement_wise_and_fail_closed() -> None:
     sql = _text(MIGRATIONS / "150_setwise_numeric_dependency_heads.sql")
+    index_sql = _text(MIGRATIONS / "151_numeric_sentence_span_head_index.sql")
     policy = _text(POLICY / "numeric_parser_projection_hot_path.py")
 
     assert "REFERENCING NEW TABLE AS inserted_token" in sql
@@ -65,6 +69,12 @@ def test_dependency_heads_are_resolved_statement_wise_and_fail_closed() -> None:
     assert "HAVING count(head.token_id) <> 1" in sql
     assert "UPDATE execution.semantic_parser_token AS token" in sql
     assert "FOR EACH ROW" not in sql
+
+    # Physical lookup geometry must match the exact join prefix introduced by
+    # the set-wise resolver rather than relying on the old document-span index.
+    assert "semantic_parser_token_numeric_sentence_span_idx" in index_sql
+    assert "(sentence_id, start_char, end_char, token_id)" in index_sql
+    assert "WHERE representation_version = 2" in index_sql
 
     # The execution strategy may suppress only the redundant UPDATE payload.
     assert "original_project_heads(*args, **kwargs)" in policy
