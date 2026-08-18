@@ -25,7 +25,10 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--progress-ledger",
         type=Path,
-        help="Optional durable local_pnf_compile_progress.json to include.",
+        help=(
+            "Optional durable local_pnf_compile_progress.jsonl journal or final "
+            "local_pnf_compile_progress.json snapshot."
+        ),
     )
     args = parser.parse_args()
     if not args.database_url:
@@ -36,6 +39,16 @@ def _parse_args() -> argparse.Namespace:
 def _last_progress_event(path: Path | None) -> dict[str, Any] | None:
     if path is None or not path.exists():
         return None
+    if path.suffix == ".jsonl":
+        last: dict[str, Any] | None = None
+        with path.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                if not line.strip():
+                    continue
+                row = json.loads(line)
+                if isinstance(row, dict):
+                    last = dict(row)
+        return last
     payload = json.loads(path.read_text(encoding="utf-8"))
     events = payload.get("events") if isinstance(payload, dict) else None
     if not isinstance(events, list) or not events:
