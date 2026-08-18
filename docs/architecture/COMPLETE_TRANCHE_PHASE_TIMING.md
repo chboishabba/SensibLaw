@@ -42,16 +42,27 @@ subtraction.
 Outer receipts are deliberately not enough for a multi-hour numeric compile: a
 terminal failure can occur before the local-PNF `PhaseReceipt` exists. The timed
 entrypoint therefore replaces only the recorder implementation with
-`DurablePhaseRecorder`. Every stage transition, observation and 30-second
-heartbeat is atomically persisted to:
+`DurablePhaseRecorder`.
+
+Every stage transition, observation and 30-second heartbeat is appended exactly
+once to the fsynced journal:
+
+```text
+<output-root>/<tranche>/local_pnf_compile_progress.jsonl
+```
+
+The append-only journal is the failure-surviving authority during execution. It
+keeps per-heartbeat durability O(1) in the amount of prior progress history. If
+compilation completes normally, the runner additionally writes the ordinary
+aggregate recorder snapshot:
 
 ```text
 <output-root>/<tranche>/local_pnf_compile_progress.json
 ```
 
-This file exists and advances *before* the compiler returns. A later PostgreSQL
-error therefore cannot erase the last active kernel or the progress snapshots
-already observed.
+The JSONL file exists and advances *before* the compiler returns. A later
+PostgreSQL error therefore cannot erase the last active kernel or the progress
+snapshots already observed.
 
 The strict numeric compiler wires its active document handle into
 `run_streaming_spacy_execution(progress_observer=...)` and samples compact
@@ -114,11 +125,12 @@ python scripts/report_numeric_kernel_progress.py \
   --database-url postgresql://... \
   --run-ref 'strict:document:...' \
   --document-ref 'document:...' \
-  --progress-ledger /path/to/local_pnf_compile_progress.json
+  --progress-ledger /path/to/local_pnf_compile_progress.jsonl
 ```
 
-That report combines the current PostgreSQL snapshot with the last durable
-Python progress event. This makes the diagnostic question precise:
+The reporter also accepts the final `.json` aggregate when it exists. It
+combines the current PostgreSQL snapshot with the last durable Python progress
+event. This makes the diagnostic question precise:
 
 ```text
 what kernel is active or failed?
