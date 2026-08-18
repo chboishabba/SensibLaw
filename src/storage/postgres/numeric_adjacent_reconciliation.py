@@ -14,7 +14,6 @@ from src.storage.postgres.spacy_parser_model import connect
 class AdjacentReconciliationSummary:
     completed_pairs: int
     last_pair_interface_id: int | None
-    completed_pair_interface_ids: tuple[int, ...] = ()
 
 
 def execute_adjacent_lease(cursor: Any, lease: WorkLease) -> int:
@@ -86,7 +85,6 @@ def drain_adjacent_reconciliation(
 
     completed = 0
     last_interface_id: int | None = None
-    completed_interface_ids: list[int] = []
     connection = connect(database_url)
     try:
         while completed < limit:
@@ -105,7 +103,6 @@ def drain_adjacent_reconciliation(
                 with connection.transaction():
                     with connection.cursor() as cursor:
                         last_interface_id = execute_adjacent_lease(cursor, lease)
-                completed_interface_ids.append(last_interface_id)
                 completed += 1
             except BaseException:
                 with connection.transaction():
@@ -118,7 +115,6 @@ def drain_adjacent_reconciliation(
     return AdjacentReconciliationSummary(
         completed_pairs=completed,
         last_pair_interface_id=last_interface_id,
-        completed_pair_interface_ids=tuple(completed_interface_ids),
     )
 
 
