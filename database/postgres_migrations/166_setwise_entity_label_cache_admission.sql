@@ -33,7 +33,7 @@ BEGIN
                cell.canonical_entity_id,
                cell.authority_class,
                count(admission.witness_id)::BIGINT AS admitted_support_count,
-               max(witness.witness_id)::BIGINT AS latest_witness_id
+               max(admission.witness_id)::BIGINT AS latest_witness_id
           FROM affected_cell AS cell
           LEFT JOIN execution.semantic_pnf_identity_witness AS witness
             ON witness.target_entity_id=cell.canonical_entity_id
@@ -72,7 +72,7 @@ BEGIN
                cell.canonical_entity_id,
                cell.authority_class,
                count(admission.witness_id)::BIGINT AS admitted_support_count,
-               max(witness.witness_id)::BIGINT AS latest_witness_id
+               max(admission.witness_id)::BIGINT AS latest_witness_id
           FROM affected_cell AS cell
           JOIN execution.semantic_pnf_identity_witness AS witness
             ON witness.target_entity_id=cell.canonical_entity_id
@@ -137,7 +137,7 @@ BEGIN
                cell.canonical_entity_id,
                cell.authority_class,
                count(admission.witness_id)::BIGINT AS admitted_support_count,
-               max(witness.witness_id)::BIGINT AS latest_witness_id
+               max(admission.witness_id)::BIGINT AS latest_witness_id
           FROM affected_cell AS cell
           LEFT JOIN execution.semantic_pnf_identity_witness AS witness
             ON witness.target_entity_id=cell.canonical_entity_id
@@ -181,7 +181,7 @@ BEGIN
                cell.canonical_entity_id,
                cell.authority_class,
                count(admission.witness_id)::BIGINT AS admitted_support_count,
-               max(witness.witness_id)::BIGINT AS latest_witness_id
+               max(admission.witness_id)::BIGINT AS latest_witness_id
           FROM affected_cell AS cell
           JOIN execution.semantic_pnf_identity_witness AS witness
             ON witness.target_entity_id=cell.canonical_entity_id
