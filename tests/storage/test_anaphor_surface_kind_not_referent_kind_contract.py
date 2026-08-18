@@ -3,14 +3,17 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SQL = (
-    ROOT / "database" / "postgres_migrations"
+    ROOT
+    / "database"
+    / "postgres_migrations"
     / "161_anaphor_surface_kind_not_referent_kind.sql"
 ).read_text(encoding="utf-8")
 
 
 def _normalizer_function_sql() -> str:
     start = SQL.index(
-        "CREATE OR REPLACE FUNCTION execution.normalize_numeric_pnf_anaphor_referent_kind()"
+        "CREATE OR REPLACE FUNCTION "
+        "execution.normalize_numeric_pnf_anaphor_referent_kind()"
     )
     end = SQL.index("$$;", start) + len("$$;")
     return SQL[start:end]
