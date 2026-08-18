@@ -10,8 +10,8 @@ and reduction then follows only those edges to a local fixed point. No
 whole-owner scan is used to discover dependent fibres.
 
 The wrapper deliberately does not assume same-owner reduction is associative or
-append-homomorphic. Each woken owner is still reduced by the canonical reducer
-over its complete canonically ordered owner fibre.
+append-homomorphic. Each woken owner is still reduced by the currently installed
+exact reducer over its complete canonically ordered owner fibre.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from heapq import heappop, heappush
 from time import monotonic_ns
 from typing import Any
 
-from src.pnf.factor_proposals import reduce_factor_proposals
+import src.pnf.factor_proposals as factor_proposals
 
 
 _INSTALL_MARKER = "_dependency_indexed_owner_execution_installed"
@@ -162,7 +162,7 @@ def install_dependency_indexed_owner_execution() -> bool:
 
             before = self._reductions.get(key)
             reduction_started = monotonic_ns()
-            reduction = reduce_factor_proposals(
+            reduction = factor_proposals.reduce_factor_proposals(
                 document_ref=self.document_ref,
                 proposals=group,
                 known_observation_refs=self._observation_refs,
