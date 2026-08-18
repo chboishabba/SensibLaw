@@ -11,7 +11,10 @@ pathologies exposed by live corpus replay while preserving semantic closure:
   flight;
 * strict numeric sentence closure recreated and dropped five PostgreSQL temp
   staging relations for every sentence even though those relations are purely
-  physical session-local carriers.
+  physical session-local carriers;
+* strict sentence demands were inserted set-wise and then immediately
+  reconstructed one-by-one by the generic occurrence-provenance trigger even
+  though the complete producer fibre was still available.
 
 No proposal identity, reduction rule, owner key, sentence digest, lease fence,
 or final materialized graph is changed. Reduction coalescing is fail-closed: it
@@ -19,7 +22,9 @@ is allowed only while another job is in flight and every currently dirty
 proposal has an empty ``dependency_factor_refs`` declaration. A dependency-
 bearing fibre always uses the original eager reducer. Numeric sentence staging
 reuse likewise retains the existing per-sentence transaction/failure boundary;
-it changes only temporary relation lifetime.
+it changes only temporary relation lifetime. Producer-native provenance retains
+the generic trigger for non-sentence producers and projects the same strict
+sentence provenance from the already-materialized bounded producer fibre.
 """
 
 from __future__ import annotations
@@ -72,6 +77,9 @@ def install_closure_hot_path_execution() -> bool:
     from src.policy import operational_corpus_compilation as operational
     from src.policy.direct_process_closure_execution import (
         install_direct_process_closure_execution,
+    )
+    from src.policy.producer_native_sentence_provenance import (
+        install_producer_native_sentence_provenance,
     )
     from src.policy.reusable_numeric_sentence_staging import (
         install_reusable_numeric_sentence_staging,
@@ -146,6 +154,10 @@ def install_closure_hot_path_execution() -> bool:
     # five temp stages contain no semantic identity and are safe to reuse across
     # sentence transactions; keep sentence atomicity/fencing otherwise intact.
     install_reusable_numeric_sentence_staging()
+    # The strict producer still has the exact factor/support/slot fibre when it
+    # inserts demands. Preserve that information set-wise instead of asking the
+    # generic row trigger to recover the producer independently for every row.
+    install_producer_native_sentence_provenance()
     setattr(bounded, _INSTALL_MARKER, True)
     return True
 
