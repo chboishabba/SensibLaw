@@ -1,0 +1,74 @@
+{
+  "claim_id": "bfo-wikidata:continuant-occurrent-disjointness",
+  "claim_surface": "BFO continuant/occurrent disjointness is licensed for transport through the declared Wikidata alignment",
+  "required_layers": [
+    "source",
+    "transcription",
+    "alignment",
+    "target"
+  ],
+  "source_snapshot": {
+    "title": "Basic Formal Ontology (BFO 2020)",
+    "repository": "BFO-ontology/BFO-2020",
+    "commit": "0900316ea9d330f599bd110f7f6504ed33a87fc8",
+    "path": "21838-2/owl/bfo-core.ttl",
+    "standard": "ISO/IEC 21838-2:2021",
+    "doi": null
+  },
+  "wikidata_mapping_snapshot": {
+    "project_revision": "Wikidata:WikiProject_Ontology/Mapping_Wikidata_To_BFO oldid=2412374796",
+    "identifier_property": "P12602",
+    "entity": {"qid": "Q35120", "bfo_id": "0000001"},
+    "continuant": {"qid": "Q103940464", "bfo_id": "0000002"},
+    "occurrent": {"qid": "Q67518978", "bfo_id": "0000003"},
+    "retrieved": "2026-08-18"
+  },
+  "source": {
+    "supports": true,
+    "refutes": false,
+    "evidence": [
+      "BFO_0000002 continuant is a subclass of BFO_0000001 entity",
+      "BFO_0000002 continuant is owl:disjointWith BFO_0000003 occurrent"
+    ],
+    "provenance": [
+      "BFO-ontology/BFO-2020@0900316ea9d330f599bd110f7f6504ed33a87fc8:21838-2/owl/bfo-core.ttl"
+    ],
+    "obligations": []
+  },
+  "transcription": {
+    "supports": true,
+    "refutes": false,
+    "evidence": [
+      "P12602 maps Q35120 to BFO 0000001",
+      "P12602 maps Q103940464 to BFO 0000002",
+      "P12602 maps Q67518978 to BFO 0000003"
+    ],
+    "provenance": [
+      "Wikidata Property:P12602 documentation; retrieved 2026-08-18",
+      "Wikidata BFO mapping project oldid=2412374796"
+    ],
+    "obligations": []
+  },
+  "alignment": {
+    "supports": false,
+    "refutes": false,
+    "evidence": [],
+    "provenance": [
+      "RequestProject.Wikidata.Alignment.disjoint_reflect"
+    ],
+    "obligations": [
+      "supply the explicit source-instance to target-instance transport required by disjoint_reflect"
+    ]
+  },
+  "target": {
+    "supports": false,
+    "refutes": false,
+    "evidence": [],
+    "provenance": [
+      "Wikidata BFO mapping project oldid=2412374796"
+    ],
+    "obligations": [
+      "pin a checked target-graph continuant/occurrent disjointness constraint before promoting this axis"
+    ]
+  }
+}
