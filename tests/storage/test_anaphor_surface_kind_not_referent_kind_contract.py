@@ -34,7 +34,10 @@ def test_anaphor_kind_normalization_is_before_row_not_recursive_after_update() -
 
 
 def test_update_normalizer_only_runs_when_relevant_coordinates_change() -> None:
-    assert "NEW.residual_type_symbol_id IS DISTINCT FROM OLD.residual_type_symbol_id" in SQL
+    assert (
+        "NEW.residual_type_symbol_id IS DISTINCT FROM OLD.residual_type_symbol_id"
+        in SQL
+    )
     assert (
         "NEW.expected_object_kind_symbol_id\n"
         "             IS DISTINCT FROM OLD.expected_object_kind_symbol_id"
@@ -51,8 +54,14 @@ def test_only_accidental_pronoun_referent_constraint_is_removed() -> None:
 
 def test_historical_rows_are_repaired_without_global_anaphor_retyping() -> None:
     assert "Repair historical migration-045 rows" in SQL
-    assert "demand.residual_type_symbol_id=constant.anaphor_residual_type_symbol_id" in SQL
-    assert "demand.expected_object_kind_symbol_id=constant.pronoun_object_kind_symbol_id" in SQL
+    assert (
+        "demand.residual_type_symbol_id=constant.anaphor_residual_type_symbol_id"
+        in SQL
+    )
+    assert (
+        "demand.expected_object_kind_symbol_id=constant.pronoun_object_kind_symbol_id"
+        in SQL
+    )
     assert "SET expected_object_kind_symbol_id=NULL" in SQL
 
 
