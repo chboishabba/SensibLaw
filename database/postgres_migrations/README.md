@@ -182,6 +182,33 @@
   only canonical parents after changed child frontiers, and excludes overlapping
   adjacency/evidence interfaces (kinds 2, 4 and 9) from canonical reduction.
   Root-visible publication remains the only global lookup authority.
+- `146_skip_leaf_frontier_reduction.sql` removes the no-op parent-frontier
+  reducer call from producer-complete sentence leaves; overlapping/evidence
+  fibres remain excluded as well.
+- The subsequent work-conserving tranche replaces pure row-trigger projections
+  with statement-level relations while retaining authority guards. In particular,
+  `148_setwise_demand_derivation_triggers.sql` batches demand constraints/H3
+  derivation, and migrations `157` through `170` retire the obsolete migration-045
+  mention/recurrence compiler, preserve generic anaphor demands as a sparse
+  numeric residue, batch parser-entity labels, demand lookup/source/position/
+  export projections, candidate lifecycle/evidence/current-state/open-world
+  projections, and keep exact producer coordinates ahead of weaker recovery
+  heuristics.
+- `167_candidate_target_support_reverse_dependencies.sql` additionally closes
+  the candidate-target provenance wake seam from both candidate-first and
+  support-first write order. Object and factor support tokens become exact
+  reverse dependencies of demands; conservative stale edges may over-wake but a
+  required edge may not be missing.
+- `171_setwise_demand_occurrence_provenance.sql` replaces migration-135's
+  per-demand/per-support-token provenance loop with one fail-closed relational
+  compiler. Unique producer, typed target-role, exact object-token support, and
+  migration-136 run/document/span constraints are preserved; only the affected
+  `numeric-factor:*` producer rows are retracted/rebuilt.
+- `172_retire_legacy_occurrence_support_hot_path.sql` moves the superseded
+  migration-122/126 occurrence-support carrier out of automatic production
+  maintenance. Audit/compatibility callers may explicitly request a set-wise
+  run/document rebuild; current H9 authority remains the producer-authored
+  target occurrence carrier from 135/171.
 - See `docs/reopenable_runtime_architecture.md`,
   `docs/consumer_sufficient_numeric_runtime.md`,
   `docs/late_external_provider_runtime.md`, and
