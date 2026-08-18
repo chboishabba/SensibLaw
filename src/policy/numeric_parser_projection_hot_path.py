@@ -1,23 +1,28 @@
 """Execution-only hot-path projection for strict numeric parser persistence.
 
 The canonical numeric parser writer already COPYs one partition at a time. Its
-legacy compatibility shape had two row-amplifying tails:
+legacy compatibility shape had three row-amplifying tails:
 
 * token COPY omitted ``sentence_id`` and relied on migration 042's BEFORE ROW
   trigger to look the id up from ``sentence_ref`` for every token;
 * after COPY, Python validated dependency-head spans and then sent one UPDATE per
-  token through ``executemany``.
+  token through ``executemany``;
+* migration 052 queued a deferred row integrity trigger for token INSERT and
+  again for the later head UPDATE, re-reading token/head rows at commit.
 
 This strategy preserves those semantic checks while changing only their physical
 projection. It resolves the finite sentence-ref -> sentence-id map once and
 includes the exact id in token COPY rows. When migration 150 is installed, the
-same COPY also resolves all ``head_token_id`` values set-wise from the declared
-sentence-local head spans. Python still runs the canonical
-``_project_numeric_heads`` validation; only the redundant row-wise UPDATE payload
-is suppressed after the database projection has been verified present.
+same COPY resolves all ``head_token_id`` values set-wise from declared
+sentence-local head spans. Python still runs canonical ``_project_numeric_heads``
+validation; only the redundant row-wise UPDATE payload is suppressed after the
+database projection is verified present.
 
-Migration 042 remains installed for other writers, and absence of migration 150
-fails safe to the original per-token head updates.
+When migration 152 is also present, the strict transaction advertises that exact
+set-wise integrity contract before COPY, so the generic deferred row constraint
+trigger is not queued for this producer. Writers without both capabilities retain
+the migration-052 fail-closed path. Migration 042 likewise remains installed for
+writers that do not supply sentence identity.
 """
 
 from __future__ import annotations
@@ -98,6 +103,30 @@ def install_numeric_parser_projection_hot_path() -> bool:
                 f"{len(missing)} sentence refs"
             )
 
+        # Capabilities are detected before COPY because migration 152's WHEN
+        # clause is evaluated when a row event would be queued. Suppress generic
+        # deferred events only when both the statement resolver and the explicit
+        # set-wise-integrity fence are installed.
+        cursor.execute(
+            """
+            SELECT
+                to_regprocedure(
+                    'execution.resolve_numeric_parser_dependency_heads()'
+                ) IS NOT NULL,
+                to_regprocedure(
+                    'execution.numeric_parser_setwise_head_integrity_ready()'
+                ) IS NOT NULL
+            """
+        )
+        has_setwise_head_projection, has_setwise_integrity_fence = (
+            bool(value) for value in cursor.fetchone()
+        )
+        if has_setwise_head_projection and has_setwise_integrity_fence:
+            cursor.execute(
+                "SELECT set_config("
+                "'sensiblaw.setwise_numeric_head_integrity', 'on', TRUE)"
+            )
+
         enriched_rows = tuple(
             (*row, sentence_id_by_ref[str(row[sentence_ref_index])])
             for row in materialized
@@ -110,15 +139,9 @@ def install_numeric_parser_projection_hot_path() -> bool:
             **kwargs,
         )
 
-        # Migration 150 is an optional physical optimization. Detect it on the
-        # active database rather than assuming branch migration state. If it is
-        # present, verify that the statement trigger actually filled every head
-        # before suppressing Python's redundant UPDATE payload.
-        cursor.execute(
-            "SELECT to_regprocedure("
-            "'execution.resolve_numeric_parser_dependency_heads()') IS NOT NULL"
-        )
-        has_setwise_head_projection = bool(cursor.fetchone()[0])
+        # Verify the statement trigger actually filled every head before
+        # suppressing Python's redundant UPDATE payload. If migration 150 is not
+        # installed, the original row updates remain authoritative.
         if has_setwise_head_projection:
             cursor.execute(
                 """
