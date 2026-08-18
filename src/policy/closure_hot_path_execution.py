@@ -1,20 +1,25 @@
 """Execution-only acceleration for bounded semantic closure.
 
-The semantic owner and reducers remain authoritative. This module fixes two
-physical pathologies exposed by the live GWB replay:
+The semantic owner and reducers remain authoritative. This module fixes physical
+pathologies exposed by live corpus replay while preserving semantic closure:
 
 * the bounded executor retained a stale import of ``solve_operator_job`` and
   therefore bypassed the process-backed wrapper installed by
   :mod:`parallel_typing_tail`, leaving CPU-bound stage-7 work under the GIL;
 * every completed immutable closure receipt immediately re-reduced complete
   owner fibres even while other pure jobs from the same frontier were still in
-  flight.
+  flight;
+* strict numeric sentence closure recreated and dropped five PostgreSQL temp
+  staging relations for every sentence even though those relations are purely
+  physical session-local carriers.
 
-No proposal identity, reduction rule, owner key, or final materialized graph is
-changed. Reduction coalescing is fail-closed: it is allowed only while another
-job is in flight and every currently dirty proposal has an empty
-``dependency_factor_refs`` declaration. A dependency-bearing fibre always uses
-the original eager reducer.
+No proposal identity, reduction rule, owner key, sentence digest, lease fence,
+or final materialized graph is changed. Reduction coalescing is fail-closed: it
+is allowed only while another job is in flight and every currently dirty
+proposal has an empty ``dependency_factor_refs`` declaration. A dependency-
+bearing fibre always uses the original eager reducer. Numeric sentence staging
+reuse likewise retains the existing per-sentence transaction/failure boundary;
+it changes only temporary relation lifetime.
 """
 
 from __future__ import annotations
@@ -61,12 +66,15 @@ def _dirty_proposals_are_dependency_free(owner: Any) -> bool:
 
 
 def install_closure_hot_path_execution() -> bool:
-    """Install multicore closure dispatch and dependency-free reduction waves."""
+    """Install multicore closure dispatch and work-conserving closure strategies."""
 
     from src.policy import bounded_operational_execution as bounded
     from src.policy import operational_corpus_compilation as operational
     from src.policy.direct_process_closure_execution import (
         install_direct_process_closure_execution,
+    )
+    from src.policy.reusable_numeric_sentence_staging import (
+        install_reusable_numeric_sentence_staging,
     )
 
     if getattr(bounded, _INSTALL_MARKER, False):
@@ -134,6 +142,10 @@ def install_closure_hot_path_execution() -> bool:
     # The bounded scheduler no longer needs a thread whose only job is to submit
     # the same immutable work to the semantic process pool and block on it.
     install_direct_process_closure_execution()
+    # Strict numeric sentence closure is another closure execution lane. Its
+    # five temp stages contain no semantic identity and are safe to reuse across
+    # sentence transactions; keep sentence atomicity/fencing otherwise intact.
+    install_reusable_numeric_sentence_staging()
     setattr(bounded, _INSTALL_MARKER, True)
     return True
 
