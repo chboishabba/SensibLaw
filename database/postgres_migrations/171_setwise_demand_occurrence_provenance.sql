@@ -35,6 +35,8 @@ BEGIN
                demand.expected_factor_type_symbol_id,
                demand.lexical_symbol_id,
                demand.residual_type_symbol_id,
+               region.run_ref AS region_run_ref,
+               region.document_ref AS region_document_ref,
                region.start_char AS region_start_char,
                region.end_char AS region_end_char
           FROM execution.semantic_pnf_demand AS demand
@@ -46,6 +48,8 @@ BEGIN
     ), producer_match AS MATERIALIZED (
         SELECT DISTINCT demand.demand_id,
                demand.source_region_id,
+               demand.region_run_ref,
+               demand.region_document_ref,
                demand.region_start_char,
                demand.region_end_char,
                demand.residual_type_symbol_id,
@@ -60,12 +64,16 @@ BEGIN
           JOIN execution.semantic_parser_token AS token
             ON token.token_id=support.token_id
            AND token.representation_version=2
+           AND token.run_ref=demand.region_run_ref
+           AND token.document_ref=demand.region_document_ref
            AND token.lemma_symbol_id=demand.lexical_symbol_id
            AND token.start_char>=demand.region_start_char
            AND token.end_char<=demand.region_end_char
     ), producer AS MATERIALIZED (
         SELECT demand_id,
                min(source_region_id) AS source_region_id,
+               min(region_run_ref) AS region_run_ref,
+               min(region_document_ref) AS region_document_ref,
                min(region_start_char) AS region_start_char,
                min(region_end_char) AS region_end_char,
                min(residual_type_symbol_id) AS residual_type_symbol_id,
@@ -77,6 +85,8 @@ BEGIN
     ), support_token AS MATERIALIZED (
         SELECT producer.demand_id,
                producer.source_region_id,
+               producer.region_run_ref,
+               producer.region_document_ref,
                producer.residual_type_symbol_id,
                producer.factor_id,
                producer.trigger_token_id,
@@ -88,6 +98,8 @@ BEGIN
           JOIN execution.semantic_parser_token AS token
             ON token.token_id=support.token_id
            AND token.representation_version=2
+           AND token.run_ref=producer.region_run_ref
+           AND token.document_ref=producer.region_document_ref
            AND token.start_char>=producer.region_start_char
            AND token.end_char<=producer.region_end_char
     ), token_object AS MATERIALIZED (
@@ -150,6 +162,8 @@ BEGIN
           JOIN execution.semantic_parser_token AS token
             ON token.token_id=support.token_id
            AND token.representation_version=2
+           AND token.run_ref=producer.region_run_ref
+           AND token.document_ref=producer.region_document_ref
            AND token.start_char>=producer.region_start_char
            AND token.end_char<=producer.region_end_char
     ), target_occurrence AS MATERIALIZED (
