@@ -63,7 +63,7 @@ BEGIN
     ), valid_surface AS MATERIALIZED (
         SELECT * FROM surface
          WHERE surface_text IS NOT NULL AND surface_text<>''
-    ), intern AS (
+    ), intern AS MATERIALIZED (
         INSERT INTO execution.semantic_symbol(kind_id,symbol_text,symbol_digest)
         SELECT DISTINCT 1::SMALLINT,
                valid_surface.surface_text,
@@ -72,19 +72,18 @@ BEGIN
                    valid_surface.surface_text
                )
           FROM valid_surface
-        ON CONFLICT(kind_id,symbol_text) DO NOTHING
-        RETURNING symbol_id
+        ON CONFLICT(kind_id,symbol_text) DO UPDATE SET
+            symbol_text=EXCLUDED.symbol_text
+        RETURNING symbol_id,symbol_text
     )
     INSERT INTO execution.semantic_pnf_parser_entity_surface_label
         (entity_id,label_symbol_id,entity_type_symbol_id,updated_at)
     SELECT valid_surface.entity_id,
-           symbol.symbol_id,
+           intern.symbol_id,
            valid_surface.entity_type_symbol_id,
            CURRENT_TIMESTAMP
       FROM valid_surface
-      JOIN execution.semantic_symbol AS symbol
-        ON symbol.kind_id=1
-       AND symbol.symbol_text=valid_surface.surface_text
+      JOIN intern ON intern.symbol_text=valid_surface.surface_text
     ON CONFLICT(entity_id) DO UPDATE SET
         label_symbol_id=EXCLUDED.label_symbol_id,
         entity_type_symbol_id=EXCLUDED.entity_type_symbol_id,
@@ -162,7 +161,7 @@ BEGIN
     ), valid_surface AS MATERIALIZED (
         SELECT * FROM surface
          WHERE surface_text IS NOT NULL AND surface_text<>''
-    ), intern AS (
+    ), intern AS MATERIALIZED (
         INSERT INTO execution.semantic_symbol(kind_id,symbol_text,symbol_digest)
         SELECT DISTINCT 1::SMALLINT,
                valid_surface.surface_text,
@@ -171,19 +170,18 @@ BEGIN
                    valid_surface.surface_text
                )
           FROM valid_surface
-        ON CONFLICT(kind_id,symbol_text) DO NOTHING
-        RETURNING symbol_id
+        ON CONFLICT(kind_id,symbol_text) DO UPDATE SET
+            symbol_text=EXCLUDED.symbol_text
+        RETURNING symbol_id,symbol_text
     )
     INSERT INTO execution.semantic_pnf_parser_entity_surface_label
         (entity_id,label_symbol_id,entity_type_symbol_id,updated_at)
     SELECT valid_surface.entity_id,
-           symbol.symbol_id,
+           intern.symbol_id,
            valid_surface.entity_type_symbol_id,
            CURRENT_TIMESTAMP
       FROM valid_surface
-      JOIN execution.semantic_symbol AS symbol
-        ON symbol.kind_id=1
-       AND symbol.symbol_text=valid_surface.surface_text
+      JOIN intern ON intern.symbol_text=valid_surface.surface_text
     ON CONFLICT(entity_id) DO UPDATE SET
         label_symbol_id=EXCLUDED.label_symbol_id,
         entity_type_symbol_id=EXCLUDED.entity_type_symbol_id,
