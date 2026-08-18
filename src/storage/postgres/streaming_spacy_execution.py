@@ -65,9 +65,7 @@ def _interval_duration(intervals: Iterable[Interval]) -> int:
     return sum(end - start for start, end in _merge_intervals(intervals))
 
 
-def _intersection_duration(
-    left: Iterable[Interval], right: Iterable[Interval]
-) -> int:
+def _intersection_duration(left: Iterable[Interval], right: Iterable[Interval]) -> int:
     a = _merge_intervals(left)
     b = _merge_intervals(right)
     i = j = 0
@@ -325,7 +323,9 @@ def run_streaming_spacy_execution(
     policy = policy or ParserStreamingPolicy()
     root = Path(artifact_root)
     root.mkdir(parents=True, exist_ok=True)
-    _content_ref, source_path, source_digest, source_bytes = write_source(canonical_text, root)
+    _content_ref, source_path, source_digest, source_bytes = write_source(
+        canonical_text, root
+    )
     source_ref = typed_ref("parser-source:", run_ref, document_ref, source_digest)
     proposed_partitions = build_structural_partitions(
         run_ref=run_ref,
@@ -474,7 +474,9 @@ def run_streaming_spacy_execution(
     coordinator_post_finished = monotonic_ns()
     coordinator_post_parser_ns = coordinator_post_finished - coordinator_post_started
     post_intervals.append((coordinator_post_started, coordinator_post_finished))
-    post_parser_worker_work_ns = projection_worker_work_ns + sentence_closure_worker_work_ns
+    post_parser_worker_work_ns = (
+        projection_worker_work_ns + sentence_closure_worker_work_ns
+    )
     post_parser_work_ns = post_parser_worker_work_ns + coordinator_post_parser_ns
 
     parser_wall_ns = _interval_duration(parser_intervals)
@@ -533,7 +535,9 @@ def run_streaming_spacy_execution(
         "authority": "postgresql_numeric_parser_and_pnf_hyperfabric",
     }
     if numeric_authority_counts_enabled():
-        counts = hyperfabric_counts(database_url, run_ref=run_ref, document_ref=document_ref)
+        counts = hyperfabric_counts(
+            database_url, run_ref=run_ref, document_ref=document_ref
+        )
         parser_receipt.update(
             {
                 "pnf_region_count": counts["regions"],
@@ -549,6 +553,13 @@ def run_streaming_spacy_execution(
         summary=summary,
         parser_receipt=parser_receipt,
     )
+
+
+# Complete deferred policy installation only after this module's hierarchy and
+# final-lookup functions are available for strategy wrappers to capture.
+from src.policy import install_execution_strategies
+
+install_execution_strategies()
 
 
 __all__ = [

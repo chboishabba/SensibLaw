@@ -8,7 +8,7 @@ produces over an existing numeric PNF corpus.
 ## Apply migrations
 
 ```bash
-export DATABASE_URL='postgresql://postgres@127.0.0.1:5433/sensiblaw_sparse_bench'
+set -a; . ./.env; set +a
 bash scripts/apply_pg_migrations.sh
 ```
 

@@ -215,15 +215,17 @@ duplicating admission.
 
 ## Exact-0008 acceptance
 
-Reuse the failed trial output root so its parser state and four parser-fibre
-checkpoints remain available. Keep one parser worker because parser concurrency
+Historical note: the following commands document the earlier local acceptance
+flow. They must not be run against their recorded `127.0.0.1:5433` endpoint.
+For a current run, source `.env` and use `$DATABASE_URL` as documented in
+`docs/postgres_runtime.md`. Keep one parser worker because parser concurrency
 is not the measured bottleneck and the committed checkpoint/build identity was
 created with one. Use four **process-backed semantic workers** for typing and
 closure:
 
 ```bash
 uv run python scripts/run_exact_0008_parallel_acceptance.py \
-  --database-url postgresql://postgres@127.0.0.1:5433/sensiblaw_tranche \
+  --database-url "$DATABASE_URL" \
   --input-path /path/to/0008.epub \
   --output-root .tmp/exact-0008-current/trial-1 \
   --acceptance-root .tmp/exact-0008-parallel-acceptance \
@@ -245,7 +247,7 @@ checkpoint and compare the resumed run with that reference:
 ```bash
 # Successful semantic reference.
 uv run python scripts/run_exact_0008_parallel_acceptance.py \
-  --database-url postgresql://postgres@127.0.0.1:5433/sensiblaw_tranche \
+  --database-url "$DATABASE_URL" \
   --input-path /path/to/0008.epub \
   --output-root .tmp/exact-0008-current/trial-1 \
   --acceptance-root .tmp/exact-0008-streamed-acceptance/reference \
@@ -254,7 +256,7 @@ uv run python scripts/run_exact_0008_parallel_acceptance.py \
 
 # Forced stop after a durable receipt, followed automatically by resume.
 uv run python scripts/run_exact_0008_parallel_acceptance.py \
-  --database-url postgresql://postgres@127.0.0.1:5433/sensiblaw_tranche \
+  --database-url "$DATABASE_URL" \
   --input-path /path/to/0008.epub \
   --output-root .tmp/exact-0008-current/trial-1 \
   --acceptance-root .tmp/exact-0008-streamed-acceptance/resumed \

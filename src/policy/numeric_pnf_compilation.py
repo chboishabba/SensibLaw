@@ -399,6 +399,18 @@ def persist_numeric_pnf_document(
             document_ref=document_ref,
             state="compiled_numeric_pnf",
         )
+    from src.policy.numeric_semantic_receipt_execution import (
+        persist_completed_numeric_semantic_receipt,
+    )
+
+    persist_completed_numeric_semantic_receipt(
+        database_url=database_url,
+        document_ref=document_ref,
+        canonical_text_sha256=canonical_text_sha256,
+        parser_contract_ref=str(context.annotation_backend_ref),
+        build_key_sha256=build_key_sha256,
+        compiler_contract_ref=NUMERIC_PNF_COMPILER_CONTRACT,
+    )
 
     measurement_id: int | None = None
     if _controlled_reuse_measurement_enabled():

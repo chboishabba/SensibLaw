@@ -2,6 +2,8 @@
 
 # ruff: noqa: E402
 
+import sys
+
 # Publish the neutral graph/demand authority before modules that import policy
 # helpers.  ``binding_candidate_sets`` depends on ``src.policy.carriers``;
 # importing it first allowed policy initialisation to re-enter this package
@@ -137,7 +139,13 @@ install_streaming_reduction_metrics()
 # used by the operational compiler exist.
 from src.policy import install_execution_strategies
 
-install_execution_strategies()
+# ``streaming_spacy_execution`` imports PNF while defining its public
+# hierarchy/materialisation functions.  Its process workers import that module
+# directly, so strategy installation here would otherwise capture a partially
+# initialized module.  The streaming module performs the deferred installation
+# once those functions exist; every other import path installs immediately.
+if "src.storage.postgres.streaming_spacy_execution" not in sys.modules:
+    install_execution_strategies()
 
 __all__ = [
     "INTEGRATED_SEMANTIC_PRODUCER_CONTRACT",

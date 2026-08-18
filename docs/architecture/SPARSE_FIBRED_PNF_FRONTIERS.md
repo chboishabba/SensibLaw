@@ -240,7 +240,7 @@ Run:
 
 ```bash
 .venv/bin/python scripts/report_numeric_pnf_frontier.py \
-  --database-url postgresql://postgres@127.0.0.1:5433/sensiblaw_tranche \
+  --database-url "$DATABASE_URL" \
   --run-ref RUN_REF \
   --document-ref DOCUMENT_REF
 ```
