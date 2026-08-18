@@ -29,13 +29,13 @@ def _key(database_url: str, run_ref: str, document_ref: str) -> tuple[str, str, 
 
 
 def install_delta_lookup_publication_execution() -> bool:
-    from src.storage.postgres import numeric_adjacent_reconciliation as adjacent
     from src.storage.postgres import streaming_spacy_execution as streaming
 
     if getattr(streaming, _INSTALL_MARKER, False):
         return False
 
     original_hierarchy = streaming.materialize_numeric_document_hierarchy
+    original_drain = streaming.drain_adjacent_reconciliation
 
     def materialize_hierarchy(
         database_url: str,
@@ -63,69 +63,47 @@ def install_delta_lookup_publication_execution() -> bool:
         worker_ref: str,
         limit: int = 64,
     ):
-        # Reproduce only the leasing loop needed to retain every concrete pair
-        # interface id. The canonical SQL executor and failure fence remain the
-        # authorities for each work item.
-        if limit < 1:
-            raise ValueError("adjacent reconciliation limit must be positive")
+        summary = original_drain(
+            database_url,
+            run_ref=run_ref,
+            worker_ref=worker_ref,
+            limit=limit,
+        )
+        interface_ids = tuple(summary.completed_pair_interface_ids)
+        if ":adjacent:paragraph" not in worker_ref or not interface_ids:
+            return summary
 
-        completed = 0
-        last_interface_id: int | None = None
-        completed_interfaces: list[tuple[str, int]] = []
+        # Resolve the concrete document carrier set-wise after the canonical
+        # drain. This is observational bookkeeping only; lease/fence semantics
+        # remain solely in numeric_adjacent_reconciliation.
         connection = connect(database_url)
         try:
-            while completed < limit:
-                with connection.transaction():
-                    with connection.cursor() as cursor:
-                        lease = adjacent.claim_work(
-                            cursor,
-                            run_ref=run_ref,
-                            worker_ref=worker_ref,
-                            operation=adjacent.WorkOperation.ADJACENT_RECONCILE,
-                        )
-                if lease is None:
-                    break
-                try:
-                    with connection.transaction():
-                        with connection.cursor() as cursor:
-                            last_interface_id = adjacent.execute_adjacent_lease(cursor, lease)
-                            cursor.execute(
-                                """
-                                SELECT region.document_ref
-                                  FROM execution.semantic_pnf_interface AS interface
-                                  JOIN execution.semantic_pnf_region AS region
-                                    ON region.region_id = interface.region_id
-                                 WHERE interface.interface_id = %s
-                                   AND region.run_ref = %s
-                                """,
-                                (last_interface_id, run_ref),
-                            )
-                            document_row = cursor.fetchone()
-                            if document_row is None:
-                                raise RuntimeError(
-                                    "adjacent pair interface has no run/document carrier"
-                                )
-                    completed_interfaces.append((str(document_row[0]), last_interface_id))
-                    completed += 1
-                except BaseException:
-                    with connection.transaction():
-                        with connection.cursor() as cursor:
-                            adjacent._fail_adjacent_lease(cursor, lease)
-                    raise
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT interface.interface_id, region.document_ref
+                      FROM execution.semantic_pnf_interface AS interface
+                      JOIN execution.semantic_pnf_region AS region
+                        ON region.region_id = interface.region_id
+                     WHERE interface.interface_id = ANY(%s)
+                       AND region.run_ref = %s
+                    """,
+                    (list(interface_ids), run_ref),
+                )
+                resolved = tuple((int(row[0]), str(row[1])) for row in cursor.fetchall())
         finally:
             connection.close()
 
-        if ":adjacent:paragraph" in worker_ref and completed_interfaces:
-            with _LOCK:
-                for document_ref, interface_id in completed_interfaces:
-                    _CHANGED_PARAGRAPH_INTERFACES[
-                        _key(database_url, run_ref, document_ref)
-                    ].add(interface_id)
-
-        return adjacent.AdjacentReconciliationSummary(
-            completed_pairs=completed,
-            last_pair_interface_id=last_interface_id,
-        )
+        if len(resolved) != len(set(interface_ids)):
+            raise RuntimeError(
+                "changed adjacent interfaces do not have exact run/document carriers"
+            )
+        with _LOCK:
+            for interface_id, document_ref in resolved:
+                _CHANGED_PARAGRAPH_INTERFACES[
+                    _key(database_url, run_ref, document_ref)
+                ].add(interface_id)
+        return summary
 
     def refresh_final_lookup(
         database_url: str,
