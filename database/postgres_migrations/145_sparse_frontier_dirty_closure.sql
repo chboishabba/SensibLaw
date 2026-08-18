@@ -10,8 +10,8 @@ BEGIN;
 --
 -- Canonical region closure already invokes rebuild_numeric_pnf_parent_frontier.
 -- The compatibility document reducer historically rebuilt every closed parent
--- again before root publication.  Replace that safety sweep with a durable
--- dirty set.  Missing/stale reduction receipts seed the set for upgraded or
+-- again before root publication. Replace that safety sweep with a durable
+-- dirty set. Missing/stale reduction receipts seed the set for upgraded or
 -- interrupted databases; canonical recomputation dirties only its canonical
 -- parent, yielding a bottom-up dependency closure rather than a document scan.
 
@@ -30,7 +30,7 @@ CREATE INDEX IF NOT EXISTS semantic_pnf_frontier_dirty_reason_idx
     ON execution.semantic_pnf_frontier_dirty
        (reason_interface_id, interface_id);
 
--- Preserve the exact reducer installed by 062 as the semantic kernel.  The new
+-- Preserve the exact reducer installed by 062 as the semantic kernel. The new
 -- public wrapper adds only dependency bookkeeping around that kernel.
 ALTER FUNCTION execution.rebuild_numeric_pnf_parent_frontier(BIGINT)
     RENAME TO rebuild_numeric_pnf_parent_frontier_canonical;
@@ -119,7 +119,7 @@ BEGIN
 END;
 $$;
 
--- Closure semantics now respect the topology explicitly.  Overlapping fibres
+-- Closure semantics now respect the topology explicitly. Overlapping fibres
 -- retain the interface/evidence constructed by their own executor; they do not
 -- masquerade as empty canonical parents merely because they are parentless in
 -- the containment spine.
@@ -165,7 +165,7 @@ RETURNS BIGINT
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    selected RECORD;
+    selected_interface_id BIGINT;
     reduced_count BIGINT := 0;
     selected_run_id BIGINT;
     selected_document_id BIGINT;
@@ -178,7 +178,7 @@ BEGIN
       FROM execution.semantic_pnf_document_identity
      WHERE document_ref = selected_document_ref;
 
-    -- Recovery/backfill seed.  Fresh canonical closures already have a receipt,
+    -- Recovery/backfill seed. Fresh canonical closures already have a receipt,
     -- so they are not revisited merely because root publication was requested.
     INSERT INTO execution.semantic_pnf_frontier_dirty
         (interface_id, reason_interface_id, dirty_reason)
@@ -204,12 +204,9 @@ BEGIN
     ON CONFLICT (interface_id) DO NOTHING;
 
     LOOP
-        SELECT dirty.interface_id,
-               region.region_kind,
-               region.sequence_no,
-               region.start_char,
-               region.end_char
-          INTO selected
+        selected_interface_id := NULL;
+        SELECT dirty.interface_id
+          INTO selected_interface_id
           FROM execution.semantic_pnf_frontier_dirty AS dirty
           JOIN execution.semantic_pnf_interface AS interface
             ON interface.interface_id = dirty.interface_id
@@ -225,18 +222,16 @@ BEGIN
                   dirty.interface_id
          LIMIT 1;
 
-        EXIT WHEN selected.interface_id IS NULL;
+        EXIT WHEN selected_interface_id IS NULL;
 
         DELETE FROM execution.semantic_pnf_frontier_dirty
-         WHERE interface_id = selected.interface_id;
+         WHERE interface_id = selected_interface_id;
 
         PERFORM *
           FROM execution.rebuild_numeric_pnf_parent_frontier(
-              selected.interface_id
+              selected_interface_id
           );
         reduced_count := reduced_count + 1;
-
-        selected := NULL;
     END LOOP;
 
     INSERT INTO execution.semantic_pnf_frontier_stage_receipt
