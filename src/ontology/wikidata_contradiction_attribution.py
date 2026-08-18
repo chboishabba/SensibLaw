@@ -118,14 +118,27 @@ def build_cross_ontology_attribution(
         "non_promotion_boundary": [
             "neither on a required axis is unresolved, not refutation",
             "both and neither both project to trit=unresolved but remain distinct support squares",
+            "bounded graph diagnostics remain candidate evidence until acquisition completeness for the scoped claim is established",
             "runtime attribution is review evidence and does not create edit or world-truth authority",
         ],
     }
 
 
 def target_evidence_from_disjoint_union_report(
-    report: Mapping[str, Any], *, spec_id: str
+    report: Mapping[str, Any],
+    *,
+    spec_id: str,
+    bounded_result_authoritative: bool = False,
 ) -> LayerEvidence:
+    """Convert one bounded target diagnostic into an attribution-layer square.
+
+    Default behaviour is deliberately conservative.  A bounded slice may omit
+    a P279/P31 fact that exists in the target graph, so neither a pass nor a
+    failure is promoted to target ontology support/refutation unless the caller
+    explicitly certifies that this bounded result is authoritative for the
+    scoped claim.
+    """
+
     specs = {
         str(row.get("spec_id")): row
         for row in report.get("disjoint_unions", [])
@@ -138,11 +151,23 @@ def target_evidence_from_disjoint_union_report(
             obligations=(f"no finite-KB disjoint-union result for {spec_id}",),
         )
 
+    provenance = (str(report.get("source_window_id", "")),)
+    if not bounded_result_authoritative:
+        finite_ok = bool(row.get("finite_dun_ok"))
+        return LayerEvidence(
+            EvidenceSquare(False, False),
+            evidence=(f"bounded finite_dun_ok={str(finite_ok).lower()} for {spec_id}",),
+            provenance=provenance,
+            obligations=(
+                "establish acquisition completeness for the scoped P2738/P11260/P279/P31 claim before promoting the bounded target result",
+            ),
+        )
+
     if bool(row.get("finite_dun_ok")):
         return LayerEvidence(
             EvidenceSquare(True, False),
-            evidence=(f"finite disjoint-union obligations pass for {spec_id}",),
-            provenance=(str(report.get("source_window_id", "")),),
+            evidence=(f"authoritative finite disjoint-union obligations pass for {spec_id}",),
+            provenance=provenance,
         )
 
     failures = []
@@ -157,7 +182,7 @@ def target_evidence_from_disjoint_union_report(
     return LayerEvidence(
         EvidenceSquare(False, True),
         evidence=tuple(failures),
-        provenance=(str(report.get("source_window_id", "")),),
+        provenance=provenance,
     )
 
 
