@@ -40,4 +40,5 @@ def test_complete_tranche_benchmark_uses_failure_surviving_progress() -> None:
 
     assert "DurablePhaseRecorder" in source
     assert '"local_pnf_compile_progress.json"' in source
+    assert '"local_pnf_compile_progress.jsonl"' in source
     assert "runner.PhaseRecorder = TimedDurablePhaseRecorder" in source
