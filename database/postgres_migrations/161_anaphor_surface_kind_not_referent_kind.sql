@@ -16,6 +16,12 @@ BEGIN;
 -- This migration only removes the accidental self-kind constraint. It does not
 -- infer person/agent/entity from pronoun morphology and does not resolve a
 -- referent.
+--
+-- The normalization triggers are deliberately named with a zz suffix. PostgreSQL
+-- executes triggers with the same event/timing alphabetically; running this
+-- correction last ensures the ordinary demand constraint/lookup insert
+-- projections have completed before the corrective UPDATE causes their UPDATE
+-- projections to rebuild from the normalized row.
 
 CREATE OR REPLACE FUNCTION execution.normalize_numeric_pnf_anaphor_referent_kind_inserted()
 RETURNS TRIGGER
@@ -36,7 +42,9 @@ $$;
 
 DROP TRIGGER IF EXISTS semantic_pnf_anaphor_referent_kind_insert
     ON execution.semantic_pnf_demand;
-CREATE TRIGGER semantic_pnf_anaphor_referent_kind_insert
+DROP TRIGGER IF EXISTS semantic_pnf_zz_anaphor_referent_kind_insert
+    ON execution.semantic_pnf_demand;
+CREATE TRIGGER semantic_pnf_zz_anaphor_referent_kind_insert
 AFTER INSERT ON execution.semantic_pnf_demand
 REFERENCING NEW TABLE AS inserted_demand
 FOR EACH STATEMENT
@@ -71,7 +79,9 @@ $$;
 
 DROP TRIGGER IF EXISTS semantic_pnf_anaphor_referent_kind_update
     ON execution.semantic_pnf_demand;
-CREATE TRIGGER semantic_pnf_anaphor_referent_kind_update
+DROP TRIGGER IF EXISTS semantic_pnf_zz_anaphor_referent_kind_update
+    ON execution.semantic_pnf_demand;
+CREATE TRIGGER semantic_pnf_zz_anaphor_referent_kind_update
 AFTER UPDATE ON execution.semantic_pnf_demand
 REFERENCING OLD TABLE AS prior_demand NEW TABLE AS updated_demand
 FOR EACH STATEMENT
