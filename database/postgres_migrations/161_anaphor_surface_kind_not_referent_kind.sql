@@ -17,78 +17,81 @@ BEGIN;
 -- infer person/agent/entity from pronoun morphology and does not resolve a
 -- referent.
 --
--- The normalization triggers are deliberately named with a zz suffix. PostgreSQL
--- executes triggers with the same event/timing alphabetically; running this
--- correction last ensures the ordinary demand constraint/lookup insert
--- projections have completed before the corrective UPDATE causes their UPDATE
--- projections to rebuild from the normalized row.
+-- IMPORTANT: normalize the row BEFORE it is written.  The previous form used an
+-- AFTER trigger which UPDATEd execution.semantic_pnf_demand from a trigger on
+-- execution.semantic_pnf_demand.  That corrective write re-entered every UPDATE
+-- projection on the table, including demand source-object projection, and a
+-- clean migration replay could recurse until PostgreSQL exhausted its stack.
+-- Row normalization is the semantic operation we actually need: downstream
+-- INSERT/UPDATE projections see the canonical row once, with no corrective
+-- second write and therefore no trigger cycle.
 
-CREATE OR REPLACE FUNCTION execution.normalize_numeric_pnf_anaphor_referent_kind_inserted()
+CREATE OR REPLACE FUNCTION execution.normalize_numeric_pnf_anaphor_referent_kind()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
+DECLARE
+    constant_row execution.semantic_pnf_anaphor_projection_constant%ROWTYPE;
 BEGIN
-    UPDATE execution.semantic_pnf_demand AS demand
-       SET expected_object_kind_symbol_id=NULL
-      FROM inserted_demand AS inserted
-      JOIN execution.semantic_pnf_anaphor_projection_constant AS constant
-        ON constant.singleton
-     WHERE demand.demand_id=inserted.demand_id
-       AND inserted.residual_type_symbol_id=constant.anaphor_residual_type_symbol_id
-       AND inserted.expected_object_kind_symbol_id=constant.pronoun_object_kind_symbol_id;
-    RETURN NULL;
+    IF NEW.expected_object_kind_symbol_id IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT constant.*
+      INTO constant_row
+      FROM execution.semantic_pnf_anaphor_projection_constant AS constant
+     WHERE constant.singleton;
+
+    IF NEW.residual_type_symbol_id=constant_row.anaphor_residual_type_symbol_id
+       AND NEW.expected_object_kind_symbol_id=constant_row.pronoun_object_kind_symbol_id
+    THEN
+        NEW.expected_object_kind_symbol_id := NULL;
+    END IF;
+
+    RETURN NEW;
 END;
 $$;
 
+-- Drop both historical spellings so replay/upgrades cannot leave an AFTER
+-- self-update trigger active alongside the canonical BEFORE-row normalizer.
 DROP TRIGGER IF EXISTS semantic_pnf_anaphor_referent_kind_insert
     ON execution.semantic_pnf_demand;
 DROP TRIGGER IF EXISTS semantic_pnf_zz_anaphor_referent_kind_insert
     ON execution.semantic_pnf_demand;
-CREATE TRIGGER semantic_pnf_zz_anaphor_referent_kind_insert
-AFTER INSERT ON execution.semantic_pnf_demand
-REFERENCING NEW TABLE AS inserted_demand
-FOR EACH STATEMENT
-EXECUTE FUNCTION execution.normalize_numeric_pnf_anaphor_referent_kind_inserted();
-
-CREATE OR REPLACE FUNCTION execution.normalize_numeric_pnf_anaphor_referent_kind_updated()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    WITH changed AS MATERIALIZED (
-        SELECT current.demand_id,
-               current.residual_type_symbol_id,
-               current.expected_object_kind_symbol_id
-          FROM updated_demand AS current
-          JOIN prior_demand AS prior USING(demand_id)
-         WHERE current.residual_type_symbol_id IS DISTINCT FROM prior.residual_type_symbol_id
-            OR current.expected_object_kind_symbol_id
-                 IS DISTINCT FROM prior.expected_object_kind_symbol_id
-    )
-    UPDATE execution.semantic_pnf_demand AS demand
-       SET expected_object_kind_symbol_id=NULL
-      FROM changed
-      JOIN execution.semantic_pnf_anaphor_projection_constant AS constant
-        ON constant.singleton
-     WHERE demand.demand_id=changed.demand_id
-       AND changed.residual_type_symbol_id=constant.anaphor_residual_type_symbol_id
-       AND changed.expected_object_kind_symbol_id=constant.pronoun_object_kind_symbol_id;
-    RETURN NULL;
-END;
-$$;
-
 DROP TRIGGER IF EXISTS semantic_pnf_anaphor_referent_kind_update
     ON execution.semantic_pnf_demand;
 DROP TRIGGER IF EXISTS semantic_pnf_zz_anaphor_referent_kind_update
     ON execution.semantic_pnf_demand;
-CREATE TRIGGER semantic_pnf_zz_anaphor_referent_kind_update
-AFTER UPDATE ON execution.semantic_pnf_demand
-REFERENCING OLD TABLE AS prior_demand NEW TABLE AS updated_demand
-FOR EACH STATEMENT
-EXECUTE FUNCTION execution.normalize_numeric_pnf_anaphor_referent_kind_updated();
+DROP TRIGGER IF EXISTS semantic_pnf_anaphor_referent_kind_insert_before
+    ON execution.semantic_pnf_demand;
+DROP TRIGGER IF EXISTS semantic_pnf_anaphor_referent_kind_update_before
+    ON execution.semantic_pnf_demand;
+
+CREATE TRIGGER semantic_pnf_anaphor_referent_kind_insert_before
+BEFORE INSERT ON execution.semantic_pnf_demand
+FOR EACH ROW
+WHEN (NEW.expected_object_kind_symbol_id IS NOT NULL)
+EXECUTE FUNCTION execution.normalize_numeric_pnf_anaphor_referent_kind();
+
+CREATE TRIGGER semantic_pnf_anaphor_referent_kind_update_before
+BEFORE UPDATE OF residual_type_symbol_id, expected_object_kind_symbol_id
+ON execution.semantic_pnf_demand
+FOR EACH ROW
+WHEN (
+    NEW.expected_object_kind_symbol_id IS NOT NULL
+    AND (
+        NEW.residual_type_symbol_id IS DISTINCT FROM OLD.residual_type_symbol_id
+        OR NEW.expected_object_kind_symbol_id
+             IS DISTINCT FROM OLD.expected_object_kind_symbol_id
+    )
+)
+EXECUTE FUNCTION execution.normalize_numeric_pnf_anaphor_referent_kind();
 
 -- Repair historical migration-045 rows without changing any stronger typed
 -- anaphor demand whose expected kind is something other than mention.pronoun.
+-- This is one ordinary data migration UPDATE.  The BEFORE normalizer does not
+-- issue another write, so all downstream UPDATE projections are entered at most
+-- once for this statement.
 UPDATE execution.semantic_pnf_demand AS demand
    SET expected_object_kind_symbol_id=NULL
   FROM execution.semantic_pnf_anaphor_projection_constant AS constant
