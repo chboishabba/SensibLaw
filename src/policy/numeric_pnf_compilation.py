@@ -192,7 +192,14 @@ def _authority_refs(
 
 
 def _progress_observer(progress: Any | None):
-    """Adapt one active ``PhaseHandle`` to the streaming observation callback."""
+    """Adapt numeric observations to the repository's canonical progress API.
+
+    The numeric observer owns no rate or ETA calculation. Compact PostgreSQL
+    snapshots may carry named ``progress_measures``; when an inner stage is
+    active they are handed to ``PhaseHandle.observe`` so its existing throughput
+    and completion estimators remain the sole progress authority. Kernel-only
+    transitions continue to use heartbeats.
+    """
 
     if progress is None or not hasattr(progress, "heartbeat"):
         return None
@@ -200,6 +207,18 @@ def _progress_observer(progress: Any | None):
     def observe(payload: Mapping[str, Any]) -> None:
         details = dict(payload)
         message = str(details.get("current_kernel") or "numeric_pnf_compilation")
+        measures = details.get("progress_measures")
+        if (
+            isinstance(measures, Mapping)
+            and getattr(progress, "active_stage", None) is not None
+            and hasattr(progress, "observe")
+        ):
+            progress.observe(
+                measures={str(key): value for key, value in measures.items()},
+                message=message,
+                details=details,
+            )
+            return
         progress.heartbeat(message=message, details=details)
 
     return observe
