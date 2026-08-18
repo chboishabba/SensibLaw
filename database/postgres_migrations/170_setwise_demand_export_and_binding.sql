@@ -58,20 +58,14 @@ RETURNS trigger
 LANGUAGE plpgsql
 AS $$
 BEGIN
+    -- Migration 046 fired on UPDATE OF source_interface_id only. Keep that exact
+    -- generic boundary: specialized demand projections own lexical/type changes.
     WITH changed AS MATERIALIZED (
         SELECT current.*
           FROM updated_demand AS current
           JOIN prior_demand AS prior USING(demand_id)
          WHERE current.source_interface_id
                    IS DISTINCT FROM prior.source_interface_id
-            OR current.lexical_symbol_id
-                   IS DISTINCT FROM prior.lexical_symbol_id
-            OR current.role_symbol_id
-                   IS DISTINCT FROM prior.role_symbol_id
-            OR current.residual_type_symbol_id
-                   IS DISTINCT FROM prior.residual_type_symbol_id
-            OR current.expected_factor_type_symbol_id
-                   IS DISTINCT FROM prior.expected_factor_type_symbol_id
     )
     INSERT INTO execution.semantic_pnf_interface_export
         (interface_id,export_kind,target_kind,target_id,
@@ -90,14 +84,6 @@ BEGIN
           JOIN prior_demand AS prior USING(demand_id)
          WHERE current.source_interface_id
                    IS DISTINCT FROM prior.source_interface_id
-            OR current.lexical_symbol_id
-                   IS DISTINCT FROM prior.lexical_symbol_id
-            OR current.role_symbol_id
-                   IS DISTINCT FROM prior.role_symbol_id
-            OR current.residual_type_symbol_id
-                   IS DISTINCT FROM prior.residual_type_symbol_id
-            OR current.expected_factor_type_symbol_id
-                   IS DISTINCT FROM prior.expected_factor_type_symbol_id
     )
     INSERT INTO execution.semantic_pnf_interface_lookup
         (interface_id,key_kind,key_a,key_b,target_kind,target_id,rank)
@@ -114,14 +100,6 @@ BEGIN
           JOIN prior_demand AS prior USING(demand_id)
          WHERE current.source_interface_id
                    IS DISTINCT FROM prior.source_interface_id
-            OR current.lexical_symbol_id
-                   IS DISTINCT FROM prior.lexical_symbol_id
-            OR current.role_symbol_id
-                   IS DISTINCT FROM prior.role_symbol_id
-            OR current.residual_type_symbol_id
-                   IS DISTINCT FROM prior.residual_type_symbol_id
-            OR current.expected_factor_type_symbol_id
-                   IS DISTINCT FROM prior.expected_factor_type_symbol_id
     )
     INSERT INTO execution.semantic_pnf_interface_lookup
         (interface_id,key_kind,key_a,key_b,target_kind,target_id,rank)
