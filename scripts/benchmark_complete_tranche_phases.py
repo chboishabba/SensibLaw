@@ -5,6 +5,12 @@ The timing harness is a production-performance entrypoint.  It therefore runs
 the strict numeric PostgreSQL path by default even though the historical tranche
 runner retains an explicit compatibility mode for parity/migration work.
 Compatibility replay must be requested here with ``--compatibility-replay``.
+
+In addition to outer phase receipts, the runner's detailed ``PhaseRecorder`` is
+replaced with a failure-surviving recorder.  Every stage transition, observation
+and heartbeat is atomically fsynced while the compile is still running.  A later
+compiler/receipt failure therefore cannot erase the substage history that led to
+it.
 """
 
 from __future__ import annotations
@@ -24,6 +30,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.runtime.complete_tranche_phase_timing import CompleteTranchePhaseTimer
+from src.runtime.durable_progress import DurablePhaseRecorder
 
 
 def _write(path: Path, payload: Mapping[str, Any]) -> None:
@@ -103,15 +110,14 @@ def main() -> int:
         passthrough=passthrough,
     )
     output_root = args.output_root.resolve()
-    timing_path = (
-        output_root
-        / args.tranche.lower()
-        / "complete_tranche_phase_timings.json"
-    )
+    tranche_root = output_root / args.tranche.lower()
+    timing_path = tranche_root / "complete_tranche_phase_timings.json"
+    detailed_progress_path = tranche_root / "local_pnf_compile_progress.json"
     timer = CompleteTranchePhaseTimer()
     timer.prime(None, epoch_ns=time_ns(), monotonic_ns=monotonic_ns())
     runner = _load_runner()
     original_phase_receipt = runner.PhaseReceipt
+    original_phase_recorder = runner.PhaseRecorder
     original_load_checkpoint = runner._load_phase_checkpoint
     suppress_observation = False
 
@@ -122,6 +128,7 @@ def main() -> int:
             if args.compatibility_replay
             else "strict-numeric-postgresql"
         )
+        report["detailed_progress_path"] = str(detailed_progress_path)
         _write(timing_path, report)
 
     class TimedPhaseReceipt(original_phase_receipt):
@@ -149,6 +156,16 @@ def main() -> int:
             )
             persist(None)
 
+    class TimedDurablePhaseRecorder(DurablePhaseRecorder):
+        """Use the runner's normal recorder API with per-event durable writes."""
+
+        def __init__(self, stream=None, json_lines: bool = False, **_kwargs: Any):
+            super().__init__(
+                durable_path=detailed_progress_path,
+                stream=stream,
+                json_lines=json_lines,
+            )
+
     def load_checkpoint_without_charging_reuse(*load_args, **load_kwargs):
         nonlocal suppress_observation
         previous = suppress_observation
@@ -159,6 +176,7 @@ def main() -> int:
             suppress_observation = previous
 
     runner.PhaseReceipt = TimedPhaseReceipt
+    runner.PhaseRecorder = TimedDurablePhaseRecorder
     runner._load_phase_checkpoint = load_checkpoint_without_charging_reuse
 
     saved_argv = sys.argv
@@ -176,6 +194,9 @@ def main() -> int:
         return returncode
     finally:
         sys.argv = saved_argv
+        runner.PhaseReceipt = original_phase_receipt
+        runner.PhaseRecorder = original_phase_recorder
+        runner._load_phase_checkpoint = original_load_checkpoint
         persist(returncode)
         report = timer.report(tranche=args.tranche, process_returncode=returncode)
         report["execution_mode"] = (
@@ -183,6 +204,7 @@ def main() -> int:
             if args.compatibility_replay
             else "strict-numeric-postgresql"
         )
+        report["detailed_progress_path"] = str(detailed_progress_path)
         print(json.dumps(report, indent=2, sort_keys=True))
 
 
