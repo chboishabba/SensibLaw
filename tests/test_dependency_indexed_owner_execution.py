@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from src.pnf.bounded_streaming_owner import BoundedStreamingSemanticOwner
 from src.pnf.factor_proposals import FactorProposal, reduce_factor_proposals
+from src.pnf.streaming_fixed_point import ObservationDelta
 from src.policy.dependency_indexed_owner_execution import (
     install_dependency_indexed_owner_execution,
 )
@@ -13,13 +14,14 @@ def _proposal(
     family: str,
     ordinal: int,
     dependencies: tuple[str, ...] = (),
+    observations: tuple[str, ...] = (),
 ) -> FactorProposal:
     return FactorProposal(
         document_ref="document:test",
         source_revision_ref="source:test",
         factor_type_ref=family,
         source_span_refs=(scope,),
-        input_observation_refs=(),
+        input_observation_refs=observations,
         dependency_factor_refs=dependencies,
         structural_signature=f"signature:{family}",
         role_bindings={"role": f"value:{ordinal}"},
@@ -80,6 +82,71 @@ def test_empty_dependency_authority_is_not_treated_as_validation_disabled() -> N
         family="semantic.dependent",
         ordinal=1,
         dependencies=("factor:missing",),
+    )
+
+    owner.admit_proposals((dependent,), stage="base")
+    owner.reduce_dirty_groups()
+
+    assert owner.materialized_reduction.factors == ()
+    assert any(
+        residual.residual_type == "missing_reduction_input"
+        for residual in owner.materialized_reduction.residuals
+    )
+
+
+def test_new_observation_wakes_only_owner_declaring_that_observation() -> None:
+    install_dependency_indexed_owner_execution()
+    owner = BoundedStreamingSemanticOwner(document_ref="document:test")
+    dependent = _proposal(
+        scope="scope:observation-dependent",
+        family="semantic.observation-dependent",
+        ordinal=1,
+        observations=("observation:1",),
+    )
+
+    owner.admit_proposals((dependent,), stage="base")
+    owner.reduce_dirty_groups()
+    assert owner.materialized_reduction.factors == ()
+
+    owner.admit_observation_delta(
+        ObservationDelta(
+            document_ref="document:test",
+            batch_ref="batch:1",
+            scope_ref="scope:observation-dependent",
+            sequence_no=0,
+            parser_contract="parser:test",
+            observation_refs=("observation:1",),
+            observations=(
+                {
+                    "observation_ref": "observation:1",
+                    "observation_type": "test",
+                },
+            ),
+            token_start=0,
+            token_end=1,
+            char_start=0,
+            char_end=1,
+            token_count=1,
+        )
+    )
+    owner.reduce_dirty_groups()
+
+    assert {
+        factor.factor_type_ref for factor in owner.materialized_reduction.factors
+    } == {"semantic.observation-dependent"}
+    telemetry = owner.kernel_telemetry()["counts"]
+    assert telemetry["observation_reverse_edges_indexed"] == 1
+    assert telemetry["observation_indexed_owner_wakeups"] == 1
+
+
+def test_empty_observation_authority_is_not_treated_as_validation_disabled() -> None:
+    install_dependency_indexed_owner_execution()
+    owner = BoundedStreamingSemanticOwner(document_ref="document:test")
+    dependent = _proposal(
+        scope="scope:observation-dependent",
+        family="semantic.observation-dependent",
+        ordinal=1,
+        observations=("observation:missing",),
     )
 
     owner.admit_proposals((dependent,), stage="base")
