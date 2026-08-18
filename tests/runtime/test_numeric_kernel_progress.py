@@ -31,6 +31,19 @@ def test_numeric_progress_module_imports_before_storage_policy_initialization() 
     assert result.stdout.strip() == "numeric_kernel_progress_snapshot"
 
 
+def test_numeric_progress_reporter_help_is_import_safe() -> None:
+    result = subprocess.run(
+        [sys.executable, "scripts/report_numeric_kernel_progress.py", "--help"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "--run-ref" in result.stdout
+    assert "--document-ref" in result.stdout
+
+
 def test_numeric_snapshot_projects_only_defensible_named_eta_measures() -> None:
     measures = numeric_kernel_progress_measures(
         {
