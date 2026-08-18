@@ -1,30 +1,40 @@
 """Execution-only hot-path projection for strict numeric parser persistence.
 
 The canonical numeric parser writer already COPYs one partition at a time. Its
-legacy compatibility shape omitted ``sentence_id`` from token rows and relied on
-migration-042's BEFORE ROW trigger to look the id up from ``sentence_ref`` for
-every token. A large partition therefore turns one COPY into one indexed SELECT
-per token.
+legacy compatibility shape had two row-amplifying tails:
 
-This strategy enriches only the existing token COPY carrier. It resolves the
-finite sentence-ref -> sentence-id map once on the same cursor, appends the exact
-numeric id to every token row, and delegates to the unchanged COPY authority.
-The migration-042 trigger remains installed for other writers and still validates
-that a numeric token has a sentence identity; for this strict path it observes a
-non-null id and performs no lookup.
+* token COPY omitted ``sentence_id`` and relied on migration 042's BEFORE ROW
+  trigger to look the id up from ``sentence_ref`` for every token;
+* after COPY, Python validated dependency-head spans and then sent one UPDATE per
+  token through ``executemany``.
+
+This strategy preserves those semantic checks while changing only their physical
+projection. It resolves the finite sentence-ref -> sentence-id map once and
+includes the exact id in token COPY rows. When migration 150 is installed, the
+same COPY also resolves all ``head_token_id`` values set-wise from the declared
+sentence-local head spans. Python still runs the canonical
+``_project_numeric_heads`` validation; only the redundant row-wise UPDATE payload
+is suppressed after the database projection has been verified present.
+
+Migration 042 remains installed for other writers, and absence of migration 150
+fails safe to the original per-token head updates.
 """
 
 from __future__ import annotations
 
+from contextvars import ContextVar
 from functools import wraps
 from typing import Any, Iterable, Sequence
 
 
 _INSTALL_MARKER = "_numeric_parser_projection_hot_path_installed"
+_SETWISE_HEADS_READY: ContextVar[bool] = ContextVar(
+    "sensiblaw_setwise_numeric_heads_ready", default=False
+)
 
 
 def install_numeric_parser_projection_hot_path() -> bool:
-    """Install exact sentence-id enrichment on the existing parser COPY seam."""
+    """Install exact sentence-id and dependency-head batch projection."""
 
     from src.storage.postgres import spacy_numeric_projection as projection
 
@@ -32,6 +42,7 @@ def install_numeric_parser_projection_hot_path() -> bool:
         return False
 
     original_copy_rows = projection._copy_rows
+    original_project_heads = projection._project_numeric_heads
 
     @wraps(original_copy_rows)
     def copy_rows(
@@ -62,9 +73,11 @@ def install_numeric_parser_projection_hot_path() -> bool:
             )
 
         sentence_ref_index = tuple(columns).index("sentence_ref")
+        token_ref_index = tuple(columns).index("token_ref")
         sentence_refs = tuple(
             sorted({str(row[sentence_ref_index]) for row in materialized})
         )
+        token_refs = tuple(str(row[token_ref_index]) for row in materialized)
         cursor.execute(
             """
             SELECT sentence_ref, sentence_id
@@ -78,9 +91,7 @@ def install_numeric_parser_projection_hot_path() -> bool:
             str(sentence_ref): int(sentence_id)
             for sentence_ref, sentence_id in cursor.fetchall()
         }
-        missing = tuple(
-            ref for ref in sentence_refs if ref not in sentence_id_by_ref
-        )
+        missing = tuple(ref for ref in sentence_refs if ref not in sentence_id_by_ref)
         if missing:
             raise RuntimeError(
                 "numeric token COPY cannot resolve sentence ids for "
@@ -91,7 +102,7 @@ def install_numeric_parser_projection_hot_path() -> bool:
             (*row, sentence_id_by_ref[str(row[sentence_ref_index])])
             for row in materialized
         )
-        return original_copy_rows(
+        result = original_copy_rows(
             cursor,
             table=table,
             columns=(*tuple(columns), "sentence_id"),
@@ -99,7 +110,48 @@ def install_numeric_parser_projection_hot_path() -> bool:
             **kwargs,
         )
 
+        # Migration 150 is an optional physical optimization. Detect it on the
+        # active database rather than assuming branch migration state. If it is
+        # present, verify that the statement trigger actually filled every head
+        # before suppressing Python's redundant UPDATE payload.
+        cursor.execute(
+            "SELECT to_regprocedure("
+            "'execution.resolve_numeric_parser_dependency_heads()') IS NOT NULL"
+        )
+        has_setwise_head_projection = bool(cursor.fetchone()[0])
+        if has_setwise_head_projection:
+            cursor.execute(
+                """
+                SELECT count(*)
+                  FROM execution.semantic_parser_token
+                 WHERE token_ref = ANY(%s)
+                   AND representation_version = 2
+                   AND head_token_id IS NULL
+                """,
+                (list(token_refs),),
+            )
+            missing_heads = int(cursor.fetchone()[0])
+            if missing_heads:
+                raise RuntimeError(
+                    "set-wise numeric dependency-head projection left "
+                    f"{missing_heads} token heads unresolved"
+                )
+        _SETWISE_HEADS_READY.set(has_setwise_head_projection)
+        return result
+
+    @wraps(original_project_heads)
+    def project_heads(*args: Any, **kwargs: Any):
+        # Always execute the canonical parser-specific validation. It checks
+        # explicit root self-heads, non-root self-resolution and missing heads.
+        # Only the physical UPDATE tuples become unnecessary under migration 150.
+        updates = original_project_heads(*args, **kwargs)
+        if _SETWISE_HEADS_READY.get():
+            _SETWISE_HEADS_READY.set(False)
+            return ()
+        return updates
+
     projection._copy_rows = copy_rows
+    projection._project_numeric_heads = project_heads
     setattr(projection, _INSTALL_MARKER, True)
     return True
 
