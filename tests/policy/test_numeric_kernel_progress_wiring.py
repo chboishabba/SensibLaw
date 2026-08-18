@@ -22,6 +22,19 @@ def test_strict_numeric_compile_wires_streaming_observer_and_sampler() -> None:
         assert f'kernel="{kernel}"' in source
 
 
+def test_numeric_progress_reuses_phase_handle_measure_eta_authority() -> None:
+    source = NUMERIC.read_text(encoding="utf-8")
+    observer = source.split("def _progress_observer(", 1)[1].split(
+        "def _observe_kernel(", 1
+    )[0]
+
+    assert 'details.get("progress_measures")' in observer
+    assert "progress.observe(" in observer
+    assert "measures={str(key): value for key, value in measures.items()}" in observer
+    assert "estimated_remaining" not in observer
+    assert "estimated_completion" not in observer
+
+
 def test_numeric_stage_stays_open_through_semantic_receipt_publication() -> None:
     source = NUMERIC.read_text(encoding="utf-8")
     body = source.split("def persist_numeric_pnf_document(", 1)[1].split(
