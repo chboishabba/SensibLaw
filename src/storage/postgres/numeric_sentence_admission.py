@@ -2,12 +2,12 @@
 
 The semantic producer remains ``compose_numeric_sentence`` and every existing
 object/factor/demand digest, trigger, fence, interface and proof producer remains
-authoritative.  This module changes only the physical admission shape:
+authoritative. This module changes only the physical admission shape:
 
     bounded closure specs -> COPY temp rows -> set-wise upsert -> digest/id join
 
 so sentence cost is not proportional to one client/server round trip per object,
-factor, and demand.
+factor, demand, export, or lookup row.
 """
 
 from __future__ import annotations
@@ -121,8 +121,8 @@ def _copy_specs(
                 )
             )
 
-    # PostgreSQL accepts one COPY FROM STDIN stream per connection.  These
-    # three bounded temp tables share a cursor, so stage them sequentially.
+    # PostgreSQL accepts one COPY FROM STDIN stream per connection. These
+    # bounded temp tables share a cursor, so stage them sequentially.
     with cursor.copy(
         f"""COPY {_FACTOR_STAGE}
         (ordinal, factor_digest, factor_type_symbol_id, predicate_symbol_id,
@@ -259,34 +259,23 @@ def persist_sentence_closure_setwise(
         ON CONFLICT DO NOTHING
         """
     )
+    # Only promoted objects participate in sentence-interface identity. Slot
+    # object selection is already performed set-wise by ``object_choice`` below,
+    # so no Python token->object mapping is reconstructed here.
     cursor.execute(
         f"""
-        SELECT stage.ordinal, object.object_id, stage.source_token_id,
-               stage.head_symbol_id, stage.promotion_score, stage.promoted
+        SELECT object.object_id, stage.head_symbol_id, stage.promotion_score
           FROM {_OBJECT_STAGE} AS stage
           JOIN execution.semantic_pnf_object AS object
             ON object.object_digest = stage.object_digest
+         WHERE stage.promoted
          ORDER BY stage.ordinal
         """
     )
-    object_rows = tuple(cursor.fetchall())
-    object_id_by_token: dict[int, int] = {}
-    promoted_object_ids: list[tuple[int, int, float]] = []
-    for (
-        _ordinal,
-        object_id,
-        source_token_id,
-        head_symbol_id,
-        score,
-        promoted,
-    ) in object_rows:
-        # Preserve the previous Python dict semantics exactly: the final object
-        # spec for a source token wins when factor slots map token -> object.
-        object_id_by_token[int(source_token_id)] = int(object_id)
-        if bool(promoted):
-            promoted_object_ids.append(
-                (int(object_id), int(head_symbol_id), float(score))
-            )
+    promoted_object_ids = [
+        (int(object_id), int(head_symbol_id), float(score))
+        for object_id, head_symbol_id, score in cursor.fetchall()
+    ]
 
     # Factors and their token support/slots are admitted in three set-wise SQL
     # statements after one COPY of the closure specification.
@@ -347,7 +336,7 @@ def persist_sentence_closure_setwise(
     )
     cursor.execute(
         f"""
-        SELECT stage.ordinal, factor.factor_id,
+        SELECT factor.factor_id,
                stage.factor_type_symbol_id, stage.predicate_symbol_id
           FROM {_FACTOR_STAGE} AS stage
           JOIN execution.semantic_pnf_factor AS factor
@@ -357,7 +346,7 @@ def persist_sentence_closure_setwise(
     )
     factor_ids = [
         (int(factor_id), int(factor_type_id), int(predicate_id))
-        for _ordinal, factor_id, factor_type_id, predicate_id in cursor.fetchall()
+        for factor_id, factor_type_id, predicate_id in cursor.fetchall()
     ]
 
     # Demands are likewise admitted once. Existing INSERT triggers (including
@@ -388,7 +377,7 @@ def persist_sentence_closure_setwise(
     )
     cursor.execute(
         f"""
-        SELECT stage.ordinal, demand.demand_id,
+        SELECT demand.demand_id,
                stage.residual_type_symbol_id,
                stage.expected_factor_type_symbol_id,
                stage.lexical_symbol_id
@@ -405,7 +394,7 @@ def persist_sentence_closure_setwise(
             int(factor_type_id) if factor_type_id is not None else None,
             int(lexical_id) if lexical_id is not None else None,
         )
-        for _ordinal, demand_id, residual_id, factor_type_id, lexical_id in cursor.fetchall()
+        for demand_id, residual_id, factor_type_id, lexical_id in cursor.fetchall()
     ]
 
     measure = closure.measure
@@ -479,154 +468,129 @@ def persist_sentence_closure_setwise(
     )
     interface_id = int(cursor.fetchone()[0])
 
-    # These families are already batched by executemany and are bounded by one
-    # sentence's promoted interface cardinality; they do not perform identity-
-    # returning round trips and therefore remain as the existing cheap tail.
-    cursor.executemany(
-        """
+    # Interface exports are a direct projection of the staged sentence carrier.
+    # Publish all three families in one server-side statement. Promoted object
+    # ranks compress exactly as Python enumerate(promoted_object_ids) did.
+    cursor.execute(
+        f"""
         INSERT INTO execution.semantic_pnf_interface_export
             (interface_id, export_kind, target_kind, target_id,
-             key_symbol_id, rank, promotion_score)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT DO NOTHING
-        """,
-        [
-            (
-                interface_id,
-                int(ExportKind.OBJECT),
-                int(TargetKind.OBJECT),
-                object_id,
-                head_symbol_id,
-                rank,
-                score,
-            )
-            for rank, (object_id, head_symbol_id, score) in enumerate(
-                promoted_object_ids
-            )
-        ],
-    )
-    cursor.executemany(
-        """
-        INSERT INTO execution.semantic_pnf_interface_export
-            (interface_id, export_kind, target_kind, target_id,
-             key_symbol_id, rank, promotion_score)
-        VALUES (%s, %s, %s, %s, %s, %s, 0)
-        ON CONFLICT DO NOTHING
-        """,
-        [
-            (
-                interface_id,
-                int(ExportKind.FACTOR),
-                int(TargetKind.FACTOR),
-                factor_id,
-                factor_type_id,
-                rank,
-            )
-            for rank, (factor_id, factor_type_id, _predicate_id) in enumerate(
-                factor_ids
-            )
-        ],
-    )
-    cursor.executemany(
-        """
-        INSERT INTO execution.semantic_pnf_interface_export
-            (interface_id, export_kind, target_kind, target_id,
-             key_symbol_id, residual_type_symbol_id,
+             key_symbol_id, role_symbol_id, residual_type_symbol_id,
              rank, promotion_score)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, 0)
+        SELECT %s,
+               {int(ExportKind.OBJECT)},
+               {int(TargetKind.OBJECT)},
+               object.object_id,
+               stage.head_symbol_id,
+               NULL,
+               NULL,
+               row_number() OVER (ORDER BY stage.ordinal) - 1,
+               stage.promotion_score
+          FROM {_OBJECT_STAGE} AS stage
+          JOIN execution.semantic_pnf_object AS object
+            ON object.object_digest = stage.object_digest
+         WHERE stage.promoted
+        UNION ALL
+        SELECT %s,
+               {int(ExportKind.FACTOR)},
+               {int(TargetKind.FACTOR)},
+               factor.factor_id,
+               stage.factor_type_symbol_id,
+               NULL,
+               NULL,
+               stage.ordinal,
+               0
+          FROM {_FACTOR_STAGE} AS stage
+          JOIN execution.semantic_pnf_factor AS factor
+            ON factor.factor_digest = stage.factor_digest
+        UNION ALL
+        SELECT %s,
+               {int(ExportKind.DEMAND)},
+               {int(TargetKind.DEMAND)},
+               demand.demand_id,
+               stage.lexical_symbol_id,
+               NULL,
+               stage.residual_type_symbol_id,
+               stage.ordinal,
+               0
+          FROM {_DEMAND_STAGE} AS stage
+          JOIN execution.semantic_pnf_demand AS demand
+            ON demand.demand_digest = stage.demand_digest
         ON CONFLICT DO NOTHING
         """,
-        [
-            (
-                interface_id,
-                int(ExportKind.DEMAND),
-                int(TargetKind.DEMAND),
-                demand_id,
-                lexical_id,
-                residual_id,
-                rank,
-            )
-            for rank, (
-                demand_id,
-                residual_id,
-                _factor_type_id,
-                lexical_id,
-            ) in enumerate(demand_ids)
-        ],
+        (interface_id, interface_id, interface_id),
     )
 
-    lookup_rows: list[tuple[int, int, int, int, int, int, int]] = []
-    for rank, (object_id, head_symbol_id, _score) in enumerate(promoted_object_ids):
-        lookup_rows.append(
-            (
-                interface_id,
-                int(KeyKind.NORMALIZED_SYMBOL),
-                head_symbol_id,
-                0,
-                int(TargetKind.OBJECT),
-                object_id,
-                rank,
-            )
-        )
-    for rank, (factor_id, factor_type_id, predicate_id) in enumerate(factor_ids):
-        lookup_rows.extend(
-            (
-                (
-                    interface_id,
-                    int(KeyKind.FACTOR_TYPE),
-                    factor_type_id,
-                    0,
-                    int(TargetKind.FACTOR),
-                    factor_id,
-                    rank,
-                ),
-                (
-                    interface_id,
-                    int(KeyKind.NORMALIZED_SYMBOL),
-                    predicate_id,
-                    0,
-                    int(TargetKind.FACTOR),
-                    factor_id,
-                    rank,
-                ),
-            )
-        )
-    for rank, (demand_id, residual_id, factor_type_id, lexical_id) in enumerate(
-        demand_ids
-    ):
-        lookup_rows.append(
-            (
-                interface_id,
-                int(KeyKind.RESIDUAL_TYPE),
-                residual_id,
-                factor_type_id or 0,
-                int(TargetKind.DEMAND),
-                demand_id,
-                rank,
-            )
-        )
-        if lexical_id:
-            lookup_rows.append(
-                (
-                    interface_id,
-                    int(KeyKind.NORMALIZED_SYMBOL),
-                    lexical_id,
-                    residual_id,
-                    int(TargetKind.DEMAND),
-                    demand_id,
-                    rank,
-                )
-            )
-    cursor.executemany(
-        """
+    # Lookup rows are another direct stage projection. Keeping this server-side
+    # avoids rebuilding a Python list only to send the same numeric tuples back
+    # through executemany.
+    cursor.execute(
+        f"""
         INSERT INTO execution.semantic_pnf_interface_lookup
             (interface_id, key_kind, key_a, key_b,
              target_kind, target_id, rank)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        SELECT %s,
+               {int(KeyKind.NORMALIZED_SYMBOL)},
+               stage.head_symbol_id,
+               0,
+               {int(TargetKind.OBJECT)},
+               object.object_id,
+               row_number() OVER (ORDER BY stage.ordinal) - 1
+          FROM {_OBJECT_STAGE} AS stage
+          JOIN execution.semantic_pnf_object AS object
+            ON object.object_digest = stage.object_digest
+         WHERE stage.promoted
+        UNION ALL
+        SELECT %s,
+               {int(KeyKind.FACTOR_TYPE)},
+               stage.factor_type_symbol_id,
+               0,
+               {int(TargetKind.FACTOR)},
+               factor.factor_id,
+               stage.ordinal
+          FROM {_FACTOR_STAGE} AS stage
+          JOIN execution.semantic_pnf_factor AS factor
+            ON factor.factor_digest = stage.factor_digest
+        UNION ALL
+        SELECT %s,
+               {int(KeyKind.NORMALIZED_SYMBOL)},
+               stage.predicate_symbol_id,
+               0,
+               {int(TargetKind.FACTOR)},
+               factor.factor_id,
+               stage.ordinal
+          FROM {_FACTOR_STAGE} AS stage
+          JOIN execution.semantic_pnf_factor AS factor
+            ON factor.factor_digest = stage.factor_digest
+        UNION ALL
+        SELECT %s,
+               {int(KeyKind.RESIDUAL_TYPE)},
+               stage.residual_type_symbol_id,
+               COALESCE(stage.expected_factor_type_symbol_id, 0),
+               {int(TargetKind.DEMAND)},
+               demand.demand_id,
+               stage.ordinal
+          FROM {_DEMAND_STAGE} AS stage
+          JOIN execution.semantic_pnf_demand AS demand
+            ON demand.demand_digest = stage.demand_digest
+        UNION ALL
+        SELECT %s,
+               {int(KeyKind.NORMALIZED_SYMBOL)},
+               stage.lexical_symbol_id,
+               stage.residual_type_symbol_id,
+               {int(TargetKind.DEMAND)},
+               demand.demand_id,
+               stage.ordinal
+          FROM {_DEMAND_STAGE} AS stage
+          JOIN execution.semantic_pnf_demand AS demand
+            ON demand.demand_digest = stage.demand_digest
+         WHERE stage.lexical_symbol_id IS NOT NULL
+           AND stage.lexical_symbol_id <> 0
         ON CONFLICT DO NOTHING
         """,
-        lookup_rows,
+        (interface_id, interface_id, interface_id, interface_id, interface_id),
     )
+
     cursor.execute(
         "SELECT execution.rebuild_pnf_interface_ancestors(%s)", (interface_id,)
     )
