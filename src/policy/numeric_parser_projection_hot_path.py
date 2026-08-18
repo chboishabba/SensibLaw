@@ -1,14 +1,16 @@
 """Execution-only hot-path projection for strict numeric parser persistence.
 
 The canonical numeric parser writer already COPYs one partition at a time. Its
-legacy compatibility shape had three row-amplifying tails:
+legacy compatibility shape had four row-amplifying tails:
 
 * token COPY omitted ``sentence_id`` and relied on migration 042's BEFORE ROW
   trigger to look the id up from ``sentence_ref`` for every token;
 * after COPY, Python validated dependency-head spans and then sent one UPDATE per
   token through ``executemany``;
 * migration 052 queued a deferred row integrity trigger for token INSERT and
-  again for the later head UPDATE, re-reading token/head rows at commit.
+  again for the later head UPDATE, re-reading token/head rows at commit;
+* migration 059 invoked row-level fallback-origin validation for every token and
+  performed point symbol lookups for fallback rows.
 
 This strategy preserves those semantic checks while changing only their physical
 projection. It resolves the finite sentence-ref -> sentence-id map once and
@@ -18,11 +20,11 @@ sentence-local head spans. Python still runs canonical ``_project_numeric_heads`
 validation; only the redundant row-wise UPDATE payload is suppressed after the
 database projection is verified present.
 
-When migration 152 is also present, the strict transaction advertises that exact
-set-wise integrity contract before COPY, so the generic deferred row constraint
-trigger is not queued for this producer. Writers without both capabilities retain
-the migration-052 fail-closed path. Migration 042 likewise remains installed for
-writers that do not supply sentence identity.
+When migrations 152/153 are present, the strict transaction advertises the
+corresponding set-wise integrity contracts before COPY, so the generic row
+validators are not queued/invoked for this producer. Writers without those
+capabilities retain the migration-052/059 fail-closed paths. Migration 042
+likewise remains installed for writers that do not supply sentence identity.
 """
 
 from __future__ import annotations
@@ -39,7 +41,7 @@ _SETWISE_HEADS_READY: ContextVar[bool] = ContextVar(
 
 
 def install_numeric_parser_projection_hot_path() -> bool:
-    """Install exact sentence-id and dependency-head batch projection."""
+    """Install exact sentence-id and parser-derived batch projections."""
 
     from src.storage.postgres import spacy_numeric_projection as projection
 
@@ -103,10 +105,8 @@ def install_numeric_parser_projection_hot_path() -> bool:
                 f"{len(missing)} sentence refs"
             )
 
-        # Capabilities are detected before COPY because migration 152's WHEN
-        # clause is evaluated when a row event would be queued. Suppress generic
-        # deferred events only when both the statement resolver and the explicit
-        # set-wise-integrity fence are installed.
+        # Detect physical capabilities before COPY because row-trigger WHEN
+        # conditions are evaluated when their events would be created.
         cursor.execute(
             """
             SELECT
@@ -115,16 +115,27 @@ def install_numeric_parser_projection_hot_path() -> bool:
                 ) IS NOT NULL,
                 to_regprocedure(
                     'execution.numeric_parser_setwise_head_integrity_ready()'
+                ) IS NOT NULL,
+                to_regprocedure(
+                    'execution.numeric_parser_setwise_annotation_origin_ready()'
                 ) IS NOT NULL
             """
         )
-        has_setwise_head_projection, has_setwise_integrity_fence = (
-            bool(value) for value in cursor.fetchone()
-        )
+        (
+            has_setwise_head_projection,
+            has_setwise_integrity_fence,
+            has_setwise_annotation_origin,
+        ) = (bool(value) for value in cursor.fetchone())
+
         if has_setwise_head_projection and has_setwise_integrity_fence:
             cursor.execute(
                 "SELECT set_config("
                 "'sensiblaw.setwise_numeric_head_integrity', 'on', TRUE)"
+            )
+        if has_setwise_annotation_origin:
+            cursor.execute(
+                "SELECT set_config("
+                "'sensiblaw.setwise_numeric_annotation_origins', 'on', TRUE)"
             )
 
         enriched_rows = tuple(
@@ -139,7 +150,7 @@ def install_numeric_parser_projection_hot_path() -> bool:
             **kwargs,
         )
 
-        # Verify the statement trigger actually filled every head before
+        # Verify the statement head trigger actually filled every head before
         # suppressing Python's redundant UPDATE payload. If migration 150 is not
         # installed, the original row updates remain authoritative.
         if has_setwise_head_projection:
