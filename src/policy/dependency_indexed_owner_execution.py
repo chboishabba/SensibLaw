@@ -1,17 +1,16 @@
 """Sparse dependency-indexed invalidation for bounded semantic-owner reduction.
 
-The canonical proposal reducer remains authoritative.  This execution strategy
+The canonical proposal reducer remains authoritative. This execution strategy
 changes only *which* owner fibres are revisited when the set of available
-factor dependencies changes.  Proposal admission records an exact reverse
-index
+factor dependencies changes. Proposal admission records an exact reverse index
 
     dependency factor ref -> owner keys whose proposals require it
 
-and reduction then follows only those edges to a local fixed point.  No
+and reduction then follows only those edges to a local fixed point. No
 whole-owner scan is used to discover dependent fibres.
 
 The wrapper deliberately does not assume same-owner reduction is associative or
-append-homomorphic.  Each woken owner is still reduced by the canonical reducer
+append-homomorphic. Each woken owner is still reduced by the canonical reducer
 over its complete canonically ordered owner fibre.
 """
 
@@ -32,8 +31,11 @@ _SENTINEL_NO_DEPENDENCY = "__sensiblaw:no-known-dependency__"
 def _ensure_dependency_index(owner: Any) -> None:
     if hasattr(owner, "_owners_by_dependency_ref"):
         return
+
     owner._owners_by_dependency_ref = defaultdict(set)
     owner._dependency_refs_by_owner = defaultdict(set)
+    owner._factor_producers_by_ref = defaultdict(set)
+
     for key, proposals in owner._proposals_by_owner.items():
         for proposal in proposals.values():
             dependencies = tuple(proposal.dependency_factor_refs)
@@ -41,20 +43,62 @@ def _ensure_dependency_index(owner: Any) -> None:
             for dependency_ref in dependencies:
                 owner._owners_by_dependency_ref[dependency_ref].add(key)
 
+    for key, reduction in owner._reductions.items():
+        for factor in reduction.factors:
+            owner._factor_producers_by_ref[factor.factor_ref].add(key)
+
+    # The bounded owner's dependency authority is precisely its currently
+    # materialized reduced factors. Reconstruct it from producer multiplicity so
+    # one owner cannot remove a dependency ref still produced by another owner.
+    owner._known_dependency_refs.clear()
+    owner._known_dependency_refs.update(owner._factor_producers_by_ref)
+
 
 def _strict_dependency_refs(owner: Any) -> set[str]:
     """Tell the generic reducer that an empty known set is still authoritative.
 
     ``reduce_factor_proposals`` treats a falsey known-dependency collection as
-    "dependency validation not requested" for compatibility callers.  The
+    "dependency validation not requested" for compatibility callers. The
     bounded owner *does* own a live dependency-availability set, so an empty set
-    means no dependency factor is currently available.  A private impossible
+    means no dependency factor is currently available. A private impossible
     sentinel keeps that distinction without changing the generic reducer API.
     """
 
     if owner._known_dependency_refs:
         return owner._known_dependency_refs
     return {_SENTINEL_NO_DEPENDENCY}
+
+
+def _update_factor_availability(
+    owner: Any,
+    *,
+    key: Any,
+    before_factors: set[str],
+    after_factors: set[str],
+) -> set[str]:
+    """Update producer multiplicity and return refs whose availability flipped."""
+
+    availability_delta: set[str] = set()
+
+    for factor_ref in before_factors - after_factors:
+        producers = owner._factor_producers_by_ref.get(factor_ref)
+        if producers is None:
+            continue
+        producers.discard(key)
+        if not producers:
+            owner._factor_producers_by_ref.pop(factor_ref, None)
+            owner._known_dependency_refs.discard(factor_ref)
+            availability_delta.add(factor_ref)
+
+    for factor_ref in after_factors - before_factors:
+        producers = owner._factor_producers_by_ref[factor_ref]
+        was_available = bool(producers)
+        producers.add(key)
+        owner._known_dependency_refs.add(factor_ref)
+        if not was_available:
+            availability_delta.add(factor_ref)
+
+    return availability_delta
 
 
 def install_dependency_indexed_owner_execution() -> bool:
@@ -100,10 +144,10 @@ def install_dependency_indexed_owner_execution() -> bool:
         self._kernel_counts["reduction_calls"] += 1
         initial_dirty_count = len(scheduled)
         dependency_wakeups = 0
-        dependency_rounds = 0
+        dependency_steps = 0
 
         while pending:
-            dependency_rounds += 1
+            dependency_steps += 1
             key = heappop(pending)
             scheduled.discard(key)
             owner_proposals = self._proposals_by_owner[key]
@@ -138,9 +182,12 @@ def install_dependency_indexed_owner_execution() -> bool:
             )
             after_factors = {row.factor_ref for row in reduction.factors}
             factor_delta = before_factors.symmetric_difference(after_factors)
-
-            self._known_dependency_refs.difference_update(before_factors - after_factors)
-            self._known_dependency_refs.update(after_factors)
+            availability_delta = _update_factor_availability(
+                self,
+                key=key,
+                before_factors=before_factors,
+                after_factors=after_factors,
+            )
             changed_factors.update(factor_delta)
 
             before_residuals = (
@@ -150,9 +197,9 @@ def install_dependency_indexed_owner_execution() -> bool:
             introduced.update(after_residuals - before_residuals)
             discharged.update(before_residuals - after_residuals)
 
-            if factor_delta:
+            if availability_delta:
                 successors: set[Any] = set()
-                for factor_ref in factor_delta:
+                for factor_ref in availability_delta:
                     successors.update(self._owners_by_dependency_ref.get(factor_ref, ()))
                 for successor in sorted(successors):
                     if successor not in scheduled:
@@ -162,7 +209,7 @@ def install_dependency_indexed_owner_execution() -> bool:
 
         self._kernel_counts["initial_dirty_owner_groups"] += initial_dirty_count
         self._kernel_counts["dependency_indexed_owner_wakeups"] += dependency_wakeups
-        self._kernel_counts["dependency_reduction_steps"] += dependency_rounds
+        self._kernel_counts["dependency_reduction_steps"] += dependency_steps
         return self._advance(
             prior_revision=prior,
             changed_factors=changed_factors,
