@@ -1,13 +1,16 @@
-"""Sparse dependency-indexed invalidation for bounded semantic-owner reduction.
+"""Sparse input-indexed invalidation for bounded semantic-owner reduction.
 
 The canonical proposal reducer remains authoritative. This execution strategy
-changes only *which* owner fibres are revisited when the set of available
-factor dependencies changes. Proposal admission records an exact reverse index
+changes only *which* owner fibres are revisited when an explicitly declared
+input becomes available or unavailable.
 
-    dependency factor ref -> owner keys whose proposals require it
+Proposal admission records exact reverse indexes
 
-and reduction then follows only those edges to a local fixed point. No
-whole-owner scan is used to discover dependent fibres.
+    dependency factor ref -> owners whose proposals require it
+    observation ref       -> owners whose proposals require it
+
+and reduction follows only those edges to a local fixed point. No whole-owner
+scan is used to discover dependent fibres.
 
 The wrapper deliberately does not assume same-owner reduction is associative or
 append-homomorphic. Each woken owner is still reduced by the currently installed
@@ -26,6 +29,7 @@ import src.pnf.factor_proposals as factor_proposals
 
 _INSTALL_MARKER = "_dependency_indexed_owner_execution_installed"
 _SENTINEL_NO_DEPENDENCY = "__sensiblaw:no-known-dependency__"
+_SENTINEL_NO_OBSERVATION = "__sensiblaw:no-known-observation__"
 
 
 def _ensure_dependency_index(owner: Any) -> None:
@@ -33,15 +37,21 @@ def _ensure_dependency_index(owner: Any) -> None:
         return
 
     owner._owners_by_dependency_ref = defaultdict(set)
+    owner._owners_by_observation_ref = defaultdict(set)
     owner._dependency_refs_by_owner = defaultdict(set)
+    owner._observation_refs_by_owner = defaultdict(set)
     owner._factor_producers_by_ref = defaultdict(set)
 
     for key, proposals in owner._proposals_by_owner.items():
         for proposal in proposals.values():
             dependencies = tuple(proposal.dependency_factor_refs)
+            observations = tuple(proposal.input_observation_refs)
             owner._dependency_refs_by_owner[key].update(dependencies)
+            owner._observation_refs_by_owner[key].update(observations)
             for dependency_ref in dependencies:
                 owner._owners_by_dependency_ref[dependency_ref].add(key)
+            for observation_ref in observations:
+                owner._owners_by_observation_ref[observation_ref].add(key)
 
     for key, reduction in owner._reductions.items():
         for factor in reduction.factors:
@@ -55,18 +65,19 @@ def _ensure_dependency_index(owner: Any) -> None:
 
 
 def _strict_dependency_refs(owner: Any) -> set[str]:
-    """Tell the generic reducer that an empty known set is still authoritative.
-
-    ``reduce_factor_proposals`` treats a falsey known-dependency collection as
-    "dependency validation not requested" for compatibility callers. The
-    bounded owner *does* own a live dependency-availability set, so an empty set
-    means no dependency factor is currently available. A private impossible
-    sentinel keeps that distinction without changing the generic reducer API.
-    """
+    """Interpret an empty bounded-owner dependency set as exactly empty."""
 
     if owner._known_dependency_refs:
         return owner._known_dependency_refs
     return {_SENTINEL_NO_DEPENDENCY}
+
+
+def _strict_observation_refs(owner: Any) -> set[str]:
+    """Interpret an empty bounded-owner observation set as exactly empty."""
+
+    if owner._observation_refs:
+        return owner._observation_refs
+    return {_SENTINEL_NO_OBSERVATION}
 
 
 def _update_factor_availability(
@@ -108,6 +119,7 @@ def install_dependency_indexed_owner_execution() -> bool:
         return False
 
     original_index = BoundedStreamingSemanticOwner._index_proposal
+    original_admit_observation_delta = BoundedStreamingSemanticOwner.admit_observation_delta
 
     def index_proposal(self: Any, proposal: Any, *, stage: str):
         indexed = original_index(self, proposal, stage=stage)
@@ -116,14 +128,32 @@ def install_dependency_indexed_owner_execution() -> bool:
         proposal_ref, key = indexed
         _ensure_dependency_index(self)
         dependencies = tuple(proposal.dependency_factor_refs)
+        observations = tuple(proposal.input_observation_refs)
         self._dependency_refs_by_owner[key].update(dependencies)
+        self._observation_refs_by_owner[key].update(observations)
         for dependency_ref in dependencies:
             self._owners_by_dependency_ref[dependency_ref].add(key)
+        for observation_ref in observations:
+            self._owners_by_observation_ref[observation_ref].add(key)
         self._kernel_counts["dependency_reverse_edges_indexed"] += len(dependencies)
+        self._kernel_counts["observation_reverse_edges_indexed"] += len(observations)
         return proposal_ref, key
 
+    def admit_observation_delta(self: Any, delta: Any):
+        before = set(self._observation_refs)
+        result = original_admit_observation_delta(self, delta)
+        _ensure_dependency_index(self)
+        new_refs = self._observation_refs - before
+        if new_refs:
+            woken: set[Any] = set()
+            for observation_ref in new_refs:
+                woken.update(self._owners_by_observation_ref.get(observation_ref, ()))
+            self._dirty_groups.update(woken)
+            self._kernel_counts["observation_indexed_owner_wakeups"] += len(woken)
+        return result
+
     def reduce_dirty_groups(self: Any):
-        """Reduce dirty owners and wake exactly their dependency successors."""
+        """Reduce dirty owners and wake exactly their factor successors."""
 
         prior = self.revision
         if self._dirty_groups:
@@ -165,7 +195,7 @@ def install_dependency_indexed_owner_execution() -> bool:
             reduction = factor_proposals.reduce_factor_proposals(
                 document_ref=self.document_ref,
                 proposals=group,
-                known_observation_refs=self._observation_refs,
+                known_observation_refs=_strict_observation_refs(self),
                 known_dependency_refs=_strict_dependency_refs(self),
             )
             self._kernel_elapsed_ns["owner_reduction_ns"] += (
@@ -218,6 +248,7 @@ def install_dependency_indexed_owner_execution() -> bool:
         )
 
     BoundedStreamingSemanticOwner._index_proposal = index_proposal
+    BoundedStreamingSemanticOwner.admit_observation_delta = admit_observation_delta
     BoundedStreamingSemanticOwner.reduce_dirty_groups = reduce_dirty_groups
     setattr(BoundedStreamingSemanticOwner, _INSTALL_MARKER, True)
     return True
