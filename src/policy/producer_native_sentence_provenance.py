@@ -11,6 +11,10 @@ This execution strategy keeps the same fail-closed producer rules while moving
 the strict sentence path from one procedural reconstruction per demand to one
 set-wise projection over the bounded sentence fibre. Other producers retain the
 generic trigger unchanged.
+
+The projection also preserves set geometry internally: object-support uniqueness
+is computed once for the finite set of producer/evidence tokens rather than by a
+correlated subquery for every occurrence row.
 """
 
 from __future__ import annotations
@@ -61,24 +65,6 @@ def _project_provenance(cursor: Any) -> None:
              GROUP BY demand_id
             HAVING count(*) = 1
         ),
-        trigger_rows AS (
-            SELECT producer.demand_id,
-                   1::SMALLINT AS occurrence_role,
-                   producer.trigger_token_id AS token_id,
-                   trigger_object.object_id,
-                   0::SMALLINT AS ordinal,
-                   'numeric-factor:' || producer.factor_id::TEXT AS producer_ref
-              FROM producer
-              LEFT JOIN LATERAL (
-                  SELECT min(support.object_id) AS object_id
-                    FROM execution.semantic_pnf_object_token_support AS support
-                    JOIN execution.semantic_pnf_object AS object
-                      ON object.object_id = support.object_id
-                   WHERE support.token_id = producer.trigger_token_id
-                     AND object.region_id = producer.source_region_id
-                  HAVING count(DISTINCT support.object_id) = 1
-              ) AS trigger_object ON TRUE
-        ),
         evidence_base AS (
             SELECT producer.demand_id,
                    producer.source_region_id,
@@ -90,26 +76,52 @@ def _project_provenance(cursor: Any) -> None:
                 ON support.factor_id = producer.factor_id
              WHERE support.token_id <> producer.trigger_token_id
         ),
+        occurrence_token AS (
+            SELECT source_region_id, trigger_token_id AS token_id
+              FROM producer
+            UNION
+            SELECT source_region_id, token_id
+              FROM evidence_base
+        ),
+        unique_object AS (
+            SELECT occurrence.source_region_id,
+                   occurrence.token_id,
+                   min(support.object_id) AS object_id
+              FROM occurrence_token AS occurrence
+              JOIN execution.semantic_pnf_object_token_support AS support
+                ON support.token_id = occurrence.token_id
+              JOIN execution.semantic_pnf_object AS object
+                ON object.object_id = support.object_id
+               AND object.region_id = occurrence.source_region_id
+             GROUP BY occurrence.source_region_id, occurrence.token_id
+            HAVING count(DISTINCT support.object_id) = 1
+        ),
+        trigger_rows AS (
+            SELECT producer.demand_id,
+                   1::SMALLINT AS occurrence_role,
+                   producer.trigger_token_id AS token_id,
+                   object_support.object_id,
+                   0::SMALLINT AS ordinal,
+                   'numeric-factor:' || producer.factor_id::TEXT AS producer_ref
+              FROM producer
+              LEFT JOIN unique_object AS object_support
+                ON object_support.source_region_id = producer.source_region_id
+               AND object_support.token_id = producer.trigger_token_id
+        ),
         evidence_rows AS (
             SELECT evidence.demand_id,
                    3::SMALLINT AS occurrence_role,
                    evidence.token_id,
-                   evidence_object.object_id,
+                   object_support.object_id,
                    (row_number() OVER (
                        PARTITION BY evidence.demand_id
                        ORDER BY evidence.support_ordinal, evidence.token_id
                    ) - 1)::SMALLINT AS ordinal,
                    'numeric-factor:' || evidence.factor_id::TEXT AS producer_ref
               FROM evidence_base AS evidence
-              LEFT JOIN LATERAL (
-                  SELECT min(support.object_id) AS object_id
-                    FROM execution.semantic_pnf_object_token_support AS support
-                    JOIN execution.semantic_pnf_object AS object
-                      ON object.object_id = support.object_id
-                   WHERE support.token_id = evidence.token_id
-                     AND object.region_id = evidence.source_region_id
-                  HAVING count(DISTINCT support.object_id) = 1
-              ) AS evidence_object ON TRUE
+              LEFT JOIN unique_object AS object_support
+                ON object_support.source_region_id = evidence.source_region_id
+               AND object_support.token_id = evidence.token_id
         ),
         target_match AS (
             SELECT producer.demand_id,
