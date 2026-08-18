@@ -16,10 +16,14 @@ def test_legacy_occurrence_row_trigger_is_retired() -> None:
     assert SQL.count("FOR EACH STATEMENT") == 2
 
 
-def test_batch_keeps_unique_producer_gate_and_token_containment() -> None:
+def test_batch_keeps_unique_producer_gate_and_exact_token_scope() -> None:
     assert "HAVING count(*)=1" in SQL
     assert "factor.region_id=demand.source_region_id" in SQL
     assert "token.lemma_symbol_id=demand.lexical_symbol_id" in SQL
+    assert "token.run_ref=demand.region_run_ref" in SQL
+    assert "token.document_ref=demand.region_document_ref" in SQL
+    assert "token.run_ref=producer.region_run_ref" in SQL
+    assert "token.document_ref=producer.region_document_ref" in SQL
     assert "token.start_char>=demand.region_start_char" in SQL
     assert "token.end_char<=demand.region_end_char" in SQL
 
