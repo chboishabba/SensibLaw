@@ -1,6 +1,6 @@
 """Live and failure-surviving progress for strict numeric PNF execution.
 
-This module does not introduce a second semantic execution path.  It observes
+This module does not introduce a second semantic execution path. It observes
 existing durable PostgreSQL carriers and wraps the already-installed streaming
 kernels only to announce start/completion/failure boundaries.
 
@@ -25,14 +25,28 @@ from threading import Event, Thread
 from time import monotonic_ns, time_ns
 from typing import Any, Callable, Iterator, Mapping
 
-from src.storage.postgres.spacy_parser_model import connect
-
 
 ProgressObserver = Callable[[Mapping[str, Any]], None]
 _CURRENT_OBSERVER: ContextVar[ProgressObserver | None] = ContextVar(
     "sensiblaw_numeric_kernel_progress_observer", default=None
 )
 _INSTALL_MARKER = "_numeric_kernel_progress_instrumentation_installed"
+
+
+def _connect(database_url: str):
+    """Import the PostgreSQL connection authority lazily.
+
+    ``numeric_kernel_progress`` is imported by the strict numeric compiler and
+    also directly by the standalone/reporting surface. Importing the storage
+    package at module import time creates a cycle through ``src.policy`` before
+    ``numeric_pnf_compilation`` has finished initialising. Delaying only this
+    dependency preserves the existing connection authority while keeping the
+    observer module import-safe.
+    """
+
+    from src.storage.postgres.spacy_parser_model import connect
+
+    return connect(database_url)
 
 
 def _emit(payload: Mapping[str, Any]) -> None:
@@ -53,7 +67,7 @@ def numeric_kernel_progress_snapshot(
 ) -> dict[str, Any]:
     """Read compact progress/timing state without scanning semantic interiors."""
 
-    connection = connect(database_url)
+    connection = _connect(database_url)
     try:
         with connection.cursor() as cursor:
             cursor.execute(
@@ -202,6 +216,74 @@ def numeric_kernel_progress_snapshot(
     }
 
 
+def numeric_kernel_progress_measures(
+    snapshot: Mapping[str, Any],
+) -> dict[str, dict[str, int | str]]:
+    """Project snapshot counters into the canonical named-measure ETA surface.
+
+    This function intentionally returns only counters with a defensible semantic
+    denominator. The generic :class:`PhaseHandle` remains the sole authority for
+    rates and estimated completion; this module only supplies observations.
+    """
+
+    measures: dict[str, dict[str, int | str]] = {}
+    parser = snapshot.get("parser")
+    if isinstance(parser, Mapping):
+        partition_total = int(parser.get("partition_total") or 0)
+        partition_completed = int(parser.get("partition_completed") or 0)
+        if partition_total > 0:
+            measures["parser_partitions"] = {
+                "completed": partition_completed,
+                "total": partition_total,
+                "unit": "partitions",
+            }
+        measures["parser_tokens"] = {
+            "completed": int(parser.get("completed_token_count") or 0),
+            "unit": "tokens",
+        }
+
+    regions = snapshot.get("region_closure_by_kind")
+    if isinstance(regions, Mapping):
+        for kind, raw in regions.items():
+            if not isinstance(raw, Mapping):
+                continue
+            total = int(raw.get("total") or 0)
+            if total <= 0:
+                continue
+            measures[f"pnf_region_kind_{kind}"] = {
+                "completed": int(raw.get("locally_or_fully_closed") or 0),
+                "total": total,
+                "unit": "regions",
+            }
+
+    frontier = snapshot.get("frontier_reduction_by_kind")
+    if isinstance(frontier, Mapping):
+        for kind, raw in frontier.items():
+            if not isinstance(raw, Mapping):
+                continue
+            completed = int(raw.get("receipt_count") or 0)
+            row: dict[str, int | str] = {
+                "completed": completed,
+                "unit": "interfaces",
+            }
+            region = regions.get(kind) if isinstance(regions, Mapping) else None
+            if isinstance(region, Mapping):
+                total = int(region.get("total") or 0)
+                if total >= completed and total > 0:
+                    row["total"] = total
+            measures[f"frontier_reductions_kind_{kind}"] = row
+
+    stages = snapshot.get("frontier_stage_receipts")
+    if isinstance(stages, Mapping):
+        for stage, raw in stages.items():
+            if isinstance(raw, Mapping):
+                measures[f"frontier_stage_{stage}"] = {
+                    "completed": int(raw.get("row_count") or 0),
+                    "unit": "rows",
+                }
+    return measures
+
+
 class NumericKernelProgressSampler:
     """Periodically publish compact PostgreSQL progress while a kernel blocks."""
 
@@ -244,6 +326,7 @@ class NumericKernelProgressSampler:
             {
                 "progress_probe_state": "observed",
                 "numeric_kernel_snapshot": snapshot,
+                "progress_measures": numeric_kernel_progress_measures(snapshot),
             }
         )
 
@@ -361,6 +444,7 @@ def numeric_streaming_kernel_progress(
 __all__ = [
     "NumericKernelProgressSampler",
     "install_numeric_streaming_kernel_instrumentation",
+    "numeric_kernel_progress_measures",
     "numeric_kernel_progress_snapshot",
     "numeric_streaming_kernel_progress",
 ]
