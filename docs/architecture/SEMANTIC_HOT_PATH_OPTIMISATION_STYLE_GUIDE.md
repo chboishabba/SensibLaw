@@ -148,6 +148,11 @@ A string-valued join or regex in a post-parser semantic kernel should therefore
 be presumed guilty until it demonstrates why the equivalent numeric coordinate
 cannot be supplied or derived once at the boundary.
 
+A surface-label builder is a legitimate exception only because its output is
+itself a human/provider-facing lexical value. Even there, reconstruct all
+surfaces set-wise, intern distinct values once, and return immediately to
+`SymbolId` authority; do not let the surface string become an identity key.
+
 ## 5. A leaf is not a parent frontier
 
 Sharing an interface type does not authorize every reducer on every topology
@@ -191,6 +196,35 @@ or an exact dirty/delta refresh when the projection must remain live.
 
 Derived-state freshness may use execution-only physical cache identity, but that
 identity must never be confused with portable semantic identity.
+
+### Superseded derived carriers require a live-obligation audit
+
+A historical projection may stop being semantic authority while still producing
+one live side-effect that newer code assumes exists. Therefore:
+
+```text
+"old carrier is superseded"
+```
+
+is **not** sufficient permission to stop computing it.
+
+Before retiring automatic maintenance, enumerate the complete live consumer
+family and the complete live obligation family. The replacement must satisfy:
+
+```text
+observe_C(legacy(X)) == observe_C(replacement(X))   for every live C
+live_obligations(legacy(X)) == live_obligations(replacement(X))
+```
+
+Historical rows may remain cold/reopenable for audit without remaining on the
+ordinary hot path.
+
+Migration 045 is the canonical cautionary example: the general mention and
+recurrence carriers were superseded for current H9 authority, but the same old
+sentence trigger was still the only producer of generic `anaphor_unresolved`
+demands. The admissible optimisation was therefore not "delete 045 semantics";
+it was "extract the sparse pronoun source/demand residue set-wise, then retire
+the obsolete noun/entity/recurrence compiler."
 
 ## 7. Residual/provenance preservation is the optimisation gate
 
@@ -415,6 +449,8 @@ Fail closed to unresolved/indeterminate where evidence is absent.
 Before merging a performance change, check:
 
 - [ ] semantic authority is unchanged or explicitly migrated;
+- [ ] every live consumer of a retired projection has been enumerated;
+- [ ] every live obligation of a retired projection factors through its replacement;
 - [ ] consumer observation is preserved;
 - [ ] residual/provenance/reopenability are preserved;
 - [ ] numeric execution remains numeric after parser boundaries;
