@@ -1,11 +1,11 @@
 """Exact audit and candidate SQL for hierarchy-close admission pushdown.
 
 The current hierarchy close is already child-local: it reads lookup rows only for
-``child_interface_ids``.  The measured inefficiency is later in the same local
+``child_interface_ids``. The measured inefficiency is later in the same local
 pipeline: rows are grouped before the parent export-admission rule rejects many
 of the grouped target fibres.
 
-This module does not replace the production close yet.  It makes the candidate
+This module does not replace the production close yet. It makes the candidate
 transformation executable and falsifiable:
 
     child lookup rows
@@ -15,14 +15,16 @@ transformation executable and falsifiable:
 
 The admission predicate is exactly the existing migration-054 rule: a lookup row
 is admissible iff the parent interface has an export with the same
-``(target_kind, target_id)``.  The parity audit compares the candidate grouped
+``(target_kind, target_id)``. The parity audit compares the candidate grouped
 relation with the already materialized parent lookup using two set differences.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Iterable, Sequence
+from typing import Any, Sequence
+
+from src.runtime.optimization_economy import ConcentrationPoint, concentration_profile
 
 
 PUSHDOWN_CONTRACT_REF = "sensiblaw.hierarchy-close-admission-pushdown.v0_1"
@@ -108,33 +110,6 @@ class ParentLookupPushdownAudit:
             "source_to_output_amplification": self.source_to_output_amplification,
             "admitted_to_output_amplification": self.admitted_to_output_amplification,
         }
-
-
-@dataclass(frozen=True, slots=True)
-class ConcentrationPoint:
-    k: int
-    work: int
-    fraction: float
-
-
-def concentration_profile(
-    workloads: Iterable[int], *, ks: Sequence[int] = (1, 10)
-) -> tuple[ConcentrationPoint, ...]:
-    """Return top-k work concentration without inventing work for empty inputs."""
-
-    ordered = sorted((int(work) for work in workloads), reverse=True)
-    if any(work < 0 for work in ordered):
-        raise ValueError("workloads must be non-negative")
-    total = sum(ordered)
-    points: list[ConcentrationPoint] = []
-    for requested_k in ks:
-        if requested_k < 1:
-            raise ValueError("concentration k must be positive")
-        k = min(int(requested_k), len(ordered))
-        work = sum(ordered[:k])
-        fraction = 0.0 if total == 0 else work / total
-        points.append(ConcentrationPoint(k=k, work=work, fraction=fraction))
-    return tuple(points)
 
 
 def _scalar(cursor: Any, sql: str, parameters: tuple[Any, ...]) -> int:
