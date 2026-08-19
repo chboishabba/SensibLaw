@@ -59,6 +59,7 @@ def build_report(
     try:
         with connection.transaction():
             with connection.cursor() as cursor:
+                cursor.execute("SET TRANSACTION READ ONLY")
                 parent_ids = _closed_parent_interfaces(cursor)
                 audits = []
                 for parent_interface_id in parent_ids:
