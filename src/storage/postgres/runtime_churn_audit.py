@@ -139,9 +139,7 @@ def _pg_stat_statements_available(cursor: Any) -> bool:
     )
     extension_exists, preloaded = cursor.fetchone()
     libraries = {
-        item.strip()
-        for item in str(preloaded or "").split(",")
-        if item.strip()
+        item.strip() for item in str(preloaded or "").split(",") if item.strip()
     }
     return bool(extension_exists) and "pg_stat_statements" in libraries
 

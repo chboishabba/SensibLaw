@@ -53,9 +53,7 @@ def test_completed_semantic_run_can_fail_performance_gate() -> None:
 def test_nested_compilation_parser_receipt_is_accepted() -> None:
     run = {
         "compilation": {
-            "artifacts": {
-                "parser_receipt": _timed_run()["numeric_work_timing"]
-            }
+            "artifacts": {"parser_receipt": _timed_run()["numeric_work_timing"]}
         }
     }
     assert build_accepted_metric_ledger(run).gate is MetricGate.PASS

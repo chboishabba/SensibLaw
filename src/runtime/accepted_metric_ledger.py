@@ -107,7 +107,9 @@ class PostParserPhaseLedger:
             paragraph_adjacency_ns=_number(receipt.get("paragraph_adjacency_ns")),
             lookup_publication_ns=_number(receipt.get("lookup_publication_ns")),
             summary_work_ns=_number(receipt.get("summary_work_ns")),
-            post_parser_coordinator_ns=_number(receipt.get("post_parser_coordinator_ns")),
+            post_parser_coordinator_ns=_number(
+                receipt.get("post_parser_coordinator_ns")
+            ),
             unclassified_orchestration_wall_ns=_number(
                 receipt.get("unclassified_orchestration_wall_ns")
             ),
