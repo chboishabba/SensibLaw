@@ -1,18 +1,8 @@
 """Executable production-performance constitution for SensibLaw/ITIR.
 
-This module intentionally separates hard semantic/runtime gates from empirical
-performance targets and from claims that require paired controlled workloads.
-Missing measurements remain ``unknown``; they never become evidence of failure
-or success.
-
-The north-star execution rule is:
-
-    parse once -> compile numerically -> retain proofs -> reopen locally -> reuse
-
-Ordinary post-spaCy execution should therefore be numeric, sparse, incremental,
-and substantially cheaper than parser execution. Compatibility/audit/export
-surfaces may retain richer encodings, but those encodings are not permitted to
-silently become the production semantic carrier.
+Semantic completion/parity and empirical performance acceptance are deliberately
+separate gates. Missing measurements remain ``unknown``; they never become
+success evidence.
 """
 
 from __future__ import annotations
@@ -21,9 +11,13 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Mapping
 
+from src.runtime.accepted_metric_ledger import (
+    TARGET_POST_PARSER_TO_SPACY_RATIO,
+    build_accepted_metric_ledger,
+)
 
-PERFORMANCE_CONSTITUTION_REF = "sensiblaw.performance-constitution.v0_2"
-TARGET_POST_PARSER_TO_SPACY_RATIO = 0.10
+
+PERFORMANCE_CONSTITUTION_REF = "sensiblaw.performance-constitution.v0_3"
 
 
 class AssessmentState(StrEnum):
@@ -112,23 +106,9 @@ def _completion_state(run: Mapping[str, Any]) -> RequirementAssessment:
 
 
 def _post_parser_ratio(run: Mapping[str, Any]) -> RequirementAssessment:
-    # Preferred evidence: unioned monotonic wall intervals from the strict
-    # pipelined parser. These are measured intervals from all worker processes,
-    # not wall-total subtraction. Parser/post overlap remains present in both
-    # occupancy unions and is separately reported by the timing surface; this is
-    # deliberately conservative for the <=10% target.
-    timing = _mapping(run.get("numeric_work_timing"))
-    parser_wall_ns = _number(timing.get("spacy_parser_wall_occupancy_ns"))
-    post_wall_ns = _number(timing.get("post_parser_wall_occupancy_ns"))
-    timing_basis = str(timing.get("timing_basis") or "")
-    if (
-        parser_wall_ns is not None
-        and post_wall_ns is not None
-        and parser_wall_ns > 0
-        and "monotonic-wall-occupancy" in timing_basis
-    ):
-        ratio = post_wall_ns / parser_wall_ns
-        overlap = _number(timing.get("parser_post_overlap_ns"))
+    ledger = build_accepted_metric_ledger(run)
+    ratio = ledger.parser_relative_ratio
+    if ratio is not None:
         return RequirementAssessment(
             "post_parser_to_spacy_ratio",
             AssessmentState.PASS
@@ -137,13 +117,13 @@ def _post_parser_ratio(run: Mapping[str, Any]) -> RequirementAssessment:
             observed=ratio,
             target=TARGET_POST_PARSER_TO_SPACY_RATIO,
             evidence=(
-                "explicit monotonic wall-occupancy unions; parser/post overlap "
-                f"measured separately ({int(overlap or 0)} ns)"
+                "accepted-metric ledger: direct monotonic occupancy unions; "
+                f"parser/post overlap={int(ledger.parser_post_overlap_ns or 0)} ns"
             ),
         )
 
-    # Historical non-overlapping kernel timers remain valid when explicitly
-    # supplied. We never synthesize either side by subtracting from total wall.
+    # Historical explicitly measured non-overlapping kernel timers remain valid.
+    # Neither side may be synthesized by subtracting from total wall time.
     kernels = _mapping(run.get("kernel_seconds"))
     parser_seconds = _number(kernels.get("spacy_parser"))
     post_parser_seconds = _number(kernels.get("post_parser"))
@@ -154,8 +134,8 @@ def _post_parser_ratio(run: Mapping[str, Any]) -> RequirementAssessment:
             observed=None,
             target=TARGET_POST_PARSER_TO_SPACY_RATIO,
             evidence=(
-                "requires explicit monotonic wall occupancy or explicit parser/"
-                "post-parser kernel timings; wall subtraction is not accepted"
+                "requires accepted monotonic occupancy or explicit parser/post-parser "
+                "kernel timings; outer LOCAL_PNF_COMPILATION and wall subtraction are invalid"
             ),
         )
     ratio = post_parser_seconds / parser_seconds
@@ -170,31 +150,40 @@ def _post_parser_ratio(run: Mapping[str, Any]) -> RequirementAssessment:
     )
 
 
-def assess_replay_run(run: Mapping[str, Any]) -> dict[str, Any]:
-    """Assess one replay without overclaiming absent measurements."""
+def _state_of(requirement: RequirementAssessment) -> AssessmentState:
+    return requirement.state
 
-    requirements = (
-        _completion_state(run),
-        _parity_state(run),
-        _post_parser_ratio(run),
+
+def assess_replay_run(run: Mapping[str, Any]) -> dict[str, Any]:
+    """Assess semantic completion separately from performance acceptance."""
+
+    completion = _completion_state(run)
+    parity = _parity_state(run)
+    ratio = _post_parser_ratio(run)
+    requirements = (completion, parity, ratio)
+
+    semantic = (completion, parity)
+    if any(_state_of(row) is AssessmentState.FAIL for row in semantic):
+        semantic_gate = AssessmentState.FAIL
+    elif any(_state_of(row) is AssessmentState.UNKNOWN for row in semantic):
+        semantic_gate = AssessmentState.UNKNOWN
+    else:
+        semantic_gate = AssessmentState.PASS
+
+    performance_gate = ratio.state
+    accepted_performance = (
+        semantic_gate is AssessmentState.PASS
+        and performance_gate is AssessmentState.PASS
     )
-    hard = tuple(
-        row
-        for row in requirements
-        if row.requirement_ref in {"strict_replay_completed", "semantic_parity"}
-    )
-    hard_failure = any(row.state is AssessmentState.FAIL for row in hard)
-    hard_unknown = any(row.state is AssessmentState.UNKNOWN for row in hard)
     return {
         "contract_ref": PERFORMANCE_CONSTITUTION_REF,
-        "hard_gate": (
-            AssessmentState.FAIL.value
-            if hard_failure
-            else AssessmentState.UNKNOWN.value
-            if hard_unknown
-            else AssessmentState.PASS.value
-        ),
+        # compatibility name: this remains semantic/runtime completion only.
+        "hard_gate": semantic_gate.value,
+        "semantic_gate": semantic_gate.value,
+        "performance_gate": performance_gate.value,
+        "accepted_performance": accepted_performance,
         "requirements": [row.to_dict() for row in requirements],
+        "accepted_metric_ledger": build_accepted_metric_ledger(run).to_dict(),
         "claims_not_established_by_single_run": [
             "incremental_economy",
             "delta_local_recomputation",
