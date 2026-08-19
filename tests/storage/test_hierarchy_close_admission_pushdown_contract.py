@@ -1,21 +1,48 @@
+from src.pnf.numeric_hyperfabric import RegionKind
 from src.storage.postgres.hierarchy_close_admission_pushdown import (
+    CURRENT_GROUP_SELECT_SQL,
+    PUSHDOWN_GROUP_SELECT_SQL,
     PUSHDOWN_INSERT_SQL,
     ParentLookupPushdownAudit,
+    child_interface_ids_for_parent,
     concentration_profile,
 )
 
 
 def test_candidate_pushdown_uses_parent_export_admission_before_grouping() -> None:
-    sql = PUSHDOWN_INSERT_SQL
-    assert "FROM execution.semantic_pnf_interface_lookup AS lookup" in sql
-    assert "lookup.interface_id = ANY(%s)" in sql
-    assert "EXISTS (" in sql
-    assert "parent_export.interface_id = %s" in sql
-    assert "parent_export.target_kind = lookup.target_kind" in sql
-    assert "parent_export.target_id = lookup.target_id" in sql
-    assert sql.index("AND EXISTS (") < sql.index("GROUP BY")
-    assert "min(lookup.rank)" in sql
-    assert "ON CONFLICT DO NOTHING" in sql
+    assert "EXISTS (" not in CURRENT_GROUP_SELECT_SQL
+    assert "GROUP BY" in CURRENT_GROUP_SELECT_SQL
+
+    assert "FROM execution.semantic_pnf_interface_lookup AS lookup" in PUSHDOWN_GROUP_SELECT_SQL
+    assert "lookup.interface_id = ANY(%s)" in PUSHDOWN_GROUP_SELECT_SQL
+    assert "EXISTS (" in PUSHDOWN_GROUP_SELECT_SQL
+    assert "parent_export.interface_id = %s" in PUSHDOWN_GROUP_SELECT_SQL
+    assert "parent_export.target_kind = lookup.target_kind" in PUSHDOWN_GROUP_SELECT_SQL
+    assert "parent_export.target_id = lookup.target_id" in PUSHDOWN_GROUP_SELECT_SQL
+    assert PUSHDOWN_GROUP_SELECT_SQL.index("AND EXISTS (") < PUSHDOWN_GROUP_SELECT_SQL.index(
+        "GROUP BY"
+    )
+    assert "min(lookup.rank)" in PUSHDOWN_GROUP_SELECT_SQL
+
+    assert "INSERT INTO execution.semantic_pnf_interface_lookup" in PUSHDOWN_INSERT_SQL
+    assert "ON CONFLICT DO NOTHING" in PUSHDOWN_INSERT_SQL
+
+
+def test_child_discovery_uses_typed_execution_window_exclusion() -> None:
+    class Cursor:
+        def __init__(self) -> None:
+            self.parameters = None
+
+        def execute(self, sql, parameters) -> None:
+            self.parameters = parameters
+            assert "child_region.region_kind <> %s" in sql
+
+        def fetchall(self):
+            return [(11,), (12,)]
+
+    cursor = Cursor()
+    assert child_interface_ids_for_parent(cursor, parent_interface_id=7) == (11, 12)
+    assert cursor.parameters == (7, int(RegionKind.EXECUTION_WINDOW))
 
 
 def test_document_root_forensic_receipt_matches_observed_reduction() -> None:
