@@ -24,6 +24,15 @@ def test_candidate_lifecycle_is_projected_by_statement() -> None:
         assert relation in sql
 
 
+def test_candidate_teardown_does_not_append_a_replan_after_demand_cascade() -> None:
+    sql = _sql("173_guard_candidate_lifecycle_cleanup.sql")
+
+    assert "CREATE OR REPLACE FUNCTION execution.observe_numeric_pnf_candidate_delete_batch()" in sql
+    assert sql.count("JOIN execution.semantic_pnf_demand AS demand") == 2
+    assert "ON demand.demand_id=candidate.demand_id" in sql
+    assert "planner-replan-superseded" in sql
+
+
 def test_evidence_reverse_dependency_and_wakeup_are_setwise() -> None:
     sql = _sql("163_setwise_evidence_reverse_dependency_wakeup.sql")
 
