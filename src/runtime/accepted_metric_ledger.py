@@ -1,7 +1,7 @@
 """Fail-closed parser-relative acceptance timing for strict numeric PNF.
 
 The numeric streaming runtime already emits direct monotonic occupancy and named
-post-parser kernel measurements.  This module normalizes that evidence without
+post-parser kernel measurements. This module normalizes that evidence without
 inventing stage time by subtraction and makes missing attribution explicit.
 
 A completed semantic run is not a performance acceptance result unless this
@@ -10,7 +10,7 @@ ledger can establish both sides of the parser-relative target.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from enum import StrEnum
 from typing import Any, Mapping
 
@@ -37,23 +37,44 @@ def _mapping(value: Any) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
 
 
-def extract_parser_receipt(run: Mapping[str, Any]) -> Mapping[str, Any]:
-    """Find the numeric parser timing carrier in accepted runtime shapes."""
+def _timing_from(container: Mapping[str, Any]) -> Mapping[str, Any]:
+    for key in ("numeric_work_timing", "numeric_execution_timing", "parser_receipt"):
+        timing = _mapping(container.get(key))
+        if timing:
+            return timing
+    return {}
 
-    direct = _mapping(run.get("parser_receipt"))
-    if direct:
-        return direct
+
+def extract_parser_receipt(run: Mapping[str, Any]) -> Mapping[str, Any]:
+    """Find numeric parser timing in strict/progress/compilation receipt shapes."""
+
+    timing = _timing_from(run)
+    if timing:
+        return timing
+
+    for key in ("details", "acceptance", "result", "receipt"):
+        timing = _timing_from(_mapping(run.get(key)))
+        if timing:
+            return timing
+
     artifacts = _mapping(run.get("artifacts"))
-    nested = _mapping(artifacts.get("parser_receipt"))
-    if nested:
-        return nested
+    timing = _timing_from(artifacts)
+    if timing:
+        return timing
+
     compilation = _mapping(run.get("compilation"))
-    artifacts = _mapping(compilation.get("artifacts"))
-    nested = _mapping(artifacts.get("parser_receipt"))
-    if nested:
-        return nested
-    timing = _mapping(run.get("numeric_work_timing"))
-    return timing
+    timing = _timing_from(compilation)
+    if timing:
+        return timing
+    timing = _timing_from(_mapping(compilation.get("artifacts")))
+    if timing:
+        return timing
+
+    progress = _mapping(run.get("progress"))
+    timing = _timing_from(progress)
+    if timing:
+        return timing
+    return _timing_from(_mapping(progress.get("details")))
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,10 +114,7 @@ class PostParserPhaseLedger:
         )
 
     def to_dict(self) -> dict[str, int | None]:
-        return {
-            field: getattr(self, field)
-            for field in self.__dataclass_fields__
-        }
+        return {field.name: getattr(self, field.name) for field in fields(self)}
 
 
 @dataclass(frozen=True, slots=True)
