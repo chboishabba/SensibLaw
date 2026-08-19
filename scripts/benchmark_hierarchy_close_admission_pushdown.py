@@ -44,7 +44,7 @@ def _explain_json(
     parameters: tuple[Any, ...],
     analyze: bool,
 ) -> Any:
-    options = "ANALYZE, BUFFERS, FORMAT JSON" if analyze else "BUFFERS, FORMAT JSON"
+    options = "ANALYZE, BUFFERS, FORMAT JSON" if analyze else "FORMAT JSON"
     cursor.execute(f"EXPLAIN ({options}) {sql}", parameters)
     return cursor.fetchone()[0]
 
@@ -99,7 +99,10 @@ def build_report(
                             audit.excess_candidate_rows for audit in audits
                         ),
                     },
-                    "concentration": [point.__dict__ for point in concentration],
+                    "concentration": [
+                        {"k": point.k, "work": point.work, "fraction": point.fraction}
+                        for point in concentration
+                    ],
                     "parents": [audit.to_dict() for audit in audits],
                 }
 
