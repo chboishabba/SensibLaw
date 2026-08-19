@@ -482,8 +482,8 @@ def persist_sentence_closure_setwise(
                {int(TargetKind.OBJECT)},
                object.object_id,
                stage.head_symbol_id,
-               NULL,
-               NULL,
+               NULL::BIGINT,
+               NULL::BIGINT,
                row_number() OVER (ORDER BY stage.ordinal) - 1,
                stage.promotion_score
           FROM {_OBJECT_STAGE} AS stage
@@ -496,8 +496,8 @@ def persist_sentence_closure_setwise(
                {int(TargetKind.FACTOR)},
                factor.factor_id,
                stage.factor_type_symbol_id,
-               NULL,
-               NULL,
+               NULL::BIGINT,
+               NULL::BIGINT,
                stage.ordinal,
                0
           FROM {_FACTOR_STAGE} AS stage
@@ -509,7 +509,7 @@ def persist_sentence_closure_setwise(
                {int(TargetKind.DEMAND)},
                demand.demand_id,
                stage.lexical_symbol_id,
-               NULL,
+               NULL::BIGINT,
                stage.residual_type_symbol_id,
                stage.ordinal,
                0

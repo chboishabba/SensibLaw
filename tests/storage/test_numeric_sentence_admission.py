@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+import inspect
 import pytest
 
 from src.pnf.numeric_hyperfabric import (
@@ -111,7 +112,9 @@ def test_copy_specs_preserves_ordinal_and_duplicate_token_order() -> None:
 
 
 class _FenceCursor:
-    def execute(self, _query: str, _parameters: tuple[object, ...]) -> None:
+    def execute(
+        self, _query: str, _parameters: tuple[object, ...] | None = None
+    ) -> None:
         return None
 
     def fetchone(self) -> tuple[object, ...]:
@@ -125,3 +128,9 @@ def test_setwise_admission_rejects_changed_work_fence_before_staging() -> None:
         persist_sentence_closure_setwise(
             _FenceCursor(), lease=lease, closure=_closure(), profile=_profile()
         )
+
+
+def test_interface_export_union_keeps_nullable_numeric_columns_typed() -> None:
+    source = inspect.getsource(persist_sentence_closure_setwise)
+
+    assert source.count("NULL::BIGINT") == 5

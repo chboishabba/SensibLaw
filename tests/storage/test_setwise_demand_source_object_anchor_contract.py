@@ -28,7 +28,9 @@ def test_source_anchor_keeps_setwise_insert_but_dependency_gates_updates() -> No
         "ON execution.semantic_pnf_demand"
     ) in SQL
     assert SQL.count("FOR EACH ROW") == 1
-    assert "REFERENCING OLD TABLE AS prior_demand NEW TABLE AS updated_demand" not in SQL
+    assert (
+        "REFERENCING OLD TABLE AS prior_demand NEW TABLE AS updated_demand" not in SQL
+    )
     assert "project_numeric_pnf_demand_source_objects_updated" not in SQL
 
 
