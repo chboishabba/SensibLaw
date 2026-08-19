@@ -2,8 +2,8 @@
 
 SensibLaw now reviews optimisation on two orthogonal fronts:
 
-1. **runtime economy** — wall time, semantic work, memory, I/O, history-read
-   amplification, write amplification, and reuse;
+1. **runtime economy** — wall time, semantic work, memory, I/O, relational
+   amplification, and reuse;
 2. **change economy** — how many genuinely new semantic/execution degrees of
    freedom a feature introduces versus how much existing generic capability it
    composes.
@@ -20,20 +20,36 @@ known physical anti-patterns are catalogued in `PERFORMANCE_SIN_BIN.md`.
 For one operation, record conceptually:
 
 ```text
-E_runtime = (T, W, M, IO, H_read, A_write, R_reuse)
+E_runtime = (T, W, M, IO, relational work, R_reuse)
 ```
 
-where:
+where `T`, `W`, `M`, and `IO` retain their ordinary meanings and
+`R_reuse = reused_work / (reused_work + new_work)`.
 
-- `T` = measured wall/kernel time;
-- `W` = semantic work units;
-- `M` = peak memory;
-- `IO` = explicit I/O units when available;
-- `H_read` = historical rows examined / touched semantic rows;
-- `A_write` = attempted writes / semantically new writes;
-- `R_reuse` = reused work / (reused work + new work).
+For relational kernels, do not collapse all database work into one history-read
+ratio. Record the cardinality flow:
 
-A missing denominator is `unknown`, not evidence of a finite ratio.
+```text
+N_scan       source rows examined
+N_admit      rows surviving consumer/admission restriction
+N_group      rows entering quotient/group/fold work
+N_output     canonical semantic output rows
+N_attempt    attempted writes
+N_commit     committed/new writes
+```
+
+This yields distinct diagnostics:
+
+```text
+A_scan      = N_scan / N_output
+A_quotient  = N_group / N_output
+S_admission = N_admit / N_scan
+A_write     = N_attempt / N_commit
+```
+
+A reduction in `N_group` is not automatically a reduction in `N_scan`. Predicate
+pushdown may save hash/sort/group work while PostgreSQL still reads the same base
+rows. Receipts must keep those claims separate.
 
 The existing parser-relative target remains separate:
 
@@ -105,72 +121,115 @@ retired compatibility surfaces do not decrease
 and at least one coordinate strictly improves
 ```
 
-Typical highest-alpha changes are therefore simultaneously:
-
-```text
-faster
-+ less history amplification
-+ fewer duplicate execution paths
-+ more compatibility code retired
-```
-
 A speedup purchased by introducing a second semantic authority or execution
 engine is a **tradeoff**, not a Pareto win, until that new authority is justified
 independently.
 
-## History and write amplification
+## Consumer restriction before quotient/fold
 
-For an incremental operation define:
+The 2026-08-19 retained strict serial baseline corrected an earlier diagnosis.
+`_close_parent_interface()` is **already child-local**: it reads only the lookup
+and export rows belonging to `child_interface_ids`. It is not a global-history
+reconstruction.
 
-```text
-H_read  = rows examined from previously materialized state
-          / touched or new semantic rows
-
-A_write = rows attempted for insert/update
-          / rows that are semantically new
-```
-
-These expose costs that wall time alone can hide. A query may finish quickly on a
-small fixture while already having the wrong scaling shape.
-
-The desired local-closure law is not literally `H_read = 1`; it is that history
-exposure is bounded by the real touched dependency neighbourhood rather than the
-entire accumulated carrier.
-
-## Current hierarchy-close specimen
-
-The 2026-08-19 0008 sampling run established a concrete PostgreSQL-dominated
-kernel:
+The expensive shape is narrower:
 
 ```text
-materialize_numeric_document_hierarchy()
-→ _close_parent_interface()
-→ INSERT ... SELECT from semantic_pnf_interface_lookup
-   WHERE interface_id = ANY(child ids)
-   GROUP BY ...
-   ON CONFLICT DO NOTHING
+local overlapping child lookup rows
+→ GROUP BY / min(rank)
+→ migration-054 parent-export admission
+→ retained parent lookup
 ```
 
-Python was predominantly waiting in `psycopg.execute()`. The database session was
-active, not lock-blocked. This means further Python/spaCy profiling is not the
-right immediate optimisation loop for this kernel.
-
-The structural question is now:
+The parent admission rule depends only on `(target_kind, target_id)`, so for this
+consumer it factors through the lookup grouping key. The legal candidate is:
 
 ```text
-why rediscover child lookup fibres from the accumulated lookup table
-if the parent-close producer can consume the bounded child fibres directly?
+local child lookup rows
+→ semi-join to parent admitted exports
+→ GROUP BY / min(rank)
+→ retained parent lookup
 ```
 
-The target shape is:
+The semantic obligation is an exact commuting square, not a generic command to
+"filter early":
 
 ```text
-union(child lookup fibres)
-→ bounded canonical parent fibre
-→ parent lookup publication
+restrict_parent(group_children(rows))
+==
+group_children(restrict_child_rows(rows))
 ```
 
-with exact parent lookup/export/rank parity.
+Admission must select/reject whole grouping fibres and the fold must remain
+fibre-local. If two rows share one quotient key but the router admits one and
+rejects the other, pushdown is invalid.
+
+This is consumer-indexed relevance: a key excluded from one parent publication is
+not thereby globally irrelevant or erasable.
+
+## Retained-baseline forensic evidence
+
+The read-only pass over the completed serial baseline found:
+
+```text
+interfaces          25,457
+lookup rows         888,856
+export rows         503,733
+parent closes            38
+
+all closes:
+child rows read     846,020
+dedup child union   366,102
+stored parent rows  286,904
+raw/union              2.31x
+raw/output             2.95x
+```
+
+Work is highly concentrated rather than mean-like:
+
+```text
+hottest close share   42.4%
+top-10 close share    77.7%
+```
+
+The document root is the canonical specimen:
+
+```text
+raw child lookup input        358,965
+unrestricted grouped union    122,034
+parent-admitted raw input      125,933
+stored parent lookup output     42,836
+```
+
+Read-only extensional comparison established:
+
+```text
+dedup(child lookup fibres) ∩ parent admitted exports
+== stored parent lookup
+```
+
+with zero missing and zero excess rows.
+
+Pushing the existing admission semi-join ahead of grouping would therefore reduce
+rows entering the root grouping stage from `358,965` to `125,933`, a measured
+**64.9% grouping-input reduction**, while preserving the same `42,836` output
+rows. This does not yet prove a 64.9% reduction in base-table reads or wall time;
+that is a planner/microbenchmark question.
+
+The executable candidate/parity probe lives in
+`src/storage/postgres/hierarchy_close_admission_pushdown.py`.
+
+## Heavy-tail optimisation pressure
+
+Mean operation cost can conceal the real frontier. Record a concentration curve:
+
+```text
+C_k = work in k hottest operations / total work
+```
+
+When `C_1` or `C_10` is large, optimise the upper strata before spending effort on
+uniform micro-improvements. After each successful optimisation, reprofile the
+residual rather than assuming the whole stage is solved.
 
 ## Profiling workflow
 
@@ -182,31 +241,30 @@ Use:
 ```text
 full run
 → identify dominant kernel with sampling + database activity
-→ extract representative state
-→ EXPLAIN / microbenchmark the kernel
-→ optimise the equivalent representation
-→ prove parity
-→ reintegrate
+→ inspect retained state read-only
+→ formulate exact consumer/factorization law
+→ run parity audit
+→ clone representative state
+→ EXPLAIN ANALYZE / microbenchmark old vs candidate
+→ optimise only after parity
+→ reprofile residual
 → rerun full acceptance occasionally
 ```
 
 For a database hotspot capture where possible:
 
 ```text
-child/interface IDs supplied
-matching source rows
-rows scanned
-rows grouped
-rows attempted
-rows actually inserted
-conflict count
+N_scan
+N_admit
+N_group
+N_output
+N_attempt
+N_commit
 buffer hits / reads
 execution time
 hierarchy depth/level
+C_1 / C_10 concentration
 ```
-
-Then emit an `AmplificationReceipt` and compare before/after under the same
-semantic parity reference.
 
 ## Convergence target
 
@@ -222,6 +280,13 @@ and
 less novel implementation machinery per new capability
 ```
 
-This is a stronger convergence criterion than raw LOC reduction. The best new
-features are recombinations of existing proof-bearing carriers and execution
-contracts, with only irreducible domain-specific novelty added.
+The stronger runtime principle is now:
+
+```text
+move consumer-known irrelevance as far upstream as an exact semantic
+intertwiner permits
+```
+
+—not merely "avoid global history scans". The input may already be perfectly
+local and still carry quotient fibres that the current consumer has proved it
+cannot observe.
