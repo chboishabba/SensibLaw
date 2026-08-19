@@ -35,10 +35,26 @@ from src.storage.postgres.streaming_spacy_execution import (
 NUMERIC_PNF_COMPILER_CONTRACT = "numeric-pnf-hyperfabric-compiler:v1"
 _NUMERIC_TIMING_FIELDS = (
     "spacy_parser_work_ns",
+    "numeric_projection_worker_work_ns",
+    "sentence_closure_worker_work_ns",
+    "sentence_closure_coordinator_ns",
+    "sentence_adjacency_ns",
+    "hierarchy_work_ns",
+    "paragraph_adjacency_ns",
+    "lookup_publication_ns",
+    "summary_work_ns",
     "post_parser_worker_work_ns",
     "post_parser_coordinator_ns",
     "post_parser_work_ns",
+    "numeric_pipeline_wall_ns",
+    "spacy_parser_wall_occupancy_ns",
+    "post_parser_wall_occupancy_ns",
+    "parser_post_overlap_ns",
+    "spacy_parser_only_wall_ns",
+    "post_parser_only_wall_ns",
+    "unclassified_orchestration_wall_ns",
     "timing_basis",
+    "wall_timing_semantics",
 )
 
 
@@ -381,6 +397,7 @@ def persist_numeric_pnf_document(
             progress=progress,
         )
     authority = compilation.artifacts["numeric_pnf_authority"]
+    timing = dict(compilation.artifacts.get("numeric_execution_timing") or {})
     graph_ref = str(authority["graph_ref"])
     demand_refs = tuple(str(value) for value in authority["demand_refs"])
     with store.savepoint() as cursor:
@@ -415,6 +432,7 @@ def persist_numeric_pnf_document(
             "build_key_sha256": build_key_sha256,
             "graph_ref": graph_ref,
             "demand_ref_count": len(demand_refs),
+            "numeric_work_timing": timing,
         }
         if measurement_id is not None:
             details["controlled_reuse_measurement_id"] = measurement_id
