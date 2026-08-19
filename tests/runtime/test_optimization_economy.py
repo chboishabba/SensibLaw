@@ -3,8 +3,10 @@ from src.runtime.optimization_economy import (
     ArchitectureEconomy,
     OptimizationEconomyReceipt,
     ParetoState,
+    RelationalWorkReceipt,
     RuntimeEconomy,
     compare_pareto,
+    concentration_profile,
 )
 
 
@@ -53,6 +55,22 @@ def test_amplification_receipt_reports_history_and_write_ratios() -> None:
     )
     assert receipt.history_read_amplification == 20_000
     assert receipt.write_amplification == 100
+
+
+def test_relational_receipt_separates_scan_from_grouping_work() -> None:
+    receipt = RelationalWorkReceipt(
+        rows_scanned=358_965,
+        rows_admitted=125_933,
+        rows_grouped=125_933,
+        rows_output=42_836,
+        attempted_writes=42_836,
+        committed_writes=42_836,
+    )
+    assert round(receipt.admission_selectivity or 0.0, 3) == 0.351
+    assert round(receipt.grouping_input_reduction or 0.0, 3) == 0.649
+    assert round(receipt.scan_amplification or 0.0, 2) == 8.38
+    assert round(receipt.quotient_amplification or 0.0, 2) == 2.94
+    assert receipt.write_amplification == 1.0
 
 
 def test_zero_denominator_does_not_forge_finite_ratio() -> None:
@@ -106,3 +124,11 @@ def test_speed_bought_with_new_authority_is_a_tradeoff_not_pareto_win() -> None:
         duplicated_capabilities=0,
     )
     assert compare_pareto(before, after) is ParetoState.TRADEOFF
+
+
+def test_concentration_profile_keeps_hot_strata_visible() -> None:
+    points = concentration_profile([424, 100, 90, 80, 70, 60, 50, 40, 35, 28, 23])
+    assert points[0].k == 1
+    assert points[0].fraction == 0.424
+    assert points[1].k == 10
+    assert points[1].fraction == 0.977
