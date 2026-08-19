@@ -26,8 +26,8 @@ The companion executable scorecard is
 
 ### Observed specimen
 
-The 2026-08-19 strict 0008 profile spent the dominant observed wall time in
-PostgreSQL while Python waited in `psycopg.execute()`. The stack was:
+The 2026-08-19 strict 0008 profile spent dominant sampled wall time in PostgreSQL
+while Python waited in `psycopg.execute()`. The stack was:
 
 ```text
 materialize_numeric_document_hierarchy()
@@ -35,65 +35,47 @@ materialize_numeric_document_hierarchy()
 → PostgreSQL
 ```
 
-The active lookup query had the shape:
+The lookup close grouped child lookup rows and relied on migration 054's
+per-insert export-admission trigger to reject rows whose `(target_kind,target_id)`
+was not present in the already-built parent export.
 
-```sql
-INSERT INTO execution.semantic_pnf_interface_lookup (...)
-SELECT parent_interface_id,
-       key_kind, key_a, key_b, target_kind, target_id,
-       min(rank)
-FROM execution.semantic_pnf_interface_lookup
-WHERE interface_id = ANY(child_interface_ids)
-GROUP BY key_kind, key_a, key_b, target_kind, target_id
-ON CONFLICT DO NOTHING;
-```
+### Corrected production-child diagnosis
 
-Migration 054 then applies the actual parent-admission rule per inserted lookup:
-there must already be a parent export with the same `(target_kind, target_id)`.
+The source relation is **not** a global history scan and the earlier
+`358,965 -> 125,933 -> 42,836` account is not production evidence. A later
+read-only reconstruction followed the actual direct-parent relation and falsified
+that traversal.
 
-### Corrected diagnosis
-
-The source relation is **not** a global history scan. `_close_parent_interface()`
-already restricts the read to the bounded child interfaces. The inefficiency is:
-
-```text
-local overlapping child fibres
-→ expensive quotient/grouping
-→ selective parent admission
-```
-
-when the parent admission is constant on the lookup grouping fibres and can be
-applied first.
-
-The retained serial baseline made the skew concrete:
+Authoritative retained-run receipt:
 
 ```text
 38 parent closes
-846,020 raw child lookup rows
-366,102 unrestricted deduplicated child-union rows
-286,904 stored parent lookup rows
-
-hottest close = 42.4% of all close lookup reads
-top 10 closes = 77.7%
+366,102 direct-child lookup rows
+286,904 parent-admitted/stored lookup rows
+hottest close = 33.3% of direct-child work
+top 10 closes = 82.1%
 ```
 
-For the document root:
+The document parent had three direct adaptive children:
 
 ```text
-raw child rows                358,965
-unrestricted grouped union    122,034
-parent-admitted raw rows       125,933
-stored parent rows              42,836
+122,034 direct-child lookup rows
+ 42,836 admitted/stored parent lookup rows
 ```
 
-Read-only parity established:
+The current and pushdown SELECT plans read the same child lookup relation. The
+candidate adds an export semi-join; its benefit is therefore not a base-read
+reduction. Its physical hypothesis is narrower:
 
 ```text
-dedup(child lookup fibres) ∩ parent admitted exports
-== stored parent lookup
+avoid lookup rows which would otherwise be attempted as INSERTs
+and rejected by migration-054 admission checks
 ```
 
-with zero missing and zero excess rows.
+The disposable-clone full INSERT benchmark established exact parity in all 30
+alternating trials and reduced the document-root median from 89.35 s to 21.72 s
+(75.7%). That result licenses the local rewrite; it does not establish the whole
+compiler's parser-relative acceptance target.
 
 ### Complexity smell
 
@@ -127,26 +109,19 @@ bounded child fibres
 → parent publication
 ```
 
-For the observed root this reduces rows entering grouping from `358,965` to
-`125,933` — 64.9% — while retaining the same `42,836` output rows.
-
-That is a claim about grouping input, **not yet** a claim of 64.9% fewer base rows
-read or 64.9% lower wall time. Those require planner/execution evidence.
+Measure full INSERT/trigger behavior. A SELECT-only plan is insufficient when the
+claimed saving is rejected writes or trigger calls rather than source-row reads.
 
 ### Required evidence
 
-Before production replacement:
-
 - exact parent lookup parity with zero missing/excess rows;
 - admission shown to factor through the quotient/grouping key;
-- fibre-local `min(rank)` semantics unchanged;
+- fibre-local rank semantics unchanged;
 - parent export/digest/cardinality authority unchanged;
-- `EXPLAIN (ANALYZE, BUFFERS)` before/after on cloned representative state;
+- alternating full-path trials on disposable state;
 - separate `N_scan`, `N_admit`, `N_group`, `N_output`, `N_attempt`, `N_commit`;
-- full strict integration after the microbenchmark passes.
-
-The executable candidate/parity probe is
-`src/storage/postgres/hierarchy_close_admission_pushdown.py`.
+- trigger calls/time, buffers/WAL where available;
+- full strict integration only after the microbenchmark passes.
 
 ## 2. Relation → row triggers → relation
 
@@ -320,6 +295,51 @@ hide a large relation behind an ID vector.
 Use bounded fibres/stages with explicit cardinality, or a relational join whose
 scope is indexed and semantically local.
 
+## 14. Delete/rebuild churn on a current projection
+
+### Observed pressure
+
+A fresh strict diagnostic run reported millions of physical PostgreSQL mutations,
+including roughly 1.6 million deletes. That aggregate is evidence of a new
+optimization frontier, not yet evidence that any particular delete is redundant.
+
+### Smell
+
+```text
+identify affected owner/fibre
+→ DELETE current projection for that scope
+→ recompute/reinsert most or all of the same projection
+```
+
+repeated during a cold build or small incremental change.
+
+### Preferred replacement
+
+Only after an owner/parity audit, replace whole-fibre rebuild with the exact
+smallest update:
+
+```text
+old fibre + Δ producer evidence
+→ exact changed keys
+→ insert/update/delete only changed rows
+```
+
+If a full rebuild is semantically required, retain it and optimize the physical
+carrier instead. Delete count alone does not authorize delta maintenance.
+
+### Required evidence
+
+- mutation counts attributed by table/carrier;
+- owner/rebuild SQL identified;
+- exact before/after projection equality;
+- no stale-row survivor under deletion narrowing;
+- lower `A_churn` and wall/query work on controlled state;
+- no new authority or second current-state projection.
+
+`src/storage/postgres/runtime_churn_audit.py` supplies the read-only attribution
+surface. Its cumulative counters are one-run evidence only on a fresh/dedicated
+database or with explicit before/after statistics snapshots.
+
 ## Review evidence template
 
 Every new sin-bin specimen should record:
@@ -348,12 +368,16 @@ N_group
 N_output
 N_attempt
 N_commit
+inserts / updates / deletes
+live rows / dead rows
+A_churn
 buffer_hits / reads
+WAL records / bytes
 wall_ns
 C_1 / C_10 concentration
 ```
 
 The old broad history/write ratios remain useful compatibility diagnostics, but
-new relational work should keep scan, admission, quotient/grouping and writes
-separate. A large `ON CONFLICT DO NOTHING` operation is not cheap merely because
-final cardinality changes little.
+new relational work should keep scan, admission, quotient/grouping, writes and
+mutation churn separate. A large `ON CONFLICT DO NOTHING` operation is not cheap
+merely because final cardinality changes little.
