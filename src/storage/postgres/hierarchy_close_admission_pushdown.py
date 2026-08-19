@@ -27,9 +27,40 @@ from typing import Any, Sequence
 from src.runtime.optimization_economy import ConcentrationPoint, concentration_profile
 
 
-PUSHDOWN_CONTRACT_REF = "sensiblaw.hierarchy-close-admission-pushdown.v0_1"
+PUSHDOWN_CONTRACT_REF = "sensiblaw.hierarchy-close-admission-pushdown.v0_2"
 
 _GROUP_COLUMNS = "key_kind, key_a, key_b, target_kind, target_id"
+
+CURRENT_GROUP_SELECT_SQL = f"""
+SELECT lookup.key_kind,
+       lookup.key_a,
+       lookup.key_b,
+       lookup.target_kind,
+       lookup.target_id,
+       min(lookup.rank) AS rank
+  FROM execution.semantic_pnf_interface_lookup AS lookup
+ WHERE lookup.interface_id = ANY(%s)
+ GROUP BY {_GROUP_COLUMNS}
+""".strip()
+
+PUSHDOWN_GROUP_SELECT_SQL = f"""
+SELECT lookup.key_kind,
+       lookup.key_a,
+       lookup.key_b,
+       lookup.target_kind,
+       lookup.target_id,
+       min(lookup.rank) AS rank
+  FROM execution.semantic_pnf_interface_lookup AS lookup
+ WHERE lookup.interface_id = ANY(%s)
+   AND EXISTS (
+       SELECT 1
+         FROM execution.semantic_pnf_interface_export AS parent_export
+        WHERE parent_export.interface_id = %s
+          AND parent_export.target_kind = lookup.target_kind
+          AND parent_export.target_id = lookup.target_id
+   )
+ GROUP BY {_GROUP_COLUMNS}
+""".strip()
 
 PUSHDOWN_INSERT_SQL = f"""
 INSERT INTO execution.semantic_pnf_interface_lookup
@@ -117,6 +148,32 @@ def _scalar(cursor: Any, sql: str, parameters: tuple[Any, ...]) -> int:
     return int(cursor.fetchone()[0])
 
 
+def child_interface_ids_for_parent(
+    cursor: Any, *, parent_interface_id: int
+) -> tuple[int, ...]:
+    """Return the same direct child-interface family used by hierarchy close."""
+
+    cursor.execute(
+        """
+        SELECT child_interface.interface_id
+          FROM execution.semantic_pnf_interface AS parent_interface
+          JOIN execution.semantic_pnf_region AS parent_region
+            ON parent_region.region_id = parent_interface.region_id
+          JOIN execution.semantic_pnf_region AS child_region
+            ON child_region.parent_region_id = parent_region.region_id
+          JOIN execution.semantic_pnf_interface AS child_interface
+            ON child_interface.region_id = child_region.region_id
+         WHERE parent_interface.interface_id = %s
+           AND child_region.region_kind <> 5
+         ORDER BY child_region.sequence_no,
+                  child_region.start_char,
+                  child_region.region_id
+        """,
+        (int(parent_interface_id),),
+    )
+    return tuple(int(row[0]) for row in cursor.fetchall())
+
+
 def audit_parent_lookup_pushdown(
     cursor: Any,
     *,
@@ -156,22 +213,7 @@ def audit_parent_lookup_pushdown(
     )
     grouped_candidate_rows = _scalar(
         cursor,
-        f"""
-        SELECT count(*)
-          FROM (
-              SELECT {_GROUP_COLUMNS}, min(lookup.rank) AS rank
-                FROM execution.semantic_pnf_interface_lookup AS lookup
-               WHERE lookup.interface_id = ANY(%s)
-                 AND EXISTS (
-                     SELECT 1
-                       FROM execution.semantic_pnf_interface_export AS parent_export
-                      WHERE parent_export.interface_id = %s
-                        AND parent_export.target_kind = lookup.target_kind
-                        AND parent_export.target_id = lookup.target_id
-                 )
-               GROUP BY {_GROUP_COLUMNS}
-          ) AS candidate
-        """,
+        f"SELECT count(*) FROM ({PUSHDOWN_GROUP_SELECT_SQL}) AS candidate",
         (children, int(parent_interface_id)),
     )
     stored_parent_rows = _scalar(
@@ -184,19 +226,6 @@ def audit_parent_lookup_pushdown(
         (int(parent_interface_id),),
     )
 
-    candidate_relation = f"""
-        SELECT {_GROUP_COLUMNS}, min(lookup.rank) AS rank
-          FROM execution.semantic_pnf_interface_lookup AS lookup
-         WHERE lookup.interface_id = ANY(%s)
-           AND EXISTS (
-               SELECT 1
-                 FROM execution.semantic_pnf_interface_export AS parent_export
-                WHERE parent_export.interface_id = %s
-                  AND parent_export.target_kind = lookup.target_kind
-                  AND parent_export.target_id = lookup.target_id
-           )
-         GROUP BY {_GROUP_COLUMNS}
-    """
     stored_relation = f"""
         SELECT {_GROUP_COLUMNS}, rank
           FROM execution.semantic_pnf_interface_lookup
@@ -204,12 +233,18 @@ def audit_parent_lookup_pushdown(
     """
     missing_candidate_rows = _scalar(
         cursor,
-        f"SELECT count(*) FROM (({stored_relation}) EXCEPT ({candidate_relation})) AS missing",
+        f"""
+        SELECT count(*)
+          FROM (({stored_relation}) EXCEPT ({PUSHDOWN_GROUP_SELECT_SQL})) AS missing
+        """,
         (int(parent_interface_id), children, int(parent_interface_id)),
     )
     excess_candidate_rows = _scalar(
         cursor,
-        f"SELECT count(*) FROM (({candidate_relation}) EXCEPT ({stored_relation})) AS excess",
+        f"""
+        SELECT count(*)
+          FROM (({PUSHDOWN_GROUP_SELECT_SQL}) EXCEPT ({stored_relation})) AS excess
+        """,
         (children, int(parent_interface_id), int(parent_interface_id)),
     )
 
@@ -226,10 +261,13 @@ def audit_parent_lookup_pushdown(
 
 
 __all__ = [
+    "CURRENT_GROUP_SELECT_SQL",
     "ConcentrationPoint",
     "PUSHDOWN_CONTRACT_REF",
+    "PUSHDOWN_GROUP_SELECT_SQL",
     "PUSHDOWN_INSERT_SQL",
     "ParentLookupPushdownAudit",
     "audit_parent_lookup_pushdown",
+    "child_interface_ids_for_parent",
     "concentration_profile",
 ]
