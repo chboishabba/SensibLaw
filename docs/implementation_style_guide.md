@@ -31,6 +31,53 @@ In particular:
 
 See `docs/authority_surfaces.md` for the complete transitional map.
 
+## Long-Running Runtime Observability Prerequisite
+
+Do not start a representative long-running runtime, calibration, migration,
+replay, or performance experiment and plan to add progress instrumentation
+afterward. Detailed progress is a prerequisite of the run, not a post-hoc
+feature.
+
+The existing authority is `src.runtime.progress.PhaseRecorder` / `PhaseHandle`.
+New long-running execution must feed that surface rather than inventing a lane-
+or benchmark-specific ETA or progress calculator.
+
+Before launching work expected to take minutes or whose upper bound is unknown,
+ensure all of the following are true:
+
+- the active outer phase is represented by `PhaseRecorder`;
+- the currently blocking inner kernel/stage is named while it is active;
+- measurable inner work is exposed as named measures with semantic units;
+- exact totals are supplied whenever the execution substrate knows them;
+- `PhaseHandle.observe(...)` receives changing counters often enough for the
+  existing throughput and ETA machinery to update during the run;
+- `PhaseHandle.heartbeat(...)` continues to identify active work even when no
+  counter changes;
+- failure-surviving runs persist progress events before terminal publication or
+  receipt success, so a late failure cannot erase the timing/progress history;
+- durable database receipts/queues are reused as the measurement authority when
+  they already exist rather than copied into a second timing schema;
+- work time, occupancy, and wall time remain explicitly distinguished;
+- progress/timing values remain observational and never enter semantic identity
+  or receipt hashing.
+
+A progress snapshot that is only stored in `details` is not sufficient when a
+semantic denominator exists. Project that counter into named measures and let
+`PhaseHandle` compute `per_second`, `estimated_remaining_ms`,
+`estimated_completion_at`, `estimated_run_remaining_ms`, and
+`estimated_run_completion_at`. Domain-specific instrumentation supplies
+observations; it does not own ETA arithmetic.
+
+If a long-run path cannot answer all three questions below before execution,
+the instrumentation is incomplete and the run should not be treated as a
+representative performance measurement:
+
+```text
+what kernel/stage is active now?
+what bounded work has completed / remains?
+what does the canonical progress authority currently estimate for completion?
+```
+
 ## Naming Rule
 
 Lane identity belongs in:

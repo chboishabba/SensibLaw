@@ -11,9 +11,14 @@ from __future__ import annotations
 from contextlib import nullcontext
 from hashlib import sha256
 from pathlib import Path
+from time import monotonic_ns
 from typing import Any, Mapping
 
 from src.policy.corpus_compilation import DocumentCompilation
+from src.runtime.numeric_kernel_progress import (
+    NumericKernelProgressSampler,
+    numeric_streaming_kernel_progress,
+)
 from src.runtime.numeric_observability import (
     controlled_reuse_measurement_enabled as _controlled_reuse_measurement_enabled,
     numeric_authority_counts_enabled as _numeric_authority_counts_enabled,
@@ -186,6 +191,59 @@ def _authority_refs(
         connection.close()
 
 
+def _progress_observer(progress: Any | None):
+    """Adapt numeric observations to the repository's canonical progress API.
+
+    The numeric observer owns no rate or ETA calculation. Compact PostgreSQL
+    snapshots may carry named ``progress_measures``; when an inner stage is
+    active they are handed to ``PhaseHandle.observe`` so its existing throughput
+    and completion estimators remain the sole progress authority. Kernel-only
+    transitions continue to use heartbeats.
+    """
+
+    if progress is None or not hasattr(progress, "heartbeat"):
+        return None
+
+    def observe(payload: Mapping[str, Any]) -> None:
+        details = dict(payload)
+        message = str(details.get("current_kernel") or "numeric_pnf_compilation")
+        measures = details.get("progress_measures")
+        if (
+            isinstance(measures, Mapping)
+            and getattr(progress, "active_stage", None) is not None
+            and hasattr(progress, "observe")
+        ):
+            progress.observe(
+                measures={str(key): value for key, value in measures.items()},
+                message=message,
+                details=details,
+            )
+            return
+        progress.heartbeat(message=message, details=details)
+
+    return observe
+
+
+def _observe_kernel(
+    progress: Any | None,
+    *,
+    kernel: str,
+    state: str,
+    elapsed_ns: int | None = None,
+    details: Mapping[str, Any] | None = None,
+) -> None:
+    if progress is None or not hasattr(progress, "heartbeat"):
+        return
+    payload: dict[str, Any] = {
+        "current_kernel": kernel,
+        "kernel_state": state,
+        **dict(details or {}),
+    }
+    if elapsed_ns is not None:
+        payload["kernel_elapsed_ns"] = int(elapsed_ns)
+    progress.heartbeat(message=kernel, details=payload)
+
+
 def compile_numeric_pnf_document(
     *,
     database_url: str,
@@ -204,44 +262,68 @@ def compile_numeric_pnf_document(
     parser_checkpoint_dir: str | None,
     progress: Any | None = None,
 ) -> DocumentCompilation:
-    carrier = run_streaming_spacy_execution(
-        database_url=database_url,
-        run_ref=run_ref,
-        document_ref=document_ref,
-        canonical_text=canonical_text,
-        parser_contract_ref=parser_contract_ref,
-        artifact_root=_artifact_root(
+    observer = _progress_observer(progress)
+    with numeric_streaming_kernel_progress(observer):
+        with NumericKernelProgressSampler(
+            database_url=database_url,
             run_ref=run_ref,
-            checkpoint_dir=parser_checkpoint_dir,
-        ),
-        worker_count=parser_workers,
-        policy=_parser_policy(
-            target_chars=parser_target_chars,
-            overlap_chars=parser_overlap_chars,
-        ),
-    )
+            document_ref=document_ref,
+            observer=observer,
+            interval_seconds=30.0,
+        ):
+            carrier = run_streaming_spacy_execution(
+                database_url=database_url,
+                run_ref=run_ref,
+                document_ref=document_ref,
+                canonical_text=canonical_text,
+                parser_contract_ref=parser_contract_ref,
+                artifact_root=_artifact_root(
+                    run_ref=run_ref,
+                    checkpoint_dir=parser_checkpoint_dir,
+                ),
+                worker_count=parser_workers,
+                policy=_parser_policy(
+                    target_chars=parser_target_chars,
+                    overlap_chars=parser_overlap_chars,
+                ),
+                progress_observer=observer,
+            )
     parser_receipt = dict(carrier["parser_receipt"])
     timing_details = {
         key: parser_receipt[key]
         for key in _NUMERIC_TIMING_FIELDS
         if key in parser_receipt
     }
-    graph_ref, demand_refs, authority_metadata = _authority_refs(
-        database_url,
-        run_ref=run_ref,
-        document_ref=document_ref,
-    )
-    if progress is not None and hasattr(progress, "advance"):
-        progress.advance(
-            amount=1,
-            message="numeric_pnf_closed",
-            details={
-                "graph_ref": graph_ref,
-                "demand_count": len(demand_refs),
-                **timing_details,
-                **authority_metadata,
-            },
+
+    authority_started = monotonic_ns()
+    _observe_kernel(progress, kernel="numeric_authority_extraction", state="started")
+    try:
+        graph_ref, demand_refs, authority_metadata = _authority_refs(
+            database_url,
+            run_ref=run_ref,
+            document_ref=document_ref,
         )
+    except BaseException as error:
+        _observe_kernel(
+            progress,
+            kernel="numeric_authority_extraction",
+            state="failed",
+            elapsed_ns=monotonic_ns() - authority_started,
+            details={"kernel_error_type": type(error).__name__, "kernel_error": str(error)},
+        )
+        raise
+    _observe_kernel(
+        progress,
+        kernel="numeric_authority_extraction",
+        state="completed",
+        elapsed_ns=monotonic_ns() - authority_started,
+        details={
+            "graph_ref": graph_ref,
+            "demand_count": len(demand_refs),
+            **timing_details,
+            **authority_metadata,
+        },
+    )
     artifacts: dict[str, Any] = {
         "canonical_text_sha256": canonical_text_sha256,
         "source_normalisation": {
@@ -358,6 +440,7 @@ def persist_numeric_pnf_document(
         progress.stage(
             "numeric_pnf_compilation",
             details={"build_key_sha256": build_key_sha256},
+            advance_outer=False,
         )
         if progress is not None and hasattr(progress, "stage")
         else nullcontext(None)
@@ -380,45 +463,131 @@ def persist_numeric_pnf_document(
             parser_checkpoint_dir=parser_checkpoint_dir,
             progress=progress,
         )
-    authority = compilation.artifacts["numeric_pnf_authority"]
-    graph_ref = str(authority["graph_ref"])
-    demand_refs = tuple(str(value) for value in authority["demand_refs"])
-    with store.savepoint() as cursor:
-        persist_completed_operational_build(
-            cursor,
-            document_ref=document_ref,
-            compiler_contract_ref=NUMERIC_PNF_COMPILER_CONTRACT,
-            build_key_sha256=build_key_sha256,
-            graph_ref=graph_ref,
-            demand_refs=demand_refs,
-        )
-        store.persist_occurrence(
-            cursor,
-            corpus_ref=corpus_ref,
-            relative_path=relative_path,
-            document_ref=document_ref,
-            state="compiled_numeric_pnf",
+        authority = compilation.artifacts["numeric_pnf_authority"]
+        graph_ref = str(authority["graph_ref"])
+        demand_refs = tuple(str(value) for value in authority["demand_refs"])
+
+        publication_started = monotonic_ns()
+        _observe_kernel(progress, kernel="operational_build_publication", state="started")
+        try:
+            with store.savepoint() as cursor:
+                persist_completed_operational_build(
+                    cursor,
+                    document_ref=document_ref,
+                    compiler_contract_ref=NUMERIC_PNF_COMPILER_CONTRACT,
+                    build_key_sha256=build_key_sha256,
+                    graph_ref=graph_ref,
+                    demand_refs=demand_refs,
+                )
+                store.persist_occurrence(
+                    cursor,
+                    corpus_ref=corpus_ref,
+                    relative_path=relative_path,
+                    document_ref=document_ref,
+                    state="compiled_numeric_pnf",
+                )
+        except BaseException as error:
+            _observe_kernel(
+                progress,
+                kernel="operational_build_publication",
+                state="failed",
+                elapsed_ns=monotonic_ns() - publication_started,
+                details={
+                    "kernel_error_type": type(error).__name__,
+                    "kernel_error": str(error),
+                },
+            )
+            raise
+        _observe_kernel(
+            progress,
+            kernel="operational_build_publication",
+            state="completed",
+            elapsed_ns=monotonic_ns() - publication_started,
         )
 
-    measurement_id: int | None = None
-    if _controlled_reuse_measurement_enabled():
-        measurement_id = _record_controlled_reuse(
-            database_url=database_url,
-            run_ref=run_ref,
-            document_ref=document_ref,
-            canonical_text_sha256=canonical_text_sha256,
-            build_key_sha256=build_key_sha256,
+        from src.policy.numeric_semantic_receipt_execution import (
+            persist_completed_numeric_semantic_receipt,
         )
-    if progress is not None and hasattr(progress, "finish"):
-        details: dict[str, Any] = {
-            "state": "compiled_numeric_pnf",
-            "build_key_sha256": build_key_sha256,
-            "graph_ref": graph_ref,
-            "demand_ref_count": len(demand_refs),
-        }
-        if measurement_id is not None:
-            details["controlled_reuse_measurement_id"] = measurement_id
-        progress.finish(state="completed", details=details)
+
+        receipt_started = monotonic_ns()
+        _observe_kernel(progress, kernel="semantic_receipt_publication", state="started")
+        try:
+            persist_completed_numeric_semantic_receipt(
+                database_url=database_url,
+                document_ref=document_ref,
+                canonical_text_sha256=canonical_text_sha256,
+                parser_contract_ref=str(context.annotation_backend_ref),
+                build_key_sha256=build_key_sha256,
+                compiler_contract_ref=NUMERIC_PNF_COMPILER_CONTRACT,
+            )
+        except BaseException as error:
+            _observe_kernel(
+                progress,
+                kernel="semantic_receipt_publication",
+                state="failed",
+                elapsed_ns=monotonic_ns() - receipt_started,
+                details={
+                    "kernel_error_type": type(error).__name__,
+                    "kernel_error": str(error),
+                },
+            )
+            raise
+        _observe_kernel(
+            progress,
+            kernel="semantic_receipt_publication",
+            state="completed",
+            elapsed_ns=monotonic_ns() - receipt_started,
+        )
+
+        measurement_id: int | None = None
+        if _controlled_reuse_measurement_enabled():
+            measurement_started = monotonic_ns()
+            _observe_kernel(progress, kernel="controlled_reuse_measurement", state="started")
+            try:
+                measurement_id = _record_controlled_reuse(
+                    database_url=database_url,
+                    run_ref=run_ref,
+                    document_ref=document_ref,
+                    canonical_text_sha256=canonical_text_sha256,
+                    build_key_sha256=build_key_sha256,
+                )
+            except BaseException as error:
+                _observe_kernel(
+                    progress,
+                    kernel="controlled_reuse_measurement",
+                    state="failed",
+                    elapsed_ns=monotonic_ns() - measurement_started,
+                    details={
+                        "kernel_error_type": type(error).__name__,
+                        "kernel_error": str(error),
+                    },
+                )
+                raise
+            _observe_kernel(
+                progress,
+                kernel="controlled_reuse_measurement",
+                state="completed",
+                elapsed_ns=monotonic_ns() - measurement_started,
+                details={"controlled_reuse_measurement_id": measurement_id},
+            )
+
+        if progress is not None and hasattr(progress, "advance"):
+            details: dict[str, Any] = {
+                "state": "compiled_numeric_pnf",
+                "build_key_sha256": build_key_sha256,
+                "graph_ref": graph_ref,
+                "demand_ref_count": len(demand_refs),
+                **dict(compilation.artifacts.get("numeric_execution_timing") or {}),
+            }
+            if measurement_id is not None:
+                details["controlled_reuse_measurement_id"] = measurement_id
+            # Exactly one outer completion for this strict numeric document, and
+            # only after both operational-build and semantic-receipt publication.
+            progress.advance(
+                amount=1,
+                message="numeric_pnf_completed",
+                details=details,
+            )
     return demand_refs
 
 

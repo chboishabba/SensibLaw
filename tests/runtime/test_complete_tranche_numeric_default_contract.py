@@ -9,6 +9,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 PRODUCTION = ROOT / "scripts/run_complete_tranche_production.py"
 TIMING = ROOT / "scripts/benchmark_complete_tranche_phases.py"
+CALIBRATION = ROOT / "scripts/run_exact_0008_calibration.py"
 HISTORICAL = ROOT / "scripts/run_complete_tranche.py"
 
 
@@ -58,7 +59,23 @@ def test_timing_rejects_conflicting_compatibility_and_strict_requests() -> None:
         )
 
 
-def test_historical_runner_compatibility_default_is_documented_as_nonproduction() -> None:
+def test_exact_0008_calibration_defaults_to_strict_numeric() -> None:
+    module = _load(CALIBRATION, "_test_exact_0008_calibration_default")
+
+    assert module._runner_strategy_args(compatibility_replay=False) == [
+        "--strict-exact"
+    ]
+    assert module._runner_strategy_args(compatibility_replay=True) == []
+    with pytest.raises(ValueError):
+        module._runner_strategy_args(
+            compatibility_replay=True,
+            strict_exact=True,
+        )
+
+
+def test_historical_runner_compatibility_default_is_documented_as_nonproduction() -> (
+    None
+):
     historical = HISTORICAL.read_text(encoding="utf-8")
     production = PRODUCTION.read_text(encoding="utf-8")
 

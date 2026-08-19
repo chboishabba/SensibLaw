@@ -146,6 +146,81 @@ def _emit_leaf_audit(*, database_url: str, run_ref: str, document_ref: str) -> N
     temporary.replace(path)
 
 
+def persist_completed_numeric_semantic_receipt(
+    *,
+    database_url: str,
+    document_ref: str,
+    canonical_text_sha256: str,
+    parser_contract_ref: str,
+    build_key_sha256: str,
+    compiler_contract_ref: str,
+) -> NumericSemanticReceipt:
+    """Persist the receipt only after its operational build FK parent exists."""
+
+    key = _receipt_key(
+        document_ref=document_ref,
+        canonical_text_sha256=canonical_text_sha256,
+        parser_contract_ref=parser_contract_ref,
+        build_key_sha256=build_key_sha256,
+    )
+    fresh = _FRESH_RECEIPT.get()
+    receipt = fresh[1] if fresh is not None and fresh[0] == key else None
+    receipt_compute_ns = fresh[2] if fresh is not None and fresh[0] == key else 0
+    receipt_source = (
+        "fresh_numeric_authority" if receipt is not None else "durable_build"
+    )
+    if fresh is not None and fresh[0] == key:
+        _FRESH_RECEIPT.set(None)
+
+    build_ref = operational_build_ref(
+        document_ref=document_ref,
+        compiler_contract_ref=compiler_contract_ref,
+        build_key_sha256=build_key_sha256,
+    )
+    connection = connect(database_url)
+    try:
+        with connection.transaction():
+            with connection.cursor() as cursor:
+                durable = load_numeric_semantic_receipt(cursor, build_ref=build_ref)
+                if durable is not None:
+                    if (
+                        receipt is not None
+                        and durable.receipt_sha256 != receipt.receipt_sha256
+                    ):
+                        raise RuntimeError(
+                            "fresh numeric receipt disagrees with completed build receipt"
+                        )
+                    receipt = durable
+                elif receipt is not None:
+                    persist_numeric_semantic_receipt(
+                        cursor, build_ref=build_ref, receipt=receipt
+                    )
+                else:
+                    started = monotonic_ns()
+                    receipt = compute_numeric_semantic_receipt(
+                        cursor,
+                        run_ref=_existing_closed_run_ref(
+                            cursor, document_ref=document_ref
+                        ),
+                        document_ref=document_ref,
+                        canonical_text_sha256=canonical_text_sha256,
+                        parser_contract_ref=parser_contract_ref,
+                        compiler_contract_ref=compiler_contract_ref,
+                    )
+                    receipt_compute_ns = monotonic_ns() - started
+                    receipt_source = "legacy_build_backfill"
+                    persist_numeric_semantic_receipt(
+                        cursor, build_ref=build_ref, receipt=receipt
+                    )
+    finally:
+        connection.close()
+    assert receipt is not None
+    _emit_acceptance_coordinate(
+        receipt, receipt_compute_ns=receipt_compute_ns, receipt_source=receipt_source
+    )
+    return receipt
+
+
 def install_numeric_semantic_receipt_execution() -> bool:
     from src.policy import numeric_pnf_compilation as numeric
     from src.policy import streaming_spacy_parser_execution as streaming
@@ -197,76 +272,7 @@ def install_numeric_semantic_receipt_execution() -> bool:
 
     @wraps(original_persist)
     def persist_wrapper(*args: Any, **kwargs: Any):
-        demand_refs = original_persist(*args, **kwargs)
-        document_ref = str(kwargs["entry"]["document_ref"])
-        parser_contract_ref = str(kwargs["context"].annotation_backend_ref)
-        key = _receipt_key(
-            document_ref=document_ref,
-            canonical_text_sha256=str(kwargs["canonical_text_sha256"]),
-            parser_contract_ref=parser_contract_ref,
-            build_key_sha256=str(kwargs["build_key_sha256"]),
-        )
-        fresh = _FRESH_RECEIPT.get()
-        receipt = fresh[1] if fresh is not None and fresh[0] == key else None
-        receipt_compute_ns = fresh[2] if fresh is not None and fresh[0] == key else 0
-        receipt_source = (
-            "fresh_numeric_authority" if receipt is not None else "durable_build"
-        )
-        if fresh is not None and fresh[0] == key:
-            _FRESH_RECEIPT.set(None)
-
-        build_ref = operational_build_ref(
-            document_ref=document_ref,
-            compiler_contract_ref=numeric.NUMERIC_PNF_COMPILER_CONTRACT,
-            build_key_sha256=str(kwargs["build_key_sha256"]),
-        )
-        connection = connect(str(kwargs["database_url"]))
-        try:
-            with connection.transaction():
-                with connection.cursor() as cursor:
-                    durable = load_numeric_semantic_receipt(cursor, build_ref=build_ref)
-                    if durable is not None:
-                        if (
-                            receipt is not None
-                            and durable.receipt_sha256 != receipt.receipt_sha256
-                        ):
-                            raise RuntimeError(
-                                "fresh numeric receipt disagrees with completed build receipt"
-                            )
-                        receipt = durable
-                        if receipt_source != "fresh_numeric_authority":
-                            receipt_source = "durable_build"
-                    elif receipt is not None:
-                        persist_numeric_semantic_receipt(
-                            cursor, build_ref=build_ref, receipt=receipt
-                        )
-                    else:
-                        authority_run_ref = _existing_closed_run_ref(
-                            cursor, document_ref=document_ref
-                        )
-                        started = monotonic_ns()
-                        receipt = compute_numeric_semantic_receipt(
-                            cursor,
-                            run_ref=authority_run_ref,
-                            document_ref=document_ref,
-                            canonical_text_sha256=str(kwargs["canonical_text_sha256"]),
-                            parser_contract_ref=parser_contract_ref,
-                            compiler_contract_ref=numeric.NUMERIC_PNF_COMPILER_CONTRACT,
-                        )
-                        receipt_compute_ns = monotonic_ns() - started
-                        receipt_source = "legacy_build_backfill"
-                        persist_numeric_semantic_receipt(
-                            cursor, build_ref=build_ref, receipt=receipt
-                        )
-        finally:
-            connection.close()
-        assert receipt is not None
-        _emit_acceptance_coordinate(
-            receipt,
-            receipt_compute_ns=receipt_compute_ns,
-            receipt_source=receipt_source,
-        )
-        return demand_refs
+        return original_persist(*args, **kwargs)
 
     numeric.compile_numeric_pnf_document = compile_wrapper
     numeric.persist_numeric_pnf_document = persist_wrapper
@@ -276,4 +282,7 @@ def install_numeric_semantic_receipt_execution() -> bool:
     return True
 
 
-__all__ = ["install_numeric_semantic_receipt_execution"]
+__all__ = [
+    "install_numeric_semantic_receipt_execution",
+    "persist_completed_numeric_semantic_receipt",
+]
