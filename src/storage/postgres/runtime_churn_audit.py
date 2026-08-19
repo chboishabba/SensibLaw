@@ -1,14 +1,14 @@
 """Read-only PostgreSQL mutation/churn and query-template attribution.
 
-This is a diagnostic consumer, not compiler work.  It is intended for fresh or
+This is a diagnostic consumer, not compiler work. It is intended for fresh or
 explicitly diagnostic databases where PostgreSQL cumulative counters can be
-interpreted against one known run.  It never resets statistics and never writes
+interpreted against one known run. It never resets statistics and never writes
 semantic state.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from decimal import Decimal
 from typing import Any
 
@@ -83,13 +83,12 @@ class QueryTemplateReceipt:
     wal_bytes: int | None
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            field: getattr(self, field)
-            for field in self.__dataclass_fields__
-        }
+        return {field.name: getattr(self, field.name) for field in fields(self)}
 
 
-def _table_churn(cursor: Any, *, schemas: tuple[str, ...]) -> tuple[TableChurnReceipt, ...]:
+def _table_churn(
+    cursor: Any, *, schemas: tuple[str, ...]
+) -> tuple[TableChurnReceipt, ...]:
     cursor.execute(
         """
         SELECT schemaname,
@@ -126,10 +125,25 @@ def _table_churn(cursor: Any, *, schemas: tuple[str, ...]) -> tuple[TableChurnRe
 
 
 def _pg_stat_statements_available(cursor: Any) -> bool:
+    """Require both extension registration and postmaster preload."""
+
     cursor.execute(
-        "SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_stat_statements')"
+        """
+        SELECT EXISTS (
+                   SELECT 1
+                     FROM pg_extension
+                    WHERE extname = 'pg_stat_statements'
+               ),
+               current_setting('shared_preload_libraries', true)
+        """
     )
-    return bool(cursor.fetchone()[0])
+    extension_exists, preloaded = cursor.fetchone()
+    libraries = {
+        item.strip()
+        for item in str(preloaded or "").split(",")
+        if item.strip()
+    }
+    return bool(extension_exists) and "pg_stat_statements" in libraries
 
 
 def _statement_columns(cursor: Any) -> set[str]:
@@ -240,7 +254,12 @@ def build_runtime_churn_audit(
                 )
                 database_name, postmaster_started, stats_reset = cursor.fetchone()
                 tables = _table_churn(cursor, schemas=schemas)
-                queries = _query_templates(cursor, limit=query_limit)
+                statements_available = _pg_stat_statements_available(cursor)
+                queries = (
+                    _query_templates(cursor, limit=query_limit)
+                    if statements_available
+                    else ()
+                )
                 totals = {
                     "inserts": sum(row.inserts for row in tables),
                     "updates": sum(row.updates for row in tables),
@@ -259,15 +278,17 @@ def build_runtime_churn_audit(
                     "contract_ref": CHURN_AUDIT_REF,
                     "database": str(database_name),
                     "postmaster_started_at": postmaster_started.isoformat(),
-                    "stats_reset_at": None if stats_reset is None else stats_reset.isoformat(),
+                    "stats_reset_at": (
+                        None if stats_reset is None else stats_reset.isoformat()
+                    ),
                     "counter_semantics": (
-                        "cumulative PostgreSQL statistics since their reset; interpret as one-run "
-                        "attribution only on a fresh/dedicated database"
+                        "cumulative PostgreSQL statistics since their reset; interpret as "
+                        "one-run attribution only on a fresh/dedicated database"
                     ),
                     "schemas": list(schemas),
                     "totals": totals,
                     "tables": [row.to_dict() for row in tables],
-                    "pg_stat_statements_available": bool(queries) or _pg_stat_statements_available(cursor),
+                    "pg_stat_statements_available": statements_available,
                     "query_templates": [row.to_dict() for row in queries],
                 }
     finally:
