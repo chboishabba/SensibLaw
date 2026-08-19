@@ -8,18 +8,21 @@ An entry belongs here only when we can name a reproduced specimen, explain the
 complexity smell, state the legal replacement shape, and state the parity or
 correctness evidence required before replacing it.
 
-The governing transformation is:
+The governing optimisation rule is now broader than "avoid history scans":
 
 ```text
-project from the finite changed semantic fibre
-rather than rediscovering that fibre from accumulated history
+move consumer-known irrelevance as far upstream as an exact semantic
+commutation/intertwiner permits
 ```
+
+This includes delta projection from changed fibres, but also selective restriction
+inside a computation that is already perfectly local.
 
 The companion executable scorecard is
 `src/runtime/optimization_economy.py`. The broader review rules live in
 `SEMANTIC_HOT_PATH_OPTIMISATION_STYLE_GUIDE.md`.
 
-## 1. Growing self-read aggregate + conflict upsert
+## 1. Late selective admission after expensive quotient/grouping
 
 ### Observed specimen
 
@@ -32,7 +35,7 @@ materialize_numeric_document_hierarchy()
 → PostgreSQL
 ```
 
-The active query had the shape:
+The active lookup query had the shape:
 
 ```sql
 INSERT INTO execution.semantic_pnf_interface_lookup (...)
@@ -45,52 +48,105 @@ GROUP BY key_kind, key_a, key_b, target_kind, target_id
 ON CONFLICT DO NOTHING;
 ```
 
-The same parent-close path performs an analogous grouped copy over
-`semantic_pnf_interface_export`.
+Migration 054 then applies the actual parent-admission rule per inserted lookup:
+there must already be a parent export with the same `(target_kind, target_id)`.
+
+### Corrected diagnosis
+
+The source relation is **not** a global history scan. `_close_parent_interface()`
+already restricts the read to the bounded child interfaces. The inefficiency is:
+
+```text
+local overlapping child fibres
+→ expensive quotient/grouping
+→ selective parent admission
+```
+
+when the parent admission is constant on the lookup grouping fibres and can be
+applied first.
+
+The retained serial baseline made the skew concrete:
+
+```text
+38 parent closes
+846,020 raw child lookup rows
+366,102 unrestricted deduplicated child-union rows
+286,904 stored parent lookup rows
+
+hottest close = 42.4% of all close lookup reads
+top 10 closes = 77.7%
+```
+
+For the document root:
+
+```text
+raw child rows                358,965
+unrestricted grouped union    122,034
+parent-admitted raw rows       125,933
+stored parent rows              42,836
+```
+
+Read-only parity established:
+
+```text
+dedup(child lookup fibres) ∩ parent admitted exports
+== stored parent lookup
+```
+
+with zero missing and zero excess rows.
 
 ### Complexity smell
 
 ```text
-growing materialized relation R
-→ filter R by child IDs
-→ GROUP BY / deduplicate
-→ write back into R
-→ use ON CONFLICT as final deduplication
+X
+→ quotient/fold Q(X)
+→ selective consumer restriction R(Q(X))
 ```
 
-Repeated while `R` grows, this can make hierarchy closure proportional to
-previously materialized state rather than the finite changed child fibre.
+when the consumer/router predicate factors through the quotient key and the fold
+is fibre-local.
+
+This is not a blanket rule to "filter early". If admission depends on a hidden
+member coordinate, aggregate cardinality, provenance diversity, minimum rank, or
+some other quantity changed by the fold, pushdown may be semantically invalid.
 
 ### Preferred replacement
 
-```text
-bounded child fibres ΔR
-→ canonical union/dedup within ΔR
-→ one parent projection
-→ append only genuinely new parent rows
-```
-
-In symbols:
+When an exact commuting square is established:
 
 ```text
-⋃ child c of p: L(c)  →  L(p)
+R(Q(X)) == Q(R↑(X))
 ```
 
-rather than rediscovering those child fibres through a global accumulated
-lookup table when the producer already owns equivalent bounded child sketches or
-rows.
+use:
+
+```text
+bounded child fibres
+→ parent-admission semi-join
+→ quotient/group/min-rank
+→ parent publication
+```
+
+For the observed root this reduces rows entering grouping from `358,965` to
+`125,933` — 64.9% — while retaining the same `42,836` output rows.
+
+That is a claim about grouping input, **not yet** a claim of 64.9% fewer base rows
+read or 64.9% lower wall time. Those require planner/execution evidence.
 
 ### Required evidence
 
-Before replacement:
+Before production replacement:
 
-- exact parent lookup/export parity;
-- ambiguity/rank semantics unchanged;
-- parent interface digest/cardinality parity where those fields are authoritative;
-- `EXPLAIN (ANALYZE, BUFFERS)` before/after on representative state;
-- rows examined/grouped/attempted/inserted;
-- history-read amplification and write amplification;
+- exact parent lookup parity with zero missing/excess rows;
+- admission shown to factor through the quotient/grouping key;
+- fibre-local `min(rank)` semantics unchanged;
+- parent export/digest/cardinality authority unchanged;
+- `EXPLAIN (ANALYZE, BUFFERS)` before/after on cloned representative state;
+- separate `N_scan`, `N_admit`, `N_group`, `N_output`, `N_attempt`, `N_commit`;
 - full strict integration after the microbenchmark passes.
+
+The executable candidate/parity probe is
+`src/storage/postgres/hierarchy_close_admission_pushdown.py`.
 
 ## 2. Relation → row triggers → relation
 
@@ -257,7 +313,7 @@ contract.
 ### Smell
 
 A nominally set-wise operation is still unbounded in memory/planner work and may
-hide a whole-history query behind a large ID vector.
+hide a large relation behind an ID vector.
 
 ### Replacement
 
@@ -274,7 +330,8 @@ observed specimen:
 symptom:
 detection:
 semantic input fibre:
-consumer:
+consumer/router:
+commutation/factorization obligation:
 why it hurts:
 legal replacement:
 parity/correctness proof required:
@@ -285,22 +342,18 @@ after metrics:
 At minimum record these physical counts when meaningful:
 
 ```text
-N_input
-N_touched
-N_history_examined
-N_grouped
-N_write_attempts
-N_semantically_new_writes
+N_scan
+N_admit
+N_group
+N_output
+N_attempt
+N_commit
 buffer_hits / reads
 wall_ns
+C_1 / C_10 concentration
 ```
 
-with the two headline amplification measures:
-
-```text
-H_read  = historical rows examined / touched semantic rows
-A_write = attempted writes / semantically new writes
-```
-
-A large `ON CONFLICT DO NOTHING` operation is not cheap merely because final
-cardinality changes little.
+The old broad history/write ratios remain useful compatibility diagnostics, but
+new relational work should keep scan, admission, quotient/grouping and writes
+separate. A large `ON CONFLICT DO NOTHING` operation is not cheap merely because
+final cardinality changes little.
