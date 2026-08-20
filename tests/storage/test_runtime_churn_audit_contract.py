@@ -2,6 +2,7 @@ from pathlib import Path
 
 from src.storage.postgres.runtime_churn_audit import (
     TableChurnReceipt,
+    _query_templates,
     build_runtime_churn_delta,
 )
 
@@ -127,3 +128,66 @@ def test_runtime_churn_delta_reports_only_new_counter_work() -> None:
     }
     assert delta["tables"][0]["live_rows_before"] == 9
     assert delta["tables"][0]["live_rows_after"] == 15
+
+
+def test_query_template_sql_escapes_literal_percent_for_psycopg() -> None:
+    required_columns = (
+        "query",
+        "calls",
+        "rows",
+        "total_exec_time",
+        "mean_exec_time",
+        "shared_blks_hit",
+        "shared_blks_read",
+        "shared_blks_dirtied",
+        "shared_blks_written",
+        "temp_blks_read",
+        "temp_blks_written",
+        "queryid",
+        "wal_records",
+        "wal_bytes",
+    )
+
+    class Cursor:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, object]] = []
+            self._fetchall = iter(
+                (
+                    [(column,) for column in required_columns],
+                    [
+                        (
+                            1,
+                            "UPDATE execution.semantic_pnf_region SET closure_state = $1",
+                            2,
+                            2,
+                            4.0,
+                            2.0,
+                            1,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            1,
+                            2,
+                        )
+                    ],
+                )
+            )
+
+        def execute(self, statement: str, params: object = None) -> None:
+            self.calls.append((statement, params))
+
+        def fetchone(self) -> tuple[bool, str]:
+            return True, "pg_stat_statements"
+
+        def fetchall(self) -> list[tuple[object, ...]]:
+            return next(self._fetchall)
+
+    cursor = Cursor()
+    templates = _query_templates(cursor, limit=7)
+
+    assert templates[0].query_id == 1
+    statement, params = cursor.calls[-1]
+    assert "ILIKE '%%execution.%%'" in statement
+    assert params == (7,)

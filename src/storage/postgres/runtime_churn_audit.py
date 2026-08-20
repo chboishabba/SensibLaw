@@ -204,7 +204,7 @@ def _query_templates(cursor: Any, *, limit: int) -> tuple[QueryTemplateReceipt, 
                {wal_bytes_expr}
           FROM public.pg_stat_statements
          WHERE dbid = (SELECT oid FROM pg_database WHERE datname = current_database())
-           AND (query ILIKE '%execution.%' OR query ILIKE '%resolution.%')
+           AND (query ILIKE '%%execution.%%' OR query ILIKE '%%resolution.%%')
          ORDER BY total_exec_time DESC
          LIMIT %s
         """,
