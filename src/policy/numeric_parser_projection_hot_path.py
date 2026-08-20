@@ -7,10 +7,10 @@ triggers to reconstruct or re-prove it.
 
 Migration 175 assigns/reuses final token ids and resolves dependency heads before
 COPY. Migration 176 generalises the same principle to the five numeric semantic
-symbol references and four annotation-origin references: the producer proves the
-finite reference sets against their authority tables once, then advertises a
-capability around exactly one token INSERT so the generic set-wise fallback need
-not repeat the same membership proof after INSERT.
+symbol references and four annotation-origin references: the producer proves and
+KEY-SHARE locks the finite reference sets against their authority tables once,
+then advertises a capability around exactly one token INSERT so the generic
+set-wise fallback need not repeat the same membership proof after INSERT.
 
 Generic writers remain fail-closed. Legacy textual parser-symbol references,
 sentence/run/partition references, morph sets and self-head integrity are not
@@ -90,7 +90,7 @@ def _producer_certify_numeric_references(
     columns: tuple[str, ...],
     rows: tuple[tuple[Any, ...], ...],
 ) -> None:
-    """Prove the bounded v2 symbol/origin reference fibre against authority."""
+    """Prove and lock the bounded v2 symbol/origin reference fibre."""
 
     symbol_indexes = tuple(columns.index(name) for name in _SYMBOL_REFERENCE_COLUMNS)
     origin_indexes = tuple(columns.index(name) for name in _ORIGIN_REFERENCE_COLUMNS)
@@ -123,6 +123,7 @@ def _producer_certify_numeric_references(
               FROM execution.semantic_symbol
              WHERE symbol_id = ANY(%s)
              ORDER BY symbol_id
+             FOR KEY SHARE
             """,
             (list(requested_symbols),),
         )
@@ -139,6 +140,7 @@ def _producer_certify_numeric_references(
               FROM execution.semantic_parser_annotation_origin
              WHERE origin_id = ANY(%s)
              ORDER BY origin_id
+             FOR KEY SHARE
             """,
             (list(requested_origins),),
         )
