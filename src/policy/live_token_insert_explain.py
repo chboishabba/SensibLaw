@@ -53,19 +53,19 @@ def _is_token_insert(query: Any) -> bool:
 def _constraint_inventory(cursor: Any) -> list[dict[str, Any]]:
     cursor.execute(
         """
-        SELECT constraint.oid,
-               constraint.conname,
-               constraint.contype,
-               constraint.condeferrable,
-               constraint.condeferred,
-               pg_get_constraintdef(constraint.oid, TRUE),
-               CASE WHEN constraint.confrelid = 0
+        SELECT con.oid,
+               con.conname,
+               con.contype,
+               con.condeferrable,
+               con.condeferred,
+               pg_get_constraintdef(con.oid, TRUE),
+               CASE WHEN con.confrelid = 0
                     THEN NULL
-                    ELSE constraint.confrelid::regclass::text
+                    ELSE con.confrelid::regclass::text
                 END
-          FROM pg_constraint AS constraint
-         WHERE constraint.conrelid = 'execution.semantic_parser_token'::regclass
-         ORDER BY constraint.contype, constraint.conname
+          FROM pg_constraint AS con
+         WHERE con.conrelid = 'execution.semantic_parser_token'::regclass
+         ORDER BY con.contype, con.conname
         """
     )
     return [
@@ -115,17 +115,17 @@ def _trigger_inventory(cursor: Any) -> list[dict[str, Any]]:
     # physical fan-out this diagnostic is intended to attribute.
     cursor.execute(
         """
-        SELECT trigger.tgname,
-               trigger.tgisinternal,
-               trigger.tgenabled,
-               pg_get_triggerdef(trigger.oid, TRUE),
-               namespace.nspname,
-               procedure.proname
-          FROM pg_trigger AS trigger
-          JOIN pg_proc AS procedure ON procedure.oid = trigger.tgfoid
-          JOIN pg_namespace AS namespace ON namespace.oid = procedure.pronamespace
-         WHERE trigger.tgrelid = 'execution.semantic_parser_token'::regclass
-         ORDER BY trigger.tgisinternal DESC, trigger.tgname
+        SELECT trg.tgname,
+               trg.tgisinternal,
+               trg.tgenabled,
+               pg_get_triggerdef(trg.oid, TRUE),
+               nsp.nspname,
+               proc.proname
+          FROM pg_trigger AS trg
+          JOIN pg_proc AS proc ON proc.oid = trg.tgfoid
+          JOIN pg_namespace AS nsp ON nsp.oid = proc.pronamespace
+         WHERE trg.tgrelid = 'execution.semantic_parser_token'::regclass
+         ORDER BY trg.tgisinternal DESC, trg.tgname
         """
     )
     return [

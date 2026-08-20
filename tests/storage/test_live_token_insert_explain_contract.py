@@ -108,7 +108,7 @@ def test_hot_path_installs_token_probe_before_parser_projection() -> None:
 
 def test_inventory_source_includes_internal_fk_triggers() -> None:
     source = Path("src/policy/live_token_insert_explain.py").read_text()
-    assert "trigger.tgisinternal" in source
-    assert "NOT trigger.tgisinternal" not in source
+    assert "trg.tgisinternal" in source
+    assert "NOT trg.tgisinternal" not in source
     assert "pg_get_constraintdef" in source
     assert "pg_get_indexdef" in source
