@@ -10,12 +10,20 @@ from __future__ import annotations
 
 from dataclasses import dataclass, fields
 from decimal import Decimal
-from typing import Any
+from typing import Any, Mapping
 
 from src.storage.postgres.spacy_parser_model import connect
 
 
 CHURN_AUDIT_REF = "sensiblaw.postgres-runtime-churn-audit.v0_1"
+CHURN_DELTA_REF = "sensiblaw.postgres-runtime-churn-delta.v0_1"
+_COUNTER_FIELDS = (
+    "inserts",
+    "updates",
+    "deletes",
+    "sequential_scans",
+    "index_scans",
+)
 
 
 def _ratio(numerator: int, denominator: int) -> float | None:
@@ -293,9 +301,93 @@ def build_runtime_churn_audit(
         connection.close()
 
 
+def build_runtime_churn_delta(
+    before: Mapping[str, Any], after: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Compare two compatible read-only audit snapshots without resetting stats."""
+
+    database = before.get("database")
+    compatible = (
+        isinstance(database, str)
+        and database == after.get("database")
+        and before.get("postmaster_started_at") == after.get("postmaster_started_at")
+        and before.get("stats_reset_at") == after.get("stats_reset_at")
+        and before.get("schemas") == after.get("schemas")
+    )
+    if not compatible:
+        return {
+            "contract_ref": CHURN_DELTA_REF,
+            "state": "unknown",
+            "reason": "audit snapshots do not share database/statistics identity",
+        }
+
+    def rows(snapshot: Mapping[str, Any]) -> dict[tuple[str, str], Mapping[str, Any]]:
+        return {
+            (str(row["schema_name"]), str(row["table_name"])): row
+            for row in snapshot.get("tables") or ()
+            if isinstance(row, Mapping)
+            and isinstance(row.get("schema_name"), str)
+            and isinstance(row.get("table_name"), str)
+        }
+
+    before_rows = rows(before)
+    after_rows = rows(after)
+    table_deltas: list[dict[str, Any]] = []
+    for key in sorted(set(before_rows) | set(after_rows)):
+        before_row = before_rows.get(key, {})
+        after_row = after_rows.get(key, {})
+        delta: dict[str, Any] = {
+            "schema_name": key[0],
+            "table_name": key[1],
+            "live_rows_before": before_row.get("live_rows"),
+            "live_rows_after": after_row.get("live_rows"),
+            "dead_rows_before": before_row.get("dead_rows"),
+            "dead_rows_after": after_row.get("dead_rows"),
+        }
+        for field in _COUNTER_FIELDS:
+            start = before_row.get(field, 0)
+            end = after_row.get(field, 0)
+            if not isinstance(start, int) or not isinstance(end, int) or end < start:
+                return {
+                    "contract_ref": CHURN_DELTA_REF,
+                    "state": "unknown",
+                    "reason": f"counter {field} is unavailable or regressed for {key[0]}.{key[1]}",
+                }
+            delta[field] = end - start
+        delta["total_mutations"] = sum(
+            int(delta[field]) for field in ("inserts", "updates", "deletes")
+        )
+        table_deltas.append(delta)
+
+    totals = {
+        field: sum(int(row[field]) for row in table_deltas) for field in _COUNTER_FIELDS
+    }
+    totals["total_mutations"] = sum(
+        totals[field] for field in ("inserts", "updates", "deletes")
+    )
+    return {
+        "contract_ref": CHURN_DELTA_REF,
+        "state": "measured",
+        "database": database,
+        "postmaster_started_at": before["postmaster_started_at"],
+        "stats_reset_at": before["stats_reset_at"],
+        "tables": sorted(
+            table_deltas,
+            key=lambda row: (
+                -int(row["total_mutations"]),
+                row["schema_name"],
+                row["table_name"],
+            ),
+        ),
+        "totals": totals,
+    }
+
+
 __all__ = [
     "CHURN_AUDIT_REF",
+    "CHURN_DELTA_REF",
     "QueryTemplateReceipt",
     "TableChurnReceipt",
     "build_runtime_churn_audit",
+    "build_runtime_churn_delta",
 ]

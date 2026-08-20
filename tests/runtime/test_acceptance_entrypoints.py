@@ -334,6 +334,115 @@ def test_strict_acceptance_summarizes_resource_checkpoints(tmp_path: Path) -> No
     }
 
 
+def test_strict_acceptance_loads_only_one_direct_progress_timing(
+    tmp_path: Path,
+) -> None:
+    root = Path(__file__).resolve().parents[2]
+    namespace = runpy.run_path(
+        str(root / "scripts" / "run_strict_tranche_acceptance.py")
+    )
+    progress_path = tmp_path / "gwb" / "local_pnf_compile_progress.json"
+    progress_path.parent.mkdir(parents=True)
+    progress_path.write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "details": {
+                            "numeric_work_timing": {
+                                "spacy_parser_wall_occupancy_ns": 1000,
+                                "post_parser_wall_occupancy_ns": 100,
+                                "timing_basis": "monotonic-wall-occupancy:v3",
+                            }
+                        }
+                    }
+                ],
+                "outer_phase_seconds": {"LOCAL_PNF_COMPILATION": 6358.0},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = namespace["_numeric_timing_from_progress"](
+        Namespace(output_root=tmp_path, tranche="GWB")
+    )
+
+    assert result["state"] == "measured"
+    assert result["timing_record_count"] == 1
+    assert result["numeric_work_timing"]["post_parser_wall_occupancy_ns"] == 100
+
+
+def test_strict_acceptance_rejects_multiple_progress_timing_records(
+    tmp_path: Path,
+) -> None:
+    root = Path(__file__).resolve().parents[2]
+    namespace = runpy.run_path(
+        str(root / "scripts" / "run_strict_tranche_acceptance.py")
+    )
+    progress_path = tmp_path / "gwb" / "local_pnf_compile_progress.json"
+    progress_path.parent.mkdir(parents=True)
+    progress_path.write_text(
+        json.dumps({"events": [{"details": {"numeric_work_timing": {}}}] * 2}),
+        encoding="utf-8",
+    )
+
+    result = namespace["_numeric_timing_from_progress"](
+        Namespace(output_root=tmp_path, tranche="GWB")
+    )
+
+    assert result["state"] == "unknown"
+    assert result["timing_record_count"] == 2
+
+
+@pytest.mark.parametrize(
+    ("post_parser_ns", "expected_gate", "expected_reason"),
+    (
+        (100, "pass", None),
+        (101, "fail", "parser_relative_performance_target_exceeded"),
+    ),
+)
+def test_strict_acceptance_enforces_parser_relative_gate(
+    post_parser_ns: int,
+    expected_gate: str,
+    expected_reason: str | None,
+) -> None:
+    root = Path(__file__).resolve().parents[2]
+    namespace = runpy.run_path(
+        str(root / "scripts" / "run_strict_tranche_acceptance.py")
+    )
+
+    outcome = namespace["_strict_performance_outcome"](
+        semantic_accepted=True,
+        timing_evidence={
+            "numeric_work_timing": {
+                "spacy_parser_wall_occupancy_ns": 1000,
+                "post_parser_wall_occupancy_ns": post_parser_ns,
+                "timing_basis": "monotonic-wall-occupancy:v3",
+            }
+        },
+    )
+
+    assert outcome["performance_gate"] == expected_gate
+    assert outcome["accepted"] is (expected_gate == "pass")
+    assert outcome["failure_reason"] == expected_reason
+
+
+def test_strict_acceptance_fails_closed_without_direct_timing() -> None:
+    root = Path(__file__).resolve().parents[2]
+    namespace = runpy.run_path(
+        str(root / "scripts" / "run_strict_tranche_acceptance.py")
+    )
+
+    outcome = namespace["_strict_performance_outcome"](
+        semantic_accepted=True,
+        timing_evidence={"state": "unknown"},
+    )
+
+    assert outcome["performance_gate"] == "unknown"
+    assert outcome["accepted"] is False
+    assert outcome["failure_reason"] == "parser_relative_performance_unmeasured"
+
+
 def test_resource_guard_retains_all_stage_checkpoints_only_when_requested(
     monkeypatch,
     tmp_path: Path,
