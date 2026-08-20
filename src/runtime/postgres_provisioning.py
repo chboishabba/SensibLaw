@@ -4,9 +4,20 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
+import re
 from uuid import uuid4
 
 from src.runtime.strict_postgres_execution import StrictExecutionError
+
+
+def _database_name(run_ref: str | None) -> str:
+    """Return a readable but collision-resistant retained database name."""
+
+    source = str(run_ref or "run")
+    stem = re.sub(r"[^a-z0-9]+", "", source.lower())[:12] or "run"
+    run_digest = hashlib.sha256(source.encode("utf-8")).hexdigest()[:8]
+    nonce = uuid4().hex[:12]
+    return f"sensiblaw_strict_{stem}{run_digest}{nonce}"
 
 
 def provision_local_postgres(
@@ -32,7 +43,7 @@ def provision_local_postgres(
         from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
         source = conninfo_to_dict(admin_url)
-        database = f"sensiblaw_strict_{(run_ref or uuid4().hex).replace('-', '')[:24]}"
+        database = _database_name(run_ref)
         maintenance = dict(source)
         maintenance["dbname"] = maintenance.get("dbname") or "postgres"
         with psycopg.connect(
