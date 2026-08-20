@@ -121,7 +121,9 @@ def install_bounded_sentence_batch_leasing() -> bool:
     original_fail_partition = streaming.fail_partition
     if diagnostic is not None:
 
-        def fail_partition(database_url: str, *, partition: Any, error: BaseException) -> Any:
+        def fail_partition(
+            database_url: str, *, partition: Any, error: BaseException
+        ) -> Any:
             if isinstance(error, NumericPrefixDiagnosticComplete):
                 return None
             return original_fail_partition(
@@ -186,18 +188,14 @@ def install_bounded_sentence_batch_leasing() -> bool:
                         with connection.transaction():
                             with connection.cursor() as cursor:
                                 _return_current_sentence_lease(cursor, lease)
-                                release_unstarted_leases(
-                                    cursor, leases[index + 1 :]
-                                )
+                                release_unstarted_leases(cursor, leases[index + 1 :])
                         retry_after_batch = True
                         break
                     except BaseException:
                         with connection.transaction():
                             with connection.cursor() as cursor:
                                 _fail_current_sentence_lease(cursor, lease)
-                                release_unstarted_leases(
-                                    cursor, leases[index + 1 :]
-                                )
+                                release_unstarted_leases(cursor, leases[index + 1 :])
                         raise
                     else:
                         # Reaching this branch means the sentence transaction

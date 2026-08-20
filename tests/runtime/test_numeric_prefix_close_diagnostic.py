@@ -14,7 +14,9 @@ from src.runtime.numeric_prefix_close_diagnostic import (
 )
 
 
-def test_prefix_close_diagnostic_is_off_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prefix_close_diagnostic_is_off_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv(STOP_AFTER_ENV, raising=False)
     monkeypatch.delenv(STOP_OUTPUT_ENV, raising=False)
 
@@ -87,7 +89,9 @@ def test_bounded_sentence_leasing_places_stop_after_transaction_commit() -> None
 
     assert transaction in source
     assert committed_branch in source
-    assert source.index(committed_branch) < source.index(release, source.index(committed_branch))
+    assert source.index(committed_branch) < source.index(
+        release, source.index(committed_branch)
+    )
     assert source.index(release, source.index(committed_branch)) < source.index(receipt)
     assert source.index(receipt) < source.index(signal)
     assert "isinstance(error, NumericPrefixDiagnosticComplete)" in source

@@ -78,7 +78,9 @@ def record_prefix_close_completion(
     """Persist proof that the requested prefix boundary was crossed after commit."""
 
     if committed_sentence_closes < config.stop_after_committed:
-        raise ValueError("prefix completion cannot be recorded before its stop boundary")
+        raise ValueError(
+            "prefix completion cannot be recorded before its stop boundary"
+        )
     _append_jsonl(
         config.output_path,
         {

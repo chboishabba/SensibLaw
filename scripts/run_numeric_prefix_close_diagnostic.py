@@ -31,7 +31,9 @@ from src.runtime.numeric_prefix_close_diagnostic import (  # noqa: E402
 
 
 def _parse_ordinals(raw: str, *, stop_after: int) -> tuple[int, ...]:
-    values = tuple(sorted({int(token.strip()) for token in raw.split(",") if token.strip()}))
+    values = tuple(
+        sorted({int(token.strip()) for token in raw.split(",") if token.strip()})
+    )
     if not values or any(value < 1 for value in values):
         raise ValueError("--explain-ordinals must contain positive integers")
     if values[-1] > stop_after:
