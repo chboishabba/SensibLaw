@@ -2,17 +2,17 @@ BEGIN;
 
 -- 176: migration 175 removed the whole-fibre post-insert dependency rewrite.
 -- A trigger-aware prefix profile then showed that the remaining strict-v2 token
--- INSERT spends roughly half of its wall time in row-level RI checks.  Nine of
+-- INSERT spends roughly half of its wall time in row-level RI checks. Nine of
 -- those checks are duplicated producer-known references: five numeric semantic
--- symbols plus four annotation-origin ids.  The bounded strict producer already
+-- symbols plus four annotation-origin ids. The bounded strict producer already
 -- owns those complete reference fibres before COPY.
 --
 -- Replace only those nine row FKs with an exact set-wise integrity realization.
 -- Generic writers still validate every non-null reference against the authority
--- tables after each INSERT/UPDATE statement.  The strict producer may bypass
+-- tables after each INSERT/UPDATE statement. The strict producer may bypass
 -- those statement checks only after independently proving the complete bounded
 -- symbol/origin reference sets against the same authority tables and enabling a
--- transaction-local capability.  Reverse delete / referenced-key-update
+-- capability scoped to that one INSERT. Reverse delete / referenced-key-update
 -- restriction remains explicit on the authority tables.
 --
 -- Legacy textual parser-symbol FKs, sentence/run/partition FKs, morph-set FK,
@@ -162,7 +162,7 @@ FOR EACH STATEMENT
 EXECUTE FUNCTION execution.validate_numeric_parser_reference_set_insert();
 
 -- PostgreSQL does not allow a transition relation on an UPDATE OF column-list
--- trigger.  Validate the finite NEW transition relation after any UPDATE; this
+-- trigger. Validate the finite NEW transition relation after any UPDATE; this
 -- is the exact generic fallback and avoids an illegal UPDATE OF + NEW TABLE
 -- construction.
 DROP TRIGGER IF EXISTS semantic_parser_token_numeric_reference_set_update
@@ -191,6 +191,9 @@ BEGIN
         RAISE EXCEPTION USING
             ERRCODE = '23503',
             MESSAGE = 'semantic symbol remains referenced by semantic_parser_token';
+    END IF;
+    IF TG_OP = 'UPDATE' THEN
+        RETURN NEW;
     END IF;
     RETURN OLD;
 END;
@@ -228,6 +231,9 @@ BEGIN
         RAISE EXCEPTION USING
             ERRCODE = '23503',
             MESSAGE = 'annotation origin remains referenced by semantic_parser_token';
+    END IF;
+    IF TG_OP = 'UPDATE' THEN
+        RETURN NEW;
     END IF;
     RETURN OLD;
 END;
