@@ -49,7 +49,9 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
                 "shared_read_blocks": metrics.get("shared_read_blocks"),
                 "wal_records": metrics.get("wal_records"),
                 "wal_bytes": wal_value,
-                "wal_bytes_per_row": wal_value / rows if wal_value is not None and rows else None,
+                "wal_bytes_per_row": wal_value / rows
+                if wal_value is not None and rows
+                else None,
                 "producer_complete_first_write": bool(
                     record.get("producer_complete_first_write")
                 ),
@@ -69,7 +71,9 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
         triggers = metrics.get("trigger_metrics")
         if isinstance(triggers, list):
             for trigger in triggers:
-                name = str(trigger.get("Trigger Name") or trigger.get("Trigger") or "unknown")
+                name = str(
+                    trigger.get("Trigger Name") or trigger.get("Trigger") or "unknown"
+                )
                 time = trigger.get("Time")
                 calls = trigger.get("Calls")
                 if isinstance(time, (int, float)):
@@ -83,7 +87,9 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
             "total_time_ms": total,
             "calls": trigger_calls.get(name, 0),
         }
-        for name, total in sorted(trigger_totals.items(), key=lambda item: item[1], reverse=True)
+        for name, total in sorted(
+            trigger_totals.items(), key=lambda item: item[1], reverse=True
+        )
     ]
     return {
         "contract_ref": CONTRACT_REF,

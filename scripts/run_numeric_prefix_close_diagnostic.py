@@ -29,7 +29,9 @@ from src.runtime.numeric_prefix_close_diagnostic import (  # noqa: E402
 
 
 def _parse_ordinals(raw: str, *, label: str) -> tuple[int, ...]:
-    values = tuple(sorted({int(token.strip()) for token in raw.split(",") if token.strip()}))
+    values = tuple(
+        sorted({int(token.strip()) for token in raw.split(",") if token.strip()})
+    )
     if not values or any(value < 1 for value in values):
         raise ValueError(f"{label} must contain positive integers")
     return values
@@ -65,7 +67,9 @@ def main() -> int:
     parser.add_argument("--stop-after", type=int, required=True)
     parser.add_argument("--explain-ordinals", help="selected sentence-close ordinals")
     parser.add_argument("--explain-output", type=Path)
-    parser.add_argument("--token-explain-ordinals", help="selected parser-token batch ordinals")
+    parser.add_argument(
+        "--token-explain-ordinals", help="selected parser-token batch ordinals"
+    )
     parser.add_argument("--token-explain-output", type=Path)
     parser.add_argument("--prefix-output", type=Path, required=True)
     parser.add_argument("--summary-output", type=Path, required=True)
@@ -142,7 +146,9 @@ def main() -> int:
         "child_returncode": completed.returncode,
         "stop_after_committed": args.stop_after,
         "close_explain_ordinals": list(close_ordinals or ()),
-        "close_explain_output": str(args.explain_output) if args.explain_output else None,
+        "close_explain_output": str(args.explain_output)
+        if args.explain_output
+        else None,
         "token_explain_ordinals": list(token_ordinals or ()),
         "token_explain_output": (
             str(args.token_explain_output) if args.token_explain_output else None

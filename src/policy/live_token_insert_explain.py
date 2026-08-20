@@ -143,7 +143,9 @@ def _trigger_inventory(cursor: Any) -> list[dict[str, Any]]:
 
 def _append_jsonl(path: Path, record: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload = (json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    payload = (
+        json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n"
+    ).encode()
     descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
     try:
         os.write(descriptor, payload)
@@ -171,7 +173,9 @@ class _TokenInsertExplainCursor:
     def execute(self, query: Any, params: Any = None, *args: Any, **kwargs: Any) -> Any:
         if _is_token_insert(query):
             if self._capture.raw_plan is not None:
-                raise RuntimeError("selected token batch attempted duplicate authority INSERT")
+                raise RuntimeError(
+                    "selected token batch attempted duplicate authority INSERT"
+                )
             self._cursor.execute(
                 "EXPLAIN (ANALYZE, BUFFERS, WAL, VERBOSE, SETTINGS, FORMAT JSON) "
                 + query,
@@ -220,12 +224,16 @@ def install_live_token_insert_explain() -> bool:
         nonlocal token_batch_ordinal
         materialized = tuple(tuple(row) for row in rows)
         if table != "semantic_parser_token":
-            return original(cursor, table=table, columns=columns, rows=materialized, **kwargs)
+            return original(
+                cursor, table=table, columns=columns, rows=materialized, **kwargs
+            )
 
         token_batch_ordinal += 1
         ordinal = token_batch_ordinal
         if ordinal not in ordinal_set:
-            return original(cursor, table=table, columns=columns, rows=materialized, **kwargs)
+            return original(
+                cursor, table=table, columns=columns, rows=materialized, **kwargs
+            )
 
         capture = _TokenInsertCapture(
             ordinal=ordinal,
@@ -236,9 +244,13 @@ def install_live_token_insert_explain() -> bool:
             triggers=_trigger_inventory(cursor),
         )
         proxy = _TokenInsertExplainCursor(cursor, capture)
-        result = original(proxy, table=table, columns=columns, rows=materialized, **kwargs)
+        result = original(
+            proxy, table=table, columns=columns, rows=materialized, **kwargs
+        )
         if capture.raw_plan is None:
-            raise RuntimeError("selected token batch did not execute canonical authority INSERT")
+            raise RuntimeError(
+                "selected token batch did not execute canonical authority INSERT"
+            )
         _append_jsonl(
             output,
             {
