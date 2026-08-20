@@ -41,6 +41,23 @@ def _parse_ordinals(raw: str, *, stop_after: int) -> tuple[int, ...]:
     return values
 
 
+def _parse_explain_request(
+    raw_ordinals: str | None,
+    output: Path | None,
+    *,
+    stop_after: int,
+) -> tuple[int, ...] | None:
+    """Require both live-EXPLAIN controls, or neither for an undistorted profile."""
+
+    if raw_ordinals is None and output is None:
+        return None
+    if raw_ordinals is None or output is None:
+        raise ValueError(
+            "--explain-ordinals and --explain-output must be supplied together"
+        )
+    return _parse_ordinals(raw_ordinals, stop_after=stop_after)
+
+
 def _load_last_prefix_receipt(path: Path) -> dict[str, Any] | None:
     if not path.exists():
         return None
@@ -57,9 +74,9 @@ def _load_last_prefix_receipt(path: Path) -> dict[str, Any] | None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--stop-after", type=int, required=True)
-    parser.add_argument("--explain-ordinals", required=True)
+    parser.add_argument("--explain-ordinals")
     parser.add_argument("--prefix-output", type=Path, required=True)
-    parser.add_argument("--explain-output", type=Path, required=True)
+    parser.add_argument("--explain-output", type=Path)
     parser.add_argument("--summary-output", type=Path, required=True)
     parser.add_argument(
         "command",
@@ -71,7 +88,11 @@ def main() -> int:
     if args.stop_after < 1:
         parser.error("--stop-after must be positive")
     try:
-        ordinals = _parse_ordinals(args.explain_ordinals, stop_after=args.stop_after)
+        ordinals = _parse_explain_request(
+            args.explain_ordinals,
+            args.explain_output,
+            stop_after=args.stop_after,
+        )
     except ValueError as error:
         parser.error(str(error))
     command = list(args.command)
@@ -81,19 +102,24 @@ def main() -> int:
         parser.error("a child command is required after --")
 
     args.prefix_output.parent.mkdir(parents=True, exist_ok=True)
-    args.explain_output.parent.mkdir(parents=True, exist_ok=True)
+    if args.explain_output is not None:
+        args.explain_output.parent.mkdir(parents=True, exist_ok=True)
     args.summary_output.parent.mkdir(parents=True, exist_ok=True)
-    for path in (args.prefix_output, args.explain_output):
+    output_paths = (args.prefix_output, args.explain_output)
+    for path in output_paths:
+        if path is None:
+            continue
         if path.exists():
             path.unlink()
 
     environment = os.environ.copy()
     environment[STOP_AFTER_ENV] = str(args.stop_after)
     environment[STOP_OUTPUT_ENV] = str(args.prefix_output)
-    environment["SENSIBLAW_REGION_CLOSE_EXPLAIN_ORDINALS"] = ",".join(
-        str(value) for value in ordinals
-    )
-    environment["SENSIBLAW_REGION_CLOSE_EXPLAIN_OUTPUT"] = str(args.explain_output)
+    if ordinals is not None:
+        environment["SENSIBLAW_REGION_CLOSE_EXPLAIN_ORDINALS"] = ",".join(
+            str(value) for value in ordinals
+        )
+        environment["SENSIBLAW_REGION_CLOSE_EXPLAIN_OUTPUT"] = str(args.explain_output)
 
     completed = subprocess.run(command, cwd=ROOT, env=environment, check=False)
     prefix = _load_last_prefix_receipt(args.prefix_output)
@@ -107,9 +133,9 @@ def main() -> int:
         "state": "diagnostic_complete" if diagnostic_complete else "failed",
         "child_returncode": completed.returncode,
         "stop_after_committed": args.stop_after,
-        "explain_ordinals": list(ordinals),
+        "explain_ordinals": list(ordinals or ()),
         "prefix_output": str(args.prefix_output),
-        "explain_output": str(args.explain_output),
+        "explain_output": str(args.explain_output) if args.explain_output else None,
         "prefix_receipt": prefix,
         "semantics": (
             "success means the requested genuine sentence-close prefix committed; "

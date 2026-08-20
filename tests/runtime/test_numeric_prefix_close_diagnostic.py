@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import importlib.util
 from pathlib import Path
 
 import pytest
@@ -95,3 +96,15 @@ def test_bounded_sentence_leasing_places_stop_after_transaction_commit() -> None
     assert source.index(release, source.index(committed_branch)) < source.index(receipt)
     assert source.index(receipt) < source.index(signal)
     assert "isinstance(error, NumericPrefixDiagnosticComplete)" in source
+
+
+def test_prefix_runner_allows_an_undistorted_profile_without_explain() -> None:
+    script = Path("scripts/run_numeric_prefix_close_diagnostic.py")
+    spec = importlib.util.spec_from_file_location("prefix_runner", script)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    assert module._parse_explain_request(None, None, stop_after=512) is None
+    with pytest.raises(ValueError, match="supplied together"):
+        module._parse_explain_request("128", None, stop_after=512)
