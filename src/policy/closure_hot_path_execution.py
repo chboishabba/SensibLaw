@@ -17,7 +17,9 @@ pathologies exposed by live corpus replay while preserving semantic closure:
   though the complete producer fibre was still available;
 * strict numeric token COPY omitted the already-determined sentence id, forcing
   migration 042 to execute one sentence lookup per token, and the validated
-  dependency-head projection was then written back one UPDATE per token.
+  dependency-head projection was then written back one UPDATE per token;
+* durable sentence/adjacent work was claimed one queue row at a time even when
+  the lease transition itself can be performed over a bounded exact fibre.
 
 No proposal identity, reduction rule, owner key, sentence digest, lease fence,
 or final materialized graph is changed. Reduction coalescing is fail-closed: it
@@ -30,6 +32,8 @@ non-sentence producers and projects the same strict sentence provenance from the
 already-materialized bounded producer fibre. Numeric parser enrichment supplies
 existing sentence identity and, when migration 150 is present, preserves Python
 head validation while replacing redundant row-wise writes with one set projection.
+Bounded lease acquisition likewise preserves per-fibre execution transactions,
+lease tokens/epochs, failure identity and braid reconciliation semantics.
 """
 
 from __future__ import annotations
@@ -80,6 +84,9 @@ def install_closure_hot_path_execution() -> bool:
 
     from src.policy import bounded_operational_execution as bounded
     from src.policy import operational_corpus_compilation as operational
+    from src.policy.bounded_sentence_batch_leasing import (
+        install_bounded_sentence_batch_leasing,
+    )
     from src.policy.direct_process_closure_execution import (
         install_direct_process_closure_execution,
     )
@@ -166,6 +173,9 @@ def install_closure_hot_path_execution() -> bool:
     # The five sentence temp stages contain no semantic identity and are safe to
     # reuse across sentence transactions; sentence atomicity remains unchanged.
     install_reusable_numeric_sentence_staging()
+    # Claim bounded producer-complete sentence fibres set-wise. Execution,
+    # completion and failure remain one sentence/fence per semantic transaction.
+    install_bounded_sentence_batch_leasing()
     # The strict producer still has the exact factor/support/slot fibre when it
     # inserts demands. Preserve that information set-wise instead of asking the
     # generic row trigger to reconstruct the producer independently per demand.
