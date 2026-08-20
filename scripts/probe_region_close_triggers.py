@@ -48,22 +48,35 @@ def main() -> int:
         }
     else:
         clone_url, provenance = build_template_clone(args.database_url)
-    report = run_region_close_probe(clone_url, scout_count=args.scout_count)
-    report["provenance"] = {
-        **provenance,
-        "git_sha": subprocess.run(
-            ("git", "rev-parse", "HEAD"),
-            cwd=ROOT,
-            check=True,
-            text=True,
-            stdout=subprocess.PIPE,
-        ).stdout.strip(),
-        "recorded_at": datetime.now(UTC).isoformat(),
-    }
+    provenance.update(
+        {
+            **provenance,
+            "git_sha": subprocess.run(
+                ("git", "rev-parse", "HEAD"),
+                cwd=ROOT,
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+            ).stdout.strip(),
+            "recorded_at": datetime.now(UTC).isoformat(),
+        }
+    )
+    try:
+        report = run_region_close_probe(clone_url, scout_count=args.scout_count)
+        exit_code = 0
+    except Exception as error:
+        report = {
+            "contract_ref": "sensiblaw.region-close-trigger-probe.v0_1",
+            "state": "failed_preclose_reconstruction",
+            "failure_reason": "counterfactual_reclose_is_not_a_valid_preclose_state",
+            "diagnostic_detail": str(error),
+        }
+        exit_code = 1
+    report["provenance"] = provenance
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     print(json.dumps({"output": str(args.output), "provenance": provenance}, indent=2))
-    return 0
+    return exit_code
 
 
 if __name__ == "__main__":

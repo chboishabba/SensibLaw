@@ -235,10 +235,14 @@ def run_region_close_probe(
             with connection.cursor() as cursor:
                 candidates = region_close_candidates(cursor, limit=scout_count)
         for candidate in candidates:
-            with connection.cursor() as cursor:
-                before = _region_snapshot(cursor, candidate.region_id)
-                probe = probe_reclose(cursor, candidate)
+            try:
+                with connection.cursor() as cursor:
+                    before = _region_snapshot(cursor, candidate.region_id)
+                    probe = probe_reclose(cursor, candidate)
                 connection.rollback()
+            except BaseException:
+                connection.rollback()
+                raise
             with connection.transaction():
                 with connection.cursor() as cursor:
                     after = _region_snapshot(cursor, candidate.region_id)
