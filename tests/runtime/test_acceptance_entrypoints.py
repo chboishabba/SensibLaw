@@ -94,6 +94,48 @@ def test_strict_acceptance_derives_limits_from_observed_peak() -> None:
     assert limits["rss"]["hard_limit_bytes"] > limits["rss"]["soft_limit_bytes"]
 
 
+def test_pg_stat_statements_provisioning_requires_extension_and_preload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = Path(__file__).resolve().parents[2]
+    namespace = runpy.run_path(
+        str(root / "scripts" / "run_strict_tranche_acceptance.py")
+    )
+
+    class Cursor:
+        def __enter__(self) -> "Cursor":
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def execute(self, *_args: object, **_kwargs: object) -> None:
+            return None
+
+        def fetchone(self) -> tuple[bool, str]:
+            return True, "pg_stat_statements"
+
+    class Connection:
+        def __enter__(self) -> "Connection":
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def cursor(self) -> Cursor:
+            return Cursor()
+
+    monkeypatch.setitem(
+        sys.modules, "psycopg", SimpleNamespace(connect=lambda _url: Connection())
+    )
+
+    assert namespace["_enable_pg_stat_statements"]("postgresql://test") == {
+        "state": "enabled",
+        "extension": "pg_stat_statements",
+        "shared_preload_libraries": ["pg_stat_statements"],
+    }
+
+
 def test_strict_acceptance_accepts_reused_published_compilation(
     monkeypatch, tmp_path: Path
 ) -> None:

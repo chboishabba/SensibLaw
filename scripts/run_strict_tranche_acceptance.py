@@ -84,6 +84,14 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Use the committed PostgreSQL leased execution contract; never local replay.",
     )
+    parser.add_argument(
+        "--enable-pg-stat-statements",
+        action="store_true",
+        help=(
+            "Require pg_stat_statements SQL-template attribution for this fresh "
+            "strict database. The server must already preload the extension."
+        ),
+    )
     args = parser.parse_args()
     if args.postgres_mode == "existing" and not args.database_url:
         parser.error("--database-url or DATABASE_URL is required")
@@ -163,6 +171,37 @@ def _safe_churn_audit(database_url: str | None) -> dict[str, Any]:
         return {"state": "measured", "audit": build_runtime_churn_audit(database_url)}
     except Exception as error:
         return {"state": "unknown", "reason": str(error)}
+
+
+def _enable_pg_stat_statements(database_url: str) -> dict[str, Any]:
+    """Register the preloaded diagnostic extension in one fresh authority DB."""
+
+    import psycopg
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute("CREATE EXTENSION IF NOT EXISTS pg_stat_statements")
+            cursor.execute(
+                """
+                SELECT EXISTS (
+                           SELECT 1
+                             FROM pg_extension
+                            WHERE extname = 'pg_stat_statements'
+                       ),
+                       current_setting('shared_preload_libraries', true)
+                """
+            )
+            extension_exists, preloaded = cursor.fetchone()
+    libraries = {
+        item.strip() for item in str(preloaded or "").split(",") if item.strip()
+    }
+    if not extension_exists or "pg_stat_statements" not in libraries:
+        raise RuntimeError("pg_stat_statements is not registered and preloaded")
+    return {
+        "state": "enabled",
+        "extension": "pg_stat_statements",
+        "shared_preload_libraries": sorted(libraries),
+    }
 
 
 def _strict_performance_outcome(
@@ -602,6 +641,7 @@ def main() -> int:
     churn_before_path = acceptance_root / "postgres-runtime-churn-before.json"
     churn_after_path = acceptance_root / "postgres-runtime-churn-after.json"
     churn_delta_path = acceptance_root / "postgres-runtime-churn-delta.json"
+    statement_metrics: dict[str, Any] = {"state": "not_requested"}
 
     if args.strict_exact and not args.database_url:
         receipt = {
@@ -618,6 +658,24 @@ def main() -> int:
         _atomic_json(receipt_path, receipt)
         print(json.dumps(receipt, indent=2, sort_keys=True))
         return 1
+
+    if args.strict_exact and args.enable_pg_stat_statements:
+        try:
+            statement_metrics = _enable_pg_stat_statements(args.database_url)
+        except Exception as error:
+            statement_metrics = {"state": "unavailable", "reason": str(error)}
+            receipt = {
+                "schema_version": "sl.strict_tranche_acceptance.v0_3",
+                "state": "failed",
+                "accepted": False,
+                "failure_reason": "pg_stat_statements_unavailable",
+                "database_provisioning_mode": args.postgres_mode,
+                "pg_stat_statements": statement_metrics,
+                "execution": strict_execution_metadata(),
+            }
+            _atomic_json(receipt_path, receipt)
+            print(json.dumps(receipt, indent=2, sort_keys=True))
+            return 1
 
     churn_before = (
         _safe_churn_audit(args.database_url)
@@ -679,6 +737,7 @@ def main() -> int:
                 "local_replay": "compatibility-only",
             },
             "database_provisioning_mode": args.postgres_mode,
+            "pg_stat_statements": statement_metrics,
         },
     )
     process: subprocess.Popen[bytes] | None = None
@@ -917,6 +976,7 @@ def main() -> int:
             for path in args.input_path or ()
         ],
         "migration_sha256": _migration_hashes(),
+        "pg_stat_statements": statement_metrics,
         "publication_verification": publication,
         "resources": {
             "sample_count": sample_count,
