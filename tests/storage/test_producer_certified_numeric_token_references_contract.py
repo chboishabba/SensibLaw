@@ -57,6 +57,14 @@ def test_generic_writers_keep_setwise_authority_validation() -> None:
     assert "ERRCODE = '23503'" in source
 
 
+def test_setwise_validation_preserves_fk_key_share_concurrency_semantics() -> None:
+    migration = MIGRATION.read_text(encoding="utf-8")
+    policy = POLICY.read_text(encoding="utf-8")
+
+    assert migration.count("FOR KEY SHARE OF authority") == 4
+    assert policy.count("FOR KEY SHARE") >= 2
+
+
 def test_reverse_restrict_semantics_are_preserved_on_authority_tables() -> None:
     source = MIGRATION.read_text(encoding="utf-8")
 
@@ -69,7 +77,6 @@ def test_reverse_restrict_semantics_are_preserved_on_authority_tables() -> None:
         "BEFORE UPDATE OF origin_id ON execution.semantic_parser_annotation_origin"
         in source
     )
-    # An unreferenced key update remains legal; only DELETE returns OLD.
     assert source.count("IF TG_OP = 'UPDATE' THEN\n        RETURN NEW;") == 2
 
 
