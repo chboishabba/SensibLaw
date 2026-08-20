@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 """Run a strict command only until a genuine sentence-close prefix commits.
 
-This wrapper leaves the canonical strict acceptance runner fail-closed.  It sets
-opt-in prefix/EXPLAIN controls, launches the supplied command, and recognizes a
-run as a successful *diagnostic* only when the child emitted the fsynced
-post-commit prefix receipt.  The child is expected to exit non-zero because the
-typed diagnostic-complete signal deliberately interrupts normal full-document
-completion.
+This wrapper leaves the canonical strict acceptance runner fail-closed. It sets
+opt-in prefix and live-EXPLAIN controls, launches the supplied command, and
+recognizes success only when the child emitted the fsynced post-commit prefix
+receipt. Diagnostic completion is not full semantic/performance acceptance.
 """
 
 from __future__ import annotations
@@ -30,32 +28,24 @@ from src.runtime.numeric_prefix_close_diagnostic import (  # noqa: E402
 )
 
 
-def _parse_ordinals(raw: str, *, stop_after: int) -> tuple[int, ...]:
-    values = tuple(
-        sorted({int(token.strip()) for token in raw.split(",") if token.strip()})
-    )
+def _parse_ordinals(raw: str, *, label: str) -> tuple[int, ...]:
+    values = tuple(sorted({int(token.strip()) for token in raw.split(",") if token.strip()}))
     if not values or any(value < 1 for value in values):
-        raise ValueError("--explain-ordinals must contain positive integers")
-    if values[-1] > stop_after:
-        raise ValueError("EXPLAIN ordinal cannot exceed --stop-after")
+        raise ValueError(f"{label} must contain positive integers")
     return values
 
 
-def _parse_explain_request(
+def _paired_request(
     raw_ordinals: str | None,
     output: Path | None,
     *,
-    stop_after: int,
+    label: str,
 ) -> tuple[int, ...] | None:
-    """Require both live-EXPLAIN controls, or neither for an undistorted profile."""
-
     if raw_ordinals is None and output is None:
         return None
     if raw_ordinals is None or output is None:
-        raise ValueError(
-            "--explain-ordinals and --explain-output must be supplied together"
-        )
-    return _parse_ordinals(raw_ordinals, stop_after=stop_after)
+        raise ValueError(f"{label} ordinals and output must be supplied together")
+    return _parse_ordinals(raw_ordinals, label=label)
 
 
 def _load_last_prefix_receipt(path: Path) -> dict[str, Any] | None:
@@ -63,20 +53,21 @@ def _load_last_prefix_receipt(path: Path) -> dict[str, Any] | None:
         return None
     records: list[dict[str, Any]] = []
     for line in path.read_text(encoding="utf-8").splitlines():
-        if not line.strip():
-            continue
-        value = json.loads(line)
-        if isinstance(value, dict):
-            records.append(value)
+        if line.strip():
+            value = json.loads(line)
+            if isinstance(value, dict):
+                records.append(value)
     return records[-1] if records else None
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--stop-after", type=int, required=True)
-    parser.add_argument("--explain-ordinals")
-    parser.add_argument("--prefix-output", type=Path, required=True)
+    parser.add_argument("--explain-ordinals", help="selected sentence-close ordinals")
     parser.add_argument("--explain-output", type=Path)
+    parser.add_argument("--token-explain-ordinals", help="selected parser-token batch ordinals")
+    parser.add_argument("--token-explain-output", type=Path)
+    parser.add_argument("--prefix-output", type=Path, required=True)
     parser.add_argument("--summary-output", type=Path, required=True)
     parser.add_argument(
         "command",
@@ -88,38 +79,55 @@ def main() -> int:
     if args.stop_after < 1:
         parser.error("--stop-after must be positive")
     try:
-        ordinals = _parse_explain_request(
+        close_ordinals = _paired_request(
             args.explain_ordinals,
             args.explain_output,
-            stop_after=args.stop_after,
+            label="--explain",
+        )
+        token_ordinals = _paired_request(
+            args.token_explain_ordinals,
+            args.token_explain_output,
+            label="--token-explain",
         )
     except ValueError as error:
         parser.error(str(error))
+    if close_ordinals is not None and close_ordinals[-1] > args.stop_after:
+        parser.error("sentence-close EXPLAIN ordinal cannot exceed --stop-after")
+
     command = list(args.command)
     if command and command[0] == "--":
         command = command[1:]
     if not command:
         parser.error("a child command is required after --")
 
-    args.prefix_output.parent.mkdir(parents=True, exist_ok=True)
-    if args.explain_output is not None:
-        args.explain_output.parent.mkdir(parents=True, exist_ok=True)
-    args.summary_output.parent.mkdir(parents=True, exist_ok=True)
-    output_paths = (args.prefix_output, args.explain_output)
+    output_paths = (
+        args.prefix_output,
+        args.explain_output,
+        args.token_explain_output,
+        args.summary_output,
+    )
     for path in output_paths:
         if path is None:
             continue
-        if path.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if path.exists() and path != args.summary_output:
             path.unlink()
 
     environment = os.environ.copy()
     environment[STOP_AFTER_ENV] = str(args.stop_after)
     environment[STOP_OUTPUT_ENV] = str(args.prefix_output)
-    if ordinals is not None:
+    if close_ordinals is not None:
         environment["SENSIBLAW_REGION_CLOSE_EXPLAIN_ORDINALS"] = ",".join(
-            str(value) for value in ordinals
+            str(value) for value in close_ordinals
         )
         environment["SENSIBLAW_REGION_CLOSE_EXPLAIN_OUTPUT"] = str(args.explain_output)
+    if token_ordinals is not None:
+        environment["SENSIBLAW_TOKEN_INSERT_EXPLAIN_ORDINALS"] = ",".join(
+            str(value) for value in token_ordinals
+        )
+        environment["SENSIBLAW_TOKEN_INSERT_EXPLAIN_OUTPUT"] = str(
+            args.token_explain_output
+        )
 
     completed = subprocess.run(command, cwd=ROOT, env=environment, check=False)
     prefix = _load_last_prefix_receipt(args.prefix_output)
@@ -129,13 +137,17 @@ def main() -> int:
         and int(prefix.get("committed_sentence_closes", 0)) >= args.stop_after
     )
     summary = {
-        "contract_ref": "sensiblaw.numeric-prefix-close-run.v0_1",
+        "contract_ref": "sensiblaw.numeric-prefix-close-run.v0_2",
         "state": "diagnostic_complete" if diagnostic_complete else "failed",
         "child_returncode": completed.returncode,
         "stop_after_committed": args.stop_after,
-        "explain_ordinals": list(ordinals or ()),
+        "close_explain_ordinals": list(close_ordinals or ()),
+        "close_explain_output": str(args.explain_output) if args.explain_output else None,
+        "token_explain_ordinals": list(token_ordinals or ()),
+        "token_explain_output": (
+            str(args.token_explain_output) if args.token_explain_output else None
+        ),
         "prefix_output": str(args.prefix_output),
-        "explain_output": str(args.explain_output) if args.explain_output else None,
         "prefix_receipt": prefix,
         "semantics": (
             "success means the requested genuine sentence-close prefix committed; "
