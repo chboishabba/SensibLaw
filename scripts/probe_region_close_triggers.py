@@ -10,6 +10,8 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+from psycopg.conninfo import conninfo_to_dict
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -22,12 +24,30 @@ from src.storage.postgres.region_close_trigger_probe import (  # noqa: E402
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--database-url", required=True)
+    authority = parser.add_mutually_exclusive_group(required=True)
+    authority.add_argument("--database-url")
+    authority.add_argument("--clone-database-url")
+    parser.add_argument(
+        "--source-database",
+        help="Required provenance when reusing an already-created exact clone.",
+    )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--scout-count", type=int, default=9)
     args = parser.parse_args()
 
-    clone_url, provenance = build_template_clone(args.database_url)
+    if args.clone_database_url:
+        if not args.source_database:
+            parser.error("--source-database is required with --clone-database-url")
+        clone_url = args.clone_database_url
+        provenance = {
+            "source_database": args.source_database,
+            "clone_database": str(
+                conninfo_to_dict(clone_url).get("dbname") or "unknown"
+            ),
+            "clone_method": "postgresql-template-exact-reused",
+        }
+    else:
+        clone_url, provenance = build_template_clone(args.database_url)
     report = run_region_close_probe(clone_url, scout_count=args.scout_count)
     report["provenance"] = {
         **provenance,
