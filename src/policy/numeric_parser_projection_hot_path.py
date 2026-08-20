@@ -1,18 +1,18 @@
 """Execution-only hot-path projection for strict numeric parser persistence.
 
 The strict parser producer owns one complete bounded partition fibre before its
-first authority write.  The hot path therefore keeps producer-known structure
+first authority write. The hot path therefore keeps producer-known structure
 intact across the PostgreSQL boundary instead of throwing it away and asking row
 triggers to reconstruct or re-prove it.
 
 Migration 175 assigns/reuses final token ids and resolves dependency heads before
-COPY.  Migration 176 generalises the same principle to the five numeric semantic
+COPY. Migration 176 generalises the same principle to the five numeric semantic
 symbol references and four annotation-origin references: the producer proves the
 finite reference sets against their authority tables once, then advertises a
-transaction-local capability so the generic set-wise fallback need not repeat the
-same membership proof after INSERT.
+capability around exactly one token INSERT so the generic set-wise fallback need
+not repeat the same membership proof after INSERT.
 
-Generic writers remain fail-closed.  Legacy textual parser-symbol references,
+Generic writers remain fail-closed. Legacy textual parser-symbol references,
 sentence/run/partition references, morph sets and self-head integrity are not
 covered by the migration-176 capability.
 """
@@ -148,9 +148,12 @@ def _producer_certify_numeric_references(
                 "producer numeric token fibre contains a non-authoritative annotation origin"
             )
 
+
+def _set_producer_reference_capability(cursor: Any, enabled: bool) -> None:
     cursor.execute(
         "SELECT set_config("
-        "'sensiblaw.producer_certified_numeric_references', 'on', TRUE)"
+        "'sensiblaw.producer_certified_numeric_references', %s, TRUE)",
+        ("on" if enabled else "off",),
     )
 
 
@@ -228,8 +231,6 @@ def install_numeric_parser_projection_hot_path() -> bool:
                 f"{len(missing)} sentence refs"
             )
 
-        # Detect physical capabilities before COPY because trigger branch
-        # conditions are evaluated while the INSERT statement executes.
         cursor.execute(
             """
             SELECT
@@ -319,6 +320,8 @@ def install_numeric_parser_projection_hot_path() -> bool:
                 "SELECT set_config("
                 "'sensiblaw.producer_complete_numeric_heads', 'on', TRUE)"
             )
+            if has_producer_certified_references:
+                _set_producer_reference_capability(cursor, True)
             result = original_copy_rows(
                 cursor,
                 table=table,
@@ -331,10 +334,9 @@ def install_numeric_parser_projection_hot_path() -> bool:
                 rows=tuple(staged_rows),
                 **kwargs,
             )
+            if has_producer_certified_references:
+                _set_producer_reference_capability(cursor, False)
 
-            # ON CONFLICT remains the generic replay boundary. Before suppressing
-            # the old UPDATE payload, prove that every authority row exposes the
-            # producer-assigned token/head edge exactly.
             cursor.execute(
                 """
                 SELECT token_ref, token_id, head_token_id
@@ -370,6 +372,8 @@ def install_numeric_parser_projection_hot_path() -> bool:
             (*row, sentence_id_by_ref[str(row[sentence_ref_index])])
             for row in materialized
         )
+        if has_producer_certified_references:
+            _set_producer_reference_capability(cursor, True)
         result = original_copy_rows(
             cursor,
             table=table,
@@ -377,6 +381,8 @@ def install_numeric_parser_projection_hot_path() -> bool:
             rows=enriched_rows,
             **kwargs,
         )
+        if has_producer_certified_references:
+            _set_producer_reference_capability(cursor, False)
 
         if has_setwise_head_projection:
             cursor.execute(
