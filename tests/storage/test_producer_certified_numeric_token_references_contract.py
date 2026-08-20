@@ -34,7 +34,6 @@ def test_migration_176_replaces_only_measured_numeric_symbol_and_origin_fks() ->
     for constraint in (*NUMERIC_SYMBOL_FKS, *ORIGIN_FKS):
         assert f"DROP CONSTRAINT IF EXISTS {constraint}" in source
 
-    # These remain ordinary PostgreSQL FK boundaries.
     for retained in (
         "semantic_parser_token_sentence_ref_fkey",
         "semantic_parser_token_partition_ref_fkey",
@@ -70,6 +69,8 @@ def test_reverse_restrict_semantics_are_preserved_on_authority_tables() -> None:
         "BEFORE UPDATE OF origin_id ON execution.semantic_parser_annotation_origin"
         in source
     )
+    # An unreferenced key update remains legal; only DELETE returns OLD.
+    assert source.count("IF TG_OP = 'UPDATE' THEN\n        RETURN NEW;") == 2
 
 
 def test_strict_producer_certifies_bounded_reference_sets_before_capability() -> None:
@@ -82,6 +83,19 @@ def test_strict_producer_certifies_bounded_reference_sets_before_capability() ->
     assert "observed_symbols != requested_symbols" in source
     assert "observed_origins != requested_origins" in source
     assert "sensiblaw.producer_certified_numeric_references" in source
+
+
+def test_producer_capability_is_scoped_to_exactly_the_token_insert() -> None:
+    source = POLICY.read_text(encoding="utf-8")
+
+    assert "_set_producer_reference_capability(cursor, True)" in source
+    assert "_set_producer_reference_capability(cursor, False)" in source
+    assert source.index("_set_producer_reference_capability(cursor, True)") < source.index(
+        "result = original_copy_rows("
+    )
+    assert source.index("result = original_copy_rows(") < source.index(
+        "_set_producer_reference_capability(cursor, False)"
+    )
 
 
 def test_transition_table_update_validation_does_not_use_illegal_update_of_shape() -> None:
