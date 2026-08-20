@@ -90,6 +90,9 @@ def install_closure_hot_path_execution() -> bool:
     from src.policy.direct_process_closure_execution import (
         install_direct_process_closure_execution,
     )
+    from src.policy.live_region_close_explain import (
+        install_live_region_close_explain,
+    )
     from src.policy.numeric_parser_projection_hot_path import (
         install_numeric_parser_projection_hot_path,
     )
@@ -173,6 +176,11 @@ def install_closure_hot_path_execution() -> bool:
     # The five sentence temp stages contain no semantic identity and are safe to
     # reuse across sentence transactions; sentence atomicity remains unchanged.
     install_reusable_numeric_sentence_staging()
+    # When explicitly configured, wrap the canonical set-wise sentence
+    # persistence function before the bounded leasing installer captures it.
+    # Selected genuine close UPDATEs execute under EXPLAIN ANALYZE inside their
+    # original transaction; the hook is entirely absent in ordinary production.
+    install_live_region_close_explain()
     # Claim bounded producer-complete sentence fibres set-wise. Execution,
     # completion and failure remain one sentence/fence per semantic transaction.
     install_bounded_sentence_batch_leasing()
