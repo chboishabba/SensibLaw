@@ -75,7 +75,17 @@ def auto_semantic_process_workers() -> int:
 def _dirty_proposals_are_dependency_free(owner: Any) -> bool:
     """Check the incrementally maintained dependency-bearing owner index."""
 
-    dependency_bearing = getattr(owner, "_dependency_bearing_owner_keys", ())
+    dependency_bearing = getattr(owner, "_dependency_bearing_owner_keys", None)
+    if dependency_bearing is None:
+        # The installation hook creates the index before ordinary execution.
+        # Keep this guard fail-closed for direct owner use (and for an owner
+        # restored without the physical acceleration state): coalescing is
+        # never authorised merely because the optional index is absent.
+        return not any(
+            proposal.dependency_factor_refs
+            for key in owner._dirty_groups
+            for proposal in owner._proposals_by_owner[key].values()
+        )
     return not owner._dirty_groups.intersection(dependency_bearing)
 
 

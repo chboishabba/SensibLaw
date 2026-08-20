@@ -57,7 +57,9 @@ def _compact_sql(query: Any) -> str:
 def _is_region_close_update(query: Any) -> bool:
     compact = _compact_sql(query)
     return (
-        compact.startswith("update execution.semantic_pnf_region set closure_state = %s")
+        compact.startswith(
+            "update execution.semantic_pnf_region set closure_state = %s"
+        )
         and "graph_revision = %s" in compact
         and "closed_at = current_timestamp" in compact
         and "where region_id = %s" in compact
@@ -172,7 +174,9 @@ class _RegionCloseExplainCursor:
     def execute(self, query: Any, params: Any = None, *args: Any, **kwargs: Any) -> Any:
         if _is_region_close_update(query):
             if self._capture.raw_plan is not None:
-                raise RuntimeError("selected sentence attempted more than one region close")
+                raise RuntimeError(
+                    "selected sentence attempted more than one region close"
+                )
             if params is None or len(params) < 3:
                 raise RuntimeError("region-close UPDATE lost its typed parameter fibre")
             if int(params[1]) != self._capture.graph_revision:
