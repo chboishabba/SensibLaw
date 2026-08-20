@@ -19,11 +19,15 @@ def test_producer_complete_path_inserts_final_numeric_head_on_first_write() -> N
     assert "numeric_parser_producer_complete_heads_ready" in source
     assert "_allocate_missing_token_ids" in source
     assert '"token_id",\n                    "head_token_id"' in source
-    assert "producer-complete numeric token authority failed exact head parity" in source
+    assert (
+        "producer-complete numeric token authority failed exact head parity" in source
+    )
     assert "_SETWISE_HEADS_READY.set(True)" in source
 
 
-def test_producer_complete_capability_disables_only_the_redundant_trigger_rewrite() -> None:
+def test_producer_complete_capability_disables_only_the_redundant_trigger_rewrite() -> (
+    None
+):
     source = MIGRATION.read_text(encoding="utf-8")
 
     assert "sensiblaw.producer_complete_numeric_heads" in source

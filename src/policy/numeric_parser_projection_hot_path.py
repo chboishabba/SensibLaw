@@ -70,7 +70,9 @@ def _allocate_missing_token_ids(
         )
         allocated = tuple(int(row[0]) for row in cursor.fetchall())
         if len(allocated) != len(missing):
-            raise RuntimeError("numeric token id allocator returned the wrong cardinality")
+            raise RuntimeError(
+                "numeric token id allocator returned the wrong cardinality"
+            )
         token_id_by_ref.update(zip(missing, allocated, strict=True))
     return token_id_by_ref
 
@@ -175,9 +177,8 @@ def install_numeric_parser_projection_hot_path() -> bool:
             has_producer_complete_heads,
         ) = (bool(value) for value in cursor.fetchone())
 
-        if (
-            has_setwise_integrity_fence
-            and (has_setwise_head_projection or has_producer_complete_heads)
+        if has_setwise_integrity_fence and (
+            has_setwise_head_projection or has_producer_complete_heads
         ):
             cursor.execute(
                 "SELECT set_config("
@@ -225,9 +226,7 @@ def install_numeric_parser_projection_hot_path() -> bool:
                     raise projection.NumericHeadProjectionError(
                         "producer-complete dependency head is absent from its sentence"
                     )
-                staged_rows.append(
-                    (*row, sentence_id, token_id, head_token_id)
-                )
+                staged_rows.append((*row, sentence_id, token_id, head_token_id))
 
             cursor.execute(
                 "SELECT set_config("
