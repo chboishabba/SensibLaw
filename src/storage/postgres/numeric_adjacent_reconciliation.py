@@ -6,8 +6,15 @@ from dataclasses import dataclass
 from typing import Any
 
 from src.pnf.numeric_hyperfabric import ClosureState, WorkOperation, WorkState
-from src.storage.postgres.numeric_hyperfabric_store import WorkLease, claim_work
+from src.storage.postgres.bounded_work_batch import (
+    claim_work_batch,
+    release_unstarted_leases,
+)
+from src.storage.postgres.numeric_hyperfabric_store import WorkLease
 from src.storage.postgres.spacy_parser_model import connect
+
+
+_DEFAULT_LEASE_BATCH_SIZE = 16
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,38 +84,52 @@ def drain_adjacent_reconciliation(
     run_ref: str,
     worker_ref: str,
     limit: int = 64,
+    lease_batch_size: int = _DEFAULT_LEASE_BATCH_SIZE,
 ) -> AdjacentReconciliationSummary:
-    """Lease and close up to ``limit`` adjacent sentence/paragraph fibres."""
+    """Lease and close up to ``limit`` adjacent fibres.
+
+    Lease acquisition is batched, but execution remains one exact adjacent fibre
+    per existing semantic transaction.  This deliberately does *not* assert
+    that neighbouring braid obligations commute.  If execution fails while a
+    batch still contains unstarted leases, those exact lease tokens/epochs are
+    returned to READY before the error is propagated.
+    """
 
     if limit < 1:
         raise ValueError("adjacent reconciliation limit must be positive")
+    if lease_batch_size < 1:
+        raise ValueError("adjacent lease batch size must be positive")
 
     completed = 0
     last_interface_id: int | None = None
     connection = connect(database_url)
     try:
         while completed < limit:
+            remaining = limit - completed
             with connection.transaction():
                 with connection.cursor() as cursor:
-                    lease = claim_work(
+                    leases = claim_work_batch(
                         cursor,
                         run_ref=run_ref,
                         worker_ref=worker_ref,
                         operation=WorkOperation.ADJACENT_RECONCILE,
+                        limit=min(lease_batch_size, remaining),
                     )
-            if lease is None:
+            if not leases:
                 break
 
-            try:
-                with connection.transaction():
-                    with connection.cursor() as cursor:
-                        last_interface_id = execute_adjacent_lease(cursor, lease)
-                completed += 1
-            except BaseException:
-                with connection.transaction():
-                    with connection.cursor() as cursor:
-                        _fail_adjacent_lease(cursor, lease)
-                raise
+            for index, lease in enumerate(leases):
+                try:
+                    with connection.transaction():
+                        with connection.cursor() as cursor:
+                            last_interface_id = execute_adjacent_lease(cursor, lease)
+                    completed += 1
+                except BaseException:
+                    with connection.transaction():
+                        with connection.cursor() as cursor:
+                            _fail_adjacent_lease(cursor, lease)
+                            release_unstarted_leases(cursor, leases[index + 1 :])
+                    raise
     finally:
         connection.close()
 
