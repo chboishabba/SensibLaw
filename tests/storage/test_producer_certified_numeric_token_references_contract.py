@@ -53,7 +53,9 @@ def test_generic_writers_keep_setwise_authority_validation() -> None:
     assert "REFERENCING NEW TABLE AS inserted_token" in source
     assert "REFERENCING NEW TABLE AS updated_token" in source
     assert "LEFT JOIN execution.semantic_symbol AS authority" in source
-    assert "LEFT JOIN execution.semantic_parser_annotation_origin AS authority" in source
+    assert (
+        "LEFT JOIN execution.semantic_parser_annotation_origin AS authority" in source
+    )
     assert "ERRCODE = '23503'" in source
 
 
@@ -97,15 +99,17 @@ def test_producer_capability_is_scoped_to_exactly_the_token_insert() -> None:
 
     assert "_set_producer_reference_capability(cursor, True)" in source
     assert "_set_producer_reference_capability(cursor, False)" in source
-    assert source.index("_set_producer_reference_capability(cursor, True)") < source.index(
-        "result = original_copy_rows("
-    )
+    assert source.index(
+        "_set_producer_reference_capability(cursor, True)"
+    ) < source.index("result = original_copy_rows(")
     assert source.index("result = original_copy_rows(") < source.index(
         "_set_producer_reference_capability(cursor, False)"
     )
 
 
-def test_transition_table_update_validation_does_not_use_illegal_update_of_shape() -> None:
+def test_transition_table_update_validation_does_not_use_illegal_update_of_shape() -> (
+    None
+):
     source = MIGRATION.read_text(encoding="utf-8")
 
     assert "AFTER UPDATE ON execution.semantic_parser_token" in source
