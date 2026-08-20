@@ -10,10 +10,10 @@ BEGIN;
 -- Replace only those nine row FKs with an exact set-wise integrity realization.
 -- Generic writers still validate every non-null reference against the authority
 -- tables after each INSERT/UPDATE statement. The strict producer may bypass
--- those statement checks only after independently proving the complete bounded
--- symbol/origin reference sets against the same authority tables and enabling a
--- capability scoped to that one INSERT. Reverse delete / referenced-key-update
--- restriction remains explicit on the authority tables.
+-- those statement checks only after independently proving and KEY-SHARE locking
+-- the complete bounded symbol/origin reference sets against the same authority
+-- tables. Reverse delete / referenced-key-update restriction remains explicit
+-- on the authority tables.
 --
 -- Legacy textual parser-symbol FKs, sentence/run/partition FKs, morph-set FK,
 -- and token self-head FKs are intentionally untouched.
@@ -41,6 +41,29 @@ BEGIN
         RETURN NULL;
     END IF;
 
+    -- Match FK concurrency semantics at set granularity: lock every currently
+    -- present referenced authority row before the missing-reference check. A
+    -- concurrent DELETE/key UPDATE either waits on these locks or becomes
+    -- visible to the subsequent check and fails the statement.
+    PERFORM authority.symbol_id
+      FROM execution.semantic_symbol AS authority
+      JOIN (
+          SELECT orth_symbol_id AS symbol_id
+            FROM inserted_token WHERE orth_symbol_id IS NOT NULL
+          UNION
+          SELECT lemma_symbol_id FROM inserted_token WHERE lemma_symbol_id IS NOT NULL
+          UNION
+          SELECT pos_symbol_id FROM inserted_token WHERE pos_symbol_id IS NOT NULL
+          UNION
+          SELECT tag_symbol_id FROM inserted_token WHERE tag_symbol_id IS NOT NULL
+          UNION
+          SELECT dependency_symbol_id
+            FROM inserted_token
+           WHERE dependency_symbol_id IS NOT NULL
+      ) AS requested
+        ON requested.symbol_id = authority.symbol_id
+     FOR KEY SHARE OF authority;
+
     IF EXISTS (
         WITH requested(symbol_id) AS (
             SELECT orth_symbol_id FROM inserted_token WHERE orth_symbol_id IS NOT NULL
@@ -65,6 +88,20 @@ BEGIN
             ERRCODE = '23503',
             MESSAGE = 'numeric parser token references a missing semantic symbol';
     END IF;
+
+    PERFORM authority.origin_id
+      FROM execution.semantic_parser_annotation_origin AS authority
+      JOIN (
+          SELECT lemma_origin_id AS origin_id FROM inserted_token
+          UNION
+          SELECT pos_origin_id FROM inserted_token
+          UNION
+          SELECT tag_origin_id FROM inserted_token
+          UNION
+          SELECT dependency_origin_id FROM inserted_token
+      ) AS requested
+        ON requested.origin_id = authority.origin_id
+     FOR KEY SHARE OF authority;
 
     IF EXISTS (
         WITH requested(origin_id) AS (
@@ -103,6 +140,25 @@ BEGIN
         RETURN NULL;
     END IF;
 
+    PERFORM authority.symbol_id
+      FROM execution.semantic_symbol AS authority
+      JOIN (
+          SELECT orth_symbol_id AS symbol_id
+            FROM updated_token WHERE orth_symbol_id IS NOT NULL
+          UNION
+          SELECT lemma_symbol_id FROM updated_token WHERE lemma_symbol_id IS NOT NULL
+          UNION
+          SELECT pos_symbol_id FROM updated_token WHERE pos_symbol_id IS NOT NULL
+          UNION
+          SELECT tag_symbol_id FROM updated_token WHERE tag_symbol_id IS NOT NULL
+          UNION
+          SELECT dependency_symbol_id
+            FROM updated_token
+           WHERE dependency_symbol_id IS NOT NULL
+      ) AS requested
+        ON requested.symbol_id = authority.symbol_id
+     FOR KEY SHARE OF authority;
+
     IF EXISTS (
         WITH requested(symbol_id) AS (
             SELECT orth_symbol_id FROM updated_token WHERE orth_symbol_id IS NOT NULL
@@ -127,6 +183,20 @@ BEGIN
             ERRCODE = '23503',
             MESSAGE = 'numeric parser token update references a missing semantic symbol';
     END IF;
+
+    PERFORM authority.origin_id
+      FROM execution.semantic_parser_annotation_origin AS authority
+      JOIN (
+          SELECT lemma_origin_id AS origin_id FROM updated_token
+          UNION
+          SELECT pos_origin_id FROM updated_token
+          UNION
+          SELECT tag_origin_id FROM updated_token
+          UNION
+          SELECT dependency_origin_id FROM updated_token
+      ) AS requested
+        ON requested.origin_id = authority.origin_id
+     FOR KEY SHARE OF authority;
 
     IF EXISTS (
         WITH requested(origin_id) AS (
