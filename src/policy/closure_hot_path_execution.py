@@ -15,25 +15,15 @@ pathologies exposed by live corpus replay while preserving semantic closure:
 * strict sentence demands were inserted set-wise and then immediately
   reconstructed one-by-one by the generic occurrence-provenance trigger even
   though the complete producer fibre was still available;
-* strict numeric token COPY omitted the already-determined sentence id, forcing
-  migration 042 to execute one sentence lookup per token, and the validated
-  dependency-head projection was then written back one UPDATE per token;
+* strict numeric token COPY omitted already-determined identity/edge coordinates,
+  forcing persistent lookup/rewrite work after producer-complete parsing;
 * durable sentence/adjacent work was claimed one queue row at a time even when
   the lease transition itself can be performed over a bounded exact fibre.
 
 No proposal identity, reduction rule, owner key, sentence digest, lease fence,
-or final materialized graph is changed. Reduction coalescing is fail-closed: it
-is allowed only while another job is in flight and every currently dirty proposal
-has an empty ``dependency_factor_refs`` declaration. A dependency-bearing fibre
-always uses the original eager reducer. Numeric sentence staging reuse retains the
-existing per-sentence transaction/failure boundary and changes only temporary
-relation lifetime. Producer-native provenance retains the generic trigger for
-non-sentence producers and projects the same strict sentence provenance from the
-already-materialized bounded producer fibre. Numeric parser enrichment supplies
-existing sentence identity and, when migration 150 is present, preserves Python
-head validation while replacing redundant row-wise writes with one set projection.
-Bounded lease acquisition likewise preserves per-fibre execution transactions,
-lease tokens/epochs, failure identity and braid reconciliation semantics.
+or final materialized graph is changed. Diagnostic EXPLAIN hooks are opt-in and
+execute the genuine statements with all active integrity machinery; ordinary
+production pays no diagnostic path cost.
 """
 
 from __future__ import annotations
@@ -57,8 +47,6 @@ def _positive_int(name: str, default: int) -> int:
 
 
 def auto_semantic_process_workers() -> int:
-    """Return the default process width when the user supplied no override."""
-
     explicit = os.environ.get("SENSIBLAW_SEMANTIC_PROCESS_WORKERS")
     if explicit is not None and explicit.strip():
         value = int(explicit)
@@ -73,14 +61,8 @@ def auto_semantic_process_workers() -> int:
 
 
 def _dirty_proposals_are_dependency_free(owner: Any) -> bool:
-    """Check the incrementally maintained dependency-bearing owner index."""
-
     dependency_bearing = getattr(owner, "_dependency_bearing_owner_keys", None)
     if dependency_bearing is None:
-        # The installation hook creates the index before ordinary execution.
-        # Keep this guard fail-closed for direct owner use (and for an owner
-        # restored without the physical acceleration state): coalescing is
-        # never authorised merely because the optional index is absent.
         return not any(
             proposal.dependency_factor_refs
             for key in owner._dirty_groups
@@ -100,9 +82,8 @@ def install_closure_hot_path_execution() -> bool:
     from src.policy.direct_process_closure_execution import (
         install_direct_process_closure_execution,
     )
-    from src.policy.live_region_close_explain import (
-        install_live_region_close_explain,
-    )
+    from src.policy.live_region_close_explain import install_live_region_close_explain
+    from src.policy.live_token_insert_explain import install_live_token_insert_explain
     from src.policy.numeric_parser_projection_hot_path import (
         install_numeric_parser_projection_hot_path,
     )
@@ -116,18 +97,10 @@ def install_closure_hot_path_execution() -> bool:
     if getattr(bounded, _INSTALL_MARKER, False):
         return False
 
-    # One execution-width source of truth. Setting the environment only when it
-    # was absent keeps explicit operator configuration authoritative while also
-    # ensuring activation buffering and the process-pool helper observe the same
-    # auto-selected width.
     os.environ.setdefault(
         "SENSIBLAW_SEMANTIC_PROCESS_WORKERS",
         str(auto_semantic_process_workers()),
     )
-
-    # ``bounded_operational_execution`` imported the original function before
-    # ``parallel_typing_tail`` replaced the operational module global. Rebind
-    # the bounded module to the already-installed process-aware wrapper.
     bounded.solve_operator_job = operational.solve_operator_job
 
     owner_class = bounded.BoundedStreamingSemanticOwner
@@ -138,11 +111,7 @@ def install_closure_hot_path_execution() -> bool:
         indexed = original_index_proposal(self, proposal, stage=stage)
         if indexed is not None and proposal.dependency_factor_refs:
             _proposal_ref, key = indexed
-            dependency_bearing = getattr(
-                self,
-                "_dependency_bearing_owner_keys",
-                None,
-            )
+            dependency_bearing = getattr(self, "_dependency_bearing_owner_keys", None)
             if dependency_bearing is None:
                 dependency_bearing = set()
                 self._dependency_bearing_owner_keys = dependency_bearing
@@ -153,12 +122,6 @@ def install_closure_hot_path_execution() -> bool:
         return indexed
 
     def reduce_dirty_groups(self: Any):
-        # Solver jobs are immutable and execute without access to owner state.
-        # While another job from the same leased frontier is still running, an
-        # intermediate reduction cannot affect that job. For dependency-free
-        # proposals the eventual full-fibre reduction over the union is exactly
-        # the same canonical reducer the eager path would run after the final
-        # receipt, so defer the repeated scans until the frontier drains.
         if (
             self._dirty_groups
             and self._in_flight_jobs
@@ -176,34 +139,21 @@ def install_closure_hot_path_execution() -> bool:
     owner_class._index_proposal = index_proposal
     owner_class.reduce_dirty_groups = reduce_dirty_groups
 
-    # The bounded scheduler no longer needs a thread whose only job is to submit
-    # the same immutable work to the semantic process pool and block on it.
     install_direct_process_closure_execution()
-    # Resolve the finite sentence-ref fibre once and include sentence_id in the
-    # existing token COPY. Migration 150, when present, also makes dependency
-    # head persistence statement-level while retaining canonical Python checks.
+
+    # Install the optional token INSERT observer before the numeric parser hot
+    # path captures _copy_rows.  The hot-path enrichment then passes its final
+    # producer-complete sentence/token/head coordinates through the probe.
+    install_live_token_insert_explain()
     install_numeric_parser_projection_hot_path()
-    # The five sentence temp stages contain no semantic identity and are safe to
-    # reuse across sentence transactions; sentence atomicity remains unchanged.
+
     install_reusable_numeric_sentence_staging()
-    # When explicitly configured, wrap the canonical set-wise sentence
-    # persistence function before the bounded leasing installer captures it.
-    # Selected genuine close UPDATEs execute under EXPLAIN ANALYZE inside their
-    # original transaction; the hook is entirely absent in ordinary production.
     install_live_region_close_explain()
-    # Claim bounded producer-complete sentence fibres set-wise. Execution,
-    # completion and failure remain one sentence/fence per semantic transaction.
     install_bounded_sentence_batch_leasing()
-    # The strict producer still has the exact factor/support/slot fibre when it
-    # inserts demands. Preserve that information set-wise instead of asking the
-    # generic row trigger to reconstruct the producer independently per demand.
     install_producer_native_sentence_provenance()
 
     setattr(bounded, _INSTALL_MARKER, True)
     return True
 
 
-__all__ = [
-    "auto_semantic_process_workers",
-    "install_closure_hot_path_execution",
-]
+__all__ = ["auto_semantic_process_workers", "install_closure_hot_path_execution"]
