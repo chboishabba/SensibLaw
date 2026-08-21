@@ -21,121 +21,191 @@ RETURNS TABLE (
     factor_type_symbol_id BIGINT,
     predicate_symbol_id BIGINT
 )
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
 AS $$
-WITH child_demand AS MATERIALIZED (
-    SELECT DISTINCT demand.demand_id,
-           demand.expected_object_kind_symbol_id,
-           demand.role_symbol_id,
-           demand.expected_factor_type_symbol_id
-      FROM execution.semantic_pnf_region AS child_region
-      JOIN execution.semantic_pnf_interface AS child_interface
-        ON child_interface.region_id = child_region.region_id
-      JOIN execution.semantic_pnf_interface_export AS demand_export
-        ON demand_export.interface_id = child_interface.interface_id
-       AND demand_export.target_kind = 3
-      JOIN execution.semantic_pnf_demand AS demand
-        ON demand.demand_id = demand_export.target_id
-     WHERE child_region.parent_region_id = selected_region_id
-       AND demand.state IN (1, 3)
-       AND demand.expected_target_kind = 1
-),
-required_key AS MATERIALIZED (
-    SELECT constraint_row.demand_id,
-           constraint_row.key_kind,
-           constraint_row.key_a,
-           constraint_row.key_b
-      FROM child_demand AS demand
-      JOIN execution.semantic_pnf_demand_constraint AS constraint_row
-        ON constraint_row.demand_id = demand.demand_id
-     WHERE constraint_row.required
-       AND constraint_row.polarity = 1
-       AND constraint_row.key_kind IN (1, 2, 4)
-),
-required_count AS MATERIALIZED (
-    SELECT required_key.demand_id,
-           count(*)::BIGINT AS required_count
-      FROM required_key
-     GROUP BY required_key.demand_id
-),
-profile_base AS MATERIALIZED (
-    SELECT profile.object_id,
-           profile.object_kind_symbol_id,
-           profile.role_symbol_id,
-           profile.factor_type_symbol_id,
-           profile.predicate_symbol_id
-      FROM execution.semantic_pnf_actor_profile AS profile
-     WHERE profile.interface_id = selected_interface_id
-),
-profile_key AS MATERIALIZED (
-    SELECT profile.object_id,
-           profile.role_symbol_id,
-           profile.factor_type_symbol_id,
-           profile.predicate_symbol_id,
-           key.key_kind,
-           key.key_a,
-           0::BIGINT AS key_b
-      FROM profile_base AS profile
-      CROSS JOIN LATERAL (
-          VALUES
-              (1::SMALLINT, profile.factor_type_symbol_id),
-              (2::SMALLINT, profile.object_kind_symbol_id),
-              (4::SMALLINT, profile.role_symbol_id)
-      ) AS key(key_kind, key_a)
-     WHERE key.key_a IS NOT NULL
-),
-matched_profile AS MATERIALIZED (
-    SELECT required_key.demand_id,
-           profile.object_id,
-           profile.role_symbol_id,
-           profile.factor_type_symbol_id,
-           profile.predicate_symbol_id,
-           count(*)::BIGINT AS matched_count
-      FROM required_key
-      JOIN profile_key AS profile
-        ON profile.key_kind = required_key.key_kind
-       AND profile.key_a = required_key.key_a
-       AND profile.key_b = required_key.key_b
-     GROUP BY required_key.demand_id,
-              profile.object_id,
-              profile.role_symbol_id,
-              profile.factor_type_symbol_id,
-              profile.predicate_symbol_id
-),
-indexed_profile AS (
-    SELECT matched.object_id,
-           matched.role_symbol_id,
-           matched.factor_type_symbol_id,
-           matched.predicate_symbol_id
-      FROM matched_profile AS matched
-      JOIN required_count AS required
-        ON required.demand_id = matched.demand_id
-       AND required.required_count = matched.matched_count
-),
-broad_profile AS (
-    -- No kind/role/factor constraint means every profile is requestable.  This
-    -- is the exact wildcard semantics of migration 062's nullable predicates.
-    SELECT profile.object_id,
-           profile.role_symbol_id,
-           profile.factor_type_symbol_id,
-           profile.predicate_symbol_id
-      FROM child_demand AS demand
-      LEFT JOIN required_count AS required
-        ON required.demand_id = demand.demand_id
-      CROSS JOIN profile_base AS profile
-     WHERE required.demand_id IS NULL
-)
-SELECT DISTINCT
-       retained.object_id,
-       retained.role_symbol_id,
-       retained.factor_type_symbol_id,
-       retained.predicate_symbol_id
-  FROM (
-      SELECT * FROM indexed_profile
-      UNION ALL
-      SELECT * FROM broad_profile
-  ) AS retained;
+BEGIN
+    -- The actor-retention predicate intentionally ignores lexical identity.  It
+    -- may use the persisted constraint fibre only when key kinds 1/2/4 exactly
+    -- represent the canonical factor/object/role columns of the child demands.
+    IF EXISTS (
+        WITH child_demand AS MATERIALIZED (
+            SELECT DISTINCT demand.demand_id,
+                   demand.expected_object_kind_symbol_id,
+                   demand.role_symbol_id,
+                   demand.expected_factor_type_symbol_id
+              FROM execution.semantic_pnf_region AS child_region
+              JOIN execution.semantic_pnf_interface AS child_interface
+                ON child_interface.region_id = child_region.region_id
+              JOIN execution.semantic_pnf_interface_export AS demand_export
+                ON demand_export.interface_id = child_interface.interface_id
+               AND demand_export.target_kind = 3
+              JOIN execution.semantic_pnf_demand AS demand
+                ON demand.demand_id = demand_export.target_id
+             WHERE child_region.parent_region_id = selected_region_id
+               AND demand.state IN (1, 3)
+               AND demand.expected_target_kind = 1
+        ),
+        expected_key AS (
+            SELECT child_demand.demand_id,
+                   1::SMALLINT AS key_kind,
+                   child_demand.expected_factor_type_symbol_id AS key_a,
+                   0::BIGINT AS key_b
+              FROM child_demand
+             WHERE child_demand.expected_factor_type_symbol_id IS NOT NULL
+            UNION ALL
+            SELECT child_demand.demand_id,
+                   2::SMALLINT,
+                   child_demand.expected_object_kind_symbol_id,
+                   0::BIGINT
+              FROM child_demand
+             WHERE child_demand.expected_object_kind_symbol_id IS NOT NULL
+            UNION ALL
+            SELECT child_demand.demand_id,
+                   4::SMALLINT,
+                   child_demand.role_symbol_id,
+                   0::BIGINT
+              FROM child_demand
+             WHERE child_demand.role_symbol_id IS NOT NULL
+        ),
+        actual_key AS (
+            SELECT constraint_row.demand_id,
+                   constraint_row.key_kind,
+                   constraint_row.key_a,
+                   constraint_row.key_b
+              FROM child_demand AS demand
+              JOIN execution.semantic_pnf_demand_constraint AS constraint_row
+                ON constraint_row.demand_id = demand.demand_id
+             WHERE constraint_row.required
+               AND constraint_row.polarity = 1
+               AND constraint_row.key_kind IN (1, 2, 4)
+        ),
+        difference AS (
+            (SELECT * FROM expected_key EXCEPT SELECT * FROM actual_key)
+            UNION ALL
+            (SELECT * FROM actual_key EXCEPT SELECT * FROM expected_key)
+        )
+        SELECT 1 FROM difference LIMIT 1
+    ) THEN
+        RAISE EXCEPTION
+            'numeric PNF actor-retention constraint fibre disagrees with canonical child demands for region %',
+            selected_region_id;
+    END IF;
+
+    RETURN QUERY
+    WITH child_demand AS MATERIALIZED (
+        SELECT DISTINCT demand.demand_id,
+               demand.expected_object_kind_symbol_id,
+               demand.role_symbol_id,
+               demand.expected_factor_type_symbol_id
+          FROM execution.semantic_pnf_region AS child_region
+          JOIN execution.semantic_pnf_interface AS child_interface
+            ON child_interface.region_id = child_region.region_id
+          JOIN execution.semantic_pnf_interface_export AS demand_export
+            ON demand_export.interface_id = child_interface.interface_id
+           AND demand_export.target_kind = 3
+          JOIN execution.semantic_pnf_demand AS demand
+            ON demand.demand_id = demand_export.target_id
+         WHERE child_region.parent_region_id = selected_region_id
+           AND demand.state IN (1, 3)
+           AND demand.expected_target_kind = 1
+    ),
+    required_key AS MATERIALIZED (
+        SELECT constraint_row.demand_id,
+               constraint_row.key_kind,
+               constraint_row.key_a,
+               constraint_row.key_b
+          FROM child_demand AS demand
+          JOIN execution.semantic_pnf_demand_constraint AS constraint_row
+            ON constraint_row.demand_id = demand.demand_id
+         WHERE constraint_row.required
+           AND constraint_row.polarity = 1
+           AND constraint_row.key_kind IN (1, 2, 4)
+    ),
+    required_count AS MATERIALIZED (
+        SELECT required_key.demand_id,
+               count(*)::BIGINT AS required_count
+          FROM required_key
+         GROUP BY required_key.demand_id
+    ),
+    profile_base AS MATERIALIZED (
+        SELECT profile.object_id,
+               profile.object_kind_symbol_id,
+               profile.role_symbol_id,
+               profile.factor_type_symbol_id,
+               profile.predicate_symbol_id
+          FROM execution.semantic_pnf_actor_profile AS profile
+         WHERE profile.interface_id = selected_interface_id
+    ),
+    profile_key AS MATERIALIZED (
+        SELECT profile.object_id,
+               profile.role_symbol_id,
+               profile.factor_type_symbol_id,
+               profile.predicate_symbol_id,
+               key.key_kind,
+               key.key_a,
+               0::BIGINT AS key_b
+          FROM profile_base AS profile
+          CROSS JOIN LATERAL (
+              VALUES
+                  (1::SMALLINT, profile.factor_type_symbol_id),
+                  (2::SMALLINT, profile.object_kind_symbol_id),
+                  (4::SMALLINT, profile.role_symbol_id)
+          ) AS key(key_kind, key_a)
+         WHERE key.key_a IS NOT NULL
+    ),
+    matched_profile AS MATERIALIZED (
+        SELECT required_key.demand_id,
+               profile.object_id,
+               profile.role_symbol_id,
+               profile.factor_type_symbol_id,
+               profile.predicate_symbol_id,
+               count(*)::BIGINT AS matched_count
+          FROM required_key
+          JOIN profile_key AS profile
+            ON profile.key_kind = required_key.key_kind
+           AND profile.key_a = required_key.key_a
+           AND profile.key_b = required_key.key_b
+         GROUP BY required_key.demand_id,
+                  profile.object_id,
+                  profile.role_symbol_id,
+                  profile.factor_type_symbol_id,
+                  profile.predicate_symbol_id
+    ),
+    indexed_profile AS (
+        SELECT matched.object_id,
+               matched.role_symbol_id,
+               matched.factor_type_symbol_id,
+               matched.predicate_symbol_id
+          FROM matched_profile AS matched
+          JOIN required_count AS required
+            ON required.demand_id = matched.demand_id
+           AND required.required_count = matched.matched_count
+    ),
+    broad_profile AS (
+        -- No kind/role/factor constraint means every profile is requestable.
+        -- This is migration 062's wildcard semantics, not absence evidence.
+        SELECT profile.object_id,
+               profile.role_symbol_id,
+               profile.factor_type_symbol_id,
+               profile.predicate_symbol_id
+          FROM child_demand AS demand
+          LEFT JOIN required_count AS required
+            ON required.demand_id = demand.demand_id
+          CROSS JOIN profile_base AS profile
+         WHERE required.demand_id IS NULL
+    )
+    SELECT DISTINCT
+           retained.object_id,
+           retained.role_symbol_id,
+           retained.factor_type_symbol_id,
+           retained.predicate_symbol_id
+      FROM (
+          SELECT * FROM indexed_profile
+          UNION ALL
+          SELECT * FROM broad_profile
+      ) AS retained;
+END;
 $$;
 
 DO $migration$
