@@ -58,7 +58,9 @@ def test_unconstrained_child_object_demand_retains_every_profile() -> None:
     assert "WHERE required.demand_id IS NULL" in source
 
 
-def test_parent_reducer_patch_replaces_only_recognised_correlated_retention_block() -> None:
+def test_parent_reducer_patch_replaces_only_recognised_correlated_retention_block() -> (
+    None
+):
     source = _source()
 
     assert "procedure.prosrc" in source

@@ -34,7 +34,9 @@ def test_probe_compares_complete_candidate_multisets_in_both_directions() -> Non
     assert "candidate_score" in source
 
 
-def test_probe_surfaces_wildcard_and_profile_population_for_performance_interpretation() -> None:
+def test_probe_surfaces_wildcard_and_profile_population_for_performance_interpretation() -> (
+    None
+):
     source = _source()
 
     assert "unconstrained_object_demand_count" in source

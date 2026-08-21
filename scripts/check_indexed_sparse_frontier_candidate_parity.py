@@ -152,8 +152,12 @@ def candidate_parity_receipt(database_url: str, interface_id: int) -> dict[str, 
 
                 legacy_params = (interface_id, interface_id, interface_id)
                 indexed_params = (interface_id,)
-                legacy_count = _count(cursor, _LEGACY_OBJECT_CANDIDATE_SQL, legacy_params)
-                indexed_count = _count(cursor, _INDEXED_OBJECT_CANDIDATE_SQL, indexed_params)
+                legacy_count = _count(
+                    cursor, _LEGACY_OBJECT_CANDIDATE_SQL, legacy_params
+                )
+                indexed_count = _count(
+                    cursor, _INDEXED_OBJECT_CANDIDATE_SQL, indexed_params
+                )
                 legacy_only = _difference_count(
                     cursor,
                     left_sql=_LEGACY_OBJECT_CANDIDATE_SQL,

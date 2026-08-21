@@ -12,7 +12,9 @@ def _source() -> str:
     return MIGRATION.read_text(encoding="utf-8")
 
 
-def test_object_candidate_exposure_is_key_intersection_not_demand_profile_product() -> None:
+def test_object_candidate_exposure_is_key_intersection_not_demand_profile_product() -> (
+    None
+):
     source = _source()
 
     assert (
@@ -51,7 +53,9 @@ def test_constraint_fibre_parity_is_fail_closed_before_indexed_execution() -> No
     assert "object-demand constraint fibre disagrees" in source
 
 
-def test_recency_scoring_and_candidate_coordinates_remain_the_migration_062_semantics() -> None:
+def test_recency_scoring_and_candidate_coordinates_remain_the_migration_062_semantics() -> (
+    None
+):
     source = _source()
 
     assert "abs(demand.demand_position - profile.last_end_char)" in source
@@ -77,7 +81,9 @@ def test_zero_constraint_demand_keeps_explicit_wildcard_semantics() -> None:
     assert "WHERE required.demand_id IS NULL" in source
 
 
-def test_migration_patches_only_recognised_object_candidate_cte_and_fails_closed() -> None:
+def test_migration_patches_only_recognised_object_candidate_cte_and_fails_closed() -> (
+    None
+):
     source = _source()
 
     assert "procedure.prosrc" in source
@@ -88,5 +94,7 @@ def test_migration_patches_only_recognised_object_candidate_cte_and_fails_closed
     assert "demand.expected_object_kind_symbol_id IS NULL" in source
     assert "demand.lexical_symbol_id = object.head_symbol_id" in source
     assert "demand.lexical_symbol_id = profile.predicate_symbol_id" in source
-    assert "refuses to replace an unrecognised object-candidate implementation" in source
+    assert (
+        "refuses to replace an unrecognised object-candidate implementation" in source
+    )
     assert "indexed_numeric_pnf_object_candidate_rows" in source
