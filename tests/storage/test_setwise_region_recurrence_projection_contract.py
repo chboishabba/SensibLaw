@@ -2,17 +2,24 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-MIGRATION = ROOT / "database/postgres_migrations/177_setwise_region_recurrence_projection.sql"
+MIGRATION = (
+    ROOT / "database/postgres_migrations/177_setwise_region_recurrence_projection.sql"
+)
 
 
 def _source() -> str:
     return MIGRATION.read_text(encoding="utf-8")
 
 
-def test_recurrence_projection_replaces_per_candidate_loop_with_setwise_grouping() -> None:
+def test_recurrence_projection_replaces_per_candidate_loop_with_setwise_grouping() -> (
+    None
+):
     source = _source()
 
-    assert "CREATE OR REPLACE FUNCTION execution.derive_numeric_region_recurrence()" in source
+    assert (
+        "CREATE OR REPLACE FUNCTION execution.derive_numeric_region_recurrence()"
+        in source
+    )
     assert "FOR candidate IN" not in source
     assert "WITH RECURSIVE descendants(region_id) AS MATERIALIZED" in source
     assert "GROUP BY mention.head_symbol_id" in source
