@@ -87,6 +87,11 @@ def test_migration_patches_only_recognised_object_candidate_cte_and_fails_closed
     source = _source()
 
     assert "procedure.prosrc" in source
+    assert "rebuild_numeric_pnf_parent_frontier_canonical" in source
+    assert (
+        "CREATE OR REPLACE FUNCTION execution.rebuild_numeric_pnf_parent_frontier_canonical("
+        in source
+    )
     assert "object_candidate AS (" in source
     assert "factor_candidate AS (" in source
     assert "old_object_block" in source

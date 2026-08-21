@@ -64,6 +64,11 @@ def test_parent_reducer_patch_replaces_only_recognised_correlated_retention_bloc
     source = _source()
 
     assert "procedure.prosrc" in source
+    assert "rebuild_numeric_pnf_parent_frontier_canonical" in source
+    assert (
+        "CREATE OR REPLACE FUNCTION execution.rebuild_numeric_pnf_parent_frontier_canonical("
+        in source
+    )
     assert "DELETE FROM execution.semantic_pnf_actor_profile AS profile" in source
     assert "indexed_numeric_pnf_demanded_actor_profiles" in source
     assert "JOIN execution.semantic_pnf_interface_export AS demand_export" in source

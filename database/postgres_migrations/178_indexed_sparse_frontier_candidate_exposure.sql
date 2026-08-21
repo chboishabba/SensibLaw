@@ -305,13 +305,13 @@ BEGIN
       JOIN pg_namespace AS namespace
         ON namespace.oid = procedure.pronamespace
      WHERE namespace.nspname = 'execution'
-       AND procedure.proname = 'rebuild_numeric_pnf_parent_frontier'
+       AND procedure.proname = 'rebuild_numeric_pnf_parent_frontier_canonical'
        AND procedure.pronargs = 1
        AND procedure.proargtypes[0] = 'int8'::regtype::oid;
 
     IF source_body IS NULL THEN
         RAISE EXCEPTION
-            'migration 178 cannot find execution.rebuild_numeric_pnf_parent_frontier(bigint)';
+            'migration 178 cannot find execution.rebuild_numeric_pnf_parent_frontier_canonical(bigint)';
     END IF;
 
     IF strpos(
@@ -358,7 +358,7 @@ BEGIN
         || substr(source_body, factor_start);
 
     EXECUTE
-        'CREATE OR REPLACE FUNCTION execution.rebuild_numeric_pnf_parent_frontier('
+        'CREATE OR REPLACE FUNCTION execution.rebuild_numeric_pnf_parent_frontier_canonical('
         || 'selected_interface_id BIGINT) '
         || 'RETURNS TABLE ('
         || 'output_export_count BIGINT, '
