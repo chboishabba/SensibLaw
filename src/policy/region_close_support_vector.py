@@ -192,7 +192,7 @@ def capture_region_close_support_vector(
         "document_sentence_region_count": values[2],
         "document_adjacent_region_count": values[3],
         "document_interface_count": values[4],
-        "document_demand_count": values[5],
+        "document_region_anchored_demand_count": values[5],
         "document_mention_count": values[6],
         "same_parent_closed_sibling_count": values[7],
         "local_token_count": values[8],
