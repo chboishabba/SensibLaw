@@ -1,14 +1,19 @@
 """Diagnostic-only EXPLAIN of genuine numeric parser-token authority INSERTs.
 
 This probe observes the real first-write token admission inside the existing
-parser partition transaction.  It never disables constraints, triggers or
-indexes.  Selected token COPY batches execute their canonical
+parser partition transaction. It never disables constraints, triggers or
+indexes. Selected token COPY batches execute their canonical
 ``INSERT .. SELECT .. ON CONFLICT DO NOTHING`` under ``EXPLAIN ANALYZE`` and
 record the exact token-table constraint/index/trigger inventory that was active.
 
 Installation must precede ``numeric_parser_projection_hot_path`` so the latter's
 producer-complete enrichment still flows through this wrapper with final
 ``sentence_id``, ``token_id`` and ``head_token_id`` coordinates present.
+
+When the runtime requests ``RETURNING`` as an exact fresh-admission witness,
+EXPLAIN itself suppresses query result rows. The diagnostic reconstructs only
+rows inserted by the current transaction using PostgreSQL's ``xmin`` identity;
+this preserves fresh-vs-replay control flow without replaying the INSERT.
 """
 
 from __future__ import annotations
@@ -23,7 +28,7 @@ from typing import Any, Iterable, Mapping, Sequence
 from src.storage.postgres.region_close_trigger_probe import plan_metrics
 
 
-LIVE_TOKEN_INSERT_EXPLAIN_REF = "sensiblaw.live-token-insert-explain.v0_1"
+LIVE_TOKEN_INSERT_EXPLAIN_REF = "sensiblaw.live-token-insert-explain.v0_2"
 _ORDINAL_ENV = "SENSIBLAW_TOKEN_INSERT_EXPLAIN_ORDINALS"
 _OUTPUT_ENV = "SENSIBLAW_TOKEN_INSERT_EXPLAIN_OUTPUT"
 _INSTALL_MARKER = "_live_token_insert_explain_installed"
@@ -48,6 +53,14 @@ def _is_token_insert(query: Any) -> bool:
         compact.startswith("insert into execution.semantic_parser_token (")
         and " from tmp_parser_token on conflict do nothing" in compact
     )
+
+
+def _returning_columns(query: Any) -> str | None:
+    compact = _compact_sql(query)
+    marker = " returning "
+    if marker not in compact:
+        return None
+    return compact.rsplit(marker, 1)[1].strip()
 
 
 def _constraint_inventory(cursor: Any) -> list[dict[str, Any]]:
@@ -110,9 +123,6 @@ def _index_inventory(cursor: Any) -> list[dict[str, Any]]:
 
 
 def _trigger_inventory(cursor: Any) -> list[dict[str, Any]]:
-    # Internal triggers are intentionally included: PostgreSQL implements FK
-    # enforcement through internal RI triggers, which is precisely part of the
-    # physical fan-out this diagnostic is intended to attribute.
     cursor.execute(
         """
         SELECT trg.tgname,
@@ -169,6 +179,7 @@ class _TokenInsertExplainCursor:
     def __init__(self, cursor: Any, capture: _TokenInsertCapture) -> None:
         self._cursor = cursor
         self._capture = capture
+        self._pending_returning: tuple[tuple[Any, ...], ...] | None = None
 
     def execute(self, query: Any, params: Any = None, *args: Any, **kwargs: Any) -> Any:
         if _is_token_insert(query):
@@ -176,6 +187,7 @@ class _TokenInsertExplainCursor:
                 raise RuntimeError(
                     "selected token batch attempted duplicate authority INSERT"
                 )
+            returning = _returning_columns(query)
             self._cursor.execute(
                 "EXPLAIN (ANALYZE, BUFFERS, WAL, VERBOSE, SETTINGS, FORMAT JSON) "
                 + query,
@@ -187,9 +199,30 @@ class _TokenInsertExplainCursor:
             if row is None:
                 raise RuntimeError("token INSERT EXPLAIN returned no plan")
             self._capture.raw_plan = row[0]
+            if returning:
+                # EXPLAIN ANALYZE executes the real INSERT but suppresses its
+                # RETURNING rows. xmin identifies tuples created by this exact
+                # transaction, so conflict/replay tuples remain excluded.
+                self._cursor.execute(
+                    f"SELECT {returning} "
+                    "FROM execution.semantic_parser_token "
+                    "WHERE token_ref IN (SELECT token_ref FROM tmp_parser_token) "
+                    "AND xmin::text::bigint = txid_current() "
+                    "ORDER BY token_ref"
+                )
+                self._pending_returning = tuple(
+                    tuple(value) for value in self._cursor.fetchall()
+                )
             return self
         self._cursor.execute(query, params, *args, **kwargs)
         return self
+
+    def fetchall(self) -> list[Any]:
+        if self._pending_returning is not None:
+            result = list(self._pending_returning)
+            self._pending_returning = None
+            return result
+        return self._cursor.fetchall()
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._cursor, name)
@@ -276,7 +309,8 @@ def install_live_token_insert_explain() -> bool:
                 "transaction_semantics": (
                     "EXPLAIN ANALYZE executed the genuine first-write token INSERT "
                     "with all active constraints/indexes/triggers inside the original "
-                    "parser partition transaction"
+                    "parser partition transaction; RETURNING freshness is reconstructed "
+                    "only from current-transaction xmin when requested"
                 ),
             },
         )
@@ -287,4 +321,7 @@ def install_live_token_insert_explain() -> bool:
     return True
 
 
-__all__ = ["LIVE_TOKEN_INSERT_EXPLAIN_REF", "install_live_token_insert_explain"]
+__all__ = [
+    "LIVE_TOKEN_INSERT_EXPLAIN_REF",
+    "install_live_token_insert_explain",
+]
