@@ -17,11 +17,10 @@ def test_producer_complete_path_inserts_final_numeric_head_on_first_write() -> N
     source = POLICY.read_text(encoding="utf-8")
 
     assert "numeric_parser_producer_complete_heads_ready" in source
-    assert "_allocate_missing_token_ids" in source
-    assert '"token_id",\n                    "head_token_id"' in source
-    assert (
-        "producer-complete numeric token authority failed exact head parity" in source
-    )
+    assert "_allocate_provisional_token_ids" in source
+    assert '"token_id",\n                "head_token_id"' in source
+    assert "returning=_RETURNING_COLUMNS" in source
+    assert "numeric token replay conflicts with producer-complete authority" in source
     assert "_SETWISE_HEADS_READY.set(True)" in source
 
 
@@ -56,4 +55,14 @@ def test_direct_path_keeps_canonical_python_dependency_validation() -> None:
 
     assert "updates = original_project_heads(*args, **kwargs)" in source
     assert "producer-complete dependency head is absent from its sentence" in source
+    assert "final replay-aware dependency head is absent from its sentence" in source
     assert "ambiguous sentence-local span" in source
+
+
+def test_fresh_and_replay_paths_have_distinct_evidence_obligations() -> None:
+    source = POLICY.read_text(encoding="utf-8")
+
+    assert "fresh_by_ref" in source
+    assert "replay_refs = tuple(" in source
+    assert "Only conflict/replay rows require persistent equality evidence" in source
+    assert "ORDER BY token_ref FOR KEY SHARE" in source
