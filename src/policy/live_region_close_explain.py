@@ -10,8 +10,11 @@ bypass, or alternate semantic authority is introduced.
 The selector has one fsynced, run-scoped ordinal ledger shared by every Python
 process in the diagnostic.  A strict serial *worker* configuration can still
 create more than one process over the life of a run, so a process-local counter
-would silently duplicate ordinal strata.  No instrumentation is installed
-unless ``SENSIBLAW_REGION_CLOSE_EXPLAIN_ORDINALS`` is explicitly set.
+would silently duplicate ordinal strata.  Selected closes also record a compact
+pre-close semantic support vector so cost can be compared with local fibre/
+boundary population instead of treating ordinal as the semantic state variable.
+No instrumentation is installed unless
+``SENSIBLAW_REGION_CLOSE_EXPLAIN_ORDINALS`` is explicitly set.
 """
 
 from __future__ import annotations
@@ -24,10 +27,11 @@ import os
 from pathlib import Path
 from typing import Any, Mapping
 
+from src.policy.region_close_support_vector import capture_region_close_support_vector
 from src.storage.postgres.region_close_trigger_probe import plan_metrics
 
 
-LIVE_REGION_CLOSE_EXPLAIN_REF = "sensiblaw.live-region-close-explain.v0_1"
+LIVE_REGION_CLOSE_EXPLAIN_REF = "sensiblaw.live-region-close-explain.v0_2"
 _ORDINAL_ENV = "SENSIBLAW_REGION_CLOSE_EXPLAIN_ORDINALS"
 _OUTPUT_ENV = "SENSIBLAW_REGION_CLOSE_EXPLAIN_OUTPUT"
 _STATE_ENV = "SENSIBLAW_REGION_CLOSE_EXPLAIN_STATE"
@@ -109,6 +113,7 @@ def _preclose_metadata(cursor: Any, *, work_id: int, region_id: int) -> dict[str
                region.document_ref,
                region.region_id,
                region.parent_region_id,
+               region.region_kind,
                region.start_char,
                region.end_char,
                region.sequence_no,
@@ -133,14 +138,15 @@ def _preclose_metadata(cursor: Any, *, work_id: int, region_id: int) -> dict[str
         "document_ref": str(row[1]),
         "region_id": int(row[2]),
         "parent_region_id": int(row[3]) if row[3] is not None else None,
-        "start_char": int(row[4]),
-        "end_char": int(row[5]),
-        "sequence_no": int(row[6]),
-        "closure_state": int(row[7]),
-        "graph_revision": int(row[8]),
-        "work_id": int(row[9]),
-        "work_state": int(row[10]),
-        "lease_epoch": int(row[11]),
+        "region_kind": int(row[4]),
+        "start_char": int(row[5]),
+        "end_char": int(row[6]),
+        "sequence_no": int(row[7]),
+        "closure_state": int(row[8]),
+        "graph_revision": int(row[9]),
+        "work_id": int(row[10]),
+        "work_state": int(row[11]),
+        "lease_epoch": int(row[12]),
     }
 
 
@@ -300,6 +306,10 @@ def install_live_region_close_explain() -> bool:
             work_id=int(lease.work_id),
             region_id=int(lease.region_id),
         )
+        support_vector = capture_region_close_support_vector(
+            cursor,
+            preclose=preclose,
+        )
         capture = _ExplainCapture(
             ordinal=ordinal,
             work_id=int(lease.work_id),
@@ -330,15 +340,17 @@ def install_live_region_close_explain() -> bool:
                     ),
                 },
                 "preclose": preclose,
+                "semantic_support_vector": support_vector,
                 "interface_id": int(interface_id),
                 "expected_graph_revision": capture.graph_revision,
                 "triggers": capture.triggers,
                 "metrics": plan_metrics(capture.raw_plan),
                 "plan": capture.raw_plan,
                 "transaction_semantics": (
-                    "EXPLAIN ANALYZE executed the genuine canonical close UPDATE and "
-                    "attached triggers inside the original sentence transaction; "
-                    "the JSONL record is fsynced before outer transaction commit"
+                    "support counts were observed before the close; EXPLAIN ANALYZE "
+                    "then executed the genuine canonical close UPDATE and attached "
+                    "triggers inside the original sentence transaction; the JSONL "
+                    "record is fsynced before outer transaction commit"
                 ),
                 "commit_confirmation": "not_observed_by_in_transaction_probe",
             },
