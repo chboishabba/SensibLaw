@@ -1,10 +1,15 @@
 """Typed COPY staging for the strict numeric PostgreSQL parser path.
 
-The temporary carrier is execution-only.  It copies exactly the requested
+The temporary carrier is execution-only. It copies exactly the requested
 column names/types from the authority table with ``WITH NO DATA`` and therefore
-does not inherit unrelated NOT NULL/default/constraint metadata.  This avoids
+does not inherit unrelated NOT NULL/default/constraint metadata. This avoids
 per-batch catalog inspection and temporary-table DDL repair while preserving the
 existing COPY -> INSERT ... ON CONFLICT DO NOTHING authority semantics.
+
+Callers that need an exact first-admission witness may request a bounded
+``RETURNING`` projection. Rows returned by PostgreSQL are precisely the rows
+inserted by this statement; conflict/replay rows are absent and therefore remain
+separate proof obligations.
 """
 
 from __future__ import annotations
@@ -27,16 +32,20 @@ def copy_numeric_rows(
     table: str,
     columns: Sequence[str],
     rows: Sequence[Sequence[Any]],
-) -> None:
+    returning: Sequence[str] | None = None,
+) -> tuple[tuple[Any, ...], ...] | None:
     """Bulk-admit bounded numeric rows through a constraint-free temp carrier."""
 
     if not rows:
-        return
+        return () if returning else None
     target = _sql_identifier(table)
     selected_columns = tuple(_sql_identifier(column) for column in columns)
     if not selected_columns:
         raise ValueError("numeric COPY requires at least one selected column")
 
+    returning_columns = (
+        tuple(_sql_identifier(column) for column in returning) if returning else ()
+    )
     temporary = _sql_identifier("tmp_" + target.removeprefix("semantic_"))
     column_sql = ", ".join(selected_columns)
     cursor.execute(
@@ -46,10 +55,16 @@ def copy_numeric_rows(
     with cursor.copy(f"COPY {temporary} ({column_sql}) FROM STDIN") as copy:
         for row in rows:
             copy.write_row(row)
-    cursor.execute(
+    query = (
         f"INSERT INTO execution.{target} ({column_sql}) "
         f"SELECT {column_sql} FROM {temporary} ON CONFLICT DO NOTHING"
     )
+    if returning_columns:
+        query += " RETURNING " + ", ".join(returning_columns)
+    cursor.execute(query)
+    if returning_columns:
+        return tuple(tuple(row) for row in cursor.fetchall())
+    return None
 
 
 __all__ = ["copy_numeric_rows"]
