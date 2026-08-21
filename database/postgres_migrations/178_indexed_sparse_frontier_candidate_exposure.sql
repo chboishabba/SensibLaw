@@ -56,25 +56,33 @@ BEGIN
                AND demand.expected_target_kind = 1
         ),
         expected_key AS (
-            SELECT demand_id, 1::SMALLINT AS key_kind,
-                   expected_factor_type_symbol_id AS key_a, 0::BIGINT AS key_b
+            SELECT parent_demand.demand_id,
+                   1::SMALLINT AS key_kind,
+                   parent_demand.expected_factor_type_symbol_id AS key_a,
+                   0::BIGINT AS key_b
               FROM parent_demand
-             WHERE expected_factor_type_symbol_id IS NOT NULL
+             WHERE parent_demand.expected_factor_type_symbol_id IS NOT NULL
             UNION ALL
-            SELECT demand_id, 2::SMALLINT,
-                   expected_object_kind_symbol_id, 0::BIGINT
+            SELECT parent_demand.demand_id,
+                   2::SMALLINT,
+                   parent_demand.expected_object_kind_symbol_id,
+                   0::BIGINT
               FROM parent_demand
-             WHERE expected_object_kind_symbol_id IS NOT NULL
+             WHERE parent_demand.expected_object_kind_symbol_id IS NOT NULL
             UNION ALL
-            SELECT demand_id, 3::SMALLINT,
-                   lexical_symbol_id, 0::BIGINT
+            SELECT parent_demand.demand_id,
+                   3::SMALLINT,
+                   parent_demand.lexical_symbol_id,
+                   0::BIGINT
               FROM parent_demand
-             WHERE lexical_symbol_id IS NOT NULL
+             WHERE parent_demand.lexical_symbol_id IS NOT NULL
             UNION ALL
-            SELECT demand_id, 4::SMALLINT,
-                   role_symbol_id, 0::BIGINT
+            SELECT parent_demand.demand_id,
+                   4::SMALLINT,
+                   parent_demand.role_symbol_id,
+                   0::BIGINT
               FROM parent_demand
-             WHERE role_symbol_id IS NOT NULL
+             WHERE parent_demand.role_symbol_id IS NOT NULL
         ),
         actual_key AS (
             SELECT constraint_row.demand_id,
