@@ -112,7 +112,9 @@ def main() -> int:
                 "local_anaphor_support": support.get("local_pronoun_token_count"),
                 "document_regions": support.get("document_region_count"),
                 "document_interfaces": support.get("document_interface_count"),
-                "document_demands": support.get("document_demand_count"),
+                "document_region_anchored_demands": support.get(
+                    "document_region_anchored_demand_count"
+                ),
                 "document_mentions": support.get("document_mention_count"),
             }
         else:
