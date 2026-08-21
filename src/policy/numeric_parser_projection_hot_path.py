@@ -5,16 +5,19 @@ first authority write. The hot path therefore keeps producer-known structure
 intact across the PostgreSQL boundary instead of throwing it away and asking row
 triggers to reconstruct or re-prove it.
 
-Migration 175 assigns/reuses final token ids and resolves dependency heads before
-COPY. Migration 176 generalises the same principle to the five numeric semantic
-symbol references and four annotation-origin references: the producer proves and
-KEY-SHARE locks the finite reference sets against their authority tables once,
-then advertises a capability around exactly one token INSERT so the generic
-set-wise fallback need not repeat the same membership proof after INSERT.
+Migration 175 writes final token/head identity on first admission. Migration 176
+certifies the bounded numeric symbol/origin reference fibre once. This layer now
+also separates *fresh authority admission* from *replay/conflict verification*:
+PostgreSQL ``RETURNING`` is the exact witness that a row was newly admitted by
+the current INSERT, while only token refs absent from RETURNING are reread and
+proved equal to the producer row. Fresh-only partitions therefore perform no
+persistent token-id allocation readback and no post-insert head-parity reread.
 
-Generic writers remain fail-closed. Legacy textual parser-symbol references,
-sentence/run/partition references, morph sets and self-head integrity are not
-covered by the migration-176 capability.
+A rare mixed fresh/replay partition is handled without weakening correctness:
+preallocated ids are replaced by the existing replay ids in the final dependency
+map, and only fresh rows whose heads cross into that replay fibre are repaired.
+Generic writers, legacy textual parser-symbol references, sentence/run/partition
+references, morph sets and self-head integrity remain fail-closed.
 """
 
 from __future__ import annotations
@@ -41,47 +44,36 @@ _ORIGIN_REFERENCE_COLUMNS = (
     "tag_origin_id",
     "dependency_origin_id",
 )
+_RETURNING_COLUMNS = (
+    "token_ref",
+    "token_id",
+    "sentence_id",
+    "start_char",
+    "end_char",
+    "head_token_id",
+)
 
 
-def _allocate_missing_token_ids(
-    cursor: Any,
-    *,
-    token_refs: tuple[str, ...],
-) -> dict[str, int]:
-    """Reuse existing ids and allocate final ids only for missing token refs."""
+def _allocate_provisional_token_ids(cursor: Any, *, count: int) -> tuple[int, ...]:
+    """Allocate producer ids without rereading the persistent token authority."""
 
+    if count < 1:
+        return ()
     cursor.execute(
         """
-        SELECT token_ref, token_id
-          FROM execution.semantic_parser_token
-         WHERE token_ref = ANY(%s)
-           AND representation_version = 2
+        SELECT nextval(
+                   pg_get_serial_sequence(
+                       'execution.semantic_parser_token', 'token_id'
+                   )::regclass
+               )
+          FROM generate_series(1, %s)
         """,
-        (list(token_refs),),
+        (count,),
     )
-    token_id_by_ref = {
-        str(token_ref): int(token_id) for token_ref, token_id in cursor.fetchall()
-    }
-    missing = tuple(ref for ref in token_refs if ref not in token_id_by_ref)
-    if missing:
-        cursor.execute(
-            """
-            SELECT nextval(
-                       pg_get_serial_sequence(
-                           'execution.semantic_parser_token', 'token_id'
-                       )::regclass
-                   )
-              FROM generate_series(1, %s)
-            """,
-            (len(missing),),
-        )
-        allocated = tuple(int(row[0]) for row in cursor.fetchall())
-        if len(allocated) != len(missing):
-            raise RuntimeError(
-                "numeric token id allocator returned the wrong cardinality"
-            )
-        token_id_by_ref.update(zip(missing, allocated, strict=True))
-    return token_id_by_ref
+    allocated = tuple(int(row[0]) for row in cursor.fetchall())
+    if len(allocated) != count:
+        raise RuntimeError("numeric token id allocator returned the wrong cardinality")
+    return allocated
 
 
 def _producer_certify_numeric_references(
@@ -155,6 +147,13 @@ def _set_producer_reference_capability(cursor: Any, enabled: bool) -> None:
     cursor.execute(
         "SELECT set_config("
         "'sensiblaw.producer_certified_numeric_references', %s, TRUE)",
+        ("on" if enabled else "off",),
+    )
+
+
+def _set_producer_head_capability(cursor: Any, enabled: bool) -> None:
+    cursor.execute(
+        "SELECT set_config('sensiblaw.producer_complete_numeric_heads', %s, TRUE)",
         ("on" if enabled else "off",),
     )
 
@@ -281,9 +280,12 @@ def install_numeric_parser_projection_hot_path() -> bool:
             )
 
         if has_producer_complete_heads:
-            token_id_by_ref = _allocate_missing_token_ids(
+            provisional_ids = _allocate_provisional_token_ids(
                 cursor,
-                token_refs=token_refs,
+                count=len(token_refs),
+            )
+            provisional_id_by_ref = dict(
+                zip(token_refs, provisional_ids, strict=True)
             )
             token_id_by_sentence_span: dict[tuple[int, int, int], int] = {}
             staged_rows: list[tuple[Any, ...]] = []
@@ -292,7 +294,7 @@ def install_numeric_parser_projection_hot_path() -> bool:
             for row in materialized:
                 sentence_id = sentence_id_by_ref[str(row[sentence_ref_index])]
                 token_ref = str(row[token_ref_index])
-                token_id = token_id_by_ref[token_ref]
+                token_id = provisional_id_by_ref[token_ref]
                 span_key = (
                     sentence_id,
                     int(row[start_char_index]),
@@ -318,57 +320,134 @@ def install_numeric_parser_projection_hot_path() -> bool:
                     )
                 staged_rows.append((*row, sentence_id, token_id, head_token_id))
 
-            cursor.execute(
-                "SELECT set_config("
-                "'sensiblaw.producer_complete_numeric_heads', 'on', TRUE)"
+            insert_columns = (
+                *column_tuple,
+                "sentence_id",
+                "token_id",
+                "head_token_id",
             )
+            _set_producer_head_capability(cursor, True)
             if has_producer_certified_references:
                 _set_producer_reference_capability(cursor, True)
-            result = original_copy_rows(
-                cursor,
-                table=table,
-                columns=(
-                    *column_tuple,
-                    "sentence_id",
-                    "token_id",
-                    "head_token_id",
-                ),
-                rows=tuple(staged_rows),
-                **kwargs,
-            )
-            if has_producer_certified_references:
-                _set_producer_reference_capability(cursor, False)
+            try:
+                returned = original_copy_rows(
+                    cursor,
+                    table=table,
+                    columns=insert_columns,
+                    rows=tuple(staged_rows),
+                    returning=_RETURNING_COLUMNS,
+                    **kwargs,
+                )
+            finally:
+                if has_producer_certified_references:
+                    _set_producer_reference_capability(cursor, False)
+                _set_producer_head_capability(cursor, False)
 
-            cursor.execute(
-                """
-                SELECT token_ref, token_id, head_token_id
-                  FROM execution.semantic_parser_token
-                 WHERE token_ref = ANY(%s)
-                   AND representation_version = 2
-                """,
-                (list(token_refs),),
-            )
-            persisted = {
-                str(token_ref): (int(token_id), int(head_token_id))
-                for token_ref, token_id, head_token_id in cursor.fetchall()
-                if head_token_id is not None
-            }
-            expected = {
-                str(row[token_ref_index]): (
+            fresh_rows = tuple(returned or ())
+            fresh_by_ref = {
+                str(token_ref): (
                     int(token_id),
+                    int(sentence_id),
+                    int(start_char),
+                    int(end_char),
                     int(head_token_id),
                 )
-                for row, token_id, head_token_id in (
-                    (staged[: len(column_tuple)], staged[-2], staged[-1])
-                    for staged in staged_rows
-                )
+                for (
+                    token_ref,
+                    token_id,
+                    sentence_id,
+                    start_char,
+                    end_char,
+                    head_token_id,
+                ) in fresh_rows
             }
-            if persisted != expected:
-                raise RuntimeError(
-                    "producer-complete numeric token authority failed exact head parity"
+            if len(fresh_by_ref) != len(fresh_rows):
+                raise RuntimeError("token INSERT RETURNING produced duplicate token refs")
+
+            replay_refs = tuple(
+                token_ref for token_ref in token_refs if token_ref not in fresh_by_ref
+            )
+            replay_by_ref: dict[str, tuple[Any, ...]] = {}
+            if replay_refs:
+                # Only conflict/replay rows require persistent equality evidence.
+                replay_column_sql = ", ".join(insert_columns)
+                cursor.execute(
+                    f"SELECT {replay_column_sql} "
+                    "FROM execution.semantic_parser_token "
+                    "WHERE token_ref = ANY(%s) AND representation_version = 2 "
+                    "ORDER BY token_ref FOR KEY SHARE",
+                    (list(replay_refs),),
                 )
+                replay_by_ref = {
+                    str(row[0]): tuple(row) for row in cursor.fetchall()
+                }
+                if tuple(sorted(replay_by_ref)) != tuple(sorted(replay_refs)):
+                    raise RuntimeError(
+                        "token replay fibre is missing an authoritative conflict row"
+                    )
+
+            final_id_by_ref = dict(provisional_id_by_ref)
+            for token_ref, row in replay_by_ref.items():
+                final_id_by_ref[token_ref] = int(row[-2])
+
+            final_id_by_span: dict[tuple[int, int, int], int] = {}
+            for row in materialized:
+                token_ref = str(row[token_ref_index])
+                sentence_id = sentence_id_by_ref[str(row[sentence_ref_index])]
+                final_id_by_span[
+                    (
+                        sentence_id,
+                        int(row[start_char_index]),
+                        int(row[end_char_index]),
+                    )
+                ] = final_id_by_ref[token_ref]
+
+            expected_by_ref: dict[str, tuple[Any, ...]] = {}
+            head_repairs: list[tuple[int, int]] = []
+            for row in materialized:
+                token_ref = str(row[token_ref_index])
+                sentence_id = sentence_id_by_ref[str(row[sentence_ref_index])]
+                token_id = final_id_by_ref[token_ref]
+                head_key = (
+                    sentence_id,
+                    int(row[head_start_index]),
+                    int(row[head_end_index]),
+                )
+                final_head_id = final_id_by_span.get(head_key)
+                if final_head_id is None:
+                    raise projection.NumericHeadProjectionError(
+                        "final replay-aware dependency head is absent from its sentence"
+                    )
+                expected_by_ref[token_ref] = (
+                    *row,
+                    sentence_id,
+                    token_id,
+                    final_head_id,
+                )
+                fresh = fresh_by_ref.get(token_ref)
+                if fresh is not None and fresh[-1] != final_head_id:
+                    head_repairs.append((final_head_id, token_id))
+
+            for token_ref, persisted in replay_by_ref.items():
+                expected = expected_by_ref[token_ref]
+                if persisted != expected:
+                    raise RuntimeError(
+                        "numeric token replay conflicts with producer-complete authority"
+                    )
+
+            if head_repairs:
+                # This path is proportional only to fresh->replay dependency edges.
+                cursor.executemany(
+                    """
+                    UPDATE execution.semantic_parser_token
+                       SET head_token_id = %s
+                     WHERE token_id = %s
+                    """,
+                    tuple(head_repairs),
+                )
+
             _SETWISE_HEADS_READY.set(True)
-            return result
+            return fresh_rows
 
         enriched_rows = tuple(
             (*row, sentence_id_by_ref[str(row[sentence_ref_index])])
@@ -376,15 +455,17 @@ def install_numeric_parser_projection_hot_path() -> bool:
         )
         if has_producer_certified_references:
             _set_producer_reference_capability(cursor, True)
-        result = original_copy_rows(
-            cursor,
-            table=table,
-            columns=(*column_tuple, "sentence_id"),
-            rows=enriched_rows,
-            **kwargs,
-        )
-        if has_producer_certified_references:
-            _set_producer_reference_capability(cursor, False)
+        try:
+            result = original_copy_rows(
+                cursor,
+                table=table,
+                columns=(*column_tuple, "sentence_id"),
+                rows=enriched_rows,
+                **kwargs,
+            )
+        finally:
+            if has_producer_certified_references:
+                _set_producer_reference_capability(cursor, False)
 
         if has_setwise_head_projection:
             cursor.execute(
@@ -408,6 +489,8 @@ def install_numeric_parser_projection_hot_path() -> bool:
 
     @wraps(original_project_heads)
     def project_heads(*args: Any, **kwargs: Any):
+        # Canonical parser validation still executes using the authority rows
+        # loaded by the base writer. Only its physical UPDATE payload is skipped.
         updates = original_project_heads(*args, **kwargs)
         if _SETWISE_HEADS_READY.get():
             _SETWISE_HEADS_READY.set(False)
