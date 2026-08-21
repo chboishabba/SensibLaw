@@ -82,6 +82,9 @@ def install_closure_hot_path_execution() -> bool:
     from src.policy.direct_process_closure_execution import (
         install_direct_process_closure_execution,
     )
+    from src.policy.live_hierarchy_close_attribution import (
+        install_live_hierarchy_close_attribution,
+    )
     from src.policy.live_region_close_explain import install_live_region_close_explain
     from src.policy.live_token_insert_explain import install_live_token_insert_explain
     from src.policy.numeric_parser_projection_hot_path import (
@@ -149,6 +152,9 @@ def install_closure_hot_path_execution() -> bool:
 
     install_reusable_numeric_sentence_staging()
     install_live_region_close_explain()
+    # Parent hierarchy closes use a separate store seam from sentence admission.
+    # The diagnostic wrapper is inert unless its RegionKind selector is enabled.
+    install_live_hierarchy_close_attribution()
     install_bounded_sentence_batch_leasing()
     install_producer_native_sentence_provenance()
 
