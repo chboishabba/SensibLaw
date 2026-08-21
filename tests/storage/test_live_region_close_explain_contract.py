@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import json
+
+import pytest
+
 from src.policy.live_region_close_explain import (
     _ExplainCapture,
     _RegionCloseExplainCursor,
+    _global_close_ordinal,
     _is_region_close_update,
     _parse_ordinals,
 )
@@ -90,3 +95,24 @@ def test_non_close_sql_passes_through_unchanged() -> None:
     cursor.execute("SELECT 1", None)
 
     assert base.executed == [("SELECT 1", None)]
+
+
+def test_global_ordinal_survives_a_new_process_counter(tmp_path) -> None:
+    state = tmp_path / "ordinal-state.json"
+    ordinals = (512, 1024, 2048)
+
+    assert _global_close_ordinal(state_path=state, ordinals=ordinals) == 1
+    assert _global_close_ordinal(state_path=state, ordinals=ordinals) == 2
+    assert json.loads(state.read_text()) == {
+        "configured_ordinals": [512, 1024, 2048],
+        "contract_ref": "sensiblaw.live-region-close-explain-ordinal-state.v0_1",
+        "last_reserved_ordinal": 2,
+    }
+
+
+def test_global_ordinal_refuses_state_from_another_diagnostic(tmp_path) -> None:
+    state = tmp_path / "ordinal-state.json"
+    _global_close_ordinal(state_path=state, ordinals=(512,))
+
+    with pytest.raises(RuntimeError, match="belongs to another diagnostic"):
+        _global_close_ordinal(state_path=state, ordinals=(1024,))

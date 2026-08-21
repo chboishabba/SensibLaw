@@ -21,7 +21,7 @@ export SENSIBLAW_REGION_CLOSE_EXPLAIN_OUTPUT="$PWD/.tmp/live-region-close-explai
 
 When configured, the closure hot-path installer wraps the canonical
 `persist_sentence_closure_setwise` before bounded sentence leasing captures it.
-For each selected process-local sentence-close ordinal, the canonical SQL
+For each selected run-scoped sentence-close ordinal, the canonical SQL
 
 ```sql
 UPDATE execution.semantic_pnf_region
@@ -53,10 +53,13 @@ The selected record additionally contains the exact `pg_trigger` inventory and
 
 ## Ordinal semantics
 
-The close ordinal is deliberately process-local.  This probe is intended for the
-strict serial acceptance configuration (`--closure-workers 1`).  It must not be
-used to compare ordinal strata under multiple closure workers, because each
-process would have its own counter.
+The close ordinal is stored in an fsynced diagnostic ledger shared by all Python
+processes in the run.  This matters even with `--closure-workers 1`: the strict
+executor can create replacement processes over the lifetime of one diagnostic.
+The prefix wrapper resets that ledger before launch and fails the diagnostic if
+the observed record ordinals are not exactly the requested sequence.  The probe
+remains serial-only: multiple concurrent closers would make ordinal order a
+schedule artefact rather than a stable accumulated-state stratum.
 
 The suggested `100,6355,12600` positions sample early/middle/late closure for the
 12,710-sentence GWB workload.  They test whether close cost grows with accumulated

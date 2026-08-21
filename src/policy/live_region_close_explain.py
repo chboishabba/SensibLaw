@@ -7,16 +7,18 @@ instruments selected *real* closes while they are happening.  PostgreSQL
 the existing sentence transaction, so no transaction split, fake reopen, trigger
 bypass, or alternate semantic authority is introduced.
 
-The selector is intentionally process-local.  It is designed for the strict
-serial diagnostic run (one closure worker) used by the acceptance harness.  No
-instrumentation is installed unless ``SENSIBLAW_REGION_CLOSE_EXPLAIN_ORDINALS``
-is explicitly set.
+The selector has one fsynced, run-scoped ordinal ledger shared by every Python
+process in the diagnostic.  A strict serial *worker* configuration can still
+create more than one process over the life of a run, so a process-local counter
+would silently duplicate ordinal strata.  No instrumentation is installed
+unless ``SENSIBLAW_REGION_CLOSE_EXPLAIN_ORDINALS`` is explicitly set.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+import fcntl
 import json
 import os
 from pathlib import Path
@@ -28,7 +30,9 @@ from src.storage.postgres.region_close_trigger_probe import plan_metrics
 LIVE_REGION_CLOSE_EXPLAIN_REF = "sensiblaw.live-region-close-explain.v0_1"
 _ORDINAL_ENV = "SENSIBLAW_REGION_CLOSE_EXPLAIN_ORDINALS"
 _OUTPUT_ENV = "SENSIBLAW_REGION_CLOSE_EXPLAIN_OUTPUT"
+_STATE_ENV = "SENSIBLAW_REGION_CLOSE_EXPLAIN_STATE"
 _INSTALL_MARKER = "_live_region_close_explain_installed"
+_ORDINAL_STATE_REF = "sensiblaw.live-region-close-explain-ordinal-state.v0_1"
 
 
 def _parse_ordinals(raw: str) -> tuple[int, ...]:
@@ -153,6 +157,59 @@ def _append_jsonl(path: Path, record: Mapping[str, Any]) -> None:
         os.close(descriptor)
 
 
+def _global_close_ordinal(*, state_path: Path, ordinals: tuple[int, ...]) -> int:
+    """Reserve one diagnostic ordinal across all run processes.
+
+    The reservation deliberately happens before the selected close executes.
+    If that transaction subsequently fails, the requested ordinal will be
+    absent from the receipt and the prefix runner rejects the diagnostic rather
+    than mislabelling a later close as the selected transition.
+    """
+
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor = os.open(state_path, os.O_RDWR | os.O_CREAT, 0o600)
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        os.lseek(descriptor, 0, os.SEEK_SET)
+        raw = os.read(descriptor, 65_536)
+        if raw:
+            try:
+                state = json.loads(raw.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError) as error:
+                raise RuntimeError(
+                    "live region-close ordinal state is unreadable"
+                ) from error
+            if state.get("contract_ref") != _ORDINAL_STATE_REF or state.get(
+                "configured_ordinals"
+            ) != list(ordinals):
+                raise RuntimeError(
+                    "live region-close ordinal state belongs to another diagnostic"
+                )
+            previous = state.get("last_reserved_ordinal")
+            if not isinstance(previous, int) or previous < 0:
+                raise RuntimeError("live region-close ordinal state is invalid")
+        else:
+            previous = 0
+        ordinal = previous + 1
+        payload = json.dumps(
+            {
+                "contract_ref": _ORDINAL_STATE_REF,
+                "configured_ordinals": list(ordinals),
+                "last_reserved_ordinal": ordinal,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        os.lseek(descriptor, 0, os.SEEK_SET)
+        os.ftruncate(descriptor, 0)
+        os.write(descriptor, payload)
+        os.fsync(descriptor)
+        return ordinal
+    finally:
+        fcntl.flock(descriptor, fcntl.LOCK_UN)
+        os.close(descriptor)
+
+
 @dataclass(slots=True)
 class _ExplainCapture:
     ordinal: int
@@ -213,6 +270,12 @@ def install_live_region_close_explain() -> bool:
     if not output_raw:
         raise ValueError(f"{_OUTPUT_ENV} is required when {_ORDINAL_ENV} is enabled")
     output = Path(output_raw)
+    state_raw = os.environ.get(_STATE_ENV, "").strip()
+    state = (
+        Path(state_raw)
+        if state_raw
+        else output.with_name(f"{output.name}.ordinal-state.json")
+    )
 
     from src.storage.postgres import numeric_sentence_admission as admission
 
@@ -220,7 +283,6 @@ def install_live_region_close_explain() -> bool:
         return False
     original = admission.persist_sentence_closure_setwise
     ordinal_set = frozenset(ordinals)
-    close_ordinal = 0
 
     def persist_sentence_closure_setwise(
         cursor: Any,
@@ -229,9 +291,7 @@ def install_live_region_close_explain() -> bool:
         closure: Any,
         profile: Any,
     ) -> int:
-        nonlocal close_ordinal
-        close_ordinal += 1
-        ordinal = close_ordinal
+        ordinal = _global_close_ordinal(state_path=state, ordinals=ordinals)
         if ordinal not in ordinal_set:
             return original(cursor, lease=lease, closure=closure, profile=profile)
 
@@ -264,8 +324,9 @@ def install_live_region_close_explain() -> bool:
                     "close_ordinal": ordinal,
                     "configured_ordinals": list(ordinals),
                     "semantics": (
-                        "process-local close ordinal; intended for strict serial "
-                        "closure-workers=1 diagnostic runs"
+                        "run-scoped close ordinal shared by all diagnostic "
+                        "processes; intended for strict serial closure-workers=1 "
+                        "runs"
                     ),
                 },
                 "preclose": preclose,

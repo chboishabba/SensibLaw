@@ -105,6 +105,26 @@ def test_prefix_runner_allows_an_undistorted_profile_without_explain() -> None:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
 
-    assert module._parse_explain_request(None, None, stop_after=512) is None
+    assert module._paired_request(None, None, label="--explain") is None
     with pytest.raises(ValueError, match="supplied together"):
-        module._parse_explain_request("128", None, stop_after=512)
+        module._paired_request("128", None, label="--explain")
+
+
+def test_prefix_runner_rejects_missing_or_duplicate_close_explain_ordinals(
+    tmp_path: Path,
+) -> None:
+    script = Path("scripts/run_numeric_prefix_close_diagnostic.py")
+    spec = importlib.util.spec_from_file_location("prefix_runner", script)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    receipt = tmp_path / "close.jsonl"
+    receipt.write_text(
+        "\n".join(
+            json.dumps({"selection": {"close_ordinal": value}})
+            for value in (512, 512, 1024)
+        )
+        + "\n"
+    )
+
+    assert module._observed_close_explain_ordinals(receipt) == (512, 512, 1024)

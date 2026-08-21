@@ -62,6 +62,23 @@ def _load_last_prefix_receipt(path: Path) -> dict[str, Any] | None:
     return records[-1] if records else None
 
 
+def _observed_close_explain_ordinals(path: Path | None) -> tuple[int, ...]:
+    if path is None or not path.exists():
+        return ()
+    values: list[int] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        record = json.loads(line)
+        try:
+            values.append(int(record["selection"]["close_ordinal"]))
+        except (KeyError, TypeError, ValueError) as error:
+            raise RuntimeError(
+                "live region-close EXPLAIN receipt is malformed"
+            ) from error
+    return tuple(values)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--stop-after", type=int, required=True)
@@ -104,9 +121,15 @@ def main() -> int:
     if not command:
         parser.error("a child command is required after --")
 
+    close_state_output = (
+        args.explain_output.with_name(f"{args.explain_output.name}.ordinal-state.json")
+        if args.explain_output is not None
+        else None
+    )
     output_paths = (
         args.prefix_output,
         args.explain_output,
+        close_state_output,
         args.token_explain_output,
         args.summary_output,
     )
@@ -125,6 +148,7 @@ def main() -> int:
             str(value) for value in close_ordinals
         )
         environment["SENSIBLAW_REGION_CLOSE_EXPLAIN_OUTPUT"] = str(args.explain_output)
+        environment["SENSIBLAW_REGION_CLOSE_EXPLAIN_STATE"] = str(close_state_output)
     if token_ordinals is not None:
         environment["SENSIBLAW_TOKEN_INSERT_EXPLAIN_ORDINALS"] = ",".join(
             str(value) for value in token_ordinals
@@ -135,10 +159,15 @@ def main() -> int:
 
     completed = subprocess.run(command, cwd=ROOT, env=environment, check=False)
     prefix = _load_last_prefix_receipt(args.prefix_output)
+    observed_close_ordinals = _observed_close_explain_ordinals(args.explain_output)
+    close_explain_exact = (
+        close_ordinals is None or observed_close_ordinals == close_ordinals
+    )
     diagnostic_complete = bool(
         prefix
         and prefix.get("contract_ref") == PREFIX_CLOSE_DIAGNOSTIC_REF
         and int(prefix.get("committed_sentence_closes", 0)) >= args.stop_after
+        and close_explain_exact
     )
     summary = {
         "contract_ref": "sensiblaw.numeric-prefix-close-run.v0_2",
@@ -146,6 +175,8 @@ def main() -> int:
         "child_returncode": completed.returncode,
         "stop_after_committed": args.stop_after,
         "close_explain_ordinals": list(close_ordinals or ()),
+        "observed_close_explain_ordinals": list(observed_close_ordinals),
+        "close_explain_exact": close_explain_exact,
         "close_explain_output": str(args.explain_output)
         if args.explain_output
         else None,
