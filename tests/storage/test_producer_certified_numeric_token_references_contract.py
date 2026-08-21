@@ -97,12 +97,16 @@ def test_strict_producer_certifies_bounded_reference_sets_before_capability() ->
 def test_producer_capability_is_scoped_to_exactly_the_token_insert() -> None:
     source = POLICY.read_text(encoding="utf-8")
 
-    assert "_set_producer_reference_capability(cursor, True)" in source
-    assert "_set_producer_reference_capability(cursor, False)" in source
-    assert source.index(
+    # The producer-complete branch owns the current authority INSERT.  Keep
+    # this contract scoped to that branch: the legacy fallback has its own
+    # capability boundary later in the source file.
+    fresh_path = source[source.index("if has_producer_complete_heads:") :]
+    assert "_set_producer_reference_capability(cursor, True)" in fresh_path
+    assert "_set_producer_reference_capability(cursor, False)" in fresh_path
+    assert fresh_path.index(
         "_set_producer_reference_capability(cursor, True)"
-    ) < source.index("result = original_copy_rows(")
-    assert source.index("result = original_copy_rows(") < source.index(
+    ) < fresh_path.index("returned = original_copy_rows(")
+    assert fresh_path.index("returned = original_copy_rows(") < fresh_path.index(
         "_set_producer_reference_capability(cursor, False)"
     )
 

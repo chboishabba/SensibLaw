@@ -284,9 +284,7 @@ def install_numeric_parser_projection_hot_path() -> bool:
                 cursor,
                 count=len(token_refs),
             )
-            provisional_id_by_ref = dict(
-                zip(token_refs, provisional_ids, strict=True)
-            )
+            provisional_id_by_ref = dict(zip(token_refs, provisional_ids, strict=True))
             token_id_by_sentence_span: dict[tuple[int, int, int], int] = {}
             staged_rows: list[tuple[Any, ...]] = []
             staged_base: list[tuple[tuple[Any, ...], int, int]] = []
@@ -362,7 +360,9 @@ def install_numeric_parser_projection_hot_path() -> bool:
                 ) in fresh_rows
             }
             if len(fresh_by_ref) != len(fresh_rows):
-                raise RuntimeError("token INSERT RETURNING produced duplicate token refs")
+                raise RuntimeError(
+                    "token INSERT RETURNING produced duplicate token refs"
+                )
 
             replay_refs = tuple(
                 token_ref for token_ref in token_refs if token_ref not in fresh_by_ref
@@ -378,9 +378,7 @@ def install_numeric_parser_projection_hot_path() -> bool:
                     "ORDER BY token_ref FOR KEY SHARE",
                     (list(replay_refs),),
                 )
-                replay_by_ref = {
-                    str(row[0]): tuple(row) for row in cursor.fetchall()
-                }
+                replay_by_ref = {str(row[0]): tuple(row) for row in cursor.fetchall()}
                 if tuple(sorted(replay_by_ref)) != tuple(sorted(replay_refs)):
                     raise RuntimeError(
                         "token replay fibre is missing an authoritative conflict row"

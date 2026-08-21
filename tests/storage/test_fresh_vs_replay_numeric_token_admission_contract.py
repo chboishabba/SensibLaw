@@ -23,7 +23,10 @@ def test_fresh_path_allocates_without_persistent_token_id_readback() -> None:
 
     assert "_allocate_provisional_token_ids" in source
     assert "FROM generate_series(1, %s)" in source
-    assert "SELECT token_ref, token_id\n          FROM execution.semantic_parser_token" not in source
+    assert (
+        "SELECT token_ref, token_id\n          FROM execution.semantic_parser_token"
+        not in source
+    )
     assert "returning=_RETURNING_COLUMNS" in source
 
 
