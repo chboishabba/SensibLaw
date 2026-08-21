@@ -78,7 +78,7 @@ def summarize(records: list[dict[str, Any]], *, top_statements: int) -> dict[str
             "close execution time is the genuine EXPLAINed region UPDATE; nested "
             "statement deltas cover the complete selected parent-close call and can "
             "overlap by inclusive PL/pgSQL/SPI attribution, so they are diagnostic "
-            "rankings rather than an additive wall-time decomposition"
+            "rankings; they are not an additive wall-time decomposition"
         ),
     }
 
