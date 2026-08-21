@@ -180,7 +180,9 @@ def capture_region_close_support_vector(
     )
     row = cursor.fetchone()
     if row is None or len(row) != 15:
-        raise RuntimeError("region-close support probe returned an invalid carrier vector")
+        raise RuntimeError(
+            "region-close support probe returned an invalid carrier vector"
+        )
 
     values = tuple(int(value) for value in row)
     left_available = int(values[13] > 0)

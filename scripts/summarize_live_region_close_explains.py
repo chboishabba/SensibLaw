@@ -138,7 +138,9 @@ def main() -> int:
         "missing_ordinals": missing,
         "record_count": len(records),
         "support_vector_record_count": sum(
-            1 for record in records if isinstance(record.get("semantic_support_vector"), dict)
+            1
+            for record in records
+            if isinstance(record.get("semantic_support_vector"), dict)
         ),
         "support_semantics": (
             "close ordinal is a selector only; compare trigger time against local "
