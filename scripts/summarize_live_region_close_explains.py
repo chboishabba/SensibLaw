@@ -91,18 +91,32 @@ def main() -> int:
     summaries: list[dict[str, Any]] = []
     for record in records:
         preclose = record.get("preclose", {})
+        support = record.get("semantic_support_vector")
         summary = {
             "close_ordinal": int(record.get("selection", {}).get("close_ordinal", 0)),
             "region_id": preclose.get("region_id"),
             "work_id": preclose.get("work_id"),
+            "region_kind": preclose.get("region_kind"),
             "start_char": preclose.get("start_char"),
             "end_char": preclose.get("end_char"),
+            "semantic_support_vector": support,
             "metrics": record.get("metrics", {}),
             "trigger_names": [
                 trigger.get("trigger_name") for trigger in record.get("triggers", [])
             ],
             "capture_commit_confirmation": record.get("commit_confirmation", "unknown"),
         }
+        if isinstance(support, dict):
+            summary["support_axes"] = {
+                "local_boundary_support": support.get("adjacent_candidate_side_count"),
+                "local_anaphor_support": support.get("local_pronoun_token_count"),
+                "document_regions": support.get("document_region_count"),
+                "document_interfaces": support.get("document_interface_count"),
+                "document_demands": support.get("document_demand_count"),
+                "document_mentions": support.get("document_mention_count"),
+            }
+        else:
+            summary["support_axes"] = None
         if args.database_url and preclose.get("region_id") and preclose.get("work_id"):
             summary["post_run_commit_state"] = _commit_state(
                 args.database_url,
@@ -115,12 +129,19 @@ def main() -> int:
 
     missing = sorted(set(configured) - set(observed))
     report = {
-        "contract_ref": "sensiblaw.live-region-close-explain-summary.v0_1",
+        "contract_ref": "sensiblaw.live-region-close-explain-summary.v0_2",
         "input": str(args.input),
         "configured_ordinals": configured,
         "observed_ordinals": observed,
         "missing_ordinals": missing,
         "record_count": len(records),
+        "support_vector_record_count": sum(
+            1 for record in records if isinstance(record.get("semantic_support_vector"), dict)
+        ),
+        "support_semantics": (
+            "close ordinal is a selector only; compare trigger time against local "
+            "fibre/boundary support separately from accumulated document populations"
+        ),
         "records": summaries,
     }
     payload = json.dumps(report, indent=2, sort_keys=True) + "\n"
