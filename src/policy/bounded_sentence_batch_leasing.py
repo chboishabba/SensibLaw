@@ -22,6 +22,7 @@ from src.pnf.numeric_hyperfabric import ClosureState, WorkOperation, WorkState
 from src.runtime.numeric_prefix_close_diagnostic import (
     NumericPrefixDiagnosticComplete,
     prefix_close_diagnostic_config,
+    record_committed_prefix_close,
     record_prefix_close_completion,
 )
 from src.storage.postgres.bounded_work_batch import (
@@ -110,7 +111,6 @@ def install_bounded_sentence_batch_leasing() -> bool:
         return False
 
     diagnostic = prefix_close_diagnostic_config()
-    committed_by_run: dict[str, int] = {}
 
     # ``_worker_drain`` treats ordinary exceptions from sentence closure as
     # parser-partition failures.  A prefix diagnostic is different: its final
@@ -203,8 +203,7 @@ def install_bounded_sentence_batch_leasing() -> bool:
                         # a prefix diagnostic stop the scheduler.
                         completed += 1
                         if diagnostic is not None:
-                            committed = committed_by_run.get(run_ref, 0) + 1
-                            committed_by_run[run_ref] = committed
+                            committed = record_committed_prefix_close(diagnostic)
                             if committed >= diagnostic.stop_after_committed:
                                 remaining = leases[index + 1 :]
                                 if remaining:

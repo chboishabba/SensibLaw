@@ -25,6 +25,7 @@ from src.runtime.numeric_prefix_close_diagnostic import (  # noqa: E402
     PREFIX_CLOSE_DIAGNOSTIC_REF,
     STOP_AFTER_ENV,
     STOP_OUTPUT_ENV,
+    STOP_STATE_ENV,
 )
 
 
@@ -121,6 +122,9 @@ def main() -> int:
     if not command:
         parser.error("a child command is required after --")
 
+    prefix_state_output = args.prefix_output.with_name(
+        f"{args.prefix_output.name}.state.json"
+    )
     close_state_output = (
         args.explain_output.with_name(f"{args.explain_output.name}.ordinal-state.json")
         if args.explain_output is not None
@@ -128,6 +132,7 @@ def main() -> int:
     )
     output_paths = (
         args.prefix_output,
+        prefix_state_output,
         args.explain_output,
         close_state_output,
         args.token_explain_output,
@@ -143,6 +148,7 @@ def main() -> int:
     environment = os.environ.copy()
     environment[STOP_AFTER_ENV] = str(args.stop_after)
     environment[STOP_OUTPUT_ENV] = str(args.prefix_output)
+    environment[STOP_STATE_ENV] = str(prefix_state_output)
     if close_ordinals is not None:
         environment["SENSIBLAW_REGION_CLOSE_EXPLAIN_ORDINALS"] = ",".join(
             str(value) for value in close_ordinals
@@ -185,6 +191,7 @@ def main() -> int:
             str(args.token_explain_output) if args.token_explain_output else None
         ),
         "prefix_output": str(args.prefix_output),
+        "prefix_state_output": str(prefix_state_output),
         "prefix_receipt": prefix,
         "semantics": (
             "success means the requested genuine sentence-close prefix committed; "

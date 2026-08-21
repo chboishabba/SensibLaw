@@ -11,6 +11,7 @@ from src.runtime.numeric_prefix_close_diagnostic import (
     STOP_AFTER_ENV,
     STOP_OUTPUT_ENV,
     prefix_close_diagnostic_config,
+    record_committed_prefix_close,
     record_prefix_close_completion,
 )
 
@@ -77,6 +78,22 @@ def test_prefix_completion_receipt_is_written_only_at_committed_boundary(
     assert record["last_committed_region_id"] == 11
     assert record["released_unstarted_leases"] == 4
     assert "committed normally" in record["semantic_state"]
+
+
+def test_prefix_count_is_shared_across_replacement_process_configs(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv(STOP_AFTER_ENV, "2")
+    monkeypatch.setenv(STOP_OUTPUT_ENV, str(tmp_path / "prefix.jsonl"))
+
+    first = prefix_close_diagnostic_config()
+    second = prefix_close_diagnostic_config()
+    assert first is not None and second is not None
+    assert record_committed_prefix_close(first) == 1
+    assert record_committed_prefix_close(second) == 2
+    with pytest.raises(RuntimeError, match="beyond its requested boundary"):
+        record_committed_prefix_close(first)
 
 
 def test_bounded_sentence_leasing_places_stop_after_transaction_commit() -> None:

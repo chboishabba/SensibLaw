@@ -61,6 +61,11 @@ the observed record ordinals are not exactly the requested sequence.  The probe
 remains serial-only: multiple concurrent closers would make ordinal order a
 schedule artefact rather than a stable accumulated-state stratum.
 
+The committed-prefix boundary uses the same run-scoped, fsynced control-plane
+discipline.  A replacement worker continues the existing committed-close count;
+an attempt to run beyond the requested boundary fails the diagnostic rather than
+claiming an inexact prefix.
+
 The suggested `100,6355,12600` positions sample early/middle/late closure for the
 12,710-sentence GWB workload.  They test whether close cost grows with accumulated
 derived state rather than guessing cheap/median/expensive rows after completion.
