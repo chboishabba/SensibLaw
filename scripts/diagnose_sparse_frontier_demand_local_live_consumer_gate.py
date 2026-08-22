@@ -43,9 +43,15 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--database-url", required=True)
     ap.add_argument("--interface-id", required=True, type=int)
+    ap.add_argument(
+        "--profile-interface-id",
+        type=int,
+        help="interface whose actor-profile fibre supplies candidate provenance (defaults to --interface-id)",
+    )
     ap.add_argument("--output", required=True, type=Path)
     ap.add_argument("--timeout-ms", type=int, default=60000)
     args = ap.parse_args()
+    profile_interface_id = args.profile_interface_id or args.interface_id
     args.output.parent.mkdir(parents=True, exist_ok=True)
 
     con = connect(args.database_url)
@@ -91,7 +97,7 @@ def main() -> int:
                        lead(last_end_char) OVER (PARTITION BY object_id ORDER BY last_end_char) AS next_end_char
                   FROM grouped
                 """,
-                (args.interface_id,),
+                (profile_interface_id,),
             )
             cur.execute("CREATE UNIQUE INDEX wildcard_gate_segment_pk ON wildcard_gate_segment(object_id,last_end_char)")
             cur.execute("CREATE INDEX wildcard_gate_segment_active_idx ON wildcard_gate_segment(last_end_char DESC,next_end_char,object_id)")
@@ -199,7 +205,7 @@ def main() -> int:
                   ) p
                  WHERE d.certified
                 """,
-                (args.interface_id,),
+                (profile_interface_id,),
             )
             cur.execute("CREATE UNIQUE INDEX wildcard_gate_bounded_pk ON wildcard_gate_bounded(demand_id,target_kind,target_id)")
             cur.execute("ANALYZE wildcard_gate_bounded")
@@ -234,7 +240,7 @@ def main() -> int:
                   FROM wildcard_gate_decision d LEFT JOIN wildcard_gate_bounded b USING(demand_id)
                  WHERE d.certified GROUP BY d.demand_id
                 """,
-                (region_kind,args.interface_id),
+                (region_kind,profile_interface_id),
             )
             cur.execute(
                 """
@@ -263,6 +269,7 @@ def main() -> int:
             receipt = {
                 "contract_ref": CONTRACT_REF,
                 "interface_id": args.interface_id,
+                "profile_interface_id": profile_interface_id,
                 "semantic_mutation_performed": False,
                 "temp_state_only": True,
                 "interface_graph_revision": interface_revision,
