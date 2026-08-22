@@ -10,7 +10,8 @@ SCRIPT = ROOT / "scripts" / "diagnose_sparse_frontier_composite_signatures.py"
 def test_composite_signature_diagnostic_is_read_only_counterfactual() -> None:
     source = SCRIPT.read_text(encoding="utf-8")
 
-    assert "sensiblaw.sparse-frontier-composite-signature-diagnostic.v0_1" in source
+    assert "sensiblaw.sparse-frontier-composite-signature-diagnostic.v0_2" in source
+    assert 'SIGNATURE_ENCODING = "nullable-mask-coordinates"' in source
     assert "_DIRECT_OBJECT_CANDIDATE" in source
     assert "_INDEXED_OBJECT_CANDIDATE" in source
     assert "_COMPOSITE_OBJECT_CANDIDATE" in source
@@ -29,21 +30,35 @@ def test_composite_signature_uses_one_four_axis_mask_and_exact_lexical_disjuncti
     assert "THEN 2 ELSE 0" in source
     assert "THEN 1 ELSE 0" in source
 
-    # Historical lexical semantics are head OR predicate.  UNION suppresses the
+    # Historical lexical semantics are head OR predicate. UNION suppresses the
     # duplicate posting if both semantic coordinates are equal.
     assert "SELECT profile.head_symbol_id::BIGINT" in source
     assert "SELECT profile.predicate_symbol_id::BIGINT" in source
     assert "UNION\n       SELECT profile.predicate_symbol_id::BIGINT" in source
 
 
-def test_composite_signature_join_is_conjunctive_not_unary_posthoc_intersection() -> None:
+def test_composite_signature_uses_collision_free_nullable_coordinates() -> None:
+    source = SCRIPT.read_text(encoding="utf-8")
+
+    # Zero is a legitimate semantic value. Masked-off coordinates therefore use
+    # SQL NULL rather than any in-domain BIGINT sentinel.
+    assert "_ZERO_SYMBOL_GUARD" not in source
+    assert "_zero_symbol_guard" not in source
+    assert "COALESCE(demand.expected_factor_type_symbol_id, 0)" not in source
+    assert "THEN profile.factor_type_symbol_id ELSE NULL END::BIGINT" in source
+    assert "THEN profile.object_kind_symbol_id ELSE NULL END::BIGINT" in source
+    assert "THEN profile.role_symbol_id ELSE NULL END::BIGINT" in source
+    assert "SELECT NULL::BIGINT AS lexical_key" in source
+
+
+def test_composite_signature_join_is_conjunctive_and_null_safe() -> None:
     source = SCRIPT.read_text(encoding="utf-8")
 
     assert "profile.mask = demand.mask" in source
-    assert "profile.factor_key = demand.factor_key" in source
-    assert "profile.object_kind_key = demand.object_kind_key" in source
-    assert "profile.role_key = demand.role_key" in source
-    assert "profile.lexical_key = demand.lexical_key" in source
+    assert "profile.factor_key IS NOT DISTINCT FROM demand.factor_key" in source
+    assert "profile.object_kind_key IS NOT DISTINCT FROM demand.object_kind_key" in source
+    assert "profile.role_key IS NOT DISTINCT FROM demand.role_key" in source
+    assert "profile.lexical_key IS NOT DISTINCT FROM demand.lexical_key" in source
 
     # The counterfactual path must not rebuild conjunctive truth by grouping
     # independent unary matches.
@@ -52,14 +67,6 @@ def test_composite_signature_join_is_conjunctive_not_unary_posthoc_intersection(
     composite = source[composite_start:composite_end]
     assert "GROUP BY" not in composite
     assert "matched_count" not in composite
-
-
-def test_zero_symbol_sentinel_is_fail_closed() -> None:
-    source = SCRIPT.read_text(encoding="utf-8")
-
-    assert "_ZERO_SYMBOL_GUARD" in source
-    assert "refuses zero-valued semantic symbol ids" in source
-    assert "_zero_symbol_guard(cursor, interface_id)" in source
 
 
 def test_recursive_plan_receipt_exposes_rescan_shape_without_double_counting_buffers() -> None:
